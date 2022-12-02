@@ -177,8 +177,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(String member,
-      @CachedLibrary("this") InteropLibrary interop) {
+  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop) {
     FramePointer framePtr = allBindings.get(member);
     if (framePtr == null) {
       return null;
@@ -254,17 +253,13 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   private Object getValue(MaterializedFrame frame, FramePointer ptr) {
-    return ptr == null ? null :
-        getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
+    return ptr == null ? null : getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
   }
 
   private void setValue(MaterializedFrame frame, FramePointer ptr, Object value) {
     assert ptr != null;
     MaterializedFrame properFrame = getProperFrame(frame, ptr);
-    properFrame.setObject(
-        ptr.getFrameSlotIdx(),
-        value
-    );
+    properFrame.setObject(ptr.getFrameSlotIdx(), value);
   }
 
   private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
@@ -311,7 +306,8 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   /**
-   * Wrapper for host objects. Is a workaround for a bug in chromeinspector (https://github.com/oracle/graal/issues/5513)
+   * Wrapper for host objects. Is a workaround for a bug in chromeinspector
+   * (https://github.com/oracle/graal/issues/5513)
    */
   @ExportLibrary(InteropLibrary.class)
   static final class HostWrapper implements TruffleObject {
@@ -327,14 +323,9 @@ public class DebugLocalScope implements TruffleObject {
         if (interop.hasMetaObject(hostObject)) {
           Object metaObject = interop.getMetaObject(hostObject);
           Object metaQualifiedName = interop.getMetaQualifiedName(metaObject);
-          sb
-              .append(interop.asString(metaQualifiedName))
-              .append(": ");
+          sb.append(interop.asString(metaQualifiedName)).append(": ");
         }
-        sb
-            .append("'")
-            .append(interop.asString(interop.toDisplayString(hostObject)))
-            .append("'");
+        sb.append("'").append(interop.asString(interop.toDisplayString(hostObject))).append("'");
       } catch (UnsupportedMessageException e) {
         sb.append("unknown");
       }
