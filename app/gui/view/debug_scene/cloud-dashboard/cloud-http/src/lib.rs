@@ -241,7 +241,7 @@ impl AccessToken {
     /// Token (JWT). Note that we do not return an error if the token is expired, etc. We only check
     /// that it is properly formatted.
     pub fn new(token: &str) -> Result<Self, Error> {
-        let bearer = headers::Authorization::bearer(&token)?;
+        let bearer = headers::Authorization::bearer(token)?;
         let token = Self { bearer };
         Ok(token)
     }
