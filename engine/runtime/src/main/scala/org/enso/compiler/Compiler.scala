@@ -602,12 +602,11 @@ class Compiler(
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
 
-  /**
-   * Parses the given source with the new Rust parser.
-   *
-   * @param source
-   * @return
-   */
+  /** Parses the given source with the new Rust parser.
+    *
+    * @param source The inline code to parse
+    * @return A Tree representation of `source`
+    */
   def parseInline(source: Source): Tree = ensoCompiler.parse(source)
 
   /** Parses the metadata of the provided language sources.
@@ -763,7 +762,7 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): Unit =
-    if (context.isStrictErrors) {
+    if (config.isStrictErrors) {
       val errors = GatherDiagnostics
         .runExpression(ir, inlineContext)
         .unsafeGetMetadata(
@@ -784,7 +783,7 @@ class Compiler(
   def runErrorHandling(
     modules: List[Module]
   ): Unit = {
-    if (context.isStrictErrors) {
+    if (config.isStrictErrors) {
       val diagnostics = modules.flatMap { module =>
         val errors = gatherDiagnostics(module)
         List((module, errors))
@@ -827,7 +826,7 @@ class Compiler(
     }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
-    if (context.isStrictErrors) {
+    if (config.isStrictErrors) {
       output.println("Compiler encountered errors:")
       output.println("Export statements form a cycle:")
       exception.modules match {
@@ -852,7 +851,7 @@ class Compiler(
   }
 
   private def reportExportConflicts(exception: Throwable): Nothing = {
-    if (context.isStrictErrors) {
+    if (config.isStrictErrors) {
       output.println("Compiler encountered errors:")
       output.println(exception.getMessage)
       throw new CompilationAbortedException
