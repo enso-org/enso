@@ -7,6 +7,7 @@ import Standard.Base.Data.Text.Regex.Option as Global_Option
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 default_mask = Java_Pattern.CANON_EQ.bit_or Java_Pattern.UNICODE_CASE . bit_or Java_Pattern.UNICODE_CHARACTER_CLASS
 
@@ -557,10 +558,10 @@ spec =
         match . should_be_a Default_Engine.Match_Data
 
         Test.specify "should get the span of a group by index" <|
-            match.span 1 . should_equal (Utf_16_Span_Data (Range_Data 0 6) input)
+            match.span 1 . should_equal (Utf_16_Span_Data (0.up_to 6) input)
 
         Test.specify "should get the span of a group by name" <|
-            match.span "letters" . should_equal (Utf_16_Span_Data (Range_Data 6 18) input)
+            match.span "letters" . should_equal (Utf_16_Span_Data (6.up_to 18) input)
 
         Test.specify "should return Nothing if the group didn't match" <|
             match.span 3 . should_equal Nothing

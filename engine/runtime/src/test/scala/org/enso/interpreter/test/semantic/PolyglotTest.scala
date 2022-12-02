@@ -125,10 +125,10 @@ class PolyglotTest extends InterpreterTest {
       count shouldEqual "FAIL"
     }
 
-    "fail to match on Polyglot type when explicitly importing everything from Polyglot module" in {
+    "match on Polyglot type when explicitly importing everything from Polyglot module" in {
       val code =
         """from Standard.Base.Polyglot import all
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |polyglot java import java.util.Random
           |
           |main =
@@ -139,13 +139,13 @@ class PolyglotTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       val count :: Nil = consumeOut
-      count shouldEqual "FAIL"
+      count shouldEqual "OK"
     }
 
     "fail to match on Polyglot type case when only importing Polyglot module" in {
       val code =
         """import Standard.Base.Polyglot
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |polyglot java import java.util.Random
           |
           |main =
@@ -162,7 +162,7 @@ class PolyglotTest extends InterpreterTest {
     "match on qualified name of the Polyglot type from Polyglot module" in {
       val code =
         """import Standard.Base.Polyglot
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |polyglot java import java.util.Random
           |
           |main =

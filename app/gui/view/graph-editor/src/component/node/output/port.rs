@@ -102,7 +102,7 @@ impl AllPortsShape {
         let port_area_height = &inner_height + (&port_area_size - &shrink) * 2.0;
         let outer_radius = &inner_radius + &port_area_size;
         let shape = Rect((&port_area_width, &port_area_height));
-        let shape = shape.corners_radius(&outer_radius);
+        let shape = shape.corners_radius(outer_radius);
         let shape = shape - &top_mask;
         let corner_radius = &port_area_size / 2.0;
         let corner_offset = &port_area_width / 2.0 - &corner_radius;
@@ -115,7 +115,7 @@ impl AllPortsShape {
         // === Hover Area ===
 
         let hover_radius = &inner_radius + &HOVER_AREA_PADDING.px();
-        let hover = Rect((canvas_width, canvas_height)).corners_radius(&hover_radius);
+        let hover = Rect((canvas_width, canvas_height)).corners_radius(hover_radius);
         let hover = (hover - &top_mask).into();
 
         AllPortsShape { inner_radius, inner_width, shape, hover }
@@ -485,7 +485,7 @@ impl Model {
         let type_label = app.new_view::<text::Text>();
         let offset_y =
             styles.get_number(ensogl_hardcoded_theme::graph_editor::node::type_label::offset_y);
-        type_label.set_position_y(offset_y);
+        type_label.set_y(offset_y);
         self.type_label = Some(type_label.clone());
 
         let display_object = display::object::Instance::new();
@@ -549,7 +549,7 @@ impl Model {
                     let label_center_x = port_center_x;
                     label_center_x - type_label_width / 2.0
                 }));
-            eval set_type_label_x ((&t) type_label.set_position_x(t));
+            eval set_type_label_x ((&t) type_label.set_x(t));
             eval frp.set_size_multiplier ((t) shape.set_size_multiplier(*t));
 
 

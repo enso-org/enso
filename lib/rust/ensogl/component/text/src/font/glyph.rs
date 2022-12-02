@@ -18,6 +18,7 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
+use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::frp;
@@ -189,6 +190,7 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
         let symbol = sprite_system.symbol();
 
         *data.model.material.borrow_mut() = Self::material();
+        *data.model.geometry_material.borrow_mut() = SpriteSystem::default_geometry_material();
         data.model.do_not_use_shape_definition.set(true);
 
         sprite_system.set_alignment(Alignment::bottom_left());

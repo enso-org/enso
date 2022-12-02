@@ -191,6 +191,11 @@ impl<Value> {
         self.value = value;
     }
 
+    /// Modifies the value of this uniform.
+    pub fn modify(&mut self, f: impl FnOnce(&mut Value)) {
+        f(&mut self.value);
+    }
+
 //    /// Checks whether the uniform was changed and not yet updated.
 //    pub fn check_dirty(&self) -> bool {
 //        self.dirty

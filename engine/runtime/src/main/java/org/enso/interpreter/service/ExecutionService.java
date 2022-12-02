@@ -20,7 +20,7 @@ import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -51,7 +51,7 @@ import java.util.function.Consumer;
 public class ExecutionService {
 
   private static final String MAIN_METHOD = "main";
-  private final Context context;
+  private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
   private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
@@ -69,7 +69,7 @@ public class ExecutionService {
    *     to the language server, or null
    */
   public ExecutionService(
-      Context context,
+      EnsoContext context,
       Optional<IdExecutionService> idExecutionInstrument,
       NotificationHandler.Forwarder notificationForwarder,
       ConnectedLockManager connectedLockManager) {
@@ -80,7 +80,7 @@ public class ExecutionService {
   }
 
   /** @return the language context. */
-  public Context getContext() {
+  public EnsoContext getContext() {
     return context;
   }
 
@@ -103,7 +103,7 @@ public class ExecutionService {
     }
     Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
     return new FunctionCallInstrumentationNode.FunctionCall(
-        function, State.create(Context.get(null)), arguments);
+        function, State.create(EnsoContext.get(null)), arguments);
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {

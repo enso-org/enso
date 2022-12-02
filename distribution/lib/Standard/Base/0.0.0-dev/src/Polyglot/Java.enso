@@ -1,5 +1,10 @@
 ## Utilities for working with Java polyglot objects.
 
+import project.Data.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Text.Text
+import project.Nothing.Nothing
+
 ## Adds the provided entry to the host class path.
 
    Arguments:

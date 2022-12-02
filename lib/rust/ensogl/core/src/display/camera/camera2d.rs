@@ -197,7 +197,7 @@ type ProjectionDirty = dirty::SharedBool<()>;
 type TransformDirty = dirty::SharedBool<()>;
 
 impl Camera2dData {
-    fn new(display_object: &display::object::Instance) -> Self {
+    fn new() -> Self {
         let screen = Screen::new();
         let projection = default();
         let clipping = default();
@@ -205,10 +205,9 @@ impl Camera2dData {
         let z_zoom_1 = 1.0;
         let matrix = default();
         let dirty = Dirty::new();
-        let display_object = display_object.clone_ref();
+        let display_object = display::object::Instance::new();
         let zoom_update_registry = default();
         let screen_update_registry = default();
-        display_object.set_on_updated(f_!(dirty.transform.set()));
         display_object.mod_position(|p| p.z = 1.0);
         dirty.projection.set();
         let network = frp::Network::new("Camera2d");
@@ -216,6 +215,7 @@ impl Camera2dData {
             frp_position <- source();
             frp_zoom <- source();
             frp_screen <- source();
+            eval_ display_object.on_updated (dirty.transform.set());
         }
         let frp = Frp { network, position: frp_position, zoom: frp_zoom, screen: frp_screen };
         Self {
@@ -248,7 +248,7 @@ impl Camera2dData {
     }
 
     fn recompute_view_matrix(&mut self) {
-        let transform = self.display_object.matrix();
+        let transform = self.display_object.transformation_matrix();
         self.matrix.view_inversed = transform;
         self.matrix.view = transform.try_inverse().unwrap()
     }
@@ -402,8 +402,8 @@ impl Camera2d {
     /// Creates new [`Camera2d`] instance. Please note that the camera will be of zero-size and in
     /// order for it to work properly, you have to initialize it by using the `set_screen` method.
     pub fn new() -> Self {
-        let display_object = display::object::Instance::new();
-        let data = Camera2dData::new(&display_object);
+        let data = Camera2dData::new();
+        let display_object = data.display_object.clone_ref();
         let data = Rc::new(RefCell::new(data));
         Self { display_object, data }
     }

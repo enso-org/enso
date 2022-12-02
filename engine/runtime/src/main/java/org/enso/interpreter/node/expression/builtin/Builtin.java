@@ -1,7 +1,7 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
@@ -50,7 +50,7 @@ public abstract class Builtin {
     return List.of();
   }
 
-  public final void initialize(Language language, ModuleScope scope, Map<Class<? extends Builtin>, Builtin> builtins) {
+  public final void initialize(EnsoLanguage language, ModuleScope scope, Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;
       if (getSuperType() != null) {

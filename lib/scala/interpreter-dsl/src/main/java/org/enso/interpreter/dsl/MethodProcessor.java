@@ -126,12 +126,12 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.profiles.BranchProfile",
           "com.oracle.truffle.api.profiles.ConditionProfile",
           "java.nio.file.OpenOption",
-          "org.enso.interpreter.Language",
+          "org.enso.interpreter.EnsoLanguage",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
-          "org.enso.interpreter.runtime.Context",
+          "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
@@ -184,7 +184,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       }
       out.println("  private final BranchProfile anyWarningsProfile = BranchProfile.create();");
 
-      out.println("  private " + methodDefinition.getClassName() + "(Language language) {");
+      out.println("  private " + methodDefinition.getClassName() + "(EnsoLanguage language) {");
       out.println("    super(language);");
       out.println("    bodyNode = " + methodDefinition.getConstructorExpression() + ";");
       out.println("  }");
@@ -196,7 +196,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               ? "fromBuiltinRootNodeWithCallerFrameAccess"
               : "fromBuiltinRootNode";
 
-      out.println("  public static Function makeFunction(Language language) {");
+      out.println("  public static Function makeFunction(EnsoLanguage language) {");
       out.println("    return Function." + functionBuilderMethod + "(");
       out.println(
           "        new "
@@ -289,7 +289,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println("  @Override");
       out.println("  protected RootNode cloneUninitialized() {");
-      out.println("    return new " + methodDefinition.getClassName() + "(Language.get(this));");
+      out.println("    return new " + methodDefinition.getClassName() + "(EnsoLanguage.get(this));");
       out.println("  }");
 
       out.println();
@@ -401,7 +401,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
         "      " + varName + " = " + castName + "(" + argsArray + "[" + arg.getPosition() + "]);");
     out.println("    } catch (UnexpectedResultException e) {");
     out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
-    out.println("      var builtins = Context.get(this).getBuiltins();");
+    out.println("      var builtins = EnsoContext.get(this).getBuiltins();");
     out.println(
         "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments["
             + arg.getPosition()

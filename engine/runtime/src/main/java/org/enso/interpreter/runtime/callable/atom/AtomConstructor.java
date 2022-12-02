@@ -1,8 +1,8 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -16,7 +16,7 @@ import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -145,13 +145,13 @@ public final class AtomConstructor implements TruffleObject {
             type.getName() + "." + name,
             null,
             false);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+    RootCallTarget callTarget = rootNode.getCallTarget();
     return new Function(callTarget, null, new FunctionSchema(args));
   }
 
   private void generateQualifiedAccessor() {
     QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    RootCallTarget callTarget = node.getCallTarget();
     Function function =
         new Function(
             callTarget,
@@ -249,12 +249,13 @@ public final class AtomConstructor implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
     return "Constructor<" + name + ">";
   }
 
   /** @return the fully qualified name of this constructor. */
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
   }
@@ -282,6 +283,6 @@ public final class AtomConstructor implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().function();
+    return EnsoContext.get(thisLib).getBuiltins().function();
   }
 }

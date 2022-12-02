@@ -146,7 +146,7 @@ Text.characters self =
          example_match =
              regex = "a[ab]c"
              "aabbbbccccaabcaaaa".match regex == "abc"
-Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Text | Nothing
+Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
 Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matcher_Data =
     case self.locate term mode matcher of
         Nothing -> Nothing
@@ -192,7 +192,7 @@ Text.match_all self term=".*" matcher=Regex_Matcher.Regex_Matcher_Data =
          example_match =
              regex = ".+@.+"
              "contact@enso.org".is_match regex
-Text.is_match : Text -> Matcher -> Boolean ! Regex.Compile_Error
+Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Regex.Compile_Error
 Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
     Text_Matcher.Case_Sensitive -> self == pattern
     Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
@@ -423,58 +423,6 @@ Text.lines : Boolean -> Vector Text
 Text.lines self keep_endings=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
-## Checks whether `self` is equal to `that`, ignoring the case of the texts.
-
-   Arguments:
-   - that: The text to compare `self` for case-insensitive equality with.
-
-   Two texts are considered equal ignoring case if they are of the same length
-   and corresponding characters are equal ignoring case.
-
-   ! Unicode Equality
-     The definition of equality includes Unicode canonicalization. I.e. two
-     texts are equal if they are identical after canonical decomposition. This
-     ensures that different ways of expressing the same character in the
-     underlying binary representation are considered equal.
-
-   > Example
-     The string 'É' (i.e. the character U+00C9, LATIN CAPITAL LETTER E WITH
-     ACUTE) is equal ignore case to the string 'é' (i.e. the character U+00E9,
-     LATIN SMALL LETTER E WITH ACUTE), which is canonically the same as the
-     string 'e\u0301' (i.e. the letter `e` followed by U+0301, COMBINING ACUTE
-     ACCENT). Therefore:
-
-         (('É' . equals_ignore_case 'é') && ('é' . equals_ignore_case 'e\u0301')) == True
-Text.equals_ignore_case : Text -> Locale -> Boolean
-Text.equals_ignore_case self that locale=Locale.default =
-    Text_Utils.equals_ignore_case self that locale.java_locale
-
-## ADVANCED
-   PRIVATE
-   UNSTABLE
-   Unifies the case of all letters in the text, generating a key which can be
-   used to perform case-insensitive comparisons.
-Text.to_case_insensitive_key : Locale -> Text
-Text.to_case_insensitive_key self locale=Locale.default =
-    Text_Utils.case_insensitive_key self locale.java_locale
-
-## Compare two texts to discover their ordering.
-
-   Arguments:
-   - that: The text to order `self` with respect to.
-
-   > Example
-     Checking how "a" orders in relation to "b".
-
-         "a".compare_to_ignore_case "b"
-Text.compare_to_ignore_case : Text -> Locale -> Ordering
-Text.compare_to_ignore_case self that locale=Locale.default =
-    if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
-        comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
-        if comparison_result == 0 then Ordering.Equal else
-            if comparison_result < 0 then Ordering.Less else
-                Ordering.Greater
-
 ## Inserts text value at the specified index.
 
    Arguments:
@@ -503,8 +451,8 @@ Text.insert self index that =
     if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error_Data index len) else
         if idx == 0 then that + self else
             if idx == len then self + that else
-                pre = self.take (Range_Data 0 idx)
-                post = self.take (Range_Data idx len)
+                pre = self.take (0.up_to idx)
+                post = self.take (idx.up_to len)
                 pre + that + post
 
 ## Returns if a character from the text at the specified index (0-based) is a
@@ -567,7 +515,7 @@ Text.bytes self encoding on_problems=Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
-        on_problems.attach_problems_after vector [Encoding_Error_Data result.warnings]
+        on_problems.attach_problems_after vector [Encoding_Error.Error result.warnings]
 
 ## Takes a vector of bytes and returns Text resulting from decoding it using the
    specified encoding.
@@ -589,7 +537,7 @@ Text.from_bytes : Vector Byte -> Encoding -> Text
 Text.from_bytes bytes encoding on_problems=Report_Warning =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
-        on_problems.attach_problems_after result.result [Encoding_Error_Data result.warnings]
+        on_problems.attach_problems_after result.result [Encoding_Error.Error result.warnings]
 
 ## Returns a vector containing bytes representing the UTF-8 encoding of the
    input text.
@@ -718,7 +666,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) == True
          "Hello!".starts_with "[a-z]" Regex_Matcher == False
          "Hello!".starts_with "[A-Z]" Regex_Matcher == True
-Text.starts_with : Text -> Matcher -> Boolean
+Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
     Text_Matcher.Case_Insensitive locale ->
@@ -753,7 +701,7 @@ Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher 
          "Hello World".ends_with "world" == False
          "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
          "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
-Text.ends_with : Text -> Matcher -> Boolean
+Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
     Text_Matcher.Case_Insensitive locale ->
@@ -815,7 +763,7 @@ Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
      See if the text "Hello!" contains any lowercase letters, using a regex.
 
          "Hello!".contains "[a-z]" Regex_Matcher
-Text.contains : Text -> Matcher -> Boolean
+Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
 Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive -> Text_Utils.contains self term
     Text_Matcher.Case_Insensitive locale ->
@@ -905,7 +853,7 @@ Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index
 Text.take self range=(First 1) =
     ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
     case ranges of
-        Range_Data start end _ ->
+        Range.Value start end 1 ->
             Text_Utils.substring self start end
         Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
@@ -951,7 +899,7 @@ Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bo
 Text.drop self range=(First 1) =
     ranges = Text_Sub_Range_Module.find_codepoint_ranges self range
     case ranges of
-        Range_Data start end _ ->
+        Range.Value start end 1 ->
             if start == 0 then Text_Utils.drop_first self end else
                 prefix = Text_Utils.substring self 0 start
                 if end == (Text_Utils.char_length self) then prefix else
@@ -1182,7 +1130,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
 
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Text_Matcher == Span (Range 5 7) "aaa aaa"
          "aaa aaa".locate "aa" mode=Matching_Mode.Last matcher=Regex_Matcher == Span (Range 4 6) "aaa aaa"
-Text.locate : Text -> (Matching_Mode.First | Matching_Mode.Last) -> Matcher -> Span | Nothing
+Text.locate : Text -> (Matching_Mode.First | Matching_Mode.Last) -> (Text_Matcher | Regex_Matcher) -> Span | Nothing
 Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sensitive = case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_span = case mode of
@@ -1194,13 +1142,13 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
                from our term, the `length` counted in grapheme clusters is
                guaranteed to be the same.
             end = start + term.length
-            Span_Data (Range_Data start end) self
+            Span_Data (start.up_to end) self
     Text_Matcher.Case_Insensitive locale -> case term.is_empty of
         True -> case mode of
-            Matching_Mode.First -> Span_Data (Range_Data 0 0) self
+            Matching_Mode.First -> Span_Data (0.up_to 0) self
             Matching_Mode.Last ->
                 end = self.length
-                Span_Data (Range_Data end end) self
+                Span_Data (end.up_to end) self
         False ->
             search_for_last = case mode of
                 Matching_Mode.First -> False
@@ -1208,7 +1156,7 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
             case Text_Utils.span_of_case_insensitive self term locale.java_locale search_for_last of
                 Nothing -> Nothing
                 grapheme_span ->
-                    Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
+                    Span_Data (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
     _ -> case mode of
         Matching_Mode.First ->
             case matcher.compile term . match self Matching_Mode.First of
@@ -1284,8 +1232,8 @@ Text.locate self term="" mode=Matching_Mode.First matcher=Text_Matcher.Case_Sens
          match_1 . map .length == [2, 3]
          match_2 = ligatures . locate_all "ffiff" matcher=(Text_Matcher Case_Insensitive)
          match_2 . map .length == [2, 5]
-Text.locate_all : Text -> Matcher -> [Span]
-Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (Range_Data ix ix) self) else case matcher of
+Text.locate_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Span
+Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span_Data (ix.up_to ix) self) else case matcher of
     Text_Matcher.Case_Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
         grahpeme_ixes = Vector.from_polyglot_array <| Text_Utils.utf16_indices_to_grapheme_indices self (codepoint_spans.map .codeunit_start).to_array
@@ -1295,11 +1243,11 @@ Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_em
         offset = term.length
         grahpeme_ixes . map start->
             end = start+offset
-            Span_Data (Range_Data start end) self
+            Span_Data (start.up_to end) self
     Text_Matcher.Case_Insensitive locale ->
         grapheme_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all_case_insensitive self term locale.java_locale
         grapheme_spans.map grapheme_span->
-            Span_Data (Range_Data grapheme_span.grapheme_start grapheme_span.grapheme_end) self
+            Span_Data (grapheme_span.grapheme_start.up_to grapheme_span.grapheme_end) self
     _ : Regex_Matcher.Regex_Matcher ->
         case matcher.compile term . match self Regex_Mode.All of
             Nothing -> []

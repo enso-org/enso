@@ -96,35 +96,21 @@ pub struct OperatorBlockExpression<'s> {
 }
 
 /// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
-fn to_operator_block_expression(
-    mut tree: Tree<'_>,
-) -> Result<OperatorBlockExpression<'_>, Tree<'_>> {
-    let mut left_operator = None;
-    recurse_left_mut_while(&mut tree, |tree| {
-        if let Variant::OprApp(OprApp { lhs: None, opr, rhs }) = &mut *tree.variant
-            && let Some(rhs_) = rhs
-            && rhs_.span.left_offset.visible.width_in_spaces >= 1
-        {
-            left_operator = Some(opr.clone());
-            *tree = mem::take(rhs).unwrap();
+fn to_operator_block_expression<'s>(
+    items: Vec<Item<'s>>,
+    precedence: &mut operator::Precedence<'s>,
+) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
+    if let Some(b) = items.get(1) && b.left_visible_offset().width_in_spaces != 0
+        && let Some(Item::Token(a)) = items.first()
+        && let token::Variant::Operator(op) = &a.variant {
+            let operator = Ok(Token(a.left_offset.clone(), a.code.clone(), *op));
+            let mut items = items.into_iter();
+            items.next();
+            let expression = precedence.resolve(items).unwrap();
+            Ok(OperatorBlockExpression { operator, expression })
+        } else {
+            Err(precedence.resolve(items).unwrap())
         }
-        true
-    });
-    let Some(mut operator) = left_operator else {
-        return Err(tree);
-    };
-    operator.first_operator_mut().left_offset += mem::take(&mut tree.span.left_offset);
-    if let Variant::OprSectionBoundary(OprSectionBoundary { arguments, .. }) = &mut *tree.variant {
-        *arguments -= 1;
-    }
-    let expression = match *tree.variant {
-        Variant::OprSectionBoundary(OprSectionBoundary { ast, arguments: 0 }) => {
-            operator.first_operator_mut().left_offset += tree.span.left_offset;
-            ast
-        }
-        _ => tree,
-    };
-    Ok(OperatorBlockExpression { operator, expression })
 }
 
 impl<'s> span::Builder<'s> for OperatorBlockExpression<'s> {
@@ -210,11 +196,12 @@ impl<'s> Builder<'s> {
     fn new_with_expression(
         empty_lines: impl IntoIterator<Item = token::Newline<'s>>,
         newline: token::Newline<'s>,
-        expression: Tree<'s>,
+        items: Vec<Item<'s>>,
+        precedence: &mut operator::Precedence<'s>,
     ) -> Self {
         let empty_lines = empty_lines.into_iter();
         let new_lines = 1;
-        match to_operator_block_expression(expression) {
+        match to_operator_block_expression(items, precedence) {
             Ok(expression) => {
                 let expression = Some(expression);
                 let mut operator_lines = Vec::with_capacity(empty_lines.size_hint().0 + new_lines);
@@ -233,21 +220,23 @@ impl<'s> Builder<'s> {
     }
 
     /// Apply a new line to the state.
-    pub fn push(&mut self, newline: token::Newline<'s>, expression: Option<Tree<'s>>) {
+    pub fn push(
+        &mut self,
+        newline: token::Newline<'s>,
+        items: Vec<Item<'s>>,
+        precedence: &mut operator::Precedence<'s>,
+    ) {
         match self {
-            Builder::Indeterminate { empty_lines } => match expression {
-                Some(expression) =>
-                    *self = Self::new_with_expression(empty_lines.drain(..), newline, expression),
-                None => empty_lines.push(newline),
-            },
+            Builder::Indeterminate { empty_lines } if items.is_empty() => empty_lines.push(newline),
+            Builder::Indeterminate { empty_lines } =>
+                *self = Self::new_with_expression(empty_lines.drain(..), newline, items, precedence),
             Builder::NonOperator { body_lines, .. } =>
-                body_lines.push(Line { newline, expression }),
+                body_lines.push(Line { newline, expression: precedence.resolve(items) }),
             Builder::Operator { body_lines, .. } if !body_lines.is_empty() => {
-                body_lines.push(Line { newline, expression });
+                body_lines.push(Line { newline, expression: precedence.resolve(items) });
             }
-            Builder::Operator { operator_lines, body_lines, .. }
-            if let Some(expression) = expression => {
-                match to_operator_block_expression(expression) {
+            Builder::Operator { operator_lines, body_lines, .. } if !items.is_empty() =>
+                match to_operator_block_expression(items, precedence) {
                     Ok(expression) => {
                         let expression = Some(expression);
                         operator_lines.push(OperatorLine { newline, expression });
@@ -255,9 +244,8 @@ impl<'s> Builder<'s> {
                     Err(expression) => {
                         let expression = Some(expression);
                         body_lines.push(Line { newline, expression })
-                    },
-                }
-            }
+                    }
+                },
             Builder::Operator { operator_lines, .. } => operator_lines.push(newline.into()),
         }
     }
@@ -281,79 +269,5 @@ impl<'s> Builder<'s> {
 impl<'s> Default for Builder<'s> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-
-
-// =============
-// === Lines ===
-// =============
-
-/// Given an iterable of [`Item`]s, return an iterator of the [`Line`]s produced by dividing the
-/// input at newline tokens, and parsing the expressions with
-/// [`operator::resolve_operator_precedence`].
-pub fn lines<'s, I, J>(items: I) -> Lines<'s, J>
-where
-    I: IntoIterator<IntoIter = J>,
-    J: Iterator<Item = Item<'s>>, {
-    let items = items.into_iter();
-    let newline = default();
-    let line = default();
-    let finished = default();
-    let precedence = default();
-    Lines { items, newline, line, finished, precedence }
-}
-
-/// An iterator of [`Line`]s.
-#[derive(Debug)]
-pub struct Lines<'s, I> {
-    items:      I,
-    newline:    token::Newline<'s>,
-    line:       Vec<Item<'s>>,
-    finished:   bool,
-    precedence: operator::Precedence<'s>,
-}
-
-impl<'s, I> Lines<'s, I> {
-    fn parse_current_line(&mut self, newline: token::Newline<'s>) -> Line<'s> {
-        let expression = self.precedence.resolve(self.line.drain(..));
-        Line { newline, expression }
-    }
-}
-
-impl<'s, I> Iterator for Lines<'s, I>
-where I: Iterator<Item = Item<'s>>
-{
-    type Item = Line<'s>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.finished {
-            return None;
-        }
-        while let Some(item) = self.items.next() {
-            match item {
-                Item::Token(Token { variant: token::Variant::Newline(_), left_offset, code }) => {
-                    let token = token::newline(left_offset, code);
-                    let newline = mem::replace(&mut self.newline, token);
-                    // If the block started with a real newline, ignore the implicit newline.
-                    if !(newline.code.is_empty()
-                        && newline.left_offset.code.is_empty()
-                        && self.line.is_empty())
-                    {
-                        return self.parse_current_line(newline).into();
-                    }
-                }
-                _ => {
-                    self.line.push(item);
-                }
-            }
-        }
-        self.finished = true;
-        let newline = mem::take(&mut self.newline);
-        if newline.code.is_empty() && newline.left_offset.is_empty() && self.line.is_empty() {
-            return None;
-        }
-        self.parse_current_line(newline).into()
     }
 }

@@ -1,0 +1,241 @@
+from Standard.Base import all
+
+from Standard.Table import Sort_Column, Sort_Column_Selector
+from Standard.Table.Errors import all
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    test_selection = setup.test_selection
+    order_by_pending = if test_selection.order_by.not then
+        "TODO: order_by is not yet supported by this backend."
+    Test.group prefix+"Table.order_by" pending=order_by_pending <|
+        table =
+            col1 = ["alpha", [3, 2, 1, 0]]
+            col2 = ["beta", ["a", "b", "a", "b"]]
+            col3 = ["gamma", [1, 2, 3, 4]]
+            col4 = ["delta", ["a10", "a1", "a2", "a03"]]
+            col5 = ["eta", ["Beta", "alpha", "bądź", "Aleph"]]
+            col6 = ["xi", [1.0, 1.5, Nothing, 0.5]]
+            col7 = ["psi", [Nothing, "c01", "c10", "C2"]]
+            col8 = ["phi", ["śc", Nothing, 's\u0301b', "śa"]]
+            col9 = ["tau", [32.0, 0.5, -0.1, 1.6]]
+            col10 = ["rho", ["BB", Nothing, Nothing, "B"]]
+            table_builder [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10]
+
+        Test.specify "should work as shown in the doc examples" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name ["alpha"])
+            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+            t2 = table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -8 Sort_Direction.Descending])
+            t2.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t2.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+            t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+
+        Test.specify "should correctly handle regexes matching multiple names" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name ".*ta"  Sort_Direction.Descending] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive))
+            t1.at "beta" . to_vector . should_equal ["b", "b", "a", "a"]
+            t1.at "delta" . to_vector . should_equal ["a1", "a03", "a2", "a10"]
+            t1.at "gamma" . to_vector . should_equal [2, 4, 3, 1]
+
+        Test.specify "should correctly handle problems: out of bounds indices" <|
+            selector = Sort_Column_Selector.By_Index [0, 100, Sort_Column.Index -200, Sort_Column.Index 300]
+            action = table.order_by selector on_problems=_
+            tester table =
+                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate indices" <|
+            selector = Sort_Column_Selector.By_Index [0, Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]
+            action = table.order_by selector on_problems=_
+            tester table =
+                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+            problems = [Duplicate_Column_Selectors_Data [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: aliased indices" <|
+            selector = Sort_Column_Selector.By_Index [1, Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index -8 Sort_Direction.Descending, Sort_Column.Index 2 Sort_Direction.Ascending]
+            action = table.order_by selector on_problems=_
+            tester table =
+                table.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+                table.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+                table.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+            problems = [Input_Indices_Already_Matched_Data [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate names" <|
+            selector = Sort_Column_Selector.By_Name ["alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]
+            action = table.order_by selector on_problems=_
+            tester table =
+                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+            problems = [Column_Matched_By_Multiple_Selectors_Data "alpha" [Sort_Column.Name "alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" <|
+            selector = Sort_Column_Selector.By_Name [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending] Text_Matcher.Case_Insensitive
+            action = table.order_by selector on_problems=_
+            tester table =
+                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+            problems = [Column_Matched_By_Multiple_Selectors_Data "alpha" [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: unmatched names" <|
+            weird_name = '.*?-!@#!"'
+            selector = Sort_Column_Selector.By_Name [Sort_Column.Name "alpha", "hmm", Sort_Column.Name weird_name]
+            action = table.order_by selector on_problems=_
+            tester table =
+                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+            problems = [Missing_Input_Columns_Data [Sort_Column.Name "hmm", Sort_Column.Name weird_name]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: unmatched columns" <|
+            table_2 = table_builder [["alpha", [0,0,0]], ["weird_column", [0,0,0]]]
+            foo = table_2.at "alpha"
+            weird_column = table_2.at "weird_column"
+            bar = table.at "beta"
+
+            selector = Sort_Column_Selector.By_Column [bar, weird_column, Sort_Column.Column foo]
+            problem = table.order_by selector on_problems=Problem_Behavior.Report_Error . catch
+            problem.should_be_a Missing_Input_Columns_Data
+            problem.criteria.map (selector-> selector.column.name) . should_equal ["weird_column"]
+
+            t2 = table.order_by selector on_problems=Problem_Behavior.Ignore
+            t2.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+            t2.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+
+        Test.specify "should report a problem if no columns are selected for ordering" <|
+            action = table.order_by (Sort_Column_Selector.By_Name []) on_problems=_
+            tester t2 =
+                t2.at "alpha" . to_vector . should_equal (table.at "alpha" . to_vector)
+            problems = [No_Input_Columns_Selected]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should stack consecutive ordering operations" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
+            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t1.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
+
+            # Now we reverse the order
+            t2 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha" Sort_Direction.Descending])
+            t2.at "alpha" . to_vector . should_equal [3, 2, 1, 0]
+            t2.at "beta" . to_vector . should_equal ["a", "b", "a", "b"]
+
+            # Now we add another primary ordering, but the order from t1/t2 is kept for tie breaking.
+            t3 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "beta"])
+            t3.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t3.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+
+            t4 = t2.order_by (Sort_Column_Selector.By_Name ["beta"])
+            t4.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t4.at "alpha" . to_vector . should_equal [3, 1, 2, 0]
+
+        Test.specify "should give priority to the first selected column and use the next ones for breaking ties" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name ["beta", Sort_Column.Name "alpha" Sort_Direction.Ascending])
+            t1.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t1.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+            t1.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+
+            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "beta", Sort_Column.Name "alpha" Sort_Direction.Descending])
+            t2.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t2.at "alpha" . to_vector . should_equal [3, 1, 2, 0]
+            t2.at "gamma" . to_vector . should_equal [1, 3, 2, 4]
+
+            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha", Sort_Column.Name "beta"])
+            t3.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t3.at "beta" . to_vector . should_equal ["b", "a", "b", "a"]
+            t3.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+            t4 = table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index 0 Sort_Direction.Ascending])
+            t4.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t4.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+            t4.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+
+            t5 = table.order_by (Sort_Column_Selector.By_Column [table.at "beta", Sort_Column.Column (table.at "alpha") Sort_Direction.Ascending])
+            t5.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t5.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+            t5.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+
+        Test.specify "should deal with real numbers" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name ["tau"])
+            t1.at "tau" . to_vector . should_equal [-0.1, 0.5, 1.6, 32.0]
+            t1.at "alpha" . to_vector . should_equal [1, 2, 0, 3]
+
+        Test.specify "should deal with nulls" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name ["xi"])
+            t1.at "xi" . to_vector . should_equal [Nothing, 0.5, 1.0, 1.5]
+            t1.at "alpha" . to_vector . should_equal [1, 0, 3, 2]
+
+            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "rho"])
+            t2.at "rho" . to_vector . should_equal [Nothing, Nothing, "B", "BB"]
+
+            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "rho" Sort_Direction.Descending])
+            t3.at "rho" . to_vector . should_equal ["BB", "B", Nothing, Nothing]
+
+        Test.specify "should behave as expected with Unicode normalization, depending on the defaults settings" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "phi"])
+            case test_selection.order_by_unicode_normalization_by_default of
+                True ->
+                    t1.at "phi" . to_vector . should_equal [Nothing, "śa", 's\u0301b', "śc"]
+                    t1.at "alpha" . to_vector . should_equal [2, 0, 1, 3]
+                False ->
+                    t1.at "phi" . to_vector . should_equal [Nothing, 's\u0301b', "śa", "śc"]
+                    t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
+
+        Test.specify "should support natural ordering" pending=(if test_selection.natural_ordering.not then "Natural ordering is not supported.") <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "delta"]) text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
+            t1.at "delta" . to_vector . should_equal ["a1", "a2", "a03", "a10"]
+            t1.at "alpha" . to_vector . should_equal [2, 1, 0, 3]
+
+            t2 = table.order_by (Sort_Column_Selector.By_Name ["delta"]) text_ordering=(Text_Ordering.Default sort_digits_as_numbers=False)
+            t2.at "delta" . to_vector . should_equal ["a03", "a1", "a10", "a2"]
+            t2.at "alpha" . to_vector . should_equal [0, 2, 3, 1]
+
+        Test.specify "should support case insensitive ordering" pending=(if test_selection.case_insensitive_ordering.not then "Case insensitive ordering is not supported.") <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering.Case_Insensitive)
+            expected = case test_selection.case_insensitive_ascii_only of
+                True -> ["Aleph", "alpha", "Beta", "bądź"]
+                False -> ["Aleph", "alpha", "bądź", "Beta"]
+            t1.at "eta" . to_vector . should_equal expected
+
+            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "eta"]) text_ordering=(Text_Ordering.Case_Sensitive)
+            t2.at "eta" . to_vector . should_equal ["Aleph", "Beta", "alpha", "bądź"]
+
+            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering.Case_Insensitive)
+            t3.at "psi" . to_vector . should_equal [Nothing, "c01", "c10", "C2"]
+
+            t4 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi" Sort_Direction.Descending]) text_ordering=(Text_Ordering.Case_Sensitive)
+            t4.at "psi" . to_vector . should_equal ["c10", "c01", "C2", Nothing]
+
+        Test.specify "should support natural and case insensitive ordering at the same time" pending=(if (test_selection.natural_ordering.not || test_selection.case_insensitive_ordering.not) then "Natural ordering or case sensitive ordering is not supported.") <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
+            t1.at "psi" . to_vector . should_equal [Nothing, "c01", "C2", "c10"]
+
+            t2 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
+            t2.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
+
+            t3 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"]) text_ordering=(Text_Ordering.Case_Insensitive)
+            t3.at "psi" . to_vector . should_equal [Nothing, "c01", "c10", "C2"]
+
+            t4 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "psi"])
+            t4.at "psi" . to_vector . should_equal [Nothing, "C2", "c01", "c10"]
+
+        Test.specify "text ordering settings should not affect numeric columns" <|
+            ordering = Text_Ordering.Case_Insensitive sort_digits_as_numbers=True
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"]) text_ordering=ordering
+            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]

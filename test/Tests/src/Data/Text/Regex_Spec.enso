@@ -4,6 +4,7 @@ import Standard.Base.Data.Text.Regex.Option
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec =
     Test.group "Regex options handling" <|

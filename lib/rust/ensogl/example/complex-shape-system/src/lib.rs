@@ -83,7 +83,7 @@ pub fn main() {
     theme_manager.register("theme1", theme1);
     theme_manager.register("theme2", theme2);
 
-    theme_manager.set_enabled(&["theme1".to_string()]);
+    theme_manager.set_enabled(["theme1".to_string()]);
 
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);
     // style_watch.set_on_style_change(|| DEBUG!("Style changed!"));
@@ -121,7 +121,7 @@ pub fn main() {
         .on
         .before_frame
         .add(move |_time| {
-            mask.set_position_x(((frame as f32) / 30.0).sin() * 100.0);
+            mask.set_x(((frame as f32) / 30.0).sin() * 100.0);
             let _keep_alive = &navigator;
             let _keep_alive = &style_watch;
             let _keep_alive = &theme_manager;
@@ -161,7 +161,7 @@ pub fn main() {
             }
             if frame == 200 {
                 DEBUG!("Changing the theme.");
-                theme_manager.set_enabled(&["theme2".to_string()]);
+                theme_manager.set_enabled(["theme2".to_string()]);
             }
             frame += 1;
         })

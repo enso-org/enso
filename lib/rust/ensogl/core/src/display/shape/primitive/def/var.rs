@@ -8,6 +8,7 @@ use crate::data::color;
 use crate::display::shape::primitive::def::unit::PixelDistance;
 use crate::system::gpu::shader::glsl::Glsl;
 
+use enso_types;
 use nalgebra::Scalar;
 
 
@@ -191,123 +192,6 @@ where T: Max + Into<Glsl>
         }
     }
 }
-
-macro_rules! dim_impl {
-    ($trait:ident for $tp:ty {
-        type $dim_ty_name:ident = $dim_ty:ty;
-        args = [$($single_arg:ident),* $(,)?];
-        $(swizzling = $multi_ty:ident [$($multi_arg:ident),* $(,)?];)*
-    }) => {
-        impl<T: Scalar + Copy> $trait for $tp {
-            type $dim_ty_name = $dim_ty;
-            $(
-                fn $single_arg(&self) -> Self::Dim1Type {
-                    match self {
-                        Self::Static(t) => Var::Static(t.$single_arg.clone()),
-                        Self::Dynamic(t) => {
-                            let code = format!("{}.{}", t, stringify!($single_arg));
-                            Var::Dynamic(code.into())
-                        }
-                    }
-                }
-            )*
-            $($(
-                fn $multi_arg(&self) -> Self::$multi_ty {
-                    match self {
-                        Self::Static(t) => Var::Static(t.$multi_arg()),
-                        Self::Dynamic(t) => {
-                            let code = format!("{}.{}", t, stringify!($multi_arg));
-                            Var::Dynamic(code.into())
-                        }
-                    }
-                }
-            )*)*
-        }
-    };
-}
-
-dim_impl! ( Dim1 for Var<Vector2<T>> {
-    type Dim1Type = Var<T>;
-    args = [x];
-});
-
-dim_impl! ( Dim2 for Var<Vector2<T>> {
-    type Dim2Type = Var<Vector2<T>>;
-    args = [y];
-    swizzling = Dim2Type [xx, xy, yx, yy];
-});
-
-dim_impl! ( Dim1 for Var<Vector3<T>> {
-    type Dim1Type = Var<T>;
-    args = [x];
-});
-
-dim_impl! ( Dim2 for Var<Vector3<T>> {
-    type Dim2Type = Var<Vector2<T>>;
-    args = [y];
-    swizzling = Dim2Type [xx, xy, yx, yy];
-});
-
-dim_impl! ( Dim3 for Var<Vector3<T>> {
-    type Dim3Type = Var<Vector3<T>>;
-    args = [z];
-    swizzling = Dim2Type [zz, xz, zx, yz, zy];
-    swizzling = Dim3Type [
-        xxx, xxy, xxz, xyx, xyy, xyz, xzx, xzy, xzz, yxx, yxy, yxz, yyx, yyy, yyz, yzx, yzy, yzz,
-        zxx, zxy, zxz, zyx, zyy, zyz, zzx, zzy, zzz
-    ];
-});
-
-dim_impl! ( Dim1 for Var<Vector4<T>> {
-    type Dim1Type = Var<T>;
-    args = [x];
-});
-
-dim_impl! ( Dim2 for Var<Vector4<T>> {
-    type Dim2Type = Var<Vector2<T>>;
-    args = [y];
-    swizzling = Dim2Type [xx, xy, yx, yy];
-});
-
-dim_impl! ( Dim3 for Var<Vector4<T>> {
-    type Dim3Type = Var<Vector3<T>>;
-    args = [z];
-    swizzling = Dim2Type [zz, xz, zx, yz, zy];
-    swizzling = Dim3Type [
-        xxx, xxy, xxz, xyx, xyy, xyz, xzx, xzy, xzz, yxx, yxy, yxz, yyx, yyy, yyz, yzx, yzy, yzz,
-        zxx, zxy, zxz, zyx, zyy, zyz, zzx, zzy, zzz
-    ];
-});
-
-dim_impl! ( Dim4 for Var<Vector4<T>> {
-    type Dim4Type = Var<Vector4<T>>;
-    args = [w];
-    swizzling = Dim2Type [ww, xw, wx, yw, wy, zw, wz];
-    swizzling = Dim3Type [
-        xxw, xyw, xzw, yxw, yyw, yzw, zxw, zyw, zzw, xwx, xwy, xwz, ywx, ywy, ywz, zwx, zwy, zwz,
-        wxx, wxy, wxz, wyx, wyy, wyz, wzx, wzy, wzz
-    ];
-    swizzling = Dim4Type [
-        xxxx, xxxy, xxxz, xxxw, xxyx, xxyy, xxyz, xxyw, xxzx, xxzy, xxzz, xxzw, xxwx, xxwy, xxwz,
-        xxww, xyxx, xyxy, xyxz, xyxw, xyyx, xyyy, xyyz, xyyw, xyzx, xyzy, xyzz, xyzw, xywx, xywy,
-        xywz, xyww, xzxx, xzxy, xzxz, xzxw, xzyx, xzyy, xzyz, xzyw, xzzx, xzzy, xzzz, xzzw, xzwx,
-        xzwy, xzwz, xzww, xwxx, xwxy, xwxz, xwxw, xwyx, xwyy, xwyz, xwyw, xwzx, xwzy, xwzz, xwzw,
-        xwwx, xwwy, xwwz, xwww, yxxx, yxxy, yxxz, yxxw, yxyx, yxyy, yxyz, yxyw, yxzx, yxzy, yxzz,
-        yxzw, yxwx, yxwy, yxwz, yxww, yyxx, yyxy, yyxz, yyxw, yyyx, yyyy, yyyz, yyyw, yyzx, yyzy,
-        yyzz, yyzw, yywx, yywy, yywz, yyww, yzxx, yzxy, yzxz, yzxw, yzyx, yzyy, yzyz, yzyw, yzzx,
-        yzzy, yzzz, yzzw, yzwx, yzwy, yzwz, yzww, ywxx, ywxy, ywxz, ywxw, ywyx, ywyy, ywyz, ywyw,
-        ywzx, ywzy, ywzz, ywzw, ywwx, ywwy, ywwz, ywww, zxxx, zxxy, zxxz, zxxw, zxyx, zxyy, zxyz,
-        zxyw, zxzx, zxzy, zxzz, zxzw, zxwx, zxwy, zxwz, zxww, zyxx, zyxy, zyxz, zyxw, zyyx, zyyy,
-        zyyz, zyyw, zyzx, zyzy, zyzz, zyzw, zywx, zywy, zywz, zyww, zzxx, zzxy, zzxz, zzxw, zzyx,
-        zzyy, zzyz, zzyw, zzzx, zzzy, zzzz, zzzw, zzwx, zzwy, zzwz, zzww, zwxx, zwxy, zwxz, zwxw,
-        zwyx, zwyy, zwyz, zwyw, zwzx, zwzy, zwzz, zwzw, zwwx, zwwy, zwwz, zwww, wxxx, wxxy, wxxz,
-        wxxw, wxyx, wxyy, wxyz, wxyw, wxzx, wxzy, wxzz, wxzw, wxwx, wxwy, wxwz, wxww, wyxx, wyxy,
-        wyxz, wyxw, wyyx, wyyy, wyyz, wyyw, wyzx, wyzy, wyzz, wyzw, wywx, wywy, wywz, wyww, wzxx,
-        wzxy, wzxz, wzxw, wzyx, wzyy, wzyz, wzyw, wzzx, wzzy, wzzz, wzzw, wzwx, wzwy, wzwz, wzww,
-        wwxx, wwxy, wwxz, wwxw, wwyx, wwyy, wwyz, wwyw, wwzx, wwzy, wwzz, wwzw, wwwx, wwwy, wwwz,
-        wwww
-    ];
-});
 
 impl PixelDistance for Var<Vector2<f32>> {
     type Output = Var<Vector2<Pixels>>;
@@ -569,6 +453,46 @@ define_shape_data_string_operator! { Add add (+) }
 define_shape_data_string_operator! { Sub sub (-) }
 define_shape_data_string_operator! { Mul mul (*) }
 define_shape_data_string_operator! { Div div (/) }
+
+
+
+// ============
+// === Dim* ===
+// ============
+
+macro_rules! gen_dim_impl_for_vector {
+    ([$vec:tt] $dim:tt $( $name:ident $swizzling_dim:tt [$($dim_ix:tt)*] [$($dim_ord:tt)*] )*) => {
+        paste! {
+            impl<T: Scalar + Copy> [<Dim $dim>] for Var<$vec<T>> {
+                type [<Dim $dim Type>] = Var<[<Vector $dim>]<T>>;
+                $(
+                    fn $name(&self) -> Self::[<Dim $swizzling_dim Type>] {
+                        match self {
+                            Self::Static(t) => Var::Static(t.$name()),
+                            Self::Dynamic(t) => {
+                                let code = format!("{}.{}", t, stringify!($name));
+                                Var::Dynamic(code.into())
+                            }
+                        }
+                    }
+                )*
+            }
+        }
+    };
+}
+
+enso_types::with_swizzling_for_dim!(1, gen_dim_impl_for_vector, Vector2);
+enso_types::with_swizzling_for_dim!(2, gen_dim_impl_for_vector, Vector2);
+
+enso_types::with_swizzling_for_dim!(1, gen_dim_impl_for_vector, Vector3);
+enso_types::with_swizzling_for_dim!(2, gen_dim_impl_for_vector, Vector3);
+enso_types::with_swizzling_for_dim!(3, gen_dim_impl_for_vector, Vector3);
+
+enso_types::with_swizzling_for_dim!(1, gen_dim_impl_for_vector, Vector4);
+enso_types::with_swizzling_for_dim!(2, gen_dim_impl_for_vector, Vector4);
+enso_types::with_swizzling_for_dim!(3, gen_dim_impl_for_vector, Vector4);
+enso_types::with_swizzling_for_dim!(4, gen_dim_impl_for_vector, Vector4);
+
 
 
 // =========================

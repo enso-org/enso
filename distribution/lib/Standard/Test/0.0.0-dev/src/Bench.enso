@@ -1,6 +1,5 @@
 from Standard.Base import all
-import Standard.Base.System
-import Standard.Base.Runtime.Ref
+import Standard.Base.Runtime.Ref.Ref
 
 type Bench
     ## Measure the amount of time it takes to execute a given computation.
@@ -59,7 +58,7 @@ reverse_list list =
 
    Arguments:
    - list: The list of numbers to sum.
-sum_list : List -> Sum
+sum_list : List -> Number
 sum_list list =
     go = list -> acc -> case list of
         List.Cons a b -> @Tail_Call go b (acc + a)

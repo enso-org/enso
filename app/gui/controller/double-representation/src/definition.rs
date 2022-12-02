@@ -19,6 +19,11 @@ use parser_scala::Parser;
 // === Definition Id ===
 // =====================
 
+#[allow(missing_docs)]
+#[derive(Copy, Fail, Clone, Debug)]
+#[fail(display = "Encountered an empty definition ID. It must contain at least one crumb.")]
+pub struct EmptyDefinitionId;
+
 /// Crumb describes step that needs to be done when going from context (for graph being a module)
 /// to the target.
 // TODO [mwu]

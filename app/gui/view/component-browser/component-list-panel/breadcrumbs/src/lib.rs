@@ -249,7 +249,7 @@ impl Model {
     fn update_layout(&self, content_size: Vector2, size: Vector2) {
         self.mask.size.set(size);
         let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
-        self.mask.set_position_xy(grid_view_center);
+        self.mask.set_xy(grid_view_center);
         let offset = self.offset(content_size, size);
         // Additional padding is added to the viewport width to avoid rare glitches when the last
         // entry is cropped because it is placed right on the border of the viewport. Even 1px seems
@@ -505,7 +505,7 @@ impl Breadcrumbs {
                     model.offset(*content_size, *size)
                 })
             );
-            eval scroll_anim.value((offset) model.grid.set_position_x(-offset));
+            eval scroll_anim.value((offset) model.grid.set_x(-offset));
             eval_ input.move_up(model.move_up());
             eval_ input.move_down(model.move_down());
             entries_height <- all(&entries_height, &init)._0();

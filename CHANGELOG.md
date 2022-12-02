@@ -99,6 +99,9 @@
   JavaScript DOM events][3863]. The events system implements very similar
   behavior to the one described here:
   https://javascript.info/bubbling-and-capturing.
+- [Added a new component: Slider][3852]. It allows adjusting a numeric value
+  with the mouse. The precision of these adjustments can be increased or
+  decreased.
 
 #### Enso Standard Library
 
@@ -247,6 +250,7 @@
 - [Aligned `Text.match`/`Text.locate` API][3841]
 - [There is a new API to lazily feed visualisation information to the
   IDE.][3910]
+- [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -389,8 +393,10 @@
 [3782]: https://github.com/enso-org/enso/pull/3782
 [3863]: https://github.com/enso-org/enso/pull/3863
 [3874]: https://github.com/enso-org/enso/pull/3874
+[3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
 [3910]: https://github.com/enso-org/enso/pull/3910
+[3919]: https://github.com/enso-org/enso/pull/3919
 
 #### Enso Compiler
 
@@ -444,14 +450,21 @@
 - [Fix performance of method calls on polyglot arrays][3781]
 - [Improved support for static and non-static builtins][3791]
 - [Missing foreign language generates proper Enso error][3798]
+- [Connecting IGV 4 Enso with Engine sources][3810]
 - [Made Vector performance to be on par with Array][3811]
 - [Introduced IO Permission Contexts][3828]
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
-- [Add the `Self` keyword referring to current type][3844]
 - [Split Atom suggestion entry to Type and Constructor][3835]
+- [Any number can be converted to double][3865]
+- [Update to GraalVM 22.3.0][3663]
 - [Connecting IGV 4 Enso with Engine sources][3810]
+- [Add the `Self` keyword referring to current type][3844]
 - [Support VCS for projects in Language Server][3851]
+- [Support multiple exports of the same module][3897]
+- [Import modules' extension methods only with unqualified imports][3906]
+- [Don't export polyglot symbols][3915]
+- [From/all import must not include module in name resolution][3931]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -508,14 +521,21 @@
 [3781]: https://github.com/enso-org/enso/pull/3781
 [3791]: https://github.com/enso-org/enso/pull/3791
 [3798]: https://github.com/enso-org/enso/pull/3798
+[3810]: https://github.com/enso-org/enso/pull/3810
 [3811]: https://github.com/enso-org/enso/pull/3811
-[3828]: https://github.com/enso-org/enso/pull/3828
 [3817]: https://github.com/enso-org/enso/pull/3817
 [3821]: https://github.com/enso-org/enso/pull/3821
-[3844]: https://github.com/enso-org/enso/pull/3844
+[3828]: https://github.com/enso-org/enso/pull/3828
 [3835]: https://github.com/enso-org/enso/pull/3835
+[3865]: https://github.com/enso-org/enso/pull/3865
+[3663]: https://github.com/enso-org/enso/pull/3663
 [3810]: https://github.com/enso-org/enso/pull/3810
+[3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
+[3897]: https://github.com/enso-org/enso/pull/3897
+[3906]: https://github.com/enso-org/enso/pull/3906
+[3915]: https://github.com/enso-org/enso/pull/3915
+[3931]: https://github.com/enso-org/enso/pull/3931
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

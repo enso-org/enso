@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
-import org.enso.interpreter.runtime.{Context => EnsoContext}
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -1745,7 +1745,7 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.Text.overloaded arg = arg + 1
+        |Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
