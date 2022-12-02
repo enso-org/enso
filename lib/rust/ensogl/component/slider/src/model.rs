@@ -28,7 +28,7 @@ const COMPONENT_WIDTH_DEFAULT: f32 = 200.0;
 /// Default component height on initialization.
 const COMPONENT_HEIGHT_DEFAULT: f32 = 50.0;
 /// Overflow marker size as fraction of the text height.
-const OVERFLOW_MARKER_SIZE: f32 = 0.5;
+const OVERFLOW_MARKER_SIZE: f32 = 0.75;
 
 
 
