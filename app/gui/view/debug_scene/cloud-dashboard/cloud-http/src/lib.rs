@@ -132,12 +132,34 @@ impl Client {
         let request = request.bearer_auth(&self.token);
         let request = request.build()?;
 
-        let response = self.http.execute(request).await?;
+        let mut response = self.http.execute(request).await?;
         if !response.status().is_success() {
-            let message = format!("Unexpected response: {response:?}.");
-            Err(message)?
+            response = handle_error_response(response).await?;
         }
 
+        Ok(response)
+    }
+}
+
+/// Converts an unsuccessful HTTP [`Response`] into an [`Error`], or returns the [`Response`].
+///
+/// This function exists to make user-facing errors for HTTP requests more informative by including
+/// the HTTP response body in the error message, where possible.
+///
+/// [`Response`]: ::reqwest::Response
+async fn handle_error_response(response: reqwest::Response) -> Result<reqwest::Response, Error> {
+    if let Some(e) = response.error_for_status_ref().err() {
+        match response.text().await {
+            Ok(body) => {
+                let e = format!("Error \"{e:?}\" with error message body: {body}");
+                Err(e)?
+            },
+            Err(body_error) => {
+                let e = format!("Failed to get error response body: \"{e:?}\"; {body_error}");
+                Err(e)?
+            }
+        }
+    } else {
         Ok(response)
     }
 }

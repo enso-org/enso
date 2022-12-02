@@ -83,7 +83,7 @@ pub mod prelude {
 /// can be added to it.
 ///
 /// [`Error`]: ::std::error::Error
-pub type Error = Box<dyn error::Error + Send + Sync>;
+pub type Error = Box<dyn error::Error + Send + Sync + 'static>;
 
 
 
