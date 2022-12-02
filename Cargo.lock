@@ -2435,6 +2435,7 @@ version = "0.1.0"
 dependencies = [
  "enso-prelude",
  "enso_cloud_view",
+ "headers",
  "http",
  "reqwest",
  "serde",

@@ -36,6 +36,7 @@
 use enso_cloud_view::prelude::*;
 use enso_prelude::*;
 
+use headers::authorization;
 use response::Route;
 
 
@@ -214,4 +215,22 @@ pub enum AwsRegion {
 ///
 /// [`aws-amplify`]: https://docs.amplify.aws/lib/auth/getting-started/q/platform/js/
 #[derive(Clone, Debug, Display)]
-pub struct AccessToken(pub String);
+#[display(fmt = "{}", "bearer.token()")]
+pub struct AccessToken {
+    bearer: headers::Authorization<authorization::Bearer>,
+}
+
+impl AccessToken {
+    /// Creates a new [`AccessToken`] from the given [`str`] slice.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an error if the value of the [`str`] slice is not a properly-formatted JSON Web
+    /// Token (JWT). Note that we do not return an error if the token is expired, etc. We only check
+    /// that it is properly formatted.
+    pub fn new(token: &str) -> Result<Self, Error> {
+        let bearer = headers::Authorization::bearer(&token)?;
+        let token = Self { bearer };
+        Ok(token)
+    }
+}
