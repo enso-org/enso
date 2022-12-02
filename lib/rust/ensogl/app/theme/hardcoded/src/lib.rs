@@ -651,7 +651,7 @@ define_themes! { [light:0, dark:1]
             background = graph_editor::node::background , graph_editor::node::background;
             overshoot_limit = 60.0, 60.0;
             text {
-                font = "mplus1p", "mplus1p";
+                font = "default", "default";
             }
             handle {
                 color = Lcha(0.3,0.0,0.0,1.0), Lcha(0.7,0.0,0.0,1.0);
