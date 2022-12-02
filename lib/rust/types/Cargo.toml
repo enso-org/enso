@@ -11,7 +11,7 @@ enso-reflect = { path = "../reflect" }
 nalgebra = { version = "0.26.1" }
 num-traits = { version = "0.2" }
 paste = "1.0.7"
-serde = { version = "1.0", features = ["derive"], optional = true }
+serde = { version = "1.0", features = ["derive"] }
 enso-prelude = { path = "../prelude" }
 
 [build-dependencies]

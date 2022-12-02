@@ -233,7 +233,7 @@ impl Frp {
             // The size at which we render the thumb on screen, in normalized units. Can differ from
             // the actual thumb size if the thumb is smaller than the min.
             visual_size         <- all_with(&normalized_size,&min_visual_size,|&size,&min|
-                size.max(min).min(1.0));
+                size.clamp(min, 1.0));
             // The position at which we render the thumb on screen, in normalized units.
             visual_start        <- all_with(&normalized_position,&visual_size,|&pos,&size|
                 pos * (1.0 - size));

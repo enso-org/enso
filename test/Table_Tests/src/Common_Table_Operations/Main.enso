@@ -1,0 +1,57 @@
+from Standard.Base import all
+
+import project.Common_Table_Operations.Column_Operations_Spec
+import project.Common_Table_Operations.Core_Spec
+import project.Common_Table_Operations.Expression_Spec
+import project.Common_Table_Operations.Filter_Spec
+import project.Common_Table_Operations.Join_Spec
+import project.Common_Table_Operations.Missing_Values_Spec
+import project.Common_Table_Operations.Order_By_Spec
+import project.Common_Table_Operations.Select_Columns_Spec
+import project.Common_Table_Operations.Take_Drop_Spec
+import project.Common_Table_Operations.Aggregate_Spec
+import project.Common_Table_Operations.Aggregate_Spec.Test_Selection as Aggregate_Test_Selection
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+type Test_Setup
+    ## A common test configuration for tests of shared operations on the Table
+       API.
+
+       Arguments:
+       - prefix: A name to prepend to test groups to identify the tested
+         backend.
+       - table: A table using the tested backend containing data from
+         `data/data.csv`.
+       - empty_table: An empty table using the tested backend.
+       - table_builder: A function used to build a table using the tested
+         backend from a vector of columns represented as pairs of name and
+         vector of values.
+       - materialize: A helper function which materializes a table from the
+         tested backend as an in-memory table. Used to easily inspect results of
+         a particular query/operation.
+       - is_database: Specifies if the tests are run on a database-backed
+         backend.
+       - test_selection: A selection of which suites should be run. Can be used
+         to skip checks for backends which do not support particular features.
+       - aggregate_test_selection: A selection of which aggregate test suites
+         should be run. Can be used to skip checks for backends which do not
+         support particular features.
+    Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection
+
+type Test_Selection
+    Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True
+
+spec setup =
+    Core_Spec.spec setup
+    Select_Columns_Spec.spec setup
+    Column_Operations_Spec.spec setup
+    Aggregate_Spec.spec setup
+    Filter_Spec.spec setup
+    Missing_Values_Spec.spec setup
+    Order_By_Spec.spec setup
+    Take_Drop_Spec.spec setup
+    Expression_Spec.spec detailed=False setup
+    Join_Spec.spec setup
+
+main = run_default_backend spec

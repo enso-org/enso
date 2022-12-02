@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(type = "Special", name = "<run_thread>")
@@ -21,7 +21,7 @@ public abstract class RunThreadNode extends Node {
   @CompilerDirectives.TruffleBoundary
   @Specialization
   Thread doExecute(State state, Object self) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     Thread thread =
         ctx.getEnvironment()
             .createThread(

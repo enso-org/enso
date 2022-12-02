@@ -5,6 +5,7 @@ import Standard.Base.Data.Noise.Deterministic_Random
 import Standard.Base.Error.Common
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec =
     Test.group "Generator Interface" <|

@@ -5,20 +5,15 @@
 // === Export ===
 // ==============
 
-#[cfg(feature = "futures")]
 pub mod future;
-#[cfg(feature = "futures")]
 pub mod stream;
 
 
 
 /// Traits providing helper methods for test code.
 pub mod traits {
-    #[cfg(feature = "futures")]
     pub use super::future::FutureResultTestExt;
-    #[cfg(feature = "futures")]
     pub use super::future::FutureTestExt;
-    #[cfg(feature = "futures")]
     pub use super::stream::StreamTestExt;
     pub use super::ExpectTuple;
 }

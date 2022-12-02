@@ -129,7 +129,7 @@ fn init_theme(scene: &Scene) {
     theme.set("component.label.text", color::Lcha::black());
 
     theme_manager.register("theme", theme);
-    theme_manager.set_enabled(&["theme".to_string()]);
+    theme_manager.set_enabled(["theme".to_string()]);
 }
 
 

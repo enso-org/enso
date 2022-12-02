@@ -1,9 +1,20 @@
-name: Release Candidate
+name: Release
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: What version number this release should get.
+        required: true
+        type: string
+  workflow_call:
+    inputs:
+      version:
+        description: What version number this release should get.
+        required: true
+        type: string
 jobs:
   enso-build-cli-ci-gen-draft-release-linux:
-    name: Create release draft
+    name: Create a release draft.
     runs-on:
       - self-hosted
       - Linux
@@ -248,8 +259,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
   enso-build-cli-ci-gen-job-upload-backend-linux:
     name: Upload Backend (linux)
     needs:
@@ -315,8 +326,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
   enso-build-cli-ci-gen-job-upload-backend-macos:
     name: Upload Backend (macos)
     needs:
@@ -380,8 +391,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
   enso-build-cli-ci-gen-job-upload-backend-windows:
     name: Upload Backend (windows)
     needs:
@@ -447,8 +458,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
   enso-build-cli-ci-gen-publish-release-linux:
     name: Publish release (linux)
     needs:
@@ -522,8 +533,8 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
       AWS_REGION: us-west-1
       AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
   enso-build-cli-ci-gen-upload-ide-linux:
     name: Build IDE (linux)
     needs:
@@ -591,8 +602,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
   enso-build-cli-ci-gen-upload-ide-macos:
     name: Build IDE (macos)
     needs:
@@ -663,8 +674,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
   enso-build-cli-ci-gen-upload-ide-windows:
     name: Build IDE (windows)
     needs:
@@ -734,10 +745,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID}}
-      ENSO_VERSION: ${{needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION}}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
 env:
-  ENSO_BUILD_KIND: rc
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
+  ENSO_EDITION: ${{ inputs.version }}
+  ENSO_VERSION: ${{ inputs.version }}
   RUST_BACKTRACE: full
 concurrency: release

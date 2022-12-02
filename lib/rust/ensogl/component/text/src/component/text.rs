@@ -1154,17 +1154,17 @@ impl TextModel {
                         if line_diff > LineDiff(0) {
                             // Add missing lines. They will be redrawn later. This is needed for
                             // proper partial redraw (redrawing only the lines that changed).
-                            let line_diff = line_diff.value as usize;
-                            for i in 0..line_diff {
-                                let index_to_insert = second_line_index + ViewLine(i);
+                            let new_lines = iter::from_fn(|| {
                                 let new_line = self.new_line();
                                 new_line.set_baseline(first_line_baseline);
                                 new_line.skip_baseline_animation();
-                                if index_to_insert < ViewLine(lines.len()) {
-                                    lines.insert(index_to_insert, new_line);
-                                } else {
-                                    lines.push(new_line);
-                                }
+                                Some(new_line)
+                            });
+                            let new_lines = new_lines.take(line_diff.value as usize);
+                            if second_line_index < ViewLine(lines.len()) {
+                                lines.extend_at(second_line_index, new_lines);
+                            } else {
+                                lines.extend(new_lines);
                             }
                         } else if line_diff < LineDiff(0) {
                             // Remove lines that are no longer needed. This is needed for proper

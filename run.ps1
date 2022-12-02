@@ -13,8 +13,9 @@ $BuildScriptBin = "enso-build-cli"
 $TargetExe = Join-Path $TargetDir $BuildScriptProfile $BuildScriptBin
 
 $BuildArgs = "build", "--profile", $BuildScriptProfile, "--target-dir", $TargetDir, "--package", $BuildScriptBin
-Set-Location $PSScriptRoot
-Start-Process cargo -NoNewWindow -Wait -ArgumentList $BuildArgs
-if (!$?) { Exit $LASTEXITCODE }
-Start-Process $TargetExe -NoNewWindow -Wait -ArgumentList $args 
-Exit $LASTEXITCODE
+$BuildScriptProcess = Start-Process cargo -NoNewWindow -PassThru -Wait -WorkingDirectory $PSScriptRoot -ArgumentList $BuildArgs
+if ($BuildScriptProcess.ExitCode -ne 0) {
+    Exit $BuildScriptProcess.ExitCode
+}
+$BuildScriptBinProcess = Start-Process $TargetExe -NoNewWindow -PassThru -Wait -WorkingDirectory $PSScriptRoot -ArgumentList $args
+Exit $BuildScriptBinProcess.ExitCode

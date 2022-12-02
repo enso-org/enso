@@ -137,6 +137,6 @@ public record MethodParameter(int index, String name, String tpe, List<String> a
         return typesToInject.contains(tpe);
     }
 
-    private static final List<String> typesToInject = List.of("org.enso.interpreter.runtime.Context");
+    private static final List<String> typesToInject = List.of("org.enso.interpreter.runtime.EnsoContext");
 
 }

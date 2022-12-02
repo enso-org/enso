@@ -1,0 +1,5 @@
+import project.Atom.Foo
+from project.Atom.Foo import A
+
+main =
+    1.foo 41

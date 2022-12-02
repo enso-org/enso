@@ -9,8 +9,9 @@ class GraalVMComponentConfigurationSpec extends AnyWordSpec with Matchers {
   "RuntimeComponentConfiguration" should {
 
     "return required components" in {
-      val conf     = new GraalVMComponentConfiguration
-      val required = Seq(GraalVMComponent.python, GraalVMComponent.R)
+      val conf            = new GraalVMComponentConfiguration
+      val required        = Seq(GraalVMComponent.python, GraalVMComponent.R)
+      val requiredAbove22 = required ++ Seq(GraalVMComponent.js)
 
       conf.getRequiredComponents(
         GraalVMVersion("21.0.0.2", "11"),
@@ -30,7 +31,7 @@ class GraalVMComponentConfigurationSpec extends AnyWordSpec with Matchers {
       conf.getRequiredComponents(
         GraalVMVersion("22.0.0.0", "11"),
         OS.Linux
-      ) should contain theSameElementsAs required
+      ) should contain theSameElementsAs requiredAbove22
 
       conf.getRequiredComponents(
         GraalVMVersion("20.0.0.0", "11"),

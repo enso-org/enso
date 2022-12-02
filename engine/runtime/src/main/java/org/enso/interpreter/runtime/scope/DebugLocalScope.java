@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -115,7 +115,7 @@ public class DebugLocalScope implements TruffleObject {
 
   @ExportMessage
   Class<? extends TruffleLanguage<?>> getLanguage() {
-    return Language.class;
+    return EnsoLanguage.class;
   }
 
   @ExportMessage

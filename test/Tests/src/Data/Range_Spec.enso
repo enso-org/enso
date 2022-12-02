@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec = Test.group "Range" <|
     Test.specify "should be created with a start, an end and a step" <|

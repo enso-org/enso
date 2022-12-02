@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -13,7 +12,7 @@ import java.util.Comparator;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -34,25 +33,26 @@ public abstract class SortNode extends Node {
 
   @Specialization
   Object doSortFunction(State state, Array self, Function comparator) {
-    Context context = Context.get(this);
+    EnsoContext context = EnsoContext.get(this);
     Comparator<Object> compare = getComparator(comparator, context, state);
     return runSort(compare, self, context);
   }
 
   @Specialization
   Object doAtomThis(State state, Atom self, Object that) {
-    return Context.get(this).getBuiltins().nothing();
+    return EnsoContext.get(this).getBuiltins().nothing();
   }
 
   @Fallback
   Object doOther(State state, Object self, Object comparator) {
     CompilerDirectives.transferToInterpreter();
-    var fun = Context.get(this).getBuiltins().function();
+    var fun = EnsoContext.get(this).getBuiltins().function();
     throw new PanicException(
-        Context.get(this).getBuiltins().error().makeTypeError(fun, comparator, "comparator"), this);
+        EnsoContext.get(this).getBuiltins().error().makeTypeError(fun, comparator, "comparator"),
+        this);
   }
 
-  Object runSort(Comparator<Object> compare, Array self, Context context) {
+  Object runSort(Comparator<Object> compare, Array self, EnsoContext context) {
     doSort(self.getItems(), compare);
     LoopNode.reportLoopCount(this, (int) self.length());
     return context.getBuiltins().nothing();
@@ -63,20 +63,20 @@ public abstract class SortNode extends Node {
     Arrays.sort(items, compare);
   }
 
-  private SortComparator getComparator(Function comp, Context context, State state) {
+  private SortComparator getComparator(Function comp, EnsoContext context, State state) {
     return new SortComparator(comp, context, this, state);
   }
 
   private class SortComparator implements Comparator<Object> {
     private final Function compFn;
-    private final Context context;
+    private final EnsoContext context;
     private final Atom less;
     private final Atom equal;
     private final Atom greater;
     private final SortNode outerThis;
     private final State state;
 
-    SortComparator(Function compFn, Context context, SortNode outerThis, State state) {
+    SortComparator(Function compFn, EnsoContext context, SortNode outerThis, State state) {
       this.compFn = compFn;
       this.context = context;
       this.less = context.getBuiltins().ordering().newLess();

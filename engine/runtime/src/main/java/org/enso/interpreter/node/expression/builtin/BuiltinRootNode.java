@@ -3,12 +3,12 @@ package org.enso.interpreter.node.expression.builtin;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 
 /** Root node for use by all the builtin functions. */
 @NodeInfo(shortName = "BuiltinRoot", description = "Root node for builtin functions.")
 public abstract class BuiltinRootNode extends RootNode {
-  protected BuiltinRootNode(Language language) {
+  protected BuiltinRootNode(EnsoLanguage language) {
     super(language);
   }
 
