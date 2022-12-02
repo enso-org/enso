@@ -16,14 +16,15 @@ pub async fn open(path: impl AsRef<Path>) -> Result<File> {
     File::open(&path).await.anyhow_err()
 }
 
-// #[context("Failed to open path for reading: {}", path.as_ref().display())]
 pub fn open_stream(path: impl AsRef<Path>) -> BoxFuture<'static, Result<ReaderStream<File>>> {
+    let error_message = format!("Failed to open path for reading: {}", path.as_ref().display());
     let path = path.as_ref().to_owned();
     let file = open(path);
     async move {
         let file = file.await?;
-        Ok(ReaderStream::new(file))
+        Result::Ok(ReaderStream::new(file))
     }
+    .context(error_message)
     .boxed()
 }
 

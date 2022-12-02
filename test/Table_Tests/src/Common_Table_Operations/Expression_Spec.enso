@@ -8,16 +8,26 @@ import Standard.Visualization
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
-import project.Common_Table_Spec
 from project.Util import all
+from project.Common_Table_Operations.Util import run_default_backend
 
-spec detailed=False =
+main = run_default_backend (spec detailed=True)
+
+spec detailed setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+
     # Create Test Table
     column_a = ["A", [1, 2, 3, 4, 5]]
     column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
     column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
     column_odd = ["Bad] Name", [True, False, True, False, True]]
-    test_table = Table.new [column_a, column_b, column_c, column_odd]
+    test_table = table_builder [column_a, column_b, column_c, column_odd]
+
+    ## TODO Expressions were not being tested on Database backends before and
+       many tests are failing. Disabling the tests until this is fixed, tracked
+       by issue: https://www.pivotaltracker.com/story/show/183933832
+    pending_bug = if prefix.contains "In-Memory" then Nothing else "Some of these tests are not working in Database. See: https://www.pivotaltracker.com/story/show/183933832"
 
     epsilon=0.0000000001
 
@@ -48,19 +58,19 @@ spec detailed=False =
             False ->
                 Test.specify label (action expression_test)
 
-    Test.group "Expression Integer literals" <|
+    Test.group prefix+"Expression Integer literals" <|
         specify_test "should be able to add an integer column" expression_test->
             expression_test "1" 1
             expression_test "-3" -3
             expression_test "1_000" 1000
 
-    Test.group "Expression Decimal literals" <|
+    Test.group prefix+"Expression Decimal literals" <|
         specify_test "should be able to add an decimal column" expression_test->
             expression_test "1.23" 1.23
             expression_test "-3.1415" -3.1415
             expression_test "1_000.456" 1000.456
 
-    Test.group "Expression Boolean literals" <|
+    Test.group prefix+"Expression Boolean literals" <|
         specify_test "should be able to add a boolean column" expression_test->
             expression_test "True" True
             expression_test "true" True
@@ -71,7 +81,7 @@ spec detailed=False =
             expression_test "FALSE" False
             expression_test "FaLsE" False
 
-    Test.group "Expression Text literals" <|
+    Test.group prefix+"Expression Text literals" <|
         specify_test "should be able to add a text column" expression_test->
             expression_test "'Hello World'" 'Hello World'
             expression_test "'Hello \'World\''" "Hello 'World'"
@@ -80,19 +90,19 @@ spec detailed=False =
             expression_test '"Hello \\""World"""' 'Hello \\"World"'
             expression_test "'Alpha\r\n\gBeta'" 'Alpha\r\n\\gBeta'
 
-    Test.group "Expression Text literals" <|
+    Test.group prefix+"Expression Text literals" <|
         specify_test "should be able to get a Column" expression_test->
             expression_test "[A]" (column_a.at 1)
             expression_test "[Bad]] Name]" (column_odd.at 1)
 
-    Test.group "Expression Nothing literals" <|
+    Test.group prefix+"Expression Nothing literals" pending=pending_bug <|
         specify_test "should be able to add an nothing column" expression_test->
             expression_test "null" Nothing
             expression_test "nUlL" Nothing
             expression_test "Nothing" Nothing
             expression_test "NOTHING" Nothing
 
-    Test.group "Expression Date and Time literals" <|
+    Test.group prefix+"Expression Date and Time literals" pending=pending_bug <|
         specify_test "should be able to add a date or time column" expression_test->
             expression_test "#2020-12-23#" (Date.new 2020 12 23)
             expression_test "#12:34#" (Time_Of_Day.new 12 34)
@@ -106,7 +116,7 @@ spec detailed=False =
             expression_test "#2020-12-23 12:34:56.157+01[UTC]#" (Date_Time.new 2020 12 23 11 34 56 157 zone=Time_Zone.utc)
             expression_test "#2020-12-23T12:34[Europe/Warsaw]#" (Date_Time.new 2020 12 23 12 34 zone=Time_Zone.parse("Europe/Warsaw"))
 
-    Test.group "Expression Arithmetic" <|
+    Test.group prefix+"Expression Arithmetic" <|
         specify_test "should be able to do basic arithmetic" expression_test->
             expression_test "1+1" 2
             expression_test "23-15" 8
@@ -131,7 +141,7 @@ spec detailed=False =
             expression_test "1+1 * 2" 3
             expression_test "1 + 1*2" 3
 
-    Test.group "Column Arithmetic" <|
+    Test.group prefix+"Column Arithmetic" pending=pending_bug <|
         specify_test "should be able to perform arithmetic on columns" expression_test->
             expression_test "[A] + 2" [3, 4, 5, 6, 7]
             expression_test "[B] - 2" [-1, -0.5, 0.5, 2, 4]
@@ -162,7 +172,7 @@ spec detailed=False =
             expression_test "([A] - [B]) ^ [A]" [0, 0.25, 0.125, 0, -1]
             expression_test "[A] ^ ([B] - [A])" [1, 0.707106781186547, 0.577350269189626, 1, 5]
 
-    Test.group "Comparison Operators" <|
+    Test.group prefix+"Comparison Operators" pending=pending_bug <|
         specify_test "should be able to compare equality" expression_test->
             expression_test "2 = 1 + 1" True
             expression_test "2 == 1 + 1" True
@@ -216,7 +226,7 @@ spec detailed=False =
             expression_test "'' IS NOT EMPTY" False
             expression_test "Nothing IS NOT EMPTY" False
 
-    Test.group "Text Operators" <|
+    Test.group prefix+"Text Operators" <|
         specify_test "should be able to concatenate text" expression_test->
             expression_test "'Hello ' + 'World'" "Hello World"
             expression_test "[C] + ' World'" ["Hello World", "World World", "Hello World! World", " World", Nothing]
@@ -233,7 +243,7 @@ spec detailed=False =
             expression_test "[C] LIKE 'Hello%'" [True, False, True, False, Nothing]
             expression_test "[C] NOT LIKE 'Hello%'" [False, True, False, True, Nothing]
 
-    Test.group "Boolean Operators" <|
+    Test.group prefix+"Boolean Operators" pending=pending_bug <|
         specify_test "should be able to AND booleans" expression_test->
             expression_test "True && TRUE" True
             expression_test "True AND False" False
@@ -257,7 +267,7 @@ spec detailed=False =
             expression_test "IF False THEN 'A' ELSE 'B' END" 'B'
             expression_test "IF [Bad]] Name] THEN [A] ELSE [B] ENDIF" [1, 1.5, 3, 4, 5]
 
-    Test.group "Function invocation" <|
+    Test.group prefix+"Function invocation" pending=pending_bug <|
         specify_test "should be able to call a function with arguments" expression_test->
             expression_test "Not(True)" False
             expression_test "not(False)" True
@@ -268,7 +278,7 @@ spec detailed=False =
             expression_test "min(10, 3, 8)" 3
             expression_test "max([A], [B], 3)" [3, 3, 3, 4, 6]
 
-    Test.group "Errors should be handled" <|
+    Test.group prefix+"Errors should be handled" pending=pending_bug <|
         error_tester expression fail_type =
             test_table.set "NEW_COL" expression on_problems=Problem_Behavior.Report_Error . should_fail_with fail_type
             test_table.set "NEW_COL" expression . column_count . should_equal test_table.column_count
@@ -286,5 +296,3 @@ spec detailed=False =
 
         specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
             expression_test "starts_with([C], 'Hello', 'World')" Expression_Error.Argument_Mismatch
-
-main = Test_Suite.run_main (spec True)

@@ -16,6 +16,7 @@ use tracing_subscriber::Registry;
 
 
 pub fn is_our_module_path(path: impl AsRef<str>) -> bool {
+    // true
     ["ide_ci::", "enso"].into_iter().any(|prefix| path.as_ref().starts_with(prefix))
 }
 

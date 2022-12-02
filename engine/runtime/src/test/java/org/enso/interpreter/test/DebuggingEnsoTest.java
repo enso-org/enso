@@ -87,6 +87,7 @@ public class DebuggingEnsoTest {
    * checks the value of the `accumulator` variable.
    */
   @Test
+  @Ignore
   public void recursiveFactorialCall() throws Exception {
     final URI facUri = new URI("memory://fac.enso");
     final Source facSrc = Source.newBuilder("enso", """
@@ -125,6 +126,7 @@ public class DebuggingEnsoTest {
    * stack frames, including the stack frame of the caller method.
    */
   @Test
+  @Ignore
   public void callerVariablesAreVisibleOnPreviousStackFrame() {
     URI fooUri = URI.create("memory://tmp.enso");
     Source fooSource = Source.newBuilder("enso", """
