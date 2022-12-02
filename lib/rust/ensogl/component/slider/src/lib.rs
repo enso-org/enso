@@ -480,7 +480,7 @@ impl Slider {
         };
     }
 
-    /// Initialize the slider limit handling FRP network
+    /// Initialize the slider limit handling FRP network.
     fn init_limit_handling(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
@@ -516,7 +516,7 @@ impl Slider {
         };
     }
 
-    /// Initialize the value display FRP network
+    /// Initialize the value display FRP network.
     fn init_value_display(&self) {
         let network = self.frp.network();
         let input = &self.frp.input;
