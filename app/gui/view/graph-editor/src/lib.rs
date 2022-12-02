@@ -2069,7 +2069,7 @@ impl GraphEditorModel {
     pub fn set_node_position(&self, node_id: impl Into<NodeId>, position: Vector2) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.mod_position(|t| {
+            node.modify_position(|t| {
                 t.x = position.x;
                 t.y = position.y;
             });
@@ -2169,7 +2169,7 @@ impl GraphEditorModel {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
-                    edge.mod_position(|p| {
+                    edge.modify_position(|p| {
                         p.x = node.position().x + node.model().width() / 2.0;
                         p.y = node.position().y;
                     });
@@ -3264,7 +3264,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                 edge.view.frp.source_height.emit(cursor::DEFAULT_RADIUS);
                 edge.view.frp.target_position.emit(-position.xy());
                 edge.view.frp.redraw.emit(());
-                edge.mod_position(|p| {
+                edge.modify_position(|p| {
                     p.x = position.x;
                     p.y = position.y;
                 });
@@ -3285,7 +3285,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                     edge.view.frp.source_height.emit(node_height);
                     edge.view.frp.target_position.emit(-node_pos.xy());
                     edge.view.frp.redraw.emit(());
-                    edge.mod_position(|p| {
+                    edge.modify_position(|p| {
                         p.x = node_pos.x + node_width/2.0;
                         p.y = node_pos.y;
                     });

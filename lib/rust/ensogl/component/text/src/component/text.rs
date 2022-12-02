@@ -1469,7 +1469,7 @@ impl TextModel {
             if let Some(cursor) = &last_cursor {
                 cursor.right_side().add_child(glyph);
                 glyph.attached_to_cursor.set(true);
-                glyph.mod_x(|p| p - last_cursor_target_x);
+                glyph.update_x(|p| p - last_cursor_target_x);
                 attached_glyphs.push(glyph.downgrade());
             }
             column += Column(1);
@@ -1491,7 +1491,7 @@ impl TextModel {
                     if let Some(glyph) = glyph.upgrade() {
                         self.lines.borrow_mut()[line].add_child(&glyph);
                         let pos_x = selection.position_target.value().x;
-                        glyph.mod_xy(|pos| Vector2(pos.x + pos_x, 0.0));
+                        glyph.update_xy(|pos| Vector2(pos.x + pos_x, 0.0));
                         glyph.attached_to_cursor.set(false);
                     }
                 }

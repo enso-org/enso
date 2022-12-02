@@ -651,7 +651,7 @@ impl Container {
         frp::extend! { network
             eval_ action_bar.on_container_reset_position(model.drag_root.set_xy(Vector2::zero()));
             drag_action <- app.cursor.frp.scene_position_delta.gate(&action_bar.container_drag_state);
-            eval drag_action ((mouse) model.drag_root.mod_xy(|pos| pos - mouse.xy()));
+            eval drag_action ((mouse) model.drag_root.update_xy(|pos| pos - mouse.xy()));
         }
 
         // FIXME[mm]: If we set the size right here, we will see spurious shapes in some

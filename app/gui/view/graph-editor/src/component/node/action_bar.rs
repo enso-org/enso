@@ -170,7 +170,7 @@ impl Model {
         let index = index as f32;
         let padding = BUTTON_PADDING;
         let offset = BUTTON_OFFSET;
-        button.mod_position(|p| p.x = ((1.0 + padding) * index + offset) * icon_size.x);
+        button.set_x(((1.0 + padding) * index + offset) * icon_size.x);
         button.frp.set_size(icon_size);
     }
 

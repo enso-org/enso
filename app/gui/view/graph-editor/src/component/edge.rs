@@ -1305,10 +1305,10 @@ impl EdgeModelData {
         display_object.add_child(&back);
         display_object.add_child(&joint);
 
-        front.side_line.mod_rotation(|r| r.z = RIGHT_ANGLE);
-        back.side_line.mod_rotation(|r| r.z = RIGHT_ANGLE);
-        front.side_line2.mod_rotation(|r| r.z = RIGHT_ANGLE);
-        back.side_line2.mod_rotation(|r| r.z = RIGHT_ANGLE);
+        front.side_line.set_rotation_z(RIGHT_ANGLE);
+        back.side_line.set_rotation_z(RIGHT_ANGLE);
+        front.side_line2.set_rotation_z(RIGHT_ANGLE);
+        back.side_line2.set_rotation_z(RIGHT_ANGLE);
 
         let frp = Frp::new(network);
         let source_height = default();

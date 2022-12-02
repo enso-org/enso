@@ -123,8 +123,8 @@ pub fn main() {
     let container = define_rect(container_size * 2.0, container_size, network);
     let left_stack = define_stack(network);
     let right_stack = define_stack(network);
-    left_stack.mod_x(|x| x - (container_size) / 2.0);
-    right_stack.mod_x(|x| x + (container_size) / 2.0);
+    left_stack.update_x(|x| x - (container_size) / 2.0);
+    right_stack.update_x(|x| x + (container_size) / 2.0);
 
     let rect = rectangle2::View::new();
     rect.size.set(Vector2::new(2.0, 2.0));

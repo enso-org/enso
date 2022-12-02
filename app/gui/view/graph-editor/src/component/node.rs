@@ -636,9 +636,8 @@ impl NodeModel {
         self.vcs_indicator.set_x(x_offset_to_node_center);
 
         let action_bar_width = ACTION_BAR_WIDTH;
-        self.action_bar.mod_position(|t| {
-            t.x = x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0;
-        });
+        self.action_bar
+            .set_x(x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0);
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         let visualization_offset = visualization_offset(width);

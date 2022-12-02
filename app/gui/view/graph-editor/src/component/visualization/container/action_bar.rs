@@ -181,7 +181,7 @@ impl Icons {
     fn place_shape_in_slot<S: Shape>(&self, view: &ShapeView<S>, index: usize) {
         let icon_size = self.icon_size();
         let index = index as f32;
-        view.mod_position(|p| p.x = index * icon_size.x + node::CORNER_RADIUS);
+        view.set_x(index * icon_size.x + node::CORNER_RADIUS);
         view.size.set(icon_size)
     }
 
