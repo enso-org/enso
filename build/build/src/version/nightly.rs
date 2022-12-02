@@ -11,26 +11,30 @@ use semver::Version;
 /// Parsed nightly build [prerelease](https://semver.org/#spec-item-9) piece.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NightlyPrerelease {
-    pub year:  u64,
-    pub month: u64,
-    pub day:   u64,
+    /// The date of the nightly build.
+    pub date:  chrono::NaiveDate,
+    /// The number of the nightly build.
+    ///
+    /// The first nightly build of the day has None, subsequent builds have Some(1), Some(2), etc.
     pub index: Option<u64>,
 }
 
 impl NightlyPrerelease {
+    #[allow(missing_docs)]
     pub fn new(date: chrono::NaiveDate, index: Option<u64>) -> Self {
-        Self { year: date.year() as u64, month: date.month() as u64, day: date.day() as u64, index }
+        Self { date, index }
     }
 
     /// Generate a next nightly build version for the given date.
     ///
     /// ```
     /// use enso_build::version::nightly::NightlyPrerelease;
-    /// let first = NightlyPrerelease { year: 2020, month: 1, day: 1, index: None };
+    /// let date = chrono::NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
+    /// let first = NightlyPrerelease::new(date, None);
     /// let second = first.next();
-    /// assert_eq!(second, NightlyPrerelease { year: 2020, month: 1, day: 1, index: Some(1) });
+    /// assert_eq!(second, NightlyPrerelease::new(date, Some(1)));
     /// let third = second.next();
-    /// assert_eq!(third, NightlyPrerelease { year: 2020, month: 1, day: 1, index: Some(2) });
+    /// assert_eq!(third, NightlyPrerelease::new(date, Some(2)));
     /// ```
     pub fn next(mut self) -> Self {
         self.index = Some(self.index.unwrap_or(0) + 1);
@@ -56,14 +60,23 @@ impl TryFrom<&Prerelease> for NightlyPrerelease {
         let day = identifiers.get(3).context("Missing day")?.parse2().context("Invalid day")?;
         let index =
             identifiers.get(4).map(|index| index.parse2()).transpose().context("Invalid index")?;
-        Ok(Self { year, month, day, index })
+        let date = chrono::NaiveDate::from_ymd_opt(year, month, day)
+            .with_context(|| format!("Invalid date: {}-{}-{}", year, month, day))?;
+        Ok(Self::new(date, index))
     }
 }
 
 impl Display for NightlyPrerelease {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let Self { year, month, day, index } = self;
-        write!(f, "{}.{}.{}.{}", version::NIGHTLY_BUILD_PREFIX, year, month, day)?;
+        let Self { date, index } = self;
+        write!(
+            f,
+            "{}.{}.{}.{}",
+            version::NIGHTLY_BUILD_PREFIX,
+            date.year(),
+            date.month(),
+            date.day()
+        )?;
         if let Some(index) = index {
             write!(f, ".{}", index)?;
         }
@@ -89,13 +102,7 @@ impl TryFrom<&Version> for NightlyPrerelease {
     }
 }
 
-impl NightlyPrerelease {
-    /// Get the date of the nightly build.
-    pub fn date(&self) -> chrono::NaiveDate {
-        chrono::NaiveDate::from_ymd(self.year as i32, self.month as u32, self.day as u32)
-    }
-}
-
+/// Nightly build version.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nightly {
     full_version: Version,
@@ -151,16 +158,12 @@ mod tests {
     fn parsing_nightly_prerelease() -> Result {
         let nightly = Version::from_str("2020.1.1-nightly.2020.12.31")?;
         assert_eq!(NightlyPrerelease::try_from(&nightly)?, NightlyPrerelease {
-            year:  2020,
-            month: 12,
-            day:   31,
+            date:  chrono::NaiveDate::from_ymd_opt(2020, 12, 31).unwrap(),
             index: None,
         });
         let nightly_with_index = Version::from_str("2020.1.1-nightly.2020.12.31.1")?;
         assert_eq!(NightlyPrerelease::try_from(&nightly_with_index)?, NightlyPrerelease {
-            year:  2020,
-            month: 12,
-            day:   31,
+            date:  chrono::NaiveDate::from_ymd_opt(2020, 12, 31).unwrap(),
             index: Some(1),
         });
 

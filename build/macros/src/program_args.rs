@@ -160,6 +160,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn foo() -> Result {
         let code = "enum Foo {
             #[arg]
@@ -169,7 +170,7 @@ mod tests {
             #[arg]
             Quux,
         }";
-        let token_stream = syn::parse_str::<TokenStream>(code)?;
+        let _token_stream = syn::parse_str::<TokenStream>(code)?;
         Ok(())
     }
 
@@ -192,6 +193,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn parse_attribute() -> Result {
         let attribute = r#"(format = ToString :: to_string)"#;
         let token_stream = syn::parse_str::<TokenStream>(attribute)?;

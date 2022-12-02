@@ -10,6 +10,7 @@ use ide_ci::programs::git::Ref;
 
 
 
+/// Describes what kind of version should be generated.
 #[derive(
     clap::ArgEnum,
     Clone,
@@ -45,6 +46,7 @@ pub async fn releases_on_remote(git: &git::Context) -> Result<Vec<Version>> {
         .collect())
 }
 
+/// List of all releases on the remote.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Releases {
     /// A list of all released versions.
@@ -57,11 +59,13 @@ pub struct Releases {
 }
 
 impl Releases {
+    /// Create, while using the current date.
     pub fn new_now(versions: impl IntoIterator<Item = Version>) -> Result<Self> {
         let date = chrono::Utc::now().naive_utc().date();
         Self::new(versions, date)
     }
 
+    /// Create with a given date.
     pub fn new(
         versions: impl IntoIterator<Item = Version>,
         date: chrono::NaiveDate,
@@ -77,20 +81,24 @@ impl Releases {
         Ok(Self { versions, date })
     }
 
+    /// Generate, based on all releases on the remote.
     pub async fn from_remote(git: &git::Context) -> Result<Self> {
         let date = chrono::Utc::now();
         let versions = releases_on_remote(git).await?;
-        Self::new(versions, date.date().naive_utc())
+        Self::new(versions, date.date_naive())
     }
 
+    /// Iterates over releases of a given [`version::Kind`].
     pub fn of_kind(&self, kind: version::Kind) -> impl Iterator<Item = &Version> {
         self.versions.iter().filter(move |version| kind.matches(version))
     }
 
+    /// Get the latest release of a given [`version::Kind`].
     pub fn latest_of_kind(&self, kind: version::Kind) -> Option<&Version> {
         self.of_kind(kind).max()
     }
 
+    /// Generate a version for next release of a given [`Designation`].
     pub fn generate_version(&self, designation: Designation) -> Result<Version> {
         let latest_stable = self.latest_of_kind(version::Kind::Stable);
         let next_stable = if let Some(latest_stable) = latest_stable {
@@ -124,7 +132,7 @@ impl Releases {
                     .of_kind(version::Kind::Nightly)
                     .filter(|v| v.same_core(&next_stable))
                     .filter_map(|v| Nightly::try_from(v).ok())
-                    .filter(|v| v.prerelease().date() == self.date)
+                    .filter(|v| v.prerelease().date == self.date)
                     .max();
                 if let Some(last_relevant_nightly) = last_relevant_nightly {
                     last_relevant_nightly.next().into()
@@ -160,8 +168,8 @@ mod tests {
     fn test_version_generation() -> Result {
         use Designation::*;
         let previously_released_versions = ["2021.1.1", "2021.1.2"];
-        let date = chrono::NaiveDate::from_ymd(2021, 02, 22);
-        let next_date = chrono::NaiveDate::from_ymd(2021, 02, 23);
+        let date = chrono::NaiveDate::from_ymd_opt(2021, 2, 22).context("Invalid date")?;
+        let next_date = chrono::NaiveDate::from_ymd_opt(2021, 2, 23).context("Invalid date")?;
         expect_next_release(date, previously_released_versions, Stable, "2021.2.1");
         expect_next_release(date, previously_released_versions, Patch, "2021.1.3");
         expect_next_release(date, previously_released_versions, Rc, "2021.2.1-rc.1");

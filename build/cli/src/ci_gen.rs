@@ -410,7 +410,7 @@ pub fn promote() -> Result<Workflow> {
 
 
     let version_input = format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}");
-    let mut release_job = call_release_job(&wrap_expression(&version_input));
+    let mut release_job = call_release_job(&wrap_expression(version_input));
     release_job.needs(&promote_job_id);
     workflow.add_job(release_job);
 
