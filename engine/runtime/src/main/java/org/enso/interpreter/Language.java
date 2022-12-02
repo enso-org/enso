@@ -11,8 +11,12 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.exception.CompilationAbortedException;
 import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
@@ -43,9 +47,9 @@ import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * The root of the Enso implementation.
@@ -207,26 +211,35 @@ public final class Language extends TruffleLanguage<Context> {
       var context = Context.get(request.getLocation());
       Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
       var undesirableExprTypes = List.of(
-              Tree.Assignment.class,
-              Tree.Import.class,
-              Tree.Export.class
+          Tree.Assignment.class,
+          Tree.Import.class,
+          Tree.Export.class
       );
       if (astContainsExprTypes(inlineExpr, undesirableExprTypes)) {
-        throw new Exception("Inline parsing request contains some of undesirable expression types");
+        throw new InlineParsingException(
+            "Inline parsing request contains some of undesirable expression types: " + undesirableExprTypes,
+            null
+        );
       }
 
       var module = ensoRootNode.getModuleScope().getModule();
       var localScope = ensoRootNode.getLocalScope();
-      var silentConfig = new CompilerConfig(false, false, true);
+      var outputRedirect = new ByteArrayOutputStream();
+      var redirectConfigWithStrictErrors = new CompilerConfig(
+          false,
+          false,
+          true,
+          scala.Option.apply(new PrintStream(outputRedirect))
+      );
       var inlineContext = new InlineContext(
           module,
           scala.Some.apply(localScope),
           scala.Some.apply(false),
           scala.Option.empty(),
           scala.Option.empty(),
-          silentConfig
+          redirectConfigWithStrictErrors
       );
-      var silentCompiler = context.getCompiler().duplicateWithConfig(silentConfig);
+      Compiler silentCompiler = context.getCompiler().duplicateWithConfig(redirectConfigWithStrictErrors);
       scala.Option<ExpressionNode> exprNode;
       try {
         exprNode = silentCompiler
@@ -234,13 +247,17 @@ public final class Language extends TruffleLanguage<Context> {
                 request.getSource().getCharacters().toString(),
                 inlineContext
             );
-      } catch (UnhandledEntity e) {
-        // Wrap UnhandledEntity in a checked exception, so that truffle can be notified
-        // that parsing failed.
-        throw new Exception("Unhandled entity " + e.entity(), e);
+      } catch (UnhandledEntity | CompilationAbortedException e) {
+        assert outputRedirect.toString().lines().count() > 1 : "Expected a header line from the compiler";
+        String compilerErrOutput = outputRedirect.toString()
+            .lines()
+            .skip(1)
+            .collect(Collectors.joining(";"));
+        throw new InlineParsingException(compilerErrOutput, e);
       } finally {
         silentCompiler.shutdown(false);
       }
+
       if (exprNode.isDefined()) {
         var language = Language.get(exprNode.get());
         return new ExecutableNode(language) {
@@ -252,6 +269,12 @@ public final class Language extends TruffleLanguage<Context> {
       }
     }
     return null;
+  }
+
+  private static final class InlineParsingException extends Exception {
+    InlineParsingException(String message, Throwable cause) {
+      super(message, cause);
+    }
   }
 
   /**

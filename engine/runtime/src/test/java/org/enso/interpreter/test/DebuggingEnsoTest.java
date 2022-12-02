@@ -340,15 +340,20 @@ public class DebuggingEnsoTest {
     Value module = context.eval(src);
     Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
-      // This snippet is actually called from chromeinspector
+      // This snippet is actually called from chromeinspector as the very first command
+      // after typing anything in the console.
       assertThrows("Evaluating syntactically incorrect snippet should throw exception",
           DebugException.class,
           () -> event.getTopStackFrame().eval("(async function(){ await 1;})()")
       );
-      assertThrows("Evaluating non existing identifiers should throw PanicException, wrapped in DebugException",
+      // Also test that the thrown exception contains some reasonable error message, because
+      // that error message will be printed in the chromeinspector console
+      DebugException exception = assertThrows("Evaluating non existing identifiers should throw PanicException, wrapped in DebugException",
           DebugException.class,
           () -> event.getTopStackFrame().eval("non_existing_identifier")
       );
+      assertTrue(exception.getMessage().contains("The name `non_existing_identifier` could not be found"));
+
       assertThrows(
               DebugException.class,
               () -> event.getTopStackFrame().eval("13 + non_existing_identifier")

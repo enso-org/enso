@@ -26,7 +26,7 @@ import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 import org.enso.syntax2.Tree
 
-import java.io.{OutputStream, PrintStream, StringReader}
+import java.io.{PrintStream, StringReader}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -56,7 +56,8 @@ class Compiler(
     new SerializationManager(this)
   private val logger: TruffleLogger = context.getLogger(getClass)
   private val output: PrintStream =
-    if (config.silent) new PrintStream(OutputStream.nullOutputStream())
+    if (config.outputRedirect.isDefined)
+      new PrintStream(config.outputRedirect.get)
     else context.getOut
   private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler();
 
@@ -549,7 +550,7 @@ class Compiler(
         "<interactive_source>"
       )
       .build()
-    val tree  = ensoCompiler.parse(source)
+    val tree = ensoCompiler.parse(source)
 
     ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
