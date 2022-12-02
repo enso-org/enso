@@ -210,7 +210,7 @@ define_themes! { [light:0, dark:1]
                             font = "mplus1p", "mplus1p";
                             y_offset = 8.0, 8.0;
                             y_offset_header = 5.0, 5.0;
-                            x_offset_header = 1.0, 1.0;
+                            x_offset_header = 0.0, 0.0;
                             size = 11.5, 11.5;
                             color = 1.0, 1.0;
                             highlight_bold = 0.01, 0.01;

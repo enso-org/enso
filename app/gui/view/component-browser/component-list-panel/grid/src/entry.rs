@@ -324,7 +324,8 @@ impl Data {
         self.background.set_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
-        let left = -entry_size.x / 2.0 + style.padding;
+        let width = grid_style.column_width();
+        let left = -width / 2.0 + style.padding;
         let icon_x = left + style.icon_size / 2.0;
         let icon_y = local_scope_offset;
         self.icon.borrow().set_xy(Vector2(icon_x, icon_y));

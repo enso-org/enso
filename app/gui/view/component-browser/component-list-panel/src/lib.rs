@@ -200,7 +200,7 @@ mod background {
 
             let menu_divider_x_pos = navigator_width / 2.0;
             let menu_divider_y_pos = height / 2.0 - menu_height + menu_divider_height;
-            let navigator_divider_x = -width / 2.0 + navigator_width;
+            let navigator_divider_x = -width / 2.0 + navigator_width - navigator_divider_width / 2.0;
             let navigator_divider_y = 0.0;
 
             let menu_divider = Rect((menu_divider_width.px(),menu_divider_height.px()));

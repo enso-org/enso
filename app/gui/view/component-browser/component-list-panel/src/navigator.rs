@@ -269,7 +269,7 @@ impl Navigator {
         let width = style.navigator.width;
         let height = style.grid.height + style.panel.menu_height;
         let top = height / 2.0;
-        let bottom = -height / 2.0;
+        let bottom = (-height / 2.0).floor();
         let left = -style.grid.width / 2.0 - width / 2.0;
         let top_padding = style.navigator.top_padding;
         let bottom_padding = style.navigator.bottom_padding;
