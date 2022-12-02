@@ -160,10 +160,6 @@ pub struct Cli {
     #[clap(long, global = true, default_value_t = default_repo_remote(), enso_env())]
     pub repo_remote: Repo,
 
-    /// The build kind. Affects the default version generation.
-    #[clap(long, global = true, arg_enum, default_value_t = enso_build::version::Kind::Dev, env = *crate::ENSO_BUILD_KIND)]
-    pub build_kind: enso_build::version::Kind,
-
     /// Platform to target. Currently cross-compilation is enabled only for GUI/IDE (without
     /// Project Manager) on platforms where Electron Builder supports this.
     #[clap(long, global = true, default_value_t = TARGET_OS, enso_env(), possible_values=[OS::Windows.as_str(), OS::Linux.as_str(), OS::MacOS.as_str()])]

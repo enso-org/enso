@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Base.Data.Map import No_Value_For_Key
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec = Test.group "Maps" <|
     m = Map.empty . insert 1 2 . insert 2 4

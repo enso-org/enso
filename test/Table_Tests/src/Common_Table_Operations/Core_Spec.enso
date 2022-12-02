@@ -1,0 +1,95 @@
+from Standard.Base import all
+
+from Standard.Table.Errors import all
+
+from Standard.Test import Test
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    table =
+        col1 = ["foo", [1,2,3]]
+        col2 = ["bar", [4,5,6]]
+        col3 = ["Baz", [7,8,9]]
+        col4 = ["foo_1", [10,11,12]]
+        col5 = ["foo_2", [13,14,15]]
+        col6 = ["ab.+123", [16,17,18]]
+        col7 = ["abcd123", [19,20,21]]
+        table_builder [col1, col2, col3, col4, col5, col6, col7]
+
+    Test.group prefix+"Table.at" <|
+        Test.specify "should allow selecting columns by name" <|
+            column_1 = table.at "bar"
+            column_1.name . should_equal "bar"
+            column_1.to_vector . should_equal [4, 5, 6]
+
+            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error_Data
+        Test.specify "should allow selecting columns by index" <|
+            column_1 = table.at
+            column_1.name . should_equal "foo"
+            column_1.to_vector . should_equal [1, 2, 3]
+
+            column_2 = table.at 2
+            column_2.name . should_equal "Baz"
+            column_2.to_vector . should_equal [7, 8, 9]
+
+            column_3 = table.at -1
+            column_3.name . should_equal "abcd123"
+            column_3.to_vector . should_equal [19, 20, 21]
+
+            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error_Data
+
+    Test.group prefix+"Table.column_names" <|
+        Test.specify "should return the names of all columns" <|
+            table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+
+    Test.group prefix+"Table.column_count" <|
+        Test.specify "should allow getting the column count" <|
+            table.column_count . should_equal 7
+
+    Test.group prefix+"Table.rows" <|
+        table = table_builder [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
+        Test.specify "should allow to get a Vector of Table rows" <|
+            rows = table.rows
+            rows.length . should_equal 4
+
+            first_row = rows.first
+            first_row . length . should_equal 3
+            first_row.at "X" . should_equal 1
+            first_row.at "Y" . should_equal 5
+            first_row.at "Z" . should_equal "A"
+
+            last_row = rows.at -1
+            last_row . length . should_equal 3
+            last_row.at 0 . should_equal 4
+            last_row.at 1 . should_equal 8
+            last_row.at 2 . should_equal "D"
+            last_row.at -1 . should_equal "D"
+
+            rows.map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"], [3, 7, "C"], [4, 8, "D"]]
+
+        Test.specify "should fetch rows up to the specified limit" <|
+            table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
+
+        Test.specify "should correctly handle errors" <|
+            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            err = table.rows.at -6
+            err.should_fail_with Index_Out_Of_Bounds_Error_Data
+            err.catch . should_equal (Index_Out_Of_Bounds_Error_Data -6 4)
+
+            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column_Error_Data
+
+        Test.specify "should visualize nicely" <|
+            table.rows . to_default_visualization_data . should_equal <|
+                '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
+
+            # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
+            t2 = table_builder [["X", 0.up_to 200 . to_vector]]
+            t2.rows.to_default_visualization_data . should_equal (0.up_to 100 . map (x -> [x])).to_default_visualization_data

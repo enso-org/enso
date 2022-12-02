@@ -58,7 +58,6 @@ pub trait IsReleaseExt: IsRelease + Sync {
     /// Upload a new asset to the release from a given file.
     ///
     /// The filename will be used to name the asset and deduce MIME content type.
-    // #[context("Failed to upload an asset from the file under {}", path.as_ref().display())]
     #[instrument(skip_all, fields(source = %path.as_ref().display()))]
     async fn upload_asset_file(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
         let error_msg =

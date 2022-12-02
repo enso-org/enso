@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Base.Data.Text.Text_Sub_Range import all
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec = Test.group "Text_Sub_Range_Data" <|
     Test.specify "should correctly split a text into grapheme cluster ranges expressed in codepoint indices" <|
