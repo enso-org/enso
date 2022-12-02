@@ -64,7 +64,7 @@ impl From<&Dim1> for Dim1 {
 
 
 // ===============================
-// === 1-dimensional Alignment ===
+// === 2-dimensional Alignment ===
 // ===============================
 
 #[derive(Clone, Copy, Debug, Deref, Default, PartialEq)]
@@ -78,11 +78,6 @@ impl Dim2 {
     pub fn new(horizontal: Dim1, vertical: Dim1) -> Self {
         Self { vector: Vector2(horizontal, vertical) }
     }
-
-    /// Constructor.
-    pub fn center() -> Self {
-        Self::center_center()
-    }
 }
 
 impl Dim2 {
@@ -91,22 +86,95 @@ impl Dim2 {
     }
 }
 
+
+
+// ======================================
+// === 2-dimensional Alignment Macros ===
+// ======================================
+
+/// Runs the provided macro with two alignment anchor arrays, one for horizontal and one for
+/// vertical. For example, if run with the arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args] [left center right] [bottom center top] }
+/// ```
+///
+/// The `[args]` argument is optional.
 #[macro_export]
-macro_rules! with_alignemnt_dim2_anchors {
-    ($f:path [$($args:tt)*]) => {
-        $f! { [$($args)*] [left center right] [bottom center top] }
+macro_rules! with_alignment_dim2_anchors {
+    ($f:path $([$($args:tt)*])?) => {
+        $f! { $([$($args)*])? [left center right] [bottom center top] }
     };
 }
 
+/// Runs the provided macro with an alignment anchor matrix. For example, if run with the arguments
+/// `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args] [left bottom] [left center] ... [center bottom] ... [bottom top] }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_alignment_dim2_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $crate::with_alignment_dim2_anchors! {enso_shapely::cartesian [$f $([$($args)*])?] }
+    };
+}
+
+/// Runs the provided macro with an alignment anchor matrix annotated with a name for the anchor
+/// pair. The name is created as `$x_$y` with the exception for both anchors being `center`, then
+/// the name is simply `center`. For example, if run with the arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args]
+///     [left_bottom left bottom]
+///     [left_center left center]
+///     ...
+///     [center_bottom center bottom]
+///     [center center center]
+///     [center_top center top]
+///     ...
+///     [bottom top]
+/// }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_alignment_dim2_named_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $crate::with_alignment_dim2_matrix! {
+            $crate::with_alignment_dim2_named_matrix [$f $([$($args)*])?]
+        }
+    };
+    ([$($fs:tt)*] $($ts:tt)*) => {
+        $crate::with_alignment_dim2_named_matrix! {@ [$($fs)*] [] $($ts)*}
+    };
+    (@ $fs:tt [$($out:tt)*] [[center center] $($ts:tt)*]) => {
+        $crate::with_alignment_dim2_named_matrix! {@ $fs [$($out)* [center center center]] [$($ts)*]}
+    };
+    (@ $fs:tt [$($out:tt)*] [[$x:ident $y:ident] $($ts:tt)*]) => { paste! {
+        $crate::with_alignment_dim2_named_matrix! {@ $fs [$($out)* [[<$x _ $y>] $x $y]] [$($ts)*]}
+    }};
+    (@ [$f:path $([$($args:tt)*])?] $out:tt []) => {
+        $f! { $([$($args)*])? $out }
+    };
+}
+
+
+// ============================================
+// === 2-dimensional Alignment Constructors ===
+// ============================================
+
 macro_rules! gen_dim2_cons {
-    ([$([$x:ident $y:ident])*]) => { paste! {
+    ([$([$f:ident $x:ident $y:ident])*]) => {
         impl Dim2 {$(
             /// Constructor.
-            pub fn [<$x _ $y>]() -> Self {
+            pub fn $f() -> Self {
                 Self::new(Dim1::$x(), Dim1::$y())
             }
         )*}
-    }}
+    }
 }
 
-with_alignemnt_dim2_anchors!(enso_shapely::cartesian[gen_dim2_cons]);
+with_alignment_dim2_named_matrix!(gen_dim2_cons);

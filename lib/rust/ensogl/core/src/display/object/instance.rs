@@ -63,6 +63,65 @@ pub struct ChildIndex(usize);
 /// it will inherit the assignment from its parent object, if any. This means that adding an object
 /// to a layer will also move all of its children there, until they are assigned with a different
 /// layer explicitly.
+///
+///
+///
+/// # Size and layout
+/// Display objects can position its children automatically and then, recompute their size based on
+/// the children bounding box. There are three layouts available: manual, horizontal, and vertical.
+///
+/// ## Resizing
+/// Every display object can be configured with a horizontal and vertical resizing mode. There are
+/// three modes available:
+/// - `Hug` (default). In this mode, the display object size will be set to the bounding box of its
+///   children. In case of no children, the display object will be resized to (0,0). The only
+///   exception is setting the hug resizing on a display object with a manual layout. Then, its size
+///   will be set to the children bounding box clipped to the positive X- and Y-axis.
+/// - `Fill`. In this mode, the display object will fill the free space in its parent. If several
+///   children are set to this mode, the free space will be divided evenly between them. If the
+///   parent resizing was set to `Hug`, all its children with resizing set to `Fill` will be resized
+///   to 0.
+/// - `Fixed`. In this mode, the display object size will be fixed. The size of children can be
+///   smaller or bigger than the size of the parent object.
+///
+/// ## Horizontal and vertical auto-layouts
+/// The auto-layout can be set to either horizontal or vertical one. Each layout can be configured
+/// with the following options:
+/// - `alignment`. The alignment of the children. For example, it allows to align the children to
+///   the right edge of their parent. The alignment is covered in detail in the following section.
+/// - `spacing`. The space between children.
+/// - `padding`. The space between the children and the edge of the parent.
+/// - `reversed`. A flag indicating whether the children should be placed in a reversed order. By
+///   default, children are placed from left to right or from bottom to top.
+///
+/// ## Alignment
+/// The alignment of the children can be set to one of two modes: packed and spaced. In the packed
+/// mode, the children will be placed next to each other and will be separated with the `spacing`
+/// value. In the spaced mode, the children will be placed as far away from each other as possible
+/// in order to fill the whole space of the parent display object. In case the parent display object
+/// size is smaller than the cumulative size of its children, the children will overlap.
+///
+/// ## Layout documentation
+/// Documentation of the layout uses drawings with graphical symbols for different resizing and
+/// layout modes. For example, the illustration below shows a ROOT display object with a horizontal
+/// layout and fixed resizing. The L child has a horiontal layout, fill horizontal resizing, and a
+/// fixed vertical resizing. The R child has a vertical layout, hug horizontal resizing, and a fill
+/// vertical resizing.
+///
+/// ```text
+/// ╭▷ ROOT ──────────────────────────╮
+/// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │   Auto-layout Legend:         
+/// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │   ┄── ▷ ──┄ : Horizontal auto-layout.
+/// │   │ │ L1  │  │   │ │ R1 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
+/// │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
+/// │   │ │     │  ▼   │ ╰────╯   ▲   │
+/// │   │ │     │  ▲   │ ╭────╮   ▼   │   Resizing Legend:             
+/// │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill resizing.
+/// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug resizing.  
+/// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed resizing.
+/// │   ╰──────────╯   ╰──────────╯   │
+/// ╰─────────────────────────────────╯
+/// ```
 #[derive(Derivative)]
 #[derive(CloneRef, Deref, From)]
 #[derivative(Clone(bound = ""))]
@@ -135,7 +194,7 @@ impl Model {
         let network = frp::Network::new("display_object");
         let hierarchy = HierarchyModel::new(&network);
         let event = EventModel::new(&network);
-        let layout = LayoutModel::new(&network);
+        let layout = LayoutModel::new();
         Self { network, hierarchy, event, layout }
     }
 }
@@ -1039,27 +1098,201 @@ impl InstanceDef {
 }
 
 
+
+// ======================================
+// === 2-dimensional Alignment Macros ===
+// ======================================
+
+/// Runs the provided macro with two alignment anchor arrays, one for horizontal and one for
+/// vertical. For example, if run with the arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args] [left center right spaced] [bottom center top spaced] }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_display_object_alignment_dim2_anchors {
+    ($f:path $([$($args:tt)*])?) => {
+        $f! { $([$($args)*])? [left center right spaced] [bottom center top spaced] }
+    };
+}
+
+/// Runs the provided macro with an alignment anchor matrix. For example, if run with the arguments
+/// `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args] [left bottom] [left center] ... [center bottom] ... [bottom spaced] }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_display_object_alignment_dim2_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $crate::with_display_object_alignment_dim2_anchors! {
+            enso_shapely::cartesian [$f $([$($args)*])?]
+        }
+    };
+}
+
+/// Runs the provided macro with an alignment anchor matrix annotated with a name for the anchor
+/// pair. The name is created as `$x_$y` with the exception for both anchors being `center` or
+/// `spaced`. Then, the name is simply `center` and `spaced`, respectively. For example, if run
+/// with the arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args]
+///     [left_bottom left bottom]
+///     [left_center left center]
+///     [left_top left top]
+///     [left_spaced left spaced]
+///     ...
+///     [center_bottom center bottom]
+///     [center center center]
+///     [center_top center top]
+///     ...
+///     [spaced spaced spaced]
+///     ...
+///     [bottom top]
+/// }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_display_object_alignment_dim2_named_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $crate::with_display_object_alignment_dim2_matrix! {
+            $crate::with_display_object_alignment_dim2_named_matrix [$f $([$($args)*])?]
+        }
+    };
+    ([$($fs:tt)*] $($ts:tt)*) => {
+        $crate::with_display_object_alignment_dim2_named_matrix! {@ [$($fs)*] [] $($ts)*}
+    };
+    (@ $fs:tt [$($out:tt)*] [[center center] $($ts:tt)*]) => {
+        $crate::with_display_object_alignment_dim2_named_matrix! {
+            @ $fs [$($out)* [center center center]] [$($ts)*]
+        }
+    };
+    (@ $fs:tt [$($out:tt)*] [[spaced spaced] $($ts:tt)*]) => {
+        $crate::with_display_object_alignment_dim2_named_matrix! {
+            @ $fs [$($out)* [spaced spaced spaced]] [$($ts)*]
+        }
+    };
+    (@ $fs:tt [$($out:tt)*] [[$x:ident $y:ident] $($ts:tt)*]) => { paste! {
+        $crate::with_display_object_alignment_dim2_named_matrix! {
+            @ $fs [$($out)* [[<$x _ $y>] $x $y]] [$($ts)*]
+        }
+    }};
+    (@ [$f:path $([$($args:tt)*])?] $out:tt []) => {
+        $f! { $([$($args)*])? $out }
+    };
+}
+
+
+
+// =================
+// === Alignment ===
+// =================
+
+use crate::display::layout::alignment;
+
+/// A two-dimensional alignment for display objects. Each dimension uses [`AlignmentMode`].
+#[derive(Clone, Copy, Debug, Default, Deref, PartialEq, From, Into)]
+pub struct Alignment {
+    vector: Vector2<AlignmentMode>,
+}
+
+/// Indicates whether the elements should be aligned (e.g. to the left or right), or they should be
+/// spread evenly.
+#[derive(Clone, Copy, Debug, PartialEq, From)]
+#[allow(missing_docs)]
+pub enum AlignmentMode {
+    Packed(alignment::Dim1),
+    Spaced,
+}
+
+impl Default for AlignmentMode {
+    fn default() -> Self {
+        AlignmentMode::Packed(default())
+    }
+}
+
+macro_rules! gen_alignment_cons {
+    ([$([$f:ident $x:ident $y:ident])*]) => {
+        impl Alignment {$(
+            /// Constructor.
+            pub fn $f() -> Self {
+                Self::from(Vector2(
+                    AlignmentMode::Packed(alignment::Dim1::$x()),
+                    AlignmentMode::Packed(alignment::Dim1::$y()),
+                ))
+            }
+        )*}
+    }
+}
+
+macro_rules! gen_alignment_cons_spaced {
+    ([$($x:ident)*] [$($y:ident)*]) => { paste! {
+        #[allow(missing_docs)]
+        impl Alignment {
+            /// Constructor.
+            pub fn spaced() -> Self {
+                Self::from(Vector2(AlignmentMode::Spaced, AlignmentMode::Spaced))
+            }
+
+            $(pub fn [<$x _spaced>]() -> Self {
+                Self::from(Vector2(
+                    AlignmentMode::Packed(alignment::Dim1::$x()),
+                    AlignmentMode::Spaced,
+                ))
+            })*
+
+            $(pub fn [<spaced_ $y>]() -> Self {
+                Self::from(Vector2(
+                    AlignmentMode::Spaced,
+                    AlignmentMode::Packed(alignment::Dim1::$y()),
+                ))
+            })*
+        }
+    }}
+}
+
+crate::with_alignment_dim2_anchors!(gen_alignment_cons_spaced);
+crate::with_alignment_dim2_named_matrix!(gen_alignment_cons);
+
+
+
 // ================
 // === Resizing ===
 // ================
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+/// The resizing mode. Computing of the size is a complex process with many corner cases. Read the
+/// docs of [`LayoutModel`] to learn more about it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, From)]
 pub enum Resizing {
+    /// In this mode, the display object size will be set to the size of its content. The only
+    /// exception are display objects with no children, which size will not be changed during
+    /// refresh.
     #[default]
     Hug,
+    /// In this mode, the display object size will be set to the size of its parent.
     Fill,
+    /// In this mode, the display object size is provided explicitly.
     Fixed(f32),
 }
 
 impl Resizing {
+    /// Checks whether the resizing mode is [`Resizing::Hug`].
     pub fn is_hug(self) -> bool {
         self == Resizing::Hug
     }
 
+    /// Checks whether the resizing mode is [`Resizing::Fill`].
     pub fn is_fill(self) -> bool {
         self == Resizing::Fill
     }
 
+    /// Checks whether the resizing mode is [`Resizing::Fixed`].
     pub fn is_fixed(self) -> bool {
         match self {
             Resizing::Fixed(_) => true,
@@ -1068,12 +1301,9 @@ impl Resizing {
     }
 }
 
-impl From<f32> for Resizing {
-    fn from(value: f32) -> Self {
-        Resizing::Fixed(value)
-    }
-}
-
+/// Just like `Into<Vector2<Resizing>>`. It is needed because of Rust limitations regarding
+/// implementing traits for structs not owned by this crate.
+#[allow(missing_docs)]
 pub trait IntoResizing {
     fn into_resizing(self) -> Vector2<Resizing>;
 }
@@ -1090,192 +1320,126 @@ impl IntoResizing for Vector2<Resizing> {
     }
 }
 
-macro_rules! tuple_into_resizing {
-    ($a:tt, $b:tt) => {
+macro_rules! impl_tuple_into_resizing {
+    ($(($a:tt, $b:tt)),*) => {$(
         impl IntoResizing for ($a, $b) {
             fn into_resizing(self) -> Vector2<Resizing> {
                 Vector2::new(self.0.into(), self.1.into())
             }
         }
-    };
+    )*};
 }
 
-tuple_into_resizing!(f32, f32);
-tuple_into_resizing!(Resizing, f32);
-tuple_into_resizing!(f32, Resizing);
-tuple_into_resizing!(Resizing, Resizing);
+impl_tuple_into_resizing!((f32, f32), (f32, Resizing), (Resizing, f32), (Resizing, Resizing));
 
 
 
-// ==============
-// === Layout ===
-// ==============
+// ==================
+// === AutoLayout ===
+// ==================
 
-use crate::display::layout::alignment;
-
-#[derive(Clone, Copy, Debug, PartialEq, From)]
-pub enum AlignmentMode {
-    Packed(alignment::Dim1),
-    Spaced,
-}
-
-impl Default for AlignmentMode {
-    fn default() -> Self {
-        AlignmentMode::Packed(default())
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Deref, PartialEq)]
-pub struct Alignment {
-    vector: Vector2<AlignmentMode>,
-}
-
-impl Alignment {
-    pub fn new(vector: Vector2<AlignmentMode>) -> Self {
-        Self { vector }
-    }
-
-    pub fn center() -> Self {
-        Self::center_center()
-    }
-
-    pub fn spaced() -> Self {
-        Self::spaced_spaced()
-    }
-}
-
-macro_rules! gen_alignment_cons {
-    ([] [$($x:ident)*] [$($y:ident)*]) => { paste! {
-        impl Alignment {
-            enso_shapely::cartesian! {[gen_alignment_cons_matrix] [$($x)*] [$($y)*]}
-
-            /// Constructor.
-            pub fn spaced_spaced() -> Self {
-                Self::new(Vector2(
-                    AlignmentMode::Spaced,
-                    AlignmentMode::Spaced,
-                ))
-            }
-
-            $(
-                /// Constructor.
-                pub fn [<$x _spaced>]() -> Self {
-                    Self::new(Vector2(
-                        AlignmentMode::Packed(alignment::Dim1::$x()),
-                        AlignmentMode::Spaced,
-                    ))
-                }
-            )*
-
-            $(
-                /// Constructor.
-                pub fn [<spaced_ $y>]() -> Self {
-                    Self::new(Vector2(
-                        AlignmentMode::Spaced,
-                        AlignmentMode::Packed(alignment::Dim1::$y()),
-                    ))
-                }
-            )*
-        }
-    }}
-}
-
-macro_rules! gen_alignment_cons_matrix {
-    ([$([$x:ident $y:ident])*]) => { paste! {
-        $(
-            /// Constructor.
-            pub fn [<$x _ $y>]() -> Self {
-                Self::new(Vector2(
-                    AlignmentMode::Packed(alignment::Dim1::$x()),
-                    AlignmentMode::Packed(alignment::Dim1::$y()),
-                ))
-            }
-        )*
-    }}
-}
-
-crate::with_alignemnt_dim2_anchors!(gen_alignment_cons []);
-
-
-
+/// A phantom type indicating the horizontal auto layout mode.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Horizontal;
 
+/// A phantom type indicating the vertical auto layout mode.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vertical;
 
+/// The auto layout mode. It is used to automatically position the children of a display object.
 #[derive(Clone, Copy, Debug)]
+#[allow(missing_docs)]
 pub enum AutoLayout {
     Horizontal(LayoutOptions),
     Vertical(LayoutOptions),
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct LayoutOptions {
-    pub alignment: Alignment,
-    pub spacing:   f32,
-    pub padding:   Vector2<f32>,
-    pub reversed:  bool,
-}
-
 impl AutoLayout {
-    pub fn horizontal() -> LayoutBuilder<Horizontal> {
+    /// Constructor.
+    pub fn horizontal() -> AutoLayoutBuilder<Horizontal> {
         default()
     }
 
-    pub fn vertical() -> LayoutBuilder<Vertical> {
+    /// Constructor.
+    pub fn vertical() -> AutoLayoutBuilder<Vertical> {
         default()
-    }
-
-    pub fn set_alignment(&mut self, alignment: Alignment) {
-        match self {
-            AutoLayout::Horizontal(options) => options.alignment = alignment,
-            AutoLayout::Vertical(options) => options.alignment = alignment,
-        }
-    }
-
-    pub fn set_spacing(&mut self, spacing: f32) {
-        match self {
-            AutoLayout::Horizontal(options) => options.spacing = spacing,
-            AutoLayout::Vertical(options) => options.spacing = spacing,
-        }
-    }
-
-    pub fn set_padding(&mut self, padding: Vector2<f32>) {
-        match self {
-            AutoLayout::Horizontal(options) => options.padding = padding,
-            AutoLayout::Vertical(options) => options.padding = padding,
-        }
-    }
-
-    pub fn set_reversed(&mut self, reversed: bool) {
-        match self {
-            AutoLayout::Horizontal(options) => options.reversed = reversed,
-            AutoLayout::Vertical(options) => options.reversed = reversed,
-        }
-    }
-
-    pub fn update_reversed(&mut self, f: impl FnOnce(bool) -> bool) {
-        match self {
-            AutoLayout::Horizontal(options) => options.reversed = f(options.reversed),
-            AutoLayout::Vertical(options) => options.reversed = f(options.reversed),
-        }
     }
 }
 
+/// Defines the struct and also getters and setters for the [`AutoLayout`] struct.
+macro_rules! def_layout_options {
+    (
+        pub struct $name:ident {$(
+            $(#$meta:tt)*
+            pub $field:ident : $ty:ty
+        ),* $(,)?}
+    ) => { paste!{
+        /// Options for the auto layout mode.
+        #[derive(Clone, Copy, Debug, Default, PartialEq)]
+        pub struct $name {$(
+            $(#$meta)*
+            pub $field : $ty
+        ),*}
+
+        impl AutoLayout {$(
+            /// Getter.
+            pub fn [<set_ $field>](&mut self, $field: $ty) {
+                match self {
+                    AutoLayout::Horizontal(options) => options.$field = $field,
+                    AutoLayout::Vertical(options) => options.$field = $field,
+                }
+            }
+
+            /// Update the value with the provided function.
+            pub fn [<update_ $field>](&mut self, f: impl FnOnce($ty) -> $ty) {
+                match self {
+                    AutoLayout::Horizontal(options) => options.$field = f(options.$field),
+                    AutoLayout::Vertical(options) => options.$field = f(options.$field),
+                }
+            }
+
+            /// Modify the value with the provided function.
+            pub fn [<modify_ $field>](&mut self, f: impl FnOnce(&mut $ty)) {
+                match self {
+                    AutoLayout::Horizontal(options) => f(&mut options.$field),
+                    AutoLayout::Vertical(options) => f(&mut options.$field),
+                }
+            }
+        )*}
+    }};
+}
+
+def_layout_options!(
+    pub struct LayoutOptions {
+        /// The alignment of the children. For example, it allows to align the children to the
+        /// right edge of their parent.
+        pub alignment: Alignment,
+        /// The spacing between children.
+        pub spacing:   f32,
+        /// The padding between the children and the edge of the parent.
+        pub padding:   Vector2<f32>,
+        /// Indicates whether the children should be placed in order or in a reversed order.
+        pub reversed:  bool,
+    }
+);
 
 
-// =====================
-// === LayoutBuilder ===
-// =====================
 
+// =========================
+// === AutoLayoutBuilder ===
+// =========================
+
+/// An [`AutoLayout`] builder. Layouts have a lot of options and this builder allows setting them
+/// in a convenient way.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct LayoutBuilder<Layout> {
+#[allow(missing_docs)]
+pub struct AutoLayoutBuilder<Layout> {
     pub options: LayoutOptions,
     pub tp:      PhantomData<Layout>,
 }
 
-impl<Layout> LayoutBuilder<Layout> {
+#[allow(missing_docs)]
+impl<Layout> AutoLayoutBuilder<Layout> {
     pub fn alignment(mut self, alignment: Alignment) -> Self {
         self.options.alignment = alignment;
         self
@@ -1297,14 +1461,14 @@ impl<Layout> LayoutBuilder<Layout> {
     }
 }
 
-impl From<LayoutBuilder<Horizontal>> for Option<AutoLayout> {
-    fn from(builder: LayoutBuilder<Horizontal>) -> Self {
+impl From<AutoLayoutBuilder<Horizontal>> for Option<AutoLayout> {
+    fn from(builder: AutoLayoutBuilder<Horizontal>) -> Self {
         Some(AutoLayout::Horizontal(builder.options))
     }
 }
 
-impl From<LayoutBuilder<Vertical>> for Option<AutoLayout> {
-    fn from(builder: LayoutBuilder<Vertical>) -> Self {
+impl From<AutoLayoutBuilder<Vertical>> for Option<AutoLayout> {
+    fn from(builder: AutoLayoutBuilder<Vertical>) -> Self {
         Some(AutoLayout::Vertical(builder.options))
     }
 }
@@ -1315,18 +1479,21 @@ impl From<LayoutBuilder<Vertical>> for Option<AutoLayout> {
 // === LayoutObjectBuilder ===
 // ===========================
 
+/// An [`AutoLayout`] builder for any display object instance. Unlike [`AutoLayoutBuilder`], it is
+/// exposed by the standard [`Object`] API.
 #[derive(Debug)]
 pub struct LayoutObjectBuilder {
     instance: Instance,
 }
 
+#[allow(missing_docs)]
 impl LayoutObjectBuilder {
-    pub fn new(instance: &Instance) -> Self {
+    fn new(instance: &Instance) -> Self {
         let instance = instance.clone_ref();
         Self { instance }
     }
 
-    pub fn spacing(mut self, spacing: f32) -> Self {
+    pub fn spacing(self, spacing: f32) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
                 layout.set_spacing(spacing);
@@ -1335,7 +1502,7 @@ impl LayoutObjectBuilder {
         self
     }
 
-    pub fn padding(mut self, padding: Vector2<f32>) -> Self {
+    pub fn padding(self, padding: Vector2<f32>) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
                 layout.set_padding(padding);
@@ -1344,7 +1511,7 @@ impl LayoutObjectBuilder {
         self
     }
 
-    pub fn reversed(mut self) -> Self {
+    pub fn reversed(self) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
                 layout.update_reversed(|t| !t);
@@ -1353,7 +1520,7 @@ impl LayoutObjectBuilder {
         self
     }
 
-    fn set_alignment(mut self, alignment: Alignment) -> Self {
+    fn set_alignment(self, alignment: Alignment) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
                 layout.set_alignment(alignment);
@@ -1361,33 +1528,21 @@ impl LayoutObjectBuilder {
         });
         self
     }
-
-    pub fn alignment_center(mut self) -> Self {
-        self.alignment_center_center()
-    }
-}
-
-macro_rules! gen_layout_object_builder_alignment {
-    ([] [$($xs:tt)*] [$($ys:tt)*]) => {
-        impl LayoutObjectBuilder {
-            enso_shapely::cartesian!{[gen_layout_object_builder_alignment_internal] [$($xs)* spaced] [$($ys)* spaced]}
-        }
-    }
 }
 
 macro_rules! gen_layout_object_builder_alignment_internal {
-    ([$([$x:ident $y:ident])*]) => { paste! {
-        $(
+    ([$([$f:ident $x:ident $y:ident])*]) => { paste! {
+        impl LayoutObjectBuilder {$(
             /// Constructor.
-            pub fn [<alignment_ $x _ $y>](mut self) -> Self {
-                self.set_alignment(Alignment::[<$x _ $y>]())
+            pub fn [<alignment_ $f>](self) -> Self {
+                self.set_alignment(Alignment::$f())
             }
-        )*
+        )*}
     }}
 }
 
-crate::with_alignemnt_dim2_anchors!(gen_layout_object_builder_alignment []);
 
+with_display_object_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment_internal);
 
 
 impl Debug for InstanceDef {
@@ -1409,29 +1564,8 @@ impl Debug for Instance {
 // === LayoutModel ===
 // ===================
 
-// ▲ ◀ ▶ ▼ ◎ ● ○ ◌ ◍ ◎ ● ○ ◌ ◍
-///  ╭────◀─▶─────╮  ╭─────────▶─◀─────────╮  
-///  │ ╭───────╮  │  │ ╭───────╮ ╭───────╮ │  
-///  │ │   ┬   │  ▼  │ │   ▲   │ │   ┬   │ ▲  
-///  │ │ ├─┼─┤ │  │  │ │ ├─┼─┤ │ │ ├─┼─┤ │ │  
-///  │ │   ┴   │  ▲  │ │   ▼   │ │   ┴   │ ▼  
-///  │ ╰───────╯  │  │ ╰───────╯ ╰───────╯ │  
-///  ╰────────────╯  ╰─────────────────────╯  
-///                                           
-
-///  ╭────────────────────────────────╮
-///  │   ╭── ◀ ▶ ───╮   ╭─ ▶ ◀ ───╮   │
-///  │   │ ╭ ◀ ▶ ╮  │   │ ╭───╮   │   │
-///  │   │ │     │  │   │ │   ▲   │   │
-///  │   │ │     │  │   │ │   ▼   │   │
-///  │   │ │     │  ▼   │ ╰───╯   ▲   │
-///  │   │ │     │  ▲   │ ╭───╮   ▼   │
-///  │   │ │     │  │   │ │   ▲   │   │
-///  │   │ │     │  │   │ │   ▼   │   │
-///  │   │ ╰─────╯  │   │ ╰───╯   │   │
-///  │   ╰──────────╯   ╰─────────╯   │
-///  ╰────────────────────────────────╯                                     
-
+/// The layout description of a display object. See the docs of [`Instance`] to learn how layouts
+/// work.
 #[derive(Debug)]
 pub struct LayoutModel {
     auto:     Cell<Option<AutoLayout>>,
@@ -1440,7 +1574,7 @@ pub struct LayoutModel {
 }
 
 impl LayoutModel {
-    pub fn new(network: &frp::Network) -> Self {
+    fn new() -> Self {
         let auto = default();
         let size = default();
         let resizing = default();
@@ -1462,7 +1596,7 @@ impl Model {
         self.layout.resizing.set(resizing.into_resizing());
     }
 
-    fn set_resizing_fixed_fixed(&self, x: f32, y: f32) {
+    fn set_resizing_fixed(&self, x: f32, y: f32) {
         self.set_resizing((x, y))
     }
 
@@ -1482,7 +1616,7 @@ impl Model {
         self.set_resizing((Resizing::Fill, y))
     }
 
-    fn set_resizing_fill_fill(&self) {
+    fn set_resizing_fill(&self) {
         self.set_resizing((Resizing::Fill, Resizing::Fill))
     }
 
@@ -1494,7 +1628,7 @@ impl Model {
         self.set_resizing((Resizing::Hug, Resizing::Fill))
     }
 
-    fn set_resizing_hug_hug(&self) {
+    fn set_resizing_hug(&self) {
         self.set_resizing((Resizing::Hug, Resizing::Hug))
     }
 }
@@ -1515,14 +1649,12 @@ impl Model {
         self.set_layout(layout);
     }
 
-
     fn refresh_layout(&self) {
         self.refresh_layout_internal(true);
         if self.layout.auto.get().is_some() {
             self.refresh_layout_internal(false);
         }
     }
-
 
     fn refresh_layout_internal(&self, first_pass: bool) {
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
@@ -1560,13 +1692,11 @@ impl Model {
                 }
             }
             Some(AutoLayout::Horizontal(opts)) =>
-                self.update_linear_layout(X, Y, first_pass, opts, first_pass),
+                self.refresh_linear_layout(X, Y, first_pass, opts, first_pass),
             Some(AutoLayout::Vertical(opts)) =>
-                self.update_linear_layout(Y, X, !first_pass, opts, first_pass),
+                self.refresh_linear_layout(Y, X, !first_pass, opts, first_pass),
         }
     }
-
-
 
     /// Updates a linear (horizontal or vertical) layout.
     ///
@@ -1655,7 +1785,7 @@ impl Model {
     ///
     /// The [`first_pass`] flag indicated whether we are in the first or the second pass.
     #[inline(always)]
-    fn update_linear_layout<Dim1: Copy, Dim2: Copy>(
+    fn refresh_linear_layout<Dim1: Copy, Dim2: Copy>(
         &self,
         x: Dim1,
         y: Dim2,
@@ -1749,7 +1879,6 @@ impl Model {
                     children_to_fill.push(child);
                 } else {
                     child.refresh_layout_internal(first_pass);
-                    // TODO: + child.position().get_dim(y)) if manual layout
                     height = height.max(child.layout.size.get_dim(y));
                 }
             }
@@ -1785,512 +1914,6 @@ impl Model {
     }
 }
 
-
-#[cfg(test)]
-mod tests2 {
-    use super::*;
-    use crate::display::world::World;
-
-
-    // === Utils ===
-
-    /// Struct providing setup and utilities for testing a simple layout of objects – a root, and
-    /// three of its children:
-    ///
-    /// ```text
-    /// ╭─ ROOT ──────────────────────────────────╮
-    /// │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
-    /// │  ╰─────────╯  ╰─────────╯  ╰─────────╯  │
-    /// ╰─────────────────────────────────────────╯
-    /// ```
-    #[derive(Debug, Clone, Default)]
-    pub struct TestThreeChildren {
-        world: World,
-        root:  Instance,
-        node1: Instance,
-        node2: Instance,
-        node3: Instance,
-    }
-
-    impl TestThreeChildren {
-        fn new() -> Self {
-            let world = World::new();
-            let root = Instance::new();
-            let node1 = Instance::new();
-            let node2 = Instance::new();
-            let node3 = Instance::new();
-            root.add_child(&node1);
-            root.add_child(&node2);
-            root.add_child(&node3);
-            Self { world, root, node1, node2, node3 }
-        }
-
-        fn reset_positions(&self) {
-            self.root.set_position(Vector3::zero());
-            self.node1.set_position(Vector3::zero());
-            self.node2.set_position(Vector3::zero());
-            self.node3.set_position(Vector3::zero());
-        }
-
-        fn run(&self, r: TestThreeChildrenResult) {
-            self.root.update(&self.world.default_scene);
-            r.root_position.for_each(|t| assert_eq!(self.root.position().xy().as_slice(), t));
-            r.node1_position.for_each(|t| assert_eq!(self.node1.position().xy().as_slice(), t));
-            r.node2_position.for_each(|t| assert_eq!(self.node2.position().xy().as_slice(), t));
-            r.node3_position.for_each(|t| assert_eq!(self.node3.position().xy().as_slice(), t));
-            r.root_size.for_each(|t| assert_eq!(self.root.size().as_slice(), t));
-            r.node1_size.for_each(|t| assert_eq!(self.node1.size().as_slice(), t));
-            r.node2_size.for_each(|t| assert_eq!(self.node2.size().as_slice(), t));
-            r.node3_size.for_each(|t| assert_eq!(self.node3.size().as_slice(), t));
-        }
-    }
-
-    /// Macro generating a struct used for testing the results of [`TestThreeChildren`] test suite.
-    macro_rules! gen_test_result_struct {
-        ($($node: ident),*) => { paste! {
-            #[derive(Default, Clone, Copy)]
-            pub struct TestThreeChildrenResult {
-                $(
-                    [< $node _position >]: Option<[f32; 2]>,
-                    [< $node _size >]: Option<[f32; 2]>,
-                )*
-            }
-
-            impl TestThreeChildrenResult {
-                pub fn new() -> Self {
-                    Self::default()
-                }
-                $(
-                    pub fn [< $node _position >](mut self, val: [f32; 2]) -> Self {
-                        self.[< $node _position >] = Some(val);
-                        self
-                    }
-
-                    pub fn [< $node _size >](mut self, val: [f32; 2]) -> Self {
-                        self.[< $node _size >] = Some(val);
-                        self
-                    }
-                )*
-            }
-        }};
-    }
-
-    gen_test_result_struct!(root, node1, node2, node3);
-
-
-    // === Tests ===
-
-    /// Input:
-    ///
-    /// ```text
-    /// ╭▷ ROOT ──────────────────────────╮
-    /// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │
-    /// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │
-    /// │   │ │ L1  │  │   │ │ R1 ▲   │   │
-    /// │   │ │     │  │   │ │    ▼   │   │
-    /// │   │ │     │  ▼   │ ╰────╯   ▲   │
-    /// │   │ │     │  ▲   │ ╭────╮   ▼   │
-    /// │   │ │     │  │   │ │ R2 ▲   │   │
-    /// │   │ │     │  │   │ │    ▼   │   │
-    /// │   │ ╰─────╯  │   │ ╰────╯   │   │
-    /// │   ╰──────────╯   ╰──────────╯   │
-    /// ╰─────────────────────────────────╯
-    /// ```
-    ///
-    /// Output:
-    /// The dimensions in parentheses were provided manually.
-    ///
-    /// ```text
-    /// ╭▷ ROOT ─────────────────────────────────────────╮
-    /// │                          ╭R─ ▶ ◀ ──────╮       │
-    /// │                          ▽ ╭────╮      │       │
-    /// │                          │ │ R2 ▲ 50   │       │
-    /// │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
-    /// │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
-    /// │  │ │ L1  │        ▼      │  (30)       │       │
-    /// │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
-    /// │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
-    /// │  │   70           │      │ │ R1 ▲ 50   │       │
-    /// │  ╰────────────────╯      │ │    ▼      │       │
-    /// │         70               │ ╰────╯      │       │
-    /// │                          │  (20)       │       │
-    /// │                          ╰─────────────╯       │
-    /// │                               30               │
-    /// ╰────────────────────────────────────────────────╯
-    ///                      (100)
-    /// ```   
-    #[test]
-    fn test_mixed_layouts() {
-        let world = World::new();
-        let root = Instance::new();
-        let l = Instance::new();
-        let l1 = Instance::new();
-        let r = Instance::new();
-        let r1 = Instance::new();
-        let r2 = Instance::new();
-        root.add_child(&l);
-        root.add_child(&r);
-        l.add_child(&l1);
-        r.add_child(&r1);
-        r.add_child(&r2);
-
-        root.set_layout_horizontal().alignment_center();
-        root.set_resizing_fixed_fixed(100.0, 100.0);
-
-        l.set_layout_horizontal();
-        l.set_resizing_fill_hug();
-        l1.set_resizing_fill_fixed(50.0);
-
-        r.set_layout_vertical();
-        r.set_resizing_hug_fill();
-        r1.set_resizing_fixed_fill(20.0);
-        r2.set_resizing_fixed_fill(30.0);
-
-        // r.set_layout_vertical();
-        // r.set_resizing_hug_fill();
-        // r1.set_resizing_fixed_hug(20.0);
-        // r1.set_resizing_fixed_hug(30.0);
-
-
-
-        root.update(&world.default_scene);
-
-        assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(l.position().xy(), Vector2(0.0, 25.0));
-        assert_eq!(r.position().xy(), Vector2(70.0, 0.0));
-        assert_eq!(l1.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(r2.position().xy(), Vector2(0.0, 50.0));
-
-        assert_eq!(root.size(), Vector2(100.0, 100.0));
-        assert_eq!(l.size(), Vector2(70.0, 50.0));
-        assert_eq!(r.size(), Vector2(30.0, 100.0));
-        assert_eq!(r1.size(), Vector2(20.0, 50.0));
-        assert_eq!(r2.size(), Vector2(30.0, 50.0));
-    }
-
-    /// ```text
-    /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
-    /// │       ⋯5            ⋯5            ⋯5        │
-    /// │   ╭─ node1 ─╮   ╭─ node2 ─╮   ╭─ node3 ─╮   ▼
-    /// │ ⋯ │         │ ⋯ │         │ ⋯ │         │ ⋯ │
-    /// │ 3 ╰─────────╯ 1 ╰─────────╯ 1 ╰─────────╯ 3 ▲
-    /// │       ⋯5            ⋯5            ⋯5        │
-    /// ╰─────────────────────────────────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_hug_resizing() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal().padding(Vector2(3.0, 5.0)).spacing(1.0));
-        test.node1.set_resizing((20.0, 200.0));
-        test.node2.set_resizing((30.0, 300.0));
-        test.node3.set_resizing((50.0, 500.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([3.0, 5.0])
-                .node2_position([24.0, 5.0])
-                .node3_position([55.0, 5.0])
-                .root_size([108.0, 510.0])
-                .node1_size([20.0, 200.0])
-                .node2_size([30.0, 300.0])
-                .node3_size([50.0, 500.0]),
-        );
-    }
-
-    /// ```text
-    /// ╭─ ROOT ─ ▶ ◀ ────╮
-    /// ▽       ⋯5        │
-    /// │   ╭─ node3 ─╮   │
-    /// │ ⋯ │         │ ⋯ │
-    /// │ 3 ╰─────────╯ 3 │
-    /// │       ⋯1        │
-    /// │   ╭─ node2 ─╮   ▼
-    /// │ ⋯ │         │ ⋯ │
-    /// │ 3 ╰─────────╯ 3 ▲
-    /// │       ⋯1        │
-    /// │   ╭─ node1 ─╮   │
-    /// │ ⋯ │         │ ⋯ │
-    /// │ 3 ╰─────────╯ 3 │
-    /// │       ⋯5        │
-    /// ╰─────────────────╯
-    /// ```
-    #[test]
-    fn test_vertical_hug_resizing() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::vertical().padding(Vector2(3.0, 5.0)).spacing(1.0));
-        test.node1.set_resizing((20.0, 200.0));
-        test.node2.set_resizing((30.0, 300.0));
-        test.node3.set_resizing((50.0, 500.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([3.0, 5.0])
-                .node2_position([3.0, 206.0])
-                .node3_position([3.0, 507.0])
-                .root_size([56.0, 1012.0])
-                .node1_size([20.0, 200.0])
-                .node2_size([30.0, 300.0])
-                .node3_size([50.0, 500.0]),
-        );
-    }
-
-    /// ```text
-    /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────╮
-    /// │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
-    /// │  │         ▼  │         ▼  │         ▼  ▼
-    /// │  │         ▲  │         ▲  │         ▲  ▲
-    /// │  ╰─────────╯  ╰── ▶ ◀ ──╯  ╰── ◀ ▶ ──╯  │
-    /// ╰─────────────────────────────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_nested_hug_resizing() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal());
-        test.node1.set_resizing((200.0, Resizing::Hug));
-        test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
-        test.node3.set_resizing((Resizing::Fill, Resizing::Hug));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([0.0, 0.0])
-                .node2_position([200.0, 0.0])
-                .node3_position([200.0, 0.0])
-                .root_size([200.0, 0.0])
-                .node1_size([200.0, 0.0])
-                .node2_size([0.0, 0.0])
-                .node3_size([0.0, 0.0]),
-        );
-    }
-
-    /// ```text
-    /// ╭─ ROOT ─ ▶ ◀ ──╮
-    /// ▽  ╭─ node1 ─╮  │
-    /// │  │         │  │
-    /// │  │         │  │
-    /// │  ╰── ▶ ◀ ──╯  │
-    /// │  ╭─ node2 ─╮  │
-    /// │  │         ▼  ▼
-    /// │  │         ▲  ▲
-    /// │  ╰── ▶ ◀ ──╯  │
-    /// │  ╭─ node3 ─╮  │
-    /// │  │         ▲  │
-    /// │  │         ▼  │
-    /// │  ╰── ▶ ◀ ──╯  │
-    /// ╰───────────────╯
-    /// ```
-    #[test]
-    fn test_vertical_nested_hug_resizing() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal());
-        test.node1.set_resizing((Resizing::Hug, 200.0));
-        test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
-        test.node3.set_resizing((Resizing::Hug, Resizing::Fill));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([0.0, 0.0])
-                .node2_position([0.0, 0.0])
-                .node3_position([0.0, 0.0])
-                .root_size([0.0, 200.0])
-                .node1_size([0.0, 200.0])
-                .node2_size([0.0, 0.0])
-                .node3_size([0.0, 200.0]),
-        );
-    }
-
-    /// ```text
-    /// ╭▷ ROOT ──────────────────────────────────────────╮
-    /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮           │
-    /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯           │
-    /// ╰─────────────────────────────────────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_packed_left_alignment() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::left_center()));
-        test.root.set_resizing((1000.0, 1000.0));
-        test.node1.set_resizing((100.0, 100.0));
-        test.node2.set_resizing((100.0, 100.0));
-        test.node3.set_resizing((100.0, 100.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([0.0, 450.0])
-                .node2_position([100.0, 450.0])
-                .node3_position([200.0, 450.0])
-                .root_size([1000.0, 1000.0])
-                .node1_size([100.0, 100.0])
-                .node2_size([100.0, 100.0])
-                .node3_size([100.0, 100.0]),
-        );
-    }
-
-    /// ```text
-    /// ╭▷ ROOT ──────────────────────────────────────────╮
-    /// │      ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮      │
-    /// │      ╰─────────╯  ╰─────────╯  ╰─────────╯      │
-    /// ╰─────────────────────────────────────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_packed_center_alignment() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::center()));
-        test.root.set_resizing((1000.0, 1000.0));
-        test.node1.set_resizing((100.0, 100.0));
-        test.node2.set_resizing((100.0, 100.0));
-        test.node3.set_resizing((100.0, 100.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([350.0, 450.0])
-                .node2_position([450.0, 450.0])
-                .node3_position([550.0, 450.0])
-                .root_size([1000.0, 1000.0])
-                .node1_size([100.0, 100.0])
-                .node2_size([100.0, 100.0])
-                .node3_size([100.0, 100.0]),
-        );
-    }
-
-    /// ```text
-    /// ╭▷ ROOT ──────────────────────────────────────────╮
-    /// │      ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮      │
-    /// │      ╰─────────╯  ╰─────────╯  ╰─────────╯      │
-    /// ╰─────────────────────────────────────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_packed_right_alignment() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
-        test.root.set_resizing((1000.0, 1000.0));
-        test.node1.set_resizing((100.0, 100.0));
-        test.node2.set_resizing((100.0, 100.0));
-        test.node3.set_resizing((100.0, 100.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([700.0, 450.0])
-                .node2_position([800.0, 450.0])
-                .node3_position([900.0, 450.0])
-                .root_size([1000.0, 1000.0])
-                .node1_size([100.0, 100.0])
-                .node2_size([100.0, 100.0])
-                .node3_size([100.0, 100.0]),
-        );
-    }
-
-    /// ```text
-    /// ╭▷ ROOT ────────────╮
-    /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
-    /// │ │         │  │    │    │  │         │
-    /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯    
-    /// ╰───────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_packed_left_alignment_overflow() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::left_center()));
-        test.root.set_resizing((150.0, 100.0));
-        test.node1.set_resizing((100.0, 100.0));
-        test.node2.set_resizing((100.0, 100.0));
-        test.node3.set_resizing((100.0, 100.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([0.0, 0.0])
-                .node2_position([100.0, 0.0])
-                .node3_position([200.0, 0.0])
-                .root_size([150.0, 100.0])
-                .node1_size([100.0, 100.0])
-                .node2_size([100.0, 100.0])
-                .node3_size([100.0, 100.0]),
-        );
-    }
-
-    /// ```text
-    ///      ╭▷ ROOT ──────────────────╮
-    /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
-    /// │    │    │  │         │  │    │    │
-    /// ╰─────────╯  ╰─────────╯  ╰─────────╯    
-    ///      ╰─────────────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_packed_center_alignment_overflow() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::center()));
-        test.root.set_resizing((200.0, 100.0));
-        test.node1.set_resizing((100.0, 100.0));
-        test.node2.set_resizing((100.0, 100.0));
-        test.node3.set_resizing((100.0, 100.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([-50.0, 0.0])
-                .node2_position([50.0, 0.0])
-                .node3_position([150.0, 0.0])
-                .root_size([200.0, 100.0])
-                .node1_size([100.0, 100.0])
-                .node2_size([100.0, 100.0])
-                .node3_size([100.0, 100.0]),
-        );
-    }
-
-    /// ```text
-    ///                   ╭▷ ROOT ────────────╮
-    /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮ │
-    /// │         │  │    │    │  │         │ │
-    /// ╰─────────╯  ╰─────────╯  ╰─────────╯ │  
-    ///                   ╰───────────────────╯
-    /// ```
-    #[test]
-    fn test_horizontal_packed_right_alignment_overflow() {
-        let mut test = TestThreeChildren::new();
-        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
-        test.root.set_resizing((150.0, 100.0));
-        test.node1.set_resizing((100.0, 100.0));
-        test.node2.set_resizing((100.0, 100.0));
-        test.node3.set_resizing((100.0, 100.0));
-        test.run(
-            TestThreeChildrenResult::new()
-                .root_position([0.0, 0.0])
-                .node1_position([-150.0, 0.0])
-                .node2_position([-50.0, 0.0])
-                .node3_position([50.0, 0.0])
-                .root_size([150.0, 100.0])
-                .node1_size([100.0, 100.0])
-                .node2_size([100.0, 100.0])
-                .node3_size([100.0, 100.0]),
-        );
-    }
-
-    // /// ```text
-    // /// ╭▷ ROOT ────────────────────────────────────────────╮
-    // /// │ ╭─ node1 ─╮        ╭─ node2 ─╮        ╭─ node3 ─╮ │
-    // /// │ ╰─────────╯        ╰─────────╯        ╰─────────╯ │
-    // /// ╰───────────────────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_spaced_alignment() {
-    //     let mut test = TestThreeChildren::new();
-    //     test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
-    //     test.root.set_resizing((1000.0, 100.0));
-    //     test.node1.set_resizing((100.0, 100.0));
-    //     test.node2.set_resizing((100.0, 100.0));
-    //     test.node3.set_resizing((100.0, 100.0));
-    //     test.run(
-    //         TestThreeChildrenResult::new()
-    //             .root_position([0.0, 0.0])
-    //             .node1_position([700.0, 0.0])
-    //             .node2_position([800.0, 0.0])
-    //             .node3_position([900.0, 0.0])
-    //             .root_size([1000.0, 1000.0])
-    //             .node1_size([100.0, 100.0])
-    //             .node2_size([100.0, 100.0])
-    //             .node3_size([100.0, 100.0]),
-    //     );
-    // }
-}
 
 
 // ====================
@@ -2695,33 +2318,109 @@ pub trait ObjectOps: Object {
         InstanceDef::focused_instance(self.display_object())
     }
 
+
     // === Layout ===
 
-    fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
-        self.display_object().def.set_layout(layout)
+    /// Get the current auto-layout settings.
+    fn layout(&self) -> Option<AutoLayout> {
+        self.display_object().def.layout.auto.get()
     }
 
+    /// Place children in a horizontal layout.
     fn set_layout_horizontal(&self) -> LayoutObjectBuilder {
         let instance = self.display_object();
         instance.def.set_layout(AutoLayout::horizontal());
         LayoutObjectBuilder::new(instance)
     }
 
+    /// Place children in a vertical layout.
     fn set_layout_vertical(&self) -> LayoutObjectBuilder {
         let instance = self.display_object();
         instance.def.set_layout(AutoLayout::vertical());
         LayoutObjectBuilder::new(instance)
     }
+
+    /// Remove the auto-layout from this display object.
+    fn set_layout_manual(&self) {
+        self.display_object().def.set_layout(None);
+    }
+
+    /// Get the current resizing settings.
+    fn resizing(&self) -> Vector2<Resizing> {
+        self.display_object().def.resizing()
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_fixed(&self, x: f32, y: f32) {
+        self.display_object().def.set_resizing_fixed(x, y)
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_fixed_hug(&self, x: f32) {
+        self.display_object().def.set_resizing_fixed_hug(x)
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_fixed_fill(&self, x: f32) {
+        self.display_object().def.set_resizing_fixed_fill(x)
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_hug_fixed(&self, y: f32) {
+        self.display_object().def.set_resizing_hug_fixed(y)
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_fill_fixed(&self, y: f32) {
+        self.display_object().def.set_resizing_fill_fixed(y)
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_fill(&self) {
+        self.display_object().def.set_resizing_fill()
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_fill_hug(&self) {
+        self.display_object().def.set_resizing_fill_hug()
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_hug_fill(&self) {
+        self.display_object().def.set_resizing_hug_fill()
+    }
+
+    /// Set the current resizing mode.
+    fn set_resizing_hug(&self) {
+        self.display_object().def.set_resizing_hug()
+    }
 }
 
+/// Trait exposing the generic API for working with layouts. Until you are creating layouts shared
+/// by multiple display objects and you need to store their configurations, you'd not need to use
+/// it.
+pub trait GenericLayoutApi: Object {
+    /// Layout setter.
+    fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
+        self.display_object().def.set_layout(layout)
+    }
+
+    /// Resizing setter.
+    fn set_resizing(&self, resizing: impl IntoResizing) {
+        self.display_object().def.set_resizing(resizing)
+    }
+}
+
+impl<T: Object> GenericLayoutApi for T {}
 
 
-// =============
-// === Tests ===
-// =============
+
+// =======================
+// === Hierarchy Tests ===
+// =======================
 
 #[cfg(test)]
-mod tests {
+mod hierarchy_tests {
     use super::*;
     use crate::display::world::World;
     use std::f32::consts::PI;
@@ -3339,4 +3038,516 @@ mod tests {
         ]);
         drop(network);
     }
+}
+
+
+
+// ====================
+// === Layout Tests ===
+// ====================
+
+#[cfg(test)]
+mod layout_tests {
+    use super::*;
+    use crate::display::world::World;
+
+
+    // === Utils ===
+
+    /// Struct providing setup and utilities for testing a simple layout of objects – a root, and
+    /// three of its children:
+    ///
+    /// ```text
+    /// ╭─ ROOT ──────────────────────────────────╮
+    /// │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
+    /// │  ╰─────────╯  ╰─────────╯  ╰─────────╯  │
+    /// ╰─────────────────────────────────────────╯
+    /// ```
+    #[derive(Debug, Clone, Default)]
+    pub struct TestThreeChildren {
+        world: World,
+        root:  Instance,
+        node1: Instance,
+        node2: Instance,
+        node3: Instance,
+    }
+
+    impl TestThreeChildren {
+        fn new() -> Self {
+            let world = World::new();
+            let root = Instance::new();
+            let node1 = Instance::new();
+            let node2 = Instance::new();
+            let node3 = Instance::new();
+            root.add_child(&node1);
+            root.add_child(&node2);
+            root.add_child(&node3);
+            Self { world, root, node1, node2, node3 }
+        }
+
+        fn reset_positions(&self) {
+            self.root.set_position(Vector3::zero());
+            self.node1.set_position(Vector3::zero());
+            self.node2.set_position(Vector3::zero());
+            self.node3.set_position(Vector3::zero());
+        }
+
+        fn run(&self, r: TestThreeChildrenResult) {
+            self.root.update(&self.world.default_scene);
+            r.root_position.for_each(|t| assert_eq!(self.root.position().xy().as_slice(), t));
+            r.node1_position.for_each(|t| assert_eq!(self.node1.position().xy().as_slice(), t));
+            r.node2_position.for_each(|t| assert_eq!(self.node2.position().xy().as_slice(), t));
+            r.node3_position.for_each(|t| assert_eq!(self.node3.position().xy().as_slice(), t));
+            r.root_size.for_each(|t| assert_eq!(self.root.size().as_slice(), t));
+            r.node1_size.for_each(|t| assert_eq!(self.node1.size().as_slice(), t));
+            r.node2_size.for_each(|t| assert_eq!(self.node2.size().as_slice(), t));
+            r.node3_size.for_each(|t| assert_eq!(self.node3.size().as_slice(), t));
+        }
+    }
+
+    /// Macro generating a struct used for testing the results of [`TestThreeChildren`] test suite.
+    macro_rules! gen_test_result_struct {
+        ($($node: ident),*) => { paste! {
+            #[derive(Default, Clone, Copy)]
+            pub struct TestThreeChildrenResult {
+                $(
+                    [< $node _position >]: Option<[f32; 2]>,
+                    [< $node _size >]: Option<[f32; 2]>,
+                )*
+            }
+
+            impl TestThreeChildrenResult {
+                pub fn new() -> Self {
+                    Self::default()
+                }
+                $(
+                    pub fn [< $node _position >](mut self, val: [f32; 2]) -> Self {
+                        self.[< $node _position >] = Some(val);
+                        self
+                    }
+
+                    pub fn [< $node _size >](mut self, val: [f32; 2]) -> Self {
+                        self.[< $node _size >] = Some(val);
+                        self
+                    }
+                )*
+            }
+        }};
+    }
+
+    gen_test_result_struct!(root, node1, node2, node3);
+
+
+    // === Tests ===
+
+    /// Input:
+    ///
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────╮
+    /// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │
+    /// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │
+    /// │   │ │ L1  │  │   │ │ R1 ▲   │   │
+    /// │   │ │     │  │   │ │    ▼   │   │
+    /// │   │ │     │  ▼   │ ╰────╯   ▲   │
+    /// │   │ │     │  ▲   │ ╭────╮   ▼   │
+    /// │   │ │     │  │   │ │ R2 ▲   │   │
+    /// │   │ │     │  │   │ │    ▼   │   │
+    /// │   │ ╰─────╯  │   │ ╰────╯   │   │
+    /// │   ╰──────────╯   ╰──────────╯   │
+    /// ╰─────────────────────────────────╯
+    /// ```
+    ///
+    /// Output:
+    /// The dimensions in parentheses were provided manually.
+    ///
+    /// ```text
+    /// ╭▷ ROOT ─────────────────────────────────────────╮
+    /// │                          ╭R─ ▶ ◀ ──────╮       │
+    /// │                          ▽ ╭────╮      │       │
+    /// │                          │ │ R2 ▲ 50   │       │
+    /// │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
+    /// │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
+    /// │  │ │ L1  │        ▼      │  (30)       │       │
+    /// │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
+    /// │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
+    /// │  │   70           │      │ │ R1 ▲ 50   │       │
+    /// │  ╰────────────────╯      │ │    ▼      │       │
+    /// │         70               │ ╰────╯      │       │
+    /// │                          │  (20)       │       │
+    /// │                          ╰─────────────╯       │
+    /// │                               30               │
+    /// ╰────────────────────────────────────────────────╯
+    ///                      (100)
+    /// ```   
+    #[test]
+    fn test_mixed_layouts() {
+        let world = World::new();
+        let root = Instance::new();
+        let l = Instance::new();
+        let l1 = Instance::new();
+        let r = Instance::new();
+        let r1 = Instance::new();
+        let r2 = Instance::new();
+        root.add_child(&l);
+        root.add_child(&r);
+        l.add_child(&l1);
+        r.add_child(&r1);
+        r.add_child(&r2);
+
+        root.set_layout_horizontal().alignment_center();
+        root.set_resizing_fixed(100.0, 100.0);
+
+        l.set_layout_horizontal();
+        l.set_resizing_fill_hug();
+        l1.set_resizing_fill_fixed(50.0);
+
+        r.set_layout_vertical();
+        r.set_resizing_hug_fill();
+        r1.set_resizing_fixed_fill(20.0);
+        r2.set_resizing_fixed_fill(30.0);
+
+        // r.set_layout_vertical();
+        // r.set_resizing_hug_fill();
+        // r1.set_resizing_fixed_hug(20.0);
+        // r1.set_resizing_fixed_hug(30.0);
+
+
+
+        root.update(&world.default_scene);
+
+        assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(l.position().xy(), Vector2(0.0, 25.0));
+        assert_eq!(r.position().xy(), Vector2(70.0, 0.0));
+        assert_eq!(l1.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(r2.position().xy(), Vector2(0.0, 50.0));
+
+        assert_eq!(root.size(), Vector2(100.0, 100.0));
+        assert_eq!(l.size(), Vector2(70.0, 50.0));
+        assert_eq!(r.size(), Vector2(30.0, 100.0));
+        assert_eq!(r1.size(), Vector2(20.0, 50.0));
+        assert_eq!(r2.size(), Vector2(30.0, 50.0));
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
+    /// │       ⋯5            ⋯5            ⋯5        │
+    /// │   ╭─ node1 ─╮   ╭─ node2 ─╮   ╭─ node3 ─╮   ▼
+    /// │ ⋯ │         │ ⋯ │         │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 1 ╰─────────╯ 1 ╰─────────╯ 3 ▲
+    /// │       ⋯5            ⋯5            ⋯5        │
+    /// ╰─────────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_hug_resizing() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().padding(Vector2(3.0, 5.0)).spacing(1.0));
+        test.node1.set_resizing((20.0, 200.0));
+        test.node2.set_resizing((30.0, 300.0));
+        test.node3.set_resizing((50.0, 500.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([3.0, 5.0])
+                .node2_position([24.0, 5.0])
+                .node3_position([55.0, 5.0])
+                .root_size([108.0, 510.0])
+                .node1_size([20.0, 200.0])
+                .node2_size([30.0, 300.0])
+                .node3_size([50.0, 500.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭─ ROOT ─ ▶ ◀ ────╮
+    /// ▽       ⋯5        │
+    /// │   ╭─ node3 ─╮   │
+    /// │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 3 │
+    /// │       ⋯1        │
+    /// │   ╭─ node2 ─╮   ▼
+    /// │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 3 ▲
+    /// │       ⋯1        │
+    /// │   ╭─ node1 ─╮   │
+    /// │ ⋯ │         │ ⋯ │
+    /// │ 3 ╰─────────╯ 3 │
+    /// │       ⋯5        │
+    /// ╰─────────────────╯
+    /// ```
+    #[test]
+    fn test_vertical_hug_resizing() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::vertical().padding(Vector2(3.0, 5.0)).spacing(1.0));
+        test.node1.set_resizing((20.0, 200.0));
+        test.node2.set_resizing((30.0, 300.0));
+        test.node3.set_resizing((50.0, 500.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([3.0, 5.0])
+                .node2_position([3.0, 206.0])
+                .node3_position([3.0, 507.0])
+                .root_size([56.0, 1012.0])
+                .node1_size([20.0, 200.0])
+                .node2_size([30.0, 300.0])
+                .node3_size([50.0, 500.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────╮
+    /// │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
+    /// │  │         ▼  │         ▼  │         ▼  ▼
+    /// │  │         ▲  │         ▲  │         ▲  ▲
+    /// │  ╰─────────╯  ╰── ▶ ◀ ──╯  ╰── ◀ ▶ ──╯  │
+    /// ╰─────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_nested_hug_resizing() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal());
+        test.node1.set_resizing((200.0, Resizing::Hug));
+        test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
+        test.node3.set_resizing((Resizing::Fill, Resizing::Hug));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([200.0, 0.0])
+                .node3_position([200.0, 0.0])
+                .root_size([200.0, 0.0])
+                .node1_size([200.0, 0.0])
+                .node2_size([0.0, 0.0])
+                .node3_size([0.0, 0.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭─ ROOT ─ ▶ ◀ ──╮
+    /// ▽  ╭─ node1 ─╮  │
+    /// │  │         │  │
+    /// │  │         │  │
+    /// │  ╰── ▶ ◀ ──╯  │
+    /// │  ╭─ node2 ─╮  │
+    /// │  │         ▼  ▼
+    /// │  │         ▲  ▲
+    /// │  ╰── ▶ ◀ ──╯  │
+    /// │  ╭─ node3 ─╮  │
+    /// │  │         ▲  │
+    /// │  │         ▼  │
+    /// │  ╰── ▶ ◀ ──╯  │
+    /// ╰───────────────╯
+    /// ```
+    #[test]
+    fn test_vertical_nested_hug_resizing() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal());
+        test.node1.set_resizing((Resizing::Hug, 200.0));
+        test.node2.set_resizing((Resizing::Hug, Resizing::Hug));
+        test.node3.set_resizing((Resizing::Hug, Resizing::Fill));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([0.0, 0.0])
+                .node3_position([0.0, 0.0])
+                .root_size([0.0, 200.0])
+                .node1_size([0.0, 200.0])
+                .node2_size([0.0, 0.0])
+                .node3_size([0.0, 200.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────────────────────╮
+    /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮           │
+    /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯           │
+    /// ╰─────────────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_left_alignment() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::left_center()));
+        test.root.set_resizing((1000.0, 1000.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 450.0])
+                .node2_position([100.0, 450.0])
+                .node3_position([200.0, 450.0])
+                .root_size([1000.0, 1000.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────────────────────╮
+    /// │      ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮      │
+    /// │      ╰─────────╯  ╰─────────╯  ╰─────────╯      │
+    /// ╰─────────────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_center_alignment() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::center()));
+        test.root.set_resizing((1000.0, 1000.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([350.0, 450.0])
+                .node2_position([450.0, 450.0])
+                .node3_position([550.0, 450.0])
+                .root_size([1000.0, 1000.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ──────────────────────────────────────────╮
+    /// │      ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮      │
+    /// │      ╰─────────╯  ╰─────────╯  ╰─────────╯      │
+    /// ╰─────────────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_right_alignment() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
+        test.root.set_resizing((1000.0, 1000.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([700.0, 450.0])
+                .node2_position([800.0, 450.0])
+                .node3_position([900.0, 450.0])
+                .root_size([1000.0, 1000.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    /// ╭▷ ROOT ────────────╮
+    /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
+    /// │ │         │  │    │    │  │         │
+    /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯    
+    /// ╰───────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_left_alignment_overflow() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::left_center()));
+        test.root.set_resizing((150.0, 100.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([0.0, 0.0])
+                .node2_position([100.0, 0.0])
+                .node3_position([200.0, 0.0])
+                .root_size([150.0, 100.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    ///      ╭▷ ROOT ──────────────────╮
+    /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
+    /// │    │    │  │         │  │    │    │
+    /// ╰─────────╯  ╰─────────╯  ╰─────────╯    
+    ///      ╰─────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_center_alignment_overflow() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::center()));
+        test.root.set_resizing((200.0, 100.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([-50.0, 0.0])
+                .node2_position([50.0, 0.0])
+                .node3_position([150.0, 0.0])
+                .root_size([200.0, 100.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    /// ```text
+    ///                   ╭▷ ROOT ────────────╮
+    /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮ │
+    /// │         │  │    │    │  │         │ │
+    /// ╰─────────╯  ╰─────────╯  ╰─────────╯ │  
+    ///                   ╰───────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_packed_right_alignment_overflow() {
+        let test = TestThreeChildren::new();
+        test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
+        test.root.set_resizing((150.0, 100.0));
+        test.node1.set_resizing((100.0, 100.0));
+        test.node2.set_resizing((100.0, 100.0));
+        test.node3.set_resizing((100.0, 100.0));
+        test.run(
+            TestThreeChildrenResult::new()
+                .root_position([0.0, 0.0])
+                .node1_position([-150.0, 0.0])
+                .node2_position([-50.0, 0.0])
+                .node3_position([50.0, 0.0])
+                .root_size([150.0, 100.0])
+                .node1_size([100.0, 100.0])
+                .node2_size([100.0, 100.0])
+                .node3_size([100.0, 100.0]),
+        );
+    }
+
+    // /// ```text
+    // /// ╭▷ ROOT ────────────────────────────────────────────╮
+    // /// │ ╭─ node1 ─╮        ╭─ node2 ─╮        ╭─ node3 ─╮ │
+    // /// │ ╰─────────╯        ╰─────────╯        ╰─────────╯ │
+    // /// ╰───────────────────────────────────────────────────╯
+    // /// ```
+    // #[test]
+    // fn test_horizontal_spaced_alignment() {
+    //     let test = TestThreeChildren::new();
+    //     test.root.set_layout(AutoLayout::horizontal().alignment(Alignment::right_center()));
+    //     test.root.set_resizing((1000.0, 100.0));
+    //     test.node1.set_resizing((100.0, 100.0));
+    //     test.node2.set_resizing((100.0, 100.0));
+    //     test.node3.set_resizing((100.0, 100.0));
+    //     test.run(
+    //         TestThreeChildrenResult::new()
+    //             .root_position([0.0, 0.0])
+    //             .node1_position([700.0, 0.0])
+    //             .node2_position([800.0, 0.0])
+    //             .node3_position([900.0, 0.0])
+    //             .root_size([1000.0, 1000.0])
+    //             .node1_size([100.0, 100.0])
+    //             .node2_size([100.0, 100.0])
+    //             .node3_size([100.0, 100.0]),
+    //     );
+    // }
 }
