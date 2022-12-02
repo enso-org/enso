@@ -69,8 +69,8 @@ type Codepoint_Ranges
        While the input ranges may have varying steps, they are processed and split
        in such a way that the ranges returned by this method always have a step
        equal to 1.
-    find : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range | Codepoint_Ranges)
-    find text subrange =
+    resolve : Text -> (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> (Range | Codepoint_Ranges)
+    resolve text subrange =
         case subrange of
             Text_Sub_Range.Before delimiter ->
                 if delimiter.is_empty then (0.up_to 0) else
@@ -119,17 +119,17 @@ type Codepoint_Ranges
             Index_Sub_Range.Sample count seed ->
                 rng = Random.new seed
                 indices = Random.random_indices text.length count rng
-                Codepoint_Ranges.find text (Index_Sub_Range.By_Index indices)
+                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index indices)
             Index_Sub_Range.Every step start ->
                 if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
                     len = text.length
                     if start >= len then 0.up_to 0 else
                         range = start.up_to text.length . with_step step
-                        Codepoint_Ranges.find text (Index_Sub_Range.By_Index range)
+                        Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index range)
             _ : Range ->
-                Codepoint_Ranges.find text (Index_Sub_Range.By_Index subrange)
+                Codepoint_Ranges.resolve text (Index_Sub_Range.By_Index subrange)
             _ : Integer ->
-                Codepoint_Ranges.find text (Index_Sub_Range.First subrange)
+                Codepoint_Ranges.resolve text (Index_Sub_Range.First subrange)
 
 ## PRIVATE
    Utility function to find char indices for Text_Sub_Range.

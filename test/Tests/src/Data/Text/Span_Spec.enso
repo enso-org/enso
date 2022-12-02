@@ -37,9 +37,4 @@ spec = Test.group "Text.Span" <|
         Utf_16_Span.Value (0.up_to 3) text . to_grapheme_span . should_equal (Span.Value (0.up_to 2) text)
         Utf_16_Span.Value (0.up_to 2) text . to_grapheme_span . should_equal (Span.Value (0.up_to 1) text)
 
-    Test.specify "should be able to use the conversions" <|
-        text = 'ae\u{301}fz'
-        Utf_16_Span.from (Span.Value (1.up_to 3) text) . should_equal (Utf_16_Span.Value (1.up_to 4) text)
-        Span.from (Utf_16_Span.Value (2.up_to 4) text) . should_equal (Span.Value (1.up_to 3) text)
-
 main = Test_Suite.run_main spec

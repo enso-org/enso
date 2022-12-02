@@ -272,7 +272,7 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta : Any -> Atom | Constructor | Primitive
+meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error
 meta value = if is_atom value then Atom.Value value else
     if is_atom_constructor value then Constructor.Value value else
         if is_polyglot value then Polyglot.Value value else

@@ -44,6 +44,7 @@ write_file file table on_existing_file section headers match_columns _ xls_forma
         Excel_Section.Cell_Range address skip_rows row_limit -> case address of
             Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
             _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
+        _ : Excel_Section -> Error.throw (Illegal_Argument.Error "Only a Worksheet or Cell_Range is allowed in write_file")
 
     if result.is_error then result else
         write_stream stream = stream.with_java_stream java_stream->
