@@ -106,3 +106,20 @@ pub struct Completion {
 pub struct GetComponentGroups {
     pub component_groups: Vec<LibraryComponentGroup>,
 }
+
+/// Response of `save_vcs` method.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct SaveVcs {
+    pub commit_id: String,
+    pub message:   String,
+}
+
+/// Response of `list_vcs` method.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct ListVcs {
+    pub saves: Vec<SaveVcs>,
+}
