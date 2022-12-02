@@ -126,20 +126,10 @@ mod overflow {
             let height = height - COMPONENT_MARGIN.px() * 2.0;
 
             let color = style.get_color(theme::overflow::color);
-            let triangle = Triangle(width.clone(), height.clone());
+            let triangle = Triangle(width, height);
             let triangle = triangle.fill(color);
 
-            let point_a = (-width.clone() / 2.0, -height.clone() / 2.0);
-            let point_b = (width / 2.0, -height.clone() / 2.0);
-            let point_c = (0.0.px(), height / 2.0);
-            let segment_ab = Segment(point_a.clone(), point_b.clone(), 3.0.px());
-            let segment_bc = Segment(point_b, point_c.clone(), 3.0.px());
-            let segment_cd = Segment(point_c, point_a, 3.0.px());
-            let triangle = triangle.union(segment_ab);
-            let triangle = triangle.union(segment_bc);
-            let triangle = triangle.union(segment_cd);
-
-            triangle.fill(color).into()
+            triangle.into()
         }
     }
 }
