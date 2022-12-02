@@ -73,6 +73,11 @@ const PRECISION_ADJUSTMENT_POPUP_DURATION: f32 = 1000.0;
 const INFORMATION_TOOLTIP_DELAY: f32 = 1000.0;
 /// The default size of the slider's thumb as a fraction of the slider's length.
 const THUMB_SIZE_DEFAULT: f32 = 0.2;
+/// The threshold for shrinking an extended slider limit as a fraction of the current range. If the
+/// slider's value is adjusted below this threshold then the limit will be shrunk. This threshold is
+/// lower than 1/2 to prevent rapid switching of limits as the extend and shrink thresholds would
+/// otherwise coincide.
+const ADAPTIVE_LIMIT_SHRINK_THRESHOLD: f32 = 0.4;
 
 
 
@@ -158,13 +163,13 @@ fn adapt_upper_limit(
     if upper_limit == SliderLimit::Adaptive {
         let range = max_ext - min;
         let extend = value > max_ext;
-        let shrink = value < min + range * 0.5; // TODO: Threshold probably needs hysteresis.
+        let shrink = value < min + range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let max_ext = match (extend, shrink) {
             (true, _) => min + range * 2.0,
             (_, true) => min + range * 0.5,
             _ => max_ext,
         };
-        max_ext.max(max) // Do no set extended limit below `max`.
+        max_ext.max(max) // Do no set extended limit below original `max`.
     } else {
         max
     }
@@ -177,13 +182,13 @@ fn adapt_lower_limit(
     if lower_limit == SliderLimit::Adaptive {
         let range = max - min_ext;
         let extend = value < min_ext;
-        let shrink = value > max - range * 0.5; // TODO: Threshold probably needs hysteresis.
+        let shrink = value > max - range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let min_ext = match (extend, shrink) {
             (true, _) => max - range * 2.0,
             (_, true) => max - range * 0.5,
             _ => min_ext,
         };
-        min_ext.min(min) // Do no set extended limit above `min`.
+        min_ext.min(min) // Do no set extended limit above original `min`.
     } else {
         min
     }
