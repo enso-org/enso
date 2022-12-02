@@ -31,7 +31,7 @@ pub fn write(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Result {
 #[context("Failed to write path: {}", path.as_ref().display())]
 pub fn write_json(path: impl AsRef<Path>, contents: &impl Serialize) -> Result {
     let contents = serde_json::to_string(contents)?;
-    write(&path, &contents)
+    write(&path, contents)
 }
 
 /// Like the standard version but will create any missing parent directories from the path.

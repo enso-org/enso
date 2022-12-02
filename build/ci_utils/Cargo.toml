@@ -40,6 +40,7 @@ itertools = "0.10.1"
 lazy_static = "1.4.0"
 log = "0.4.14"
 mime = "0.3.16"
+multimap = "0.8.3"
 new_mime_guess = "4.0.0"
 nix = { workspace = true }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [

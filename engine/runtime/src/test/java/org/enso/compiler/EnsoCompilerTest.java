@@ -942,7 +942,7 @@ public class EnsoCompilerTest {
     ansi_bold enabled txt =
         case Platform.os of
             ## Output formatting for Windows is not currently supported.
-            Platform.Windows -> txt
+            Platform.OS.Windows -> txt
             _ -> if enabled then Nothing
     """);
   }
@@ -1188,6 +1188,14 @@ public class EnsoCompilerTest {
         x = 2 # assign two to #x
         # perform the addition
         x + y # the addition is performed here
+    """);
+  }
+
+
+  @Test
+  public void testNPE183892665() throws Exception {
+    parseTest("""
+    foo : Integer ->
     """);
   }
 

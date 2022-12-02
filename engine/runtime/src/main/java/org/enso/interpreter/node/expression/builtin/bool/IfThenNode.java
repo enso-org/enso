@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
@@ -29,7 +29,7 @@ public abstract class IfThenNode extends Node {
     if (condProfile.profile(self)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, BaseNode.TailStatus.TAIL_DIRECT);
     } else {
-      return Context.get(this).getNothing();
+      return EnsoContext.get(this).getNothing();
     }
   }
 }

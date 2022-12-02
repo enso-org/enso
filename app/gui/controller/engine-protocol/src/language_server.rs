@@ -174,6 +174,18 @@ trait API {
     /// Get the list of component groups available in runtime.
     #[MethodInput=GetComponentGroups, rpc_name="executionContext/getComponentGroups"]
     fn get_component_groups(&self, context_id: ContextId) -> response::GetComponentGroups;
+
+    /// Initialize VCS at the specified root.
+    #[MethodInput=VcsInitInput, rpc_name="vcs/init"]
+    fn init_vcs(&self, root: Path) -> ();
+
+    /// Save project to VCS at the specified root.
+    #[MethodInput=VcsWriteInput, rpc_name="vcs/save"]
+    fn save_vcs(&self, root: Path, name: Option<String>) -> response::SaveVcs;
+
+    /// Return a list of all project states that are saved to the VCS.
+    #[MethodInput=VcsListInput, rpc_name="vcs/list"]
+    fn list_vcs(&self, root: Path, limit: Option<usize>) -> response::ListVcs;
 }}
 
 

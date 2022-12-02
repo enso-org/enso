@@ -104,7 +104,7 @@ impl<HeaderEntry: Entry> VisibleHeader<HeaderEntry> {
         let next_section_y = entry::visible::position_y(self.section_rows.end, entry_size);
         let min_y = next_section_y + entry_size.y / 2.0 + contour.size.y / 2.0 - contour_offset.y;
         let x = entry::visible::position_x(col, entry_size, column_widths);
-        let y = (viewport.top - contour.size.y / 2.0 - contour_offset.y).min(max_y).max(min_y);
+        let y = (viewport.top - contour.size.y / 2.0 - contour_offset.y).clamp(min_y, max_y);
         entry::MovedHeaderPosition { position: Vector2(x, y), y_range: min_y..=max_y }
     }
 }
@@ -231,7 +231,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let updated_positions = visible_headers.iter().filter_map(|(col, header)| {
             let new_position = header.header_position(*col, entries_size, viewport, widths);
             (header.entry.position().xy() != new_position.position).as_some_from(|| {
-                header.entry.set_position_xy(new_position.position);
+                header.entry.set_xy(new_position.position);
                 header.entry.entry.frp().moved_as_header(&new_position);
                 (header.section_rows.start, *col, new_position.position)
             })
@@ -295,7 +295,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let width_offset = self.column_widths.width_diff(col);
         entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
         let position = entry.header_position(col, entry_size, viewport, widths);
-        entry.entry.set_position_xy(position.position);
+        entry.entry.set_xy(position.position);
         entry_frp.moved_as_header(&position);
         (entry.section_rows.start, col, position.position)
     }

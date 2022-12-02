@@ -4,6 +4,7 @@ import Standard.Base
 import Standard.Visualization
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 type My_Type
     Value my_field

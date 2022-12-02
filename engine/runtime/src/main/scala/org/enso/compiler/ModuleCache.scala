@@ -16,7 +16,7 @@ import org.bouncycastle.util.encoders.Hex
 import org.enso.compiler.ModuleCache.{logLevel, ToMaskedPath}
 import org.enso.compiler.core.IR
 import org.enso.interpreter.runtime.builtin.Builtins
-import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.logger.masking.MaskedPath
 
 import scala.jdk.OptionConverters._
@@ -43,7 +43,7 @@ class ModuleCache(private val module: Module) {
     */
   def save(
     module: ModuleCache.CachedModule,
-    context: Context,
+    context: EnsoContext,
     useGlobalCacheLocations: Boolean
   ): Option[TruffleFile] = this.synchronized {
     implicit val logger: TruffleLogger = context.getLogger(this.getClass)
@@ -81,7 +81,7 @@ class ModuleCache(private val module: Module) {
     *         load a valid cache
     */
   //noinspection DuplicatedCode
-  def load(context: Context): Option[ModuleCache.CachedModule] =
+  def load(context: EnsoContext): Option[ModuleCache.CachedModule] =
     this.synchronized {
       implicit val logger: TruffleLogger = context.getLogger(this.getClass)
       getIrCacheRoots(context) match {
@@ -126,7 +126,7 @@ class ModuleCache(private val module: Module) {
     *
     * @param context the langage context in which loading is taking place
     */
-  def invalidate(context: Context): Unit = {
+  def invalidate(context: EnsoContext): Unit = {
     this.synchronized {
       implicit val logger: TruffleLogger = context.getLogger(this.getClass)
       getIrCacheRoots(context).foreach { roots =>
@@ -364,7 +364,9 @@ class ModuleCache(private val module: Module) {
     * @return a representation of the local and global cache roots for this
     *         module
     */
-  private def getIrCacheRoots(context: Context): Option[ModuleCache.Roots] = {
+  private def getIrCacheRoots(
+    context: EnsoContext
+  ): Option[ModuleCache.Roots] = {
     if (module != context.getBuiltins.getModule) {
       context.getPackageOf(module.getSourceFile).toScala.map { pkg =>
         val irCacheRoot    = pkg.getIrCacheRootForPackage(Info.ensoVersion)

@@ -17,7 +17,7 @@
     "build": "node src/index.js"
   },
   "devDependencies": {
-    "sharp": "^0.29.3",
+    "sharp": "^0.31.2",
     "to-ico": "^1.1.5"
   },
   "type": "module"

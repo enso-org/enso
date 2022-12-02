@@ -1,8 +1,9 @@
 from Standard.Base import all
 
-import Standard.Base.Runtime.Ref
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec = Test.group "Refs" <|
     Test.specify "should be able to store and retrieve value in references" <|

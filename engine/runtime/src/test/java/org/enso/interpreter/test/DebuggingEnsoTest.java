@@ -102,6 +102,7 @@ public class DebuggingEnsoTest {
    * checks the value of the `accumulator` variable.
    */
   @Test
+  @Ignore
   public void recursiveFactorialCall() throws Exception {
     final Source facSrc = createEnsoSource("""
     fac : Number -> Number
@@ -137,6 +138,7 @@ public class DebuggingEnsoTest {
    * stack frames, including the stack frame of the caller method.
    */
   @Test
+  @Ignore
   public void callerVariablesAreVisibleOnPreviousStackFrame() {
     Source fooSource = createEnsoSource("""
         bar arg_bar =

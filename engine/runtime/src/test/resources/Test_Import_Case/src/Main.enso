@@ -1,0 +1,8 @@
+from project.Atom import all
+
+main =
+    x = Atom.new 1 2
+
+    case x of
+      _ : Atom -> 0
+      _        -> 1

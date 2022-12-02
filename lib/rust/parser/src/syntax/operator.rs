@@ -65,9 +65,10 @@ impl<'s> Precedence<'s> {
                 code,
             }) => self.nospace_builder.operator(Token(left_offset, code, opr)),
             syntax::Item::Token(token) =>
-                self.nospace_builder.operand(syntax::Tree::from(token).into()),
+                self.nospace_builder.operand(syntax::tree::to_ast(token).into()),
             syntax::Item::Tree(tree) => self.nospace_builder.operand(tree.into()),
-            syntax::Item::Block(_) => self.nospace_builder.operand(item.to_ast().into()),
+            syntax::Item::Block(lines) =>
+                self.nospace_builder.operand(syntax::item::build_block(lines).into()),
         }
     }
 

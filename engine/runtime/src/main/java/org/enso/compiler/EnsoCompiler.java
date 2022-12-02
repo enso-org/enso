@@ -13,6 +13,7 @@ public final class EnsoCompiler implements AutoCloseable {
     try {
       p = Parser.create();
     } catch (LinkageError err) {
+      err.printStackTrace();
       p = null;
     }
     this.parser = p;

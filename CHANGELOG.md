@@ -73,6 +73,7 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
+- [Added project snapshot saving on shortcut][3923]
 
 #### EnsoGL (rendering engine)
 
@@ -245,6 +246,7 @@
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
+- [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -389,6 +391,8 @@
 [3874]: https://github.com/enso-org/enso/pull/3874
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
+[3919]: https://github.com/enso-org/enso/pull/3919
+[3923]: https://github.com/enso-org/enso/pull/3923
 
 #### Enso Compiler
 
@@ -454,6 +458,9 @@
 - [Add the `Self` keyword referring to current type][3844]
 - [Support VCS for projects in Language Server][3851]
 - [Support multiple exports of the same module][3897]
+- [Import modules' extension methods only with unqualified imports][3906]
+- [Don't export polyglot symbols][3915]
+- [From/all import must not include module in name resolution][3931]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -522,6 +529,9 @@
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
 [3897]: https://github.com/enso-org/enso/pull/3897
+[3906]: https://github.com/enso-org/enso/pull/3906
+[3915]: https://github.com/enso-org/enso/pull/3915
+[3931]: https://github.com/enso-org/enso/pull/3931
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

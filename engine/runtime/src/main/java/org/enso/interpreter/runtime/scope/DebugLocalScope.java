@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -19,9 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -120,7 +119,7 @@ public class DebugLocalScope implements TruffleObject {
 
   @ExportMessage
   Class<? extends TruffleLanguage<?>> getLanguage() {
-    return Language.class;
+    return EnsoLanguage.class;
   }
 
   @ExportMessage
@@ -192,7 +191,7 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   private static boolean isHostValue(Object value, InteropLibrary interop) {
-    return Context.get(interop).getEnvironment().isHostObject(value);
+    return EnsoContext.get(interop).getEnvironment().isHostObject(value);
   }
 
   @ExportMessage
@@ -314,7 +313,7 @@ public class DebugLocalScope implements TruffleObject {
     private final String stringRepr;
 
     HostWrapper(Object hostObject) {
-      Env env = Context.get(null).getEnvironment();
+      Env env = EnsoContext.get(null).getEnvironment();
       InteropLibrary interop = InteropLibrary.getUncached();
       assert env.isHostObject(hostObject);
       StringBuilder sb = new StringBuilder();
@@ -340,7 +339,7 @@ public class DebugLocalScope implements TruffleObject {
 
     @ExportMessage
     Class<? extends TruffleLanguage<?>> getLanguage() {
-      return Language.class;
+      return EnsoLanguage.class;
     }
 
     @ExportMessage

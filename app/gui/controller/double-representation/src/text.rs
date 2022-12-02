@@ -248,7 +248,7 @@ mod test {
             apply_code_change_to_id_map(&mut id_map, &self.change, &self.code);
             let code2 = self.resulting_code();
 
-            let ast2 = parser.parse_module(&code2, id_map.clone()).unwrap();
+            let ast2 = parser.parse_module(code2, id_map.clone()).unwrap();
             self.assert_same_node_ids(&ast1, &ast2);
         }
 

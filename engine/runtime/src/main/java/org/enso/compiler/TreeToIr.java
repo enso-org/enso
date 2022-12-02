@@ -915,6 +915,7 @@ final class TreeToIr {
   // transition is complete, we should eliminate it, keeping only the `false` branches.
   IR.Expression translateType(Tree tree, boolean insideTypeAscription) {
     return switch (tree) {
+      case null -> null;
       case Tree.App app -> translateTypeApplication(app);
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
@@ -926,6 +927,9 @@ final class TreeToIr {
           case "->" -> {
             var literal = translateType(app.getLhs(), insideTypeAscription);
             var body = translateType(app.getRhs(), insideTypeAscription);
+            if (body == null) {
+              yield new IR$Error$Syntax(getIdentifiedLocation(app).get(), IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
+            }
             var args = switch (body) {
               case IR$Type$Function fn -> {
                 body = fn.result();
@@ -1077,6 +1081,7 @@ final class TreeToIr {
             sb.appendCodePoint(val);
           }
         }
+        case TextElement.Newline n -> sb.append('\n');
         default -> throw new UnhandledEntity(t, "buildTextConstant");
       }
     }

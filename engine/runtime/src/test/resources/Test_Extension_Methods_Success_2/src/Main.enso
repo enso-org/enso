@@ -1,0 +1,4 @@
+from project.Atom import all
+
+main =
+    1.foo 41

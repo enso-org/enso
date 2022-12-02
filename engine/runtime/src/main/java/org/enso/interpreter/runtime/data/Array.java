@@ -8,7 +8,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
@@ -130,6 +130,6 @@ public final class Array implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().array();
+    return EnsoContext.get(thisLib).getBuiltins().array();
   }
 }

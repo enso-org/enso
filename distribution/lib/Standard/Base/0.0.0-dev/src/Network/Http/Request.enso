@@ -157,10 +157,10 @@ type Request
     with_header self key val =
        new_header = Header.new key val
        update_header p h = case p of
-           Pair.Value acc True -> Pair.Value (acc + [h]) True
+           Pair.Value acc True -> Pair.new (acc + [h]) True
            Pair.Value acc False ->
-               if h.name . equals_ignore_case key then Pair.Value (acc + [new_header]) True else Pair.Value (acc + [h]) False
-       new_headers = case self.headers.fold (Pair.Value [] False) update_header of
+               if h.name . equals_ignore_case key then Pair.new (acc + [new_header]) True else Pair.new (acc + [h]) False
+       new_headers = case self.headers.fold (Pair.new [] False) update_header of
            Pair.Value acc True -> acc
            Pair.Value acc False -> acc + [new_header]
        Request_Data self.method self.uri new_headers self.body

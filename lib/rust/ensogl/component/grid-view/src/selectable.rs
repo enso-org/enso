@@ -287,7 +287,6 @@ mod tests {
     use ensogl_core::application::frp::API;
     use ensogl_core::data::color;
     use ensogl_core::display::scene::Layer;
-    use ensogl_core::display::Scene;
     use ensogl_scroll_area::Viewport;
     use itertools::iproduct;
 
@@ -355,7 +354,7 @@ mod tests {
     }
 
     impl display::Object for TestEntry {
-        fn display_object(&self) -> &display::object::Instance<Scene> {
+        fn display_object(&self) -> &display::object::Instance {
             &self.display_object
         }
     }

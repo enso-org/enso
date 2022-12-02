@@ -1,8 +1,6 @@
 from Standard.Base import all
 import Standard.Base
 
-import Standard.Base.System.Platform
-
 polyglot java import java.lang.Object as JObject
 polyglot java import java.lang.Long as JLong
 polyglot java import java.lang.Exception as JException
@@ -12,6 +10,7 @@ polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 type My_Type
     Value foo bar baz

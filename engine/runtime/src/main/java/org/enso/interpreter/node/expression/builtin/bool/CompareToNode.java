@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 
@@ -19,7 +19,7 @@ public abstract class CompareToNode extends Node {
 
   @Specialization
   Atom doBoolean(Boolean self, Boolean that) {
-    Ordering ordering = Context.get(this).getBuiltins().ordering();
+    Ordering ordering = EnsoContext.get(this).getBuiltins().ordering();
     if (self == that) {
       return ordering.newEqual();
     } else if (self) {
@@ -31,7 +31,7 @@ public abstract class CompareToNode extends Node {
 
   @Fallback
   DataflowError doOther(Boolean self, Object that) {
-    var builtins = Context.get(this).getBuiltins();
+    var builtins = EnsoContext.get(this).getBuiltins();
     var typeError = builtins.error().makeTypeError(builtins.bool().getType(), that, "that");
     return DataflowError.withoutTrace(typeError, this);
   }

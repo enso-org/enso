@@ -121,7 +121,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_getMetadata(
 
 /// Allocate a new parser state object. The returned value should be passed to `freeState` when no
 /// longer needed.
-#[allow(unsafe_code)]
+#[allow(unsafe_code, clippy::box_default)]
 #[no_mangle]
 pub extern "system" fn Java_org_enso_syntax2_Parser_allocState(
     _env: JNIEnv,

@@ -25,7 +25,6 @@ use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::navigation::navigator::Navigator;
-use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::Animation;
@@ -69,8 +68,8 @@ ensogl::define_endpoints! {
         close_open_dialog(),
         /// Simulates a style toggle press event.
         toggle_style(),
-        /// Saves the currently opened module to file.
-        save_module(),
+        /// Saves a snapshot of the current state of the project to the VCS.
+        save_project_snapshot(),
         /// Undo the last user's action.
         undo(),
         /// Redo the last undone action.
@@ -223,7 +222,7 @@ impl SearcherVariant {
             SearcherVariant::ComponentBrowser(view) => {
                 frp::extend! {network
                     cb_position <- all_with(anchor, &view.expression_input_position, |anchor, pos| anchor - pos);
-                    eval cb_position ((pos) view.set_position_xy(*pos));
+                    eval cb_position ((pos) view.set_xy(*pos));
                 }
             }
             SearcherVariant::OldNodeSearcher(view) => {
@@ -233,7 +232,7 @@ impl SearcherVariant {
                         let y = anchor.y - node::HEIGHT / 2.0 - size.y / 2.0;
                         Vector2(x, y)
                     });
-                    eval searcher_pos ((pos) view.set_position_xy(*pos));
+                    eval searcher_pos ((pos) view.set_xy(*pos));
                 }
             }
         }
@@ -241,7 +240,7 @@ impl SearcherVariant {
 }
 
 impl display::Object for SearcherVariant {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         match self {
             SearcherVariant::ComponentBrowser(view) => view.display_object(),
             SearcherVariant::OldNodeSearcher(view) => view.display_object(),
@@ -391,7 +390,7 @@ impl Model {
         // Top buttons must always stay in top-left corner.
         if let Some(window_control_buttons) = &*self.window_control_buttons {
             let pos = Vector2(-shape.width, shape.height) / 2.0;
-            window_control_buttons.set_position_xy(pos);
+            window_control_buttons.set_xy(pos);
         }
     }
 
@@ -552,7 +551,7 @@ impl View {
                     let move_to_edited_node = searcher_pos * (1.0 - zoom);
                     preserve_zoom + move_to_edited_node
                 });
-            eval searcher_cam_pos ((pos) searcher_cam.set_position_xy(*pos));
+            eval searcher_cam_pos ((pos) searcher_cam.set_xy(*pos));
 
             eval searcher.is_visible ([model](is_visible) {
                 let is_attached = model.searcher.has_parent();
@@ -737,7 +736,7 @@ impl View {
             );
             _eval <- all_with3(&model.prompt.width,&prompt_size,&prompt_bg_padding,
                 f!([model](width,size,padding) {
-                    model.prompt.set_position_x(- *width / 2.0);
+                    model.prompt.set_x(- *width / 2.0);
                     model.prompt_background.size.set(Vector2(*width + padding, *size + padding));
                 })
             );
@@ -830,7 +829,7 @@ impl application::View for View {
             (Press, "", "cmd o", "disable_prompt"),
             (Press, "", "space", "disable_prompt"),
             (Press, "", "cmd alt shift t", "toggle_style"),
-            (Press, "", "cmd s", "save_module"),
+            (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),

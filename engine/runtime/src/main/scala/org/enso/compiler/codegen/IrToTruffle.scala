@@ -56,7 +56,7 @@ import org.enso.interpreter.node.{
   MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
-import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
@@ -77,13 +77,14 @@ import org.enso.interpreter.runtime.scope.{
   LocalScope,
   ModuleScope
 }
-import org.enso.interpreter.{Constants, Language}
+import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
+import scala.jdk.CollectionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
@@ -99,13 +100,13 @@ import scala.jdk.OptionConverters._
   * @param compilerConfig the configuration for the compiler
   */
 class IrToTruffle(
-  val context: Context,
+  val context: EnsoContext,
   val source: Source,
   val moduleScope: ModuleScope,
   val compilerConfig: CompilerConfig
 ) {
 
-  val language: Language = context.getLanguage
+  val language: EnsoLanguage = context.getLanguage
 
   // ==========================================================================
   // === Top-Level Runners ====================================================
@@ -178,7 +179,11 @@ class IrToTruffle(
       imp.target match {
         case BindingsMap.ResolvedType(_, _) =>
         case ResolvedModule(module) =>
-          moduleScope.addImport(module.unsafeAsModule().getScope)
+          val mod = module.unsafeAsModule()
+          val scope: ModuleScope = imp.importDef.onlyNames
+            .map(only => mod.getScope(only.map(_.name).asJava))
+            .getOrElse(mod.getScope())
+          moduleScope.addImport(scope)
       }
     }
 

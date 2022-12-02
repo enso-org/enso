@@ -1,0 +1,97 @@
+name: Generate a new version
+on:
+  workflow_dispatch:
+    inputs:
+      designator:
+        description: What kind of release should be promoted.
+        required: true
+        type: choice
+        options:
+          - stable
+          - patch
+          - rc
+          - nightly
+  workflow_call:
+    inputs:
+      designator:
+        description: What kind of release should be promoted.
+        required: true
+        type: string
+jobs:
+  enso-build-cli-ci-gen-promote-release-job-linux:
+    name: Promote release (linux)
+    runs-on:
+      - self-hosted
+      - Linux
+      - engine
+    steps:
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Setup conda (GH runners only)
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          update-conda: false
+          conda-channels: anaconda, conda-forge
+      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
+        name: Installing wasm-pack
+        uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: v0.10.2
+      - name: Expose Artifact API and context information.
+        uses: actions/github-script@v6
+        with:
+          script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
+      - if: runner.os == 'Windows'
+        name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+        run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+        shell: cmd
+      - if: runner.os != 'Windows'
+        name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+        run: "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"
+        shell: bash
+      - name: Checking out the repository
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          submodules: recursive
+      - name: Build Script Setup
+        run: ./run --help
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: "contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean before
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - id: promote
+        run: ./run release promote ${{ inputs.designator }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+      - if: failure() && runner.os == 'Windows'
+        name: List files if failed (Windows)
+        run: Get-ChildItem -Force -Recurse
+      - if: failure() && runner.os != 'Windows'
+        name: List files if failed (non-Windows)
+        run: ls -lAR
+      - if: "always() && always() && contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')"
+        name: Clean after
+        run: ./run git-clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        timeout-minutes: 360
+    outputs:
+      ENSO_EDITION: ${{ steps.promote.outputs.ENSO_EDITION }}
+      ENSO_RELEASE_MODE: ${{ steps.promote.outputs.ENSO_RELEASE_MODE }}
+      ENSO_VERSION: ${{ steps.promote.outputs.ENSO_VERSION }}
+  release:
+    name: Release
+    needs:
+      - enso-build-cli-ci-gen-promote-release-job-linux
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.enso-build-cli-ci-gen-promote-release-job-linux.outputs.ENSO_VERSION }}
+    secrets: inherit
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"
