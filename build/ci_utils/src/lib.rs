@@ -115,6 +115,8 @@ pub mod prelude {
     pub use crate::env::new::TypedVariable as _;
     pub use crate::extensions::clap::ArgExt as _;
     pub use crate::extensions::command::CommandExt as _;
+    pub use crate::extensions::version::PrereleaseExt as _;
+    pub use crate::extensions::version::VersionExt as _;
     pub use crate::github::release::IsReleaseExt as _;
     pub use crate::program::command::provider::CommandProviderExt as _;
     pub use crate::program::version::IsVersion as _;
@@ -140,6 +142,8 @@ pub const EMPTY_REQUEST_BODY: Option<&()> = None;
 pub const USER_AGENT: &str = "enso-build";
 
 pub const UNREGISTERED_PORTS: Range<u16> = 49152..65535;
+
+pub const RECORD_SEPARATOR: &str = "\u{1E}";
 
 /// Looks up a free port in the IANA private or dynamic port range.
 pub fn get_free_port() -> Result<u16> {

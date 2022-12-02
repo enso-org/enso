@@ -64,7 +64,7 @@ impl Bundle for ProjectManager {
     }
 }
 
-// #[context("Placing a GraalVM package under {}", target_directory.as_ref().display())]
+#[context("Placing a GraalVM package under {}", target_directory.as_ref().display())]
 pub async fn place_graal_under(target_directory: impl AsRef<Path>) -> Result {
     let graal_path = {
         let java_home = JAVA_HOME.get()?;
