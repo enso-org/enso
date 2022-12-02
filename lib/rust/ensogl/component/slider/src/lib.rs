@@ -711,11 +711,8 @@ impl Slider {
         let model = &self.model;
 
         frp::extend! { network
-            start_editing <- input.start_value_editing.constant(true).gate_not(&output.disabled);
+            start_editing <- input.start_value_editing.gate_not(&output.disabled);
             start_editing <- start_editing.gate_not(&input.set_value_text_hidden);
-            output.editing <+ start_editing;
-            output.editing <+ input.finish_value_editing.constant(false);
-            output.editing <+ input.cancel_value_editing.constant(false);
             value_on_edit <- output.value.sample(&start_editing);
             prec_on_edit <- output.precision.sample(&start_editing);
             max_places_on_edit <-
@@ -723,9 +720,10 @@ impl Slider {
             value_text_on_edit <- all3(&value_on_edit, &prec_on_edit, &max_places_on_edit);
             value_text_on_edit <- value_text_on_edit.map(|t| value_text_truncate(t).to_im_string());
             model.value_text_edit.set_content <+ value_text_on_edit;
-            eval_ start_editing(model.set_edit_mode(true));
-            eval_ input.finish_value_editing(model.set_edit_mode(false));
-            eval_ input.cancel_value_editing(model.set_edit_mode(false));
+            stop_editing <- any2(&input.finish_value_editing, &input.cancel_value_editing);
+            editing <- bool(&stop_editing, &start_editing);
+            eval editing((t) model.set_edit_mode(*t));
+            output.editing <+ editing;
             value_text_after_edit <-
                 model.value_text_edit.content.sample(&input.finish_value_editing);
             value_text_after_edit <- value_text_after_edit.map(|s| String::from(s).to_im_string());
