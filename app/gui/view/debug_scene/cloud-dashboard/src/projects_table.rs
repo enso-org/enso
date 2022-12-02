@@ -9,6 +9,7 @@
 //! [`Project`]: ::enso_cloud_view::project::Project
 
 use ensogl::prelude::*;
+use enso_cloud_view::prelude::*;
 
 use enso_cloud_view as view;
 use ensogl::application;
@@ -488,7 +489,7 @@ impl View {
         Self { frp, model, app }
     }
 
-    pub(crate) fn init(self) -> anyhow::Result<Self> {
+    pub(crate) fn init(self) -> Result<Self, Error> {
         let frp = &self.frp;
         let model = &self.model;
         let app = &self.app;
@@ -504,6 +505,8 @@ impl View {
 
         app.display.add_child(root);
 
+        // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909432
+        //             Rather than pass this error up, display the error in this view.
         populate_table_with_data(input.clone_ref())?;
 
         Ok(self)
@@ -616,7 +619,7 @@ impl View {
     }
 }
 
-fn populate_table_with_data(input: api::public::Input) -> anyhow::Result<()> {
+fn populate_table_with_data(input: api::public::Input) -> Result<(), Error> {
     let api_gateway_id = enso_cloud_http::ApiGatewayId(API_GATEWAY_ID.to_string());
     let token = enso_cloud_http::AccessToken(TOKEN.to_string());
     let client = enso_cloud_http::Client::new(api_gateway_id, AWS_REGION, token)?;
