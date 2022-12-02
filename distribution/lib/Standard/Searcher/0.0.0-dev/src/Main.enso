@@ -17,7 +17,7 @@ from Standard.Base import all
      Creating a node containing the text "Hello, Enso!".
 
          "Hello, Enso!"
-text_input = Error.unimplemented "This function should not be called."
+text_input = Unimplemented.throw "This function should not be called."
 
 ## ALIAS Number Input
 
@@ -35,7 +35,7 @@ text_input = Error.unimplemented "This function should not be called."
      Creating a node containing the decimal 0.0.
 
          0.0
-number_input = Error.unimplemented "This function should not be called."
+number_input = Unimplemented.throw "This function should not be called."
 
 ## ALIAS Table Input
 
@@ -52,5 +52,5 @@ number_input = Error.unimplemented "This function should not be called."
              column_1 = ["name", "Enso"]
              column_2 = ["stars", 5000]
              table = Table.new [column_1, column_2]
-table_input = Error.unimplemented "This function should not be called."
+table_input = Unimplemented.throw "This function should not be called."
 

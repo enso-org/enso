@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Matching
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -50,11 +51,11 @@ spec = Test.group 'Matching Helper' <|
     Test.specify 'should correctly handle criteria which did not match anything' <|
         action = Text_Matcher.Case_Sensitive.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_problems=_
         tester = _.should_equal ["baz"]
-        problems = [No_Matches_Found_Data ["unknown_column"]]
+        problems = [Matching.No_Matches_Found.Error ["unknown_column"]]
         Problems.test_problem_handling action problems tester
 
         action_2 = Text_Matcher.Case_Sensitive.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column_1", "unknown_column_2"] reorder=False on_problems=_
-        problems_2 = [No_Matches_Found_Data ["unknown_column_1", "unknown_column_2"]]
+        problems_2 = [Matching.No_Matches_Found.Error ["unknown_column_1", "unknown_column_2"]]
         Problems.test_problem_handling action_2 problems_2 tester
 
     Test.specify 'should correctly work with complex object using a function extracting their names' <|

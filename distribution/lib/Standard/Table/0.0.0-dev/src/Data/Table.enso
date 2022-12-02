@@ -1,13 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
-from Standard.Base.Data.Vector import handle_incomparable_value
-import Standard.Base.Error.Common as Errors
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
-import Standard.Base.Data.Text.Case
 
 import project.Data.Column.Column
-from project.Data.Column import get_item_string
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
@@ -30,15 +26,14 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
+import project.Delimited.Delimited_Format.Delimited_Format
 
-from project.Data.Column import get_item_string
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
-from project.Delimited.Delimited_Format import Delimited
-from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Rows_View import Rows_View
 from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
-import Standard.Visualization
+from project.Data.Column import get_item_string
+from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
@@ -184,18 +179,6 @@ type Table
             items = c.to_vector.take (First max_size)
             Json.from_pairs [['name', name], ['data', items]]
         Json.from_pairs [row_count, ['columns', cols]] . to_text
-
-    ## UNSTABLE
-       ADVANCED
-
-       Guides the visualization system to display the most suitable graphical
-       representation for this table.
-    default_visualization : Visualization.Id.Id
-    default_visualization self =
-        cols = self.columns.map .name . map name-> name.to_case Case.Lower
-        if cols.contains "latitude" && cols.contains "longitude" then Visualization.Id.geo_map else
-            if cols.contains "x" && cols.contains "y" then Visualization.Id.scatter_plot else
-                Visualization.Id.table
 
     ## Returns the column with the given name.
 
@@ -520,7 +503,7 @@ type Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
 
-        on_problems.attach_problems_before validated.problems <| Illegal_Argument_Error.handle_java_exception <|
+        on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
             index = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
@@ -621,7 +604,7 @@ type Table
                  table = Examples.inventory_table
                  table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
-    order_by : Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
+    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -629,7 +612,7 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument_Error.handle_java_exception <| handle_incomparable_value <|
+            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values_Error.handle_errors <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table.Table_Data java_table
 
@@ -668,8 +651,8 @@ type Table
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
             self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
         java_columns = key_columns.map .java_column
-        text_folding_strategy = Case.folding_strategy case_sensitivity
-        java_table = Illegal_Argument_Error.handle_java_exception <|
+        text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
+        java_table = Illegal_Argument.handle_java_exception <|
             self.java_table.distinct java_columns.to_array text_folding_strategy
         on_problems.attach_problems_after (Table.Table_Data java_table) <|
             problems = java_table.getProblems
@@ -793,7 +776,7 @@ type Table
          Replace texts in quotes with parentheses in column at index 1.
 
              table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Regex_Matcher_Data
-    replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
+    replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
     replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
 
@@ -1288,10 +1271,10 @@ type Table
         is_group_by c = case c of
             Aggregate_Column.Group_By _ _ -> True
             _ -> False
-        if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument_Error_Data "Cannot use group_by for a cross_tab value.")
+        if resolved_values.any is_group_by then problem_builder.report_other_warning (Illegal_Argument.Error "Cannot use group_by for a cross_tab value.")
         validated_values = resolved_values.filter c->((c!=Nothing) && (is_group_by c).not)
 
-        on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument_Error.handle_java_exception <|
+        on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
             index  = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
 
@@ -1384,7 +1367,7 @@ type Table
 
        Returns:
        - If an unsupported `File_Format` is specified, an
-         `Illegal_Argument_Error` is raised.
+         `Illegal_Argument` is raised.
        - If the path to the parent location cannot be found or the filename is
          invalid, a `File_Error.Not_Found` is raised.
        - If another IO error occurs, such as access denied, an
@@ -1401,7 +1384,7 @@ type Table
          - `Auto_Detect`: The file format is determined by the provided file.
          - `Bytes` and `Plain_Text`: The Table does not support these types in
            the `write` function. If passed as format, an
-           `Illegal_Argument_Error` is raised. To write out the table as plain
+           `Illegal_Argument` is raised. To write out the table as plain
            text, the user needs to call the `Text.from Table` method and then
            use the `Text.write` function.
 
@@ -1420,22 +1403,22 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument_Error | File_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_format file
-                if base_format == Nothing then Error.throw (Errors.Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
+                if base_format == Nothing then Error.throw (Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                Panic.catch Errors.No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
+                Panic.catch No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
                     name = Meta.get_constructor_name (Meta.meta format).constructor
-                    Error.throw (Errors.Illegal_Argument_Error_Data ("Saving a Table as " + name + " is not supported."))
+                    Error.throw (Illegal_Argument.Error ("Saving a Table as " + name + " is not supported."))
 
     ## Creates a text representation of the table using the CSV format.
     to_csv : Text
-    to_csv self = Text.from self (Delimited delimiter=",")
+    to_csv self = Text.from self (Delimited_Format.Delimited delimiter=",")
 
     ## PRIVATE
     columns_helper : Table_Column_Helper
@@ -1516,7 +1499,7 @@ slice_ranges table ranges =
 make_join_helpers left_table right_table =
     make_equals left right = Java_Join_Equals.new left.java_column right.java_column
     make_equals_ignore_case _ _ =
-        unimplemented "Conditions other than Equals are not implemented yet."
+        Unimplemented.throw "Conditions other than Equals are not implemented yet."
     make_between _ _ _ =
-        unimplemented "Conditions other than Equals are not implemented yet."
+        Unimplemented.throw "Conditions other than Equals are not implemented yet."
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between

@@ -1,17 +1,19 @@
 ## This module contains the basic interface to the more advanced functionality
-
    of Enso's regular expression engine.
 
    TODO Examples
 
-from Standard.Base import all
+import project.Data.Boolean.Boolean
+import project.Data.Numbers.Integer
+import project.Data.Text.Regex.Engine.Engine
+import project.Data.Text.Regex.Pattern.Pattern
+import project.Data.Text.Regex.Engine.Default
+import project.Data.Text.Regex.Regex_Option.Regex_Option
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
 
-import Standard.Base.Data.Text.Regex
-import Standard.Base.Data.Text.Regex.Engine
-# TODO[DB] Fix composite types #183857386
-import Standard.Base.Data.Text.Regex.Engine.Engine as Engine_Type
-import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Option
+from project.Error.Common import Compile_Error
 
 ## Compile the provided `expression` into a regex pattern that can be used for
    matching.
@@ -37,10 +39,10 @@ import Standard.Base.Data.Text.Regex.Option
    - comments: Enables or disables the comments mode for the regular expression.
      In comments mode, the following changes apply:
      - Whitespace within the pattern is ignored, except when within a
-       character class or when preceeded by an unescaped backslash, or within
+       character class or when preceded by an unescaped backslash, or within
        grouping constructs (e.g. `(?...)`).
      - When a line contains a `#`, that is not in a character class and is not
-       preceeded by an unescaped backslash, all characters from the leftmost
+       preceded by an unescaped backslash, all characters from the leftmost
        such `#` to the end of the line are ignored. That is to say, they act
        as _comments_ in the regex.
    - extra_opts: Specifies additional options in a vector. This allows options
@@ -64,8 +66,8 @@ import Standard.Base.Data.Text.Regex.Option
      useful to be able to manually retain a pattern that you have computed. This
      function exists so you can hold onto the resultant `Pattern` object,
      instead of immediately proceeding to match using it.
-compile : Text -> Engine_Type -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Engine.Pattern ! Compile_Error
-compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
+compile : Text -> Engine -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Regex_Option -> Pattern ! Compile_Error
+compile expression engine=Default.new match_ascii=Nothing case_insensitive=Nothing dot_matches_newline=Nothing multiline=Nothing comments=Nothing extra_opts=[] =
     options_vec = from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts
     engine.compile expression options_vec
 
@@ -80,43 +82,39 @@ compile expression engine=Default_Engine.new match_ascii=Nothing case_insensitiv
    ! Matching Engines
      Care should be taken to ensure that you use the same engine for escaping
      and matching, as engine syntax may differ in certain cases.
-escape : Text -> Engine_Type -> Text
-escape expression engine=Default_Engine.new = engine.escape expression
+escape : Text -> Engine -> Text
+escape expression engine=Default.new = engine.escape expression
 
 ## PRIVATE
 
    Turns the options flags into a vector of options.
-from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Option.Option -> Vector Option.Option
+from_flags : Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Boolean | Nothing -> Vector Regex_Option -> Vector Regex_Option
 from_flags match_ascii case_insensitive dot_matches_newline multiline comments extra_opts =
     builder = Vector.new_builder
 
-    process_override : Boolean | Nothing -> Option -> Nothing
+    process_override : Boolean | Nothing -> Regex_Option -> Nothing
     process_override param option = case param of
         _ : Boolean -> if param then builder.append option
         Nothing -> if extra_opts.contains option then builder.append option
 
-    process_override match_ascii Option.Ascii_Matching
-    process_override case_insensitive Option.Case_Insensitive
-    process_override dot_matches_newline Option.Dot_Matches_Newline
-    process_override multiline Option.Multiline
-    process_override comments Option.Comments
+    process_override match_ascii Regex_Option.Ascii_Matching
+    process_override case_insensitive Regex_Option.Case_Insensitive
+    process_override dot_matches_newline Regex_Option.Dot_Matches_Newline
+    process_override multiline Regex_Option.Multiline
+    process_override comments Regex_Option.Comments
 
     ## Add any non-overridable options from extra_opts
     extra_opts.each opt->
-        not_ascii = opt != Option.Ascii_Matching
-        not_insensitive = opt != Option.Case_Insensitive
-        not_dot_matches_newline = opt != Option.Dot_Matches_Newline
-        not_multiline = opt != Option.Multiline
-        not_comments = opt != Option.Comments
+        not_ascii = opt != Regex_Option.Ascii_Matching
+        not_insensitive = opt != Regex_Option.Case_Insensitive
+        not_dot_matches_newline = opt != Regex_Option.Dot_Matches_Newline
+        not_multiline = opt != Regex_Option.Multiline
+        not_comments = opt != Regex_Option.Comments
 
         if not_ascii && not_insensitive && not_dot_matches_newline && not_multiline && not_comments then
             builder.append opt
 
     builder.to_vector
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.No_Such_Group_Error import all
-from project.Data.Text.Regex.No_Such_Group_Error export all
 
 ## PRIVATE
 
@@ -125,13 +123,57 @@ from project.Data.Text.Regex.No_Such_Group_Error export all
 
    Arguments:
    - id: The identifier of the group that was asked for but does not exist.
-type No_Such_Group_Error
-    No_Such_Group_Error_Data (id : Text | Integer)
+type No_Such_Group
+    Error (id : Text | Integer)
 
     ## PRIVATE
 
-       Provides a human-readable representation of the `No_Such_Group_Error`.
+       Provides a human-readable representation of the `No_Such_Group`.
     to_display_text : Text
     to_display_text self = case self.id of
         _ : Integer -> "No group exists with the index " + self.id.to_text + "."
         _ : Text -> "No group exists with the name " + self.id + "."
+
+## PRIVATE
+
+   An error representing that one of the passed options was invalid.
+
+   Arguments:
+   - opt: The option that was not valid for this regex engine.
+type Invalid_Option
+    Error (opt : Any)
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the invalid option error.
+    to_display_text : Text
+    to_display_text self =
+        "The option " + self.opt.to_text + " is not valid for the default regex engine."
+
+## PRIVATE
+
+   An error representing that there is something wrong with the mode for a regex
+   match.
+
+   Arguments:
+   - message: The text of the message to display to users.
+type Mode_Error
+    Error (message : Text)
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the mode error.
+    to_display_text : Text
+    to_display_text self = self.message.to_text
+
+## PRIVATE
+
+   An error representing that the bounds for a match are invalid.
+type Invalid_Bounds_Error
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the invalid bounds error.
+    to_display_text : Text
+    to_display_text =
+        "The start bound cannot be greater than the end bound."

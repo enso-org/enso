@@ -78,7 +78,7 @@ type SQL_Type
 
     ## ADVANCED
        Given an Enso value gets the approximate SQL type.
-    approximate_type : Any -> SQL_Type ! Illegal_Argument_Error_Data
+    approximate_type : Any -> SQL_Type ! Illegal_Argument
     approximate_type value = case value of
         _ : Boolean -> SQL_Type.boolean
         _ : Integer -> SQL_Type.integer
@@ -87,7 +87,7 @@ type SQL_Type
         _ : Date -> SQL_Type.date
         _ : Time_Of_Day -> SQL_Type.time_of_day
         _ : Date_Time -> SQL_Type.date_time
-            _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported type.")
+            _ -> Error.throw (Illegal_Argument.Error "Unsupported type.")
 
     ## PRIVATE
 

@@ -1,6 +1,6 @@
 ## Internal text utilities for inspecting text primitives.
 
-from Standard.Base import Text
+import project.Data.Text.Text
 
 ## PRIVATE
 

@@ -3,9 +3,8 @@ from Standard.Base import all
 import project.Data.Table
 import project.Data.Match_Columns.Match_Columns
 import project.Excel.Excel_Range.Excel_Range
-
-from project.Excel.Excel_Reader import handle_reader, make_java_headers
-from project.Excel.Excel_Section import Worksheet, Cell_Range
+import project.Excel.Excel_Section.Excel_Section
+import project.Excel.Excel_Reader
 from project.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.read.ExcelReader
@@ -31,20 +30,21 @@ make_java_existing_data_mode on_existing_file match_columns = case on_existing_f
    Writes a Table to an Excel file.
 
    Arguments:
-write_file : File -> Table -> Existing_File_Behavior -> (Sheet | Cell_Range) -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
+write_file : File -> Table -> Existing_File_Behavior -> Excel_Section -> (Boolean|Infer) -> Match_Columns -> Problem_Behavior -> Boolean
 write_file file table on_existing_file section headers match_columns _ xls_format=False =
     workbook = if file.exists.not then ExcelWriter.createWorkbook xls_format else
-        handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
+        Excel_Reader.handle_reader file stream->(ExcelReader.getWorkbook stream xls_format)
 
     existing_data_mode = make_java_existing_data_mode on_existing_file match_columns
-    java_headers = make_java_headers headers
+    java_headers = Excel_Reader.make_java_headers headers
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
     result = handle_writer <| case section of
-        Worksheet sheet skip_rows row_limit ->
+        Excel_Section.Worksheet sheet skip_rows row_limit ->
             ExcelWriter.writeTableToSheet workbook sheet existing_data_mode skip_rows table.java_table row_limit java_headers
-        Cell_Range address skip_rows row_limit -> case address of
+        Excel_Section.Cell_Range address skip_rows row_limit -> case address of
             Excel_Range.Value java_range -> ExcelWriter.writeTableToRange workbook java_range existing_data_mode skip_rows table.java_table row_limit java_headers
             _ : Text -> ExcelWriter.writeTableToRange workbook address existing_data_mode skip_rows table.java_table row_limit java_headers
+        _ : Excel_Section -> Error.throw (Illegal_Argument.Error "Only a Worksheet or Cell_Range is allowed in write_file")
 
     if result.is_error then result else
         write_stream stream = stream.with_java_stream java_stream->
@@ -68,10 +68,10 @@ handle_writer ~writer =
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
     ## Should be impossible - occurs if no fallback serializer is provided.
-    throw_illegal_state caught_panic = Panic.throw (Illegal_State_Error_Data caught_panic.payload.cause.getMessage)
+    throw_illegal_state caught_panic = Panic.throw (Illegal_State.Error caught_panic.payload.cause.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
     handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|
         Column_Count_Mismatch.handle_java_exception <| handle_bad_location <|
-            Illegal_Argument_Error.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
+            Illegal_Argument.handle_java_exception <| handle_range_exceeded <| handle_existing_data <|
                 writer

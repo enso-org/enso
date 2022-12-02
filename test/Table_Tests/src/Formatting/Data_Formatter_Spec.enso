@@ -17,11 +17,11 @@ type Custom_Type_With_To_Text
 
 type Custom_Type_With_Error
     to_text : Text
-    to_text self = Error.throw (Illegal_State_Error_Data "foo_error")
+    to_text self = Error.throw (Illegal_State.Error "foo_error")
 
 type Custom_Type_With_Panic
     to_text : Text
-    to_text self = Panic.throw (Illegal_State_Error_Data "foo_panic")
+    to_text self = Panic.throw (Illegal_State.Error "foo_panic")
 
 spec =
     Test.group "DataFormatter.parse" <|
@@ -155,7 +155,7 @@ spec =
             formatter = Data_Formatter.Value true_values=["YES", "1", "true"] false_values=["NO", "0", "false"]
             formatter.format True . should_equal "YES"
             formatter.format False . should_equal "NO"
-            (Data_Formatter.Value true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument_Error_Data
+            (Data_Formatter.Value true_values=[] false_values=[]).format True . should_fail_with Illegal_Argument.Error
 
         Test.specify "should format dates" <|
             formatter = Data_Formatter.Value
@@ -188,8 +188,8 @@ spec =
 
         Test.specify "should correctly pass through errors from custom type's `.to_text` method" pending="TODO: figure out the desired behavior, see: https://www.pivotaltracker.com/story/show/182522644" <|
             formatter = Data_Formatter.Value
-            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State_Error_Data
-            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State_Error_Data
+            formatter.format Custom_Type_With_Error . should_fail_with Illegal_State.Error
+            Test.expect_panic_with (formatter.format Custom_Type_With_Panic) Illegal_State.Error
 
     Test.group "DataFormatter builders" <|
         # We create a formatter with all non-default values to ensure that the builders keep the existing values of other properties instead of switching to the constructor's defaults.

@@ -10,7 +10,8 @@ class CompileDiagnosticsTest extends InterpreterTest {
   ): Unit = {
     "surface ast-processing errors in the language" in {
       val code =
-        """from Standard.Base.Error.Common import all
+        """from Standard.Base.Error.Common import Syntax_Error_Data
+          |import Standard.Base.Panic.Panic
           |
           |main =
           |    x = Panic.catch_primitive () .convert_to_dataflow_error
@@ -26,6 +27,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface parsing errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
+          |import Standard.Base.Panic.Panic
           |
           |main =
           |    x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
@@ -37,6 +39,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface redefinition errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
+          |import Standard.Base.Panic.Panic
           |
           |foo =
           |    x = 1
@@ -52,6 +55,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
     "surface non-existent variable errors in the language" in {
       val code =
         """from Standard.Base.Error.Common import all
+          |import Standard.Base.Panic.Panic
           |
           |foo =
           |    my_var = 10

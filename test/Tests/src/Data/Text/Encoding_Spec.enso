@@ -1,7 +1,5 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Encoding import all_character_sets, all_encodings, Encoding
-
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
@@ -16,15 +14,15 @@ spec =
 
         Test.specify "Catches invalid character sets" <|
             invalid = Encoding.Value "NotAValidCharacterSet"
-            invalid.to_java_charset . should_fail_with Illegal_Argument_Error_Data
+            invalid.to_java_charset . should_fail_with Illegal_Argument.Error
 
         Test.specify "Can get full set of character sets" <|
-            character_sets = all_character_sets
+            character_sets = Encoding.all_character_sets
             character_sets.length . should_not_equal 0
             character_sets.contains "UTF-8" . should_equal True
 
         Test.specify "Can get full set of encoding objects" <|
-            encodings = all_encodings
+            encodings = Encoding.all_encodings
             encodings.length . should_not_equal 0
             encodings.contains Encoding.utf_8 . should_equal True
 

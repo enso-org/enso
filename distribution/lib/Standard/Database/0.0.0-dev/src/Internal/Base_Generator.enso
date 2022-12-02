@@ -11,7 +11,7 @@ import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
 from project.Data.SQL import code
 
-from project.Errors import Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 type Internal_Dialect
 
@@ -55,7 +55,7 @@ make_binary_op name =
                 op = " " + name + " "
                 ((arguments.at 0) ++ op ++ (arguments.at 1)).paren
             False ->
-                Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -70,7 +70,7 @@ make_unary_op name =
             True ->
                 (code name+" ")++(arguments.at 0) . paren
             False ->
-                Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name)
+                Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name)
 
 ## PRIVATE
 
@@ -84,7 +84,7 @@ make_unary_op name =
 lift_unary_op : Text -> (Builder -> Builder) -> [Text, (Vector Builder -> Builder)]
 lift_unary_op name function =
     generator = arguments -> case arguments.length == 1 of
-        False -> Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name + ".")
+        False -> Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name + ".")
         True -> function (arguments.at 0)
     [name, generator]
 
@@ -100,7 +100,7 @@ lift_unary_op name function =
 lift_binary_op : Text -> (Builder -> Builder -> Builder) -> [Text, (Vector Builder -> Builder)]
 lift_binary_op name function =
     generator = arguments -> case arguments.length == 2 of
-        False -> Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation " + name + ".")
+        False -> Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation " + name + ".")
         True -> function (arguments.at 0) (arguments.at 1)
     [name, generator]
 
@@ -140,7 +140,7 @@ make_function name =
 make_constant : Text -> Vector Builder -> Builder
 make_constant sql_code =
     arguments ->
-        if arguments.not_empty then Error.throw <| Illegal_State_Error_Data "No arguments were expected" else
+        if arguments.not_empty then Error.throw <| Illegal_State.Error "No arguments were expected" else
             code sql_code
 
 ## PRIVATE
@@ -196,7 +196,7 @@ make_iif arguments = case arguments.length of
         when_false = arguments.at 2
         (code "CASE WHEN" ++ expr ++ " THEN " ++ when_true ++ " WHEN " ++ expr ++ " IS NULL THEN NULL ELSE " ++ when_false ++ " END").paren
     _ ->
-        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation IIF")
+        Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation IIF")
 
 ## PRIVATE
 make_between : Vector Builder -> Builder
@@ -207,12 +207,12 @@ make_between arguments = case arguments.length of
         upper = arguments.at 2
         (expr ++ " BETWEEN " ++ lower ++ " AND " ++ upper).paren
     _ ->
-        Error.throw <| Illegal_State_Error_Data ("Invalid amount of arguments for operation BETWEEN")
+        Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation BETWEEN")
 
 ## PRIVATE
 make_is_in : Vector Builder -> Builder
 make_is_in arguments = case arguments.length of
-    0 -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN requires at least one argument.")
+    0 -> Error.throw <| Illegal_State.Error ("The operation IS_IN requires at least one argument.")
     ## If only the self argument is provided, no value will ever be in the empty list, so we just short circuit to false.
        `IN ()` would be more meaningful, but it is a syntax error.
     1 -> code 'FALSE' . paren
@@ -234,7 +234,7 @@ make_is_in_column arguments = case arguments.length of
         is_in = code "COALESCE(" ++ expr ++ " IN (" ++ in_query ++ "), FALSE)"
         has_nulls = has_nulls_query.paren ++ " = TRUE"
         code "CASE WHEN " ++ expr ++ " IS NULL THEN " ++ has_nulls ++ " ELSE " ++ is_in ++ " END"
-    _ -> Error.throw <| Illegal_State_Error_Data ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
+    _ -> Error.throw <| Illegal_State.Error ("The operation IS_IN_COLUMN requires at exactly 3 arguments: the expression, the IN subquery, the subquery checking for nulls.")
 
 ## PRIVATE
 
@@ -249,7 +249,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     SQL_Expression.Constant sql_type value -> SQL.interpolation sql_type value
     SQL_Expression.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation_Error_Data kind)
+        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
     query : Query -> generate_query dialect query
@@ -277,9 +277,9 @@ alias dialect name =
    - from_spec: A description of the FROM clause.
 generate_from_part : Internal_Dialect -> From_Spec -> Builder
 generate_from_part dialect from_spec = case from_spec of
-    From_Spec.From_Table name as_name ->
+    From_Spec.Table name as_name ->
         dialect.wrap_identifier name ++ alias dialect as_name
-    From_Spec.From_Query raw_sql as_name ->
+    From_Spec.Query raw_sql as_name ->
         code raw_sql . paren ++ alias dialect as_name
     From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
@@ -373,7 +373,7 @@ generate_query dialect query = case query of
         code "SELECT * " ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
-    _ -> Error.throw <| Unsupported_Database_Operation_Error_Data "Unsupported query type."
+    _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type."
 
 ## PRIVATE
    Arguments:
@@ -399,7 +399,7 @@ generate_query dialect query = case query of
      is escaped by doubling each occurrence.
 make_concat make_raw_concat_expr make_contains_expr has_quote args =
     expected_args = if has_quote then 5 else 4
-    if args.length != expected_args then Error.throw (Illegal_State_Error_Data "Unexpected number of arguments for the concat operation.") else
+    if args.length != expected_args then Error.throw (Illegal_State.Error "Unexpected number of arguments for the concat operation.") else
         expr = args.at 0
         separator = args.at 1
         prefix = args.at 2

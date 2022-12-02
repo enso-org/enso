@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
@@ -7,21 +7,22 @@ import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
+import project.Data.Range.Range
+import project.Data.Range.Extensions
 import project.Data.Text.Text
+import project.Error.Error
 import project.Function.Function
-import project.Nothing.Nothing
 import project.Math
+import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Data.Json import all
-from project.Data.Range import all
-from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Illegal_Argument_Error_Data, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
+from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Illegal_Argument, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
-polyglot java import java.lang.ClassCastException
 
 ##  The basic, immutable, vector type.
     A vector allows to store an arbitrary number of elements, in linear memory.
@@ -556,7 +557,7 @@ type Vector a
              (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
     short_display_text : Integer -> Text
     short_display_text self max_entries=10 =
-        if max_entries < 1 then Error.throw <| Illegal_Argument_Error_Data "The `max_entries` parameter must be positive." else
+        if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
             prefix = self.take (Index_Sub_Range.First max_entries)
             if prefix.length == self.length then self.to_text else
                 remaining_count = self.length - prefix.length
@@ -742,15 +743,6 @@ type Vector a
         if self.length >= n then self else
             self + (Vector.fill n-self.length elem)
 
-    ## Vector to JSON conversion.
-
-       > Example
-         Convert a vector of numbers to JSON.
-
-             [1, 2, 3].to_json
-    to_json : Json
-    to_json self = Json.Array (self.map .to_json)
-
     ## Get the first element from the vector, or an `Empty_Error` if the vector
        is empty.
 
@@ -878,7 +870,7 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        handle_incomparable_value <|
+        Incomparable_Values_Error.handle_errors <|
             new_vec_arr.sort compare
             Vector.from_polyglot_array new_vec_arr
 
@@ -916,7 +908,7 @@ type Vector a
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        handle_incomparable_value <|
+        Incomparable_Values_Error.handle_errors <|
             builder = Vector.new_builder
             result = self.fold Map.empty existing->
                 item->
@@ -925,16 +917,6 @@ type Vector a
                         builder.append item
                         existing.insert key True
             if result.is_error then result else builder.to_vector
-
-
-    ## UNSTABLE
-
-       Transform the vector into text for displaying as part of its default
-       visualization.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        json = self.take (Index_Sub_Range.First 100) . to_json
-        json.to_text
 
     ## UNSTABLE
        Converts the vector to a list with the same elements.
@@ -997,6 +979,10 @@ type Builder
     ## Checks if this builder is not empty.
     not_empty : Boolean
     not_empty self = self.is_empty.not
+
+    ## Gets the current length of the builder.
+    length : Integer
+    length self = self.java_builder.getSize
 
     ## Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
@@ -1106,17 +1092,6 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The vector is empty."
-
-## ADVANCED
-   Catches possible errors from comparing values and throws an
-   Incomparable_Values_Error if any occur.
-handle_incomparable_value ~function =
-    handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
-    handle ClassCastException <|
-        handle No_Such_Method_Error_Data <|
-            handle Type_Error_Data <|
-                handle Unsupported_Argument_Types_Data <|
-                    function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
 
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the

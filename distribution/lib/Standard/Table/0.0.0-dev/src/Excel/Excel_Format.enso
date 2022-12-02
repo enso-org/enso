@@ -3,12 +3,8 @@ from Standard.Base import all
 import project.Data.Table.Table
 import project.Data.Match_Columns.Match_Columns
 import project.Excel.Excel_Reader
+import project.Excel.Excel_Section.Excel_Section
 import project.Excel.Excel_Writer
-
-from project.Excel.Excel_Section import Excel_Section, Worksheet, Sheet_Names, Range_Names
-
-from project.Excel.Excel_Format.Excel_Format import Excel
-from project.Excel.Excel_Format.Excel_Format export Excel
 
 ## PRIVATE
    Resolve the xls_format setting to a boolean.
@@ -20,7 +16,7 @@ should_treat_as_xls_format xls_format file =
             ".xlsm" -> False
             ".xls" -> True
             ".xlt" -> True
-            _ -> Error.throw (Illegal_Argument_Error_Data ("Unknown file extension for Excel file (" + file.extension + ")"))
+            _ -> Error.throw (Illegal_Argument.Error ("Unknown file extension for Excel file (" + file.extension + ")"))
 
 
 ## Read the file to a `Table` from an Excel file
@@ -43,14 +39,14 @@ type Excel_Format
          If set to `True`, the file is read as an Excel 95-2003 format.
          If set to `False`, the file is read as an Excel 2007+ format.
          `Infer` will attempt to deduce this from the extension of the filename.
-    Excel (section:Excel_Section=Worksheet) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
+    Excel (section:Excel_Section=Excel_Section.Worksheet) (headers:(Boolean|Infer)=Infer) (xls_format:(Boolean|Infer)=Infer)
 
     ## If the File_Format supports reading from the file, return a configured instance.
     for_file : File -> Excel_Format | Nothing
     for_file file =
         is_xls = should_treat_as_xls_format Infer file
         if is_xls.is_error then Nothing else
-            Excel xls_format=is_xls
+            Excel_Format.Excel xls_format=is_xls
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -64,6 +60,6 @@ type Excel_Format
         format = should_treat_as_xls_format self.xls_format file
 
         case self.section of
-            Sheet_Names -> Error.throw (Illegal_Argument_Error_Data "Sheet_Names cannot be used for `write`.")
-            Range_Names -> Error.throw (Illegal_Argument_Error_Data "Range_Names cannot be used for `write`.")
+            Excel_Section.Sheet_Names -> Error.throw (Illegal_Argument.Error "Sheet_Names cannot be used for `write`.")
+            Excel_Section.Range_Names -> Error.throw (Illegal_Argument.Error "Range_Names cannot be used for `write`.")
             _ -> Excel_Writer.write_file file table on_existing_file self.section self.headers match_columns on_problems format
