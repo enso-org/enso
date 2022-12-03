@@ -12,6 +12,8 @@ from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_
 
 import Standard.Visualization
 
+from Standard.Database import Database, SQLite, In_Memory
+
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
@@ -1077,6 +1079,18 @@ spec =
             t1.at "Count" . to_vector . should_equal [9]
 
             # ToDo: Verify the warnings and error handling within cross_tab.
+
+    Test.group "[In-Memory] Table.join" <|
+        Test.specify "should correctly report unsupported cross-backend joins" <|
+            t = Table.new [["X", [1, 2, 3]]]
+            t.join 42 . should_fail_with Type_Error_Data
+
+            db = Database.connect (SQLite In_Memory)
+            db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
+
+            r = t.join db_table
+            r.should_fail_with Illegal_Argument_Error_Data
+            r.catch.message . contains "cross-backend" . should_be_true
 
 run_common_spec spec =
     selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True
