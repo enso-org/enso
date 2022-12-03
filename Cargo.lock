@@ -2522,6 +2522,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-example-auto-layout"
+version = "0.1.0"
+dependencies = [
+ "ensogl-core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ensogl-example-complex-shape-system"
 version = "0.1.0"
 dependencies = [
@@ -2721,6 +2729,7 @@ name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
  "ensogl-example-animation",
+ "ensogl-example-auto-layout",
  "ensogl-example-complex-shape-system",
  "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",

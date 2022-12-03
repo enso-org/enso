@@ -718,6 +718,7 @@ impl Model {
     /// Recompute the transformation matrix of the display object tree starting with this object and
     /// traversing all of its dirty children.
     pub fn update(&self, scene: &Scene) {
+        // warn!("Update!");
         self.refresh_layout();
         let origin0 = Matrix4::identity();
         self.update_with_origin(scene, origin0, false, false, None)
@@ -1684,10 +1685,6 @@ impl LayoutModel {
 }
 
 impl Model {
-    fn size(&self) -> Vector2<f32> {
-        self.layout.size.get()
-    }
-
     fn resizing(&self) -> Vector2<Resizing> {
         self.layout.resizing.get()
     }
@@ -1697,39 +1694,47 @@ impl Model {
         self.layout.resizing.set(resizing.into_resizing());
     }
 
-    fn set_resizing_fixed(&self, x: f32, y: f32) {
+    fn size(&self) -> Vector2<f32> {
+        self.layout.size.get()
+    }
+
+    fn set_size(&self, size: Vector2<f32>) {
+        self.set_resizing(size)
+    }
+
+    fn set_size_xy(&self, x: f32, y: f32) {
         self.set_resizing((x, y))
     }
 
-    fn set_resizing_fixed_hug(&self, x: f32) {
+    fn set_size_fixed_hug(&self, x: f32) {
         self.set_resizing((x, Resizing::Hug))
     }
 
-    fn set_resizing_fixed_fill(&self, x: f32) {
+    fn set_size_fixed_fill(&self, x: f32) {
         self.set_resizing((x, Resizing::Fill))
     }
 
-    fn set_resizing_hug_fixed(&self, y: f32) {
+    fn set_size_hug_fixed(&self, y: f32) {
         self.set_resizing((Resizing::Hug, y))
     }
 
-    fn set_resizing_fill_fixed(&self, y: f32) {
+    fn set_size_fill_fixed(&self, y: f32) {
         self.set_resizing((Resizing::Fill, y))
     }
 
-    fn set_resizing_fill(&self) {
+    fn set_size_fill(&self) {
         self.set_resizing((Resizing::Fill, Resizing::Fill))
     }
 
-    fn set_resizing_fill_hug(&self) {
+    fn set_size_fill_hug(&self) {
         self.set_resizing((Resizing::Fill, Resizing::Hug))
     }
 
-    fn set_resizing_hug_fill(&self) {
+    fn set_size_hug_fill(&self) {
         self.set_resizing((Resizing::Hug, Resizing::Fill))
     }
 
-    fn set_resizing_hug(&self) {
+    fn set_size_hug(&self) {
         self.set_resizing((Resizing::Hug, Resizing::Hug))
     }
 }
@@ -1758,7 +1763,9 @@ impl Model {
     }
 
     fn refresh_layout_internal(&self, first_pass: bool) {
+        // warn!("refresh_layout_internal: {}", self.dirty.modified_children.check_all());
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
+            // warn!("not dirty!");
             return;
         }
         if first_pass {
@@ -2009,6 +2016,7 @@ impl Model {
                     },
             }
         }
+        warn!("{:?}", children);
     }
 }
 
@@ -2359,49 +2367,59 @@ pub trait ObjectOps: Object {
         self.display_object().def.resizing()
     }
 
-    /// Set the current resizing mode.
-    fn set_resizing_fixed(&self, x: f32, y: f32) {
-        self.display_object().def.set_resizing_fixed(x, y)
+    /// The current size of the display object. It will be updated after the object is refreshed.
+    fn size(&self) -> Vector2<f32> {
+        self.display_object().def.size()
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_fixed_hug(&self, x: f32) {
-        self.display_object().def.set_resizing_fixed_hug(x)
+    fn set_size(&self, size: Vector2<f32>) {
+        self.display_object().def.set_size(size)
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_fixed_fill(&self, x: f32) {
-        self.display_object().def.set_resizing_fixed_fill(x)
+    fn set_size_xy(&self, x: f32, y: f32) {
+        self.display_object().def.set_size_xy(x, y)
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_hug_fixed(&self, y: f32) {
-        self.display_object().def.set_resizing_hug_fixed(y)
+    fn set_size_fixed_hug(&self, x: f32) {
+        self.display_object().def.set_size_fixed_hug(x)
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_fill_fixed(&self, y: f32) {
-        self.display_object().def.set_resizing_fill_fixed(y)
+    fn set_size_fixed_fill(&self, x: f32) {
+        self.display_object().def.set_size_fixed_fill(x)
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_fill(&self) {
-        self.display_object().def.set_resizing_fill()
+    fn set_size_hug_fixed(&self, y: f32) {
+        self.display_object().def.set_size_hug_fixed(y)
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_fill_hug(&self) {
-        self.display_object().def.set_resizing_fill_hug()
+    fn set_size_fill_fixed(&self, y: f32) {
+        self.display_object().def.set_size_fill_fixed(y)
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_hug_fill(&self) {
-        self.display_object().def.set_resizing_hug_fill()
+    fn set_size_fill(&self) {
+        self.display_object().def.set_size_fill()
     }
 
     /// Set the current resizing mode.
-    fn set_resizing_hug(&self) {
-        self.display_object().def.set_resizing_hug()
+    fn set_size_fill_hug(&self) {
+        self.display_object().def.set_size_fill_hug()
+    }
+
+    /// Set the current resizing mode.
+    fn set_size_hug_fill(&self) {
+        self.display_object().def.set_size_hug_fill()
+    }
+
+    /// Set the current resizing mode.
+    fn set_size_hug(&self) {
+        self.display_object().def.set_size_hug()
     }
 }
 
@@ -3088,6 +3106,7 @@ mod layout_tests {
             let node1 = Instance::new();
             let node2 = Instance::new();
             let node3 = Instance::new();
+            world.add_child(&root);
             root.add_child(&node1);
             root.add_child(&node2);
             root.add_child(&node3);
@@ -3102,7 +3121,7 @@ mod layout_tests {
         }
 
         fn run(&self, r: TestThreeChildrenResult) {
-            self.root.update(&self.world.default_scene);
+            self.world.display_object().update(&self.world.default_scene);
             r.root_position.for_each(|t| assert_eq!(self.root.position().xy().as_slice(), t));
             r.node1_position.for_each(|t| assert_eq!(self.node1.position().xy().as_slice(), t));
             r.node2_position.for_each(|t| assert_eq!(self.node2.position().xy().as_slice(), t));
@@ -3148,6 +3167,24 @@ mod layout_tests {
 
 
     // === Tests ===
+
+    #[test]
+    fn test1() {
+        let world = World::new();
+        let root = Instance::new();
+        let node1 = Instance::new();
+        let node2 = Instance::new();
+        world.add_child(&root);
+        root.add_child(&node1);
+        node1.add_child(&node2);
+
+        root.set_layout_horizontal();
+        root.set_size(Vector2::new(300.0, 100.0));
+        node2.set_size(Vector2(30.0, 300.0));
+
+        world.display_object().update(&world.default_scene);
+        assert_eq!(node2.size().as_slice(), [300.0, 100.0]);
+    }
 
     /// Input:
     ///
@@ -3204,23 +3241,16 @@ mod layout_tests {
         r.add_child(&r2);
 
         root.set_layout_horizontal().alignment_center();
-        root.set_resizing_fixed(100.0, 100.0);
+        root.set_size_xy(100.0, 100.0);
 
         l.set_layout_horizontal();
-        l.set_resizing_fill_hug();
-        l1.set_resizing_fill_fixed(50.0);
+        l.set_size_fill_hug();
+        l1.set_size_fill_fixed(50.0);
 
         r.set_layout_vertical();
-        r.set_resizing_hug_fill();
-        r1.set_resizing_fixed_fill(20.0);
-        r2.set_resizing_fixed_fill(30.0);
-
-        // r.set_layout_vertical();
-        // r.set_resizing_hug_fill();
-        // r1.set_resizing_fixed_hug(20.0);
-        // r1.set_resizing_fixed_hug(30.0);
-
-
+        r.set_size_hug_fill();
+        r1.set_size_fixed_fill(20.0);
+        r2.set_size_fixed_fill(30.0);
 
         root.update(&world.default_scene);
 

@@ -315,7 +315,10 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                     if event.shift_key() {
                         area.set_property_default(formatting::Size(16.0));
                     } else {
-                        area.mod_property(buffer::RangeLike::Selections, formatting::SizeDiff(2.0));
+                        area.mod_property(
+                            buffer::RangeLike::Selections,
+                            formatting::FontSizeDiff(2.0),
+                        );
                     }
                 } else if key == "Minus" {
                     if event.shift_key() {
@@ -323,7 +326,7 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                     } else {
                         area.mod_property(
                             buffer::RangeLike::Selections,
-                            formatting::SizeDiff(-2.0),
+                            formatting::FontSizeDiff(-2.0),
                         );
                     }
                 } else if key == "ArrowUp" {

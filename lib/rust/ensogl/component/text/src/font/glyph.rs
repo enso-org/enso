@@ -408,12 +408,12 @@ impl Glyph {
     }
 
     /// Size getter.
-    pub fn size(&self) -> Size {
+    pub fn font_size(&self) -> Size {
         Size(self.view.font_size.get())
     }
 
     /// Size setter.
-    pub fn set_size(&self, size: Size) {
+    pub fn set_font_size(&self, size: Size) {
         let size = size.value;
         self.view.font_size.set(size);
         let opt_glyph_info = self.view.data.borrow().font.glyph_info(
@@ -442,7 +442,7 @@ impl Glyph {
         if let Some(glyph_info) = opt_glyph_info {
             self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
-            self.view.size.set(glyph_info.scale.scale(self.size().value));
+            self.view.size.set(glyph_info.scale.scale(self.font_size().value));
         } else {
             // This should not happen. Fonts contain special glyph for missing characters.
             warn!("Cannot find glyph render info for glyph id: {:?}.", glyph_id);

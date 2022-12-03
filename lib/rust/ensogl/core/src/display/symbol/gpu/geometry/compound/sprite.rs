@@ -128,9 +128,10 @@ impl SizedObject {
         let weak_display_object = display_object.downgrade();
         let network = &display_object.network;
         frp::extend! { network
-            eval_ display_object.on_updated ([transform] {
+            eval_ display_object.on_updated ([transform, size] {
                 if let Some(display_object) = weak_display_object.upgrade() {
-                    transform.set(display_object.transformation_matrix())
+                    transform.set(display_object.transformation_matrix());
+                    size.set(display_object.size());
                 }
             });
         }
