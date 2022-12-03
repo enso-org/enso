@@ -60,12 +60,10 @@ pub fn main() {
     let network = &scene.frp.network;
 
     let rect1 = rectangle::View::new();
-    rect1.size.set(Vector2::new(100.0, 100.0));
     rect1.set_size(Vector2::new(100.0, 100.0));
     rect1.color.set(color::Rgba::new(0.5, 0.0, 0.0, 0.3).into());
 
     let rect2 = rectangle::View::new();
-    rect2.size.set(Vector2::new(100.0, 100.0));
     rect2.set_size(Vector2::new(100.0, 100.0));
     rect2.color.set(color::Rgba::new(0.5, 0.0, 0.0, 0.3).into());
 
@@ -80,11 +78,16 @@ pub fn main() {
     warn!("rect1: {:?}", rect1.display_object());
 
     let r = rect1.clone_ref();
+    let mut i = 0;
     world
         .on
         .before_frame
         .add(move |_| {
-            // warn!("rect1: {:?}", rect1.display_object());
+            if i == 10 {
+                warn!("rect1: {:?}", r.display_object());
+                warn!("rect1 sprite: {:?}", r.sprite.borrow().display_object());
+            }
+            i += 1;
         })
         .forget();
 

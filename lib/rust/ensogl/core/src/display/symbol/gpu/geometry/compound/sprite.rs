@@ -124,7 +124,9 @@ pub struct SizedObject {
 impl SizedObject {
     fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
         let size = Size::new(attr);
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Sprite");
+        // FIXME: should not be set like that
+        display_object.set_size_fill();
         let weak_display_object = display_object.downgrade();
         let network = &display_object.network;
         frp::extend! { network

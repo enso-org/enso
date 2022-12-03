@@ -160,6 +160,8 @@ pub struct Model {
     /// learn more.
     pub network: frp::Network,
 
+    pub name: &'static str,
+
     #[deref]
     hierarchy: HierarchyModel,
     event:     EventModel,
@@ -174,12 +176,22 @@ impl Instance {
     pub fn new() -> Self {
         default()
     }
+
+    /// Constructor.
+    pub fn new_named(name: &'static str) -> Self {
+        Self { def: InstanceDef::new_named(name) }
+    }
 }
 
 impl InstanceDef {
     /// Constructor.
     pub fn new() -> Self {
         Self { rc: Rc::new(Model::new()) }.init_events_handling()
+    }
+
+    /// Constructor.
+    pub fn new_named(name: &'static str) -> Self {
+        Self { rc: Rc::new(Model::new_named(name)) }.init_events_handling()
     }
 
     /// ID getter of this display object.
@@ -195,7 +207,17 @@ impl Model {
         let hierarchy = HierarchyModel::new(&network);
         let event = EventModel::new(&network);
         let layout = LayoutModel::new();
-        Self { network, hierarchy, event, layout }
+        let name = "display_object";
+        Self { network, hierarchy, event, layout, name }
+    }
+
+    /// Constructor.
+    pub fn new_named(name: &'static str) -> Self {
+        let network = frp::Network::new("display_object");
+        let hierarchy = HierarchyModel::new(&network);
+        let event = EventModel::new(&network);
+        let layout = LayoutModel::new();
+        Self { network, hierarchy, event, layout, name }
     }
 }
 
@@ -300,6 +322,11 @@ impl Root {
     /// Constructor.
     pub fn new() -> Self {
         let def = default();
+        Self { def }.init()
+    }
+
+    pub fn new_named(name: &'static str) -> Self {
+        let def = Instance::new_named(name);
         Self { def }.init()
     }
 
@@ -467,6 +494,14 @@ pub mod dirty {
             let new_layer = SceneLayer::new(on_dirty_callback(parent_bind));
             Self { new_parent, modified_children, removed_children, transformation, new_layer }
         }
+
+        pub fn check_all(&self) -> bool {
+            self.new_parent.check()
+                || self.modified_children.check_all()
+                || self.removed_children.check_all()
+                || self.transformation.check()
+                || self.new_layer.check()
+        }
     }
 
     type OnDirtyCallback = impl Fn();
@@ -486,7 +521,15 @@ pub mod dirty {
 // === Hierarchy FRP ===
 // =====================
 
+
+// FIXME: maybe we should hide these things somehow, they are too easy accessible.
+
 /// FRP endpoints relate to display object hierarchy modification.
+///
+/// # WARNING!
+/// Do not change the hierarchy of display objects in response to these FRP signals. They are
+/// emitted during display object hierarchy update and changing the hierarchy during this update may
+/// lead to undefined behavior.
 #[derive(Debug)]
 pub struct HierarchyFrp {
     /// Fires when the display object is shown. It will fire during the first scene refresh if this
@@ -718,7 +761,10 @@ impl Model {
     /// Recompute the transformation matrix of the display object tree starting with this object and
     /// traversing all of its dirty children.
     pub fn update(&self, scene: &Scene) {
-        // warn!("Update!");
+        if self.dirty.check_all() {
+            warn!("Update {}", self.name);
+            warn!("Is scene still dirty? {:?}", scene.display_object().dirty.check_all());
+        }
         self.refresh_layout();
         let origin0 = Matrix4::identity();
         self.update_with_origin(scene, origin0, false, false, None)
@@ -726,6 +772,15 @@ impl Model {
 
     /// Update the display object tree transformations based on the parent object origin. See docs
     /// of [`update`] to learn more.
+    ///
+    /// # Update Order
+    /// Please note that scene layers assignment update is performed before the origin and
+    /// visibility one. This is because there are rare cases where it is desirable to modify the
+    /// display object hierarchy in the `on_layer_change` callback (when the display object was
+    /// moved to another layer). For example, this mechanism is used in the shape system to replace
+    /// the sprite instance to a new one on layer change. Please note that updating the display
+    /// object hierarchy during its refresh is a very complex operation and an extra care should be
+    /// taken when modifying this logic.
     fn update_with_origin(
         &self,
         scene: &Scene,
@@ -734,7 +789,13 @@ impl Model {
         parent_layers_changed: bool,
         parent_layer: Option<&WeakLayer>,
     ) {
+        if self.dirty.check_all() {
+            warn!("Update with origin {}", self.name);
+            warn!("Is scene still dirty? {:?}", scene.display_object().dirty.check_all());
+        }
+
         // === Scene Layers Update ===
+
         let has_new_parent = self.dirty.new_parent.check();
         let assigned_layer_ref = self.assigned_layer.borrow();
         let assigned_layer = assigned_layer_ref.as_ref();
@@ -786,6 +847,7 @@ impl Model {
             let origin_changed = self.transformation.borrow_mut().update(new_parent_origin);
             let new_origin = self.transformation.borrow().matrix;
             if origin_changed || layer_changed {
+                self.dirty.modified_children.unset_all();
                 if origin_changed {
                     trace!("Self origin changed.");
                 } else {
@@ -830,7 +892,6 @@ impl Model {
                     })
                 }
             }
-            self.dirty.modified_children.unset_all();
         });
         self.dirty.transformation.unset();
         self.dirty.new_parent.unset();
@@ -901,6 +962,15 @@ impl InstanceDef {
         trace!("Adding a new child at index {child_index}.");
         let parent_bind = ParentBind { parent: self.downgrade(), child_index };
         child.set_parent_bind(parent_bind);
+    }
+
+    fn add_children<T: Object>(&self, children: impl IntoIterator<Item = T>) {
+        children.into_iter().for_each(|child| self.add_child(child.display_object()));
+    }
+
+    fn replace_children<T: Object>(&self, children: impl IntoIterator<Item = T>) {
+        self.remove_all_children();
+        self.add_children(children);
     }
 
     fn register_child(&self, child: &InstanceDef) -> ChildIndex {
@@ -1198,8 +1268,12 @@ impl InstanceDef {
 impl Debug for InstanceDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DisplayObject")
+            .field("name", &self.name)
+            .field("is_dirty", &self.dirty.check_all())
+            .field("dirty", &self.dirty)
             .field("position", &self.position().as_slice())
             .field("size", &self.layout.size.get().as_slice())
+            .field("layout", &self.layout)
             .finish()
     }
 }
@@ -1763,11 +1837,11 @@ impl Model {
     }
 
     fn refresh_layout_internal(&self, first_pass: bool) {
-        // warn!("refresh_layout_internal: {}", self.dirty.modified_children.check_all());
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
             // warn!("not dirty!");
             return;
         }
+        warn!("refresh_layout_internal of {}. Child count: {:?}", self.name, self.children().len());
         if first_pass {
             let resizing = self.layout.resizing.get();
             match resizing.x {
@@ -1907,7 +1981,11 @@ impl Model {
         Vector3<f32>: DimSetter<Dim1>,
         Vector3<f32>: DimSetter<Dim2>,
     {
+        warn!("refresh_linear_layout");
         let children = if opts.reversed { self.children().reversed() } else { self.children() };
+        if children.is_empty() {
+            return;
+        }
         let resizing = self.layout.resizing.get_dim(x);
         if update_x {
             // === Recomputing X-axis elements size of the X-axis horizontal layout ===
@@ -2258,6 +2336,14 @@ pub trait ObjectOps: Object {
         self.display_object().def.add_child(child.display_object());
     }
 
+    fn add_children<T: Object>(&self, children: impl IntoIterator<Item = T>) {
+        self.display_object().def.add_children(children);
+    }
+
+    fn replace_children<T: Object>(&self, children: impl IntoIterator<Item = T>) {
+        self.display_object().def.replace_children(children);
+    }
+
     /// Remove the display object from the children list of this display object. Does nothing if
     /// the child was not registered.
     fn remove_child<T: Object>(&self, child: &T) {
@@ -2420,6 +2506,11 @@ pub trait ObjectOps: Object {
     /// Set the current resizing mode.
     fn set_size_hug(&self) {
         self.display_object().def.set_size_hug()
+    }
+
+    // FIXME: move to interal api trait
+    fn refresh_layout(&self) {
+        self.display_object().def.refresh_layout()
     }
 }
 
@@ -3173,17 +3264,25 @@ mod layout_tests {
         let world = World::new();
         let root = Instance::new();
         let node1 = Instance::new();
-        let node2 = Instance::new();
         world.add_child(&root);
         root.add_child(&node1);
+
+        let nodex = Instance::new();
+        nodex.set_size_fill();
+        node1.add_child(&nodex);
+
+        node1.set_layout_horizontal();
+        node1.set_size(Vector2(30.0, 300.0));
+        world.display_object().update(&world.default_scene);
+
+        mem::drop(nodex);
+        let node2 = Instance::new();
+        node2.set_size_fill();
         node1.add_child(&node2);
 
-        root.set_layout_horizontal();
-        root.set_size(Vector2::new(300.0, 100.0));
-        node2.set_size(Vector2(30.0, 300.0));
-
         world.display_object().update(&world.default_scene);
-        assert_eq!(node2.size().as_slice(), [300.0, 100.0]);
+
+        assert_eq!(node2.size().as_slice(), [30.0, 300.0]);
     }
 
     /// Input:
