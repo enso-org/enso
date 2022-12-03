@@ -57,9 +57,7 @@ package-lock.json
 ## Tooling Specific ##
 ######################
 
-!.idea
-.idea/*
-!.idea/runConfigurations/
+.idea
 .vscode/
 .metals/
 *.swp
