@@ -85,7 +85,7 @@ pub fn main() {
         .add(move |_| {
             if i == 10 {
                 warn!("rect1: {:?}", r.display_object());
-                warn!("rect1 sprite: {:?}", r.sprite.borrow().display_object());
+                // warn!("rect1 sprite: {:?}", r.sprite.borrow().display_object());
             }
             i += 1;
         })

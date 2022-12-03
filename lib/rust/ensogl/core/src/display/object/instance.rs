@@ -1740,21 +1740,24 @@ with_display_object_alignment_dim2_named_matrix!(gen_layout_object_builder_align
 // === LayoutModel ===
 // ===================
 
-/// The layout description of a display object. See the docs of [`Instance`] to learn how layouts
-/// work.
-#[derive(Debug)]
+/// The layout description of a display object.
+///
+/// The [`size`] field describes the bounding box dimension, while the [`bbox_origin`], its left
+/// bottom corner. When auto-layout is used, the origin is placed in (0, 0). In case of manual
+/// layout, the origin is the left bottom corner of the bounding box of all children.
+///
+/// See the docs of [`Instance`] to learn more about the layout system.
+#[derive(Debug, Default)]
 pub struct LayoutModel {
-    auto:     Cell<Option<AutoLayout>>,
-    size:     Cell<Vector2<f32>>,
-    resizing: Cell<Vector2<Resizing>>,
+    auto:        Cell<Option<AutoLayout>>,
+    size:        Cell<Vector2<f32>>,
+    bbox_origin: Cell<Vector2<f32>>,
+    resizing:    Cell<Vector2<Resizing>>,
 }
 
 impl LayoutModel {
     fn new() -> Self {
-        let auto = default();
-        let size = default();
-        let resizing = default();
-        Self { auto, size, resizing }
+        default()
     }
 }
 
@@ -1838,7 +1841,6 @@ impl Model {
 
     fn refresh_layout_internal(&self, first_pass: bool) {
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
-            // warn!("not dirty!");
             return;
         }
         warn!("refresh_layout_internal of {}. Child count: {:?}", self.name, self.children().len());
@@ -2036,6 +2038,7 @@ impl Model {
                     pos_x += alignment.normalized() * space_left;
                     for child in &children {
                         let size = child.size();
+                        let bbox_origin = child.bbox_origin();
                         child.set_position_dim(x, pos_x);
                         pos_x += size.get_dim(x) + opts.spacing;
                     }
@@ -2456,6 +2459,10 @@ pub trait ObjectOps: Object {
     /// The current size of the display object. It will be updated after the object is refreshed.
     fn size(&self) -> Vector2<f32> {
         self.display_object().def.size()
+    }
+
+    fn bbox_origin(&self) -> Vector2<f32> {
+        self.display_object().def.bbox_origin()
     }
 
     /// Set the current resizing mode.

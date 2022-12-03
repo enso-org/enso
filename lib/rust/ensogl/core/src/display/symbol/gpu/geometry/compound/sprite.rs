@@ -66,6 +66,7 @@ pub struct Size {
     attr:   Attribute<Vector2<f32>>,
 }
 
+
 // === Setters ===
 
 impl HasItem for Size {
@@ -125,8 +126,6 @@ impl SizedObject {
     fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
         let size = Size::new(attr);
         let display_object = display::object::Instance::new_named("Sprite");
-        // FIXME: should not be set like that
-        display_object.set_size_fill();
         let weak_display_object = display_object.downgrade();
         let network = &display_object.network;
         frp::extend! { network
@@ -140,7 +139,7 @@ impl SizedObject {
         Self { size, display_object }.init()
     }
 
-    /// Init display object bindings. In particular defines the behavior of the show and hide
+    /// Init display object bindings. In particular define the behavior of the show and hide
     /// callbacks.
     fn init(self) -> Self {
         let size = &self.size;

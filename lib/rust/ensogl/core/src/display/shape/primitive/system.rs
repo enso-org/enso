@@ -110,7 +110,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
         sprite: &Sprite,
         gpu_params: &Self::GpuParams,
         id: InstanceIndex,
-    ) -> ShapeWithSize<Self>;
+    ) -> Self;
     fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
 }
@@ -173,45 +173,15 @@ impl<T> ShapeSystemFlavorProvider for T {
 
 
 // =====================
-// === ShapeWithSize ===
-// =====================
-
-/// A shape with its size parameter.
-#[allow(missing_docs)]
-#[derive(Debug, Deref)]
-pub struct ShapeWithSize<S> {
-    #[deref]
-    shape: S,
-    // pub size: ProxyParam<sprite::Size>,
-}
-
-impl<S> ShapeWithSize<S> {
-    /// Constructor.
-    pub fn new(shape: S) -> Self {
-        Self { shape }
-    }
-}
-
-impl<S: Shape> ShapeWithSize<S> {
-    /// Swap in-place the shape definition with another one.
-    pub(crate) fn swap(&self, other: &ShapeWithSize<S>) {
-        self.shape.as_ref().swap(other.shape.as_ref());
-    }
-}
-
-
-
-// =====================
 // === ShapeInstance ===
 // =====================
 
 /// A visible shape instance, bound to a particular [`ShapeSystem`].
-#[allow(missing_docs)]
 #[derive(Deref, Debug)]
 pub struct ShapeInstance<S> {
     #[deref]
-    pub shape:      ShapeWithSize<S>,
-    pub sprite:     RefCell<Sprite>,
+    shape:          S,
+    sprite:         RefCell<Sprite>,
     display_object: display::object::Instance,
 }
 
@@ -225,16 +195,16 @@ impl<S> ShapeInstance<S> {
 impl<S: Shape> ShapeInstance<S> {
     /// Swap in-place the shape definition with another one.
     pub(crate) fn swap(&self, other: &Self) {
-        self.shape.swap(&other.shape);
+        self.shape.as_ref().swap(other.shape.as_ref());
         self.sprite.swap(&other.sprite);
         self.display_object.replace_children(other.display_object.remove_all_children());
         // This function is called during display object hierarchy update, before updating children
         // of this display object, but after updating its layout. Thus, we need to update the layout
-        // of the new sprite. Please note, that updating layout in the middle of a structure could
-        // lead to wrong results if the new child layout is different than the old one (for example,
-        // if the parent display object resizing mode wa set to "hug" and the new child has bigger
-        // size, the parent would also need to be updated). However, we control the layout of the
-        // sprite, so we know it did not change.
+        // of the new sprite. Please note, that changing layout in the middle of the display object
+        // refresh could lead to wrong results if the new child layout is different than the
+        // old one (for example, if the parent display object resizing mode wa set to "hug"
+        // and the new child has bigger size, the parent would also need to be updated).
+        // However, we control the layout of the sprite, so we know it did not change.
         self.display_object.refresh_layout();
         warn!("is scene dirty? {:#?}", crate::display::world::scene().display_object());
     }
@@ -313,6 +283,7 @@ impl<S: Shape> ShapeSystem<S> {
     #[profile(Debug)]
     pub fn new_instance(&self) -> ShapeInstance<S> {
         let sprite = self.model.sprite_system.new_instance();
+        sprite.set_size_fill();
         let id = sprite.instance_id;
         let shape = S::new_instance_params(&sprite, &self.gpu_params, id);
         let display_object = display::object::Instance::new_named("ShapeSystem");
@@ -326,6 +297,7 @@ impl<S: Shape> ShapeSystem<S> {
     #[profile(Debug)]
     pub(crate) fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
         let sprite = self.model.sprite_system.new_instance();
+        sprite.set_size_fill();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
         let shape = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
@@ -610,7 +582,6 @@ macro_rules! _shape {
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
             use $crate::system::gpu::data::InstanceIndex;
-            use $crate::display::shape::ShapeWithSize;
             use $crate::display::shape::system::*;
 
 
@@ -654,11 +625,10 @@ macro_rules! _shape {
                     sprite: &Sprite,
                     gpu_params:&Self::GpuParams,
                     id: InstanceIndex
-                ) -> ShapeWithSize<Shape> {
+                ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     let params = Self::InstanceParams { $($gpu_param),* };
-                    let shape = Shape { params };
-                    ShapeWithSize::new(shape)
+                    Shape { params }
                 }
 
                 fn new_gpu_params(
