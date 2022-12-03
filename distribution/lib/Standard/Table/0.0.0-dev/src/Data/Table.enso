@@ -1091,7 +1091,7 @@ type Table
             same_backend = case right of
                 _ : Table -> True
                 _ -> False
-            if same_backend . not then Error.throw (Illegal_Argument_Error_Data "Currently cross-backend joins are not supported. Materialize the table using `.read` before joining it with an in-memory Table.") else
+            if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. Materialize the table using `.read` before joining it with an in-memory Table.") else
                 # [left_unmatched, matched, right_unmatched]
                 rows_to_keep = case join_kind of
                     Join_Kind.Inner           -> [False, True, False]

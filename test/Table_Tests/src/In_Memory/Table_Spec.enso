@@ -1089,7 +1089,7 @@ spec =
             db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
 
             r = t.join db_table
-            r.should_fail_with Illegal_Argument_Error_Data
+            r.should_fail_with Illegal_Argument.Error
             r.catch.message . contains "cross-backend" . should_be_true
 
 run_common_spec spec =
