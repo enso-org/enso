@@ -29,6 +29,10 @@ public abstract class Struct implements TruffleObject {
     return constructor;
   }
 
+  public final Object[] getFields() {
+    return StructsLibrary.getUncached().getFields(this);
+  }
+
 //
 //  /**
 //   * Gets the fields from the Atom.

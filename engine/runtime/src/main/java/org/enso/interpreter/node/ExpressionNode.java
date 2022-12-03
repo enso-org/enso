@@ -131,18 +131,6 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   }
 
   /**
-   * Executes the current node, returning the result as an {@link Struct}.
-   *
-   * @param frame the stack frame for execution
-   * @return the Atom obtained by executing the node
-   * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
-   */
-  public Struct executeAtom(VirtualFrame frame) throws UnexpectedResultException {
-    return TypesGen.expectAtom(executeGeneric(frame));
-  }
-
-  /**
    * Executes the current node, returning the result as a {@link Function}.
    *
    * @param frame the stack frame for execution

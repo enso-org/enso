@@ -108,7 +108,7 @@ public final class AtomConstructor implements TruffleObject {
     this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
     generateQualifiedAccessor();
     if (args.length == 0) {
-      cachedInstance = new Struct(this);
+      cachedInstance = new BoxingStruct(this);
     } else {
       cachedInstance = null;
     }
@@ -198,7 +198,7 @@ public final class AtomConstructor implements TruffleObject {
   // TODO [AA] Check where this can be called from user code.
   public Struct newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
-    return new Struct(this, arguments);
+    return new BoxingStruct(this, arguments);
   }
 
   /**

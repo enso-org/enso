@@ -14,6 +14,9 @@ import org.enso.interpreter.runtime.data.struct.StructsLibrary;
         description = "Gets the fields of an unresolved atom.",
         autoRegister = false)
 public abstract class GetAtomFieldsNode extends Node {
+    static GetAtomFieldsNode build() {
+        return GetAtomFieldsNodeGen.create();
+    }
     abstract Array execute(Struct struct);
 
     @Specialization
