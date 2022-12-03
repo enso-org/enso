@@ -13,80 +13,78 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
 public abstract class AnyToTextNode extends Node {
-  private static final int DISPATCH_CACHE = 3;
-  private @Child InteropLibrary displays =
-      InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
-  private @Child InteropLibrary strings =
-      InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
+    private static final int DISPATCH_CACHE = 3;
+    private @Child InteropLibrary displays =
+            InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
+    private @Child InteropLibrary strings =
+            InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
 
-  public static AnyToTextNode build() {
-    return AnyToTextNodeGen.create();
-  }
-
-  public abstract Text execute(Object self);
-
-  @Specialization
-  Text doAtom(Struct at) {
-    return Text.create("haha");
-//    if (at.getFields().length == 0) {
-//      return consName(at.getConstructor());
-//    } else {
-//      return doComplexAtom(at);
-//    }
-  }
-
-  @Fallback
-  Text doOther(Object object) {
-    try {
-      return Text.create(showObject(object));
-    } catch (UnsupportedMessageException e) {
-      CompilerDirectives.transferToInterpreter();
-      return Text.create(object.toString());
+    public static AnyToTextNode build() {
+        return AnyToTextNodeGen.create();
     }
-  }
 
-  @CompilerDirectives.TruffleBoundary
-  private Text consName(AtomConstructor constructor) {
-    if (constructor.getName().equals("Value")) {
-      return Text.create(constructor.getType().getName() + "." + constructor.getName());
-    } else {
-      return Text.create(constructor.getName());
+    public abstract Text execute(Object self);
+
+    @Specialization
+    Text doAtom(Struct at) {
+        if (at.getFields().length == 0) {
+            return consName(at.getConstructor());
+        } else {
+            return doComplexAtom(at);
+        }
     }
-  }
 
-  @CompilerDirectives.TruffleBoundary
-  private Text doComplexAtom(Struct struct) {
-    return Text.create("haha");
-//    Text res = Text.create("(", consName(struct.getConstructor()));
-//    res = Text.create(res, " ");
-//    try {
-//      res = Text.create(res, showObject(struct.getFields()[0]));
-//    } catch (UnsupportedMessageException e) {
-//      res = Text.create(res, struct.getFields()[0].toString());
-//    }
-//    for (int i = 1; i < struct.getFields().length; i++) {
-//      res = Text.create(res, " ");
-//      try {
-//        res = Text.create(res, strings.asString(displays.toDisplayString(struct.getFields()[i])));
-//      } catch (UnsupportedMessageException e) {
-//        res = Text.create(res, struct.getFields()[i].toString());
-//      }
-//    }
-//    res = Text.create(res, ")");
-//    return res;
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private String showObject(Object child) throws UnsupportedMessageException {
-    if (child == null) {
-      // TODO [RW] This is a temporary workaround to make it possible to display errors related to
-      // https://www.pivotaltracker.com/story/show/181652974
-      // Most likely it should be removed once that is implemented.
-      return "null";
-    } else if (child instanceof Boolean) {
-      return (boolean) child ? "True" : "False";
-    } else {
-      return strings.asString(displays.toDisplayString(child));
+    @Fallback
+    Text doOther(Object object) {
+        try {
+            return Text.create(showObject(object));
+        } catch (UnsupportedMessageException e) {
+            CompilerDirectives.transferToInterpreter();
+            return Text.create(object.toString());
+        }
     }
-  }
+
+    @CompilerDirectives.TruffleBoundary
+    private Text consName(AtomConstructor constructor) {
+        if (constructor.getName().equals("Value")) {
+            return Text.create(constructor.getType().getName() + "." + constructor.getName());
+        } else {
+            return Text.create(constructor.getName());
+        }
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private Text doComplexAtom(Struct struct) {
+        Text res = Text.create("(", consName(struct.getConstructor()));
+        res = Text.create(res, " ");
+        try {
+            res = Text.create(res, showObject(struct.getFields()[0]));
+        } catch (UnsupportedMessageException e) {
+            res = Text.create(res, struct.getFields()[0].toString());
+        }
+        for (int i = 1; i < struct.getFields().length; i++) {
+            res = Text.create(res, " ");
+            try {
+                res = Text.create(res, strings.asString(displays.toDisplayString(struct.getFields()[i])));
+            } catch (UnsupportedMessageException e) {
+                res = Text.create(res, struct.getFields()[i].toString());
+            }
+        }
+        res = Text.create(res, ")");
+        return res;
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private String showObject(Object child) throws UnsupportedMessageException {
+        if (child == null) {
+            // TODO [RW] This is a temporary workaround to make it possible to display errors related to
+            // https://www.pivotaltracker.com/story/show/181652974
+            // Most likely it should be removed once that is implemented.
+            return "null";
+        } else if (child instanceof Boolean) {
+            return (boolean) child ? "True" : "False";
+        } else {
+            return strings.asString(displays.toDisplayString(child));
+        }
+    }
 }
