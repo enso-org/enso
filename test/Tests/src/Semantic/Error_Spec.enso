@@ -47,25 +47,6 @@ spec =
             (recover_illegal_argument (Error.throw (Illegal_Argument.Error "foo"))) . should_equal "recovered error: foo"
             (recover_illegal_argument (Error.throw (Illegal_State.Error "bar"))) . should_fail_with Illegal_State.Error
 
-        Test.specify "should be able to be shown in the default visualization" <|
-            json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
-            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "Value"]]).to_text
-
-        Test.specify "should be able to be shown in the default vector visualization" <|
-            vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
-            visualization_text = vec.to_default_visualization_data
-            expected_json = Json.parse '''
-                [
-                  { "foo":"bar",
-                    "type":"Value"
-                  },
-                  { "content":{ "foo":42, "type":"Value" },
-                    "message":"My_Type.Value",
-                    "type":"Error"
-                  }
-                ]
-            visualization_text.should_equal expected_json.to_text
-
         Test.specify "should implement to_display_text" <|
             Error.throw Nothing . to_display_text . should_equal "Error: Nothing"
 

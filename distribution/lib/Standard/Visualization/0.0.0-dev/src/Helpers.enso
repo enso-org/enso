@@ -124,6 +124,14 @@ recover_errors ~body =
         Json.from_pairs [["error", err.to_display_text]] . to_text
 
 ## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this table.
+Vector.default_visualization : Id
+Vector.default_visualization self = Id.table
+
+## UNSTABLE
 
    Transform the vector into text for displaying as part of its default
    visualization.
@@ -131,6 +139,14 @@ Vector.to_default_visualization_data : Text
 Vector.to_default_visualization_data self =
     json = self.take 100 . to_json
     json.to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this table.
+Array.default_visualization : Id
+Array.default_visualization self = Id.table
 
 ## UNSTABLE
    ADVANCED
@@ -174,14 +190,6 @@ Table.lookup_ignore_case : Text -> Column ! Nothing
 Table.lookup_ignore_case self name =
     self.all_columns.find <| col->
         col.name.equals_ignore_case name
-
-## UNSTABLE
-   ADVANCED
-
-   Guides the visualization system to display the most suitable graphical
-   representation for this table.
-Vector.default_visualization : Id
-Vector.default_visualization self = Id.table
 
 ## UNSTABLE
    ADVANCED

@@ -568,13 +568,6 @@ spec = Test.group "Vectors" <|
         fun a = if a == 3 then Error.throw (My_Error.Value a) else a
         [1, 2, 3, 4].map fun . catch My_Error.Value . should_equal (My_Error.Value 3)
 
-    Test.specify "should be able to be efficiently converted to a visualisation" <|
-        vec = Vector.fill 1000 0
-        text = vec.to_default_visualization_data
-        json = Json.parse text
-        as_vec = json.into (Vector.fill 1 Number)
-        as_vec.should_equal <| Vector.fill 100 0
-
     Test.specify "should pad elements" <|
         [].pad 3 0 . should_equal [0, 0, 0]
         [1, 2, 3].pad 0 0 . should_equal [1, 2, 3]

@@ -3,8 +3,6 @@ from Standard.Base import all
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.util.LinkedHashSet
-
 Array.method self = 0
 
 ## Returns an array with the same contents as the given vector, surely backed by
@@ -13,14 +11,6 @@ make_enso_array vector =
     enso_array = Array.new vector.length
     Array.copy vector.to_array 0 enso_array 0 vector.length
     enso_array
-
-## Returns an array with the same contents as the given vector, surely backed by
-   a Java array.
-make_java_array vector =
-    builder = LinkedHashSet.new
-    vector.each x->
-        builder.add x
-    builder.toArray
 
 test_arrays array_from_vector =
     Test.specify "should allow accessing elements" <|
@@ -46,22 +36,5 @@ spec =
             err = Error.throw (Illegal_State.Error "Foo")
             res = Array.new err
             res . should_fail_with Illegal_State.Error
-
-        Test.specify "should be able to be converted to a visualization rep" <|
-            arr = make_enso_array (Vector.fill 1000 0)
-            text = arr.to_default_visualization_data
-            json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
-
-    Test.group "Polyglot Arrays" <|
-        test_arrays make_java_array
-
-        Test.specify "should be able to be converted to a visualization rep" pending="`to_default_visualization_data` does not work for polyglot arrays" <|
-            arr = make_java_array (Vector.fill 1000 0)
-            text = arr.to_default_visualization_data
-            json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
 
 main = Test_Suite.run_main spec
