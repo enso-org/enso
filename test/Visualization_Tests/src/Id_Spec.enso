@@ -33,5 +33,7 @@ spec = Test.group "Serializable Visualization Identifiers" <|
 
     Test.specify "specifies default JSON visualization for any type" <|
         My_Type.Value 30 . default_visualization . should_equal Visualization.Id.json
-        [1,2,3].default_visualization.should_equal Visualization.Id.json
+        [1,2,3].default_visualization.should_equal Visualization.Id.table
+        [1,2,3].to_array.default_visualization.should_equal Visualization.Id.table
         "foobar".default_visualization.should_equal Visualization.Id.json
+        True.default_visualization.should_equal Visualization.Id.json

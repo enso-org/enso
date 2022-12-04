@@ -9,7 +9,7 @@ import Standard.Database.Data.Table.Table as Database_Table
 import Standard.Visualization.Table.Visualization
 
 import Standard.Visualization.Helpers
-import Standard.Visualization.Id
+import Standard.Visualization.Id.Id
 
 from Standard.Test import Test
 import Standard.Test.Extensions
