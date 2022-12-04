@@ -100,6 +100,12 @@
 - [Added a new component: Slider][3852]. It allows adjusting a numeric value
   with the mouse. The precision of these adjustments can be increased or
   decreased.
+- [Added ProjectsGrid view for Cloud Dashboard][3857]. It provides the first
+  steps towards migrating the Cloud Dashboard from the existing React (web-only)
+  implementation towards a shared structure that can be used in both the Desktop
+  and Web versions of the IDE.
+
+[3857]: https://github.com/enso-org/enso/pull/3857
 
 #### Enso Standard Library
 

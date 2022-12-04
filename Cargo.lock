@@ -747,6 +747,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base-encode"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a17bd29f7c70f32e9387f4d4acfa5ea7b7749ef784fb78cf382df97069337b8c"
+
+[[package]]
 name = "base64"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1593,6 +1599,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaa37046cc0f6c3cc6090fbdbf73ef0b8ef4cfcc37f6befc0020f63e8cf121e1"
 
 [[package]]
+name = "debug-scene-cloud-dashboard"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-profiler",
+ "enso_cloud_http",
+ "enso_cloud_view",
+ "ensogl",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-selector",
+ "ensogl-text",
+ "ensogl-text-msdf",
+ "ide-view-component-list-panel",
+ "ide-view-graph-editor",
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "debug-scene-component-list-panel-view"
 version = "0.1.0"
 dependencies = [
@@ -2026,6 +2054,7 @@ dependencies = [
 name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
+ "debug-scene-cloud-dashboard",
  "debug-scene-component-list-panel-view",
  "debug-scene-icons",
  "debug-scene-interface",
@@ -2453,6 +2482,29 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
+]
+
+[[package]]
+name = "enso_cloud_http"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "enso_cloud_view",
+ "headers",
+ "http",
+ "reqwest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "enso_cloud_view"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "serde",
+ "serde_json",
+ "svix-ksuid",
 ]
 
 [[package]]
@@ -6529,6 +6581,17 @@ dependencies = [
  "quote",
  "rustversion",
  "syn",
+]
+
+[[package]]
+name = "svix-ksuid"
+version = "0.6.0"
+source = "git+https://github.com/svix/rust-ksuid#16468002c4da26932ca1004fcae190f543565b78"
+dependencies = [
+ "base-encode",
+ "byteorder",
+ "getrandom 0.2.8",
+ "time 0.3.17",
 ]
 
 [[package]]
