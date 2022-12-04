@@ -1,14 +1,15 @@
 import project.Data.Text.Text
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Encoding.Encoding_Error
 import project.Data.Text.Extensions
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 
-from project.Error.Common import Panic, Error, Illegal_Argument_Error, Illegal_Argument_Error_Data, File_Error, Unsupported_Argument_Types_Data
+from project.Error.Common import Illegal_Argument, File_Error, Unsupported_Argument_Types_Data, Encoding_Error
 
 polyglot java import org.enso.base.Array_Builder
 
@@ -31,7 +32,7 @@ polyglot java import org.enso.base.Array_Builder
    If another error occurs, such as access denied, an `File_Error.IO_Error` is
    raised.
    Otherwise, the file is created with the encoded text written to it.
-Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument_Error | File_Error
+Text.write : (File|Text) -> Encoding -> Existing_File_Behavior -> Problem_Behavior -> Nothing ! Encoding_Error | Illegal_Argument | File_Error
 Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Behavior.Backup on_problems=Problem_Behavior.Report_Warning =
     bytes = self.bytes encoding on_problems
     file = File.new path
@@ -46,7 +47,7 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
    - on_existing_file: Specifies how to proceed if the file already exists.
 
    If the Vector contains any item which is not a `Byte`, an
-   `Illegal_Argument_Error` will be raised. Enso follows the Java convention,
+   `Illegal_Argument` will be raised. Enso follows the Java convention,
    that a `Byte` is between -128 and 127.
    If the path to the parent location cannot be found or the filename is
    invalid, a `File_Not_Found` is raised.
@@ -66,9 +67,9 @@ Text.write self path encoding=Encoding.utf_8 on_existing_file=Existing_File_Beha
          import Standard.Examples
 
          [36, -62, -93, -62, -89, -30, -126, -84, -62, -94].write_bytes Examples.scratch_file.write_bytes Examples.scratch_file Existing_File_Behavior.Append
-Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument_Error | File_Error
+Vector.write_bytes : (File|Text) -> Existing_File_Behavior -> Nothing ! Illegal_Argument | File_Error
 Vector.write_bytes self path on_existing_file=Existing_File_Behavior.Backup =
-    Panic.catch Unsupported_Argument_Types_Data handler=(_ -> Error.throw (Illegal_Argument_Error_Data "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
+    Panic.catch Unsupported_Argument_Types_Data handler=(_ -> Error.throw (Illegal_Argument.Error "Only Vectors consisting of bytes (integers in the range from -128 to 127) are supported by the `write_bytes` method.")) <|
         ## Convert to a byte array before writing - and fail early if there is any problem.
         byte_array = Array_Builder.ensureByteArray self.to_array
 

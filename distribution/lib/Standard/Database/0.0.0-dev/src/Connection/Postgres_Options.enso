@@ -10,9 +10,6 @@ import project.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
 
-from project.Connection.Postgres_Options.Postgres_Options import Postgres
-from project.Connection.Postgres_Options.Postgres_Options export Postgres
-
 type Postgres_Options
     ## Connect to a PostgreSQL database.
 
@@ -58,7 +55,7 @@ type Postgres_Options
                     Pair.Value Nothing Nothing ->
                         Pgpass.read self.host self.port self.database
                     Pair.Value Nothing _ ->
-                        Error.throw (Illegal_State_Error_Data "PGPASSWORD is set, but PGUSER is not.")
+                        Error.throw (Illegal_State.Error "PGPASSWORD is set, but PGUSER is not.")
                     Pair.Value username Nothing ->
                         Pgpass.read self.host self.port self.database username
                     Pair.Value username password ->

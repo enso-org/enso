@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Error.Common as Errors
 
 from Standard.Table import Aggregate_Column
 
@@ -21,13 +20,13 @@ type Dialect
     ## PRIVATE
        Name of the dialect.
     name : Text
-    name self = Errors.unimplemented "This is an interface only."
+    name self = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        A function which generates SQL code from the internal representation
        according to the specific dialect.
     generate_sql : Query -> SQL_Statement
-    generate_sql self = Errors.unimplemented "This is an interface only."
+    generate_sql self = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Deduces the result type for an aggregation operation.
@@ -35,7 +34,7 @@ type Dialect
        The provided aggregate is assumed to contain only already resolved columns.
        You may need to transform it with `resolve_aggregate` first.
     resolve_target_sql_type : Aggregate_Column -> SQL_Type
-    resolve_target_sql_type self = Errors.unimplemented "This is an interface only."
+    resolve_target_sql_type self = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Prepares an ordering descriptor.
@@ -43,7 +42,7 @@ type Dialect
        One of the purposes of this method is to verify if the expected ordering
        settings are supported by the given database backend.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
-    prepare_order_descriptor self = Errors.unimplemented "This is an interface only."
+    prepare_order_descriptor self = Unimplemented.throw "This is an interface only."
 
 ## PRIVATE
 

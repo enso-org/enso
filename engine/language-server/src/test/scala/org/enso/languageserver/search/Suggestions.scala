@@ -101,7 +101,7 @@ object Suggestions {
 
   val methodOnAny: Suggestion.Method = Suggestion.Method(
     externalId = Some(UUID.fromString("6cfe1538-5df7-42e4-bf55-64f8ac2ededa")),
-    module     = "Standard.Base.Data.Any.Extensions",
+    module     = "Standard.Base.Any.Extensions",
     name       = "<<",
     arguments = Vector(
       Suggestion.Argument("this", "Any", false, false, None),

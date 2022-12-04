@@ -1,18 +1,19 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
-import project.Data.Text.Encoding.Encoding_Error
 import project.Data.Text.Extensions
 import project.Data.Text.Matching_Mode
 import project.Data.Text.Text
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.File_Access.File_Access
 import project.System.File_Format.Auto_Detect
@@ -20,15 +21,11 @@ import project.System.File_Format.File_Format
 import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Panic, Unsupported_File_Type, Illegal_Argument_Error_Data, File_Error
+from project.Error.Common import Unsupported_File_Type, Illegal_Argument, File_Error, Encoding_Error
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
-polyglot java import java.io.IOException
-polyglot java import java.nio.file.AccessDeniedException
-polyglot java import java.nio.file.NoSuchFileException
-polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.nio.file.FileSystems
 polyglot java import java.nio.file.Path
 polyglot java import java.nio.file.StandardCopyOption
@@ -47,7 +44,7 @@ type File
        > Example
          Create a new file pointing to the `data.csv` file in the project directory.
 
-             import Standard.Base.System.File
+             import Standard.Base.System.File.File
              import Standard.Examples
 
              example_new = File.new Examples.csv_path
@@ -56,7 +53,7 @@ type File
       case path of
         _ : Text -> get_file path
         _ : File -> path
-        _        -> Error.throw (Illegal_Argument_Error_Data "new file should be either a File or a Text")
+        _        -> Error.throw (Illegal_Argument.Error "new file should be either a File or a Text")
 
     ## ALIAS Current Directory
 
@@ -65,7 +62,7 @@ type File
        > Example
          Get the program's current working directory.
 
-             import Standard.Base.System.File
+             import Standard.Base.System.File.File
 
              example_cwd = File.current_directory
     current_directory : File
@@ -78,7 +75,7 @@ type File
        > Example
          Get the current user's home directory.
 
-             import Standard.Base.System.File
+             import Standard.Base.System.File.File
 
              example_home = File.home
     home : File
@@ -275,7 +272,7 @@ type File
              example_exists = Examples.csv.creation_time
     creation_time : Time_Of_Day ! File_Error
     creation_time self =
-        handle_java_exceptions self <| self.creation_time_builtin
+        File_Error.handle_java_exceptions self <| self.creation_time_builtin
 
     ## Gets the last modified time of a file.
 
@@ -287,7 +284,7 @@ type File
              example_exists = Examples.csv.last_modified_time
     last_modified_time : Time_Of_Day ! File_Error
     last_modified_time self =
-        handle_java_exceptions self <| self.last_modified_time_builtin
+        File_Error.handle_java_exceptions self <| self.last_modified_time_builtin
 
     ## Gets the POSIX permissions associated with the file.
 
@@ -452,7 +449,7 @@ type File
                  file.delete
     delete : Nothing ! File_Error
     delete self =
-        handle_java_exceptions self self.delete_builtin
+        File_Error.handle_java_exceptions self self.delete_builtin
 
     ## Moves the file to the specified destination.
 
@@ -462,7 +459,7 @@ type File
          destination file already exists. Defaults to `False`.
     copy_to : File -> Boolean -> Nothing ! File_Error
     copy_to self destination replace_existing=False =
-        handle_java_exceptions self <| case replace_existing of
+        File_Error.handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
               self.copy_builtin destination copy_options
@@ -476,7 +473,7 @@ type File
          destination file already exists. Defaults to `False`.
     move_to : File -> Boolean -> Nothing ! File_Error
     move_to self destination replace_existing=False =
-        handle_java_exceptions self <| case replace_existing of
+        File_Error.handle_java_exceptions self <| case replace_existing of
             True ->
               copy_options = [StandardCopyOption.REPLACE_EXISTING].to_array
               self.move_builtin destination copy_options
@@ -509,7 +506,7 @@ type File
     new_input_stream : Vector File_Access -> Input_Stream ! File_Error
     new_input_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = handle_java_exceptions self (self.input_stream opts)
+        stream = File_Error.handle_java_exceptions self (self.input_stream opts)
         resource = Managed_Resource.register stream close_stream
         Input_Stream.Value self resource
 
@@ -526,7 +523,7 @@ type File
     new_output_stream : Vector File_Access -> Output_Stream ! File_Error
     new_output_stream self open_options =
         opts = open_options . map (_.to_java) . to_array
-        stream = handle_java_exceptions self <|
+        stream = File_Error.handle_java_exceptions self <|
             self.output_stream opts
         resource = Managed_Resource.register stream close_stream
         Output_Stream.Value self resource
@@ -537,7 +534,7 @@ type File
        returns a vector of bytes.
     read_last_bytes : Integer -> Vector ! File_Error
     read_last_bytes self n =
-        handle_java_exceptions self <|
+        File_Error.handle_java_exceptions self <|
             Vector.from_polyglot_array (self.read_last_bytes_builtin n)
 
     ## Lists files contained in the directory denoted by this file.
@@ -666,7 +663,7 @@ type Output_Stream
                  out_stream.close
     write_bytes : Vector File_Access -> Nothing ! File_Error
     write_bytes self contents = self.stream_resource . with java_stream->
-        handle_java_exceptions self.file <|
+        File_Error.handle_java_exceptions self.file <|
             java_stream.write contents.to_array
             java_stream.flush
         Nothing
@@ -754,7 +751,7 @@ type Input_Stream
                  bytes
     read_all_bytes : Vector ! File_Error
     read_all_bytes self = self.stream_resource . with java_stream->
-        handle_java_exceptions self.file <|
+        File_Error.handle_java_exceptions self.file <|
             Vector.from_polyglot_array java_stream.readAllBytes
 
     ## ADVANCED
@@ -784,7 +781,7 @@ type Input_Stream
                  bytes
     read_n_bytes : Integer -> Vector ! File_Error
     read_n_bytes self n = self.stream_resource . with java_stream->
-        handle_java_exceptions self.file <|
+        File_Error.handle_java_exceptions self.file <|
             bytes = java_stream.readNBytes n
             Vector.from_polyglot_array bytes
 
@@ -809,7 +806,7 @@ type Input_Stream
                  bytes
     read_byte : Integer ! File_Error
     read_byte self = self.stream_resource . with java_stream->
-        handle_java_exceptions self.file <|
+        File_Error.handle_java_exceptions self.file <|
             java_stream.read
 
     ## ADVANCED
@@ -854,22 +851,6 @@ type Input_Stream
         results = Encoding_Utils.with_stream_decoder java_stream java_charset action
         problems = Vector.from_polyglot_array results.problems . map Encoding_Error.Error
         on_problems.attach_problems_after results.result problems
-
-## PRIVATE
-
-   Utility method for running an action with Java exceptions mapping.
-handle_java_exceptions file ~action =
-    Panic.catch IOException action caught_panic->
-        wrap_io_exception file caught_panic.payload.cause
-
-## PRIVATE
-
-   Converts a Java `IOException` into its Enso counterpart.
-wrap_io_exception file io_exception =
-    if io_exception.is_a NoSuchFileException then Error.throw (File_Error.Not_Found file) else
-        if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Error.Already_Exists file) else
-            if io_exception.is_a AccessDeniedException then Error.throw (File_Error.IO_Error file "You do not have permission to access the file") else
-                Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
 
 ## PRIVATE
 

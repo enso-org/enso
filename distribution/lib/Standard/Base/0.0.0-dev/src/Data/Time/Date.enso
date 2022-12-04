@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Json.Json
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
@@ -13,14 +13,16 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
-from project.Error.Common import Error, Panic, Type_Error_Data, Time_Error, Polyglot_Error_Data, Illegal_Argument_Error, Illegal_Argument_Error_Data, unimplemented
+from project.Error.Common import Type_Error_Data, Time_Error, Polyglot_Error, Illegal_Argument
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
@@ -197,7 +199,7 @@ type Date
             _ : Text -> parse_builtin text pattern
             _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
         result . map_error <| case _ of
-            Polyglot_Error_Data err -> Time_Error.Error err.getMessage
+            Polyglot_Error.Polyglot_Error_Data err -> Time_Error.Error err.getMessage
             ex -> ex
 
     ## Get the year field.
@@ -270,7 +272,7 @@ type Date
     ## Returns the century of the date.
     century : Integer
     century self = if self.year > 0 then (self.year - 1).div 100 + 1 else
-        Error.throw (Illegal_Argument_Error_Data "Century can only be given for AD years.")
+        Error.throw (Illegal_Argument.Error "Century can only be given for AD years.")
 
     ## Returns the quarter of the year the date falls into.
     quarter : Integer
@@ -377,7 +379,7 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_add = Date.new 2020 + (Period.new months=6)
-    + : Period -> Date ! (Time_Error | Illegal_Argument_Error)
+    + : Period -> Date ! (Time_Error | Illegal_Argument)
     + self period =
         case period of
             _ : Period ->
@@ -385,7 +387,7 @@ type Date
             _ : Duration ->
                 Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
-                Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
+                Error.throw (Illegal_Argument.Error "Illegal period argument")
 
     ## Shift the date by the specified amount of business days.
 
@@ -522,7 +524,7 @@ type Date
              import Standard.Base.Data.Time.Duration
 
              example_subtract = Date.new 2020 - (Period.new days=7)
-    - : Period -> Date ! (Time_Error | Illegal_Argument_Error)
+    - : Period -> Date ! (Time_Error | Illegal_Argument)
     - self period =
         case period of
             _ : Period ->
@@ -531,7 +533,7 @@ type Date
             _ : Duration ->
                 Error.throw (Time_Error.Error "Date does not support adding/subtracting Duration. Use Period instead.")
             _ ->
-                Error.throw (Illegal_Argument_Error_Data "Illegal period argument")
+                Error.throw (Illegal_Argument.Error "Illegal period argument")
 
     ## A Date to Json conversion.
 

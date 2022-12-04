@@ -1,14 +1,18 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Boolean
 import project.Data.List.List
 import project.Data.Numbers
 import project.Data.Map.Map
+import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Function
 import project.IO
 import project.Math
+import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Polyglot
 import project.Polyglot.Java
 import project.Runtime
@@ -26,14 +30,18 @@ import project.System.Process
 import project.System.Process.Exit_Code.Exit_Code
 import project.Warning.Warning
 
-export project.Data.Any.Any
+export project.Any.Any
 export project.Data.Array.Array
 export project.Data.List.List
 export project.Data.Map.Map
+export project.Data.Text.Text
 export project.Data.Vector.Vector
+export project.Error.Error
 export project.IO
 export project.Math
+export project.Meta
 export project.Nothing.Nothing
+export project.Panic.Panic
 export project.Polyglot
 export project.Polyglot.Java
 export project.Runtime
@@ -60,7 +68,8 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
-import project.Data.Json
+import project.Data.Json.Json
+import project.Data.Json.Extensions
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
 import project.Data.Noise
@@ -68,11 +77,23 @@ import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
-import project.Data.Range
+import project.Data.Range.Range
+import project.Data.Range.Extensions
 import project.Data.Regression
 import project.Data.Statistics
+import project.Data.Text.Case.Case
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Extensions
 import project.Data.Text.Line_Ending_Style.Line_Ending_Style
+import project.Data.Text.Location
+import project.Data.Text.Matching_Mode
+import project.Data.Text.Regex
+import project.Data.Text.Regex.Regex_Mode.Regex_Mode
+import project.Data.Text.Regex.Regex_Option.Regex_Option
+import project.Data.Text.Regex_Matcher.Regex_Matcher
+import project.Data.Text.Text_Matcher.Text_Matcher
+import project.Data.Text.Text_Ordering.Text_Ordering
 import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -81,10 +102,18 @@ import project.Data.Time.Day_Of_Week.Day_Of_Week
 import project.Data.Time.Day_Of_Week_From
 import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
+import project.Data.Text.Span.Span
+import project.Data.Text.Span.Utf_16_Span
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
-import project.Error.Problem_Behavior
+import project.Error.Problem_Behavior.Problem_Behavior
+import project.Network.Extensions
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.HTTP.HTTP_Version.HTTP_Version
+import project.Network.URI.URI
 import project.Random
 
 export project.Data
@@ -92,15 +121,30 @@ export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
+export project.Data.Json.Json
+export project.Data.Json.Extensions
 export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Natural_Order
 export project.Data.Ordering.Ordering
 export project.Data.Ordering.Sort_Direction.Sort_Direction
 export project.Data.Pair.Pair
+export project.Data.Range.Range
+export project.Data.Range.Extensions
 export project.Data.Regression
+export project.Data.Text.Case.Case
 export project.Data.Text.Case_Sensitivity.Case_Sensitivity
+export project.Data.Text.Encoding.Encoding
+export project.Data.Text.Extensions
 export project.Data.Text.Line_Ending_Style.Line_Ending_Style
+export project.Data.Text.Location
+export project.Data.Text.Matching_Mode
+export project.Data.Text.Regex
+export project.Data.Text.Regex.Regex_Mode.Regex_Mode
+export project.Data.Text.Regex.Regex_Option.Regex_Option
+export project.Data.Text.Regex_Matcher.Regex_Matcher
+export project.Data.Text.Text_Matcher.Text_Matcher
+export project.Data.Text.Text_Ordering.Text_Ordering
 export project.Data.Text.Text_Sub_Range.Text_Sub_Range
 export project.Data.Time.Date.Date
 export project.Data.Time.Date_Period.Date_Period
@@ -109,46 +153,31 @@ export project.Data.Time.Day_Of_Week.Day_Of_Week
 export project.Data.Time.Day_Of_Week_From
 export project.Data.Time.Duration.Duration
 export project.Data.Time.Period.Period
+export project.Data.Text.Span.Span
+export project.Data.Text.Span.Utf_16_Span
 export project.Data.Time.Time_Of_Day.Time_Of_Day
 export project.Data.Time.Time_Period.Time_Period
 export project.Data.Time.Time_Zone.Time_Zone
+export project.Error.Problem_Behavior.Problem_Behavior
+export project.Network.Extensions
+export project.Network.HTTP.HTTP
+export project.Network.HTTP.HTTP_Method.HTTP_Method
+export project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+export project.Network.HTTP.HTTP_Version.HTTP_Version
+export project.Network.URI.URI
 export project.Random
 
-from project.Data.Json export all hiding Json_Parse_Error, No_Such_Field, Marshalling_Error
 from project.Data.Noise export all hiding Noise, Generator, Deterministic_Random, Long, Random
-from project.Data.Range export all hiding throw_zero_step_error
 from project.Data.Statistics export all hiding to_moment_statistic, wrap_java_call, calculate_correlation_statistics, calculate_spearman_rank, calculate_correlation_statistics_matrix, Moments, MomentStatistic, CountMinMax, CorrelationStatistics, Rank, ClassCastException, NullPointerException
-from project.Error.Problem_Behavior export all
 
 from project.Data.Index_Sub_Range.Index_Sub_Range import First, Last
+from project.Error.Problem_Behavior.Problem_Behavior import all
+from project.System.File_Format.Plain_Text_Format import Plain_Text
+
 from project.Data.Index_Sub_Range.Index_Sub_Range export First, Last
+from project.Error.Problem_Behavior.Problem_Behavior export all
+from project.System.File_Format.Plain_Text_Format export Plain_Text
 
-# Not refactored modules below:
-import project.Data.Text
-import project.Data.Text.Case
-import project.Data.Text.Encoding
-import project.Data.Text.Extensions
-import project.Data.Text.Matching
-import project.Data.Text.Text_Matcher
-import project.Data.Text.Regex_Matcher
-import project.Data.Text.Text_Ordering
-import project.Data.Text.Span
-import project.Data.Text.Regex
-import project.Data.Text.Regex.Regex_Mode
+## ToDo:
 import project.Error.Common
-import project.Meta
-
-export project.Data.Text.Case_Sensitivity
-export project.Data.Text.Regex
-export project.Data.Text.Regex.Regex_Mode
-export project.Data.Text.Text_Ordering
-export project.Data.Text.Text_Matcher
-export project.Data.Text.Regex_Matcher
-export project.Meta
-
-from project.Data.Text.Extensions export Text, Case, Location, Matching_Mode
-from project.Data.Text.Matching export No_Matches_Found_Data
-from project.Data.Text export all hiding Encoding, Span, Line_Ending_Style, Case_Sensitivity
-from project.Data.Text.Encoding export Encoding, Encoding_Error
-from project.Data.Text.Span export all
 from project.Error.Common export all

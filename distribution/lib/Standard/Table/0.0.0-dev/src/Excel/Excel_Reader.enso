@@ -1,10 +1,9 @@
 from Standard.Base import all
-from Standard.Base.System.File import handle_java_exceptions
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
+import project.Excel.Excel_Section.Excel_Section
 
-from project.Excel.Excel_Section import Excel_Section, Sheet_Names, Range_Names, Worksheet, Cell_Range
 from project.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data
 
 polyglot java import org.enso.table.excel.ExcelHeaders
@@ -44,7 +43,7 @@ handle_reader file reader =
     bad_argument caught_panic = Error.throw (Invalid_Location_Data caught_panic.payload.cause.getCause)
     handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
 
-    handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
+    File_Error.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
         file.with_input_stream [File_Access.Read] stream->
             stream.with_java_stream reader
 
@@ -63,13 +62,13 @@ handle_reader file reader =
 read_file : File -> Excel_Section -> (Boolean|Infer) -> Problem_Behavior -> Boolean -> (Table | Vector)
 read_file file section headers on_problems xls_format=False =
     reader stream = case section of
-        Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
-        Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
-        Worksheet sheet skip_rows row_limit ->
+        Excel_Section.Sheet_Names -> Vector.from_polyglot_array (ExcelReader.readSheetNames stream xls_format)
+        Excel_Section.Range_Names -> Vector.from_polyglot_array (ExcelReader.readRangeNames stream xls_format)
+        Excel_Section.Worksheet sheet skip_rows row_limit ->
             prepare_reader_table on_problems <| case sheet of
                 _ : Integer -> ExcelReader.readSheetByIndex stream sheet (make_java_headers headers) skip_rows row_limit xls_format
                 _ : Text -> ExcelReader.readSheetByName stream sheet (make_java_headers headers) skip_rows row_limit xls_format
-        Cell_Range address skip_rows row_limit ->
+        Excel_Section.Cell_Range address skip_rows row_limit ->
             prepare_reader_table on_problems <| case address of
                 _ : Excel_Range -> ExcelReader.readRange stream address.java_range (make_java_headers headers) skip_rows row_limit xls_format
                 _ : Text -> ExcelReader.readRangeByName stream address (make_java_headers headers) skip_rows row_limit xls_format

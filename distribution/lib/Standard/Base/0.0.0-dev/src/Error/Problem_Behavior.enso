@@ -1,11 +1,9 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Warning.Warning
 
-from project.Error.Common import Error
-
 from project.Error.Problem_Behavior.Problem_Behavior import all
-from project.Error.Problem_Behavior.Problem_Behavior export all
 
 ## Specifies how to handle problems.
 type Problem_Behavior

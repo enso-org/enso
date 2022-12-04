@@ -12,7 +12,7 @@ spec =
         gen = Generator
         Test.specify "should not be invokable" <|
             interval = Interval.inclusive 0 1
-            Test.expect_panic_with (gen.step 1 interval) Common.Unimplemented_Error_Data
+            Test.expect_panic_with (gen.step 1 interval) Unimplemented.Error
     Test.group "Deterministic Random Noise Generator" <|
         gen = Deterministic_Random
         Test.specify "should always return the same output for the same input" <|

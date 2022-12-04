@@ -5,7 +5,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data
 
 from Standard.Database import all
-from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -321,7 +321,7 @@ spec prefix connection =
             t2.at  "avg price" . to_vector . should_equal [(110.2 / 11)]
     Test.group prefix+"Table.filter" <|
         Test.specify "report error when trying to filter by a custom predicate" <|
-            t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation_Error_Data
+            t1.filter "a" (x -> x % 2 == 0) . should_fail_with Unsupported_Database_Operation.Error
 
     clean_table name = Panic.recover Any <|
         sql = 'DROP TABLE "' + name + '"'
