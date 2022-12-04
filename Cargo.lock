@@ -1559,6 +1559,7 @@ dependencies = [
  "ensogl-selector",
  "ensogl-text",
  "ensogl-text-msdf",
+ "ensogl-toggle-button",
  "ide-view-component-list-panel",
  "ide-view-graph-editor",
  "js-sys",

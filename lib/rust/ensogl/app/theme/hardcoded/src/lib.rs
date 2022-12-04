@@ -708,6 +708,23 @@ define_themes! { [light:0, dark:1]
             }
         }
     }
+    cloud_dashboard {
+        button {
+            // FIXME [NP]: use this only for debugging
+            non_toggled = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
+            toggled     = Lcha(0.0,0.0,0.0,0.7)  , Lcha(1.0,0.0,0.0,0.7);
+            hovered     = Lcha(0.0,0.0,0.0,0.45) , Lcha(1.0,0.0,0.0,0.7);
+        }
+        // FIXME [NP]: rename
+        play_button {
+            non_toggled     = cloud_dashboard::button::non_toggled
+                ,cloud_dashboard::button::non_toggled;
+            toggled         = Lcha(0.7,0.5,0.12,1.0) , Lcha(0.7,0.5,0.12,1.0);
+            hovered         = cloud_dashboard::button::hovered
+                ,cloud_dashboard::button::hovered;
+            toggled_hovered = Lcha(0.55,0.5,0.12,1.0) , Lcha(0.85,0.5,0.12,1.0);
+        }
+    }
 
 
     // === Generics ===

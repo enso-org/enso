@@ -40,16 +40,19 @@
 use ensogl::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use ensogl_core::application::Application;
-use ensogl_core::display::object::ObjectOps;
+use ensogl_core::application;
 use ensogl_hardcoded_theme as theme;
+use ensogl_text_msdf as text_msdf;
+use std::mem;
 
 
 // ==============
 // === Export ===
 // ==============
 
-pub mod projects_table;
+pub(crate) mod projects_entry;
+pub(crate) mod projects_spinner;
+pub(crate) mod projects_table;
 
 
 
@@ -61,8 +64,8 @@ pub mod projects_table;
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
-    ensogl_text_msdf::run_once_initialized(|| {
-        let app = Application::new("root");
+    text_msdf::run_once_initialized(|| {
+        let app = application::Application::new("root");
         theme::builtin::light::register(&app);
         theme::builtin::light::enable(&app);
 
@@ -72,6 +75,6 @@ pub fn main() {
         let projects_table = projects_table.init().expect("Failed to initialize projects table.");
         scene.add_child(&projects_table);
 
-        std::mem::forget(projects_table);
+        mem::forget(projects_table);
     })
 }

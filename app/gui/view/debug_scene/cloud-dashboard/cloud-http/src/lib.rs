@@ -2,7 +2,7 @@
 //!
 //! - [`Client`] is used to make requests to the Cloud dashboard API.
 //! - Responses returned by the Cloud dashboard API are deserialized from JSON into strongly-typed
-//!   structs, defined in the [`response`] module.
+//!   structs, defined in the [`model`] module.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -36,15 +36,16 @@
 use enso_cloud_view::prelude::*;
 use enso_prelude::*;
 
+use enso_cloud_view as view;
 use headers::authorization;
-use response::Route;
+use model::Route;
 
 
 // ==============
 // === Export ===
 // ==============
 
-pub mod response;
+pub mod model;
 
 
 
@@ -54,9 +55,9 @@ pub mod response;
 
 /// Client used to make HTTP requests to the Cloud API.
 ///
-/// This struct provides convenience functions like [`Route::list_projects`] which let you send HTTP
-/// requests to the Cloud API without building HTTP requests manually or dealing with details like
-/// adding HTTP headers for authorization, etc. The convenience functions return strongly-typed
+/// This struct provides convenience functions like [`Client::list_projects`] which let you send
+/// HTTP requests to the Cloud API without building HTTP requests manually or dealing with details
+/// like adding HTTP headers for authorization, etc. The convenience functions return strongly-typed
 /// responses that are automatically deserialized from JSON.
 #[derive(Clone, Debug)]
 pub struct Client {
@@ -99,11 +100,45 @@ impl Client {
     /// Returns the list of [`Project`]s the user has access to.
     ///
     /// [`Project`]: ::enso_cloud_view::project::Project
-    pub async fn list_projects(&self) -> Result<response::project::ListProjects, Error> {
+    pub async fn list_projects(&self) -> Result<model::response::project::ListProjects, Error> {
         let route = Route::ListProjects;
         let response = self.try_request(route).await?;
         let projects = response.json().await?;
         Ok(projects)
+    }
+
+    /// Changes the [`Project`]s state from [`Closed`] (or [`Created`]) to [`OpenInProgress`] (and
+    /// eventually [`Opened`], once the instance creation completes).
+    ///
+    /// [`Project`]: ::enso_cloud_view::project::Project
+    /// [`Closed`]: ::enso_cloud_view::project::StateTag::Closed
+    /// [`Created`]: ::enso_cloud_view::project::StateTag::Created
+    /// [`OpenInProgress`]: ::enso_cloud_view::project::StateTag::OpenInProgress
+    /// [`Opened`]: ::enso_cloud_view::project::StateTag::Opened
+    pub async fn open_project(
+        &self,
+        project_id: view::id::ProjectId,
+    ) -> Result<model::response::project::OpenProject, Error> {
+        let route = Route::OpenProject(project_id);
+        let response = self.try_request(route).await?;
+        let response = response.json().await?;
+        Ok(response)
+    }
+
+    /// Changes the [`Project`]s state from [`Opened`] (or [`OpenInProgress`]) to [`Closed`].
+    ///
+    /// [`Project`]: ::enso_cloud_view::project::Project
+    /// [`Opened`]: ::enso_cloud_view::project::StateTag::Opened
+    /// [`OpenInProgress`]: ::enso_cloud_view::project::StateTag::OpenInProgress
+    /// [`Closed`]: ::enso_cloud_view::project::StateTag::Closed
+    pub async fn close_project(
+        &self,
+        project_id: view::id::ProjectId,
+    ) -> Result<model::response::project::CloseProject, Error> {
+        let route = Route::CloseProject(project_id);
+        let response = self.try_request(route).await?;
+        let response = response.json().await?;
+        Ok(response)
     }
 }
 
@@ -115,7 +150,7 @@ impl Client {
     ///
     /// # Errors
     ///
-    /// Returns an [`Error`] if:
+    /// Returns an [`type@Error`] if:
     /// - the [`Request`] could not be built,
     /// - the [`Request`] could not be executed (e.g., due to a network error),
     /// - the [`Response`] did not have a successful (i.e., 2xx) HTTP status code,
@@ -154,7 +189,7 @@ pub fn base_url_for_api_gateway(
     Ok(url)
 }
 
-/// Converts an unsuccessful HTTP [`Response`] into an [`Error`], or returns the [`Response`].
+/// Converts an unsuccessful HTTP [`Response`] into an [`type@Error`], or returns the [`Response`].
 ///
 /// This function exists to make user-facing errors for HTTP requests more informative by including
 /// the HTTP response body in the error message, where possible.
