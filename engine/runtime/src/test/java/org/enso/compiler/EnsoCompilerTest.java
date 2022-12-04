@@ -1201,7 +1201,7 @@ public class EnsoCompilerTest {
   @Test
   public void testNamedDefaultedArguments183953473() throws Exception {
     parseTest("""
-    main = @Tail_Call summator (current = current - 1) (acc = acc + current)
+    main = @Tail_Call summator (current = 0) (acc = 1)
     """);
   }
 
