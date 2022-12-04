@@ -1387,6 +1387,7 @@ macro_rules! with_display_object_alignment_dim2_named_matrix {
 
 use crate::display::layout::alignment;
 
+
 /// A two-dimensional alignment for display objects. Each dimension uses [`AlignmentMode`].
 #[derive(Clone, Copy, Debug, Default, Deref, PartialEq, From, Into)]
 pub struct Alignment {
@@ -1605,6 +1606,7 @@ def_layout_options!(
         /// The alignment of the children. For example, it allows to align the children to the
         /// right edge of their parent.
         pub alignment: Alignment,
+        pub justify:   Justify,
         /// The spacing between children.
         pub spacing:   f32,
         /// The padding between the children and the edge of the parent.
@@ -1613,6 +1615,17 @@ def_layout_options!(
         pub reversed:  bool,
     }
 );
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum Justify {
+    #[default]
+    Start,
+    End,
+    Center,
+    SpaceBetween,
+    SpaceAround,
+    SpaceEvenly,
+}
 
 
 
@@ -1753,6 +1766,10 @@ pub struct LayoutModel {
     size:        Cell<Vector2<f32>>,
     bbox_origin: Cell<Vector2<f32>>,
     resizing:    Cell<Vector2<Resizing>>,
+    // FIXME
+    //  mozliwe ze powinnimsy miec cos w stylu bbox_origin_alignment, ktory ustawia to gdzie jest
+    //  origin tego display objecta. Wtedy sprity moga ustawiac to by default w srodku.
+    //  Innym sposobem jest dodanie "deprecated mode", ktore bedzie centrowalo sprity
 }
 
 impl LayoutModel {
@@ -1769,6 +1786,10 @@ impl Model {
     fn set_resizing(&self, resizing: impl IntoResizing) {
         self.dirty.transformation.set();
         self.layout.resizing.set(resizing.into_resizing());
+    }
+
+    fn bbox_origin(&self) -> Vector2<f32> {
+        self.layout.bbox_origin.get()
     }
 
     fn size(&self) -> Vector2<f32> {
@@ -1847,12 +1868,15 @@ impl Model {
         if first_pass {
             let resizing = self.layout.resizing.get();
             match resizing.x {
-                Resizing::Fixed(v) => self.layout.size.modify_(|t| t.x = v),
+                Resizing::Fixed(v) => self.layout.size.set_x(v),
                 _ => {}
             }
             match resizing.y {
-                Resizing::Fixed(v) => self.layout.size.modify_(|t| t.y = v),
+                Resizing::Fixed(v) => self.layout.size.set_y(v),
                 _ => {}
+            }
+            if self.layout.auto.get().is_some() {
+                self.layout.bbox_origin.set(default());
             }
         }
         match self.layout.auto.get() {
@@ -1876,6 +1900,52 @@ impl Model {
                 self.refresh_linear_layout(X, Y, first_pass, opts, first_pass),
             Some(AutoLayout::Vertical(opts)) =>
                 self.refresh_linear_layout(Y, X, !first_pass, opts, first_pass),
+        }
+    }
+
+    fn refresh_layout_manual<Dim: Copy>(&self, x: Dim, first_pass: bool)
+    where
+        Vector2<Resizing>: DimSetter<Dim>,
+        Vector2<f32>: DimSetter<Dim>,
+        Vector3<f32>: DimSetter<Dim>, {
+        let children = self.children();
+        if children.is_empty() {
+            if self.layout.resizing.get_dim(x).is_hug() {
+                self.layout.size.set_dim(x, 0.0);
+                self.layout.bbox_origin.set_dim(x, 0.0);
+            }
+        } else {
+            let mut min_x: f32 = f32::MAX;
+            let mut max_x: f32 = f32::MIN;
+            let mut children_to_fill = vec![];
+            for child in &children {
+                if child.layout.resizing.get_dim(x).is_fill() {
+                    children_to_fill.push(child);
+                } else {
+                    child.refresh_layout_internal(first_pass);
+                    let child_pos = child.position().get_dim(x);
+                    let child_size = child.size().get_dim(x);
+                    let child_bbox_origin = child.bbox_origin().get_dim(x);
+                    let child_min_x = child_pos + child_bbox_origin;
+                    let child_max_x = child_min_x + child_size;
+                    min_x = min_x.min(child_min_x);
+                    max_x = max_x.max(child_max_x);
+                }
+            }
+            let new_size = max_x - min_x;
+            let new_bbox_origin = min_x;
+            let resizing = self.layout.resizing.get();
+            if self.layout.resizing.get_dim(x).is_hug() {
+                self.layout.size.set_dim(x, new_size);
+                self.layout.bbox_origin.set_dim(x, new_bbox_origin);
+            } else {
+                self.layout.bbox_origin.set_dim(x, 0.0);
+            }
+
+            for child in children_to_fill {
+                child.layout.size.set_dim(x, self.layout.size.get_dim(x));
+                child.refresh_layout_internal(first_pass);
+            }
         }
     }
 
@@ -2039,7 +2109,7 @@ impl Model {
                     for child in &children {
                         let size = child.size();
                         let bbox_origin = child.bbox_origin();
-                        child.set_position_dim(x, pos_x);
+                        child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
                         pos_x += size.get_dim(x) + opts.spacing;
                     }
                 }
@@ -2048,7 +2118,8 @@ impl Model {
                     let spacing = space_left / (children.len() - 1) as f32;
                     for child in &children {
                         let size = child.size();
-                        child.set_position_dim(x, pos_x);
+                        let bbox_origin = child.bbox_origin();
+                        child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
                         pos_x += size.get_dim(x) + opts.spacing + spacing;
                     }
                 }
