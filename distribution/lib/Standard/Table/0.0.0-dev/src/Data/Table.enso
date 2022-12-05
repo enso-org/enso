@@ -254,7 +254,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -306,7 +306,7 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Remove the first two columns and the last column.
@@ -356,7 +356,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.reorder_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Swap the first two columns.
@@ -776,12 +776,12 @@ type Table
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
 
-             table.replace_text (Column_Selector.By_Name ["foo", "bar"]) "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Regex_Matcher_Data
+             table.replace_text (Column_Selector.By_Name ["foo", "bar"]) "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
 
        > Example
          Replace texts in quotes with parentheses in column at index 1.
 
-             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Regex_Matcher_Data
+             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
     replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
     replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new

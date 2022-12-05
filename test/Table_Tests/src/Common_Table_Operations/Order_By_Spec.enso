@@ -41,7 +41,7 @@ spec setup =
             t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name ".*ta"  Sort_Direction.Descending] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive))
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name ".*ta"  Sort_Direction.Descending] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive))
             t1.at "beta" . to_vector . should_equal ["b", "b", "a", "a"]
             t1.at "delta" . to_vector . should_equal ["a1", "a03", "a2", "a10"]
             t1.at "gamma" . to_vector . should_equal [2, 4, 3, 1]
