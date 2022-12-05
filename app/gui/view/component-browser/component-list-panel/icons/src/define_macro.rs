@@ -17,8 +17,7 @@
 /// use ensogl_core::prelude::*;
 /// use ensogl_core::display::shape::*;
 /// use ensogl_core::data::color;
-/// use ide_view_component_list_panel_grid::entry::icon;
-/// use ide_view_component_list_panel_grid::define_icons;
+/// use ide_view_component_list_panel_icons::define_icons;
 ///
 /// define_icons! {
 ///     /// The example of icon.
@@ -28,7 +27,7 @@
 ///         //
 ///         // `use super::*` import is added silently.
 ///         ensogl_core::shape! {
-///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
+///             (style:Style, color: Vector4) {
 ///                 Plane().into()
 ///             }
 ///         }
@@ -36,8 +35,8 @@
 ///
 ///     pub mod icon2(Icon2) {
 ///         ensogl_core::shape! {
-///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
-///                 Plane().fill(vivid_color).into()
+///             (style:Style, color: Vector4) {
+///                 Plane().fill(color).into()
 ///             }
 ///         }
 ///     }
