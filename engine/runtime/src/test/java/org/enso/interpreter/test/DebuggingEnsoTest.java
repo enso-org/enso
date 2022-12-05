@@ -3,7 +3,6 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -13,18 +12,21 @@ import com.oracle.truffle.api.debug.DebugStackFrame;
 import com.oracle.truffle.api.debug.DebugValue;
 import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.debug.DebuggerSession;
+import com.oracle.truffle.api.debug.SuspendedCallback;
 import com.oracle.truffle.api.debug.SuspendedEvent;
 import java.net.URI;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
-
-import org.enso.interpreter.runtime.error.PanicException;
+import java.util.stream.Collectors;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -49,8 +51,9 @@ public class DebuggingEnsoTest {
         .allowExperimentalOptions(true)
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../test/micro-distribution/component").toFile().getAbsolutePath()
-        ).build();
+            Paths.get("../../distribution/lib").toFile().getAbsolutePath()
+        )
+        .build();
 
     context = Context.newBuilder()
         .engine(engine)
@@ -372,6 +375,149 @@ public class DebuggingEnsoTest {
       session.suspendNextExecution();
       fooFunc.execute(0);
     }
+  }
+
+  /**
+   * Tests stepping through the given source.
+   * @param src Source that is stepped through.
+   * @param methodName Name of the method to invoke
+   * @param methodArgs Arguments to the method.
+   * @param steps A queue of {@link SuspendedCallback} events to be done
+   * @param expectedLineNumbers A list of line numbers on which the debugger is expected to stop.
+   */
+  private void testStepping(Source src, String methodName, Object[] methodArgs, Queue<SuspendedCallback> steps, List<Integer> expectedLineNumbers) {
+    Value module = context.eval(src);
+    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+    List<Integer> lineNumbers = new ArrayList<>();
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      steps.remove().onSuspend(event);
+      lineNumbers.add(
+          event.getSourceSection().getStartLine()
+      );
+    })) {
+      session.suspendNextExecution();
+      fooFunc.execute(methodArgs);
+    }
+    assertListEquals(expectedLineNumbers, lineNumbers);
+  }
+
+  /**
+   * Create a queue of stepping over events. The very first event must always be step into,
+   * otherwise the execution would end after first step.
+   * @param numSteps Total number of steps, usually the number of expected lines.
+   */
+  private static Queue<SuspendedCallback> createStepOverEvents(int numSteps) {
+    Queue<SuspendedCallback> steps = new ArrayDeque<>();
+    steps.add((event) -> event.prepareStepInto(1));
+    for (int i = 0; i < numSteps - 1; i++) {
+      steps.add(
+          (event) -> event.prepareStepOver(1)
+      );
+    }
+    return steps;
+  }
+
+  private static List<Integer> mapLinesToLineNumbers(Source src, List<String> lines) {
+    String[] linesInSrc = src.getCharacters().toString().split(System.lineSeparator());
+    return lines.stream()
+        .map(line -> {
+          for (int i = 0; i < linesInSrc.length; i++) {
+            if (linesInSrc[i].stripLeading().startsWith(line)) {
+              // From the Truffle debugger point of view, lines are indexed from 1 instead of 0.
+              return i + 1;
+            }
+          }
+          throw new IllegalStateException();
+        })
+        .collect(Collectors.toList());
+  }
+
+  private void assertListEquals(List<?> expected, List<?> actual) {
+    String failureMsg = "Expected list: " + expected + " is not equal to actual list: " + actual;
+    assertEquals(failureMsg, expected.size(), actual.size());
+    for (int i = 0; i < expected.size(); i++) {
+      assertEquals(failureMsg, expected.get(i), actual.get(i));
+    }
+  }
+
+  @Test
+  public void testSteppingOver() {
+    Source src = createEnsoSource("""
+        baz x = x      # 1
+        bar x = baz x  # 2
+        foo x =        # 3
+            bar 42     # 4
+            end = 0    # 5
+        """);
+    List<Integer> expectedLineNumbers = List.of(3, 4, 5);
+    Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
+  }
+
+  /**
+   * Use some methods from Vector in stdlib. Stepping over methods from different
+   * modules might be problematic.
+   */
+  @Test
+  public void testSteppingOverUseStdLib() {
+    Source src = createEnsoSource("""
+        from Standard.Base import Vector
+        
+        bar vec num_elems =
+            vec.slice 0 num_elems
+        
+        foo x =
+            vec_builder = Vector.new_builder
+            vec_builder.append 1
+            vec_builder.append 2
+            vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)
+            end = 0
+        """);
+
+    List<String> expectedLines = List.of(
+        "foo x =",
+        "vec_builder = Vector.new_builder",
+        "vec_builder.append 1",
+        "vec_builder.append 2",
+        "vec = bar (vec_builder.to_vector) (vec_builder.to_vector.length - 1)",
+        "end = 0"
+    );
+    List<Integer> expectedLineNumbers = mapLinesToLineNumbers(src, expectedLines);
+    Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
+  }
+
+  @Test
+  public void testSteppingInto() {
+    Source src = createEnsoSource("""
+        baz x = x       # 1
+        bar x = baz x   # 2
+        foo x =         # 3
+            bar 42      # 4
+            end = 0     # 5
+        """);
+    List<Integer> expectedLineNumbers = List.of(3, 4, 2, 1, 2, 4, 5);
+    Queue<SuspendedCallback> steps = new ArrayDeque<>(
+        Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1))
+    );
+
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
+  }
+
+  @Test
+  public void testSteppingIntoMoreExpressionsOneLine() {
+    Source src = createEnsoSource("""
+        baz x = x        # 1
+        bar x = x        # 2
+        foo x =          # 3
+            bar (baz x)  # 4
+            end = 0      # 5
+        """);
+    List<Integer> expectedLineNumbers = List.of(3, 4, 1, 4, 2, 4, 5);
+    Queue<SuspendedCallback> steps = new ArrayDeque<>(
+        Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1))
+    );
+    testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
   }
 
   // TODO[PM]: Re-enable (https://www.pivotaltracker.com/story/show/183854585)
