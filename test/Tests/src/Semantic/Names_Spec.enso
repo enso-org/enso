@@ -19,7 +19,6 @@ spec =
     Test.group "Qualified Names" <|
         Test.specify "should allow to call constructors in a qualified manner" <|
             Definitions.Foo.Value 1 2 3 . sum . should_equal 6
-            Definitions . Foo.Value 1 2 3 . sum . should_equal 6
         Test.specify "should allow pattern matching in a qualified manner" <|
             v = Definitions.Foo.Value 1 2 3
             res = case v of

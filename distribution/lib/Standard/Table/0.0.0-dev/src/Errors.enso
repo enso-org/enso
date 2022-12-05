@@ -317,7 +317,7 @@ type Column_Name_Mismatch
     Error missing extras message
 
     to_display_text : Text
-    to_display_text self = "Column name mismatch: " + self.message
+    to_display_text self = self.message
 
     ## PRIVATE
     handle_java_exception =

@@ -45,7 +45,7 @@ from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 from project.Excel.Excel_Format.Excel_Format export Excel
 from project.Excel.Excel_Section.Excel_Section export Sheet_Names, Range_Names, Worksheet, Cell_Range
 
-import project.Error.Invalid_JSON_Format
+import project.Errors.Invalid_JSON_Format
 
 from Standard.Geo.Geo_Json import Object_Type
 import Standard.Geo.Geo_Json
