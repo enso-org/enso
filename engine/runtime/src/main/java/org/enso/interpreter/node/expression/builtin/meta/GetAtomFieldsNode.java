@@ -4,9 +4,9 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.struct.StructsLibrary;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 @BuiltinMethod(
     type = "Meta",
@@ -18,10 +18,10 @@ public abstract class GetAtomFieldsNode extends Node {
     return GetAtomFieldsNodeGen.create();
   }
 
-  abstract Array execute(Struct struct);
+  abstract Array execute(Atom atom);
 
   @Specialization
-  Array doStruct(Struct struct, @CachedLibrary(limit = "2") StructsLibrary structs) {
-    return new Array(structs.getFields(struct));
+  Array doStruct(Atom atom, @CachedLibrary(limit = "2") StructsLibrary structs) {
+    return new Array(structs.getFields(atom));
   }
 }

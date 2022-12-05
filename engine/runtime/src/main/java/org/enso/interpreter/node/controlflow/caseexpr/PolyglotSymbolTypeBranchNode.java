@@ -13,7 +13,7 @@ import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 
 /** An implementation of the case expression specialised to working on polyglot types. */
@@ -61,14 +61,14 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
           accept(frame, state, new Object[] {target});
         }
       } catch (UnsupportedMessageException e) {
-        Struct err = reportError(polyglotSymbol, target);
+        Atom err = reportError(polyglotSymbol, target);
         throw new PanicException(err, this);
       }
     }
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Struct reportError(Object expected, Object target) {
+  private Atom reportError(Object expected, Object target) {
     Builtins builtins = Context.get(this).getBuiltins();
     return builtins
         .error()

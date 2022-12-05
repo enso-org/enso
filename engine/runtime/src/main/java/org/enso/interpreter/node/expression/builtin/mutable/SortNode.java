@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -14,7 +13,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -40,7 +39,7 @@ public abstract class SortNode extends Node {
   }
 
   @Specialization
-  Object doAtomThis(State state, Struct self, Object that) {
+  Object doAtomThis(State state, Atom self, Object that) {
     return Context.get(this).getBuiltins().nothing();
   }
 
@@ -70,9 +69,9 @@ public abstract class SortNode extends Node {
   private class SortComparator implements Comparator<Object> {
     private final Function compFn;
     private final Context context;
-    private final Struct less;
-    private final Struct equal;
-    private final Struct greater;
+    private final Atom less;
+    private final Atom equal;
+    private final Atom greater;
     private final SortNode outerThis;
     private final State state;
 

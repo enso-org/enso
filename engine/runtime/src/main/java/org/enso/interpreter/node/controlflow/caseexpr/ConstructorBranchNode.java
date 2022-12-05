@@ -7,9 +7,9 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.runtime.data.struct.Struct;
-import org.enso.interpreter.runtime.data.struct.AtomConstructor;
-import org.enso.interpreter.runtime.data.struct.StructsLibrary;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 /** An implementation of the case expression specialised to working on constructors. */
 @NodeInfo(shortName = "ConstructorMatch")
@@ -37,7 +37,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
   void doAtom(
       VirtualFrame frame,
       Object state,
-      Struct target,
+      Atom target,
       @CachedLibrary(limit = "10") StructsLibrary structs) {
     if (profile.profile(matcher == target.getConstructor())) {
       accept(frame, state, structs.getFields(target));

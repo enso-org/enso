@@ -1,7 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import org.enso.interpreter.node.expression.builtin.system.*;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 
 /** A container class for all System-related stdlib builtins. */
 public class System {
@@ -14,7 +14,7 @@ public class System {
   }
 
   /** @return the atom constructor for {@code Process_Result}. */
-  public Struct makeSystemResult(Object exitCode, Object stdout, Object stderr) {
+  public Atom makeSystemResult(Object exitCode, Object stdout, Object stderr) {
     return systemProcessResult.newInstance(exitCode, stdout, stderr);
   }
 }

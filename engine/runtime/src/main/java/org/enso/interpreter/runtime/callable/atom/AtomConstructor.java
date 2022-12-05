@@ -1,9 +1,8 @@
-package org.enso.interpreter.runtime.data.struct;
+package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -35,7 +34,7 @@ public final class AtomConstructor implements TruffleObject {
   private final String name;
   private final ModuleScope definitionScope;
   private final boolean builtin;
-  private @CompilerDirectives.CompilationFinal Struct cachedInstance;
+  private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
   private final Type type;
@@ -108,7 +107,7 @@ public final class AtomConstructor implements TruffleObject {
     this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
     generateQualifiedAccessor();
     if (args.length == 0) {
-      cachedInstance = new BoxingStruct(this);
+      cachedInstance = new BoxingAtom(this);
     } else {
       cachedInstance = null;
     }
@@ -196,9 +195,9 @@ public final class AtomConstructor implements TruffleObject {
    * @return a new instance of the atom represented by this constructor
    */
   // TODO [AA] Check where this can be called from user code.
-  public Struct newInstance(Object... arguments) {
+  public Atom newInstance(Object... arguments) {
     if (cachedInstance != null) return cachedInstance;
-    return new BoxingStruct(this, arguments);
+    return new BoxingAtom(this, arguments);
   }
 
   /**
@@ -238,7 +237,7 @@ public final class AtomConstructor implements TruffleObject {
    * @throws ArityException when the provided field count does match this constructor's field count.
    */
   @ExportMessage
-  Struct instantiate(Object... arguments) throws ArityException {
+  Atom instantiate(Object... arguments) throws ArityException {
     int expected_arity = getArity();
     if (arguments.length != expected_arity) {
       throw ArityException.create(expected_arity, expected_arity, arguments.length);

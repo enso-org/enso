@@ -8,8 +8,8 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
-import org.enso.interpreter.runtime.data.struct.Struct;
-import org.enso.interpreter.runtime.data.struct.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Invalid_Conversion_Target_Error", name = "to_display_text")
@@ -22,7 +22,7 @@ public abstract class InvalidConversionTargetErrorToDisplayTextNode extends Node
 
   @Specialization
   Text doAtom(
-      Struct self,
+      Atom self,
       @CachedLibrary(limit = "10") InteropLibrary interopLibrary,
       @Cached TypeToDisplayTextNode fallback) {
     String fieldRep;

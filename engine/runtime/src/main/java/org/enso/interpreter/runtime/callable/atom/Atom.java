@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.data.struct;
+package org.enso.interpreter.runtime.callable.atom;
 
 
 import com.oracle.truffle.api.CompilerDirectives;
@@ -25,7 +25,7 @@ import java.util.Map;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public abstract class Struct implements TruffleObject {
+public abstract class Atom implements TruffleObject {
     final AtomConstructor constructor;
 
     /**
@@ -33,7 +33,7 @@ public abstract class Struct implements TruffleObject {
      *
      * @param constructor the Atom's constructor
      */
-    public Struct(AtomConstructor constructor) {
+    public Atom(AtomConstructor constructor) {
         this.constructor = constructor;
     }
 
@@ -63,7 +63,7 @@ public abstract class Struct implements TruffleObject {
         for (var obj : getFields()) {
             builder.append(" ");
             // TODO non-leaf check
-            if (obj instanceof Struct atom) {
+            if (obj instanceof Atom atom) {
                 atom.toString(builder, true, depth - 1);
             } else {
                 builder.append(obj);
@@ -146,7 +146,7 @@ public abstract class Struct implements TruffleObject {
         @Specialization(
                 guards = {"receiver.getConstructor() == cachedConstructor", "member.equals(cachedMember)"})
         static Object doCached(
-                Struct receiver,
+                Atom receiver,
                 String member,
                 Object[] arguments,
                 @Cached(value = "receiver.getConstructor()") AtomConstructor cachedConstructor,
@@ -162,7 +162,7 @@ public abstract class Struct implements TruffleObject {
 
         @Specialization(replaces = "doCached")
         static Object doUncached(
-                Struct receiver,
+                Atom receiver,
                 String member,
                 Object[] arguments,
                 @CachedLibrary(limit = "1") InteropLibrary symbols)

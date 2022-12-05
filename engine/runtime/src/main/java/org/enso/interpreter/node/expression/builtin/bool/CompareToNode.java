@@ -6,7 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(type = "Boolean", name = "compare_to", description = "Comparison for Booleans.")
@@ -18,7 +18,7 @@ public abstract class CompareToNode extends Node {
   abstract Object execute(Boolean self, Object that);
 
   @Specialization
-  Struct doBoolean(Boolean self, Boolean that) {
+  Atom doBoolean(Boolean self, Boolean that) {
     Ordering ordering = Context.get(this).getBuiltins().ordering();
     if (self == that) {
       return ordering.newEqual();

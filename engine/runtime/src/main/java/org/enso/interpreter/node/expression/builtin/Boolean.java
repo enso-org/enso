@@ -1,7 +1,7 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import org.enso.interpreter.dsl.BuiltinType;
-import org.enso.interpreter.runtime.data.struct.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 import java.util.List;
 

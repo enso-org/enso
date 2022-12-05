@@ -11,7 +11,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -36,7 +36,7 @@ public abstract class CoerceArrayNode extends Node {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
       Builtins builtins = Context.get(this).getBuiltins();
-      Struct err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
+      Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
       throw new PanicException(err, this);
     } catch (InvalidArrayIndexException e) {
       Builtins builtins = Context.get(this).getBuiltins();
@@ -54,7 +54,7 @@ public abstract class CoerceArrayNode extends Node {
       return convertToArray(arr, hostValueToEnsoNode);
     } catch (UnsupportedMessageException e) {
       Builtins builtins = Context.get(this).getBuiltins();
-      Struct err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
+      Atom err = builtins.error().makeTypeError(builtins.array(), arr, "arr");
       throw new PanicException(err, this);
     } catch (InvalidArrayIndexException e) {
       Builtins builtins = Context.get(this).getBuiltins();
@@ -76,7 +76,7 @@ public abstract class CoerceArrayNode extends Node {
   @Fallback
   Object[] doOther(Object arr) {
     Builtins builtins = Context.get(this).getBuiltins();
-    Struct error = builtins.error().makeTypeError("array", arr, "arr");
+    Atom error = builtins.error().makeTypeError("array", arr, "arr");
     throw new PanicException(error, this);
   }
 }

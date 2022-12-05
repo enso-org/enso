@@ -12,9 +12,9 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.data.struct.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.AtomLO;
 import org.enso.interpreter.runtime.data.ArrayRope;
-import org.enso.interpreter.runtime.data.struct.StructLO;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -111,7 +111,7 @@ public abstract class InstantiateNode extends ExpressionNode {
     @Specialization(guards = "arity == 2")
     Object do2(AtomConstructor constructor, Object[] arguments) {
       if (arguments[0] instanceof Long) {
-        return new StructLO(constructor, (long) arguments[0], arguments[1]);
+        return new AtomLO(constructor, (long) arguments[0], arguments[1]);
       } else {
         return constructor.newInstance(arguments[0], arguments[1]);
       }

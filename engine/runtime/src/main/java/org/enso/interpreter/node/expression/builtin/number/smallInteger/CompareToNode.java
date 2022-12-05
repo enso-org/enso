@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.number.smallInteger;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -8,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
@@ -25,7 +24,7 @@ public abstract class CompareToNode extends Node {
   abstract Object execute(long self, Object that);
 
   @Specialization
-  Struct doLong(long self, long that) {
+  Atom doLong(long self, long that) {
     if (self == that) {
       return getOrdering().newEqual();
     } else if (self > that) {
@@ -36,12 +35,12 @@ public abstract class CompareToNode extends Node {
   }
 
   @Specialization
-  Struct doBigInt(long self, EnsoBigInteger that) {
+  Atom doBigInt(long self, EnsoBigInteger that) {
     return getOrdering().fromJava(BigIntegerOps.compareTo(self, that.getValue()));
   }
 
   @Specialization
-  Struct doDecimal(long self, double that) {
+  Atom doDecimal(long self, double that) {
     if (self == that) {
       return getOrdering().newEqual();
     } else if (self > that) {

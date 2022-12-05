@@ -1,15 +1,14 @@
 package org.enso.interpreter.node.expression.atom;
 
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.struct.StructsLibrary;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
 public class GetFieldNode extends RootNode {
@@ -41,9 +40,8 @@ public class GetFieldNode extends RootNode {
    */
   public Object execute(VirtualFrame frame) {
     // this is safe, as only Atoms will ever get here through method dispatch.
-    Struct struct =
-        (Struct) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-    return structs.getField(struct, index);
+    Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
+    return structs.getField(atom, index);
   }
 
   @Override

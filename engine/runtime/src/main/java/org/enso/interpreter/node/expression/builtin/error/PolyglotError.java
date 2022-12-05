@@ -4,7 +4,7 @@ import com.oracle.truffle.api.exception.AbstractTruffleException;
 import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.struct.Struct;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 
 import java.io.IOException;
 import java.time.DateTimeException;
@@ -18,19 +18,19 @@ public class PolyglotError extends UniquelyConstructibleBuiltin {
     return List.of("cause");
   }
 
-  public Struct wrap(AbstractTruffleException e) {
+  public Atom wrap(AbstractTruffleException e) {
     return newInstance(e);
   }
 
-  public Struct wrap(Context c, IOException e) {
+  public Atom wrap(Context c, IOException e) {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
 
-  public Struct wrap(Context c, DateTimeException e) {
+  public Atom wrap(Context c, DateTimeException e) {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
 
-  public Struct wrap(Context c, DateTimeParseException e) {
+  public Atom wrap(Context c, DateTimeParseException e) {
     return newInstance(c.getEnvironment().asGuestValue(e));
   }
 }
