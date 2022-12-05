@@ -1,15 +1,17 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Json.Internal
 import project.Data.Map.Map
 import project.Data.Map.No_Value_For_Key
+import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Range import all
-from project.Error.Common import Panic, Error, Illegal_Argument_Error_Data
+from project.Error.Common import Illegal_Argument
 
 ## Represents a JSON structure.
 type Json
@@ -164,7 +166,7 @@ type Json
         Json.Object _ -> self.fields.get field . map_error case _ of
             No_Value_For_Key.Error _ -> No_Such_Field.Error field
             x -> x
-        _ -> Error.throw (Illegal_Argument_Error_Data "Json.get: self must be an Object")
+        _ -> Error.throw (Illegal_Argument.Error "Json.get: self must be an Object")
 
 ## UNSTABLE
 
@@ -237,71 +239,3 @@ type Marshalling_Error
             "Type mismatch error: the json with type `" + json_text + "` did not match the format `" + format_text + "`."
         Marshalling_Error.Missing_Field _ field _ ->
             "Missing field in Json: the field `" + field.to_text "` was missing in the json."
-
-## ALIAS To JSON
-
-   Generically converts an atom into a JSON object.
-
-   The input atom is converted into a JSON object, with a `"type"` field set to
-   the atom's type name and all other fields serialized with their name as
-   object key and the value as the object value.
-
-   > Example
-     Convert a vector to JSON.
-         [1, 2, 3, 4].to_json
-Any.to_json : Json
-Any.to_json self =
-    m = Meta.meta self
-    case m of
-        Meta.Atom_Data _ ->
-            cons = Meta.Constructor_Data m.constructor
-            fs = m.fields
-            fnames = cons.fields
-            json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
-                m.insert (fnames.at i) (fs.at i . to_json)
-            with_tp = json_fs . insert "type" (Json.String cons.name)
-            Json.Object with_tp
-        Meta.Constructor_Data _ ->
-            Json.Object (Map.empty . insert "type" (Json.String m.name))
-
-        ## The following two cases cannot be handled generically and should
-           instead define their own `to_json` implementations.
-        Meta.Polyglot_Data _ -> Json.Null
-        Meta.Primitive_Data _ -> Json.Null
-
-## Text to JSON conversion.
-
-   > Example
-     Convert the text "Hello World!" to JSON.
-
-         "Hello World!".to_json
-   > Example
-     Convert the text "cześć" to JSON.
-
-         "cześć".to_json
-Text.to_json : Json
-Text.to_json self = Json.String self
-
-## Method used by object builders to convert a value into a valid JSON key.
-
-   > Example
-     Ensure that the text "foo" is a JSON key.
-         "foo".to_json_key
-Text.to_json_key : Text
-Text.to_json_key self = self
-
-## Convert a boolean to JSON.
-
-   > Example
-     Convert `True` to JSON.
-         True.to_json
-Boolean.to_json : Json
-Boolean.to_json self = Json.Boolean self
-
-## Convert `Nothing` to JSON.
-
-   > Example
-     Convert `Nothing` to JSON.
-         Nothing.to_json
-Nothing.to_json : Json
-Nothing.to_json self = Json.Null

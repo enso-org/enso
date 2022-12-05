@@ -73,6 +73,7 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
+- [Added project snapshot saving on shortcut][3923]
 
 #### EnsoGL (rendering engine)
 
@@ -99,6 +100,12 @@
 - [Added a new component: Slider][3852]. It allows adjusting a numeric value
   with the mouse. The precision of these adjustments can be increased or
   decreased.
+- [Added ProjectsGrid view for Cloud Dashboard][3857]. It provides the first
+  steps towards migrating the Cloud Dashboard from the existing React (web-only)
+  implementation towards a shared structure that can be used in both the Desktop
+  and Web versions of the IDE.
+
+[3857]: https://github.com/enso-org/enso/pull/3857
 
 #### Enso Standard Library
 
@@ -391,6 +398,7 @@
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
 [3919]: https://github.com/enso-org/enso/pull/3919
+[3923]: https://github.com/enso-org/enso/pull/3923
 
 #### Enso Compiler
 

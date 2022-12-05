@@ -12,6 +12,7 @@
 #![feature(allocator_api)]
 #![feature(auto_traits)]
 #![feature(negative_impls)]
+#![feature(pattern)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

@@ -1,7 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common as Errors
 import Standard.Base.System.File.Input_Stream
-from Standard.Base.System.File import wrap_io_exception
 
 import project.Data.Table.Table
 import project.Data.Data_Formatter.Data_Formatter
@@ -90,7 +88,7 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
      integer.
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
 read_from_reader format java_reader on_problems max_columns=4096 =
-    Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
+    Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         reader = prepare_reader java_reader format max_columns on_problems
         result_with_problems = reader.read
         parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map translate_reader_problem
@@ -106,7 +104,7 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
         Nothing -> -1
         _ : Integer -> format.row_limit
         _ ->
-            Error.throw (Illegal_Argument_Error_Data "`row_limit` should be Integer or Nothing.")
+            Error.throw (Illegal_Argument.Error "`row_limit` should be Integer or Nothing.")
     warnings_as_errors = on_problems == Problem_Behavior.Report_Error
     quote_characters = case format.quote_style of
         Quote_Style.No_Quotes -> Pair.new Nothing Nothing
@@ -166,7 +164,7 @@ type Detected_File_Metadata
 detect_metadata : File -> Delimited_Format -> Detected_File_Metadata
 detect_metadata file format =
     on_problems = Problem_Behavior.Ignore
-    result = handle_io_exception file <| Illegal_Argument_Error.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
+    result = handle_io_exception file <| Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <|
         trailing_line_separator = newline_at_eof file format.encoding
         has_trailing_line_separator = trailing_line_separator.is_nothing.not
         file.with_input_stream [File_Access.Read] stream->
@@ -231,7 +229,7 @@ handle_parsing_exception =
 
 ## PRIVATE
 handle_io_exception related_file ~action = Panic.catch_java IOException action java_exception->
-    Error.throw (wrap_io_exception related_file java_exception)
+    Error.throw (File_Error.wrap_io_exception related_file java_exception)
 
 ## PRIVATE
 default_max_columns = 4096

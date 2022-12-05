@@ -68,8 +68,8 @@ ensogl::define_endpoints! {
         close_open_dialog(),
         /// Simulates a style toggle press event.
         toggle_style(),
-        /// Saves the currently opened module to file.
-        save_module(),
+        /// Saves a snapshot of the current state of the project to the VCS.
+        save_project_snapshot(),
         /// Undo the last user's action.
         undo(),
         /// Redo the last undone action.
@@ -829,7 +829,7 @@ impl application::View for View {
             (Press, "", "cmd o", "disable_prompt"),
             (Press, "", "space", "disable_prompt"),
             (Press, "", "cmd alt shift t", "toggle_style"),
-            (Press, "", "cmd s", "save_module"),
+            (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),

@@ -9,7 +9,7 @@ import project.Data.Table.Table
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 
-from project.Errors import Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
    Creates an `Internal_Column` that computes the specified statistic.
@@ -32,7 +32,7 @@ make_expression aggregate dialect =
     case aggregate of
         Group_By c _ -> c.expression
         Count _ -> SQL_Expression.Operation "COUNT_ROWS" []
-        Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument_Error_Data "Count_Distinct must have at least one column.") else
+        Count_Distinct columns _ ignore_nothing -> if columns.is_empty then Error.throw (Illegal_Argument.Error "Count_Distinct must have at least one column.") else
             case ignore_nothing of
                 True -> SQL_Expression.Operation "COUNT_DISTINCT" (columns.map .expression)
                 False -> SQL_Expression.Operation "COUNT_DISTINCT_INCLUDE_NULL" (columns.map .expression)
@@ -43,14 +43,14 @@ make_expression aggregate dialect =
         Percentile p c _ -> SQL_Expression.Operation "PERCENTILE" [SQL_Expression.Constant SQL_Type.double p, c.expression]
         Mode c _ -> SQL_Expression.Operation "MODE" [c.expression]
         First c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
-            False -> Error.throw (Unsupported_Database_Operation_Error_Data "`First` aggregation requires at least one `order_by` column.")
+            False -> Error.throw (Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.")
             True ->
                 order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
                 case ignore_nothing of
                     False -> SQL_Expression.Operation "FIRST" [c.expression]+order_bys
                     True -> SQL_Expression.Operation "FIRST_NOT_NULL" [c.expression]+order_bys
         Last c _ ignore_nothing order_by -> case is_non_empty_selector order_by of
-            False -> Error.throw (Unsupported_Database_Operation_Error_Data "`Last` aggregation requires at least one `order_by` column.")
+            False -> Error.throw (Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column.")
             True ->
                 order_bys = order_by.columns.map c-> dialect.prepare_order_descriptor c.column.as_internal c.direction Text_Ordering.Default
                 case ignore_nothing of

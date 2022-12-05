@@ -1,0 +1,181 @@
+import project.Data.Boolean.Boolean
+import project.Data.Text.Text
+
+polyglot java import org.enso.base.Http_Utils
+
+type Header
+    ## PRIVATE
+
+       A type representing a header.
+
+       Arguments:
+       - name: The header name.
+       - value: The header value.
+    Value name value
+
+    ## Header equality.
+
+       Arguments:
+       - that: The header to compare against.
+
+       > Example
+         Compare two headers.
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_header_eq =
+                 (Header.new "My_Header" "foo") == (Header.new "My_Header" "bar")
+    == : Header -> Boolean
+    == self that = (self.name.equals_ignore_case that.name) && self.value==that.value
+
+    ## ALIAS Build a Header
+
+       Create a new Header.
+
+       Arguments:
+       - name: The name of the header.
+       - value: The value for the header.
+
+       > Example
+         Create a new header called "My_Header".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_new = Header.new "My_Header" "my header's value"
+    new : Text -> Text -> Header
+    new name value = Header.Value name value
+
+    # Accept
+
+    ## Create an "Accept" header.
+
+       Arguments:
+       - value: The value for the accept header.
+
+       > Example
+         Create an accept header.
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_accept = Header.accept "my_field"
+    accept : Text -> Header
+    accept value = Header.Value "Accept" value
+
+    ## Create a header that accepts all (`"*/*"`).
+
+       > Example
+         Create an accept all header.
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_accept_all = Header.accept_all
+    accept_all : Header
+    accept_all = Header.accept "*/*"
+
+    ## ALIAS Build an Auth Header
+
+       Create an "Authorization" header.
+
+       Arguments:
+       - value: The value for the authorization header.
+
+       > Example
+         Create an auth header containing "foo".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_auth = Header.authorization "foo"
+    authorization : Text -> Header
+    authorization value = Header.Value "Authorization" value
+
+    ## Create HTTP basic auth header.
+
+       Arguments:
+       - user: The username.
+       - pass: The password.
+
+       > Example
+         Create basic auth header.
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_auth_basic = Header.authorization_basic "user" "pass"
+    authorization_basic : Text -> Text -> Header
+    authorization_basic user pass =
+        Header.authorization (Http_Utils.header_basic_auth user pass)
+
+    # Content-Type
+
+    ## Create "Content-Type" header.
+
+       Arguments:
+       - value: The value for the content type header.
+
+       > Example
+         Create a content type header containing "my_type".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_content_type = Header.content_type "my_type"
+    content_type : Text -> Header
+    content_type value = Header.Value "Content-Type" value
+
+    ## Header "Content-Type: application/json".
+
+       > Example
+         Create a header with content type "application/json".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_app_json = Header.application_json
+    application_json : Header
+    application_json = Header.content_type "application/json"
+
+    ## Header "Content-Type: application/octet-stream".
+
+       > Example
+         Create a header with content type "application/octet-stream".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_app_octet = Header.application_octet_stream
+    application_octet_stream : Header
+    application_octet_stream = Header.content_type "application/octet-stream"
+
+    ## Header "Content-Type: application/x-www-form-urlencoded".
+
+       > Example
+         Create a header with content type "application/x-www-form-urlencoded".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_app_x_www = Header.application_x_www_form_urlencoded
+    application_x_www_form_urlencoded : Header
+    application_x_www_form_urlencoded = Header.content_type "application/x-www-form-urlencoded"
+
+    ## Header "Content-Type: multipart/form-data".
+
+       Arguments:
+       - boundary: The text that delimits boundaries between the parts of the form.
+
+       > Example
+         Create a header with content type "multipart/form-data".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_multipart = Header.multipart_form_data
+    multipart_form_data : Text -> Header
+    multipart_form_data (boundary = "") =
+        if boundary == "" then Header.content_type "multipart/form-data" else
+            Header.content_type ("multipart/form-data; boundary=" + boundary)
+
+    ## Header "Content-Type: text/plain".
+
+       > Example
+         Create a header with the content type "text/plain".
+
+             import Standard.Base.Network.HTTP.Header.Header
+
+             example_header_text_plain = Header.text_plain
+    text_plain : Header
+    text_plain = Header.content_type "text/plain"

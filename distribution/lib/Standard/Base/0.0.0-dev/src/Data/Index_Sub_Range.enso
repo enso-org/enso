@@ -1,13 +1,16 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Numbers.Integer
+import project.Data.Range.Range
+import project.Data.Range.Extensions
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Math
+import project.Panic.Panic
 import project.Random
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Range import all
-from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data
+from project.Error.Common import Index_Out_Of_Bounds_Error_Data, Illegal_Argument
 
 type Index_Sub_Range
     ## Select the first `count` items.
@@ -64,8 +67,8 @@ resolve_ranges ranges length =
             if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error_Data descriptor length) else
                 actual_index
         Range.Value start end step ->
-            if step <= 0 then Panic.throw (Illegal_Argument_Error_Data "Range step must be positive.") else
-                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument_Error_Data "Range start and end must not be negative.") else
+            if step <= 0 then Panic.throw (Illegal_Argument.Error "Range step must be positive.") else
+                if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument.Error "Range start and end must not be negative.") else
                     if start >= length then Panic.throw (Index_Out_Of_Bounds_Error_Data start length) else
                         actual_end = Math.min end length
                         if actual_end < start then start.up_to start . with_step step else
@@ -161,7 +164,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
         end = 0.up_to length . find i-> (predicate (at i)).not
         true_end = if end.is_nothing then length else end
         single_slice 0 true_end
-    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
+    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument.Error] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]
@@ -172,7 +175,7 @@ take_helper length at single_slice slice_ranges index_sub_range = case index_sub
         indices_to_take = Random.random_indices length count rng
         take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index indices_to_take)
     Index_Sub_Range.Every step start ->
-        if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
+        if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
             if start >= length then single_slice 0 0 else
                 range = start.up_to length . with_step step
                 take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
@@ -211,7 +214,7 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
         end = 0.up_to length . find i-> (predicate (at i)).not
         true_end = if end.is_nothing then length else end
         single_slice true_end length
-    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument_Error_Data] <|
+    Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument.Error] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors
             _ -> [one_or_many_descriptors]
@@ -224,7 +227,7 @@ drop_helper length at single_slice slice_ranges index_sub_range = case index_sub
         indices_to_drop = Random.random_indices length count rng
         drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index indices_to_drop)
     Index_Sub_Range.Every step start ->
-        if step <= 0 then Error.throw (Illegal_Argument_Error_Data "Step within Every must be positive.") else
+        if step <= 0 then Error.throw (Illegal_Argument.Error "Step within Every must be positive.") else
             if start >= length then single_slice 0 length else
                 range = start.up_to length . with_step step
                 drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
