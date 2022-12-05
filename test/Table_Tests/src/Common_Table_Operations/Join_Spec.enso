@@ -70,6 +70,7 @@ spec setup =
             r.at "Y" . to_vector . should_equal ["B", "B", "B", "B", "C", "C"]
             r.at "Z" . to_vector . should_equal [2, 2, 3, 3, 4, 5]
             r.at "Z_1" . to_vector . should_equal [1, 2, 1, 2, 4, 4]
+
         Test.specify "should allow to join on equality of multiple columns and drop redundant columns" <|
             conditions = [Join_Condition.Equals "Y" "Y", Join_Condition.Equals "X" "X"]
             r = t3.join t4 on=conditions . order_by ["X", "Y", "Z", "Z_1"]
@@ -84,6 +85,36 @@ spec setup =
             r = t3.join t4 on=["X", "X", "Y", "X", "Y"] . order_by ["X", "Y", "Z", "Z_1"]
             check_xy_joined r
 
+        Test.specify "should allow to join on text equality ignoring case" <|
+            t1 = Table.new [["X", ["a", "B"]], ["Y", [1, 2]]]
+            t2 = Table.new [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
+
+            r1 = t1.join t2
+            expect_column_names ["X", "Y", "Z"] r1
+            r1 . at "X" . to_vector . should_equal ["a"]
+            r1 . at "Y" . to_vector . should_equal [1]
+            r1 . at "Z" . to_vector . should_equal [2]
+
+            r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "X") . order_by ["Y", "Z"]
+            # TODO rename to Right_X
+            expect_column_names ["X", "X_1", "Y", "Z"] r2
+            r2 . at "X" . to_vector . should_equal ["a", "a", "B"]
+            r2 . at "X_1" . to_vector . should_equal ["A", "a", "b"]
+            r2 . at "Y" . to_vector . should_equal [1, 1, 2]
+            r2 . at "Z" . to_vector . should_equal [1, 2, 3]
+
+        Test.specify "should correctly handle Unicode equality" <|
+            Nothing
+
+        Test.specify "should correctly handle Enso-specific equality logic" <|
+            Nothing
+
+        Test.specify "should allow range-based joins (using between)" <|
+            Nothing
+
+        Test.specify "should allow to mix join conditions of various kinds" <|
+            Nothing
+
         Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
             t2 = table_builder [["Z", [2, 1]], ["W", [5, 6]]]
@@ -97,6 +128,27 @@ spec setup =
                 table.at "X" . to_vector . should_equal []
             problems = [Column_Indexes_Out_Of_Range.Error [42, -3], Missing_Input_Columns.Error ["foo", "baz"]]
             Problems.test_problem_handling action problems tester
+
+        Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
+            Nothing
+
+        Test.specify "should report Invalid_Value_Type if non-numeric columns are provided to Between" <|
+            Nothing
+
+        Test.specify "should report Invalid_Value_Type if incompatible types are correlated" pending="We need more advanced value type support to implement this in full-generality." <|
+            Nothing
+
+        Test.specify "should warn when joining on equality of Decimal columns" <|
+            Nothing
+
+        Test.specify "should correctly handle nulls in equality conditions" <|
+            Nothing
+
+        Test.specify "should correctly handle nulls in case-insensitive equality conditions" <|
+            Nothing
+
+        Test.specify "should correctly handle nulls in between conditions" <|
+            Nothing
 
         Test.specify "should rename columns of the right table to avoid duplicates" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]

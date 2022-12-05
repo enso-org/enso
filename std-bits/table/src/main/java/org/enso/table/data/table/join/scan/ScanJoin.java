@@ -1,6 +1,7 @@
-package org.enso.table.data.table.join;
+package org.enso.table.data.table.join.scan;
 
 import org.enso.table.data.table.Table;
+import org.enso.table.data.table.join.*;
 import org.graalvm.collections.Pair;
 
 import java.util.ArrayList;
@@ -25,6 +26,13 @@ public class ScanJoin implements JoinStrategy {
                 match = false;
                 break conditions;
               }
+            }
+            case EqualsIgnoreCase eq -> {
+              Object leftValue = eq.left().getStorage().getItemBoxed(l);
+              Object rightValue = eq.right().getStorage().getItemBoxed(r);
+            }
+            case Between between -> {
+
             }
             default -> throw new UnsupportedOperationException("Unsupported join condition: " + condition);
           }

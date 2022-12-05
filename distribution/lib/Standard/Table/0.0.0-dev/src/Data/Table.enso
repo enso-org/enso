@@ -44,6 +44,8 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
+polyglot java import org.enso.table.data.table.join.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
+polyglot java import org.enso.table.data.table.join.Between as Java_Join_Between
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import java.util.UUID
@@ -1052,7 +1054,7 @@ type Table
          - If a column index is invalid, an `Index_Out_Of_Bounds` is
            reported and an empty result is reported.
          - If a join condition correlates columns whose types are not compatible
-           (for example comparing numeric types with text), a
+           (for example comparing numeric types with text), an
            `Invalid_Value_Type` is reported.
          - If decimal columns are joined on equality, a
            `Floating_Point_Grouping` is reported.
@@ -1507,8 +1509,8 @@ slice_ranges table ranges =
 ## PRIVATE
 make_join_helpers left_table right_table =
     make_equals left right = Java_Join_Equals.new left.java_column right.java_column
-    make_equals_ignore_case _ _ =
-        Unimplemented.throw "Conditions other than Equals are not implemented yet."
-    make_between _ _ _ =
-        Unimplemented.throw "Conditions other than Equals are not implemented yet."
+    make_equals_ignore_case left right locale =
+        Java_Join_Equals_Ignore_Case.new left.java_column right.java_column locale.java_locale
+    make_between left right_lower right_upper =
+        Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
