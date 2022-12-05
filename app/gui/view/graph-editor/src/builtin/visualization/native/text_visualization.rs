@@ -153,13 +153,13 @@ impl<T: 'static> Model<T> {
     }
 
     fn set_size(&self, size: Vector2) {
-        self.scroll_bar_horizontal.set_position_y(-size.y / 2.0);
+        self.scroll_bar_horizontal.set_y(-size.y / 2.0);
         self.scroll_bar_horizontal.set_length(size.x);
         let scrollbar_width = scrollbar::WIDTH - scrollbar::PADDING;
-        self.scroll_bar_horizontal.mod_position_y(|y| y + scrollbar_width / 2.0);
-        self.scroll_bar_vertical.set_position_x(size.x / 2.0);
+        self.scroll_bar_horizontal.mod_y(|y| y + scrollbar_width / 2.0);
+        self.scroll_bar_vertical.set_x(size.x / 2.0);
         self.scroll_bar_vertical.set_length(size.y);
-        self.scroll_bar_vertical.mod_position_x(|x| x - scrollbar_width / 2.0);
+        self.scroll_bar_vertical.mod_x(|x| x - scrollbar_width / 2.0);
         self.clipping_div.set_size(size);
         self.size.set(size);
     }

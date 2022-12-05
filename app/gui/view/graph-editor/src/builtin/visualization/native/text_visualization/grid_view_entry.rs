@@ -72,7 +72,7 @@ impl Entry {
     }
 
     fn set_position_and_size(&self, pos: &Vector2, size: &Vector2) {
-        self.text.set_position_xy(*pos);
+        self.text.set_xy(*pos);
 
         self.text.set_style_or_warn("left", format!("{}px", pos.x - size.x / 2.0));
         self.text.set_style_or_warn("top", format!("{}px", -pos.y - size.y / 2.0));
