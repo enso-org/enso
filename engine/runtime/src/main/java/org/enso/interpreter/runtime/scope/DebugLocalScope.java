@@ -13,6 +13,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -182,16 +184,28 @@ public class DebugLocalScope implements TruffleObject {
       return null;
     } else {
       Object value = getValue(frame, framePtr);
-      if (isHostValue(value, interop)) {
-        return new HostWrapper(value);
-      } else {
-        return value;
-      }
+      return wrapHostValues(value, interop);
     }
   }
 
   private static boolean isHostValue(Object value, InteropLibrary interop) {
     return EnsoContext.get(interop).getEnvironment().isHostObject(value);
+  }
+
+  private static Object wrapHostValues(Object object, InteropLibrary interop) {
+    if (object instanceof Atom atom) {
+      Object[] wrappedFields = Arrays.stream(atom.getFields())
+          .map(field -> wrapHostValues(field, interop))
+          .toArray();
+      return new Atom(
+          atom.getConstructor(),
+          wrappedFields
+      );
+    } else if (isHostValue(object, interop)) {
+      return new HostWrapper(object);
+    } else {
+      return object;
+    }
   }
 
   @ExportMessage

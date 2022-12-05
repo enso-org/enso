@@ -247,7 +247,9 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
                 request.getSource().getCharacters().toString(),
                 inlineContext
             );
-      } catch (UnhandledEntity | CompilationAbortedException e) {
+      } catch (UnhandledEntity e) {
+        throw new InlineParsingException("Unhandled entity: " + e.entity(), e);
+      } catch (CompilationAbortedException e) {
         assert outputRedirect.toString().lines().count() > 1 : "Expected a header line from the compiler";
         String compilerErrOutput = outputRedirect.toString()
             .lines()

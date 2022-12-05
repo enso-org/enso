@@ -230,6 +230,33 @@ public class DebuggingEnsoTest {
   }
 
   @Test
+  public void testHostValueAsAtomField() {
+    Source src = createEnsoSource("""
+        from Standard.Base import Vector
+        
+        foo x =
+            vec_builder = Vector.new_builder
+            end = 42
+        """);
+    Value module = context.eval(src);
+    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      if (event.getSourceSection().getCharacters().toString().strip().equals("end = 42")) {
+        DebugValue vecBuilder = event.getTopStackFrame().eval("vec_builder");
+        // `java_builder` is a field of `vec_builder` atom and it is a HostObject.
+        // As such it should be wrapped, and considered only as an interop string.
+        DebugValue javaBuilder = vecBuilder.getProperty("java_builder");
+        assertTrue(javaBuilder.toDisplayString().contains("Array_Builder"));
+      }
+      event.getSession().suspendNextExecution();
+    })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Test
   public void testEvaluateExpression() {
     Source src = createEnsoSource("""
         polyglot java import java.nio.file.Path
