@@ -94,7 +94,7 @@ read_from_reader format java_reader on_problems max_columns=4096 =
         reader = prepare_reader java_reader format max_columns on_problems
         result_with_problems = reader.read
         parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map translate_reader_problem
-        on_problems.attach_problems_after (Table.Table_Data result_with_problems.value) parsing_problems
+        on_problems.attach_problems_after (Table.Value result_with_problems.value) parsing_problems
 
 ## PRIVATE
 prepare_reader java_reader format max_columns on_problems newline_override=Nothing =

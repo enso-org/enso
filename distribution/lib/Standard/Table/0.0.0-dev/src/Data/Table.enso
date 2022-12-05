@@ -69,8 +69,8 @@ type Table
         cols = columns.map c->
             case c of
                 _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
-                Column.Column_Data java_col -> java_col
-        Table.Table_Data (Java_Table.new cols.to_array)
+                Column.Value java_col -> java_col
+        Table.Value (Java_Table.new cols.to_array)
 
     ## Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
@@ -103,7 +103,7 @@ type Table
 
        Arguments:
        - java_table: The internal java representation of the table.
-    Table_Data java_table
+    Value java_table
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
@@ -208,11 +208,11 @@ type Table
     at self selector=0 = case selector of
         _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
-            Column.Column_Data (java_columns.at selector)
+            Column.Value (java_columns.at selector)
         _ : Text ->
             case self.java_table.getColumnOrIndexByName selector of
                 Nothing -> Error.throw (No_Such_Column_Error_Data selector)
-                c -> Column.Column_Data c
+                c -> Column.Value c
 
     ## Returns the number of columns in the table.
     column_count : Integer
@@ -516,7 +516,7 @@ type Table
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
             java_table = index.makeTable new_columns.to_array
-            new_table = Table.Table_Data java_table
+            new_table = Table.Value java_table
 
             on_problems.attach_problems_after new_table <|
                 problems = java_table.getProblems
@@ -620,7 +620,7 @@ type Table
             comparator = Comparator.for_text_ordering text_ordering
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
-            Table.Table_Data java_table
+            Table.Value java_table
 
     ## Returns the distinct set of rows within the specified columns from the
        input table.
@@ -660,7 +660,7 @@ type Table
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
             self.java_table.distinct java_columns.to_array text_folding_strategy
-        on_problems.attach_problems_after (Table.Table_Data java_table) <|
+        on_problems.attach_problems_after (Table.Value java_table) <|
             problems = java_table.getProblems
             Aggregate_Column_Helper.parse_aggregated_problems problems
 
@@ -726,7 +726,7 @@ type Table
                 new_storage = new_storage_and_problems.value
                 problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
                 problems.each problem_builder.append
-                Column.Column_Data (Java_Column.new column.name column.java_column.getIndex new_storage)
+                Column.Value (Java_Column.new column.name column.java_column.getIndex new_storage)
 
         ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
            https://github.com/enso-org/enso/pull/3400
@@ -860,7 +860,7 @@ type Table
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
-            mask filter_column = Table.Table_Data (self.java_table.mask filter_column.java_column)
+            mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
                 _ : Filter_Condition ->
                     on_problems.handle_errors fallback=self.with_no_rows <|
@@ -957,7 +957,7 @@ type Table
                 on_problems.handle_errors expression fallback=self
         _ : Vector -> self.set name (Column.from_vector name column)
         _ : Column ->
-            Table.Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
+            Table.Value (self.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## PRIVATE
     evaluate : Text -> Column
@@ -975,7 +975,7 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column_Data
+    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Value
 
     ## UNSTABLE
 
@@ -1013,8 +1013,8 @@ type Table
              example_set_index = Examples.inventory_table.set_index "item_name"
     set_index : Text | Column -> Table
     set_index self index = case index of
-        _ : Text -> Table.Table_Data (self.java_table.indexFromColumn index)
-        Column.Column_Data c -> Table.Table_Data (self.java_table.indexFromColumn c)
+        _ : Text -> Table.Value (self.java_table.indexFromColumn index)
+        Column.Value c -> Table.Value (self.java_table.indexFromColumn c)
 
     ## Returns the index of this table, as a column that is indexed by itself.
 
@@ -1030,7 +1030,7 @@ type Table
     index : Column ! No_Index_Set_Error
     index self = case self.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Column_Data i
+        i -> Column.Value i
 
     ## Joins two tables according to the specified join conditions.
 
@@ -1110,10 +1110,10 @@ type Table
             # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
             Nothing ->
                 new_table = self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-                Table.Table_Data new_table
+                Table.Value new_table
             java_conditions ->
                 new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-                Table.Table_Data new_table
+                Table.Value new_table
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1181,8 +1181,8 @@ type Table
     concat self other = case other of
         _ : Vector ->
             java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
-            Table.Table_Data (Java_Table.concat java_tables.to_array)
-        Table.Table_Data other_java_table -> Table.Table_Data (Java_Table.concat [self.java_table, other_java_table].to_array)
+            Table.Value (Java_Table.concat java_tables.to_array)
+        Table.Value other_java_table -> Table.Value (Java_Table.concat [self.java_table, other_java_table].to_array)
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -1228,7 +1228,7 @@ type Table
         java_id = id_columns.map .java_column
 
         id_columns.each k-> unique.make_unique k.name
-        result = Table.Table_Data (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
+        result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
         problem_builder.attach_problems_after on_problems result
 
     ## Returns a new table using a chosen field as the column header and then
@@ -1300,7 +1300,7 @@ type Table
                 False ->
                     index.makeCrossTabTable java_key_columns.to_array matched_name.first.java_column data_columns.to_array
 
-            on_problems.attach_problems_after (Table.Table_Data result) <|
+            on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
                 Aggregate_Column_Helper.parse_aggregated_problems problems
 
@@ -1311,7 +1311,7 @@ type Table
         length = self.row_count
         offset = Math.max (Math.min start length) 0
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
-        Table.Table_Data (self.java_table.slice offset limit)
+        Table.Value (self.java_table.slice offset limit)
 
     ## UNSTABLE
 
@@ -1327,7 +1327,7 @@ type Table
     reverse : Table
     reverse self =
         mask = OrderBuilder.buildReversedMask self.row_count
-        Table.Table_Data <| self.java_table.applyMask mask
+        Table.Value <| self.java_table.applyMask mask
 
     ## ALIAS Write JSON
        UNSTABLE
@@ -1499,7 +1499,7 @@ print_table header rows indices_count format_term =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
-    Table.Table_Data (table.java_table.slice normalized.to_array)
+    Table.Value (table.java_table.slice normalized.to_array)
 
 ## PRIVATE
 make_join_helpers left_table right_table =

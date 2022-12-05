@@ -23,7 +23,7 @@ prepare_reader_table on_problems result_with_problems =
               if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.invalidNames) else
                 java_problem
     parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map map_problem
-    on_problems.attach_problems_after (Table.Table_Data result_with_problems.value) parsing_problems
+    on_problems.attach_problems_after (Table.Value result_with_problems.value) parsing_problems
 
 ## PRIVATE
    Convert Boolean|Infer to the correct HeaderBehavior
