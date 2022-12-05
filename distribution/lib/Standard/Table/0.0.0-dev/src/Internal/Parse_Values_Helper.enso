@@ -12,5 +12,5 @@ translate_parsing_problem expected_datatype problem =
     translations = [invalid_format, leading_zeros]
     found = translations.find t-> Java.is_instance problem t.first
     translation = found.catch Any _->
-        Error.throw (Illegal_State_Error_Data "Reported an unknown problem type: "+problem.to_text)
+        Error.throw (Illegal_State.Error "Reported an unknown problem type: "+problem.to_text)
     translation.second problem

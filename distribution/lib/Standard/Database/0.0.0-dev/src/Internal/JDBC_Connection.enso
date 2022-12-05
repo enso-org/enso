@@ -11,7 +11,7 @@ import project.Internal.Base_Generator
 
 import project.Data.Table.Table as Database_Table
 
-from project.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
+from project.Errors import SQL_Error, SQL_Timeout
 
 polyglot java import java.util.Properties
 
@@ -112,10 +112,10 @@ type JDBC_Connection
                     columns = table.columns
                     check_rows updates_array expected_size =
                         updates = Vector.from_polyglot_array updates_array
-                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                        if updates.length != expected_size then Panic.throw <| Illegal_State.Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
                             updates.each affected_rows->
                                 if affected_rows != 1 then
-                                    Panic.throw <| Illegal_State_Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                                    Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                     0.up_to num_rows . each row_id->
                         values = columns.map col-> col.at row_id
                         holes = values.zip db_types
@@ -161,13 +161,13 @@ close_connection connection =
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout_Error)
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
 handle_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
         exc = caught_panic.payload.cause
         case Java.is_instance exc SQLTimeoutException of
-            True -> Error.throw (SQL_Timeout_Error_Data exc related_query)
-            False -> Error.throw (SQL_Error_Data exc related_query)
+            True -> Error.throw (SQL_Timeout.Error exc related_query)
+            False -> Error.throw (SQL_Error.Error exc related_query)
 
 ## PRIVATE
    Sets values inside of a prepared statement.

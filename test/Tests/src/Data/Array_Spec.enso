@@ -43,9 +43,9 @@ spec =
             arr.method . should_equal 0
 
         Test.specify "should propagate dataflow errors" <|
-            err = Error.throw (Illegal_State_Error_Data "Foo")
+            err = Error.throw (Illegal_State.Error "Foo")
             res = Array.new err
-            res . should_fail_with Illegal_State_Error_Data
+            res . should_fail_with Illegal_State.Error
 
         Test.specify "should be able to be converted to a visualization rep" <|
             arr = make_enso_array (Vector.fill 1000 0)

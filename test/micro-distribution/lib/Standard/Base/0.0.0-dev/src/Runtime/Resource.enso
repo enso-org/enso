@@ -1,3 +1,6 @@
+import project.Any.Any
+import project.Nothing.Nothing
+
 bracket : Any -> (Any -> Nothing) -> (Any -> Any) -> Any
 bracket ~constructor ~destructor ~action = @Builtin_Method "Resource.bracket"
 

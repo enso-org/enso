@@ -8,6 +8,7 @@ use crate::github::MAX_PER_PAGE;
 use headers::HeaderMap;
 use headers::HeaderValue;
 use octocrab::models::repos::Asset;
+use octocrab::models::repos::Ref;
 use octocrab::models::repos::Release;
 use octocrab::models::workflows::WorkflowListArtifact;
 use octocrab::models::ArtifactId;
@@ -15,6 +16,7 @@ use octocrab::models::AssetId;
 use octocrab::models::ReleaseId;
 use octocrab::models::RunId;
 use octocrab::params::actions::ArchiveFormat;
+use octocrab::params::repos::Reference;
 use reqwest::Response;
 
 
@@ -194,14 +196,31 @@ impl<R: IsRepo> Handle<R> {
             .context(format!("Failed to find release by id `{release_id}` in `{self}`."))
     }
 
+    #[tracing::instrument(fields(%self), skip(predicate), err)]
+    pub async fn find_release_if(&self, predicate: impl Fn(&Release) -> bool) -> Result<Release> {
+        let releases = self.all_releases().await?;
+        let release = releases.into_iter().find(predicate);
+        release.context("Failed to find a release that satisfies the predicate.")
+    }
+
     #[tracing::instrument(fields(%self, %text), err)]
     pub async fn find_release_by_text(&self, text: &str) -> anyhow::Result<Release> {
-        self.all_releases()
-            .await?
-            .into_iter()
-            .find(|release| release.tag_name.contains(text))
+        self.find_release_if(|release| release.tag_name.contains(text))
+            .await
             .inspect(|release| info!("Found release at: {} (id={}).", release.html_url, release.id))
-            .context(format!("No release with tag matching `{text}` in {self}."))
+            .with_context(|| format!("No release with tag matching `{text}` in {self}."))
+    }
+
+    #[tracing::instrument(fields(%self, %text), err)]
+    pub async fn find_release_by_tag(&self, text: &str) -> anyhow::Result<Release> {
+        self.find_release_if(|release| release.tag_name == text)
+            .await
+            .inspect(|release| info!("Found release at: {} (id={}).", release.html_url, release.id))
+            .with_context(|| format!("No release with tag equal to `{text}` in {self}."))
+    }
+
+    pub async fn get_ref(&self, r#ref: &Reference) -> Result<Ref> {
+        self.repos().get_ref(r#ref).await.context(format!("Failed to get ref `{ref}` in {self}."))
     }
 
     #[tracing::instrument(fields(%self, %run_id, %name), err, ret)]
@@ -301,5 +320,25 @@ impl<R: IsRepo> Handle<R> {
             .get()
             .await
             .with_context(|| format!("Failed to get the infomation for the {self} repository."))
+    }
+
+    /// Get the name of the default branch.
+    pub async fn default_branch(&self) -> Result<String> {
+        self.get().await?.default_branch.with_context(|| {
+            format!(
+                "Failed to get the default branch of the {} repository. Missing field: `default_branch`.",
+                self
+            )
+        })
+    }
+
+    /// Dispatches the workflow using the head of the default branch.
+    pub async fn dispatch_workflow(
+        &self,
+        workflow_id: impl AsRef<str> + Send + Sync + 'static,
+        inputs: &impl Serialize,
+    ) -> Result {
+        let default_branch = self.default_branch().await?;
+        crate::github::workflow::dispatch(self, workflow_id, default_branch, inputs).await
     }
 }

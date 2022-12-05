@@ -1,8 +1,6 @@
 from Standard.Base import all
 
-import Standard.Base.Network.URI
-
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec =
@@ -31,3 +29,5 @@ spec =
             addr.raw_fragment.should_fail_with Nothing
         Test.specify "should return Syntax_Error when parsing invalid URI" <|
             URI.parse "a b c" . should_fail_with Syntax_Error_Data
+
+main = Test_Suite.run_main spec

@@ -115,6 +115,11 @@ pub enum Notification {
     #[serde(rename = "file/event")]
     FileEvent(FileEvent),
 
+    /// This is a notification sent from the server to the clients to inform them of any successful
+    /// auto-save action.
+    #[serde(rename = "text/autoSave")]
+    TextAutoSave(TextAutoSave),
+
     /// Sent from the server to the client to inform about new information for certain expressions
     /// becoming available. This notification is superseded by executionContext/expressionUpdates.
     #[serde(rename = "executionContext/expressionValuesComputed")]
@@ -324,6 +329,20 @@ pub enum FileEventKind {
     Added,
     Removed,
     Modified,
+}
+
+
+
+// ====================================
+// === Text Auto-save Notifications ===
+// ====================================
+
+/// The `text/autoSave` notification parameters.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize)]
+#[allow(missing_docs)]
+pub struct TextAutoSave {
+    pub path: Path,
 }
 
 

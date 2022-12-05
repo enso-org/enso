@@ -428,16 +428,18 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 ```typescript
 // The argument of a constructor, method or function suggestion.
 interface SuggestionEntryArgument {
-  // The argument name
+  /** The argument name. */
   name: string;
-  // The argument type. String 'Any' is used to specify generic types
+  /** The argument type. String 'Any' is used to specify generic types. */
   type: string;
-  // Indicates whether the argument is lazy
+  /** Indicates whether the argument is lazy. */
   isSuspended: bool;
-  // Indicates whether the argument has default value
+  /** Indicates whether the argument has default value. */
   hasDefault: bool;
-  // Optional default value
+  /** Optional default value. */
   defaultValue?: string;
+  /** Optional list of possible values that this argument takes. */
+  tagValues?: string[];
 }
 ```
 

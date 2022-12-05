@@ -32,6 +32,17 @@ type Ordering
         Ordering.Greater -> 1
         Ordering.Equal -> 0
 
+    ## A lexicographical comparison.
+
+    and_then : Ordering -> Ordering
+    and_then self ~other = case self of
+        Ordering.Less -> Ordering.Less
+        Ordering.Equal -> other
+        Ordering.Greater -> Ordering.Greater
+
+    compare_to : Ordering -> Ordering
+    compare_to self other = self.to_sign.compare_to other.to_sign
+
     ## Converts a sign-based representation of ordering to Enso's native ordering.
 
        Arguments:

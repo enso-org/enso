@@ -1,48 +1,47 @@
-from Standard.Base import all
+import project.Any.Any
+import project.Data.Boolean.Boolean
+import project.Data.Json.Json
+import project.Data.Text.Text
+import project.Error.Error
+import project.Nothing.Nothing
+import project.Panic.Panic
 
-import Standard.Base.Network.URI.Internal
+from project.Error.Common import Syntax_Error
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
-## ALIAS Get URI
+## PRIVATE
 
-   Parse a URI from text.
+   Handle a nothing value.
 
    Arguments:
-   - text: The text to parse as a URI.
-
-   Throws a Syntax_Error when the text cannot be parsed as a URI.
-
-   > Example
-     Parse URI text.
-
-         import Standard.Base.Network.URI
-
-         example_parse = URI.parse "http://example.com"
-parse : Text -> URI ! Syntax_Error
-parse text =
-    Panic.catch_java Any (URI_Data (Java_URI.create text)) java_exception->
-        Error.throw (Syntax_Error_Data ("URI syntax error: " + java_exception.getMessage))
-
-## Convert Text to a URI.
-
-   Throws a Syntax_Error when `self` cannot be parsed as a URI.
-
-   > Example
-     Parse URI text.
-
-         import Standard.Base.Network.URI
-
-         example_parse = "http://example.com".to_uri
-Text.to_uri : URI ! Syntax_Error
-Text.to_uri self = parse self
-
-## TODO Dubious constructor export
-from project.Network.URI.URI import all
-from project.Network.URI.URI export all
+   - value: The value that may possibly be nothing.
+handle_nothing : Any -> Any ! Nothing
+handle_nothing value = case value of
+    Nothing -> Error.throw Nothing
+    _ -> value
 
 type URI
+    ## ALIAS Get URI
+
+       Parse a URI from text.
+
+       Arguments:
+       - text: The text to parse as a URI.
+
+       Throws a Syntax_Error when the text cannot be parsed as a URI.
+
+       > Example
+         Parse URI text.
+
+             import Standard.Base.Network.URI.URI
+
+             example_parse = URI.parse "http://example.com"
+    parse : Text -> URI ! Syntax_Error
+    parse text =
+        Panic.catch_java Any (URI.Value (Java_URI.create text)) java_exception->
+            Error.throw (Syntax_Error.Syntax_Error_Data ("URI syntax error: " + java_exception.getMessage))
 
     ## PRIVATE
 
@@ -50,7 +49,7 @@ type URI
 
        Arguments:
        - internal_uri: The internal representation of the URI.
-    URI_Data internal_uri
+    Value internal_uri
 
     ## Convert this to URI.
 
@@ -72,7 +71,7 @@ type URI
 
              example_scheme = Examples.uri.scheme
     scheme : Text ! Nothing
-    scheme self = Internal.handle_nothing self.internal_uri.getScheme
+    scheme self = handle_nothing self.internal_uri.getScheme
 
     ## Get the user info part of this URI.
 
@@ -83,7 +82,7 @@ type URI
 
              example_user_info = Examples.uri.user_info
     user_info : Text ! Nothing
-    user_info self = Internal.handle_nothing self.internal_uri.getUserInfo
+    user_info self = handle_nothing self.internal_uri.getUserInfo
 
     ## Get the host part of this URI.
 
@@ -94,7 +93,7 @@ type URI
 
              example_host = Examples.uri.host
     host : Text ! Nothing
-    host self = Internal.handle_nothing self.internal_uri.getHost
+    host self = handle_nothing self.internal_uri.getHost
 
     ## Get the authority (user info and host) part of this URI.
 
@@ -105,7 +104,7 @@ type URI
 
              example_authority = Examples.uri.authority
     authority : Text ! Nothing
-    authority self = Internal.handle_nothing self.internal_uri.getAuthority
+    authority self = handle_nothing self.internal_uri.getAuthority
 
     ## Get the port part of this URI.
 
@@ -118,7 +117,7 @@ type URI
     port : Text ! Nothing
     port self =
         port_number = self.internal_uri.getPort
-        Internal.handle_nothing <|
+        handle_nothing <|
             if port_number == -1 then Nothing else port_number.to_text
 
     ## Get the path part of this URI.
@@ -130,7 +129,7 @@ type URI
 
              example_path = Examples.uri.path
     path : Text ! Nothing
-    path self = Internal.handle_nothing self.internal_uri.getPath
+    path self = handle_nothing self.internal_uri.getPath
 
     ## Get the query part of this URI.
 
@@ -141,7 +140,7 @@ type URI
 
              example_query = Examples.uri.query
     query : Text ! Nothing
-    query self = Internal.handle_nothing self.internal_uri.getQuery
+    query self = handle_nothing self.internal_uri.getQuery
 
     ## Get the fragment part of this URI.
 
@@ -152,37 +151,37 @@ type URI
 
              example_fragment = Examples.uri.fragment
     fragment : Text ! Nothing
-    fragment self = Internal.handle_nothing self.internal_uri.getFragment
+    fragment self = handle_nothing self.internal_uri.getFragment
 
     ## ADVANCED
 
        Get the unescaped user info part of this URI.
     raw_user_info : Text ! Nothing
-    raw_user_info self = Internal.handle_nothing self.internal_uri.getRawUserInfo
+    raw_user_info self = handle_nothing self.internal_uri.getRawUserInfo
 
     ## ADVANCED
 
        Get the unescaped authority part of this URI.
     raw_authority : Text ! Nothing
-    raw_authority self = Internal.handle_nothing self.internal_uri.getRawAuthority
+    raw_authority self = handle_nothing self.internal_uri.getRawAuthority
 
     ## ADVANCED
 
        Get the unescaped path part of this URI.
     raw_path : Text ! Nothing
-    raw_path self = Internal.handle_nothing self.internal_uri.getRawPath
+    raw_path self = handle_nothing self.internal_uri.getRawPath
 
     ## ADVANCED
 
        Get the unescaped query part of this URI.
     raw_query : Text ! Nothing
-    raw_query self = Internal.handle_nothing self.internal_uri.getRawQuery
+    raw_query self = handle_nothing self.internal_uri.getRawQuery
 
     ## ADVANCED
 
        Get the unescaped fragment part of this URI.
     raw_fragment : Text ! Nothing
-    raw_fragment self = Internal.handle_nothing self.internal_uri.getRawFragment
+    raw_fragment self = handle_nothing self.internal_uri.getRawFragment
 
     ## Convert this URI to text.
 
@@ -200,7 +199,7 @@ type URI
        > Example
          Convert a URI to JSON.
 
-             import Standard.Base.Network.URI
+             import Standard.Base.Network.URI.URI
              import Standard.Examples
 
              example_to_json = Examples.uri.to_json
@@ -212,7 +211,7 @@ type URI
        > Example
          Check if two URIs are equal.
 
-             import Standard.Base.Network.URI
+             import Standard.Base.Network.URI.URI
 
              example_eq = "https://example.com".to_uri == "http://example.org".to_uri
     == : URI -> Boolean

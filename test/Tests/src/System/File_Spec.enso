@@ -190,12 +190,12 @@ spec =
             f.read_bytes.should_equal (data + data_2)
             f.delete_if_exists
 
-        Test.specify "should fail with Illegal_Argument_Error when trying to write invalid byte vector" <|
+        Test.specify "should fail with Illegal_Argument when trying to write invalid byte vector" <|
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument_Error_Data
-            [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument.Error
+            [0, 1, Nothing].write_bytes f . should_fail_with Illegal_Argument.Error
 
         Test.specify "should not change the file when trying to write an invalid byte vector" <|
             f = transient / "work.txt"
@@ -203,12 +203,12 @@ spec =
             f_bak = transient / "work.txt.bak"
             f_bak.delete_if_exists
             data.write_bytes f
-            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f . should_fail_with Illegal_Argument.Error
             f.read_bytes.should_equal data
             f_bak.exists.should_be_false
-            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Overwrite . should_fail_with Illegal_Argument.Error
             f.read_bytes.should_equal data
-            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
+            [0, 1, 256].write_bytes f on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
             f.read_bytes.should_equal data
             f.delete_if_exists
 
@@ -293,10 +293,10 @@ spec =
             new_file = transient / "work.txt.new"
             [bak_file, new_file].each .delete_if_exists
 
-            result = Panic.catch Illegal_State_Error_Data handler=(caught_panic-> caught_panic.payload.message) <|
+            result = Panic.catch Illegal_State.Error handler=(caught_panic-> caught_panic.payload.message) <|
                 Existing_File_Behavior.Backup.write f output_stream->
                     output_stream.write_bytes "foo".utf_8
-                    Panic.throw (Illegal_State_Error_Data "baz")
+                    Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
                 Test.fail "Control flow should never get here, because the panic should have been propagated and handled."
             result.should_equal "baz"
@@ -307,10 +307,10 @@ spec =
                 Test.fail "The temporary file should have been cleaned up."
             f.delete
 
-            result2 = Panic.catch Illegal_State_Error_Data handler=(caught_panic-> caught_panic.payload.message) <|
+            result2 = Panic.catch Illegal_State.Error handler=(caught_panic-> caught_panic.payload.message) <|
                 Existing_File_Behavior.Backup.write f output_stream->
                     output_stream.write_bytes "foo".utf_8
-                    Panic.throw (Illegal_State_Error_Data "baz")
+                    Panic.throw (Illegal_State.Error "baz")
                     output_stream.write_bytes "bar".utf_8
                 Test.fail "Control flow should never get here, because the panic should have been propagated and handled."
             result2.should_equal "baz"
@@ -326,8 +326,8 @@ spec =
             "OLD".write f on_existing_file=Existing_File_Behavior.Overwrite
             result3 = Existing_File_Behavior.Backup.write f output_stream->
                 output_stream.write_bytes "foo".utf_8
-                Error.throw (Illegal_State_Error_Data "HMM...")
-            result3.should_fail_with Illegal_State_Error_Data
+                Error.throw (Illegal_State.Error "HMM...")
+            result3.should_fail_with Illegal_State.Error
             result3.catch.message . should_equal "HMM..."
             f.read_text . should_equal "OLD"
             if bak_file.exists then
@@ -338,8 +338,8 @@ spec =
 
             result4 = Existing_File_Behavior.Backup.write f output_stream->
                 output_stream.write_bytes "foo".utf_8
-                Error.throw (Illegal_State_Error_Data "HMM...")
-            result4.should_fail_with Illegal_State_Error_Data
+                Error.throw (Illegal_State.Error "HMM...")
+            result4.should_fail_with Illegal_State.Error
             result4.catch.message . should_equal "HMM..."
             if f.exists.not then
                 Test.fail "Since we were writing to the original destination, the partially written file should have been preserved even upon failure."

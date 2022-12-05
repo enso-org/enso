@@ -15,7 +15,7 @@ import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
 
 from project.Data.SQL import code
-from project.Errors import Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -158,7 +158,7 @@ first_last_aggregators =
     [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
 
 make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State_Error_Data "Insufficient number of arguments for the operation.") else
+    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
         result_expr = args.head
         order_bys = args.tail
 
@@ -192,7 +192,7 @@ concat_ops =
 
 
 ## PRIVATE
-agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT requires at least one argument.")) else
+agg_count_distinct args = if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
     case args.length == 1 of
         True ->
             ## A single null value will be skipped.
@@ -236,7 +236,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
     case internal_column.sql_type.is_likely_text of
         True ->
             ## In the future we can modify this error to suggest using a custom defined collation.
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error_Data "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is currently not supported. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Nothing ->
                         Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
@@ -244,7 +244,7 @@ make_order_descriptor internal_column sort_direction text_ordering =
                         Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="ucs_basic"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation_Error_Data "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is currently not supported. You may need to materialize the Table to perform this operation.")
                         True ->
                             upper = SQL_Expression.Operation "UPPER" [internal_column.expression]
                             folded_expression = SQL_Expression.Operation "LOWER" [upper]

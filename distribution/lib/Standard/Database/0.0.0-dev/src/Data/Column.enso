@@ -6,7 +6,6 @@ import Standard.Table.Data.Column.Column as Materialized_Column
 
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
-import project.Data.Table.Integrity_Error
 import project.Internal.Helpers
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
@@ -15,7 +14,7 @@ import project.Internal.IR.Query.Query
 
 from project.Data.Table import Table, freshen_columns
 
-from project.Errors import Unsupported_Database_Operation_Error, Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation, Integrity_Error
 
 type Column
 
@@ -132,7 +131,7 @@ type Column
         prepare_operand operand operand_type = case operand of
             other_column : Column ->
                 if Helpers.check_integrity self other_column then other_column.expression else
-                    Error.throw <| Unsupported_Database_Operation_Error_Data "Cannot use columns coming from different contexts in one expression without a join."
+                    Error.throw <| Unsupported_Database_Operation.Error "Cannot use columns coming from different contexts in one expression without a join."
             constant ->
                 actual_operand_type = operand_type.if_nothing self.sql_type
                 SQL_Expression.Constant actual_operand_type constant
@@ -476,7 +475,7 @@ type Column
            common type.
         left_type = get_approximate_type when_true self.sql_type
         right_type = get_approximate_type when_false self.sql_type
-        if left_type != right_type then Error.throw (Illegal_Argument_Error_Data "when_true and when_false types do not match") else
+        if left_type != right_type then Error.throw (Illegal_Argument.Error "when_true and when_false types do not match") else
             self.make_op "IIF" [when_true, when_false] new_type=left_type
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
@@ -494,7 +493,7 @@ type Column
     coalesce : (Any | Vector Any) -> Column
     coalesce self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
                 self.make_op "COALESCE" values new_type=self.sql_type
         _ : Array -> self.coalesce (Vector.from_polyglot_array values)
         _ -> self.coalesce [values]
@@ -513,7 +512,7 @@ type Column
     min : (Any | Vector Any) -> Column
     min self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
                 self.make_op "ROW_MIN" values new_type=self.sql_type
         _ : Array -> self.min (Vector.from_polyglot_array values)
         _ -> self.min [values]
@@ -532,7 +531,7 @@ type Column
     max : (Any | Vector Any) -> Column
     max self values = case values of
         _ : Vector ->
-            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument_Error_Data "self and values types do not all match") else
+            if values.any (v->(self.sql_type != get_approximate_type v self.sql_type)) then Error.throw (Illegal_Argument.Error "self and values types do not all match") else
                 self.make_op "ROW_MAX" values new_type=self.sql_type
         _ : Array -> self.max (Vector.from_polyglot_array values)
         _ -> self.max [values]
@@ -605,7 +604,7 @@ type Column
         True ->
             is_used_in_index = self.context.meta_index.exists i-> i.name == new_name
             case is_used_in_index of
-                True -> Error.throw <| Illegal_State_Error_Data "Cannot rename the column to "+new_name+", because it has an index with the same name."
+                True -> Error.throw <| Illegal_State.Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
                 False ->
                     Column.Value new_name self.connection self.sql_type self.expression self.context
 
@@ -641,7 +640,7 @@ type Column
     take self range=(First 1) =
         _ = range
         msg = "`Column.take` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## UNSTABLE
        Creates a new Column from the input with the specified range of rows
@@ -653,7 +652,7 @@ type Column
     drop self range=(First 1) =
         _ = range
         msg = "`Column.drop` is not yet implemented."
-        Error.throw (Unsupported_Database_Operation_Error_Data msg)
+        Error.throw (Unsupported_Database_Operation.Error msg)
 
     ## UNSTABLE
 

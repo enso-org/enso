@@ -38,10 +38,10 @@ spec = Test.group "Range" <|
         10.down_to 0 . with_step 2 . should_equal (Range.Value 10 0 -2)
         10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
 
-        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument_Error_Data
-        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument_Error_Data
-        0.up_to 2.0 . should_fail_with Illegal_Argument_Error_Data
-        0.down_to 2.0 . should_fail_with Illegal_Argument_Error_Data
+        1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument.Error
+        1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument.Error
+        0.up_to 2.0 . should_fail_with Illegal_Argument.Error
+        0.down_to 2.0 . should_fail_with Illegal_Argument.Error
         Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error_Data
         Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error_Data
 
@@ -146,11 +146,11 @@ spec = Test.group "Range" <|
         3.up_to 5 . contains 2 . should_be_false
         0.up_to 10 . contains -3 . should_be_false
 
-        0.up_to 10 . contains 2.5 . should_fail_with Illegal_Argument_Error_Data
-        0.up_to 10 . contains 3.0 . should_fail_with Illegal_Argument_Error_Data
+        0.up_to 10 . contains 2.5 . should_fail_with Illegal_Argument.Error
+        0.up_to 10 . contains 3.0 . should_fail_with Illegal_Argument.Error
 
-        5.down_to 0 . contains 2.5 . should_fail_with Illegal_Argument_Error_Data
-        5.down_to 0 . contains 3.0 . should_fail_with Illegal_Argument_Error_Data
+        5.down_to 0 . contains 2.5 . should_fail_with Illegal_Argument.Error
+        5.down_to 0 . contains 3.0 . should_fail_with Illegal_Argument.Error
 
 
     verify_contains range expected unexpected =
@@ -370,22 +370,22 @@ spec = Test.group "Range" <|
         verify_contains r4 [3] [-3, -2, -1, 0, 1, 2, 4, 5, 6, 7, 10]
 
     Test.specify "should report errors if trying to set step to 0" <|
-        0.up_to 0 . with_step 0 . should_fail_with Illegal_State_Error_Data
+        0.up_to 0 . with_step 0 . should_fail_with Illegal_State.Error
         invalid_range = Range.Value 0 0 0
-        invalid_range . length . should_fail_with Illegal_State_Error_Data
-        invalid_range . is_empty . should_fail_with Illegal_State_Error_Data
-        invalid_range . not_empty . should_fail_with Illegal_State_Error_Data
-        invalid_range . each x->x . should_fail_with Illegal_State_Error_Data
-        invalid_range . fold 0 (+) . should_fail_with Illegal_State_Error_Data
+        invalid_range . length . should_fail_with Illegal_State.Error
+        invalid_range . is_empty . should_fail_with Illegal_State.Error
+        invalid_range . not_empty . should_fail_with Illegal_State.Error
+        invalid_range . each x->x . should_fail_with Illegal_State.Error
+        invalid_range . fold 0 (+) . should_fail_with Illegal_State.Error
         ## FIXME [RW] These tests are disabled because they fail in an
            unexpected way due to a codegen issue (noted below). They should be
            enabled once that is resolved.
            See: https://www.pivotaltracker.com/story/show/181652841
-        #invalid_range . map x->x . should_fail_with Illegal_State_Error
-        #invalid_range . to_vector . should_fail_with Illegal_State_Error
-        invalid_range . any _->True . should_fail_with Illegal_State_Error_Data
-        invalid_range . all _->True . should_fail_with Illegal_State_Error_Data
-        invalid_range . find _->True . should_fail_with Illegal_State_Error_Data
-        invalid_range . contains 0 . should_fail_with Illegal_State_Error_Data
+        #invalid_range . map x->x . should_fail_with Illegal_State.Error
+        #invalid_range . to_vector . should_fail_with Illegal_State.Error
+        invalid_range . any _->True . should_fail_with Illegal_State.Error
+        invalid_range . all _->True . should_fail_with Illegal_State.Error
+        invalid_range . find _->True . should_fail_with Illegal_State.Error
+        invalid_range . contains 0 . should_fail_with Illegal_State.Error
 
 main = Test_Suite.run_main spec

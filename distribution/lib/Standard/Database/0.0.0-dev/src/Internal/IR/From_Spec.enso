@@ -19,7 +19,7 @@ type From_Spec
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-    From_Table (table_name : Text) (alias : Text)
+    Table (table_name : Text) (alias : Text)
 
     ## PRIVATE
 
@@ -31,7 +31,7 @@ type From_Spec
          parts of the query, this is especially useful for example in
          self-joins, allowing to differentiate between different instances of
          the same table.
-    From_Query (raw_sql : Text) (alias : Text)
+    Query (raw_sql : Text) (alias : Text)
 
     ## PRIVATE
 

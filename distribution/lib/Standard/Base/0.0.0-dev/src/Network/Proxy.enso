@@ -1,11 +1,22 @@
-from Standard.Base import all
-
-## TODO Dubious constructor export
-from project.Network.Proxy.Proxy import all
-from project.Network.Proxy.Proxy export all
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
 
 ## Proxy settings.
 type Proxy
+    ## Create new proxy settings from a host and port.
+
+       Arguments:
+       - host: The host address for the proxy.
+       - port: The port number for the proxy server on `host`.
+
+       > Example
+         Create a new proxy running on localhost at port 80080.
+
+             import Standard.Base.Network.Proxy.Proxy
+
+             example_new = Proxy.new "localhost" 80800
+    new : Text -> Integer -> Proxy
+    new host port=80 = Proxy.Address host port
 
     ## The proxy is disabled.
     None
@@ -14,19 +25,4 @@ type Proxy
     System
 
     ## Use the provided proxy server.
-    Proxy_Addr proxy_host proxy_port
-
-## Create new proxy settings from a host and port.
-
-   Arguments:
-   - host: The host address for the proxy.
-   - port: The port number for the proxy server on `host`.
-
-   > Example
-     Create a new proxy running on localhost at port 80080.
-
-         import Standard.Base.Network.Proxy
-
-         example_new = Proxy.new "localhost" 80800
-new : Text -> Integer -> Proxy
-new host port=80 = Proxy_Addr host port
+    Address proxy_host proxy_port

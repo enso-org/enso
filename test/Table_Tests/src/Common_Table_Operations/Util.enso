@@ -1,0 +1,15 @@
+from Standard.Base import all
+
+import Standard.Test
+from Standard.Test import Test_Suite
+
+import project.In_Memory.Table_Spec as In_Memory_Table_Spec
+
+expect_column_names names table =
+    table.columns . map .name . should_equal names frames_to_skip=2
+
+## These tests are parametrized by various backends and so they should be run in
+   context of a specific backend. However, for the purpose of testing we provide
+   a shortcut that allows to run these tests with the in-memory backend.
+run_default_backend spec =
+    Test_Suite.run_main (In_Memory_Table_Spec.run_common_spec spec)

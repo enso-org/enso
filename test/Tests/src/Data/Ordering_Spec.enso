@@ -42,4 +42,26 @@ spec =
             Ordering.from_sign 0 . should_equal Ordering.Equal
             Ordering.from_sign 1 . should_equal Ordering.Greater
 
+        Test.specify "should be ordered itself" <|
+            Ordering.Less.compare_to Ordering.Less . should_equal Ordering.Equal
+            Ordering.Less.compare_to Ordering.Equal . should_equal Ordering.Less
+            Ordering.Less.compare_to Ordering.Greater . should_equal Ordering.Less
+            Ordering.Equal.compare_to Ordering.Less . should_equal Ordering.Greater
+            Ordering.Equal.compare_to Ordering.Equal . should_equal Ordering.Equal
+            Ordering.Equal.compare_to Ordering.Greater . should_equal Ordering.Less
+            Ordering.Greater.compare_to Ordering.Less . should_equal Ordering.Greater
+            Ordering.Greater.compare_to Ordering.Equal . should_equal Ordering.Greater
+            Ordering.Greater.compare_to Ordering.Greater . should_equal Ordering.Equal
+
+        Test.specify "should allow lexicographical composition" <|
+            Ordering.Less.and_then Ordering.Less . should_equal Ordering.Less
+            Ordering.Less.and_then Ordering.Equal . should_equal Ordering.Less
+            Ordering.Less.and_then Ordering.Greater . should_equal Ordering.Less
+            Ordering.Equal.and_then Ordering.Less . should_equal Ordering.Less
+            Ordering.Equal.and_then Ordering.Equal . should_equal Ordering.Equal
+            Ordering.Equal.and_then Ordering.Greater . should_equal Ordering.Greater
+            Ordering.Greater.and_then Ordering.Less . should_equal Ordering.Greater
+            Ordering.Greater.and_then Ordering.Equal . should_equal Ordering.Greater
+            Ordering.Greater.and_then Ordering.Greater . should_equal Ordering.Greater
+
 main = Test_Suite.run_main spec

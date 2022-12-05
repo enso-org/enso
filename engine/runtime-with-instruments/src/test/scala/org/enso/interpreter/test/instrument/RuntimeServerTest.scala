@@ -88,7 +88,7 @@ class RuntimeServerTest
       languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
-    );
+    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -3365,8 +3365,8 @@ class RuntimeServerTest
 
     val code =
       """import Standard.Base.IO
-        |from Standard.Base.Error.Common import all
-        |from Standard.Base.Data.Any import all
+        |import Standard.Base.Panic.Panic
+        |import Standard.Base.Any.Any
         |
         |main =
         |    x = Panic.catch_primitive () .convert_to_dataflow_error

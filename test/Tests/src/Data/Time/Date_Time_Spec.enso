@@ -638,7 +638,7 @@ maybe_parse_java_zoned text pattern=Nothing =
         ZonedDateTime.parse text pattern
 
 parse_java_local original_error text pattern=Nothing =
-    Panic.catch Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error.Error original_error.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error.Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error.Error original_error.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalDateTime.parse text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDateTime.parse text (formatter.withLocale Locale.default.java_locale)
@@ -646,8 +646,8 @@ parse_java_local original_error text pattern=Nothing =
 java_parse date_text_raw pattern=Nothing =
   utc_replaced = date_text_raw.replace "[UTC]" "Z"
   date_text = if utc_replaced.ends_with "ZZ" then date_text_raw else utc_replaced
-  if pattern == Nothing then Panic.catch Polyglot_Error_Data (maybe_parse_java_zoned date_text) (err -> parse_java_local err date_text pattern) else
+  if pattern == Nothing then Panic.catch Polyglot_Error.Polyglot_Error_Data (maybe_parse_java_zoned date_text) (err -> parse_java_local err date_text pattern) else
       formatter = DateTimeFormatter.ofPattern(pattern)
-      Panic.catch Polyglot_Error_Data (maybe_parse_java_zoned date_text formatter) (err -> parse_java_local err date_text pattern)
+      Panic.catch Polyglot_Error.Polyglot_Error_Data (maybe_parse_java_zoned date_text formatter) (err -> parse_java_local err date_text pattern)
 
 main = Test_Suite.run_main spec

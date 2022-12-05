@@ -1,8 +1,8 @@
-from Standard.Base import all
+import project.Data.Locale.Locale
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Nothing.Nothing
 
-# TODO Dubious constructor export
-from project.Data.Text.Text_Ordering.Text_Ordering import all
-from project.Data.Text.Text_Ordering.Text_Ordering export all
+from project.Data.Boolean import Boolean, True, False
 
 type Text_Ordering
     ## Specifies the ordering of text values.
@@ -45,6 +45,6 @@ type Text_Ordering
        is to be determined by the backend.
     case_sensitivity : Case_Sensitivity
     case_sensitivity self = case self of
-        Default _ -> Nothing
-        Case_Sensitive _ -> Case_Sensitivity.Sensitive
-        Case_Insensitive locale _ -> Case_Sensitivity.Insensitive locale
+        Text_Ordering.Default _ -> Nothing
+        Text_Ordering.Case_Sensitive _ -> Case_Sensitivity.Sensitive
+        Text_Ordering.Case_Insensitive locale _ -> Case_Sensitivity.Insensitive locale

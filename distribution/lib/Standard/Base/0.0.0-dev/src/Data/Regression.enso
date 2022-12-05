@@ -1,11 +1,13 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Numbers.Number
 import project.Data.Statistics.Statistic
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Nothing.Nothing
+import project.Panic.Panic
 
-from project.Error.Common import Error, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error
+from project.Error.Common import Illegal_Argument
 
 polyglot java import org.enso.base.statistics.Regression
 polyglot java import org.enso.base.statistics.FitError
@@ -34,16 +36,16 @@ type Model
     ## PRIVATE
 
        Computes the natural log series as long as all values are positive.
-    ln_series : Vector -> Vector ! Illegal_Argument_Error
+    ln_series : Vector -> Vector ! Illegal_Argument
     ln_series xs series_name="Values" =
         ln_with_panic x = if x.is_nothing then Nothing else
-            if x <= 0 then Panic.throw (Illegal_Argument_Error_Data (series_name + " must be positive.")) else x.ln
-        Panic.recover Illegal_Argument_Error_Data <| xs.map ln_with_panic
+            if x <= 0 then Panic.throw (Illegal_Argument.Error (series_name + " must be positive.")) else x.ln
+        Panic.recover Illegal_Argument.Error <| xs.map ln_with_panic
 
 ## Use Least Squares to fit a line to the data.
-fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument_Error | Fit_Error
+fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument | Fit_Error
 fit_least_squares known_xs known_ys model=Model.Linear =
-    Illegal_Argument_Error.handle_java_exception <| Fit_Error.handle_java_exception <| case model of
+    Illegal_Argument.handle_java_exception <| Fit_Error.handle_java_exception <| case model of
         Model.Linear intercept ->
             fitted = if intercept.is_nothing then Regression.fit_linear known_xs.to_array known_ys.to_array else
                 Regression.fit_linear known_xs.to_array known_ys.to_array intercept
@@ -62,7 +64,7 @@ fit_least_squares known_xs known_ys model=Model.Linear =
             log_ys = Model.ln_series known_ys "Y-values"
             fitted = Regression.fit_linear log_xs.to_array log_ys.to_array
             Model.fitted_model_with_r_squared Fitted_Model.Power fitted.intercept.exp fitted.slope known_xs known_ys
-        _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported model.")
+        _ -> Error.throw (Illegal_Argument.Error "Unsupported model.")
 
 type Fitted_Model
     ## Fitted line (y = slope x + intercept).
@@ -94,7 +96,7 @@ type Fitted_Model
         Fitted_Model.Exponential a b _ -> a * (b * x).exp
         Fitted_Model.Logarithmic a b _ -> a * x.ln + b
         Fitted_Model.Power a b _ -> a * (x ^ b)
-        _ -> Error.throw (Illegal_Argument_Error_Data "Unsupported model.")
+        _ -> Error.throw (Illegal_Argument.Error "Unsupported model.")
 
 ## PRIVATE
 

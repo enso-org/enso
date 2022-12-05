@@ -1,10 +1,11 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Maybe.Maybe
 import project.Data.Numbers.Integer
 import project.Data.Pair.Pair
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Nothing.Nothing
 import project.Polyglot
 import project.Runtime
@@ -12,7 +13,6 @@ import project.Runtime.Source_Location.Source_Location
 import project.Runtime.Stack_Trace_Element
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -106,7 +106,7 @@ type Warning
        > Example
          Detach warnings of a specific type.
 
-             result = Warning.detach_selected_warnings value (_.is_a Illegal_State_Error)
+             result = Warning.detach_selected_warnings value (_.is_a Illegal_State.Error)
              result.first # `value` with the matched warnings removed
              result.second # the list of matched warnings
     detach_selected_warnings : Any -> (Any -> Boolean) -> Pair Any Vector

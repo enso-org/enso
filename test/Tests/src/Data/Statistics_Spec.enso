@@ -137,12 +137,12 @@ spec =
         ord_set = [Ord.Value 10, Ord.Value 2, Nothing, Ord.Value 9]
         no_ord_set = [No_Ord.Value 10, No_Ord.Value 2, Nothing, No_Ord.Value 9]
 
-        Test.specify "should fail with Illegal_Argument_Error on number based statistics for text Vector" <|
-            text_set.compute Statistic.Sum . should_fail_with Illegal_Argument_Error_Data
-            text_set.compute Statistic.Mean . should_fail_with Illegal_Argument_Error_Data
-            text_set.compute Statistic.Variance . should_fail_with Illegal_Argument_Error_Data
-            text_set.compute Statistic.Skew . should_fail_with Illegal_Argument_Error_Data
-            text_set.compute Statistic.Kurtosis . should_fail_with Illegal_Argument_Error_Data
+        Test.specify "should fail with Illegal_Argument on number based statistics for text Vector" <|
+            text_set.compute Statistic.Sum . should_fail_with Illegal_Argument.Error
+            text_set.compute Statistic.Mean . should_fail_with Illegal_Argument.Error
+            text_set.compute Statistic.Variance . should_fail_with Illegal_Argument.Error
+            text_set.compute Statistic.Skew . should_fail_with Illegal_Argument.Error
+            text_set.compute Statistic.Kurtosis . should_fail_with Illegal_Argument.Error
 
         Test.specify "should be able to do Count, Minimum and Maximum on custom type with compare_to" <|
             ord_set.compute . should_equal 3
@@ -185,8 +185,8 @@ spec =
         Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
             Statistic.rank_data [1, "A"] . should_fail_with Incomparable_Values_Error
 
-        Test.specify "should fail with Illegal_Argument_Error on Vectors with Nothing" <|
-            Statistic.rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument_Error_Data
+        Test.specify "should fail with Illegal_Argument on Vectors with Nothing" <|
+            Statistic.rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument.Error
 
     Test.group "Correlation Statistics" <|
         series_a = [0.22345,0.258315,0.74663,Nothing,0.686843,0.692246,Nothing,0.401859,0.725442,Nothing,0.963527,0.520363,0.633053,0.397123,Nothing,0.458942,0.036499,0.368194,0.598939,0.296476,0.093746,0.609329]
@@ -221,30 +221,30 @@ spec =
             vector_compare (matrix.at 1) [-0.09313725, 1, 0]
             vector_compare (matrix.at 2) [-0.43382353, 0, 1]
 
-        Test.specify "should fail with Illegal_Argument_Error if different lengths" <|
+        Test.specify "should fail with Illegal_Argument if different lengths" <|
             data = [[1,2,3,4],[10,20,30]]
-            data.first.compute (Statistic.Covariance data.second) . should_fail_with Illegal_Argument_Error_Data
-            data.first.compute (Statistic.Pearson data.second) . should_fail_with Illegal_Argument_Error_Data
-            data.first.compute (Statistic.Spearman data.second) . should_fail_with Illegal_Argument_Error_Data
-            data.first.compute (Statistic.R_Squared data.second) . should_fail_with Illegal_Argument_Error_Data
-            Statistic.covariance_matrix data . should_fail_with Illegal_Argument_Error_Data
-            Statistic.pearson_correlation data . should_fail_with Illegal_Argument_Error_Data
-            Statistic.spearman_correlation data . should_fail_with Illegal_Argument_Error_Data
+            data.first.compute (Statistic.Covariance data.second) . should_fail_with Illegal_Argument.Error
+            data.first.compute (Statistic.Pearson data.second) . should_fail_with Illegal_Argument.Error
+            data.first.compute (Statistic.Spearman data.second) . should_fail_with Illegal_Argument.Error
+            data.first.compute (Statistic.R_Squared data.second) . should_fail_with Illegal_Argument.Error
+            Statistic.covariance_matrix data . should_fail_with Illegal_Argument.Error
+            Statistic.pearson_correlation data . should_fail_with Illegal_Argument.Error
+            Statistic.spearman_correlation data . should_fail_with Illegal_Argument.Error
 
-        Test.specify "should fail with Illegal_Argument_Error if not number based" <|
+        Test.specify "should fail with Illegal_Argument if not number based" <|
             text = [["A","BC","CD"], ["0", "1", "2"], ["H", "I", "J"]]
-            text.first.compute (Statistic.Covariance text.second) . should_fail_with Illegal_Argument_Error_Data
-            text.first.compute (Statistic.Pearson text.second) . should_fail_with Illegal_Argument_Error_Data
-            text.first.compute (Statistic.Spearman text.second) . should_fail_with Illegal_Argument_Error_Data
-            text.first.compute (Statistic.R_Squared text.second) . should_fail_with Illegal_Argument_Error_Data
-            Statistic.covariance_matrix text . should_fail_with Illegal_Argument_Error_Data
-            Statistic.pearson_correlation text . should_fail_with Illegal_Argument_Error_Data
-            Statistic.spearman_correlation text . should_fail_with Illegal_Argument_Error_Data
+            text.first.compute (Statistic.Covariance text.second) . should_fail_with Illegal_Argument.Error
+            text.first.compute (Statistic.Pearson text.second) . should_fail_with Illegal_Argument.Error
+            text.first.compute (Statistic.Spearman text.second) . should_fail_with Illegal_Argument.Error
+            text.first.compute (Statistic.R_Squared text.second) . should_fail_with Illegal_Argument.Error
+            Statistic.covariance_matrix text . should_fail_with Illegal_Argument.Error
+            Statistic.pearson_correlation text . should_fail_with Illegal_Argument.Error
+            Statistic.spearman_correlation text . should_fail_with Illegal_Argument.Error
 
     Test.group "Statistics - invalid input" <|
-        Test.specify "should fail with Illegal_Argument_Error on number based statistics for text Vector" <|
+        Test.specify "should fail with Illegal_Argument on number based statistics for text Vector" <|
             series = [["A", "B", Nothing, "D"], ["A", "B", Nothing, "D"]]
-            Statistic.covariance_matrix series . should_fail_with Illegal_Argument_Error_Data
-            Statistic.pearson_correlation series . should_fail_with Illegal_Argument_Error_Data
+            Statistic.covariance_matrix series . should_fail_with Illegal_Argument.Error
+            Statistic.pearson_correlation series . should_fail_with Illegal_Argument.Error
 
 main = Test_Suite.run_main spec
