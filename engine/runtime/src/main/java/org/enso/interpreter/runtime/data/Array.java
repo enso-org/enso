@@ -32,10 +32,7 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin.Method(
-      expandVarargs = 4,
-      description = "Creates an array with given elements.",
-      autoRegister = false)
+  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.", autoRegister = false)
   public Array(Object... items) {
     this.items = items;
     this.withWarnings = hasWarningElements(items);
@@ -46,9 +43,7 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(
-      description = "Creates an uninitialized array of a given size.",
-      autoRegister = false)
+  @Builtin.Method(description = "Creates an uninitialized array of a given size.", autoRegister = false)
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -175,8 +170,8 @@ public final class Array implements TruffleObject {
   Array removeWarnings() {
     Object[] items = new Object[this.items.length];
     for (int i = 0; i < this.items.length; i++) {
-      if (this.items[i] instanceof WithWarnings) {
-        items[i] = ((WithWarnings) this.items[i]).getValue();
+      if (this.items[i] instanceof WithWarnings w) {
+        items[i] = w.getValue();
       } else {
         items[i] = this.items[i];
       }

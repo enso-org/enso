@@ -56,8 +56,6 @@ public final class ArrayRope<T> {
     void appendTo(T[] builder, int start);
 
     int size();
-
-    boolean isEmpty();
   }
 
   private static final class ArraySegment<T> implements ArrayRopeSegment<T> {
@@ -75,11 +73,6 @@ public final class ArrayRope<T> {
     @Override
     public int size() {
       return elements.length;
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return elements.length == 0;
     }
 
     @Override
@@ -111,11 +104,6 @@ public final class ArrayRope<T> {
         cachedSize = left.size() + right.size();
       }
       return cachedSize;
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return left.isEmpty() && right.isEmpty();
     }
 
     @Override
