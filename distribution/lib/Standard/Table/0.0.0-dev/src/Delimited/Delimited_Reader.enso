@@ -8,7 +8,7 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 
-from project.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 
 polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader
@@ -130,8 +130,8 @@ translate_reader_problem problem =
     invalid_row = [InvalidRow, (java_problem-> Invalid_Row.Error java_problem.source_row java_problem.table_index (Vector.from_polyglot_array java_problem.row))]
     additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows.Error java_problem.count)]
     mismatched_quote = [MismatchedQuote, (_-> Mismatched_Quote)]
-    duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.duplicatedNames))]
-    invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.invalidNames))]
+    duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array java_problem.duplicatedNames))]
+    invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names.Error (Vector.from_polyglot_array java_problem.invalidNames))]
 
     translations = [invalid_row, additional_invalid_rows, mismatched_quote, duplicate_names, invalid_names]
     found = translations.find t-> Java.is_instance problem t.first

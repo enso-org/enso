@@ -3,14 +3,10 @@ from Standard.Base import all
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 
-# TODO Dubious constructor export
-from project.Errors.Missing_Input_Columns import all
-from project.Errors.Missing_Input_Columns export all
-
 ## One or more columns not found in the input table.
    Can occur when using By_Name or By_Column.
 type Missing_Input_Columns
-    Missing_Input_Columns_Data (criteria : [Text])
+    Error (criteria : [Text])
 
     ## PRIVATE
 
@@ -19,14 +15,10 @@ type Missing_Input_Columns
     to_display_text self =
         "The criteria "+self.criteria.to_text+" did not match any columns."
 
-# TODO Dubious constructor export
-from project.Errors.Column_Indexes_Out_Of_Range import all
-from project.Errors.Column_Indexes_Out_Of_Range export all
-
 ## One or more column indexes were invalid on the input table.
    Can occur when using By_Index.
 type Column_Indexes_Out_Of_Range
-    Column_Indexes_Out_Of_Range_Data (indexes : [Integer])
+    Error (indexes : [Integer])
 
     ## PRIVATE
 
@@ -36,14 +28,10 @@ type Column_Indexes_Out_Of_Range
         True -> "The index " + (self.indexes.at 0).to_text + " is out of range."
         False -> "The indexes "+self.indexes.short_display_text+" are out of range."
 
-# TODO Dubious constructor export
-from project.Errors.Too_Many_Column_Names_Provided import all
-from project.Errors.Too_Many_Column_Names_Provided export all
-
 ## More names than the column count provided to the function.
    Can occur when using By_Position.
 type Too_Many_Column_Names_Provided
-    Too_Many_Column_Names_Provided_Data (column_names : [Text])
+    Error (column_names : [Text])
 
     ## PRIVATE
 
@@ -52,13 +40,9 @@ type Too_Many_Column_Names_Provided
     to_display_text self =
         "Too many column names provided. " + (self.column_names.at 0).to_text + " unused."
 
-# TODO Dubious constructor export
-from project.Errors.Invalid_Output_Column_Names import all
-from project.Errors.Invalid_Output_Column_Names export all
-
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names
-    Invalid_Output_Column_Names_Data (column_names : [Text])
+    Error (column_names : [Text])
 
     ## PRIVATE
 
@@ -68,13 +52,9 @@ type Invalid_Output_Column_Names
         True -> "The name " + (self.column_names.at 0).to_text + " is invalid."
         False -> "The names "+self.column_names.short_display_text+" are invalid."
 
-# TODO Dubious constructor export
-from project.Errors.Duplicate_Output_Column_Names import all
-from project.Errors.Duplicate_Output_Column_Names export all
-
 ## One or more column names clashed during a rename operation.
 type Duplicate_Output_Column_Names
-    Duplicate_Output_Column_Names_Data (column_names : [Text])
+    Error (column_names : [Text])
 
     ## PRIVATE
 
@@ -86,7 +66,6 @@ type Duplicate_Output_Column_Names
 
 ## No columns in the output result.
 type No_Output_Columns
-
     ## PRIVATE
 
        Pretty prints the no output columns error.
@@ -94,28 +73,20 @@ type No_Output_Columns
     to_display_text self =
         "The result contains no columns."
 
-# TODO Dubious constructor export
-from project.Errors.Duplicate_Column_Selectors import all
-from project.Errors.Duplicate_Column_Selectors export all
-
 ## Indicates that the provided Column_Selector has duplicate entries.
 type Duplicate_Column_Selectors
-    Duplicate_Column_Selectors_Data (duplicate_selectors : [(Text | Integer)])
+    Error (duplicate_selectors : [(Text | Integer)])
 
     to_display_text : Text
     to_display_text self =
         "The provided Column_Selector has duplicate entries: "+self.duplicate_selectors.short_display_text+"."
-
-# TODO Dubious constructor export
-from project.Errors.Column_Matched_By_Multiple_Selectors import all
-from project.Errors.Column_Matched_By_Multiple_Selectors export all
 
 ## Indicates that one column has been matched by multiple selectors.
 
    In case the selectors have differing metadata and the error does not prevent
    the operation from continuing, the first selector on the list is used.
 type Column_Matched_By_Multiple_Selectors
-    Column_Matched_By_Multiple_Selectors_Data (column_name : Text) (selectors : [Any])
+    Error (column_name : Text) (selectors : [Any])
 
     ## PRIVATE
 

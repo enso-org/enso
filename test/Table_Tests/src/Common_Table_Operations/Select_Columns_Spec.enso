@@ -69,14 +69,14 @@ spec setup =
             selector = By_Index [1, 0, 100, -200, 300]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo", "bar"]
-            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors_Data [0, 0]]
+            problems = [Duplicate_Column_Selectors.Error [0, 0]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
@@ -90,21 +90,21 @@ spec setup =
             selector = By_Name ["foo", "foo"]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
             selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
             selector = By_Name.new ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -120,7 +120,7 @@ spec setup =
             selector = By_Column [foo, foo]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -150,7 +150,7 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
             action_2 = table.select_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched.Error [-7]]
+            problems_2 = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
             tester_2 = expect_column_names ["foo"]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
@@ -193,14 +193,14 @@ spec setup =
             selector = By_Index [1, 0, 100, -200, 300]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors_Data [0, 0]]
+            problems = [Duplicate_Column_Selectors.Error [0, 0]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
@@ -214,21 +214,21 @@ spec setup =
             selector = By_Name ["foo", "foo"]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
             selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
             selector = By_Name.new ["FOO", "foo"] Text_Matcher.Case_Insensitive
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -244,7 +244,7 @@ spec setup =
             selector = By_Column [foo, foo]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -274,7 +274,7 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
             action_2 = table.remove_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched.Error [-7]]
+            problems_2 = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
             tester_2 = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
@@ -317,14 +317,14 @@ spec setup =
             selector = By_Index [1, 0, 100, -200, 300]
             action = table.reorder_columns selector on_problems=_
             tester = expect_column_names ["bar", "foo", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
             selector = By_Index [0, 0, 0]
             action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors_Data [0, 0]]
+            problems = [Duplicate_Column_Selectors.Error [0, 0]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
@@ -338,7 +338,7 @@ spec setup =
             selector = By_Name ["foo", "foo"]
             action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -354,7 +354,7 @@ spec setup =
             selector = By_Column [foo, foo]
             action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors_Data ["foo"]]
+            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -371,7 +371,7 @@ spec setup =
 
         Test.specify "should correctly handle multiple problems" <|
             action = table.reorder_columns (By_Index [0, -7, 0, 100]) Position.After_Other_Columns on_problems=_
-            problems = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched.Error [-7]]
+            problems = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
             Problems.test_problem_handling action problems tester
 
@@ -464,7 +464,7 @@ spec setup =
             map = Column_Name_Mapping.By_Column [[table.at "alpha", "FirstColumn"], [table.at "alpha", "Another"]]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
-            problems = [Duplicate_Column_Selectors_Data ["alpha"]]
+            problems = [Duplicate_Column_Selectors.Error ["alpha"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -479,7 +479,7 @@ spec setup =
             map = Column_Name_Mapping.By_Index (Map.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
-            problems = [Column_Indexes_Out_Of_Range_Data [-200, 100, 300]]
+            problems = [Column_Indexes_Out_Of_Range.Error [-200, 100, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
@@ -493,26 +493,26 @@ spec setup =
             map = Column_Name_Mapping.By_Index (Map.from_vector [[1, ""]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["alpha", "Column_1", "gamma", "delta"]
-            problems = [Invalid_Output_Column_Names_Data [""]]
+            problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
             map = Column_Name_Mapping.By_Position ["alpha", Nothing]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["alpha", "Column_1", "gamma", "delta"]
-            problems = [Invalid_Output_Column_Names_Data [Nothing]]
+            problems = [Invalid_Output_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
             map = Column_Name_Mapping.By_Position ["Test", "Test", "Test", "Test"]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["Test", "Test_1", "Test_2", "Test_3"]
-            problems = [Duplicate_Output_Column_Names_Data ["Test", "Test", "Test"]]
+            problems = [Duplicate_Output_Column_Names.Error ["Test", "Test", "Test"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: too many input names" <|
             map = Column_Name_Mapping.By_Position ["A", "B", "C", "D", "E", "F"]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["A", "B", "C", "D"]
-            problems = [Too_Many_Column_Names_Provided_Data ["E", "F"]]
+            problems = [Too_Many_Column_Names_Provided.Error ["E", "F"]]
             Problems.test_problem_handling action problems tester

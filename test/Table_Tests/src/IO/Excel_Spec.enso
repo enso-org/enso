@@ -4,7 +4,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Column_Selector
 
-from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -617,13 +617,13 @@ spec =
         Test.specify "Should handle invalid headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!D1")) on_problems=_
             tester = check_table _ ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
-            problems = [Invalid_Output_Column_Names_Data [""]]
+            problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "Should handle duplicate headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!S1")) on_problems=_
             tester = check_table _ ["DD", "DD_1"] [[1,3], [2,4]]
-            problems = [Duplicate_Output_Column_Names_Data ["DD"]]
+            problems = [Duplicate_Output_Column_Names.Error ["DD"]]
             Problems.test_problem_handling action problems tester
 
     spec_write "xlsx" 'TestSheet.xlsx'

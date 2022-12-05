@@ -8,7 +8,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding Fir
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Storage import Storage
 import Standard.Table.Data.Value_Type.Value_Type
-from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column, Floating_Point_Grouping, Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column, Floating_Point_Grouping, Invalid_Value_Type
 
 import Standard.Visualization
 
@@ -669,7 +669,7 @@ spec =
             table = Table.new [c_0, c_2]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["Column_1", "1"]
-            problems = [Invalid_Output_Column_Names_Data [""]]
+            problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
@@ -678,7 +678,7 @@ spec =
             table = Table.new [c_0, c_2]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "Column_1"]
-            problems = [Invalid_Output_Column_Names_Data [Nothing]]
+            problems = [Invalid_Output_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -689,7 +689,7 @@ spec =
             table = Table.new [c_0, c_1, c_2, c_3]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
-            problems = [Duplicate_Output_Column_Names_Data ["A", "A", "A"]]
+            problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 
     Test.group "Table.replace_text" <|

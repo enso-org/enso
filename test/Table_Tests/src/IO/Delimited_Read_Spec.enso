@@ -40,7 +40,7 @@ spec =
                 table.at "c" . to_vector . should_equal ["3"]
                 table.at "Column_2" . to_vector . should_equal ["4"]
                 table.at "d" . to_vector . should_equal ["5"]
-            problems = [Invalid_Output_Column_Names_Data [Nothing, Nothing]]
+            problems = [Invalid_Output_Column_Names.Error [Nothing, Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should infer headers based on the first two rows" <|
@@ -202,7 +202,7 @@ spec =
                 table.columns.map .name . should_equal ['a', 'b', 'c', 'a_1']
                 table.at 'a' . to_vector . should_equal ['1']
                 table.at 'a_1' . to_vector . should_equal ['4']
-            problems = [Duplicate_Output_Column_Names_Data ['a']]
+            problems = [Duplicate_Output_Column_Names.Error ['a']]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should handle quotes" <|

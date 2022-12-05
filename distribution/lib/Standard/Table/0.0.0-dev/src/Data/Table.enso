@@ -711,9 +711,9 @@ type Table
                             if found.not then
                                 missing_columns.append selector
                 if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns.Missing_Input_Columns_Data missing_columns.to_vector)
+                    problem_builder.append (Missing_Input_Columns.Error missing_columns.to_vector)
                 if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range.Column_Indexes_Out_Of_Range_Data invalid_indices.to_vector)
+                    problem_builder.append (Column_Indexes_Out_Of_Range.Error invalid_indices.to_vector)
                 columns.map_with_index find_datatype
 
         new_columns = columns.zip expected_types column-> expected_type-> case expected_type of

@@ -12,7 +12,7 @@ import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from project.Data.Aggregate_Column.Aggregate_Column import all
 import project.Data.Table.Table
-from project.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
@@ -77,9 +77,9 @@ prepare_aggregate_columns aggregates table =
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names_Data unique.invalid_names)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names_Data unique.renames)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
 
     Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
 

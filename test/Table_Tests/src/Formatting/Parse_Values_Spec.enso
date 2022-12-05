@@ -133,7 +133,7 @@ spec = Test.group "Table.parse_values" <|
             t.at "floats" . to_vector . should_equal [1.0]
             t.at "ints" . to_vector . should_equal ["1"]
             t.at "bools" . to_vector . should_equal [True]
-        problems = [Missing_Input_Columns.Missing_Input_Columns_Data ["bars", "foos"], Column_Indexes_Out_Of_Range.Column_Indexes_Out_Of_Range_Data [100, -100]]
+        problems = [Missing_Input_Columns.Missing_Input_Columns_Data ["bars", "foos"], Column_Indexes_Out_Of_Range.Error [100, -100]]
         Problems.test_problem_handling action problems tester
 
     Test.specify "should report duplicate columns in Column_Type_Selection" <|
