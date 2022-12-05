@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
@@ -147,7 +148,7 @@ spec =
             parse "42" . should_equal 42
             dataflow_error = parse "foo"
             dataflow_error.catch . should_equal (Illegal_Argument.Error 'The provided string is not a valid number: For input string: "foo"')
-            Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types_Data
+            Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types.Error
 
         Test.specify "should allow to throw raw Java exceptions" <|
             exception = Panic.catch_java NumberFormatException (throw_raw_java "foo") (p -> p)
@@ -196,12 +197,12 @@ spec =
             message_4 = Panic.catch Any (Long.parseLong "foo") _->
                 "polyglot2"
             message_4 . should_equal "polyglot2"
-            message_5 = Panic.catch Unsupported_Argument_Types_Data (Long.parseLong 0) _->
+            message_5 = Panic.catch Unsupported_Argument_Types.Error (Long.parseLong 0) _->
                 "uat"
             message_5 . should_equal "uat"
 
             Test.expect_panic_with (Panic.catch Illegal_Argument.Error (Long.parseLong "foo") (_->"polyglot3")) Polyglot_Error.Polyglot_Error_Data
-            Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types_Data
+            Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types.Error
 
         Test.specify "should be able to be recovered selectively" <|
             Panic.recover Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
@@ -223,6 +224,6 @@ spec =
                 (err.payload.message) . should_equal "Cannot convert '42'(language: Java, type: java.lang.Long) to Java type 'java.lang.String': Invalid or lossy primitive coercion."
                 (err.payload.message) . should_equal (err.payload.to_display_text)
 
-            Panic.catch Unsupported_Argument_Types_Data (Long.decode 42) handler=check
+            Panic.catch Unsupported_Argument_Types.Error (Long.decode 42) handler=check
 
 main = Test_Suite.run_main spec

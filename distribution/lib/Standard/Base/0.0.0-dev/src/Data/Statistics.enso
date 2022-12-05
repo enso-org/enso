@@ -14,7 +14,7 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Vector import Empty_Error
-from project.Error.Common import Unsupported_Argument_Types, Unsupported_Argument_Types_Data
+from project.Error.Common import Unsupported_Argument_Types
 
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.MomentStatistic
@@ -153,7 +153,7 @@ type Statistic
             statistics.map_with_index i->v->
                 if java_stats.at i . is_nothing then Nothing else
                     Error.throw (Illegal_Argument.Error ("Can only compute " + v.to_text + " on numerical data sets."))
-        handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_invalid
+        handle_unsupported = Panic.catch Unsupported_Argument_Types.Error handler=report_invalid
 
         empty_map s = if (s == Statistic.Count) || (s == Statistic.Sum) then 0 else
             if (s == Statistic.Minimum) || (s == Statistic.Maximum) then Error.throw Empty_Error else
@@ -240,7 +240,7 @@ to_moment_statistic s = case s of
 wrap_java_call : Any -> Any
 wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument.Error ("Can only compute correlations on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_unsupported
+    handle_unsupported = Panic.catch Unsupported_Argument_Types.Error handler=report_unsupported
 
     handle_unsupported <| Illegal_Argument.handle_java_exception <| function
 

@@ -21,7 +21,7 @@ import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Type_Error_Data, Unsupported_Argument_Types_Data
+from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Type_Error_Data
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder

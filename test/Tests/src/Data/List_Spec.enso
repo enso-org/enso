@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 from Standard.Base.Data.List import Empty_Error
 
@@ -72,7 +73,7 @@ spec = Test.group "List" <|
         txt.filter (Filter_Condition.Less than="a") . should_equal List.Nil
         txt.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"].to_list
         txt.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"].to_list
-        Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
+        Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types.Error
 
         ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing].to_list
         ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"].to_list
