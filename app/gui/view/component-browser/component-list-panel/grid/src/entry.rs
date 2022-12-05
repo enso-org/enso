@@ -5,8 +5,8 @@ use ensogl_core::display::shape::*;
 
 use crate::content::GroupId;
 use crate::content::SectionId;
-use crate::entry::style::ColorIntensities;
 use crate::entry::style::Colors;
+use crate::entry::style::ResolvedColors;
 use crate::GroupColors;
 use crate::Style as GridStyle;
 
@@ -196,11 +196,11 @@ impl DimmedGroups {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Params {
-    pub style:             Style,
-    pub grid_style:        GridStyle,
-    pub color_intensities: ColorIntensities,
-    pub group_colors:      GroupColors,
-    pub dimmed_groups:     DimmedGroups,
+    pub style:         Style,
+    pub grid_style:    GridStyle,
+    pub colors:        Colors,
+    pub group_colors:  GroupColors,
+    pub dimmed_groups: DimmedGroups,
 }
 
 
@@ -216,8 +216,7 @@ pub struct Params {
 #[derive(Debug)]
 struct CurrentIcon {
     display_object: display::object::Instance,
-    vivid_color:    color::Lcha,
-    dull_color:     color::Lcha,
+    color:          color::Lcha,
     shape:          Option<icon::Any>,
     id:             Option<icon::Id>,
 }
@@ -226,8 +225,7 @@ impl Default for CurrentIcon {
     fn default() -> Self {
         Self {
             display_object: display::object::Instance::new(),
-            vivid_color:    default(),
-            dull_color:     default(),
+            color:          default(),
             shape:          default(),
             id:             default(),
         }
@@ -240,8 +238,7 @@ impl CurrentIcon {
             self.id = new_icon;
             if let Some(icon_id) = new_icon {
                 let shape = icon_id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-                shape.set_vivid_color(color::Rgba::from(self.vivid_color).into());
-                shape.set_dull_color(color::Rgba::from(self.dull_color).into());
+                shape.set_color(color::Rgba::from(self.color).into());
                 self.display_object.add_child(&shape);
                 self.shape = Some(shape);
             } else {
@@ -250,17 +247,10 @@ impl CurrentIcon {
         }
     }
 
-    fn set_vivid_color(&mut self, color: color::Lcha) {
-        self.vivid_color = color;
+    fn set_color(&mut self, color: color::Lcha) {
+        self.color = color;
         if let Some(shape) = &self.shape {
-            shape.set_vivid_color(color::Rgba::from(color).into());
-        }
-    }
-
-    fn set_dull_color(&mut self, color: color::Lcha) {
-        self.dull_color = color;
-        if let Some(shape) = &self.shape {
-            shape.set_dull_color(color::Rgba::from(color).into());
+            shape.set_color(color::Rgba::from(color).into());
         }
     }
 }
@@ -326,26 +316,30 @@ impl Data {
             Kind::LocalScopeEntry { .. } => entry_size.x,
             _ => grid_style.column_width(),
         };
-        let bg_height = entry_size.y - gap_over_header + overlap;
+        let bg_height = entry_size.y + overlap;
         // See comment in [`Self::update_shadow`] method.
         let shadow_addition = self.background.size.get().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
-        let bg_y = -gap_over_header / 2.0 + overlap / 2.0 + local_scope_offset;
+        let bg_y = -gap_over_header + overlap / 2.0 + local_scope_offset;
         self.background.set_y(bg_y);
         self.background.size.set(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
-        let left = -entry_size.x / 2.0 + style.padding;
+        let width = grid_style.column_width();
+        let left = -width / 2.0 + style.padding;
         let icon_x = left + style.icon_size / 2.0;
         let icon_y = local_scope_offset;
         self.icon.borrow().set_xy(Vector2(icon_x, icon_y));
+        let text_y_offset = match kind {
+            Kind::Header => style.text_y_offset_header,
+            _ => style.text_y_offset,
+        };
         let text_x = Self::text_x_position(kind, style, grid_style);
-        let text_y = style.text_size / 2.0 + local_scope_offset;
+        let text_y = text_y_offset + local_scope_offset;
         self.label.set_xy(Vector2(text_x, text_y));
     }
 
-    fn contour(kind: Kind, grid_style: &GridStyle, entry_size: Vector2) -> Contour {
-        let optional_gap = if kind == Kind::Header { grid_style.column_gap } else { 0.0 };
-        let height = entry_size.y - optional_gap;
+    fn contour(grid_style: &GridStyle, entry_size: Vector2) -> Contour {
+        let height = entry_size.y;
         Contour::rectangular(Vector2(grid_style.column_width(), height))
     }
 
@@ -356,7 +350,7 @@ impl Data {
 
     fn contour_offset(kind: Kind, grid_style: &GridStyle) -> Vector2 {
         let y = match kind {
-            Kind::Header => -grid_style.column_gap / 2.0,
+            Kind::Header => -grid_style.column_gap,
             Kind::LocalScopeEntry { .. } => -grid_style.column_gap,
             _ => 0.0,
         };
@@ -372,7 +366,7 @@ impl Data {
     fn text_x_position(kind: Kind, style: &Style, grid_style: &GridStyle) -> f32 {
         let left = -grid_style.column_width() / 2.0 + style.padding;
         if kind == Kind::Header {
-            left
+            left + style.text_x_offset_header
         } else {
             left + style.icon_size + style.icon_text_padding
         }
@@ -444,7 +438,7 @@ impl grid_view::Entry for View {
 
             kind <- input.set_model.map(|m| m.kind).on_change();
             style <- input.set_params.map(|p| p.style.clone()).on_change();
-            color_intensities <- input.set_params.map(|p| p.color_intensities).on_change();
+            colors <- input.set_params.map(|p| p.colors).on_change();
             group_colors <- input.set_params.map(|p| p.group_colors).on_change();
             grid_style <- input.set_params.map(|p| p.grid_style).on_change();
             kind_and_style <- all(kind, style, grid_style);
@@ -452,8 +446,8 @@ impl grid_view::Entry for View {
             eval layout_data ((((kind, style, grid_style), entry_sz))
                 data.update_layout(*kind, style, grid_style, *entry_sz)
             );
-            out.contour <+ layout_data.map(|((kind, _, grid_style), entry_sz)| {
-                Data::contour(*kind, grid_style, *entry_sz)
+            out.contour <+ all_with(&grid_style, &input.set_size, |grid_style, entry_sz| {
+                Data::contour(grid_style, *entry_sz)
             });
             out.contour_offset <+ kind_and_style.map(|(k, _, gs)| Data::contour_offset(*k, gs));
             out.highlight_contour <+ out.contour.map2(&style, |c, s| Data::highlight_contour(*c, s));
@@ -467,11 +461,10 @@ impl grid_view::Entry for View {
             is_dimmed <- all_with(&input.set_model, &input.set_params, |m,p| {
                 p.dimmed_groups.is_group_dimmed(m.group_id)
             });
-            let colors = Colors::from_main_color(network, &data.style, &color, &color_intensities, &is_dimmed);
+            let colors = ResolvedColors::from_main_color(network, &data.style, &color, &colors, &is_dimmed);
             eval colors.background ((c) data.background.color.set(color::Rgba::from(c).into()));
             data.label.set_property_default <+ colors.text.ref_into_some();
-            eval colors.icon_strong ((c) data.icon.borrow_mut().set_vivid_color(*c));
-            eval colors.icon_weak ((c) data.icon.borrow_mut().set_dull_color(*c));
+            eval colors.icon ((c) data.icon.borrow_mut().set_color(*c));
             out.hover_highlight_color <+ colors.hover_highlight;
             // We want to animate only when params changed (the different section is highlighted).
             // Other case, where entry receives new model with new section means it is reused
@@ -494,14 +487,19 @@ impl grid_view::Entry for View {
             data.label.set_view_width <+ max_text_width.some();
             content_changed <- data.label.content.constant(());
             style_changed <- style.constant(());
-            highlight_range <= all_with3(
-                &input.set_model,
-                &content_changed,
-                &style_changed,
-                |m, (), ()| m.highlighted.deref().clone()
-            );
+            label_updated <- all3(&input.set_model, &content_changed, &style_changed);
+            highlight_range <= label_updated.map(|(m, (), ())| m.highlighted.deref().clone());
             data.label.set_property <+ highlight_range.map2(&style, |range, s| {
                 (range.into(), Some(text::SdfWeight::new(s.highlight_bold).into()))
+            });
+            is_header <- label_updated.map(|(m, (), ())| m.kind == Kind::Header);
+            is_not_header <- is_header.on_false();
+            is_header <- is_header.on_true();
+            data.label.set_property <+ is_header.map(|_| {
+                ((..).into(), Some(text::Weight::ExtraBold.into()))
+            });
+            data.label.set_property <+ is_not_header.map(|_| {
+                ((..).into(), Some(text::Weight::Medium.into()))
             });
             data.label.set_property_default <+ style.map(|s| text::Size::new(s.text_size)).cloned_into_some();
             eval icon ((&icon) data.icon.borrow_mut().update(icon));

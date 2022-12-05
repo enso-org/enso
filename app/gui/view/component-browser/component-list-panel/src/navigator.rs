@@ -8,6 +8,7 @@ use ensogl_core::prelude::*;
 
 use crate::AllStyles;
 
+use crate::grid::entry::icon;
 use enso_frp as frp;
 use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application::tooltip;
@@ -15,14 +16,19 @@ use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_derive_theme::FromTheme;
+use ensogl_grid_view as grid;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as list_panel_theme;
-use ensogl_list_view as list_view;
-use ensogl_list_view::entry::AnyModelProvider;
-use ensogl_shadow as shadow;
 use ensogl_tooltip::Tooltip;
-use ide_view_component_list_panel_grid::entry::icon;
+use grid::Col;
+use grid::Row;
 use ide_view_component_list_panel_grid::SectionId;
 use list_panel_theme::navigator as theme;
+
+
+
+mod entry;
+
+type Grid = grid::selectable::GridView<entry::View>;
 
 
 
@@ -30,42 +36,13 @@ use list_panel_theme::navigator as theme;
 // === Constants ===
 // =================
 
+const MARKETPLACE_BUTTON_INDEX: usize = 1;
 const MARKETPLACE_TOOLTIP_TEXT: &str = "Marketplace will be available soon.";
 const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
 const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
-const MARKETPLACE_BUTTON_INDEX: usize = 1;
-const BOTTOM_BUTTONS: [icon::Id; 3] = [icon::Id::SubModules, icon::Id::Star, icon::Id::LocalScope];
-
-
-
-// ==============
-// === Shadow ===
-// ==============
-
-/// A shadow between the navigator bar and the main part of the Searcher List Panel.
-///
-/// We should have this shape embedded into the background shape, but we use a separate object
-/// because of https://www.pivotaltracker.com/story/show/182593513.
-pub mod navigator_shadow {
-    use super::*;
-
-    ensogl_core::shape! {
-        above = [crate::background];
-        below = [list_view::overlay, list_view::selection];
-        pointer_events = false;
-        (style:Style) {
-            let grid_height = style.get_number(list_panel_theme::grid::height);
-            let menu_height = style.get_number(list_panel_theme::menu_height);
-            let navigator_width = style.get_number(theme::width);
-            let height = grid_height + menu_height;
-            let width = navigator_width;
-            let base_shape = Rect((width.px(), height.px() * 2.0)).translate_x(width.px());
-            shadow::from_shape(base_shape.into(), style)
-        }
-    }
-}
-
+const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
+const BOTTOM_BUTTONS_COUNT: usize = 3;
 
 
 // =============
@@ -75,39 +52,92 @@ pub mod navigator_shadow {
 #[derive(Copy, Clone, Debug, Default, FromTheme)]
 #[base_path = "theme"]
 pub struct Style {
-    pub width:             f32,
-    pub list_view_width:   f32,
-    pub icon_strong_color: color::Rgba,
-    pub icon_weak_color:   color::Rgba,
-    pub top_padding:       f32,
-    pub bottom_padding:    f32,
+    pub width:                    f32,
+    pub button_size:              f32,
+    pub top_padding:              f32,
+    pub bottom_padding:           f32,
+    pub hover_color:              color::Rgba,
+    #[theme_path = "theme::highlight::color"]
+    pub highlight_color:          color::Rgba,
+    #[theme_path = "theme::highlight::size"]
+    pub highlight_size:           f32,
+    #[theme_path = "theme::highlight::corners_radius"]
+    pub highlight_corners_radius: f32,
 }
 
-
-
-// =========================================================
-// === Conversions Between SectionId and List View Index ===
-// =========================================================
-
-/// Convert [`SectionId`] to index on [`Navigator::bottom_buttons`].
-fn section_id_to_list_index(id: SectionId) -> usize {
-    match id {
-        SectionId::Popular => 1,
-        SectionId::LocalScope => 2,
-        SectionId::SubModules => 0,
+impl From<Style> for entry::Params {
+    fn from(style: Style) -> Self {
+        Self {
+            hover_color:              style.hover_color.into(),
+            selection_color:          style.highlight_color.into(),
+            selection_size:           style.highlight_size,
+            selection_corners_radius: style.highlight_corners_radius,
+        }
     }
 }
 
-/// Convert the index on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
+/// Colors of the buttons of the section navigator.
+/// Each of the section buttons can have a different "active" color, but they all share the same
+/// "inactive" color. "active" color is used when the button is highlighted, and the "inactive" is
+/// used as default.
+#[derive(Debug, Clone, Copy, Default, FromTheme)]
+#[base_path = "theme::buttons"]
+#[allow(missing_docs)]
+pub struct Colors {
+    pub inactive:    color::Rgba,
+    #[theme_path = "theme::buttons::active::popular"]
+    pub popular:     color::Rgba,
+    #[theme_path = "theme::buttons::active::local_scope"]
+    pub local_scope: color::Rgba,
+    #[theme_path = "theme::buttons::active::submodules"]
+    pub submodules:  color::Rgba,
+}
+
+impl Colors {
+    fn get(&self, section: SectionId) -> color::Rgba {
+        match section {
+            SectionId::Popular => self.popular,
+            SectionId::LocalScope => self.local_scope,
+            SectionId::SubModules => self.submodules,
+        }
+    }
+}
+
+/// Convert [`SectionId`] to the displayed icon id.
+fn section_id_to_icon_id(section: SectionId) -> icon::Id {
+    match section {
+        SectionId::Popular => icon::Id::Star,
+        SectionId::LocalScope => icon::Id::LocalScope,
+        SectionId::SubModules => icon::Id::SubModules,
+    }
+}
+
+
+
+// ============================================================
+// === Conversions Between SectionId and Grid View Location ===
+// ============================================================
+
+/// Convert [`SectionId`] to location on [`Navigator::bottom_buttons`].
+fn section_id_to_grid_loc(id: SectionId) -> (Row, Col) {
+    const COLUMN: Col = 0;
+    match id {
+        SectionId::Popular => (1, COLUMN),
+        SectionId::LocalScope => (2, COLUMN),
+        SectionId::SubModules => (0, COLUMN),
+    }
+}
+
+/// Convert the location on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
 /// index and returns the id of topmost section.
-fn index_to_section_id(&index: &usize) -> SectionId {
+fn loc_to_section_id(&(row, _): &(Row, Col)) -> SectionId {
     let highest = SectionId::SubModules;
-    match index {
+    match row {
         0 => highest,
         1 => SectionId::Popular,
         2 => SectionId::LocalScope,
-        index => {
-            error!("Tried to create SectionId from too high Navigator List index ({}).", index);
+        _ => {
+            error!("Tried to create SectionId from too high Navigator List row ({}).", row);
             highest
         }
     }
@@ -129,8 +159,8 @@ fn index_to_section_id(&index: &usize) -> SectionId {
 pub struct Navigator {
     display_object:     display::object::Instance,
     network:            frp::Network,
-    bottom_buttons:     list_view::ListView<icon::Entry>,
-    top_buttons:        list_view::ListView<icon::Entry>,
+    bottom_buttons:     Grid,
+    top_buttons:        Grid,
     tooltip:            Tooltip,
     pub select_section: frp::Any<Option<SectionId>>,
     pub chosen_section: frp::Stream<Option<SectionId>>,
@@ -139,40 +169,52 @@ pub struct Navigator {
 impl Navigator {
     pub fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
-        let top_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
-        let bottom_buttons = app.new_view::<list_view::ListView<icon::Entry>>();
-        let tooltip = Tooltip::new(app);
-        top_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
-        bottom_buttons.set_style_prefix(list_panel_theme::navigator::list_view::HERE.str);
-        top_buttons.show_background_shadow(false);
-        bottom_buttons.show_background_shadow(false);
-        bottom_buttons.disable_selecting_entries_with_mouse();
+        let top_buttons = Grid::new(app);
+        let bottom_buttons = Grid::new(app);
         display_object.add_child(&top_buttons);
         display_object.add_child(&bottom_buttons);
+        let tooltip = Tooltip::new(app);
         app.display.default_scene.add_child(&tooltip);
-        top_buttons.hide_selection();
-
-        top_buttons.set_entries(AnyModelProvider::new(TOP_BUTTONS.to_vec()));
-        bottom_buttons.set_entries(AnyModelProvider::new(BOTTOM_BUTTONS.to_vec()));
-        bottom_buttons.select_entry(Some(section_id_to_list_index(SectionId::Popular)));
 
         let network = frp::Network::new("ComponentBrowser.Navigator");
+        let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let colors = Colors::from_theme(&network, &style_frp);
         let tooltip_hide_timer = DelayedAnimation::new(&network);
         tooltip_hide_timer.set_delay(MARKETPLACE_TOOLTIP_HIDE_DELAY_MS);
         tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
             select_section <- any(...);
-            bottom_buttons.select_entry <+
-                select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_list_index));
-            chosen_section <-
-                bottom_buttons.chosen_entry.map(|&id| id.as_ref().map(index_to_section_id));
+            user_selected_section <- select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
+            bottom_buttons.select_entry <+ user_selected_section;
+            selected_button_and_section <- all(&bottom_buttons.entry_selected, &user_selected_section);
+            different_section_chosen <- selected_button_and_section.filter(|(e, u)| *e != *u);
+            chosen_section <- different_section_chosen._0().map(|loc| loc.as_ref().map(loc_to_section_id));
 
+            model <- bottom_buttons.model_for_entry_needed.map2(&colors.update, f!([]
+                ((row, col), colors) {
+                    let section_id = loc_to_section_id(&(*row, *col));
+                    let icon_id = section_id_to_icon_id(section_id);
+                    let active_colors = colors.get(section_id).into();
+                    let inactive_colors = colors.inactive.into();
+                    let model = entry::Model::new(icon_id, active_colors, inactive_colors);
+                    (*row, *col, model)
+                }
+            ));
+            bottom_buttons.model_for_entry <+ model;
+
+            model <- top_buttons.model_for_entry_needed.map2(&colors.update, f!([]
+                ((row, col), colors) {
+                    let icon_id = TOP_BUTTONS.get(*row).cloned().unwrap_or_default();
+                    let model = entry::Model::new(icon_id, colors.inactive.into(), colors.inactive.into());
+                    (*row, *col, model)
+                }
+            ));
+            top_buttons.model_for_entry <+ model;
 
             // === Show tooltip when hovering the Marketplace button
 
-            let idx_of_marketplace_btn = |idx: &Option<_>| *idx == Some(MARKETPLACE_BUTTON_INDEX);
-            marketplace_button_selected <- top_buttons.selected_entry.map(idx_of_marketplace_btn);
-            marketplace_button_hovered <- marketplace_button_selected && top_buttons.is_mouse_over;
+            let idx_of_marketplace_btn = |loc: &Option<(Row, Col)>| matches!(loc, Some((row, _)) if *row == MARKETPLACE_BUTTON_INDEX);
+            marketplace_button_hovered <- top_buttons.entry_hovered.map(idx_of_marketplace_btn);
             marketplace_button_hovered <- marketplace_button_hovered.on_change();
             tooltip_hide_timer.start <+ marketplace_button_hovered.on_true();
             tooltip_hide_timer.reset <+ marketplace_button_hovered.on_false();
@@ -186,7 +228,10 @@ impl Navigator {
                 }
             );
         }
+        colors.init.emit(());
         tooltip_hide_timer.reset();
+        bottom_buttons.reset_entries(BOTTOM_BUTTONS_COUNT, 1);
+        top_buttons.reset_entries(TOP_BUTTONS_COUNT, 1);
 
         Self {
             display_object,
@@ -199,27 +244,38 @@ impl Navigator {
         }
     }
 
-    pub(crate) fn set_bottom_buttons_entry_params(&self, params: icon::Params) {
-        self.bottom_buttons.set_entry_params_and_recreate_entries(params);
-    }
-
     pub(crate) fn update_layout(&self, style: &AllStyles) {
-        let list_view_width = style.navigator.list_view_width;
-        let top_buttons_height = list_view::entry::HEIGHT * TOP_BUTTONS.len() as f32;
-        let bottom_buttons_height = list_view::entry::HEIGHT * BOTTOM_BUTTONS.len() as f32;
-        self.top_buttons.resize(Vector2(list_view_width, top_buttons_height));
-        self.bottom_buttons.resize(Vector2(list_view_width, bottom_buttons_height));
+        let size = style.navigator.button_size;
+        let top_buttons_height = size * TOP_BUTTONS_COUNT as f32;
+        let bottom_buttons_height = size * BOTTOM_BUTTONS_COUNT as f32;
+        self.bottom_buttons.set_entries_size(Vector2(size, size));
+        self.top_buttons.set_entries_size(Vector2(size, size));
+        let (top, left, right) = (0.0, 0.0, size);
+        let viewport = grid::Viewport { top, bottom: 0.0, left, right };
+        let top_buttons_viewport = grid::Viewport { bottom: -top_buttons_height, ..viewport };
+        let bottom_buttons_viewport = grid::Viewport { bottom: -bottom_buttons_height, ..viewport };
+        self.top_buttons.set_viewport(top_buttons_viewport);
+        self.bottom_buttons.set_viewport(bottom_buttons_viewport);
+        let buttons_params = entry::Params::from(style.navigator);
+        self.bottom_buttons.set_entries_params(buttons_params);
+        let disabled_params = entry::Params {
+            hover_color:              color::Lcha::transparent(),
+            selection_color:          color::Lcha::transparent(),
+            selection_size:           0.0,
+            selection_corners_radius: 0.0,
+        };
+        self.top_buttons.set_entries_params(disabled_params);
 
+        let width = style.navigator.width;
         let height = style.grid.height + style.panel.menu_height;
         let top = height / 2.0;
-        let bottom = -height / 2.0;
-        let top_buttons_height = TOP_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
-        let bottom_buttons_height = BOTTOM_BUTTONS.len() as f32 * list_view::entry::HEIGHT;
+        let bottom = (-height / 2.0).floor();
+        let left = -style.grid.width / 2.0 - width / 2.0;
         let top_padding = style.navigator.top_padding;
         let bottom_padding = style.navigator.bottom_padding;
-        let x_pos = -style.grid.width / 2.0;
-        let top_buttons_y = top - top_buttons_height / 2.0 - top_padding;
-        let bottom_buttons_y = bottom + bottom_buttons_height / 2.0 + bottom_padding;
+        let x_pos = left + (width / 2.0).floor() - size / 2.0;
+        let top_buttons_y = top - top_padding;
+        let bottom_buttons_y = bottom + bottom_buttons_height + bottom_padding;
         self.top_buttons.set_xy(Vector2(x_pos, top_buttons_y));
         self.bottom_buttons.set_xy(Vector2(x_pos, bottom_buttons_y));
     }

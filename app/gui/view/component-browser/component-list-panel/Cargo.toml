@@ -12,7 +12,6 @@ enso-frp = { path = "../../../../../lib/rust/frp" }
 ensogl-core = { path = "../../../../../lib/rust/ensogl/core" }
 ensogl-gui-component = { path = "../../../../../lib/rust/ensogl/component/gui/" }
 ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view/" }
-ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view/" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-derive-theme = { path = "../../../../../lib/rust/ensogl/app/theme/derive" }
 ensogl-scroll-area = { path = "../../../../../lib/rust/ensogl/component/scroll-area" }
@@ -22,6 +21,7 @@ ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip/" }
 ide-view-component-list-panel-breadcrumbs = { path = "breadcrumbs" }
 ide-view-component-list-panel-grid = { path = "grid" }
+ide-view-component-list-panel-icons = { path = "icons" }
 ordered-float = "3.0.0"
 
 [dev-dependencies]

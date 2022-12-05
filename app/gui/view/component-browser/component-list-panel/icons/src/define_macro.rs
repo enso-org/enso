@@ -17,8 +17,7 @@
 /// use ensogl_core::prelude::*;
 /// use ensogl_core::display::shape::*;
 /// use ensogl_core::data::color;
-/// use ide_view_component_list_panel_grid::entry::icon;
-/// use ide_view_component_list_panel_grid::define_icons;
+/// use ide_view_component_list_panel_icons::define_icons;
 ///
 /// define_icons! {
 ///     /// The example of icon.
@@ -28,7 +27,7 @@
 ///         //
 ///         // `use super::*` import is added silently.
 ///         ensogl_core::shape! {
-///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
+///             (style:Style, color: Vector4) {
 ///                 Plane().into()
 ///             }
 ///         }
@@ -36,8 +35,8 @@
 ///
 ///     pub mod icon2(Icon2) {
 ///         ensogl_core::shape! {
-///             (style:Style, vivid_color: Vector4, dull_color: Vector4) {
-///                 Plane().fill(vivid_color).into()
+///             (style:Style, color: Vector4) {
+///                 Plane().fill(color).into()
 ///             }
 ///         }
 ///     }
@@ -81,30 +80,22 @@ macro_rules! define_icons {
 
         impl Id {
             /// Create icon's shape with given size.
-            pub fn create_shape(&self, size: Vector2) -> $crate::entry::icon::Any {
+            pub fn create_shape(&self, size: Vector2) -> $crate::Any {
                 match self {$(
                     Self::$variant => {
                         let view = $name::View::new();
                         view.size.set(size);
-                        let vivid_color_fn = Box::new(f!([view]()
-                            color::Lcha::from(color::Rgba::from(view.vivid_color.get()))
+                        let color_fn = Box::new(f!([view]()
+                            color::Lcha::from(color::Rgba::from(view.color.get()))
                         ));
-                        let dull_color_fn = Box::new(f!([view]()
-                            color::Lcha::from(color::Rgba::from(view.dull_color.get()))
-                        ));
-                        let set_vivid_color_fn = Box::new(f!((c)
-                            view.vivid_color.set(color::Rgba::from(c).into())
-                        ));
-                        let set_dull_color_fn = Box::new(f!((c)
-                            view.dull_color.set(color::Rgba::from(c).into())
+                        let set_color_fn = Box::new(f!((c)
+                            view.color.set(color::Rgba::from(c).into())
                         ));
                         let view = Box::new(view);
-                        $crate::entry::icon::Any {
+                        $crate::Any {
                             view,
-                            vivid_color_fn,
-                            dull_color_fn,
-                            set_vivid_color_fn,
-                            set_dull_color_fn
+                            color_fn,
+                            set_color_fn,
                         }
                     }
                 )*}
@@ -124,7 +115,7 @@ macro_rules! define_icons {
         }
 
         impl FromStr for Id {
-            type Err = $crate::entry::icon::UnknownIcon;
+            type Err = $crate::UnknownIcon;
             fn from_str(s: &str) -> Result<Id, Self::Err> {
                 match s {
                     $(stringify!($variant) => Ok(Self::$variant),)*
