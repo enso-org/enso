@@ -6,6 +6,7 @@ import org.graalvm.collections.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ScanJoin implements JoinStrategy {
   @Override
@@ -13,28 +14,16 @@ public class ScanJoin implements JoinStrategy {
     List<Pair<Integer, Integer>> matches = new ArrayList<>();
     int ls = left.rowCount();
     int rs = right.rowCount();
+
+    List<Matcher> matchers = conditions.stream().map(Matcher::create).collect(Collectors.toList());
+
     for (int l = 0; l < ls; ++l) {
       for (int r = 0; r < rs; ++r) {
         boolean match = true;
-        conditions: for (JoinCondition condition : conditions) {
-          switch (condition) {
-            case Equals eq -> {
-              Object leftValue = eq.left().getStorage().getItemBoxed(l);
-              Object rightValue = eq.right().getStorage().getItemBoxed(r);
-              // TODO normalize equality of strings and decimals with ints
-              if (!leftValue.equals(rightValue)) {
-                match = false;
-                break conditions;
-              }
-            }
-            case EqualsIgnoreCase eq -> {
-              Object leftValue = eq.left().getStorage().getItemBoxed(l);
-              Object rightValue = eq.right().getStorage().getItemBoxed(r);
-            }
-            case Between between -> {
-
-            }
-            default -> throw new UnsupportedOperationException("Unsupported join condition: " + condition);
+        for (Matcher matcher : matchers) {
+          if (!matcher.matches(l, r)) {
+            match = false;
+            break;
           }
         }
 

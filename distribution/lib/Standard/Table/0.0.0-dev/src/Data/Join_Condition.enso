@@ -1,3 +1,5 @@
+from Standard.Base import all
+
 type Join_Condition
     ## Specifies a join condition that correlates rows from the two tables if
        the element from the `left_column` of the left table is equal to the

@@ -86,8 +86,8 @@ spec setup =
             check_xy_joined r
 
         Test.specify "should allow to join on text equality ignoring case" <|
-            t1 = Table.new [["X", ["a", "B"]], ["Y", [1, 2]]]
-            t2 = Table.new [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
+            t1 = table_builder [["X", ["a", "B"]], ["Y", [1, 2]]]
+            t2 = table_builder [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
 
             r1 = t1.join t2
             expect_column_names ["X", "Y", "Z"] r1
@@ -97,7 +97,7 @@ spec setup =
 
             r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "X") . order_by ["Y", "Z"]
             # TODO rename to Right_X
-            expect_column_names ["X", "X_1", "Y", "Z"] r2
+            expect_column_names ["X", "Y", "X_1", "Z"] r2
             r2 . at "X" . to_vector . should_equal ["a", "a", "B"]
             r2 . at "X_1" . to_vector . should_equal ["A", "a", "b"]
             r2 . at "Y" . to_vector . should_equal [1, 1, 2]
