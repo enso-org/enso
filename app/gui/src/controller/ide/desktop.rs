@@ -126,8 +126,8 @@ impl ManagingProjectAPI for Handle {
             let list = self.project_manager.list_projects(&None).await?;
             let existing_names: HashSet<_> =
                 list.projects.into_iter().map(|p| p.name.into()).collect();
-            let name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
-            let name = choose_new_project_name(&existing_names, &name);
+            let name = make_project_name(&template);
+            let name = choose_unique_project_name(&existing_names, &name);
             let name = ProjectName::new_unchecked(name);
             let version =
                 enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
@@ -167,11 +167,22 @@ impl ManagingProjectAPI for Handle {
 
 /// Select a new name for the project in a form of <suggested_name>_N, where N is a unique sequence
 /// number.
-fn choose_new_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
+fn choose_unique_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
     let first_candidate = suggested_name.to_owned();
     let nth_project_name = |i| iformat!("{suggested_name}_{i}");
     let candidates = (1..).map(nth_project_name);
     let mut candidates = iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.
     candidates.find(|c| !existing_names.contains(c)).unwrap()
+}
+
+/// Come up with a project name.
+fn make_project_name(template: &Option<String>) -> String {
+    let mut name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
+    // Capitalize
+    if let Some(r) = name.get_mut(0..1) {
+        r.make_ascii_uppercase();
+    }
+
+    name
 }
