@@ -1419,7 +1419,7 @@ class RuntimeVisualizationsTest
           Api.VisualisationConfiguration(
             contextId,
             Api.VisualisationExpression.Text(
-              "Standard.Visualization.Id.Id",
+              "Standard.Visualization.Main",
               "x -> x.default_visualization.to_text"
             )
           )
@@ -1427,7 +1427,7 @@ class RuntimeVisualizationsTest
       )
     )
 
-    val attachVisualisationResponses = context.receiveN(6)
+    val attachVisualisationResponses = context.receiveN(8)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
