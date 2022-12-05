@@ -1061,6 +1061,7 @@ shared! { ShapeSystemRegistry
 #[derive(Default,Debug)]
 pub struct ShapeSystemRegistryData {
     shape_system_map : HashMap<(TypeId, ShapeSystemFlavor),ShapeSystemRegistryEntry>,
+    shape_system_flavors: HashMap<TypeId, Vec<ShapeSystemFlavor>>,
 }
 
 impl {
@@ -1085,14 +1086,20 @@ impl {
     /// Decrement internal register of used [`Symbol`] instances previously instantiated with the
     /// [`instantiate`] method. In case the counter drops to 0, the caller of this function should
     /// perform necessary cleanup.
-    pub(crate) fn drop_instance<S>(&mut self, flavor: ShapeSystemFlavor) -> (usize,ShapeSystemId,PhantomData<S>)
+    pub(crate) fn drop_instance<S>(&mut self, flavor: ShapeSystemFlavor) -> (bool, ShapeSystemId, PhantomData<S>)
     where S : Shape {
-        let system_id      = ShapeSystem::<S>::id();
-        let instance_count = if let Some(entry) = self.get_mut::<S>(flavor) {
-            *entry.instance_count -= 1;
+        let system_id = ShapeSystem::<S>::id();
+        let flavor_instance_count = if let Some(entry) = self.get_mut::<S>(flavor) {
+            *entry.instance_count = entry.instance_count.saturating_sub(1);
             *entry.instance_count
         } else { 0 };
-        (instance_count,system_id,PhantomData)
+
+        let last_instance = match flavor_instance_count {
+            0 => self.total_system_instances(*system_id) == 0,
+            _ => false,
+        };
+
+        (last_instance, system_id, PhantomData)
     }
 }}
 
@@ -1130,8 +1137,15 @@ impl ShapeSystemRegistryData {
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
         self.shape_system_map.entry((id, flavor)).insert_entry(entry);
+        self.shape_system_flavors.entry(id).or_default().push(flavor);
         // The following line is safe, as the object was just registered.
         self.get_mut(flavor).unwrap()
+    }
+
+    /// Get total number of shape instances from shape systems of given type and all flavors.
+    fn total_system_instances(&self, system_id: TypeId) -> usize {
+        let Some(flavors) = self.shape_system_flavors.get(&system_id) else { return 0 };
+        flavors.iter().map(|f| self.shape_system_map[&(system_id, *f)].instance_count).sum()
     }
 
     fn with_get_or_register_mut<S, F, Out>(
