@@ -397,11 +397,11 @@ type File_Error
     ## PRIVATE
 
        Converts a Java `IOException` into its Enso counterpart.
-    wrap_io_exception file io_exception =
-        if io_exception.is_a NoSuchFileException then Error.throw (File_Error.Not_Found file) else
-            if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Error.Already_Exists file) else
-                if io_exception.is_a AccessDeniedException then Error.throw (File_Error.IO_Error file "You do not have permission to access the file") else
-                    Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
+    wrap_io_exception file io_exception = case io_exception of
+        _ : NoSuchFileException -> Error.throw (File_Error.Not_Found file)
+        _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
+        _ : AccessDeniedException -> Error.throw (File_Error.IO_Error file "You do not have permission to access the file")
+        _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
 
 ## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error

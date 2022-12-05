@@ -137,7 +137,12 @@ type Statistic
        - statistics: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        count_min_max = statistics.any s->((s.is_a Statistic.Count) || (s.is_a Statistic.Minimum) || (s.is_a Statistic.Maximum))
+        count_min_max = statistics.any s->
+            case s of
+                Statistic.Count -> True
+                Statistic.Minimum -> True
+                Statistic.Maximum -> True
+                _ -> False
 
         java_stats = statistics.map to_moment_statistic
         skip_java_stats = java_stats.all s->s.is_nothing
