@@ -91,7 +91,7 @@ spec =
         Test.specify "should support the meta functions" <|
             meta_from = Meta.meta .from
             is_symbol = case meta_from of
-                Meta.Unresolved_Symbol_Data _ -> True
+                _ : Meta.Unresolved_Symbol -> True
                 _ -> False
             is_symbol.should_be_true
 

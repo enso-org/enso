@@ -309,10 +309,10 @@ spec =
         Test.specify "should check arguments" <|
             path = (enso_project.data / "simple_empty.csv")
             pb = Problem_Behavior.Report_Error
-            path.read (Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument_Error_Data
-            path.read (Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument_Error_Data
-            path.read (Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument_Error_Data
-            path.read (Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument_Error_Data
+            path.read (Delimited "," headers=False . with_quotes quote='abc') pb . should_fail_with Illegal_Argument.Error
+            path.read (Delimited "," headers=False . with_quotes quote='🚧') pb . should_fail_with Illegal_Argument.Error
+            path.read (Delimited "," headers=False . with_quotes quote_escape='//') pb . should_fail_with Illegal_Argument.Error
+            path.read (Delimited 'a\u{301}' headers=False) pb . should_fail_with Illegal_Argument.Error
 
         Test.specify "should correctly guess column types" <|
             t = (enso_project.data / "data_small.csv") . read (Delimited "," headers=True)

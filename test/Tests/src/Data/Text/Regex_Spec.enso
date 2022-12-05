@@ -1,6 +1,5 @@
 from Standard.Base import all
 
-import Standard.Base.Data.Text.Regex.Option
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
 from Standard.Test import Test, Test_Suite
@@ -10,17 +9,17 @@ spec =
     Test.group "Regex options handling" <|
         Test.specify "should work properly with flag options" <|
             flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False comments=True extra_opts=[]
-            flags . should_equal [Option.Ascii_Matching, Option.Dot_Matches_Newline, Option.Comments]
+            flags . should_equal [Regex_Option.Ascii_Matching, Regex_Option.Dot_Matches_Newline, Regex_Option.Comments]
 
         Test.specify "should properly override vector options" <|
-            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False comments=True extra_opts=[Option.Multiline, Option.Case_Insensitive]
-            flags . should_equal [Option.Ascii_Matching, Option.Case_Insensitive, Option.Dot_Matches_Newline, Option.Comments]
+            flags = Regex.from_flags match_ascii=True case_insensitive=Nothing dot_matches_newline=True multiline=False comments=True extra_opts=[Regex_Option.Multiline, Regex_Option.Case_Insensitive]
+            flags . should_equal [Regex_Option.Ascii_Matching, Regex_Option.Case_Insensitive, Regex_Option.Dot_Matches_Newline, Regex_Option.Comments]
 
     Test.group "Regexes" <|
         Test.specify "should be able to be compiled" <|
             pattern = Regex.compile "(?<dots>..)" case_insensitive=True
-            pattern . should_be_a Default_Engine.Pattern_Data
-            pattern.options . should_equal [Option.Case_Insensitive]
+            pattern . should_be_a Default_Engine.Pattern.Value
+            pattern.options . should_equal [Regex_Option.Case_Insensitive]
 
         Test.specify "should be able to be escaped" <|
             pattern = "http://example.com"

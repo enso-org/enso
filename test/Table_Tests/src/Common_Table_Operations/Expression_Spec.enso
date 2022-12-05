@@ -3,8 +3,6 @@ from Standard.Base import all
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
 import Standard.Table.Data.Expression.Expression_Error
 
-import Standard.Visualization
-
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 

@@ -1,0 +1,142 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Meta
+import project.Panic.Panic
+import project.Runtime.Stack_Trace_Element
+
+from project.Data.Boolean import Boolean, True, False
+
+## A type representing dataflow errors.
+
+   A dataflow error in Enso is one that behaves like a standard value, and
+   hence represents erroneous states in a way that exists _within_ standard
+   control flow.
+
+   ? Dataflow Errors or Panics
+     Whilst a Panic is useful for unrecoverable situations, most Enso APIs
+     are designed to use dataflow errors instead. As they exist within the
+     normal program control flow, they are able to be represented on the
+     Enso graph.
+@Builtin_Type
+type Error
+    ## Creates a new dataflow error containing the provided payload.
+
+       Arguments:
+       - payload: The contents of the dataflow error to be created.
+
+       > Example
+         Throw a dataflow error containing the text "Oops".
+
+             Error.throw "Oops"
+    throw : Any -> Error
+    throw payload = @Builtin_Method "Error.throw"
+
+    ## PRIVATE
+
+       Executes the provided handler on a dataflow error, or executes as
+       identity on a non-error value.
+
+       Arguments:
+       - handler: The function to call on this if it is an error value.
+    catch_primitive : (Error -> Any) -> Any
+    catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
+
+    ## PRIVATE
+       UNSTABLE
+
+       Returns a textual representation of the stack trace attached to an error.
+    get_stack_trace_text : Text
+    get_stack_trace_text self = @Builtin_Method "Error.get_stack_trace_text"
+
+    ## Converts an error to a corresponding textual representation.
+
+       > Example
+         Converting a thrown error to text.
+
+             Error.throw "foo" . to_text
+    to_text : Text
+    to_text self = @Builtin_Method "Error.to_text"
+
+    ## UNSTABLE
+
+       Returns a human-readable text representing this error.
+    to_display_text : Text
+    to_display_text self = "Error: " + (self.catch Any .to_display_text)
+
+    ## Executes the provided handler on an error, or returns the value unchanged.
+
+       Arguments:
+       - error_type: The type of error to handle. Defaults to `Any` to handle
+         all errors.
+       - handler: The function to call on this if it is an error value of a
+         matching type. By default this is identity.
+
+       > Example
+         Catching an `Illegal_Argument` and returning its message.
+
+             from Standard.Base import all
+
+             example_catch =
+                 error = Error.throw (Illegal_Argument.Error "My message")
+                 error.catch Illegal_Argument.Error (err -> err.message)
+
+       > Example
+         Catching any dataflow error and turning it into a regular value.
+
+             from Standard.Base import all
+
+             example_catch =
+                 error = Error.throw 42
+                 error.catch == 42
+    catch : Any -> (Error -> Any) -> Any
+    catch self (error_type = Any) (handler = x->x) =
+        self.catch_primitive error_value->
+            case error_value.is_a error_type of
+                True -> handler error_value
+                False -> self
+
+    ## Transforms an error.
+
+       Arguments:
+       - f: The function used to transform the error.
+
+       If `self` is a non-error value it is returned unchanged. However, if `self`
+       is an error, the error is transformed using the provided function
+
+       > Example
+         Transforming an error value.
+
+             import Standard.Examples
+
+             example_map_error =
+                 map = Examples.map
+                 map.get 10 . map_error (_ -> "The element 10 was not found.")
+    map_error : (Error -> Error) -> Any
+    map_error self f = self.catch Any (x -> Error.throw (f x))
+
+    ## ADVANCED
+       UNSTABLE
+
+       Returns the attached stack trace of the error.
+
+       The ordering of the resulting vector is such that the top stack frame is the
+       first element.
+    stack_trace : Vector Stack_Trace_Element
+    stack_trace self =
+        Panic.get_attached_stack_trace self
+
+    ## Checks if `self` is an error.
+
+       > Example
+         Checking if the value 1 is an error.
+
+             1.is_error
+    is_error : Boolean
+    is_error self = True
+
+    ## PRIVATE
+       TODO this is a kludge until we have proper eigentypes and statics.
+       Allows to check equality of the `Error` type with itself.
+    == self that = if Meta.is_error self then self else
+        if Meta.is_error that then that else
+            Meta.is_same_object self that

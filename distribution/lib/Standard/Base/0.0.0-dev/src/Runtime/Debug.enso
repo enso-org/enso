@@ -1,6 +1,6 @@
 ## Debug utilities.
 
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Text.Text
 import project.Nothing.Nothing
 

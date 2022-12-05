@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-from Standard.Base.Data.Text.Regex import No_Such_Group_Error_Data
+from Standard.Base.Data.Text.Regex import No_Such_Group, Invalid_Option
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-import Standard.Base.Data.Text.Regex.Option as Global_Option
+import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
@@ -15,7 +15,7 @@ spec =
     Test.group "The default regex engine's options handling" <|
 
         Test.specify "should convert options to Java" <|
-            options = [Global_Option.Comments, Global_Option.Multiline, Default_Engine.Unix_Lines]
+            options = [Regex_Option.Comments, Regex_Option.Multiline, Default_Engine.Option.Unix_Lines]
             expected_mask = Java_Pattern.UNIX_LINES.bit_or Java_Pattern.COMMENTS . bit_or Java_Pattern.MULTILINE . bit_or default_mask
             actual_mask = Default_Engine.from_enso_options options
 
@@ -27,12 +27,12 @@ spec =
             actual_mask . should_equal default_mask
 
         Test.specify "should handle ascii matching by disabling unicode" <|
-            actual_mask = Default_Engine.from_enso_options [Global_Option.Ascii_Matching]
+            actual_mask = Default_Engine.from_enso_options [Regex_Option.Ascii_Matching]
             actual_mask . should_equal 0
 
         Test.specify "should result in an error when an option is invalid" <|
-            Default_Engine.from_enso_options [""] . should_fail_with Default_Engine.Invalid_Option_Error_Data
-            Default_Engine.from_enso_options ["", Global_Option.Ascii_Matching] . should_fail_with Default_Engine.Invalid_Option_Error_Data
+            Default_Engine.from_enso_options [""] . should_fail_with Invalid_Option.Error
+            Default_Engine.from_enso_options ["", Regex_Option.Ascii_Matching] . should_fail_with Invalid_Option.Error
 
     Test.group "The default regex engine (Default_Engine)" <|
 
@@ -45,24 +45,24 @@ spec =
 
         Test.specify "should be able to compile patterns with global options" <|
             engine = Default_Engine.new
-            pattern = engine.compile "^a$" [Global_Option.Multiline]
+            pattern = engine.compile "^a$" [Regex_Option.Multiline]
             pattern.engine . should_equal engine
-            pattern.options . should_equal [Global_Option.Multiline]
+            pattern.options . should_equal [Regex_Option.Multiline]
             pattern.internal_pattern.flags . should_equal (default_mask.bit_or Java_Pattern.MULTILINE)
 
         Test.specify "should be able to compile patterns with engine-specific options" <|
-            engine = Default_Engine.new [Default_Engine.Literal_Pattern]
+            engine = Default_Engine.new [Default_Engine.Option.Literal_Pattern]
             pattern = engine.compile "^a$" []
             pattern.engine . should_equal engine
-            pattern.options . should_equal [Default_Engine.Literal_Pattern]
+            pattern.options . should_equal [Default_Engine.Option.Literal_Pattern]
             pattern.internal_pattern.flags . should_equal (default_mask.bit_or Java_Pattern.LITERAL)
 
         Test.specify "should be able to compile patterns with combined options" <|
-            engine = Default_Engine.new [Default_Engine.Literal_Pattern]
-            pattern = engine.compile "^a$" [Global_Option.Comments]
+            engine = Default_Engine.new [Default_Engine.Option.Literal_Pattern]
+            pattern = engine.compile "^a$" [Regex_Option.Comments]
             pattern.engine . should_equal engine
-            pattern.options.contains Default_Engine.Literal_Pattern . should_be_true
-            pattern.options.contains Global_Option.Comments . should_be_true
+            pattern.options.contains Default_Engine.Option.Literal_Pattern . should_be_true
+            pattern.options.contains Regex_Option.Comments . should_be_true
             pattern.internal_pattern.flags . should_equal (default_mask . bit_or Java_Pattern.LITERAL . bit_or Java_Pattern.COMMENTS)
 
         Test.specify "should return a syntax error of the regex syntax is invalid" <|
@@ -71,7 +71,7 @@ spec =
 
         Test.specify "should throw an invalid options error if an option is invalid" <|
             engine = Default_Engine.new
-            engine.compile "^a$" ["invalid"] . should_fail_with Default_Engine.Invalid_Option_Error_Data
+            engine.compile "^a$" ["invalid"] . should_fail_with Invalid_Option.Error
 
         Test.specify "should escape an expression for use as a literal" <|
             pattern = "http://example.com"
@@ -102,14 +102,14 @@ spec =
         Test.specify "should be able to `match` the first instance of the pattern in the input" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "aa ab abc a bc bcd"
-            match = pattern.match input mode=Regex_Mode.First
-            match . should_be_a Default_Engine.Match_Data
+            match = pattern.match input mode=Matching_Mode.First
+            match . should_be_a Default_Engine.Match.Value
             match.group 0 . should_equal input
 
         Test.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "abc"
-            match = pattern.match input mode=Regex_Mode.First
+            match = pattern.match input mode=Matching_Mode.First
             match . should_equal Nothing
 
         Test.specify "should be able to `match` at most N instances of the pattern in the input" <|
@@ -157,7 +157,7 @@ spec =
             pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
             input = "aa ab abc a bc bcd"
             match = pattern.match input mode=Regex_Mode.Full
-            match . should_be_a Default_Engine.Match_Data
+            match . should_be_a Default_Engine.Match.Value
             match.group 0 . should_equal input
 
         Test.specify "should return `Nothing` if a full match does not match the entire input" <|
@@ -165,8 +165,8 @@ spec =
             input = "aa ab"
             full_match = pattern.match input mode=Regex_Mode.Full
             full_match . should_equal Nothing
-            match = pattern.match input mode=Regex_Mode.First
-            match . should_be_a Default_Engine.Match_Data
+            match = pattern.match input mode=Matching_Mode.First
+            match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should be able to `match` the pattern against bounded input" <|
             pattern = engine.compile "(..)" []
@@ -199,14 +199,14 @@ spec =
         Test.specify "should be able to `find` the first instance of the pattern in the input" <|
             pattern = engine.compile "(..)" []
             input = "abcdefghij"
-            match = pattern.find input mode=Regex_Mode.First
+            match = pattern.find input mode=Matching_Mode.First
             match . should_be_a Text
             match . should_equal "ab"
 
         Test.specify "should return `Nothing` if there are no matches in first mode" <|
             pattern = engine.compile "(aa)" []
             input = "abcdefghij"
-            match = pattern.find input mode=Regex_Mode.First
+            match = pattern.find input mode=Matching_Mode.First
             match . should_equal Nothing
 
         Test.specify "should be able to `find` at most N instances of the pattern in the input" <|
@@ -299,7 +299,7 @@ spec =
         Test.specify "should be able to `split` on the first instance of the pattern" <|
             pattern = engine.compile "cd" []
             input = "abcdefghij"
-            match = pattern.split input mode=Regex_Mode.First
+            match = pattern.split input mode=Matching_Mode.First
             match.length . should_equal 2
             match.at 0 . should_equal "ab"
             match.at 1 . should_equal "efghij"
@@ -307,7 +307,7 @@ spec =
         Test.specify "should return the original text if there are no matches in first mode" <|
             pattern = engine.compile "(aa)" []
             input = "abcdefghij"
-            match = pattern.split input mode=Regex_Mode.First
+            match = pattern.split input mode=Matching_Mode.First
             match . should_equal ["abcdefghij"]
 
         Test.specify "should be able to `split` on at most N instances of the pattern in the input" <|
@@ -348,14 +348,14 @@ spec =
         Test.specify "should be able to `replace` the first instance of the pattern in the input" <|
             pattern = engine.compile "abc" []
             input = "aa ab abc a bc abc"
-            match = pattern.replace input "REPLACED" mode=Regex_Mode.First
+            match = pattern.replace input "REPLACED" mode=Matching_Mode.First
             match . should_be_a Text
             match . should_equal "aa ab REPLACED a bc abc"
 
         Test.specify "should return the string unchanged if there are no matches to replace in first mode" <|
             pattern = engine.compile "xyz" []
             input = "aa ab ac ad"
-            match = pattern.replace input "REPLACED" mode=Regex_Mode.First
+            match = pattern.replace input "REPLACED" mode=Matching_Mode.First
             match . should_equal input
 
         Test.specify "should be able to replace at most N instances of the pattern in the input" <|
@@ -425,7 +425,7 @@ spec =
             pattern.replace "foo bar, baz" "[$1]" mode=2 . should_equal "[foo] [bar], baz"
             pattern.replace "foo bar, baz" "[$1]" mode=3 . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[$1]" mode=4 . should_equal "[foo] [bar], [baz]"
-            pattern.replace "foo bar, baz" "[$1]" mode=Regex_Mode.First . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[$1]" mode=Matching_Mode.First . should_equal "[foo] bar, baz"
             pattern.replace "foo bar, baz" "[$1]" mode=Matching_Mode.Last . should_equal "foo bar, [baz]"
 
             pattern.replace "foo bar, baz" "[${capture}]" mode=Regex_Mode.All . should_equal "[foo] [bar], [baz]"
@@ -434,7 +434,7 @@ spec =
             pattern.replace "foo bar, baz" "[${capture}]" mode=2 . should_equal "[foo] [bar], baz"
             pattern.replace "foo bar, baz" "[${capture}]" mode=3 . should_equal "[foo] [bar], [baz]"
             pattern.replace "foo bar, baz" "[${capture}]" mode=4 . should_equal "[foo] [bar], [baz]"
-            pattern.replace "foo bar, baz" "[${capture}]" mode=Regex_Mode.First . should_equal "[foo] bar, baz"
+            pattern.replace "foo bar, baz" "[${capture}]" mode=Matching_Mode.First . should_equal "[foo] bar, baz"
             pattern.replace "foo bar, baz" "[${capture}]" mode=Matching_Mode.Last . should_equal "foo bar, [baz]"
 
         Test.specify "should handle capture groups in replacement in All mode" <|
@@ -450,8 +450,8 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should return the full match with index 0" <|
             match.group 0 . should_equal "aa ab abc a bc bcd"
@@ -466,8 +466,8 @@ spec =
             match.group 3 . should_equal Nothing
 
         Test.specify "should fail with No_Such_Group_Error if the group did not exist" <|
-            match.group "fail" . should_fail_with No_Such_Group_Error_Data
-            match.group 5 . should_fail_with No_Such_Group_Error_Data
+            match.group "fail" . should_fail_with No_Such_Group.Error
+            match.group 5 . should_fail_with No_Such_Group.Error
 
         Test.specify "should make named groups accessible by index" <|
             match.group 2 . should_equal (match.group "letters")
@@ -476,8 +476,8 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should return the results of all groups" <|
             groups = match.groups
@@ -493,8 +493,8 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should return the results of all named groups" <|
             groups = match.named_groups
@@ -512,8 +512,8 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should return the start of a group by index" <|
             match.start 1 . should_equal 0
@@ -526,15 +526,15 @@ spec =
             match.start "empty" . should_equal Nothing
 
         Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-            match.start 5 . should_fail_with No_Such_Group_Error_Data
-            match.start "nonexistent" . should_fail_with No_Such_Group_Error_Data
+            match.start 5 . should_fail_with No_Such_Group.Error
+            match.start "nonexistent" . should_fail_with No_Such_Group.Error
 
     Test.group "Match.end" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should return the end of a group by index" <|
             match.end 1 . should_equal 6
@@ -547,36 +547,36 @@ spec =
             match.end "empty" . should_equal Nothing
 
         Test.specify "should return No_Such_Group_Error if the group doesn't exist" <|
-            match.end 5 . should_fail_with No_Such_Group_Error_Data
-            match.end "nonexistent" . should_fail_with No_Such_Group_Error_Data
+            match.end 5 . should_fail_with No_Such_Group.Error
+            match.end "nonexistent" . should_fail_with No_Such_Group.Error
 
     Test.group "Match.span" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should get the span of a group by index" <|
-            match.span 1 . should_equal (Utf_16_Span_Data (0.up_to 6) input)
+            match.span 1 . should_equal (Utf_16_Span.Value (0.up_to 6) input)
 
         Test.specify "should get the span of a group by name" <|
-            match.span "letters" . should_equal (Utf_16_Span_Data (6.up_to 18) input)
+            match.span "letters" . should_equal (Utf_16_Span.Value (6.up_to 18) input)
 
         Test.specify "should return Nothing if the group didn't match" <|
             match.span 3 . should_equal Nothing
             match.span "empty" . should_equal Nothing
 
         Test.specify "should fail with a No_Such_Group_Error if the group doesn't exist" <|
-            match.span 5 . should_fail_with No_Such_Group_Error_Data
-            match.span "nonexistent" . should_fail_with No_Such_Group_Error_Data
+            match.span 5 . should_fail_with No_Such_Group.Error
+            match.span "nonexistent" . should_fail_with No_Such_Group.Error
 
     Test.group "Match.start_position" <|
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should return the region start over which self match was performed" <|
             match.start_position . should_equal 0
@@ -585,8 +585,8 @@ spec =
         engine = Default_Engine.new
         pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
         input = "aa ab abc a bc bcd"
-        match = pattern.match input mode=Regex_Mode.First
-        match . should_be_a Default_Engine.Match_Data
+        match = pattern.match input mode=Matching_Mode.First
+        match . should_be_a Default_Engine.Match.Value
 
         Test.specify "should return the region end over which self match was performed" <|
             match.end_position . should_equal 18

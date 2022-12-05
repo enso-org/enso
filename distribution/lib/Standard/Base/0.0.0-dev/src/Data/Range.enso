@@ -1,13 +1,14 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Illegal_Argument_Error_Data, Illegal_State_Error_Data
+from project.Error.Common import Illegal_Argument, Illegal_State
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -46,10 +47,10 @@ type Range
     with_step self new_step = case new_step of
         _ : Integer ->
             if new_step == 0 then throw_zero_step_error else
-                if new_step < 0 then Error.throw (Illegal_Argument_Error_Data "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                if new_step < 0 then Error.throw (Illegal_Argument.Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
                     Range.Value self.start self.end self.step.signum*new_step
         _ ->
-            Error.throw (Illegal_Argument_Error_Data "Range step should be an integer.")
+            Error.throw (Illegal_Argument.Error "Range step should be an integer.")
 
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
@@ -293,39 +294,7 @@ type Range
            `Range 0 10 . contains 3.0 == False` and get a type error for
            decimals instead.
         _ ->
-            Error.throw (Illegal_Argument_Error_Data "`Range.contains` only accepts Integers.")
-
-## ALIAS Range
-
-   Creates an increasing right-exclusive range of integers from `self` to `n`.
-
-   Arguments:
-   - n: The end of the range.
-
-   > Example
-     Create a range containing the numbers 0, 1, 2, 3, 4.
-
-         0.up_to 5
-Integer.up_to : Integer -> Range
-Integer.up_to self n = case n of
-    _ : Integer -> Range.Value self n 1
-    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
-
-## ALIAS Range
-
-   Creates a decreasing right-exclusive range of integers from `self` to `n`.
-
-   Arguments:
-   - n: The end of the range.
-
-   > Example
-     Create a range containing the numbers 5, 4, 3, 2, 1.
-
-         5.down_to 0
-Integer.down_to : Integer -> Range
-Integer.down_to self n = case n of
-    _ : Integer -> Range.Value self n -1
-    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
+            Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
 
 ## PRIVATE
-throw_zero_step_error = Error.throw (Illegal_State_Error_Data "A range with step = 0 is ill-formed.")
+throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")

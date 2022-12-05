@@ -40,12 +40,12 @@ spec = Test.group "Meta-Value Manipulation" <|
         atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
         (Meta.meta atom_2).constructor . should_equal My_Type.Value
     Test.specify "should correctly return representations of different classes of objects" <|
-        Meta.meta 1 . should_equal (Meta.Primitive_Data 1)
-        Meta.meta "foo" . should_equal (Meta.Primitive_Data "foo")
+        Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
+        Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
     Test.specify "should allow manipulation of error values" <|
         err = Error.throw "My Error"
         meta_err = Meta.meta err
-        meta_err.is_a Meta.Error_Data . should_be_true
+        meta_err.is_a Meta.Error.Value . should_be_true
         meta_err.value . should_equal "My Error"
     Test.specify "should allow checking if a value is of a certain type" <|
         1.is_a Any . should_be_true
@@ -148,8 +148,8 @@ spec = Test.group "Meta-Value Manipulation" <|
 
     Test.specify "should correctly handle Java values" <|
         java_meta = Meta.meta Random.new
-        java_meta . should_be_a Meta.Polyglot_Data
-        java_meta . get_language . should_equal Meta.Java
+        java_meta . should_be_a Meta.Polyglot.Value
+        java_meta . get_language . should_equal Meta.Language.Java
 
     Test.specify "should correctly handle equality of Java values" <|
         a = JavaLocale.new "en"

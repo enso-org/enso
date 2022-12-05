@@ -1,10 +1,12 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Json.Json
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
+import project.Error.Error
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Panic, Error, Time_Error
+from project.Error.Common import Time_Error
 
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset

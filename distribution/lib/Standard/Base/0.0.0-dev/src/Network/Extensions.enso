@@ -1,0 +1,16 @@
+import project.Data.Text.Text
+import project.Network.URI.URI
+import project.Error.Common.Syntax_Error
+
+## Convert Text to a URI.
+
+   Throws a `Syntax_Error` when `self` cannot be parsed as a URI.
+
+   > Example
+     Parse URI text.
+
+         import Standard.Base.Network.URI.Extensions
+
+         example_parse = "http://example.com".to_uri
+Text.to_uri : URI ! Syntax_Error
+Text.to_uri self = URI.parse self

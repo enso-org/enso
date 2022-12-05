@@ -1,10 +1,13 @@
-from Standard.Base import all
-import Standard.Base.Data.Text.Regex.Engine.Pattern
-from Standard.Base.Data.Text.Matching import match_criteria_implementation
+import project.Any.Any
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
+import project.Data.Text.Matching
+import project.Data.Text.Regex
+import project.Data.Text.Regex.Pattern.Pattern
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Problem_Behavior.Problem_Behavior
 
-# TODO Dubious constructor export
-from project.Data.Text.Regex_Matcher.Regex_Matcher import all
-from project.Data.Text.Regex_Matcher.Regex_Matcher export all
+from project.Data.Boolean import Boolean, True, False
 
 ## Represents regex matching mode.
 type Regex_Matcher
@@ -103,5 +106,5 @@ type Regex_Matcher
          ordering the result according to the order of criteria that matched them.
 
              Text_Matcher.match_criteria [Pair.new "foo" 42, Pair.new "bar" 33, Pair.new "baz" 10, Pair.new "foo" 0, Pair.new 10 10] ["bar", "foo"] reorder=True name_mapper=_.name == [Pair.new "bar" 33, Pair.new "foo" 42, Pair.new "foo" 0]
-    match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! No_Matches_Found
-    match_criteria self = match_criteria_implementation self
+    match_criteria : Vector Any -> Vector Text -> Boolean -> (Any -> Text) -> Problem_Behavior -> Vector Any ! Matching.No_Matches_Found
+    match_criteria self = Matching.match_criteria_implementation self
