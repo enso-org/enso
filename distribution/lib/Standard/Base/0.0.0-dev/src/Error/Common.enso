@@ -4,54 +4,11 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-polyglot java import java.lang.IllegalArgumentException
-
 polyglot java import java.io.IOException
 polyglot java import java.nio.file.AccessDeniedException
 polyglot java import java.nio.file.NoSuchFileException
 polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.lang.ClassCastException
-
-type Illegal_State
-    ## UNSTABLE
-
-       A generic error that indicates that a given operation cannot be performed
-       in some specific conditions.
-
-       Arguments:
-       - message: the error message explaining why the operation cannot be
-         performed.
-       - cause: (optional) another error that is the cause of this one.
-    Error message cause=Nothing
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the encoding error.
-    to_display_text : Text
-    to_display_text self = "Illegal State: " + self.message
-
-type Illegal_Argument
-
-    ## UNSTABLE
-
-       A generic error that indicates that the provided argument is not valid
-       for the operation.
-
-       Arguments:
-       - message: the error message explaining why the argument is illegal.
-       - cause: (optional) another error that is the cause of this one.
-    Error message cause=Nothing
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the encoding error.
-    to_display_text : Text
-    to_display_text self = "Illegal Argument: " + self.message
-
-    ## PRIVATE
-       Capture a Java IllegalArgumentException and rethrow
-    handle_java_exception =
-        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument.Error cause.getMessage cause))
 
 # TODO Dubious constructor export
 from project.Error.Common.Index_Out_Of_Bounds_Error import all

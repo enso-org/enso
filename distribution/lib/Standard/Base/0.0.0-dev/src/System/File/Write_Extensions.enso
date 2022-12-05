@@ -3,13 +3,14 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.Existing_File_Behavior.Existing_File_Behavior
 import project.System.File.File
 
-from project.Error.Common import Illegal_Argument, File_Error, Unsupported_Argument_Types_Data, Encoding_Error
+from project.Error.Common import File_Error, Unsupported_Argument_Types_Data, Encoding_Error
 
 polyglot java import org.enso.base.Array_Builder
 

@@ -1,5 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
+
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 import project.Data.Table.Table

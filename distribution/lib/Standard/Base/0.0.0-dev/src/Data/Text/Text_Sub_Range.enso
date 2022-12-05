@@ -6,12 +6,13 @@ import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error, Illegal_Argument, Index_Out_Of_Bounds_Error_Data
+from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Text.Span as Span_Module

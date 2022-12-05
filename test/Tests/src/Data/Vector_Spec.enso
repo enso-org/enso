@@ -1,7 +1,8 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
-from Standard.Base.Data.Vector import Empty_Error
+import Standard.Base.Data.Vector.Empty_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Data.Index_Sub_Range.Index_Sub_Range import While, By_Index, Sample, Every
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

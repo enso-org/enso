@@ -1,4 +1,5 @@
 from Standard.Base import all hiding First, Last
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column_Selector
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all

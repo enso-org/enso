@@ -4,11 +4,12 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Nothing.Nothing
+import project.Error.Illegal_State.Illegal_State
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Illegal_Argument, Illegal_State
 
 ## Represents a right-exclusive range of integer values.
 type Range

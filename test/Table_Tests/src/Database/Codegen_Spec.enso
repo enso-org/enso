@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Table import Sort_Column, Sort_Column_Selector, Column_Selector
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all

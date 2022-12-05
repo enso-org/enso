@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common as Errors
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column_Type_Selection.Auto
 import project.Data.Storage.Storage

@@ -4,13 +4,14 @@ import project.Data.Range.Range
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Math
 import project.Panic.Panic
 import project.Random
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error_Data, Illegal_Argument
+from project.Error.Common import Index_Out_Of_Bounds_Error_Data
 
 type Index_Sub_Range
     ## Select the first `count` items.

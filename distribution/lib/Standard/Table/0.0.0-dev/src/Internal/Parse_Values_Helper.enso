@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 from project.Errors import Invalid_Format_Data, Leading_Zeros_Data
 
