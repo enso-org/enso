@@ -112,7 +112,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     ) -> ShapeWithSize<Self>;
     fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
-    fn flavor(data: &Self::ShapeData) -> ShapeSystemFlavor {
+    fn flavor(_data: &Self::ShapeData) -> ShapeSystemFlavor {
         ShapeSystemFlavor { flavor: 0 }
     }
 }

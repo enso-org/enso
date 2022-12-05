@@ -1131,7 +1131,7 @@ impl ShapeSystemRegistryData {
         S: Shape,
     {
         let id = TypeId::of::<S>();
-        let flavor = S::flavor(&data);
+        let flavor = S::flavor(data);
         let system = ShapeSystem::<S>::new(scene, data);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
@@ -1157,7 +1157,7 @@ impl ShapeSystemRegistryData {
         F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>) -> Out,
         S: Shape,
     {
-        let flavor = S::flavor(&data);
+        let flavor = S::flavor(data);
         match self.get_mut(flavor) {
             Some(entry) => f(entry),
             None => f(self.register(scene, data)),
