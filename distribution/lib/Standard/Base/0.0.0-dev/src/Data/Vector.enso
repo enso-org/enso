@@ -10,6 +10,8 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Range.Extensions
 import project.Data.Text.Text
+import project.Error.Common.Index_Out_Of_Bounds_Error
+import project.Error.Common.No_Such_Method_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Incomparable_Values.Incomparable_Values
@@ -21,7 +23,6 @@ import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
@@ -1055,7 +1056,7 @@ type Builder
     at self index =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
+            Error.throw (Index_Out_Of_Bounds_Error.Error index self.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
 

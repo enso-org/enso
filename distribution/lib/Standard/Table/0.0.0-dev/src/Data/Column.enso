@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Error.Common.Index_Out_Of_Bounds_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
@@ -991,7 +992,7 @@ type Column
     at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
     at self index =
         valid_index = (index >= 0) && (index < self.length)
-        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error_Data index self.length) else
+        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error.Error index self.length) else
             storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
@@ -1029,7 +1030,7 @@ type Column
     storage_type : Storage
     storage_type self =
         tp = self.java_column.getStorage.getType
-        Storage.types.at tp . catch Index_Out_Of_Bounds_Error _->
+        Storage.types.at tp . catch Index_Out_Of_Bounds_Error.Error _->
             Panic.throw (Illegal_State.Error "Unknown storage type: "+tp.to_text)
 
     ## UNSTABLE TODO this is a prototype that will be revisited later on
@@ -1213,7 +1214,7 @@ type Column
 
              example_first = Examples.integer_column.first
     first : Any ! Empty_Error
-    first self = self.at 0 . catch Index_Out_Of_Bounds_Error_Data (_ -> Error.throw Empty_Error)
+    first self = self.at 0 . catch Index_Out_Of_Bounds_Error.Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1229,7 +1230,7 @@ type Column
 
              example_last = Examples.integer_column.last
     last : Any ! Empty_Error
-    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error_Data (_ -> Error.throw Empty_Error)
+    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error.Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 

@@ -21,6 +21,7 @@ import project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Vector.Vector
 import project.Error.Common.Compile_Error
+import project.Error.Common.Index_Out_Of_Bounds_Error
 import project.Error.Error
 import project.Error.Encoding_Error.Encoding_Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -29,7 +30,6 @@ import project.Meta
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
@@ -110,14 +110,14 @@ Text.at self index =
         True ->
             length = self.length
             new_index = index + length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error_Data index length) else
+            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error.Error index length) else
                 self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)) else
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error.Error index self.length)) else
                 Text_Utils.substring self first next
 
 ## ALIAS Get Characters
@@ -461,7 +461,7 @@ Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
 Text.insert self index that =
     len = self.length
     idx = if index < 0 then len + index + 1 else index
-    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error_Data index len) else
+    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error.Error index len) else
         if idx == 0 then that + self else
             if idx == len then self + that else
                 pre = self.take (0.up_to idx)

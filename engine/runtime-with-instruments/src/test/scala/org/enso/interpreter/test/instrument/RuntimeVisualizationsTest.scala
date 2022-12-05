@@ -1419,7 +1419,7 @@ class RuntimeVisualizationsTest
           Api.VisualisationConfiguration(
             contextId,
             Api.VisualisationExpression.Text(
-              "Standard.Visualization.Id",
+              "Standard.Visualization.Id.Id",
               "x -> x.default_visualization.to_text"
             )
           )

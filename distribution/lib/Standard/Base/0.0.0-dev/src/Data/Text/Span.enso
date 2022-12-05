@@ -14,13 +14,13 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Text
+import project.Error.Common.Index_Out_Of_Bounds_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data
 
 polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -175,8 +175,8 @@ range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_
     is_valid = (0.up_to len+1).contains
 
     case Pair.new (is_valid start) (is_valid end) of
-        Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds_Error_Data range.start len)
-        Pair.Value True False -> Error.throw (Index_Out_Of_Bounds_Error_Data range.end len)
+        Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds_Error.Error range.start len)
+        Pair.Value True False -> Error.throw (Index_Out_Of_Bounds_Error.Error range.end len)
         Pair.Value True True ->
             if start>=end then (0.up_to 0) else
                 iterator = BreakIterator.getCharacterInstance

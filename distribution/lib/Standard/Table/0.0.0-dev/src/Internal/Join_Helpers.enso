@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds_Error
 
 import project.Data.Join_Condition.Join_Condition
 import project.Internal.Problem_Builder.Problem_Builder
@@ -28,7 +29,7 @@ type Join_Condition_Resolver
             r_2 = r_1.catch No_Such_Column_Error_Data _->
                 problem_builder.report_missing_input_columns [selector]
                 Nothing
-            r_2.catch Index_Out_Of_Bounds_Error_Data _->
+            r_2.catch Index_Out_Of_Bounds_Error.Error _->
                 problem_builder.report_oob_indices [selector]
                 Nothing
         resolve_left = resolve_selector self.left_at
