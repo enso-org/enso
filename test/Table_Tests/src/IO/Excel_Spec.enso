@@ -4,7 +4,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Column_Selector
 
-from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, Invalid_Location_Data, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -144,9 +144,9 @@ spec_write suffix test_sheet_name =
         Test.specify 'should result in Invalid_Location error if trying to write in a bad location' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location_Data
-            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location_Data
-            sub_clothes.write out (Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location_Data
+            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location.Error
+            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location.Error
+            sub_clothes.write out (Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location.Error
             out.delete_if_exists
 
         Test.specify 'should result in Range_Exceeded error if trying to write in too small a range' <|

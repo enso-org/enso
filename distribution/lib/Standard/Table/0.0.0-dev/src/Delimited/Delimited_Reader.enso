@@ -8,7 +8,7 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 
-from project.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row_Data, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows_Data
+from project.Errors import Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows
 
 polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader
@@ -127,8 +127,8 @@ prepare_reader java_reader format max_columns on_problems newline_override=Nothi
     DelimitedReader.new java_reader format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors
 
 translate_reader_problem problem =
-    invalid_row = [InvalidRow, (java_problem-> Invalid_Row_Data java_problem.source_row java_problem.table_index (Vector.from_polyglot_array java_problem.row))]
-    additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows_Data java_problem.count)]
+    invalid_row = [InvalidRow, (java_problem-> Invalid_Row.Error java_problem.source_row java_problem.table_index (Vector.from_polyglot_array java_problem.row))]
+    additional_invalid_rows = [AdditionalInvalidRows, (java_problem-> Additional_Invalid_Rows.Error java_problem.count)]
     mismatched_quote = [MismatchedQuote, (_-> Mismatched_Quote)]
     duplicate_names = [DuplicateNames, (java_problem-> Duplicate_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.duplicatedNames))]
     invalid_names = [InvalidNames, (java_problem-> Invalid_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.invalidNames))]
@@ -226,7 +226,7 @@ handle_parsing_exception =
     translate_parsing_exception caught_panic =
         cause = caught_panic.payload.cause.getCause
         if Java.is_instance cause IOException then Panic.throw cause else
-            Error.throw (Parser_Error caught_panic.payload)
+            Error.throw (Parser_Error.Error caught_panic.payload)
     Panic.catch TextParsingException handler=translate_parsing_exception
 
 ## PRIVATE

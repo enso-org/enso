@@ -794,7 +794,7 @@ type Table
          - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
          - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
          - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If an aggregation fails, an `Invalid_Aggregation`.
          - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
          - If there are more than 10 issues with a single column, an `Additional_Warnings`.
 
@@ -889,7 +889,7 @@ type Table
            time it is matched.
          - If grouping on, using as the column name, or computing the `Mode` on
            a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If an aggregation fails, an `Invalid_Aggregation`.
          - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
          - If there are more than 10 issues with a single column, an `Additional_Warnings`.
     cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table

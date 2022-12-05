@@ -71,7 +71,7 @@ spec setup =
                 table.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
                 table.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
                 table.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
-            problems = [Input_Indices_Already_Matched_Data [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
+            problems = [Input_Indices_Already_Matched.Error [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|

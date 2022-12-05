@@ -83,7 +83,7 @@ spec setup =
             selector = By_Index [0, -7, -6, 1]
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo", "bar"]
-            problems = [Input_Indices_Already_Matched_Data [-7, 1]]
+            problems = [Input_Indices_Already_Matched.Error [-7, 1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -150,7 +150,7 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
             action_2 = table.select_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched_Data [-7]]
+            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched.Error [-7]]
             tester_2 = expect_column_names ["foo"]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
@@ -207,7 +207,7 @@ spec setup =
             selector = By_Index [0, -7, -6, 1]
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Input_Indices_Already_Matched_Data [-7, 1]]
+            problems = [Input_Indices_Already_Matched.Error [-7, 1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -274,7 +274,7 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
             action_2 = table.remove_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched_Data [-7]]
+            problems_2 = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched.Error [-7]]
             tester_2 = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
@@ -331,7 +331,7 @@ spec setup =
             selector = By_Index [0, -7, -6, 1]
             action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo", "bar"]
-            problems = [Input_Indices_Already_Matched_Data [-7, 1]]
+            problems = [Input_Indices_Already_Matched.Error [-7, 1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -371,7 +371,7 @@ spec setup =
 
         Test.specify "should correctly handle multiple problems" <|
             action = table.reorder_columns (By_Index [0, -7, 0, 100]) Position.After_Other_Columns on_problems=_
-            problems = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched_Data [-7]]
+            problems = [Column_Indexes_Out_Of_Range_Data [100], Duplicate_Column_Selectors_Data [0], Input_Indices_Already_Matched.Error [-7]]
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
             Problems.test_problem_handling action problems tester
 
@@ -486,7 +486,7 @@ spec setup =
             map = Column_Name_Mapping.By_Index (Map.from_vector [[1, "FirstColumn"], [-3, "Another"]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["alpha", "Another", "gamma", "delta"]
-            problems = [Input_Indices_Already_Matched_Data [1]]
+            problems = [Input_Indices_Already_Matched.Error [1]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names ''" <|
