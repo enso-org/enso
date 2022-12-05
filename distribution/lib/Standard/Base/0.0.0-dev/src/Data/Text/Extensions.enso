@@ -866,7 +866,7 @@ Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index
 Text.take self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
-        Range.Value start end 1 ->
+        Range.Between start end 1 ->
             Text_Utils.substring self start end
         Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
@@ -912,7 +912,7 @@ Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bo
 Text.drop self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
-        Range.Value start end 1 ->
+        Range.Between start end 1 ->
             if start == 0 then Text_Utils.drop_first self end else
                 prefix = Text_Utils.substring self 0 start
                 if end == (Text_Utils.char_length self) then prefix else

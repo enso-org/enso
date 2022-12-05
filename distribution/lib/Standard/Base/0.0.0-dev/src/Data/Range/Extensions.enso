@@ -16,7 +16,7 @@ import project.Error.Illegal_Argument.Illegal_Argument
          0.up_to 5
 Integer.up_to : Integer -> Range
 Integer.up_to self n = case n of
-    _ : Integer -> Range.Value self n 1
+    _ : Integer -> Range.Between self n
     _ -> Error.throw (Illegal_Argument.Error "Expected range end to be an Integer.")
 
 ## ALIAS Range
@@ -32,5 +32,5 @@ Integer.up_to self n = case n of
          5.down_to 0
 Integer.down_to : Integer -> Range
 Integer.down_to self n = case n of
-    _ : Integer -> Range.Value self n -1
+    _ : Integer -> Range.Between self n -1
     _ -> Error.throw (Illegal_Argument.Error "Expected range end to be an Integer.")

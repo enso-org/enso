@@ -1107,7 +1107,7 @@ slice_ranges vector ranges =
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
                 _ : Integer -> [vector.at ranges.first]
-                Range.Value start end step -> case step == 1 of
+                Range.Between start end step -> case step == 1 of
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
 
@@ -1121,7 +1121,7 @@ slice_many_ranges vector ranges =
     ranges.each descriptor-> case descriptor of
         _ : Integer ->
             builder.append (vector.at descriptor)
-        Range.Value start end step -> case step == 1 of
+        Range.Between start end step -> case step == 1 of
             True ->
                 builder.append_vector_range vector start end
             False ->

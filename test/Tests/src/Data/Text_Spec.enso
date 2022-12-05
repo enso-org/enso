@@ -308,13 +308,13 @@ spec =
         Test.specify "should allow taking or dropping many indices or subranges (possibly overlapping)" <|
             "123"*1000 . take (By_Index (Vector.new 3000 ix-> 2999-ix)) . should_equal "321"*1000
             "123"*1000 . take (By_Index (Vector.new 3000 _-> 0)) . should_equal "1"*3000
-            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range.Value 6*ix+1 6*ix+3)) . should_equal "23"*100
-            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range.Value ix+1 ix+5)) . should_equal "BABAABAB"*50
+            "123456"*1000 . take (By_Index (Vector.new 100 ix-> Range.Between 6*ix+1 6*ix+3)) . should_equal "23"*100
+            "AB"*1000 . take (By_Index (Vector.new 100 ix-> Range.Between ix+1 ix+5)) . should_equal "BABAABAB"*50
 
             "123"*1000 . drop (By_Index (Vector.new 300 ix-> 2999-ix)) . should_equal "123"*900
             "123"*1000 . drop (By_Index (Vector.new 3000 _-> 0)) . should_equal "23"+"123"*999
-            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range.Value 6*ix+1 6*ix+3)) . should_equal "1456"*1000
-            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range.Value ix+1 ix+5)) . should_equal "ACDABCD"
+            "123456"*1000 . drop (By_Index (Vector.new 1000 ix-> Range.Between 6*ix+1 6*ix+3)) . should_equal "1456"*1000
+            "ABCD"*25 . drop (By_Index (Vector.new 90 ix-> Range.Between ix+1 ix+5)) . should_equal "ACDABCD"
 
             "ABCD"*1000 . take (0.up_to 4000 . with_step 4) . should_equal "A"*1000
             "ABCD"*1000 . take (Every 4) . should_equal "A"*1000
@@ -398,10 +398,10 @@ spec =
             txt = "Hello World!"
             txt.take (0.up_to 14) . should_equal txt
             txt.take (6.up_to 100) . should_equal "World!"
-            txt.take (Range.Value txt.length-1 txt.length) . should_equal "!"
-            txt.take (Range.Value txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (Range.Value txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error.Error txt.length txt.length)
-            txt.take (Range.Value txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.take (Range.Between txt.length-1 txt.length) . should_equal "!"
+            txt.take (Range.Between txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.take (Range.Between txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error.Error txt.length txt.length)
+            txt.take (Range.Between txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error.Error
             txt.take (First 100) . should_equal txt
             txt.take 100 . should_equal txt
             txt.take (Last 100) . should_equal txt

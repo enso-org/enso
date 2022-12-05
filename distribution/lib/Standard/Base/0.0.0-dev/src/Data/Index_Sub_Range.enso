@@ -67,7 +67,7 @@ resolve_ranges ranges length =
             actual_index = if descriptor < 0 then length + descriptor else descriptor
             if (actual_index < 0) || (actual_index >= length) then Panic.throw (Index_Out_Of_Bounds_Error.Error descriptor length) else
                 actual_index
-        Range.Value start end step ->
+        Range.Between start end step ->
             if step <= 0 then Panic.throw (Illegal_Argument.Error "Range step must be positive.") else
                 if (start < 0) || (end < 0) then Panic.throw (Illegal_Argument.Error "Range start and end must not be negative.") else
                     if start >= length then Panic.throw (Index_Out_Of_Bounds_Error.Error start length) else
