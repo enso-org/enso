@@ -79,7 +79,7 @@ type Panic
     get_attached_stack_trace : Caught_Panic | Throwable -> Vector Runtime.Stack_Trace_Element
     get_attached_stack_trace error =
         throwable = case error of
-            Caught_Panic.Caught_Panic_Data _ internal_original_exception -> internal_original_exception
+            Caught_Panic.Panic _ internal_original_exception -> internal_original_exception
             throwable -> throwable
         prim_stack = Panic.primitive_get_attached_stack_trace throwable
         stack_with_prims = Vector.from_polyglot_array prim_stack
@@ -244,7 +244,7 @@ type Caught_Panic
          the source of this panic. Only for internal use. To get the Java exception
          from polyglot exceptions, match the `payload` on `Polyglot_Error` and
          extract the Java object from there.
-    Caught_Panic_Data payload internal_original_exception
+    Panic payload internal_original_exception
 
     ## Converts this caught panic into a dataflow error containing the same
        payload and stack trace.
