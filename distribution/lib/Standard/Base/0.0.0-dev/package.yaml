@@ -18,22 +18,13 @@ component-groups:
           - Standard.Base.Data.list_directory
     - Web:
         exports:
-          - Standard.Base.Network.Http.new
-          - Standard.Base.Network.Http.fetch
-          - Standard.Base.Network.Http.get
-          - Standard.Base.Network.Http.post
-          - Standard.Base.Network.Http.post_form
-          - Standard.Base.Network.Http.post_json
-          - Standard.Base.Network.Http.put
-          - Standard.Base.Network.Http.put_json
-          - Standard.Base.Network.Http.head
-          - Standard.Base.Network.Http.options
+          - Standard.Base.Network.HTTP.HTTP.new
+          - Standard.Base.Network.HTTP.HTTP.fetch
     - Parse:
         exports:
           - Standard.Base.Data.Json.Json.parse
           - Standard.Base.Data.Text.Regex.compile
           - Standard.Base.Data.Text.Regex.escape
-          - Standard.Base.Data.Text.Regex.from_flags
     - Select:
         exports:
           - Standard.Base.Data.Vector.Vector.tail

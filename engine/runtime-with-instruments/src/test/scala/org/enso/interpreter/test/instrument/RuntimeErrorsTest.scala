@@ -87,7 +87,7 @@ class RuntimeErrorsTest
       .asHostObject[org.enso.interpreter.runtime.EnsoContext]
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
-    );
+    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -290,12 +290,12 @@ class RuntimeErrorsTest
     val metadata   = new Metadata
     // foo body id
     metadata.addItem(79, 5)
-    val xId       = metadata.addItem(93, 19)
-    val yId       = metadata.addItem(121, 8)
-    val mainResId = metadata.addItem(134, 7)
+    val xId       = metadata.addItem(83, 19)
+    val yId       = metadata.addItem(111, 8)
+    val mainResId = metadata.addItem(124, 7)
 
     val code =
-      """from Standard.Base.Error.Common import all
+      """import Standard.Base.Error.Error
         |
         |type MyError
         |
@@ -1327,13 +1327,13 @@ class RuntimeErrorsTest
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
     val metadata   = new Metadata
-    val xId        = metadata.addItem(108, 3)
-    val yId        = metadata.addItem(120, 5)
-    val mainResId  = metadata.addItem(130, 12)
+    val xId        = metadata.addItem(98, 3)
+    val yId        = metadata.addItem(110, 5)
+    val mainResId  = metadata.addItem(120, 12)
 
     val code =
       """import Standard.Base.IO
-        |from Standard.Base.Error.Common import all
+        |import Standard.Base.Error.Error
         |
         |foo =
         |    Error.throw 9

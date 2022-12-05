@@ -1,10 +1,11 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Ordering.Ordering
+import project.Error.Error
 import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Type_Error_Data
+from project.Error.Common import Type_Error_Data
 
 polyglot java import org.enso.base.Text_Utils
 

@@ -1,15 +1,13 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.System.File.File
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Unsupported_File_Type, unimplemented
-
-from project.System.File_Format.Plain_Text_Format import Plain_Text
-from project.System.File_Format.Plain_Text_Format export Plain_Text
+from project.Error.Common import Unsupported_File_Type, Unimplemented
 
 polyglot java import org.enso.base.file_format.FileFormatSPI
 
@@ -40,7 +38,7 @@ type File_Format
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read _ _ = unimplemented "This is an interface only."
+    read _ _ = Unimplemented.throw "This is an interface only."
 
 type Plain_Text_Format
     Plain_Text (encoding:Encoding=Encoding.utf_8)
@@ -49,8 +47,8 @@ type Plain_Text_Format
     for_file : File -> Plain_Text_Format | Nothing
     for_file file =
         case file.extension of
-            ".txt" -> Plain_Text
-            ".log" -> Plain_Text
+            ".txt" -> Plain_Text_Format.Plain_Text
+            ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
 
     ## PRIVATE

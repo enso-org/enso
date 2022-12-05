@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Json.Json
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
@@ -14,12 +14,14 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Panic, Time_Error, Type_Error_Data
+from project.Error.Common import Time_Error, Type_Error_Data
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField

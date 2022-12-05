@@ -4,7 +4,7 @@ from Standard.Table import Table, Sort_Column, Sort_Column_Selector, Column_Sele
 from Standard.Table.Data.Column_Selector.Column_Selector import By_Name
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range_Data, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
-from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -1170,7 +1170,7 @@ spec setup =
                     materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Unsupported_Database_Operation_Error_Data "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation_Error_Data "`Last` aggregation requires at least one `order_by` column."]
+                problems = [Unsupported_Database_Operation.Error "`First` aggregation requires at least one `order_by` column.", Unsupported_Database_Operation.Error "`Last` aggregation requires at least one `order_by` column."]
                 Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.aggregate should raise warnings when there are issues" pending=(resolve_pending test_selection.problem_handling) <|
@@ -1333,7 +1333,7 @@ spec setup =
                 warnings = Warning.get_all result . map .value
                 warnings.length . should_equal error_count
                 warnings.each warning->
-                    warning.should_be_an Unsupported_Database_Operation_Error_Data
+                    warning.should_be_an Unsupported_Database_Operation.Error
 
             if test_selection.first_last_row_order.not then
                 Test.specify "with First and Last in row order" <|

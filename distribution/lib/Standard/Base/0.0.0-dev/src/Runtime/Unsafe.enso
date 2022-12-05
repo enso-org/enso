@@ -2,7 +2,7 @@
    A container for unsafe operations that operate based on implementation
    details of the language.
 
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Meta.Atom
 

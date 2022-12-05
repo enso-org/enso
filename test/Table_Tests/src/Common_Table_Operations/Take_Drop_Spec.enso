@@ -111,8 +111,8 @@ spec setup =
             table.take (Every 2 first=100) . at "alpha" . to_vector . should_equal []
             table.take (Every 200) . at "alpha" . to_vector . should_equal [1]
             empty.take (Every 2) . should_equal empty
-            table.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
-            empty.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            table.take (Every 0) . should_fail_with Illegal_Argument.Error
+            empty.take (Every 0) . should_fail_with Illegal_Argument.Error
 
             table.drop (Every 1) . should_equal empty
             table.drop (Every 3) . at "alpha" . to_vector . should_equal [2, 3, 5, 6, 8]
@@ -121,8 +121,8 @@ spec setup =
             table.drop (Every 2 first=100) . should_equal table
             table.drop (Every 200) . at "beta" . to_vector . should_equal ["B", "C", "D", "E", "F", "G", "H"]
             empty.drop (Every 2) . should_equal empty
-            table.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
-            empty.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            table.drop (Every 0) . should_fail_with Illegal_Argument.Error
+            empty.drop (Every 0) . should_fail_with Illegal_Argument.Error
 
         Test.specify "should allow sampling rows" <|
             empty = table_builder [["X", []]]
@@ -251,8 +251,8 @@ spec setup =
             alpha.take (Every 2 first=100) . to_vector . should_equal []
             alpha.take (Every 200) . to_vector . should_equal [1]
             empty_beta.take (Every 2) . should_equal empty_beta
-            beta.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
-            empty_beta.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            beta.take (Every 0) . should_fail_with Illegal_Argument.Error
+            empty_beta.take (Every 0) . should_fail_with Illegal_Argument.Error
 
             alpha.drop (Every 1) . should_equal empty_alpha
             alpha.drop (Every 3) . to_vector . should_equal [2, 3, 5, 6, 8]
@@ -261,8 +261,8 @@ spec setup =
             alpha.drop (Every 2 first=100) . should_equal alpha
             beta.drop (Every 200) . to_vector . should_equal ["B", "C", "D", "E", "F", "G", "H"]
             empty_beta.drop (Every 2) . should_equal empty_beta
-            beta.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
-            empty_beta.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
+            beta.drop (Every 0) . should_fail_with Illegal_Argument.Error
+            empty_beta.drop (Every 0) . should_fail_with Illegal_Argument.Error
 
         Test.specify "should allow sampling rows" <|
             three = table_builder [["X", ["a", "a", "a"]]] . at "X"

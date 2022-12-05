@@ -1,9 +1,8 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
 import project.Data.Numbers.Number
-
-from project.Error.Common import unimplemented
+import project.Error.Common.Unimplemented
 
 polyglot java import java.lang.Long
 polyglot java import java.util.Random
@@ -27,7 +26,7 @@ type Generator
        The return type may be chosen freely by the generator implementation, as
        it usually depends on the generator and its intended use.
     step : Number -> Interval -> Any
-    step self _ _ = unimplemented "Only intended to demonstrate an interface."
+    step self _ _ = Unimplemented.throw "Only intended to demonstrate an interface."
 
 ## A noise generator that implements a seeded deterministic random peterbation
    of the input.

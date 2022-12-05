@@ -1,0 +1,88 @@
+import project.Data.Boolean.Boolean
+import project.Data.Numbers.Integer
+import project.Data.Text.Matching_Mode
+import project.Data.Text.Regex.Regex_Mode.Regex_Mode
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Common.Unimplemented
+import project.Nothing.Nothing
+
+## The `Data.Text.Regex.Engine.Pattern` interface.
+type Pattern
+
+    ## PRIVATE
+
+       Tries to match the provided `input` against the pattern `self`.
+
+       Arguments:
+       - input: The text to match the pattern described by `self` against.
+       - mode: The matching mode to use. This must default to `Regex_Mode.All`.
+
+       This method will _always_ return `Nothing` if it fails to match.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+    match : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Match | Vector Match | Nothing
+    match self _ _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Returns `True` if the input matches against the pattern described by
+       `self`, otherwise `False`.
+
+       Arguments:
+       - input: The text to check for matching.
+    matches : Text -> Boolean
+    matches self _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Tries to find the text in the `input` that matches against the pattern
+       `self`.
+
+       Arguments:
+       - input: The text to find matches in.
+       - mode: The matching mode to use. This must default to `Regex_Mode.All`
+
+       This method will _always_ return `Nothing` if it fails to find any
+       matches.
+
+       ? Return Type
+         When asked to match in a mode that can only provide a single match, the
+         return type is either a single `Match` object. When asked to match in a
+         mode that permits multiple matches, it will always return a `Vector`,
+         even if only a single match is found.
+    find : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Text | Vector Text | Nothing
+    find self _ _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Splits the `input` text based on the pattern described by `self`.
+
+       Arguments:
+       - input: The text to splut based on the pattern described by `self`.
+       - mode: The splitting mode to use. This must default to `Regex_Mode.All`.
+
+       This method will _always_ return a vector. If no splits take place, the
+       vector will contain a single element.
+    split : Text -> (Matching_Mode.First | Integer | Regex_Mode) -> Vector Text
+    split self _ _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Replace all occurrences of the pattern described by `self` in the `input`
+       with the specified `replacement`.
+
+       Arguments:
+       - input: The text in which to perform the replacement(s).
+       - replacement: The literal text with which to replace any matches.
+       - mode: The matching mode to use for finding candidates to replace. This
+         must default to `Regex_Mode.All`.
+
+       If this method performs no replacements it will return the `input` text
+       unchanged.
+    replace : Text -> Text -> Regex_Mode | Matching_Mode.First | Matching_Mode.Last | Integer -> Text
+    replace self _ _ _ = Unimplemented.throw "This is an interface only."

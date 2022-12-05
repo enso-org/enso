@@ -1,4 +1,7 @@
-import project.Data.Any.Any
+import project.Any.Any
+import project.Data.Json.Json
+import project.Data.Json.Extensions
+import project.Data.Json.Marshalling_Error
 import project.Data.List.List
 import project.Data.Map.Map
 import project.Data.Numbers.Decimal
@@ -8,11 +11,10 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Runtime.Ref.Ref
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Json import Json, Marshalling_Error
-from project.Error.Common import Panic
 
 polyglot java import org.enso.base.json.Parser
 polyglot java import org.enso.base.json.Printer
@@ -310,9 +312,9 @@ into_helper fmt json = case fmt of
     _ ->
         m = Meta.meta fmt
         case m of
-            Meta.Atom_Data _ -> case json of
+            _ : Meta.Atom -> case json of
                 Json.Object json_fields ->
-                    cons = Meta.Constructor_Data m.constructor
+                    cons = Meta.Constructor.Value m.constructor
                     field_names = cons.fields
                     field_formats = m.fields
                     field_values = field_names.zip field_formats n-> inner_format->

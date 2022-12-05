@@ -1,5 +1,4 @@
-import project.Data.Any.Any
-import project.Data.Json.Json
+import project.Any.Any
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
@@ -421,23 +420,6 @@ type Locale
              example_to_text = Locale.default.to_text
     to_text : Text | Nothing
     to_text self = self.java_locale.toLanguageTag
-
-    ## A Locale to Json conversion
-
-       > Example
-         Convert the default locale to JSON.
-
-             import Standard.Base.Data.Locale.Locale
-
-             example_to_json = Locale.default.to_json
-    to_json : Json
-    to_json self =
-        b = Vector.new_builder
-        b.append ["type", "Locale"]
-        if self.language.is_nothing.not then b.append ["language", self.language]
-        if self.country.is_nothing.not then b.append ["country", self.country]
-        if self.variant.is_nothing.not then b.append ["variant", self.variant]
-        Json.from_pairs b.to_vector
 
     ## Compares two locales for equality.
     == : Any -> Boolean
