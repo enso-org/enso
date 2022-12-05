@@ -52,7 +52,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Compile_Error, Syntax_Error_Data, Polyglot_Error
+from project.Error.Common import Compile_Error, Syntax_Error, Polyglot_Error
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IndexOutOfBoundsException
@@ -133,7 +133,7 @@ type Default_Engine
 
         internal_pattern = maybe_java_pattern.map_error case _ of
             Polyglot_Error.Error (err : PatternSyntaxException) ->
-                Syntax_Error_Data ("The regex could not be compiled: " + err.getMessage)
+                Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
             Polyglot_Error.Error err -> err
             other -> other
 
