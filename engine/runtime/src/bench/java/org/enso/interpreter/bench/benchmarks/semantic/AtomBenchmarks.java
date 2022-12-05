@@ -25,25 +25,27 @@ public class AtomBenchmarks {
     main.mainFunction().value().execute(fixtures.million());
   }
 
-  @Benchmark
-  public void benchGenerateListQualified() {
-    DefaultInterpreterRunner.MainMethod main = fixtures.generateListQualified();
-    main.mainFunction().value().execute(fixtures.million());
-  }
+
+//
+//  @Benchmark
+//  public void benchGenerateListQualified() {
+//    DefaultInterpreterRunner.MainMethod main = fixtures.generateListQualified();
+//    main.mainFunction().value().execute(fixtures.million());
+//  }
 
   private void benchOnList(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(fixtures.millionElementList());
   }
 
-  @Benchmark
-  public void benchReverseList() {
-    benchOnList(fixtures.reverseList());
-  }
-
-  @Benchmark
-  public void benchReverseListMethods() {
-    benchOnList(fixtures.reverseListMethods());
-  }
+//  @Benchmark
+//  public void benchReverseList() {
+//    benchOnList(fixtures.reverseList());
+//  }
+//
+//  @Benchmark
+//  public void benchReverseListMethods() {
+//    benchOnList(fixtures.reverseListMethods());
+//  }
 
   @Benchmark
   public void benchSumList() {
@@ -65,13 +67,13 @@ public class AtomBenchmarks {
     benchOnList(fixtures.sumListMethods());
   }
 
-  @Benchmark
-  public void benchMapReverseList() {
-    benchOnList(fixtures.mapReverseList());
-  }
-
-  @Benchmark
-  public void benchMapReverseCurryList() {
-    benchOnList(fixtures.mapReverseListCurry());
-  }
+//  @Benchmark
+//  public void benchMapReverseList() {
+//    benchOnList(fixtures.mapReverseList());
+//  }
+//
+//  @Benchmark
+//  public void benchMapReverseCurryList() {
+//    benchOnList(fixtures.mapReverseListCurry());
+//  }
 }
