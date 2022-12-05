@@ -174,9 +174,20 @@ impl Model {
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.save_project_snapshot().await {
-                error!("Error while saving module: {err}");
+                error!("Error while saving project snapshot: {err}");
             } else {
-                breadcrumbs.set_project_changed(true);
+                breadcrumbs.set_project_changed(false);
+            }
+        })
+    }
+
+    fn check_project_snapshot(&self) {
+        let controller = self.controller.clone_ref();
+        let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
+        executor::global::spawn(async move {
+            match controller.check_project_snapshot().await {
+                Err(err) => error!("Error while checking project snapshot: {err}"),
+                Ok(dirty) => breadcrumbs.set_project_changed(dirty),
             }
         })
     }
@@ -284,12 +295,16 @@ impl Project {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifications, |notification, model| {
             info!("Processing notification {notification:?}");
-            let message = match notification {
-                model::project::Notification::ConnectionLost(_) =>
-                    crate::BACKEND_DISCONNECTED_MESSAGE,
+            match notification {
+                model::project::Notification::ConnectionLost(_) => {
+                    let message = crate::BACKEND_DISCONNECTED_MESSAGE;
+                    let message = view::status_bar::event::Label::from(message);
+                    model.status_bar.add_event(message);
+                }
+                model::project::Notification::TextAutoSave => {
+                    model.check_project_snapshot();
+                }
             };
-            let message = view::status_bar::event::Label::from(message);
-            model.status_bar.add_event(message);
             std::future::ready(())
         });
         self

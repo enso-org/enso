@@ -123,3 +123,13 @@ pub struct SaveVcs {
 pub struct ListVcs {
     pub saves: Vec<SaveVcs>,
 }
+
+/// Response of `vcs_status` method.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub struct VcsStatus{
+    pub dirty: bool,
+    pub changed: Vec<Path>,
+    pub last_save: SaveVcs,
+}

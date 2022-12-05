@@ -260,6 +260,19 @@ impl Project {
             Ok(())
         }
     }
+
+    /// Check whether the current state of the project differs from the last snapshot in the VCS.
+    #[profile(Detail)]
+    pub fn check_project_snapshot(&self) -> impl Future<Output = FallibleResult<bool>> {
+        let project_root_id = self.model.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root_id, &path_segments);
+        let language_server = self.model.json_rpc();
+        async move {
+            let status = language_server.vcs_status(&root_path).await?;
+            Ok(status.dirty)
+        }
+    }
 }
 
 

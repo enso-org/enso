@@ -168,6 +168,8 @@ pub type Synchronized = synchronized::Project;
 pub enum Notification {
     /// One of the backend connections has been lost.
     ConnectionLost(BackendConnection),
+    /// A successful auto-save action is performed.
+    TextAutoSave,
 }
 
 /// Denotes one of backend connections used by a project.

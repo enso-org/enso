@@ -465,7 +465,10 @@ impl Project {
             // Event Handling
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
-                Event::Notification(Notification::TextAutoSave(_)) => {}
+                Event::Notification(Notification::TextAutoSave(_)) => {
+                    let notification = model::project::Notification::TextAutoSave;
+                    publisher.notify(notification);
+                }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
                     let execution_update = ExecutionUpdate::ExpressionUpdates(updates);
