@@ -45,6 +45,7 @@ from project.Delimited.Delimited_Format.Delimited_Format export Delimited
 from project.Excel.Excel_Format.Excel_Format export Excel
 from project.Excel.Excel_Section.Excel_Section export Sheet_Names, Range_Names, Worksheet, Cell_Range
 
+import project.Error.Invalid_JSON_Format
 
 from Standard.Geo.Geo_Json import Object_Type
 import Standard.Geo.Geo_Json
@@ -94,7 +95,7 @@ Json.to_table self fields=Nothing = case self of
             [n, rows.map (_.at i)]
         Table.new cols
     Json.Object _ ->
-        if self.get_type != Object_Type.Feature_Collection.to_text then Error.throw (Invalid_Format_Error.Invalid_Format_Error_Data self "not being a feature collection") else
+        if self.get_type != Object_Type.Feature_Collection.to_text then Error.throw (Invalid_JSON_Format.Error self "not being a feature collection") else
             case self.get "features" of
                 Json.Array items ->
                     feature_rows = items.map .get_feature_row
@@ -111,18 +112,4 @@ Json.to_table self fields=Nothing = case self of
                         [n, rows.map (_.at i)]
                     Table.new cols
 
-                _ -> Error.throw (Invalid_Format_Error.Invalid_Format_Error_Data self "not having the 'features' key.")
-
-## UNSTABLE
-
-   An error representing an invalid format for conversion.
-type Invalid_Format_Error
-    Invalid_Format_Error_Data input message
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the Invalid_Format_Error.
-    to_display_text : Text
-    to_display_text self =
-        "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."
-
+                _ -> Error.throw (Invalid_JSON_Format.Error self "not having the 'features' key.")

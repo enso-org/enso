@@ -17,7 +17,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
@@ -91,12 +91,12 @@ type Table
 
        Arguments:
        - selector: The name or index of the column to get.
-    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ : Text ->
             candidates = self.internal_columns + self.context.meta_index
-            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error_Data selector)
+            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column.Error selector)
             self.make_column internal_column
 
     ## Returns the number of columns in the table.

@@ -29,7 +29,7 @@ spec setup =
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error_Data
+            table.at "nonexistent column name" . should_fail_with No_Such_Column.Error
         Test.specify "should allow selecting columns by index" <|
             column_1 = table.at
             column_1.name . should_equal "foo"
@@ -85,4 +85,4 @@ spec setup =
 
             table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds_Error.Error
             table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds_Error.Error
-            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column_Error_Data
+            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column.Error

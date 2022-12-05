@@ -87,7 +87,7 @@ type Value_Type
     expect_text : Value_Type -> Any -> Any ! Invalid_Value_Type
     expect_text value_type ~action = case value_type of
         Value_Type.Char _ _ -> action
-        _ -> Error.throw (Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char value_type)
+        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Char value_type)
 
     ## ADVANCED
        UNSTABLE
@@ -96,4 +96,4 @@ type Value_Type
     expect_boolean : Value_Type -> Any -> Any ! Invalid_Value_Type
     expect_boolean value_type ~action = case value_type of
         Value_Type.Boolean -> action
-        _ -> Error.throw (Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Boolean value_type)
+        _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Boolean value_type)

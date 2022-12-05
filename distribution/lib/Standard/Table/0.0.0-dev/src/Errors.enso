@@ -241,10 +241,6 @@ type Invalid_Location
     to_display_text self =
         "The location '"+self.location+"' is not valid."
 
-# TODO Dubious constructor export
-from project.Errors.Invalid_Format import all
-from project.Errors.Invalid_Format export all
-
 ## Indicates that some values did not match the expected datatype format.
 
    Arguments:
@@ -254,15 +250,11 @@ from project.Errors.Invalid_Format export all
    - cells: Contents of the cells that did not match the expected datatype
      format.
 type Invalid_Format
-    Invalid_Format_Data column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+    Error column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
     to_display_text : Text
     to_display_text self =
         self.cells.length+" cells in column "+self.column+" had invalid format for datatype "+self.datatype.to_text+"."
-
-# TODO Dubious constructor export
-from project.Errors.Leading_Zeros import all
-from project.Errors.Leading_Zeros export all
 
 ## Indicates that some values contained leading zeros even though these were not allowed.
 
@@ -272,11 +264,10 @@ from project.Errors.Leading_Zeros export all
    - datatype: The expected datatype.
    - cells: Contents of the cells that contained leading zeros.
 type Leading_Zeros
-    Leading_Zeros_Data column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
+    Error column:(Text|Nothing) (datatype:(Integer|Number|Date|Time|Time_Of_Day|Boolean)) (cells:[Text])
 
-# TODO Dubious constructor export
-from project.Errors.Duplicate_Type_Selector import all
-from project.Errors.Duplicate_Type_Selector export all
+    to_display_text : Text
+    to_display_text self = "Leading zeros in column "+self.column+" with datatype "+self.datatype.to_text+"."
 
 ## Indicates that multiple `Column_Type_Selector` match the same column.
 
@@ -284,39 +275,30 @@ from project.Errors.Duplicate_Type_Selector export all
    a parse is attempted anyway. If mixed types are requested, the column is not
    parsed due to ambiguity.
 type Duplicate_Type_Selector
-    Duplicate_Type_Selector_Data column:Text ambiguous:Boolean
+    Error column:Text ambiguous:Boolean
 
-# TODO Dubious constructor export
-from project.Errors.Existing_Data import all
-from project.Errors.Existing_Data export all
+    to_display_text : Text
+    to_display_text self = "Duplicate type selector for column " + self.column + "."
 
 ## Indicates that the target range contains existing data and the user did not
    specify to overwrite.
 type Existing_Data
-    Existing_Data_Data message
+    Error message
 
     to_display_text : Text
-    to_display_text self = self.message
-
-# TODO Dubious constructor export
-from project.Errors.Range_Exceeded import all
-from project.Errors.Range_Exceeded export all
+    to_display_text self = "Existing data found: " + self.message
 
 ## Indicates that the specified range is not large enough to fit the data.
 type Range_Exceeded
-    Range_Exceeded_Data message
+    Error message
 
     to_display_text : Text
-    to_display_text self = self.message
-
-# TODO Dubious constructor export
-from project.Errors.Column_Count_Mismatch import all
-from project.Errors.Column_Count_Mismatch export all
+    to_display_text self = "Range exceeded: " + self.message
 
 ## Indicates that the existing table has a different number of columns to the
    new table.
 type Column_Count_Mismatch
-    Column_Count_Mismatch_Data expected actual
+    Error expected actual
 
     to_display_text : Text
     to_display_text self =
@@ -326,31 +308,23 @@ type Column_Count_Mismatch
     handle_java_exception =
         throw_column_count_mismatch caught_panic =
             cause = caught_panic.payload.cause
-            Error.throw (Column_Count_Mismatch_Data cause.getExpected cause.getActual)
+            Error.throw (Column_Count_Mismatch.Error cause.getExpected cause.getActual)
         Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
-
-# TODO Dubious constructor export
-from project.Errors.Column_Name_Mismatch import all
-from project.Errors.Column_Name_Mismatch export all
 
 ## Indicates that the existing table has a different set of column names to the
    new table.
 type Column_Name_Mismatch
-    Column_Name_Mismatch_Data missing extras message
+    Error missing extras message
 
     to_display_text : Text
-    to_display_text self = self.message
+    to_display_text self = "Column name mismatch: " + self.message
 
     ## PRIVATE
     handle_java_exception =
         throw_column_name_mismatch caught_panic =
             cause = caught_panic.payload.cause
-            Error.throw (Column_Name_Mismatch_Data (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
+            Error.throw (Column_Name_Mismatch.Error (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
         Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
-
-# TODO Dubious constructor export
-from project.Errors.No_Such_Column_Error import all
-from project.Errors.No_Such_Column_Error export all
 
 ## UNSTABLE
 
@@ -358,8 +332,8 @@ from project.Errors.No_Such_Column_Error export all
 
    Arguments:
    - column_name: The name of the column that doesn't exist.
-type No_Such_Column_Error
-    No_Such_Column_Error_Data column_name
+type No_Such_Column
+    Error column_name
 
     ## PRIVATE
 
@@ -379,7 +353,7 @@ type No_Index_Set_Error
     to_display_text self = "The table does not have an index set."
 
 type Invalid_Value_Type
-    Invalid_Value_Type_Data expected actual
+    Error expected actual
 
     ## PRIVATE
 
@@ -387,3 +361,16 @@ type Invalid_Value_Type
     to_display_text : Text
     to_display_text self =
         "Expected " + self.expected.to_text + " type, but got " + self.actual.to_text + "."
+
+## UNSTABLE
+
+   An error representing an invalid JSON format for conversion.
+type Invalid_JSON_Format
+    Error input message
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the Invalid_JSON_Format.
+    to_display_text : Text
+    to_display_text self =
+        "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."

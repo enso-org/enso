@@ -36,7 +36,7 @@ import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Internal.Rows_View import Rows_View
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
+from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
 from project.Data.Column import get_item_string
 from project.Internal.Filter_Condition_Helpers import make_filter_column
@@ -204,14 +204,14 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.at -1
-    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds_Error
     at self selector=0 = case selector of
         _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Value (java_columns.at selector)
         _ : Text ->
             case self.java_table.getColumnOrIndexByName selector of
-                Nothing -> Error.throw (No_Such_Column_Error_Data selector)
+                Nothing -> Error.throw (No_Such_Column.Error selector)
                 c -> Column.Value c
 
     ## Returns the number of columns in the table.
@@ -691,7 +691,7 @@ type Table
                 if matching_input.length == 1 then matching_input.first.datatype else
                     first_type = matching_input.first.datatype
                     ambiguous = matching_input.exists s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector.Duplicate_Type_Selector_Data column.name ambiguous)
+                    problem_builder.append (Duplicate_Type_Selector.Error column.name ambiguous)
                     if ambiguous then Nothing else first_type
 
         expected_types = case column_types of
@@ -803,7 +803,7 @@ type Table
             Storage.Text -> map_preserve_name column do_replace
             Storage.Any -> map_preserve_name column do_replace_only_text
             _ ->
-                problem = Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char column.value_type
+                problem = Invalid_Value_Type.Error Value_Type.Char column.value_type
                 problem_builder.report_other_warning problem
                 column
 
@@ -828,7 +828,7 @@ type Table
          or not.
        - on_problems: is the behavior to take when the filter cannot be applied.
          The following happens in warning mode:
-         If a column name cannot be found, a `No_Such_Column_Error` warning is
+         If a column name cannot be found, a `No_Such_Column` warning is
          raised and the original table is returned.
          If a column index is invalid, an `Index_Out_Of_Bounds_Error` warning is
          raised and the original table is returned.

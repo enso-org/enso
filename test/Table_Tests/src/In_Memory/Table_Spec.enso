@@ -8,7 +8,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding Fir
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Storage import Storage
 import Standard.Table.Data.Value_Type.Value_Type
-from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data, Floating_Point_Grouping_Data, Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column, Floating_Point_Grouping_Data, Invalid_Value_Type
 
 import Standard.Visualization
 
@@ -154,7 +154,7 @@ spec =
             t.at 's\u0301ciana' . to_vector . should_equal [1, 2, 3]
             t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
             t.at 'café' . to_vector . should_equal [4, 5, 6]
-            t.at 'sciana' . should_fail_with No_Such_Column_Error_Data
+            t.at 'sciana' . should_fail_with No_Such_Column.Error
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -741,7 +741,7 @@ spec =
             table = Table.new [["bools", [False, True]], ["texts", ["foo", "bar"]]]
             action = table.replace_text "bools" "a" "b" on_problems=_
             tester = _.should_equal table
-            problems = [Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char Value_Type.Boolean]
+            problems = [Invalid_Value_Type.Error Value_Type.Char Value_Type.Boolean]
             Problems.test_problem_handling action problems tester
 
     Test.group "[In-Memory] Table.aggregate" <|
