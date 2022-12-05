@@ -6,7 +6,7 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class InvalidArrayIndexError extends UniquelyConstructibleBuiltin {
+public class InvalidConversionTarget extends UniquelyConstructibleBuiltin {
   @Override
   protected String getConstructorName() {
     return "Error";
@@ -14,6 +14,6 @@ public class InvalidArrayIndexError extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("array", "index");
+    return List.of("target");
   }
 }

@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Span.Span
-import Standard.Base.Error.Common.Index_Out_Of_Bounds_Error
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
@@ -166,10 +166,10 @@ spec =
 
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
-            str.at -5 . should_fail_with Index_Out_Of_Bounds_Error.Error
-            str.at -5 . catch . should_equal (Index_Out_Of_Bounds_Error.Error -5 4)
-            str.at 4 . should_fail_with Index_Out_Of_Bounds_Error.Error
-            str.at 4 . catch . should_equal (Index_Out_Of_Bounds_Error.Error 4 4)
+            str.at -5 . should_fail_with Index_Out_Of_Bounds.Error
+            str.at -5 . catch . should_equal (Index_Out_Of_Bounds.Error -5 4)
+            str.at 4 . should_fail_with Index_Out_Of_Bounds.Error
+            str.at 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
@@ -400,31 +400,31 @@ spec =
             txt.take (0.up_to 14) . should_equal txt
             txt.take (6.up_to 100) . should_equal "World!"
             txt.take (Range.Between txt.length-1 txt.length) . should_equal "!"
-            txt.take (Range.Between txt.length txt.length) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (Range.Between txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds_Error.Error txt.length txt.length)
-            txt.take (Range.Between txt.length 100) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.take (Range.Between txt.length txt.length) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (Range.Between txt.length txt.length) . catch . should_equal (Index_Out_Of_Bounds.Error txt.length txt.length)
+            txt.take (Range.Between txt.length 100) . should_fail_with Index_Out_Of_Bounds.Error
             txt.take (First 100) . should_equal txt
             txt.take 100 . should_equal txt
             txt.take (Last 100) . should_equal txt
-            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.take (By_Index 100) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index 13) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds.Error
             txt.take (By_Index [0, 1, 6.up_to 100]) . should_equal "HeWorld!"
             txt.take (By_Index [0, 1, 6.up_to 100 . with_step 2]) . should_equal "HeWrd"
-            txt.take (13.up_to 12) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            "".take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            "".take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error.Error 0 0)
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (13.up_to 20) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (13.up_to 20 . with_step 2) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.take (13.up_to 12) . should_fail_with Index_Out_Of_Bounds.Error
+            "".take (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
+            "".take (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds.Error
+            "ABC".take (By_Index 3) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (13.up_to 20) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (13.up_to 20 . with_step 2) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index [0.up_to 2, 13.up_to 20]) . should_fail_with Index_Out_Of_Bounds.Error
             txt.take (By_Index [0.up_to 0, 13.up_to 10, 2.up_to 2 . with_step 2]) . should_equal ""
-            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . catch . should_equal (Index_Out_Of_Bounds_Error.Error 13 12)
-            txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.take (By_Index [0.up_to 2 . with_step 2, 13.up_to 20 . with_step 2]) . catch . should_equal (Index_Out_Of_Bounds.Error 13 12)
+            txt.take (By_Index [0.up_to 2 . with_step 2, txt.length.up_to 100 . with_step 2]) . should_fail_with Index_Out_Of_Bounds.Error
+            "".take (By_Index 0) . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "take should work on grapheme clusters" <|
             txt_1 = 'He\u0302llo\u0308 Wo\u0301rld!'
@@ -545,17 +545,17 @@ spec =
             txt.drop (First 100) . should_equal ""
             txt.drop 100 . should_equal ""
             txt.drop (Last 100) . should_equal ""
-            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds_Error.Error 100 12)
-            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.drop (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.drop (By_Index 100) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.drop (By_Index 100) . catch . should_equal (Index_Out_Of_Bounds.Error 100 12)
+            txt.drop (By_Index 13) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.drop (By_Index [0, 1, 13]) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.drop (By_Index [0, 14.up_to 15, 1]) . should_fail_with Index_Out_Of_Bounds.Error
             txt.drop (By_Index [0, 1, 6.up_to 100]) . should_equal "llo "
-            txt.drop (13.up_to 12) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            txt.drop (14.up_to 15) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error.Error
-            "".drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds_Error.Error 0 0)
+            txt.drop (13.up_to 12) . should_fail_with Index_Out_Of_Bounds.Error
+            txt.drop (14.up_to 15) . should_fail_with Index_Out_Of_Bounds.Error
+            "".drop (By_Index 0) . should_fail_with Index_Out_Of_Bounds.Error
+            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
+            "".drop (0.up_to 0) . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
             txt.drop (0.up_to 0) . should_equal txt
             txt.drop (5.up_to 100) . should_equal "Hello"
             txt.drop (5.up_to 100 . with_step 2) . should_equal "HelloWrd"
@@ -622,7 +622,7 @@ spec =
 
             "".drop (While _->True) . should_equal ""
 
-            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds_Error.Error
+            "".drop (0.up_to 0) . should_fail_with Index_Out_Of_Bounds.Error
             'ABC\u{301}'.drop (0.up_to 0) . should_equal 'ABC\u{301}'
 
             'ABC\u{301}'.drop (After "") . should_equal ''
@@ -689,9 +689,9 @@ spec =
             txt.insert 2 " Cruel" . should_equal (kshi + facepalm + " Cruel" + accent_1)
             txt.insert 3 " Cruel" . should_equal (kshi + facepalm + accent_1 + " Cruel")
 
-        Test.specify "should report Index_Out_Of_Bounds_Error.Error when inserting text at an invalid non-negative index position" <|
-            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds_Error.Error
-            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds_Error.Error
+        Test.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid non-negative index position" <|
+            "Hello World!".insert ("Hello World!".length + 1) "foo" . should_fail_with Index_Out_Of_Bounds.Error
+            (kshi + facepalm + accent_1).insert 4 "foo" . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should insert text at a negative index position" <|
             "Hello World!".insert -1 " Cruel" . should_equal "Hello World! Cruel"
@@ -702,10 +702,10 @@ spec =
             txt.insert -1 " Cruel" . should_equal (txt + " Cruel")
             txt.insert -(txt.length) " Cruel" . should_equal (kshi + " Cruel" + facepalm + accent_1)
 
-        Test.specify "should report Index_Out_Of_Bounds_Error.Error when inserting text at an invalid negative index position" <|
-            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error.Error
+        Test.specify "should report Index_Out_Of_Bounds.Error when inserting text at an invalid negative index position" <|
+            "Hello World!".insert -("Hello World!".length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds.Error
             txt = kshi + facepalm + accent_1
-            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds_Error.Error
+            txt.insert -(txt.length + 2) " Cruel" . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should be able to check by index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -714,7 +714,7 @@ spec =
             str.is_digit 2 . should_be_true
             str.is_digit 3 . should_be_true
             str.is_digit 4 . should_be_false
-            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds_Error.Error
+            str.is_digit 5 . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should be able to check by negative index if is a digit" <|
             str = kshi + "A12" + accent_2
@@ -723,7 +723,7 @@ spec =
             str.is_digit -3 . should_be_true
             str.is_digit -4 . should_be_false
             str.is_digit -5 . should_be_false
-            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds_Error.Error
+            str.is_digit -100 . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should be able to check if a text consists only of whitespace" <|
             '  \t\n'.is_whitespace . should_be_true
@@ -736,8 +736,8 @@ spec =
 
         Test.specify "should return a dataflow error when checking is digit for out of bounds" <|
             str = kshi + "A12" + accent_2
-            str.at -6 . should_fail_with Index_Out_Of_Bounds_Error.Error
-            str.at 5 . should_fail_with Index_Out_Of_Bounds_Error.Error
+            str.at -6 . should_fail_with Index_Out_Of_Bounds.Error
+            str.at 5 . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should be able to reverse characters" <|
             "Hello World!".reverse . should_equal "!dlroW olleH"

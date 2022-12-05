@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Index_Out_Of_Bounds_Error
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 
 import Standard.Table.Data.Value_Type.Value_Type
@@ -263,6 +263,6 @@ spec setup =
             action = t.filter 4 on_problems=_
             tester table =
                 table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
-            problems = [Index_Out_Of_Bounds_Error.Error 4 1]
+            problems = [Index_Out_Of_Bounds.Error 4 1]
             Problems.test_problem_handling action problems tester
 

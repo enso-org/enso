@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.No_Such_Method_Error
+import Standard.Base.Error.Common.No_Such_Method
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
@@ -46,8 +46,8 @@ spec = Test.group "Range" <|
         1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument.Error
         0.up_to 2.0 . should_fail_with Illegal_Argument.Error
         0.down_to 2.0 . should_fail_with Illegal_Argument.Error
-        Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error.Error
-        Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error.Error
+        Test.expect_panic_with (0.0.up_to 2) No_Such_Method.Error
+        Test.expect_panic_with (0.0.down_to 2) No_Such_Method.Error
 
     Test.specify "should have a length" <|
         0.up_to 100 . length . should_equal 100
@@ -92,7 +92,7 @@ spec = Test.group "Range" <|
         range.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3]
         range.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5]
 
-        Test.expect_panic_with (range.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error.Error
+        Test.expect_panic_with (range.filter (Filter_Condition.Starts_With "a")) No_Such_Method.Error
         Test.expect_panic_with (range.filter (Filter_Condition.Like "a%")) Unsupported_Argument_Types.Error
         Test.expect_panic_with (range.filter (Filter_Condition.Not_Like "a_")) Unsupported_Argument_Types.Error
         range.filter Filter_Condition.Is_True . should_equal []

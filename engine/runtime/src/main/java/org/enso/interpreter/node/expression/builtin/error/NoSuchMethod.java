@@ -6,7 +6,7 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class NoSuchMethodError extends UniquelyConstructibleBuiltin {
+public class NoSuchMethod extends UniquelyConstructibleBuiltin {
   @Override
   protected String getConstructorName() {
     return "Error";

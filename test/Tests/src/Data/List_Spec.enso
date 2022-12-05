@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.No_Such_Method_Error
+import Standard.Base.Error.Common.No_Such_Method
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 from Standard.Base.Data.List import Empty_Error
@@ -60,7 +60,7 @@ spec = Test.group "List" <|
         list.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3].to_list
         list.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5].to_list
 
-        Test.expect_panic_with (list.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error.Error
+        Test.expect_panic_with (list.filter (Filter_Condition.Starts_With "a")) No_Such_Method.Error
         list.filter Filter_Condition.Is_True . should_equal List.Nil
         list.filter Filter_Condition.Is_False . should_equal List.Nil
         list.filter Filter_Condition.Is_Nothing . should_equal List.Nil

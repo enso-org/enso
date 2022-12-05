@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Index_Out_Of_Bounds_Error
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 
 from Standard.Table.Errors import all
 
@@ -43,7 +43,7 @@ spec setup =
             column_3.name . should_equal "abcd123"
             column_3.to_vector . should_equal [19, 20, 21]
 
-            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error.Error
+            table.at 100 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
@@ -78,11 +78,11 @@ spec setup =
             table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
 
         Test.specify "should correctly handle errors" <|
-            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds_Error.Error
+            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds.Error
             err = table.rows.at -6
-            err.should_fail_with Index_Out_Of_Bounds_Error.Error
-            err.catch . should_equal (Index_Out_Of_Bounds_Error.Error -6 4)
+            err.should_fail_with Index_Out_Of_Bounds.Error
+            err.catch . should_equal (Index_Out_Of_Bounds.Error -6 4)
 
-            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds_Error.Error
-            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds_Error.Error
+            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds.Error
+            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds.Error
             table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column.Error

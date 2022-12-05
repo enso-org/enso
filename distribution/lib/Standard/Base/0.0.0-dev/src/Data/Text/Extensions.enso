@@ -21,7 +21,7 @@ import project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Vector.Vector
 import project.Error.Common.Compile_Error
-import project.Error.Common.Index_Out_Of_Bounds_Error
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
 import project.Error.Encoding_Error.Encoding_Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -104,20 +104,20 @@ Text.each self function =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".at 1 == "반"
-Text.at : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
     case index < 0 of
         True ->
             length = self.length
             new_index = index + length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error.Error index length) else
+            if new_index < 0 then Error.throw (Index_Out_Of_Bounds.Error index length) else
                 self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error.Error index self.length)) else
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds.Error index self.length)) else
                 Text_Utils.substring self first next
 
 ## ALIAS Get Characters
@@ -457,11 +457,11 @@ Text.lines self keep_endings=False =
          "Hello World!".insert 0 " Cruel" == " CruelHello World!"
          "Hello World!".insert 5 " Cruel" == "Hello Cruel World!"
          "Hello World!".insert -1 " Cruel" == "Hello World! Cruel"
-Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
+Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds
 Text.insert self index that =
     len = self.length
     idx = if index < 0 then len + index + 1 else index
-    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error.Error index len) else
+    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds.Error index len) else
         if idx == 0 then that + self else
             if idx == len then self + that else
                 pre = self.take (0.up_to idx)
@@ -489,7 +489,7 @@ Text.insert self index that =
          "A0".is_digit == False
          "A0".is_digit 1 == True
          "건반(Korean)".is_digit 1 == False
-Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds_Error
+Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds
 Text.is_digit self (index=0) =
     grapheme = self.at index
     char = (Text_Utils.get_chars grapheme).at 0
@@ -862,7 +862,7 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (Sample 3 seed=42) == "l d"
-Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds_Error
+Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.take self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
@@ -908,7 +908,7 @@ Text.take self range=(Index_Sub_Range.First 1) =
          "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
          "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
-Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
 Text.drop self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of

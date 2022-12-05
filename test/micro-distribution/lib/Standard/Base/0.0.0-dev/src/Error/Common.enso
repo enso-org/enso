@@ -19,7 +19,7 @@ type Compile_Error
     Error message
 
 @Builtin_Type
-type Inexhaustive_Pattern_Match_Error
+type Inexhaustive_Pattern_Match
     Error scrutinee
 
 @Builtin_Type

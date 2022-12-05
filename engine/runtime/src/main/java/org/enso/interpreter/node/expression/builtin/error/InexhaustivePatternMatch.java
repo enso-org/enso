@@ -6,7 +6,7 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class InvalidConversionTargetError extends UniquelyConstructibleBuiltin {
+public class InexhaustivePatternMatch extends UniquelyConstructibleBuiltin {
   @Override
   protected String getConstructorName() {
     return "Error";
@@ -14,6 +14,6 @@ public class InvalidConversionTargetError extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("target");
+    return List.of("scrutinee");
   }
 }

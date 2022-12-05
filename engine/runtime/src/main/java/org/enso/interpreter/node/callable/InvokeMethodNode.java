@@ -290,7 +290,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = date;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
   }
 
@@ -320,7 +320,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = dateTime;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
   }
 
@@ -348,7 +348,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = ensoDuration;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
   }
 
@@ -388,7 +388,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = dateTime;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
   }
 
@@ -416,7 +416,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = dateTime;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
   }
 
@@ -444,7 +444,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       arguments[0] = dateTime;
       return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
-      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+      throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
   }
 

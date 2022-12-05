@@ -6,7 +6,7 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class IndexOutOfBoundsError extends UniquelyConstructibleBuiltin {
+public class IndexOutOfBounds extends UniquelyConstructibleBuiltin {
   @Override
   protected String getConstructorName() {
     return "Error";

@@ -14,7 +14,7 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Text
-import project.Error.Common.Index_Out_Of_Bounds_Error
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Illegal_State.Illegal_State
@@ -167,7 +167,7 @@ type Utf_16_Span
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
    to a range on the underlying code units.
-range_to_char_indices : Text -> Range -> Range ! (Index_Out_Of_Bounds_Error | Illegal_Argument)
+range_to_char_indices : Text -> Range -> Range ! (Index_Out_Of_Bounds | Illegal_Argument)
 range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_Argument.Error "Text indexing only supports ranges with step equal to 1.") else
     len = text.length
     start = if range.start < 0 then range.start + len else range.start
@@ -175,8 +175,8 @@ range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_
     is_valid = (0.up_to len+1).contains
 
     case Pair.new (is_valid start) (is_valid end) of
-        Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds_Error.Error range.start len)
-        Pair.Value True False -> Error.throw (Index_Out_Of_Bounds_Error.Error range.end len)
+        Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds.Error range.start len)
+        Pair.Value True False -> Error.throw (Index_Out_Of_Bounds.Error range.end len)
         Pair.Value True True ->
             if start>=end then (0.up_to 0) else
                 iterator = BreakIterator.getCharacterInstance

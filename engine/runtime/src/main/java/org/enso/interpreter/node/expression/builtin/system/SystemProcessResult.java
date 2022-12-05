@@ -11,6 +11,7 @@ public class SystemProcessResult extends UniquelyConstructibleBuiltin {
   protected String getConstructorName() {
     return "Result";
   }
+
   @Override
   protected List<String> getConstructorParamNames() {
     return List.of("exit_code", "stdout", "stderr");

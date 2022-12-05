@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Index_Out_Of_Bounds_Error
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
@@ -91,7 +91,7 @@ type Table
 
        Arguments:
        - selector: The name or index of the column to get.
-    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds_Error
+    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ : Text ->
@@ -365,7 +365,7 @@ type Table
          The following happens in warning mode:
          If a column name cannot be found, a `No_Such_Column` warning is raised
          and the original table is returned.
-         If a column index is invalid, an `Index_Out_Of_Bounds_Error` warning is
+         If a column index is invalid, an `Index_Out_Of_Bounds` warning is
          raised and the original table is returned.
          If the column is an invalid type for the filter, an
          `Invalid_Value_Type` warning is raised and an empty table is returned.

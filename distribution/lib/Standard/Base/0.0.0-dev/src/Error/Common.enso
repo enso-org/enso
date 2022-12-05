@@ -9,7 +9,7 @@ import project.Meta
    - index: The requested index.
    - length: The length of the collection.
 @Builtin_Type
-type Index_Out_Of_Bounds_Error
+type Index_Out_Of_Bounds
     Error index length
 
     ## PRIVATE
@@ -50,7 +50,7 @@ type Compile_Error
    Arguments:
    - scrutinee: The scrutinee that failed to match.
 @Builtin_Type
-type Inexhaustive_Pattern_Match_Error
+type Inexhaustive_Pattern_Match
     Error scrutinee
 
 ## The error thrown when the number of arguments provided to an operation
@@ -80,7 +80,7 @@ type Uninitialized_State
    - target: The target on which the attempted method call was performed.
    - symbol: The symbol that was attempted to be called on target.
 @Builtin_Type
-type No_Such_Method_Error
+type No_Such_Method
     Error target symbol
 
     ## ADVANCED
@@ -128,7 +128,7 @@ type Arithmetic_Error
    - array: The array in which the index was requested.
    - index: The index that was out of bounds.
 @Builtin_Type
-type Invalid_Array_Index_Error
+type Invalid_Array_Index
     Error array index
 
 ## An error that occurs when an object is used as a function in a function
@@ -137,7 +137,7 @@ type Invalid_Array_Index_Error
    Arguments:
      - target: The called object.
 @Builtin_Type
-type Not_Invokable_Error
+type Not_Invokable
     Error target
 
 ## An error that occurs when arguments used in a function call are invalid
@@ -164,7 +164,7 @@ type Module_Does_Not_Exist
    Arguments:
      - target: ...
 @Builtin_Type
-type Invalid_Conversion_Target_Error
+type Invalid_Conversion_Target
     Error target
 
 ## An error that occurs when the conversion from one type to another does not exist
@@ -175,5 +175,5 @@ type Invalid_Conversion_Target_Error
      - that: ...
      - conversion: ...
 @Builtin_Type
-type No_Such_Conversion_Error
+type No_Such_Conversion
     Error target that conversion
