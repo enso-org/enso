@@ -1293,7 +1293,7 @@ spec setup =
         Test.specify "should warn if trying concatenate unquoted delimiters" <|
             column = Concatenate "Text" separator=","
             action = table.aggregate [column] on_problems=_
-            problems = [Additional_Warnings.Error "Concatenate Text" [1]]
+            problems = [Unquoted_Delimiter.Error "Concatenate Text" [1]]
             tester = expect_column_names ["Concatenate Text"]
             Problems.test_problem_handling action problems tester
 

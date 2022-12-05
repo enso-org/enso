@@ -240,7 +240,7 @@ type Vector a
     sum self =
         result = Panic.recover Any <| self.reduce (+)
         result.map_error x->case x of
-            No_Such_Method_Error.Error _ _ -> x
+            _ : No_Such_Method_Error -> x
             Empty_Error -> x
             _ -> Panic.throw x
 
