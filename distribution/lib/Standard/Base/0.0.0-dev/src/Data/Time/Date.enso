@@ -201,7 +201,7 @@ type Date
             _ : Text -> parse_builtin text pattern
             _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
         result . map_error <| case _ of
-            Polyglot_Error.Polyglot_Error_Data err -> Time_Error.Error err.getMessage
+            Polyglot_Error.Value err -> Time_Error.Error err.getMessage
             ex -> ex
 
     ## Get the year field.

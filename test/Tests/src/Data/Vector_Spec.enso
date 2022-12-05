@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Empty_Error
+import Standard.Base.Error.Common.No_Such_Method_Error
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
@@ -118,7 +119,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow summing elements if they define +" <|
         [1,2,3].sum . should_equal 6
         [].sum . should_fail_with Empty_Error
-        [T.Value 1 2, T.Value 3 4].sum . should_fail_with No_Such_Method_Error_Data
+        [T.Value 1 2, T.Value 3 4].sum . should_fail_with No_Such_Method_Error.Error
 
     Test.specify "should check exists" <|
         vec = [1, 2, 3, 4, 5]
@@ -175,7 +176,7 @@ spec = Test.group "Vectors" <|
         vec.filter (Filter_Condition.Is_In []) . should_equal []
         vec.filter (Filter_Condition.Not_In [7, 3, 2, 2]) . should_equal [1, 4, 5]
 
-        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
+        Test.expect_panic_with (vec.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error.Error
         vec.filter Filter_Condition.Is_True . should_equal []
         vec.filter Filter_Condition.Is_False . should_equal []
         vec.filter Filter_Condition.Is_Nothing . should_equal []

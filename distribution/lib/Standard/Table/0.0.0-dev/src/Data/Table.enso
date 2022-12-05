@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Error.Common.No_Such_Method_Error
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
@@ -1416,7 +1417,7 @@ type Table
                 if base_format == Nothing then Error.throw (File_Error.Unsupported_Type file) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                Panic.catch No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
+                Panic.catch No_Such_Method_Error.Error (format.write_table file self on_existing_file match_columns on_problems) _->
                     name = Meta.get_constructor_name (Meta.meta format).constructor
                     Error.throw (Illegal_Argument.Error ("Saving a Table as " + name + " is not supported."))
 

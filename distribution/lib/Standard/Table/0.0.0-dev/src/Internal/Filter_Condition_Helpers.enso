@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method_Error
 
 import project.Data.Value_Type.Value_Type
 
@@ -68,7 +69,7 @@ expect_column_or_value_as_text field_name column_or_value ~action = case column_
        the backend). So we assume it is a column and if it doesn't quack like a
        column, we fall back to a type error.
     maybe_column ->
-        result = Panic.catch No_Such_Method_Error_Data (Value_Type.expect_text maybe_column.value_type True) _->
+        result = Panic.catch No_Such_Method_Error.Error (Value_Type.expect_text maybe_column.value_type True) _->
             Error.throw (Type_Error_Data Text (Meta.type_of maybe_column) field_name)
         ## We don't run the action above, to avoid catching spurious
            `No_Such_Method_Error` from the action itself. Instead we just return

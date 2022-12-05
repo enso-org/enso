@@ -180,4 +180,4 @@ from project.System.File_Format.Plain_Text_Format export Plain_Text
 
 ## ToDo:
 import project.Error.Common
-from project.Error.Common export all hiding Arithmetic_Error, Invalid_Array_Index_Error, Not_Invokable_Error, Unsupported_Argument_Types, Module_Does_Not_Exist, Invalid_Conversion_Target_Error, No_Such_Conversion_Error
+from project.Error.Common export Compile_Error, Compile_Error_Data, Type_Error, Type_Error_Data, Syntax_Error, Syntax_Error_Data, Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data

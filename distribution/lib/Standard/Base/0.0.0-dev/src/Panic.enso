@@ -146,7 +146,7 @@ type Panic
                     True -> handler caught_panic
                     False -> Panic.throw caught_panic
                 True -> case caught_panic.payload of
-                    Polyglot_Error.Polyglot_Error_Data java_exception ->
+                    Polyglot_Error.Error java_exception ->
                         case java_exception.is_a panic_type of
                             True -> handler caught_panic
                             False -> Panic.throw caught_panic
@@ -176,7 +176,7 @@ type Panic
     catch_java : Any -> Any -> (Throwable -> Any) -> Any
     catch_java panic_type ~action handler =
         Panic.catch_primitive action caught_panic-> case caught_panic.payload of
-            Polyglot_Error.Polyglot_Error_Data java_exception ->
+            Polyglot_Error.Error java_exception ->
                 case (panic_type == Any) || (java_exception.is_a panic_type) of
                     True -> handler java_exception
                     False -> Panic.throw caught_panic

@@ -61,21 +61,13 @@ from project.Error.Common.Compile_Error export all
 type Compile_Error
     Compile_Error_Data message
 
-# TODO Dubious constructor export
-from project.Error.Common.Inexhaustive_Pattern_Match_Error import all
-from project.Error.Common.Inexhaustive_Pattern_Match_Error export all
-
 ## The error thrown when a there is no pattern to match on the scrutinee.
 
    Arguments:
    - scrutinee: The scrutinee that failed to match.
 @Builtin_Type
 type Inexhaustive_Pattern_Match_Error
-    Inexhaustive_Pattern_Match_Error_Data scrutinee
-
-# TODO Dubious constructor export
-from project.Error.Common.Arity_Error import all
-from project.Error.Common.Arity_Error export all
+    Error scrutinee
 
 ## The error thrown when the number of arguments provided to an operation
    does not match the expected number of arguments.
@@ -86,7 +78,7 @@ from project.Error.Common.Arity_Error export all
      - actual: the actual number of arguments passed.
 @Builtin_Type
 type Arity_Error
-    Arity_Error_Data expected_min expected_max actual
+    Error expected_min expected_max actual
 
 ## The error thrown when the program attempts to read from a state slot that has
    not yet been initialized.
@@ -95,11 +87,7 @@ type Arity_Error
    - key: The key for the state slot that was not initialized.
 @Builtin_Type
 type Uninitialized_State
-    Uninitialized_State_Data key
-
-# TODO Dubious constructor export
-from project.Error.Common.No_Such_Method_Error import all
-from project.Error.Common.No_Such_Method_Error export all
+    Error key
 
 ## The error thrown when the specified symbol does not exist as a method on
    the target.
@@ -109,7 +97,7 @@ from project.Error.Common.No_Such_Method_Error export all
    - symbol: The symbol that was attempted to be called on target.
 @Builtin_Type
 type No_Such_Method_Error
-    No_Such_Method_Error_Data target symbol
+    Error target symbol
 
     ## ADVANCED
        UNSTABLE
@@ -134,7 +122,7 @@ type No_Such_Method_Error
    - cause: A polyglot object corresponding to the original error.
 @Builtin_Type
 type Polyglot_Error
-    Polyglot_Error_Data cause
+    Error cause
 
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.
