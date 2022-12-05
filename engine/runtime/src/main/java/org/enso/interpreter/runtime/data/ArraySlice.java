@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -123,7 +124,14 @@ public final class ArraySlice implements TruffleObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
-    return warnings.getWarnings(this.storage);
+  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+    return warnings.getWarnings(this.storage, location);
   }
+
+  @ExportMessage
+  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+    Object newStorage = warnings.removeWarnings(this.storage);
+    return new ArraySlice(newStorage, start, end);
+  }
+
 }

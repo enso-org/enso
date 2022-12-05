@@ -47,10 +47,6 @@ public final class ArrayRope<T> {
     return segment.size();
   }
 
-  public boolean isEmpty() {
-    return segment.isEmpty();
-  }
-
   @Override
   public String toString() {
     return "ArrayRope{" + "segment=" + segment + '}';

@@ -13,6 +13,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -224,9 +226,15 @@ public final class Vector implements TruffleObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
       throws UnsupportedMessageException {
-    return warnings.getWarnings(this.storage);
+    return warnings.getWarnings(this.storage, location);
+  }
+
+  @ExportMessage
+  Vector removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    return new Vector(warnings.removeWarnings(this.storage));
   }
 
   //

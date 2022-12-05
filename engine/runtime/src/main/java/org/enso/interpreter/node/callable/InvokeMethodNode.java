@@ -34,6 +34,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
@@ -183,6 +184,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Object[] arguments,
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached MethodResolverNode preResolveMethod,
       @Bind("getPolyglotCallType(self, symbol, interop, preResolveMethod)")
           HostMethodCallNode.PolyglotCallType polyglotCallType,
@@ -195,17 +197,21 @@ public abstract class InvokeMethodNode extends BaseNode {
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
     for (int i = 0; i < argExecutors.length; i++) {
-       var r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
-       args[i] = r;
+      var r = argExecutors[i].executeThunk(arguments[i + 1], state, TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
         profiles[i].enter();
         return r;
-      } else if (r instanceof WithWarnings w) {
+      } else if (warnings.hasWarnings(r)) {
         warningProfiles[i].enter();
         anyWarnings = true;
-        accumulatedWarnings =
-            accumulatedWarnings.append(w.getReassignedWarnings(this));
-        args[i] = w.getValue();
+        try {
+          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this));
+          args[i] = warnings.removeWarnings(r);
+        } catch (UnsupportedMessageException e) {
+          throw new IllegalStateException(e);
+        }
+      } else {
+        args[i] = r;
       }
     }
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);

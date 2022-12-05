@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.Warning;
@@ -155,15 +156,32 @@ public final class Array implements TruffleObject {
 
   @ExportMessage
   @ExplodeLoop
-  Warning[] getWarnings() {
+  Warning[] getWarnings(Node location) {
     ArrayRope<Warning> warnings = new ArrayRope<>();
     for (int i = 0; i < items.length; i++) {
-      if (items[i] instanceof WithWarnings) {
-        WithWarnings withWarnings = (WithWarnings) items[i];
-        warnings = warnings.prepend(withWarnings.getWarnings());
+      if (items[i] instanceof WithWarnings w) {
+        if (location != null) {
+          warnings = warnings.prepend(w.getReassignedWarnings(location));
+        } else {
+          warnings = warnings.prepend(w.collectWarnings());
+        }
       }
     }
     return warnings.toArray(Warning[]::new);
+  }
+
+  @ExportMessage
+  @ExplodeLoop
+  Array removeWarnings() {
+    Object[] items = new Object[this.items.length];
+    for (int i = 0; i < this.items.length; i++) {
+      if (this.items[i] instanceof WithWarnings) {
+        items[i] = ((WithWarnings) this.items[i]).getValue();
+      } else {
+        items[i] = this.items[i];
+      }
+    }
+    return new Array(items);
   }
 
   @ExportMessage

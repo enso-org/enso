@@ -33,7 +33,7 @@ public class GatherWarningsNode extends BaseNode {
     for (int i = 0; i < argsCount; i++) {
       if (profiles[i].profile(arguments[i] instanceof WithWarnings)) {
         anyFound = true;
-        result = result.append(((WithWarnings) arguments[i]).getWarnings());
+        result = result.append(((WithWarnings) arguments[i]).collectWarnings());
       }
     }
     if (anyFound) {

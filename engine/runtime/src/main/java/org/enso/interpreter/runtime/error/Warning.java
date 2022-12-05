@@ -107,7 +107,7 @@ public final class Warning implements TruffleObject {
   public static Array getAll(Object value, WarningsLibrary warnings) {
     if (warnings.hasWarnings(value)) {
       try {
-        return new Array((Object[]) warnings.getWarnings(value));
+        return new Array((Object[]) warnings.getWarnings(value, null));
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException(e);
       }
