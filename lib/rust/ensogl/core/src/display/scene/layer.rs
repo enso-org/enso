@@ -9,7 +9,6 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::ShapeSystemFlavor;
-use crate::display::shape::primitive::system::ShapeSystemFlavorProvider;
 use crate::display::shape::system::Shape;
 use crate::display::shape::system::ShapeInstance;
 use crate::display::shape::system::ShapeSystem;
@@ -1132,7 +1131,7 @@ impl ShapeSystemRegistryData {
         S: Shape,
     {
         let id = TypeId::of::<S>();
-        let flavor = data.flavor();
+        let flavor = S::flavor(&data);
         let system = ShapeSystem::<S>::new(scene, data);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
@@ -1158,7 +1157,7 @@ impl ShapeSystemRegistryData {
         F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>) -> Out,
         S: Shape,
     {
-        let flavor = data.flavor();
+        let flavor = S::flavor(&data);
         match self.get_mut(flavor) {
             Some(entry) => f(entry),
             None => f(self.register(scene, data)),

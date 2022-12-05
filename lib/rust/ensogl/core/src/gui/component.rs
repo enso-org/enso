@@ -11,7 +11,6 @@ use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
-use crate::display::shape::primitive::system::ShapeSystemFlavorProvider;
 use crate::display::symbol;
 use crate::frp;
 
@@ -145,7 +144,7 @@ impl<S: Shape> ShapeViewModel<S> {
     }
 
     fn remove_from_scene_layer(&self, old_layer: &WeakLayer) {
-        let flavor = (*self.data.borrow()).flavor();
+        let flavor = S::flavor(&self.data.borrow());
         if let Some(layer) = old_layer.upgrade() {
             let (last_instance, shape_system_id, _) =
                 layer.shape_system_registry.drop_instance::<S>(flavor);
