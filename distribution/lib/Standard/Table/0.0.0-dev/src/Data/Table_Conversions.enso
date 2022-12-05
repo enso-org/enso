@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
 import project.Delimited.Delimited_Format.Delimited_Format
@@ -12,5 +13,5 @@ Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '
 
 Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
     case format of
-        _ : Delimited_Format -> Delimited_Reader.read_text that format
+        _ : Delimited_Format -> Delimited_Writer.write_text that format
         _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."

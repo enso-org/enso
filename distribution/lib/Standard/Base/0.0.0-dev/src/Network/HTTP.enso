@@ -21,7 +21,6 @@ import project.Network.Proxy.Proxy
 import project.Network.URI.URI
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Time_Error
 
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpRequest

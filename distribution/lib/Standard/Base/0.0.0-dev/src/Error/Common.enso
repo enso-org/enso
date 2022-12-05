@@ -4,10 +4,6 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-polyglot java import java.io.IOException
-polyglot java import java.nio.file.AccessDeniedException
-polyglot java import java.nio.file.NoSuchFileException
-polyglot java import java.nio.file.FileAlreadyExistsException
 polyglot java import java.lang.ClassCastException
 
 # TODO Dubious constructor export
@@ -245,63 +241,6 @@ type No_Such_Conversion_Error
 
 ## UNSTABLE
 
-   A type used to represent that something has not yet been implemented.
-
-   Arguments:
-   - message: The message describing what implementation is missing.
-type Unimplemented
-    Error message
-
-    ## PRIVATE
-
-       Converts the unimplemented error to a human-readable error message.
-    to_display_text : Text
-    to_display_text self = "An implementation is missing: " + self.message
-
-    ## ADVANCED
-
-       A function that can be used to indicate that something hasn't been
-       implemented yet.
-
-       Arguments:
-       - message: A description of what implementation is missing.
-
-       > Example
-         Throwing an error to show that something is unimplemented.
-
-             import Standard.Base.Error.Common as Errors
-
-             example_unimplemented = Errors.Unimplemented.throw
-    throw : Text -> Nothing
-    throw message="" = Panic.throw (Unimplemented.Error message)
-
-type Time_Error
-
-    ## UNSTABLE
-
-       An error produced while working with time- and date-related methods.
-
-       Arguments:
-       - error_message: The message for the error.
-    Error error_message
-
-    ## PRIVATE
-    epoch_start : Time_Error
-    epoch_start = Time_Error.Error "Epoch start underflow"
-
-    to_display_text : Text
-    to_display_text self = self.error_message
-
-## Indicates that the given file's type is not supported.
-type Unsupported_File_Type
-    Error filename
-
-    to_display_text : Text
-    to_display_text self =
-        "The "+self.filename+" has a type that is not supported."
-
-## UNSTABLE
-
    An error indicating that some elements are incomparable.
 
 type Incomparable_Values_Error
@@ -315,50 +254,6 @@ type Incomparable_Values_Error
                 handle Type_Error_Data <|
                     handle Unsupported_Argument_Types_Data <|
                         function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
-
-## Errors when reading or writing to a file.
-type File_Error
-
-    ## An error that indicates that the requested file does not exist.
-
-       Arguments:
-       - file: The file that doesn't exist.
-    Not_Found file
-
-    ## Indicates that a destination file already exists.
-    Already_Exists file
-
-    ## A generic IO error.
-
-       Arguments:
-       - file: The file that couldn't be read.
-       - message: The message for the error.
-    IO_Error file message
-
-    ## UNSTABLE
-
-       Convert the File error to a human-readable format.
-    to_display_text : Text
-    to_display_text self = case self of
-        File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
-        File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
-        File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
-
-    ## PRIVATE
-
-       Utility method for running an action with Java exceptions mapping.
-    handle_java_exceptions file ~action =
-        Panic.catch IOException action caught_panic->
-            File_Error.wrap_io_exception file caught_panic.payload.cause
-
-    ## PRIVATE
-
-       Converts a Java `IOException` into its Enso counterpart.
-    wrap_io_exception file io_exception = case io_exception of
-        _ : NoSuchFileException -> Error.throw (File_Error.Not_Found file)
-        _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists file)
-        _ : AccessDeniedException -> Error.throw (File_Error.IO_Error file "You do not have permission to access the file")
-        _ -> Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
 
 ## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error

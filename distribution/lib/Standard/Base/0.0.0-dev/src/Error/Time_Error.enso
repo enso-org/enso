@@ -1,0 +1,18 @@
+import project.Data.Text.Text
+
+type Time_Error
+
+    ## UNSTABLE
+
+       An error produced while working with time- and date-related methods.
+
+       Arguments:
+       - error_message: The message for the error.
+    Error error_message
+
+    ## PRIVATE
+    epoch_start : Time_Error
+    epoch_start = Time_Error.Error "Epoch start underflow"
+
+    to_display_text : Text
+    to_display_text self = self.error_message
