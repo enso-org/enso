@@ -1,7 +1,8 @@
 import project.Error.Error
 import project.Panic.Panic
+import project.Error.Common.Type_Error
 
-from project.Error.Common import No_Such_Method_Error, Type_Error_Data, Unsupported_Argument_Types
+from project.Error.Common import No_Such_Method_Error, Unsupported_Argument_Types
 
 polyglot java import java.lang.ClassCastException
 
@@ -15,5 +16,5 @@ type Incomparable_Values
        Incomparable_Values if any occur.
     handle_errors ~function =
         handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values)
-        handle ClassCastException <| handle No_Such_Method_Error.Error <| handle Type_Error_Data <| handle Unsupported_Argument_Types.Error <|
-            function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values)
+        handle ClassCastException <| handle No_Such_Method_Error.Error <| handle Type_Error.Error <| handle Unsupported_Argument_Types.Error <|
+            function.catch Type_Error.Error handler=(_-> Error.throw Incomparable_Values)

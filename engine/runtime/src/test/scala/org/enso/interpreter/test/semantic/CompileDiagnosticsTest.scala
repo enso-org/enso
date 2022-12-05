@@ -49,7 +49,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |""".stripMargin
       eval(
         code
-      ) shouldEqual "(Compile_Error_Data 'Variable x is being redefined.')"
+      ) shouldEqual "(Compile_Error.Error 'Variable x is being redefined.')"
     }
 
     "surface non-existent variable errors in the language" in {
@@ -65,7 +65,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |""".stripMargin
       eval(
         code
-      ) shouldEqual "(Compile_Error_Data 'The name `my_vra` could not be found.')"
+      ) shouldEqual "(Compile_Error.Error 'The name `my_vra` could not be found.')"
     }
   }
 }

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
 
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import all
@@ -157,7 +158,7 @@ spec setup =
 
             check_scalar_type_error_handling name action =
                 tester = check_empty ["ix", "X"]
-                problems = [Type_Error_Data Text Integer name]
+                problems = [Type_Error.Error Text Integer name]
                 Problems.test_problem_handling action problems tester
             check_scalar_type_error_handling "prefix" (t.filter "X" (Filter_Condition.Starts_With 42) on_problems=_)
             check_scalar_type_error_handling "suffix" (t.filter "X" (Filter_Condition.Ends_With 42) on_problems=_)

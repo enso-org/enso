@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Base.Data.Text.Extensions import Index_Out_Of_Bounds_Error_Data
@@ -110,9 +111,9 @@ spec =
             # Handling of Nothing
             (accent_1 == Nothing) . should_be_false
             (accent_1 != Nothing) . should_be_true
-            accent_1 . compare_to Nothing . should_fail_with Type_Error_Data
-            (accent_1 > Nothing) . should_fail_with Type_Error_Data
-            accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error_Data
+            accent_1 . compare_to Nothing . should_fail_with Type_Error.Error
+            (accent_1 > Nothing) . should_fail_with Type_Error.Error
+            accent_1 . compare_to_ignore_case Nothing . should_fail_with Type_Error.Error
 
             earlier_suffix = "aooooz"
             later_suffix = "bo"

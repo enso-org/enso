@@ -59,7 +59,7 @@ class PanicsTest extends InterpreterTest {
           |    caught = Panic.catch_primitive (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
           |    cause = caught.catch_primitive e-> case e of
-          |        Polyglot_Error.Value err -> err
+          |        Polyglot_Error.Error err -> err
           |        _ -> "fail"
           |    IO.println cause
           |    message = cause.getMessage

@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
+import Standard.Base.Error.Common.Type_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -39,6 +40,6 @@ spec =
             v2.should_equal [0, 10, 20, 30, 40]
 
         Test.specify "should check the callback type validity at construction" <|
-            Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error_Data
+            Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error.Error
 
 main = Test_Suite.run_main spec

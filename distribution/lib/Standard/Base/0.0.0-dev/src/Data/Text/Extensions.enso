@@ -20,6 +20,7 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Vector.Vector
+import project.Error.Common.Compile_Error
 import project.Error.Error
 import project.Error.Encoding_Error.Encoding_Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -204,7 +205,7 @@ Text.match_all self term=".*" matcher=Regex_Matcher.Regex_Matcher_Data =
          example_match =
              regex = ".+@.+"
              "contact@enso.org".is_match regex
-Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Regex.Compile_Error
+Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Compile_Error
 Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
     Text_Matcher.Case_Sensitive -> self == pattern
     Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale

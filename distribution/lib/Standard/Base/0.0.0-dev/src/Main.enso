@@ -180,4 +180,4 @@ from project.System.File_Format.Plain_Text_Format export Plain_Text
 
 ## ToDo:
 import project.Error.Common
-from project.Error.Common export Compile_Error, Compile_Error_Data, Type_Error, Type_Error_Data, Syntax_Error, Syntax_Error_Data, Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data
+from project.Error.Common export Syntax_Error, Syntax_Error_Data, Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data

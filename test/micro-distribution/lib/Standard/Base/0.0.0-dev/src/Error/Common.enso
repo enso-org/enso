@@ -13,19 +13,13 @@ type Polyglot_Error
 type Arithmetic_Error
     Error message
 
-# TODO Dubious constructor export
-from project.Error.Common.Type_Error import all
-from project.Error.Common.Type_Error export all
 @Builtin_Type
 type Type_Error
-    Type_Error_Data expected actual name
+    Error expected actual name
 
-# TODO Dubious constructor export
-from project.Error.Common.Compile_Error import all
-from project.Error.Common.Compile_Error export all
 @Builtin_Type
 type Compile_Error
-    Compile_Error_Data message
+    Error message
 
 @Builtin_Type
 type Inexhaustive_Pattern_Match_Error
