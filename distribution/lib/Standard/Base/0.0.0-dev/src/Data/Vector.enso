@@ -12,6 +12,7 @@ import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Incomparable_Values.Incomparable_Values
 import project.Function.Function
 import project.Math
 import project.Nothing.Nothing
@@ -20,7 +21,7 @@ import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
+from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Type_Error_Data, Unsupported_Argument_Types_Data
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
@@ -855,7 +856,7 @@ type Vector a
          Sorting a vector of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Direction.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values_Error
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values
     sort self (on = x -> x) (by = (_.compare_to _)) (order = Sort_Direction.Ascending) =
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
@@ -871,7 +872,7 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        Incomparable_Values_Error.handle_errors <|
+        Incomparable_Values.handle_errors <|
             new_vec_arr.sort compare
             Vector.from_polyglot_array new_vec_arr
 
@@ -909,7 +910,7 @@ type Vector a
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        Incomparable_Values_Error.handle_errors <|
+        Incomparable_Values.handle_errors <|
             builder = Vector.new_builder
             result = self.fold Map.empty existing->
                 item->

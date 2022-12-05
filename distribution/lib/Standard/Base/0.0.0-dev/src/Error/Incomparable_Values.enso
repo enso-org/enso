@@ -1,0 +1,19 @@
+import project.Error.Error
+import project.Panic.Panic
+
+from project.Error.Common import No_Such_Method_Error_Data, Type_Error_Data, Unsupported_Argument_Types_Data
+
+polyglot java import java.lang.ClassCastException
+
+## UNSTABLE
+
+   An error indicating that some elements are incomparable.
+
+type Incomparable_Values
+    ## ADVANCED
+       Catches possible errors from comparing values and throws an
+       Incomparable_Values if any occur.
+    handle_errors ~function =
+        handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values)
+        handle ClassCastException <| handle No_Such_Method_Error_Data <| handle Type_Error_Data <| handle Unsupported_Argument_Types_Data <|
+            function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values)

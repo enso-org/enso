@@ -4,6 +4,7 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Column.Column
@@ -537,7 +538,7 @@ type Table
            `Column_Matched_By_Multiple_Selectors`.
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If values do not implement an ordering, an
-           `Incomparable_Values_Error`.
+           `Incomparable_Values`.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
@@ -607,7 +608,7 @@ type Table
                  table = Examples.inventory_table
                  table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
-    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
+    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -615,7 +616,7 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values_Error.handle_errors <|
+            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
             Table.Table_Data java_table
 

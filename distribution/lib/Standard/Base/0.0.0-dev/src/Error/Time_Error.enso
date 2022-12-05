@@ -14,5 +14,8 @@ type Time_Error
     epoch_start : Time_Error
     epoch_start = Time_Error.Error "Epoch start underflow"
 
+    ## PRIVATE
+
+       Provides a human-readable representation of the time error.
     to_display_text : Text
-    to_display_text self = self.error_message
+    to_display_text self = "Time_Error: " + self.error_message

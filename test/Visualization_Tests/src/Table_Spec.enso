@@ -77,7 +77,6 @@ visualization_spec connection =
             json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=[""] ixes=[[0, 1]]
             vis . should_equal json
 
-
         Test.specify "should handle Vectors" <|
             vis = Visualization.prepare_visualization [1, 2, 3] 2
             json = Json.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
