@@ -1,5 +1,6 @@
-
 from Standard.Base import all
+import Standard.Base.Data.Text.Span.Span
+import Standard.Base.Data.Text.Span.Utf_16_Span
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
