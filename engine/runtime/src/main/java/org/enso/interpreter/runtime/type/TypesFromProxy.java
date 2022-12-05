@@ -24,8 +24,7 @@ public class TypesFromProxy {
    *     builtins can be referenced from
    * @param typeName the fully qualified type name as defined in {@link Constants} or {@link
    *     ConstantsGen}
-   * @return the associated {@link Struct} if it exists,
-   *     and {@code null} otherwise
+   * @return the associated {@link Struct} if it exists, and {@code null} otherwise
    */
   public static Type fromTypeSystem(Builtins builtins, String typeName) {
     switch (typeName) {

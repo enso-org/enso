@@ -13,60 +13,61 @@ import org.enso.interpreter.runtime.data.struct.StructsLibrary;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
 public class GetFieldNode extends RootNode {
-    private final int index;
-    private final String name;
-    private final Type type;
+  private final int index;
+  private final String name;
+  private final Type type;
 
-    private @Child StructsLibrary structs = StructsLibrary.getFactory().createDispatched(10);
+  private @Child StructsLibrary structs = StructsLibrary.getFactory().createDispatched(10);
 
-    /**
-     * Creates a new instance of this node.
-     *
-     * @param language the current language instance.
-     * @param index    the index this node should use for field lookup.
-     */
-    public GetFieldNode(TruffleLanguage<?> language, int index, Type type, String name) {
-        super(language);
-        this.index = index;
-        this.type = type;
-        this.name = name;
-    }
+  /**
+   * Creates a new instance of this node.
+   *
+   * @param language the current language instance.
+   * @param index the index this node should use for field lookup.
+   */
+  public GetFieldNode(TruffleLanguage<?> language, int index, Type type, String name) {
+    super(language);
+    this.index = index;
+    this.type = type;
+    this.name = name;
+  }
 
-    /**
-     * Executes the node, by taking the first argument from the frame and plucking the proper field
-     * from it.
-     *
-     * @param frame current execution frame
-     * @return the field value at predefined index
-     */
-    public Object execute(VirtualFrame frame) {
-        // this is safe, as only Atoms will ever get here through method dispatch.
-        Struct struct = (Struct) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-        return structs.getField(struct, index);
-    }
+  /**
+   * Executes the node, by taking the first argument from the frame and plucking the proper field
+   * from it.
+   *
+   * @param frame current execution frame
+   * @return the field value at predefined index
+   */
+  public Object execute(VirtualFrame frame) {
+    // this is safe, as only Atoms will ever get here through method dispatch.
+    Struct struct =
+        (Struct) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
+    return structs.getField(struct, index);
+  }
 
-    @Override
-    public String getQualifiedName() {
-        return type.getQualifiedName().createChild(name).toString();
-    }
+  @Override
+  public String getQualifiedName() {
+    return type.getQualifiedName().createChild(name).toString();
+  }
 
-    @Override
-    public String getName() {
-        return type.getName() + "." + name;
-    }
+  @Override
+  public String getName() {
+    return type.getName() + "." + name;
+  }
 
-    @Override
-    public boolean isCloningAllowed() {
-        return true;
-    }
+  @Override
+  public boolean isCloningAllowed() {
+    return true;
+  }
 
-    @Override
-    protected boolean isCloneUninitializedSupported() {
-        return true;
-    }
+  @Override
+  protected boolean isCloneUninitializedSupported() {
+    return true;
+  }
 
-    @Override
-    protected GetFieldNode cloneUninitialized() {
-        return new GetFieldNode(getLanguage(Language.class), index, type, name);
-    }
+  @Override
+  protected GetFieldNode cloneUninitialized() {
+    return new GetFieldNode(getLanguage(Language.class), index, type, name);
+  }
 }

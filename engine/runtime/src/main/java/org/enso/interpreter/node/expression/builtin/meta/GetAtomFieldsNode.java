@@ -9,19 +9,19 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.struct.StructsLibrary;
 
 @BuiltinMethod(
-        type = "Meta",
-        name = "get_atom_fields",
-        description = "Gets the fields of an unresolved atom.",
-        autoRegister = false)
+    type = "Meta",
+    name = "get_atom_fields",
+    description = "Gets the fields of an unresolved atom.",
+    autoRegister = false)
 public abstract class GetAtomFieldsNode extends Node {
-    static GetAtomFieldsNode build() {
-        return GetAtomFieldsNodeGen.create();
-    }
-    abstract Array execute(Struct struct);
+  static GetAtomFieldsNode build() {
+    return GetAtomFieldsNodeGen.create();
+  }
 
-    @Specialization
-    Array doStruct(Struct struct, @CachedLibrary(limit = "2") StructsLibrary structs) {
-        return new Array(structs.getFields(struct));
-    }
+  abstract Array execute(Struct struct);
 
+  @Specialization
+  Array doStruct(Struct struct, @CachedLibrary(limit = "2") StructsLibrary structs) {
+    return new Array(structs.getFields(struct));
+  }
 }

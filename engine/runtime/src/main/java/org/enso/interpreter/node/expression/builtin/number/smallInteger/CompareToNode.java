@@ -13,52 +13,52 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-        type = "Small_Integer",
-        name = "compare_to",
-        description = "Comparison for small integers.")
+    type = "Small_Integer",
+    name = "compare_to",
+    description = "Comparison for small integers.")
 public abstract class CompareToNode extends Node {
 
-    static CompareToNode build() {
-        return CompareToNodeGen.create();
-    }
+  static CompareToNode build() {
+    return CompareToNodeGen.create();
+  }
 
-    abstract Object execute(long self, Object that);
+  abstract Object execute(long self, Object that);
 
-    @Specialization
-    Struct doLong(long self, long that) {
-        if (self == that) {
-            return getOrdering().newEqual();
-        } else if (self > that) {
-            return getOrdering().newGreater();
-        } else {
-            return getOrdering().newLess();
-        }
+  @Specialization
+  Struct doLong(long self, long that) {
+    if (self == that) {
+      return getOrdering().newEqual();
+    } else if (self > that) {
+      return getOrdering().newGreater();
+    } else {
+      return getOrdering().newLess();
     }
+  }
 
-    @Specialization
-    Struct doBigInt(long self, EnsoBigInteger that) {
-        return getOrdering().fromJava(BigIntegerOps.compareTo(self, that.getValue()));
-    }
+  @Specialization
+  Struct doBigInt(long self, EnsoBigInteger that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(self, that.getValue()));
+  }
 
-    @Specialization
-    Struct doDecimal(long self, double that) {
-        if (self == that) {
-            return getOrdering().newEqual();
-        } else if (self > that) {
-            return getOrdering().newGreater();
-        } else {
-            return getOrdering().newLess();
-        }
+  @Specialization
+  Struct doDecimal(long self, double that) {
+    if (self == that) {
+      return getOrdering().newEqual();
+    } else if (self > that) {
+      return getOrdering().newGreater();
+    } else {
+      return getOrdering().newLess();
     }
+  }
 
-    @Fallback
-    DataflowError doOther(long self, Object that) {
-        var builtins = Context.get(this).getBuiltins();
-        var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
-        return DataflowError.withoutTrace(typeError, this);
-    }
+  @Fallback
+  DataflowError doOther(long self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
+  }
 
-    Ordering getOrdering() {
-        return Context.get(this).getBuiltins().ordering();
-    }
+  Ordering getOrdering() {
+    return Context.get(this).getBuiltins().ordering();
+  }
 }

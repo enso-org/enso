@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.data.struct.Struct;
     autoRegister = false)
 public class SetAtomFieldNode extends Node {
   Struct execute(Struct struct, long index, Object value) {
-//    struct.getFields()[(int) index] = value;
+    //    struct.getFields()[(int) index] = value;
     return struct;
   }
 }

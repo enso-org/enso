@@ -9,20 +9,20 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 public class BoxingStruct extends Struct {
-    private final Object[] fields;
+  private final Object[] fields;
 
-    public BoxingStruct(AtomConstructor constructor, Object... fields) {
-        super(constructor);
-        this.fields = fields;
-    }
+  public BoxingStruct(AtomConstructor constructor, Object... fields) {
+    super(constructor);
+    this.fields = fields;
+  }
 
-    @ExportMessage(name = "getFields")
-    Object[] getFieldsX() {
-        return fields;
-    }
+  @ExportMessage(name = "getFields")
+  Object[] getFieldsX() {
+    return fields;
+  }
 
-    @ExportMessage
-    Object getField(int index) {
-        return fields[index];
-    }
+  @ExportMessage
+  Object getField(int index) {
+    return fields[index];
+  }
 }

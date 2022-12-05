@@ -57,7 +57,8 @@ public class GetFieldWithMatchNode extends RootNode {
   @ExplodeLoop
   public Object execute(VirtualFrame frame) {
     // this is safe, as only Atoms will ever get here through method dispatch.
-    Struct struct = (Struct) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
+    Struct struct =
+        (Struct) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
     var constructor = struct.getConstructor();
     for (int i = 0; i < getterPairs.length; i++) {
       var getter = getterPairs[i];

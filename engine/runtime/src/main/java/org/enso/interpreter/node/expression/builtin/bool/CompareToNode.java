@@ -11,28 +11,28 @@ import org.enso.interpreter.runtime.error.DataflowError;
 
 @BuiltinMethod(type = "Boolean", name = "compare_to", description = "Comparison for Booleans.")
 public abstract class CompareToNode extends Node {
-    static CompareToNode build() {
-        return CompareToNodeGen.create();
-    }
+  static CompareToNode build() {
+    return CompareToNodeGen.create();
+  }
 
-    abstract Object execute(Boolean self, Object that);
+  abstract Object execute(Boolean self, Object that);
 
-    @Specialization
-    Struct doBoolean(Boolean self, Boolean that) {
-        Ordering ordering = Context.get(this).getBuiltins().ordering();
-        if (self == that) {
-            return ordering.newEqual();
-        } else if (self) {
-            return ordering.newGreater();
-        } else {
-            return ordering.newLess();
-        }
+  @Specialization
+  Struct doBoolean(Boolean self, Boolean that) {
+    Ordering ordering = Context.get(this).getBuiltins().ordering();
+    if (self == that) {
+      return ordering.newEqual();
+    } else if (self) {
+      return ordering.newGreater();
+    } else {
+      return ordering.newLess();
     }
+  }
 
-    @Fallback
-    DataflowError doOther(Boolean self, Object that) {
-        var builtins = Context.get(this).getBuiltins();
-        var typeError = builtins.error().makeTypeError(builtins.bool().getType(), that, "that");
-        return DataflowError.withoutTrace(typeError, this);
-    }
+  @Fallback
+  DataflowError doOther(Boolean self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.bool().getType(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
+  }
 }

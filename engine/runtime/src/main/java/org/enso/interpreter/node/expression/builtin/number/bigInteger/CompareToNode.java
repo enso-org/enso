@@ -13,41 +13,40 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-        type = "Big_Integer",
-        name = "compare_to",
-        description = "Comparison for big integers.")
+    type = "Big_Integer",
+    name = "compare_to",
+    description = "Comparison for big integers.")
 public abstract class CompareToNode extends Node {
 
-    static CompareToNode build() {
-        return CompareToNodeGen.create();
-    }
+  static CompareToNode build() {
+    return CompareToNodeGen.create();
+  }
 
-    abstract Object execute(EnsoBigInteger self, Object that);
+  abstract Object execute(EnsoBigInteger self, Object that);
 
+  @Specialization
+  Struct doLong(EnsoBigInteger self, long that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(self.getValue(), that));
+  }
 
-    @Specialization
-    Struct doLong(EnsoBigInteger self, long that) {
-        return getOrdering().fromJava(BigIntegerOps.compareTo(self.getValue(), that));
-    }
+  @Specialization
+  Struct doBigInt(EnsoBigInteger self, EnsoBigInteger that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(self.getValue(), that.getValue()));
+  }
 
-    @Specialization
-    Struct doBigInt(EnsoBigInteger self, EnsoBigInteger that) {
-        return getOrdering().fromJava(BigIntegerOps.compareTo(self.getValue(), that.getValue()));
-    }
+  @Specialization
+  Struct doDecimal(EnsoBigInteger self, double that) {
+    return getOrdering().fromJava(BigIntegerOps.compareTo(self.getValue(), that));
+  }
 
-    @Specialization
-    Struct doDecimal(EnsoBigInteger self, double that) {
-        return getOrdering().fromJava(BigIntegerOps.compareTo(self.getValue(), that));
-    }
+  @Fallback
+  DataflowError doOther(EnsoBigInteger self, Object that) {
+    var builtins = Context.get(this).getBuiltins();
+    var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
+    return DataflowError.withoutTrace(typeError, this);
+  }
 
-    @Fallback
-    DataflowError doOther(EnsoBigInteger self, Object that) {
-        var builtins = Context.get(this).getBuiltins();
-        var typeError = builtins.error().makeTypeError(builtins.number().getNumber(), that, "that");
-        return DataflowError.withoutTrace(typeError, this);
-    }
-
-    Ordering getOrdering() {
-        return Context.get(this).getBuiltins().ordering();
-    }
+  Ordering getOrdering() {
+    return Context.get(this).getBuiltins().ordering();
+  }
 }

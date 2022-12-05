@@ -26,7 +26,7 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
 
   @Specialization
   Object doExecute(
-          State state, Struct self, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
+      State state, Struct self, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
     Builtins builtins = Context.get(this).getBuiltins();
     Object payload = self.getFields()[0];
     Object originalException = self.getFields()[1];
