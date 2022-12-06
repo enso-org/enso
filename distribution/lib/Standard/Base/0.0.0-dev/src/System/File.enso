@@ -163,7 +163,7 @@ type File
        - format: A `File_Format` object used to read file into memory.
          If `Auto_Detect` is specified; the provided file determines the specific
          type and configures it appropriately. If there is no matching type then
-         a `File_Format.Unsupported_Type` error is returned.
+         a `File_Error.Unsupported_Type` error is returned.
        - on_problems: Specifies the behavior when a problem occurs during the
          function.
          By default, a warning is issued, but the operation proceeds.

@@ -1,7 +1,7 @@
 import project.Data.Text.Text
 
-## One or more byte sequences were not decodable using the Encoding.
 type Encoding_Error
+    ## One or more byte sequences were not decodable using the Encoding.
     Error (message:Text)
 
     ## PRIVATE

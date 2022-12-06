@@ -1,15 +1,15 @@
 import project.Data.Text.Text
 import project.Meta
 
-## UNSTABLE
-
-   An error indicating that a requested index was out of bounds of a collection.
-
-   Arguments:
-   - index: The requested index.
-   - length: The length of the collection.
 @Builtin_Type
 type Index_Out_Of_Bounds
+    ## UNSTABLE
+
+       An error indicating that a requested index was out of bounds of a collection.
+
+       Arguments:
+       - index: The requested index.
+       - length: The length of the collection.
     Error index length
 
     ## PRIVATE
@@ -19,68 +19,68 @@ type Index_Out_Of_Bounds
     to_display_text self =
         "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
 
-## The runtime representation of a syntax error.
-
-   Arguments:
-   - message: A description of the erroneous syntax.
 @Builtin_Type
 type Syntax_Error
-    Error message
+    ## The runtime representation of a syntax error.
 
-## The runtime representation of a type error.
+       Arguments:
+       - message: A description of the erroneous syntax.
+   Error message
 
-   Arguments:
-   - expected: The expected type at the error location.
-   - actual: The actual type at the error location.
-   - name: The name of the argument whose type is mismatched.
 @Builtin_Type
 type Type_Error
+    ## The runtime representation of a type error.
+
+       Arguments:
+       - expected: The expected type at the error location.
+       - actual: The actual type at the error location.
+       - name: The name of the argument whose type is mismatched.
     Error expected actual name
 
-## The runtime representation of a compilation error.
-
-   Arguments:
-   - message: A description of the erroneous state.
 @Builtin_Type
 type Compile_Error
+    ## The runtime representation of a compilation error.
+
+       Arguments:
+       - message: A description of the erroneous state.
     Error message
 
-## The error thrown when a there is no pattern to match on the scrutinee.
-
-   Arguments:
-   - scrutinee: The scrutinee that failed to match.
 @Builtin_Type
 type Inexhaustive_Pattern_Match
+    ## The error thrown when a there is no pattern to match on the scrutinee.
+
+       Arguments:
+       - scrutinee: The scrutinee that failed to match.
     Error scrutinee
 
-## The error thrown when the number of arguments provided to an operation
-   does not match the expected number of arguments.
-
-   Arguments:
-     - expected_min: the minimum expected number of arguments.
-     - expected_max: the maximum expected number of arguments.
-     - actual: the actual number of arguments passed.
 @Builtin_Type
 type Arity_Error
+    ## The error thrown when the number of arguments provided to an operation
+       does not match the expected number of arguments.
+
+       Arguments:
+         - expected_min: the minimum expected number of arguments.
+         - expected_max: the maximum expected number of arguments.
+         - actual: the actual number of arguments passed.
     Error expected_min expected_max actual
 
-## The error thrown when the program attempts to read from a state slot that has
-   not yet been initialized.
-
-   Arguments:
-   - key: The key for the state slot that was not initialized.
 @Builtin_Type
 type Uninitialized_State
+    ## The error thrown when the program attempts to read from a state slot that has
+       not yet been initialized.
+
+       Arguments:
+       - key: The key for the state slot that was not initialized.
     Error key
 
-## The error thrown when the specified symbol does not exist as a method on
-   the target.
-
-   Arguments:
-   - target: The target on which the attempted method call was performed.
-   - symbol: The symbol that was attempted to be called on target.
 @Builtin_Type
 type No_Such_Method
+    ## The error thrown when the specified symbol does not exist as a method on
+       the target.
+
+       Arguments:
+       - target: The target on which the attempted method call was performed.
+       - symbol: The symbol that was attempted to be called on target.
     Error target symbol
 
     ## ADVANCED
@@ -100,80 +100,78 @@ type No_Such_Method
     method_name self =
         Meta.meta self.symbol . name
 
-## An error that occurred across a polyglot boundary.
-
-   Arguments:
-   - cause: A polyglot object corresponding to the original error.
 @Builtin_Type
 type Polyglot_Error
-    Error cause
+    ## An error that occurred across a polyglot boundary.
+
+       Arguments:
+       - cause: A polyglot object corresponding to the original error.
+   Error cause
 
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.
 @Builtin_Type
 type Module_Not_In_Package_Error
 
-## An error for when an erroneous arithmetic computation takes place.
-
-   Arguments:
-   - message: A description of the error condition.
 @Builtin_Type
 type Arithmetic_Error
+    ## An error for when an erroneous arithmetic computation takes place.
+
+       Arguments:
+       - message: A description of the error condition.
     Error message
 
-## An error that occurs when a program requests a read from an array index
-   that is out of bounds in the array.
-
-   Arguments:
-   - array: The array in which the index was requested.
-   - index: The index that was out of bounds.
 @Builtin_Type
 type Invalid_Array_Index
+    ## An error that occurs when a program requests a read from an array index
+       that is out of bounds in the array.
+
+       Arguments:
+       - array: The array in which the index was requested.
+       - index: The index that was out of bounds.
     Error array index
 
-## An error that occurs when an object is used as a function in a function
-   call, but it cannot be called.
-
-   Arguments:
-     - target: The called object.
 @Builtin_Type
 type Not_Invokable
+    ## An error that occurs when an object is used as a function in a function
+       call, but it cannot be called.
+
+       Arguments:
+         - target: The called object.
     Error target
 
-## An error that occurs when arguments used in a function call are invalid
-   types for the function.
-
-   Arguments:
-     - arguments: The passed arguments.
-     - message: A detailed message.
 @Builtin_Type
 type Unsupported_Argument_Types
+    ## An error that occurs when arguments used in a function call are invalid
+       types for the function.
+
+       Arguments:
+         - arguments: The passed arguments.
+         - message: A detailed message.
     Error arguments message
 
-## An error that occurs when the specified module cannot be found.
-
-   Arguments:
-     - name: The module searched for.
 @Builtin_Type
 type Module_Does_Not_Exist
+    ## An error that occurs when the specified module cannot be found.
+
+       Arguments:
+         - name: The module searched for.
     Error name
 
-## An error that occurs when the specified value cannot be converted to a given type
-## FIXME: please check
-
-   Arguments:
-     - target: ...
 @Builtin_Type
 type Invalid_Conversion_Target
+    ## An error that occurs when the specified value cannot be converted to a given type
+
+       Arguments:
+         - target: the type trying to be converted to.
     Error target
 
-## An error that occurs when the conversion from one type to another does not exist
-## FIXME: please check
-
-   Arguments:
-     - target: ...
-     - that: ...
-     - conversion: ...
 @Builtin_Type
 type No_Such_Conversion
+    ## An error that occurs when the conversion from one type to another does not exist
+
+       Arguments:
+         - target: the type trying to be converted to.
+         - that: the value to be converted.
+         - conversion: the conversion that was attempted.
     Error target that conversion

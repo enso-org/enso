@@ -2,13 +2,13 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.Panic.Panic
 
-## UNSTABLE
-
-   A type used to represent that something has not yet been implemented.
-
-   Arguments:
-   - message: The message describing what implementation is missing.
 type Unimplemented
+    ## UNSTABLE
+
+       A type used to represent that something has not yet been implemented.
+
+       Arguments:
+       - message: The message describing what implementation is missing.
     Error message
 
     ## PRIVATE
