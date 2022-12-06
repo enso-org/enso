@@ -542,7 +542,7 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let sum_tree = SpanTree::<()>::new(sum_node.expression(), graph).unwrap();
+            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), graph).unwrap();
             let sum_input =
                 sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = controller::graph::Connection {
