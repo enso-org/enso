@@ -53,7 +53,7 @@ public class MetaIsATest {
 
   @Test
   public void checkNumbersAreNumber() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var g = ValuesGenerator.create(ctx);
     var typeNumber = g.typeNumber();
     for (var v : g.numbers()) {
       var r = isACheck.execute(v, typeNumber);
@@ -62,10 +62,10 @@ public class MetaIsATest {
   }
 
   @Test
-  public void checkNumbersAreAny() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+  public void checkValuesAreAny() throws Exception {
+    var g = ValuesGenerator.create(ctx);
     var typeAny = g.typeAny();
-    for (var v : g.numbers()) {
+    for (var v : g.allValues()) {
       var r = isACheck.execute(v, typeAny);
       assertTrue("Value " + v + " is any", r.asBoolean());
     }
@@ -73,7 +73,7 @@ public class MetaIsATest {
 
   @Test
   public void checkNumbersAreNotText() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var g = ValuesGenerator.create(ctx);
     for (var v : g.numbers()) {
       var r = isACheck.execute(v, g.typeText());
       assertFalse("Value " + v + " is not a string", r.asBoolean());
@@ -82,7 +82,7 @@ public class MetaIsATest {
 
   @Test
   public void checkTextsAreText() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var g = ValuesGenerator.create(ctx);
     for (var v : g.textual()) {
       var r = isACheck.execute(v, g.typeText());
       assertTrue("Value " + v + " is a string", r.asBoolean());
@@ -90,20 +90,29 @@ public class MetaIsATest {
   }
 
   @Test
-  public void checkTextsAreAny() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+  public void checkTextsAreNotNumbers() {
+    var g = ValuesGenerator.create(ctx);
     for (var v : g.textual()) {
-      var r = isACheck.execute(v, g.typeAny());
-      assertTrue("Value " + v + " is Any", r.asBoolean());
+      var r = isACheck.execute(v, g.typeNumber());
+      assertFalse("Value " + v + " is not a number", r.asBoolean());
     }
   }
 
   @Test
-  public void checkTextsAreNotNumbers() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    for (var v : g.textual()) {
-      var r = isACheck.execute(v, g.typeNumber());
-      assertFalse("Value " + v + " is not a number", r.asBoolean());
+  public void valuesAreNotInstancesOfThemselves() throws Exception {
+    var g = ValuesGenerator.create(ctx);
+    for (var v : g.allValues()) {
+      var r = isACheck.execute(v, v);
+      assertFalse("Value " + v + " shall not be instance of itself", r.asBoolean());
+    }
+  }
+
+  @Test
+  public void typesAreNotInstancesOfThemselves() throws Exception {
+    var g = ValuesGenerator.create(ctx);
+    for (var v : g.allTypes()) {
+      var r = isACheck.execute(v, v);
+      assertTrue("Type " + v + " is instance of itself", r.asBoolean());
     }
   }
 }

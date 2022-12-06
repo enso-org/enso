@@ -76,7 +76,7 @@ public abstract class IsANode extends Node {
   }
 
   @Fallback
-  boolean doAny(Object value, Object type) {
-    return value == type;
+  boolean doNegativeCheck(Object value, Object type) {
+    return false;
   }
 }

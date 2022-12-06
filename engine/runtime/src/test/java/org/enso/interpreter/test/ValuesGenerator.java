@@ -109,7 +109,7 @@ class ValuesGenerator {
 
     if (languages.contains(Language.JAVA)) {
       collect.add(ctx.asValue("fourty four from Java"));
-      collect.add(ctx.asValue('J'));
+      // collect.add(ctx.asValue('J'));
     }
 
     for (var v : collect) {
@@ -119,10 +119,31 @@ class ValuesGenerator {
     return collect;
   }
 
-  public List<Value> values() {
+  public List<Value> allValues() throws Exception {
     var collect = new ArrayList<Value>();
-    collect.addAll(numbers());
-    collect.addAll(textual());
+    for (var m : getClass().getMethods()) {
+      if (m.getName().startsWith("all")) {
+        continue;
+      }
+      if (m.getReturnType() == List.class) {
+        @SuppressWarnings("unchecked")
+        var r = (List<Value>) m.invoke(this);
+        collect.addAll(r);
+      }
+    }
+    return collect;
+  }
+
+  public List<Value> allTypes() throws Exception {
+    var collect = new ArrayList<Value>();
+    for (var m : getClass().getMethods()) {
+      if (m.getName().startsWith("type")) {
+        if (m.getReturnType() == Value.class) {
+          var r = (Value) m.invoke(this);
+          collect.add(r);
+        }
+      }
+    }
     return collect;
   }
 
