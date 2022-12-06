@@ -18,13 +18,17 @@ public abstract class WarningsLibrary extends Library {
     return FACTORY.getUncached();
   }
 
+  private static final LibraryFactory<WarningsLibrary> FACTORY =
+      LibraryFactory.resolve(WarningsLibrary.class);
+
   /**
    * Returns a resolved library factory for this library.
    *
    * @return a library factory instance
    */
-  private static final LibraryFactory<WarningsLibrary> FACTORY =
-      LibraryFactory.resolve(WarningsLibrary.class);
+  public static LibraryFactory<WarningsLibrary> getFactory() {
+    return FACTORY;
+  }
 
   /**
    * Checks if the receiver has any warnings.

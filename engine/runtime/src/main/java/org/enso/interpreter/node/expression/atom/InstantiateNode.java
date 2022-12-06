@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.atom;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -24,10 +23,10 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public class InstantiateNode extends ExpressionNode {
   private final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;
+  private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(3);
   private @CompilationFinal(dimensions = 1) ConditionProfile[] profiles;
   private @CompilationFinal(dimensions = 1) ConditionProfile[] warningProfiles;
   private @CompilationFinal(dimensions = 1) BranchProfile[] sentinelProfiles;
-  private final WarningsLibrary warnings = WarningsLibrary.getUncached();
   private final ConditionProfile anyWarningsProfile = ConditionProfile.createCountingProfile();
 
   InstantiateNode(AtomConstructor constructor, ExpressionNode[] arguments) {
