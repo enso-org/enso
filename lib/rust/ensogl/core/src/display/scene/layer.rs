@@ -1083,22 +1083,26 @@ impl {
     }
 
     /// Decrement internal register of used [`Symbol`] instances previously instantiated with the
-    /// [`instantiate`] method. In case the counter drops to 0, the caller of this function should
-    /// perform necessary cleanup.
-    pub(crate) fn drop_instance<S>(&mut self, flavor: ShapeSystemFlavor) -> (bool, ShapeSystemId, PhantomData<S>)
-    where S : Shape {
+    /// [`instantiate`] method. In case there are no more instances associated with any system of
+    /// type `S`, the caller of this function should perform necessary cleanup.
+    pub(crate) fn drop_instance<S>(
+        &mut self,
+        flavor: ShapeSystemFlavor
+    ) -> (bool, ShapeSystemId, PhantomData<S>)
+    where
+        S : Shape
+    {
         let system_id = ShapeSystem::<S>::id();
-        let flavor_instance_count = if let Some(entry) = self.get_mut::<S>(flavor) {
+        let entry_is_empty = self.get_mut::<S>(flavor).map_or(true, |entry| {
             *entry.instance_count = entry.instance_count.saturating_sub(1);
-            *entry.instance_count
-        } else { 0 };
+            *entry.instance_count == 0
+        });
 
-        let last_instance = match flavor_instance_count {
-            0 => self.total_system_instances(*system_id) == 0,
-            _ => false,
-        };
+        // Intentional short-circuit - avoid computing `total_system_instances` when we know there
+        // are still more instances in the currently processed entry.
+        let no_more_instances = entry_is_empty && self.total_system_instances(*system_id) == 0;
 
-        (last_instance, system_id, PhantomData)
+        (no_more_instances, system_id, PhantomData)
     }
 }}
 

@@ -146,9 +146,9 @@ impl<S: Shape> ShapeViewModel<S> {
     fn remove_from_scene_layer(&self, old_layer: &WeakLayer) {
         let flavor = S::flavor(&self.data.borrow());
         if let Some(layer) = old_layer.upgrade() {
-            let (last_instance, shape_system_id, _) =
+            let (no_more_instances, shape_system_id, _) =
                 layer.shape_system_registry.drop_instance::<S>(flavor);
-            if last_instance {
+            if no_more_instances {
                 layer.remove_shape_system(shape_system_id);
             }
         }
