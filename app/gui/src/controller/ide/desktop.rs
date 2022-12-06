@@ -11,6 +11,7 @@ use crate::controller::ide::API;
 use crate::ide::initializer;
 use crate::notification;
 
+use double_representation::name::project;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
@@ -119,7 +120,7 @@ impl API for Handle {
 
 impl ManagingProjectAPI for Handle {
     #[profile(Objective)]
-    fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult> {
+    fn create_new_project(&self, template: Option<project::Template>) -> BoxFuture<FallibleResult> {
         async move {
             use model::project::Synchronized as Project;
 
@@ -133,8 +134,10 @@ impl ManagingProjectAPI for Handle {
                 enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
             let action = MissingComponentAction::Install;
 
-            let create_result =
-                self.project_manager.create_project(&name, &template, &version, &action).await?;
+            let create_result = self
+                .project_manager
+                .create_project(&name, &template.map(|t| t.into()), &version, &action)
+                .await?;
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
             let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
@@ -177,12 +180,9 @@ fn choose_unique_project_name(existing_names: &HashSet<String>, suggested_name: 
 }
 
 /// Come up with a project name.
-fn make_project_name(template: &Option<String>) -> String {
-    let mut name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
-    // Capitalize
-    if let Some(r) = name.get_mut(0..1) {
-        r.make_ascii_uppercase();
-    }
-
-    name
+fn make_project_name(template: &Option<project::Template>) -> String {
+    template
+        .as_ref()
+        .map(|t| t.to_project_name())
+        .unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned())
 }
