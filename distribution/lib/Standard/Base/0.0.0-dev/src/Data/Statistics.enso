@@ -1,16 +1,18 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Number
 import project.Data.Ordering.Comparator
+import project.Data.Range.Extensions
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Range import all
 from project.Data.Vector import Empty_Error
-from project.Error.Common import Error, Panic, Illegal_Argument_Error_Data, Illegal_Argument_Error, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
+from project.Error.Common import Illegal_Argument, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
 
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.MomentStatistic
@@ -52,7 +54,7 @@ type Rank_Method
             Rank_Method.Ordinal -> Rank.Method.ORDINAL
             Rank_Method.Dense -> Rank.Method.DENSE
 
-        report_nullpointer caught_panic = Error.throw (Illegal_Argument_Error_Data caught_panic.payload.cause.getMessage)
+        report_nullpointer caught_panic = Error.throw (Illegal_Argument.Error caught_panic.payload.cause.getMessage)
         handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
         handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values_Error)
 
@@ -143,7 +145,7 @@ type Statistic
         report_invalid _ =
             statistics.map_with_index i->v->
                 if java_stats.at i . is_nothing then Nothing else
-                    Error.throw (Illegal_Argument_Error_Data ("Can only compute " + v.to_text + " on numerical data sets."))
+                    Error.throw (Illegal_Argument.Error ("Can only compute " + v.to_text + " on numerical data sets."))
         handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_invalid
 
         empty_map s = if (s == Statistic.Count) || (s == Statistic.Sum) then 0 else
@@ -230,10 +232,10 @@ to_moment_statistic s = case s of
 ## PRIVATE
 wrap_java_call : Any -> Any
 wrap_java_call ~function =
-    report_unsupported _ = Error.throw (Illegal_Argument_Error_Data ("Can only compute correlations on numerical data sets."))
+    report_unsupported _ = Error.throw (Illegal_Argument.Error ("Can only compute correlations on numerical data sets."))
     handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_unsupported
 
-    handle_unsupported <| Illegal_Argument_Error.handle_java_exception <| function
+    handle_unsupported <| Illegal_Argument.handle_java_exception <| function
 
 ## PRIVATE
    Given two series, get a computed CorrelationStatistics object

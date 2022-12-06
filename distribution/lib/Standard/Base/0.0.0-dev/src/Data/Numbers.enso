@@ -1,11 +1,11 @@
-import project.Data.Json.Json
 import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Locale.Locale
-import project.Nothing
+import project.Error.Error
+import project.Nothing.Nothing
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Panic,Error,Illegal_Argument_Error
 
 polyglot java import java.lang.Double
 polyglot java import java.lang.Math
@@ -325,15 +325,6 @@ type Number
              2.max 5
     max : Number -> Number
     max self that = if self > that then self else that
-
-    ## Number to JSON conversion.
-
-       > Example
-         Convert the number 8 to JSON.
-
-             8.to_json
-    to_json : Json
-    to_json self = Json.Number self
 
     ## A constant holding the floating-point positive infinity.
     positive_infinity : Decimal

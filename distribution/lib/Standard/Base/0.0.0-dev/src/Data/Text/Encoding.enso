@@ -1,23 +1,28 @@
-from Standard.Base import all
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Panic.Panic
+
+from project.Error.Common import Illegal_Argument, Encoding_Error
 
 polyglot java import java.nio.charset.Charset
 polyglot java import java.nio.charset.UnsupportedCharsetException
 polyglot java import org.enso.base.Text_Utils
 
-## Get all available character sets from Java as Encodings.
-   Used to provide auto completion in the UI.
-all_character_sets : Vector Text
-all_character_sets =
-    java_array = Charset.availableCharsets.keySet.toArray
-    Vector.from_polyglot_array java_array
-
-## Get all available Encodings.
-all_encodings : Vector Encoding
-all_encodings =
-    all_character_sets.map Encoding.Value
-
 ## Represents a character encoding.
 type Encoding
+    ## Get all available character sets from Java as Encodings.
+       Used to provide auto completion in the UI.
+    all_character_sets : Vector Text
+    all_character_sets =
+        java_array = Charset.availableCharsets.keySet.toArray
+        Vector.from_polyglot_array java_array
+
+    ## Get all available Encodings.
+    all_encodings : Vector Encoding
+    all_encodings =
+        Encoding.all_character_sets.map Encoding.Value
+
     ## Create a new Encoding object.
 
        Arguments:
@@ -29,7 +34,7 @@ type Encoding
     to_java_charset : Charset
     to_java_charset self =
         Panic.catch UnsupportedCharsetException (Charset.forName self.character_set) _->
-            Error.throw (Illegal_Argument_Error_Data ("Unknown Character Set: " + self.character_set))
+            Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + self.character_set))
 
     ## Encoding for ASCII.
     ascii : Encoding
@@ -94,13 +99,3 @@ type Encoding
     ## Encoding for Vietnamese (Windows).
     windows_1258 : Encoding
     windows_1258 = Encoding.Value "windows-1258"
-
-## One or more byte sequences were not decodable using the Encoding.
-type Encoding_Error
-    Error (message:Text)
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the encoding error.
-    to_display_text : Text
-    to_display_text self = "Encoding_Error: " + self.message

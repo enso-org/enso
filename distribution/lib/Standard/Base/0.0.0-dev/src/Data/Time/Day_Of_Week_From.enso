@@ -1,8 +1,9 @@
 import project.Data.Numbers.Integer
 import project.Data.Time.Day_Of_Week.Day_Of_Week
-from project.Data.Boolean import Boolean, True, False
+import project.Error.Error
 
-from project.Error.Common import Error, Illegal_Argument_Error_Data
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Illegal_Argument
 
 ## Convert from an integer to a Day_Of_Week
 
@@ -17,7 +18,7 @@ Day_Of_Week.from (that : Integer) (first_day:Day_Of_Week=Day_Of_Week.Sunday) (st
         True ->
             valid_range = if start_at_zero then "0-6" else "1-7"
             message = "Invalid day of week (must be " + valid_range + ")."
-            Error.throw (Illegal_Argument_Error_Data message)
+            Error.throw (Illegal_Argument.Error message)
         False ->
             day_number = if first_day == Day_Of_Week.Sunday then shifted else
                 (shifted + (first_day.to_integer start_at_zero=True)) % 7

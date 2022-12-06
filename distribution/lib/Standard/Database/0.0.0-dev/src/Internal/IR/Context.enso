@@ -19,7 +19,7 @@ type Context
        - alias: An alias name to use for table within the query.
     for_table : Text -> Text -> Context
     for_table table_name alias=table_name =
-        Context.Value (From_Spec.From_Table table_name alias) [] [] [] [] Nothing
+        Context.Value (From_Spec.Table table_name alias) [] [] [] [] Nothing
 
     ## PRIVATE
 
@@ -30,7 +30,7 @@ type Context
        - alias: An alias name to use for table within the query.
     for_query : Text -> Text -> Context
     for_query raw_sql alias =
-        Context.Value (From_Spec.From_Query raw_sql alias) [] [] [] [] Nothing
+        Context.Value (From_Spec.Query raw_sql alias) [] [] [] [] Nothing
 
     ## PRIVATE
 

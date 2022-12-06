@@ -541,7 +541,7 @@ type Column
 
             rs = s.iif true_val false_val
             Column.Column_Data (Java_Column.new "Result" ix rs)
-        _ -> Error.throw (Illegal_Argument_Error "`iif` can only be used with boolean columns.")
+        _ -> Error.throw (Illegal_Argument.Error "`iif` can only be used with boolean columns.")
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -779,7 +779,7 @@ type Column
              example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
     like self pattern =
-        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) pattern
+        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State.Error "The `Like` operation should only be used on Text columns.")) pattern
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -802,7 +802,7 @@ type Column
         case self.java_column.getStorage.isOpVectorized op_name of
             True ->
                 fallback_fn _ _ =
-                    Panic.throw (Illegal_State_Error_Data "Impossible: This is a bug in the Standard.Table library.")
+                    Panic.throw (Illegal_State.Error "Impossible: This is a bug in the Standard.Table library.")
                 true_vector = case vector of
                     _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector -> vector
@@ -1027,7 +1027,7 @@ type Column
     storage_type self =
         tp = self.java_column.getStorage.getType
         Storage.types.at tp . catch Index_Out_Of_Bounds_Error _->
-            Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
+            Panic.throw (Illegal_State.Error "Unknown storage type: "+tp.to_text)
 
     ## UNSTABLE TODO this is a prototype that will be revisited later on
     value_type : Value_Type

@@ -3,13 +3,8 @@
    This lets you configure how you want to match, from the `First` match only,
    to matching on the `Full` content of the input text.
 
-from Standard.Base import all
-from Standard.Base.Data.Text.Matching_Mode import First, Last
-from Standard.Base.Data.Text.Matching_Mode export First, Last
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Regex_Mode.Regex_Mode import all
-from project.Data.Text.Regex.Regex_Mode.Regex_Mode export all
+import project.Data.Numbers.Integer
+import project.Data.Text.Matching_Mode
 
 type Regex_Mode
     ## The regex will make all possible matches.
@@ -29,5 +24,5 @@ type Regex_Mode
          The `start` and `end` indices range over _characters_ in the text. The
          precise definition of `character` is, for the moment, defined by the
          regular expression engine itself.
-    Bounded (start : Integer) (end : Integer) (mode : (First | Integer | All | Full) = All)
+    Bounded (start : Integer) (end : Integer) (mode : (Matching_Mode.First | Matching_Mode.Last | Regex_Mode) = Regex_Mode.All)
 

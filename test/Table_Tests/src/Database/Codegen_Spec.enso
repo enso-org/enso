@@ -8,7 +8,7 @@ from Standard.Database import all
 import Standard.Database.Data.Dialect
 import Standard.Database.Data.SQL_Type.SQL_Type
 from Standard.Database.Data.Table import combine_names, fresh_names
-from Standard.Database.Errors import Unsupported_Database_Operation_Error_Data
+from Standard.Database.Errors import Unsupported_Database_Operation
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -63,7 +63,7 @@ spec =
             json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
             empty.to_json . should_equal json
             empty.column_count . should_equal 0
-            empty.to_sql . should_fail_with Unsupported_Database_Operation_Error_Data
+            empty.to_sql . should_fail_with Unsupported_Database_Operation.Error
 
     Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
@@ -149,11 +149,11 @@ spec =
                 Fake_Test_Connection.make Dialect.sqlite tables
             t1 = connection.query (SQL_Query.Table_Name "T1")
             t2 = connection.query (SQL_Query.Table_Name "T2")
-            (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State_Error_Data
+            (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State.Error
 
         Test.specify "should ensure that name suffixes are distinct" <|
             err = (t1.set_index 'A').join (t2.set_index 'D') left_suffix='foo' right_suffix='foo'
-            err . should_fail_with Illegal_State_Error_Data
+            err . should_fail_with Illegal_State.Error
 
         Test.specify "should correctly handle self-joins" <|
             r1 = t1.join (t1.set_index 'A') on='B'
@@ -202,7 +202,7 @@ spec =
             combined.first . should_equal ["A_1", "B"]
             combined.second . should_equal ["A_2", "C"]
 
-            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State_Error_Data
+            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State.Error
         Test.specify "fresh_names should provide fresh names" <|
             used_names = ["A", "A_1"]
             preferred_names = ["A", "A", "B"]

@@ -103,6 +103,12 @@
 - [Slider component functionality improvements][3885]. The slider component now
   supports multiple ways to handle out-of-range values. The slider's value can
   be edited as text, and a new vertical slider layout is available.
+- [Added ProjectsGrid view for Cloud Dashboard][3857]. It provides the first
+  steps towards migrating the Cloud Dashboard from the existing React (web-only)
+  implementation towards a shared structure that can be used in both the Desktop
+  and Web versions of the IDE.
+
+[3857]: https://github.com/enso-org/enso/pull/3857
 
 #### Enso Standard Library
 

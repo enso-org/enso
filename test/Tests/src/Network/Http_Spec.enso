@@ -1,15 +1,11 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Http
-import Standard.Base.Network.Http.Form
-import Standard.Base.Network.Http.Header
-import Standard.Base.Network.Http.Method
-import Standard.Base.Network.Http.Request
-import Standard.Base.Network.Http.Request.Body as Request_Body
-import Standard.Base.Network.Http.Status_Code
-import Standard.Base.Network.Http.Version
-import Standard.Base.Network.Proxy
-import Standard.Base.Network.URI
+import Standard.Base.Network.HTTP.Form.Form
+import Standard.Base.Network.HTTP.Header.Header
+import Standard.Base.Network.HTTP.Request.Request
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Request_Error
+import Standard.Base.Network.Proxy.Proxy
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -21,31 +17,31 @@ spec =
     pending = if base_url != Nothing then Nothing else
         "The HTTP tests only run when the `ENSO_HTTP_TEST_HTTPBIN_URL` environment variable is set to URL of the httpbin server"
 
-    Test.group "Http" pending=pending <|
+    Test.group "HTTP" pending=pending <|
         # httpbin is picky about slashes in URL path. We need exactly one at the
         # beginning of path. Otherwise, POST request with double slash would
-        # fail with error 405. 
+        # fail with error 405.
         base_url_with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
         url_get = base_url_with_slash + "get"
         url_post = base_url_with_slash + "post"
         Test.specify "should create HTTP client with timeout setting" <|
-            http = Http.new (timeout = (Duration.new seconds=30))
+            http = HTTP.new (timeout = (Duration.new seconds=30))
             http.timeout.should_equal (Duration.new seconds=30)
         Test.specify "should create HTTP client with follow_redirects setting" <|
-            http = Http.new (follow_redirects = False)
+            http = HTTP.new (follow_redirects = False)
             http.follow_redirects.should_equal False
         Test.specify "should create HTTP client with proxy setting" <|
-            proxy_setting = Proxy.Proxy_Addr "example.com" 80
-            http = Http.new (proxy = proxy_setting)
+            proxy_setting = Proxy.Address "example.com" 80
+            http = HTTP.new (proxy = proxy_setting)
             http.proxy.should_equal proxy_setting
         Test.specify "should create HTTP client with version setting" <|
-            version_setting = Version.Http_2
-            http = Http.new (version = version_setting)
+            version_setting = HTTP_Version.HTTP_2
+            http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
         Test.specify "should throw error when requesting invalid URI" <|
-            Http.new.get "not a uri" . should_fail_with Syntax_Error_Data
+            HTTP.new.get "not a uri" . should_fail_with Syntax_Error_Data
 
-        Test.specify "should send Get request" <|
+        Test.specify "should send Get request using fetch" <|
             expected_response = Json.parse <| '''
                 {
                   "headers": {
@@ -56,8 +52,8 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = Http.new.get url_get
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.get url_get
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should send Get request using module method" <|
             expected_response = Json.parse <| '''
@@ -70,8 +66,8 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = Http.get url_get
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.get url_get
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
         Test.specify "should fetch the body of a Get request" <|
@@ -85,14 +81,14 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            res = Http.fetch url_get
+            res = HTTP.fetch url_get
             res.to_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
-            Http.fetch "http://undefined_host" . should_fail_with Http.Request_Error_Data
+            HTTP.fetch "http://undefined_host" . should_fail_with Request_Error.Error
 
         Test.specify "should send Head request" <|
-            res = Http.new.head url_get
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.head url_get
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_text.should_equal ''
 
         Test.specify "should Post empty body" <|
@@ -111,8 +107,8 @@ spec =
                   "json": null
                 }
             body_empty = Request_Body.Empty
-            res = Http.new.post url_post body_empty
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post url_post body_empty
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post empty body using module method" <|
             expected_response = Json.parse <| '''
@@ -130,8 +126,8 @@ spec =
                   "json": null
                 }
             body_empty = Request_Body.Empty
-            res = Http.post url_post body_empty
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post url_post body_empty
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post text body" <|
             expected_response = Json.parse <| '''
@@ -150,8 +146,8 @@ spec =
                   "json": null
                 }
             body_text = Request_Body.Text "Hello World!"
-            res = Http.new.post url_post body_text
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post url_post body_text
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form text" <|
             expected_response = Json.parse <| '''
@@ -170,8 +166,8 @@ spec =
                   "json": null
                 }
             form_parts = [Form.text_field "key" "val"]
-            res = Http.new.post_form url_post form_parts
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post_form url_post form_parts
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form text using module method" <|
             expected_response = Json.parse <| '''
@@ -190,19 +186,19 @@ spec =
                   "json": null
                 }
             form_parts = [Form.text_field "key" "val"]
-            res = Http.post_form url_post form_parts
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post_form url_post form_parts
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post form file" <|
             test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
-            res = Http.new.post_form url_post form_parts
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post_form url_post form_parts
+            res.code.should_equal HTTP_Status_Code.ok
         Test.specify "should Post form multipart" <|
             test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
-            res = Http.new.post_form url_post form_parts [Header.multipart_form_data]
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post_form url_post form_parts [Header.multipart_form_data]
+            res.code.should_equal HTTP_Status_Code.ok
         Test.specify "should Post Json" <|
             expected_response = Json.parse <| '''
                 {
@@ -223,8 +219,8 @@ spec =
                 }
             json = Json.parse <| '''
                 {"key":"val"}
-            res = Http.new.post_json url_post json
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post_json url_post json
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post Json using module method" <|
             expected_response = Json.parse <| '''
@@ -246,8 +242,8 @@ spec =
                 }
             json = Json.parse <| '''
                 {"key":"val"}
-            res = Http.post_json url_post json
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post_json url_post json
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should Post binary" <|
             expected_response = Json.parse <| '''
@@ -266,8 +262,8 @@ spec =
                   "json": null
                 }
             body_bytes = Request_Body.Bytes "Hello World!".utf_8
-            res = Http.new.post url_post body_bytes
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.post url_post body_bytes
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
         Test.specify "should create and send Get request" <|
@@ -281,9 +277,9 @@ spec =
                   "url": "",
                   "args": {}
                 }
-            req = Request.new Method.Get url_get
-            res = Http.new.request req
-            res.code.should_equal Status_Code.ok
+            req = Request.new HTTP_Method.Get url_get
+            res = HTTP.new.request req
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should create and send Post request with json body" <|
             expected_response = Json.parse <| '''
@@ -305,10 +301,10 @@ spec =
                 }
             json_body = Json.parse <| '''
                 { "key": "val" }
-            req = Request.new Method.Post url_post
+            req = Request.new HTTP_Method.Post url_post
             req_with_body = req.with_json json_body
-            res = Http.new.request req_with_body
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.request req_with_body
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
         Test.specify "should create and send Post request with json text" <|
             expected_response = Json.parse <| '''
@@ -330,10 +326,10 @@ spec =
                 }
             json_text = '''
                 { "key": "val" }
-            req = Request.new Method.Post url_post
+            req = Request.new HTTP_Method.Post url_post
             req_with_body = req.with_json json_text
-            res = Http.new.request req_with_body
-            res.code.should_equal Status_Code.ok
+            res = HTTP.new.request req_with_body
+            res.code.should_equal HTTP_Status_Code.ok
             res.body.to_json.should_equal expected_response
 
 main = Test_Suite.run_main spec
