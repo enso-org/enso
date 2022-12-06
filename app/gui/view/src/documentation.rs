@@ -279,12 +279,13 @@ impl View {
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
         let model = Model::new(scene);
         model.load_waiting_screen();
-        Self { model, visualization_frp, frp }.init(scene)
+        Self { model, visualization_frp, frp }.init(app, scene)
     }
 
-    fn init(self, scene: &Scene) -> Self {
+    fn init(self, app: &Application, scene: &Scene) -> Self {
         let network = &self.frp.network;
         let model = &self.model;
+        let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
         frp::extend! { network
@@ -320,6 +321,12 @@ impl View {
                 (new != old).as_some(new)
             });
             frp.source.is_selected <+ is_selected_changed;
+
+
+            // === Mouse Cursor ===
+
+            app.frp.show_default_cursor <+ overlay.events.mouse_over;
+            app.frp.hide_default_cursor <+ overlay.events.mouse_out;
         }
         visualization.pass_events_to_dom_if_active(scene, network);
         self
