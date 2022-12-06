@@ -44,10 +44,6 @@ Note that these distributions do not allow you to use the Enso IDE.
 It is recommended only for advanced users, who want to just try the compiler
 CLI.
 
-# Changelog
-
-{{changelog}}
-
 # Anonymous Data Collection
 
 Please note that this release collects anonymous usage data which will be used
@@ -69,3 +65,7 @@ method 'foo' does not exist on Number". The following data will be collected:
 - Errors (IDE crashes, WASM panics, Project Manager errors, Language Server
   errors, Compiler errors).
 - Performance statistics (minimum, maximum, average GUI refresh rate).
+
+# Changelog
+
+{{changelog}}
