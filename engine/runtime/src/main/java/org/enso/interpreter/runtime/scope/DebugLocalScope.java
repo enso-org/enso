@@ -2,7 +2,6 @@ package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -13,16 +12,14 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -76,8 +73,9 @@ public class DebugLocalScope implements TruffleObject {
     this.allBindings = rootNode.getLocalScope().flattenBindings();
     this.bindingsByLevels = bindingsByLevels;
     this.bindingsByLevelsIdx = bindingsByLevelsIdx;
-    assert this.bindingsByLevels.isEmpty() ||
-        (0 <= this.bindingsByLevelsIdx && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
+    assert this.bindingsByLevels.isEmpty()
+        || (0 <= this.bindingsByLevelsIdx
+            && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
   }
 
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
@@ -91,29 +89,6 @@ public class DebugLocalScope implements TruffleObject {
         childScope.frame,
         childScope.bindingsByLevels,
         childScope.bindingsByLevelsIdx + 1);
-  }
-
-  /**
-   * Wraps given object in {@link HostWrapper} if necessary. The returned
-   * wrapper is a string from the Truffle perspective.
-   * <p>
-   * Serves as a workaround for https://github.com/oracle/graal/issues/5513.
-   * @param object Object to potentialy wrap in {@link HostWrapper}.
-   */
-  public static Object wrapHostValues(Object object, InteropLibrary interop) {
-    if (object instanceof Atom atom) {
-      Object[] wrappedFields = Arrays.stream(atom.getFields())
-          .map(field -> wrapHostValues(field, interop))
-          .toArray();
-      return new Atom(
-          atom.getConstructor(),
-          wrappedFields
-      );
-    } else if (isHostValue(object, interop)) {
-      return new HostWrapper(object);
-    } else {
-      return object;
-    }
   }
 
   private static List<List<String>> gatherBindingsByLevels(Map<String, FramePointer> bindings) {
@@ -211,12 +186,8 @@ public class DebugLocalScope implements TruffleObject {
       return null;
     } else {
       Object value = getValue(frame, framePtr);
-      return wrapHostValues(value, interop);
+      return HostObjectDebugWrapper.wrapHostValues(value, interop);
     }
-  }
-
-  private static boolean isHostValue(Object value, InteropLibrary interop) {
-    return EnsoContext.get(interop).getEnvironment().isHostObject(value);
   }
 
   @ExportMessage
@@ -326,60 +297,6 @@ public class DebugLocalScope implements TruffleObject {
     @Override
     public String toString() {
       return memberNames.toString();
-    }
-  }
-
-  /**
-   * Wrapper for host objects. Is a workaround for a bug in chromeinspector
-   * (https://github.com/oracle/graal/issues/5513)
-   */
-  @ExportLibrary(InteropLibrary.class)
-  static final class HostWrapper implements TruffleObject {
-    private final String stringRepr;
-
-    HostWrapper(Object hostObject) {
-      Env env = EnsoContext.get(null).getEnvironment();
-      InteropLibrary interop = InteropLibrary.getUncached();
-      assert env.isHostObject(hostObject);
-      StringBuilder sb = new StringBuilder();
-      sb.append("HostObject{");
-      try {
-        if (interop.hasMetaObject(hostObject)) {
-          Object metaObject = interop.getMetaObject(hostObject);
-          Object metaQualifiedName = interop.getMetaQualifiedName(metaObject);
-          sb.append(interop.asString(metaQualifiedName)).append(": ");
-        }
-        sb.append("'").append(interop.asString(interop.toDisplayString(hostObject))).append("'");
-      } catch (UnsupportedMessageException e) {
-        sb.append("unknown");
-      }
-      sb.append("}");
-      this.stringRepr = sb.toString();
-    }
-
-    @ExportMessage
-    boolean hasLanguage() {
-      return true;
-    }
-
-    @ExportMessage
-    Class<? extends TruffleLanguage<?>> getLanguage() {
-      return EnsoLanguage.class;
-    }
-
-    @ExportMessage
-    boolean isString() {
-      return true;
-    }
-
-    @ExportMessage
-    String asString() {
-      return stringRepr;
-    }
-
-    @ExportMessage
-    String toDisplayString(boolean allowSideEffects) {
-      return stringRepr;
     }
   }
 }

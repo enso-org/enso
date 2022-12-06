@@ -19,6 +19,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
+import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -222,7 +223,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @OutgoingConverter
   public Object convertHostObjects(Object retValue) {
-    return DebugLocalScope.wrapHostValues(retValue, InteropLibrary.getUncached());
+    return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached());
   }
 
   @ExportMessage
