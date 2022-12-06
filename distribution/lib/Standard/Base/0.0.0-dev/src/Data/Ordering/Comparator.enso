@@ -1,12 +1,12 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Ordering.Natural_Order
 import project.Data.Ordering.Ordering
 import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text_Ordering.Text_Ordering
+import project.Error.Common.Incomparable_Values_Error
 import project.Nothing.Nothing
 
 from project.Data.Boolean import True, False
-from project.Data.Vector import handle_incomparable_value
 
 polyglot java import org.enso.base.ObjectComparator
 
@@ -19,7 +19,7 @@ polyglot java import org.enso.base.ObjectComparator
      Otherwise can support a custom fallback comparator.
 new : Nothing | (Any -> Any -> Ordering) -> ObjectComparator
 new custom_comparator=Nothing =
-    comparator_to_java cmp x y = handle_incomparable_value (cmp x y . to_sign)
+    comparator_to_java cmp x y = Incomparable_Values_Error.handle_errors (cmp x y . to_sign)
 
     case custom_comparator of
         Nothing -> ObjectComparator.getInstance (comparator_to_java .compare_to)

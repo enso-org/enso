@@ -175,8 +175,8 @@ impl Default for Theme {
 define_themes! { [light:0, dark:1]
     application {
         // Original RGB values (for reference after fixing color-conversion issues)
-        // light: rgb(249,250,251), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
-        background = Rgba(0.976,0.98,0.984,1.0) , Rgba(0.125,0.133,0.141,1.0);
+        // light: rgb(231,235,238), old-dark: Lcha(0.13,0.014,0.18,1.0), dark: rgb(32,34,36)
+        background = Rgb::from_base_255(231.0, 235.0, 238.0) , Rgba(0.125,0.133,0.141,1.0);
         tooltip {
             hide_delay_duration_ms = 150.0, 150.0;
             show_delay_duration_ms = 150.0, 150.0;
@@ -184,43 +184,70 @@ define_themes! { [light:0, dark:1]
         component_browser {
             panels_gap = 3.0, 3.0;
             documentation {
-                width = 369.0, 369.0;
+                width = 400.0, 400.0;
             }
             component_list_panel {
-                background_color = Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0),Rgba::new(252.0 / 256.0, 254.0 / 255.0, 1.0, 1.0);
-                corners_radius = 15.0, 15.0;
+                background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
+                corners_radius = 16.0, 16.0;
                 grid {
-                    width = 400.0, 400.0;
-                    height = 398.0, 398.0;
-                    padding = 3.0, 3.0;
+                    width = 413.0, 413.0;
+                    height = 414.0, 414.0;
+                    padding = 4.0, 4.0;
                     column_gap = 3.0, 3.0;
                     entry_height = 30.0, 30.0;
 
+                    // The `color` values support color types (like `color::Rgba`)
+                    // and floating-point numbers. This is possible due to a custom stylesheet
+                    // accessor defined for
+                    // [`ide_view_component_list_panel_grid::entry::style::Color`] type.
+                    // Floating-point numbers mean the alpha multiplier for the "main" color of the
+                    // component group.
                     entry {
-                        background.color_intensity = 0.2, 0.2;
-                        dimmed.color_intensity = 0.5, 0.5;
-                        padding = 17.0, 17.0;
+                        background.intensity = 0.08, 0.08;
+                        dimmed = Rgb::from_base_255(160.0, 163.0, 165.0), Rgb::from_base_255(160.0, 163.0, 165.0);
+                        padding = 16.0, 16.0;
                         text {
-                            font = "default", "default";
-                            size = 12.0, 12.0;
-                            color_intensity = 1.0, 1.0;
-                            highlight_bold = 0.04, 0.04;
+                            font = "mplus1p", "mplus1p";
+                            y_offset = 8.0, 8.0;
+                            y_offset_header = 5.0, 5.0;
+                            x_offset_header = 0.0, 0.0;
+                            size = 11.5, 11.5;
+                            color = 1.0, 1.0;
+                            highlight_bold = 0.01, 0.01;
                         }
                         icon {
                             size = 16.0, 16.0;
-                            text_padding = 8.0, 8.0;
-                            strong_color_intensity = 1.0, 1.0;
-                            weak_color_intensity = 0.5, 0.5;
+                            text_padding = 9.0, 9.0;
+                            color = 1.0, 1.0;
+                            dull_color_alpha = 0.25, 0.25;
+                        }
+                        special_icons {
+                            join.intersection_alpha = 0.7, 0.7;
+                            libraries {
+                                dull_alpha = 1.0, 1.0;
+                                secondary_alpha = 1.0, 1.0;
+                                tertiary_alpha = 1.0, 1.0;
+                            }
+                            marketplace {
+                                dull_alpha = 1.0, 1.0;
+                                secondary_alpha = 1.0, 1.0;
+                                tertiary_alpha = 1.0, 1.0;
+                            }
+                            computer_vision {
+                                highlight = Rgba(0.872,0.267,0.255,1.0) , Rgba(0.872,0.267,0.255,1.0);
+                            }
+                            system {
+                                background = Rgba(0.306,0.306,0.306,1.0) , Rgba(0.306,0.306,0.306,1.0);
+                                content    = Rgba(0.988,0.996,1.0,1.0)   , Rgba(0.988,0.996,1.0,1.0);
+                            }
                         }
                         highlight {
                             corners_radius = 12.0, 12.0;
-                            hover.color_intensity = 0.4, 0.4;
+                            hover.color = 0.4, 0.4;
                             selection {
-                                background.color_intensity = 1.0, 1.0;
-                                dimmed.color_intensity = 0.5, 0.5;
-                                text.color_intensity = 0.2, 0.2;
-                                icon_strong.color_intensity = 0.5, 0.5;
-                                icon_weak.color_intensity = 0.2, 0.2;
+                                background.intensity = 0.75, 0.75;
+                                text.color = Rgba::white(), Rgba::white();
+                                icon.color = Lcha(1.0, 0.0, 0.0, 1.0), Lcha(1.0, 0.0, 0.0, 1.0);
                             }
                         }
                         shadow = shadow , shadow;
@@ -235,66 +262,80 @@ define_themes! { [light:0, dark:1]
                     }
 
                     group_colors {
-                        group_0 = Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0),Rgba(43.0 / 255.0, 117.0 / 255.0, 239.0 / 255.0, 1.0);
-                        group_1 = Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0),Rgba(62.0 / 255.0, 139.0 / 255.0, 41.0 / 255.0, 1.0);
-                        group_2 = Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0),Rgba(192.0 / 255.0, 71.0 / 255.0, 171.0 / 255.0, 1.0);
-                        group_3 = Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0),Rgba(121.0 / 255.0, 126.0 / 255.0, 37.0 / 255.0, 1.0);
-                        group_4 = Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0),Rgba(181.0 / 255.0, 97.0 / 255.0, 35.0 / 255.0, 1.0);
-                        group_5 = Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0),Rgba(61.0 / 255.0, 146.0 / 255.0, 206.0 / 255.0, 1.0);
+                        // Yellow
+                        group_0 = Rgb::from_base_255(134.0, 135.0, 43.0), Rgb::from_base_255(134.0, 135.0, 43.0);
+                        // Green
+                        group_1 = Rgb::from_base_255(63.0, 139.0, 41.0), Rgb::from_base_255(63.0, 139.0, 41.0);
+                        // Light Blue
+                        group_2 = Rgb::from_base_255(54.0, 122.0, 185.0), Rgb::from_base_255(54.0, 122.0, 185.0);
+                        // Pink
+                        group_3 = Rgb::from_base_255(193.0, 71.0, 171.0), Rgb::from_base_255(193.0, 71.0, 171.0);
+                        // Blue
+                        group_4 = Rgb::from_base_255(43.0, 117.0, 239.0), Rgb::from_base_255(43.0, 117.0, 239.0);
+                        // Orange
+                        group_5 = Rgb::from_base_255(181.0, 97.0, 35.0), Rgb::from_base_255(181.0, 97.0, 35.0);
                         local_scope_group = Rgba::new(0.0, 0.42, 0.64, 1.0),Rgba::new(0.0, 0.42, 0.64, 1.0);
                     }
                 }
-                menu_height = 35.0, 35.0;
+                menu_height = 45.0, 45.0;
                 menu_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
+                navigator_divider_color = Rgb(0.7804, 0.7804, 0.7804), Rgb(0.7804, 0.7804, 0.7804);
                 menu_divider_height = 0.5,0.5;
+                navigator_divider_width = 0.5,0.5;
                 menu {
                     breadcrumbs {
-                        crop_left = 9.0, 9.0;
+                        crop_left = 8.0, 8.0;
                         crop_right = 3.0, 3.0;
-                        height = 28.0, 28.0;
+                        height = 44.0, 44.0;
                         separator {
                             width = 8.0, 8.0;
                             height = 6.0, 6.0;
+                            color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
+                            offset_x = 1.0, 1.0;
+                            offset_y = -2.0, -2.0;
                         }
                         ellipsis {
-                            background_width = 24.0, 24.0;
-                            background_height = 10.0, 10.0;
-                            background_corners_radius = 16.0, 16.0;
-                            background_color = Rgb(0.89, 0.89, 0.9), Rgb(0.89, 0.89, 0.9);
-                            circles_color = Rgb(0.74, 0.74, 0.75), Rgb(0.74, 0.74, 0.75);
+                            background_width = 28.0, 28.0;
+                            background_height = 16.0, 16.0;
+                            background_corners_radius = 100.0, 100.0;
+                            background_color = Rgba(0.0, 0.0, 0.0, 0.04), Rgba(0.0, 0.0, 0.0, 0.04);
+                            circles_color = Rgba(0.0, 0.0, 0.0, 0.17), Rgba(0.0, 0.0, 0.0, 0.17);
                             circles_radius = 2.0, 2.0;
                             circles_gap = 2.0, 2.0;
+                            offset_x = 0.0, 0.0;
+                            offset_y = -2.0, -2.0;
                         }
                         entry {
                             margin = 1.0, 1.0;
                             hover_color = Rgba(0.0, 0.0, 0.0, 0.0), Rgba(0.0, 0.0, 0.0, 0.0);
-                            font = "default", "default";
-                            text_padding_left = 7.0, 7.0;
-                            text_size = 12.0, 12.0;
-                            selected_color = Rgba(0.5, 0.5, 0.51, 1.0), Rgba(0.5, 0.5, 0.51, 1.0);
+                            font = "mplus1p", "mplus1p";
+                            text_y_offset = 6.0, 6.0;
+                            text_padding_left = 0.0, 0.0;
+                            text_size = 11.5, 11.5;
+                            selected_color = Rgba(0.0, 0.0, 0.0, 0.46), Rgba(0.0, 0.0, 0.0, 0.46);
                             highlight_corners_radius = 15.0, 15.0;
-                            greyed_out_color = Rgba(0.79, 0.79, 0.8, 1.0), Rgba(0.79, 0.79, 0.8, 1.0);
+                            greyed_out_color = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                         }
                     }
                 }
                 navigator {
-                    width = 37.0, 37.0;
-                    icon_strong_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                    icon_weak_color = Rgba(0.569,0.584,0.612,1.0), Rgba(0.569,0.584,0.612,1.0);
-                    top_padding = -3.0, -3.0;
-                    bottom_padding = 7.0, 7.0;
-                    list_view_width = 39.0, 39.0;
-                    list_view {
-                        background = Rgba::transparent() , Rgba::transparent();
-                        highlight  = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
-                        highlight {
-                            height = 29.0, 29.0;
-                            corner_radius = 10.0, 10.0;
+                    width = 41.0, 41.0;
+                    button_size = 32.0, 32.0;
+                    top_padding = 8.0, 8.0;
+                    bottom_padding = 4.0, 4.0;
+                    hover_color = Rgba::transparent(), Rgba::transparent();
+                    highlight {
+                        color = Rgb(0.96,0.85,0.725) , Rgb(0.96,0.85,0.725); // rgb(245,217,185)
+                        size = 29.0, 29.0;
+                        corners_radius = 12.0, 12.0;
+                    }
+                    buttons {
+                        active {
+                            local_scope = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
+                            submodules = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
+                            popular = Rgb::from_base_255(250.0, 149.0, 31.0), Rgb::from_base_255(250.0, 149.0, 31.0);
                         }
-                        entry {
-                            padding = 14.5, 14.5;
-                        }
-                        padding = 5.0, 5.0;
+                        inactive = Rgba(0.0, 0.0, 0.0, 0.15), Rgba(0.0, 0.0, 0.0, 0.15);
                     }
                 }
             }

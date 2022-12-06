@@ -1,0 +1,268 @@
+import project.Any.Any
+import project.Data.Array.Array
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Error.Common.Polyglot_Error
+import project.Meta
+import project.Runtime
+
+from project.Data.Boolean import Boolean, True, False
+
+polyglot java import java.lang.Throwable
+
+## A panic is an error condition that is based _outside_ of the normal
+   program control flow.
+
+   Panics "bubble up" through the program until they reach either an
+   invocation of Panic.recover Any or the program's main method. An unhandled
+   panic in main will terminate the program.
+
+   ? Dataflow Errors or Panics
+     Panics are designed to be used for unrecoverable situations that need
+     to be handled through non-linear control flow mechanisms.
+@Builtin_Type
+type Panic
+
+    ## Throws a new panic with the provided payload.
+
+       Arguments:
+       - payload: The contents of the panic to be thrown. If the payload is a
+         `Caught_Panic` or a raw Java exception, instead of throwing a new panic
+         with it as a payload, the original exception is rethrown, preserving
+         its stacktrace.
+
+       > Example
+         Throwing a panic containing the text "Oh no!".
+
+             Panic.throw "Oh no!"
+
+       > Example
+         Use together with `Panic.catch` to catch only specific types of errors
+         and rethrow any others, without affecting their stacktraces.
+
+             Panic.catch Any (Panic.throw "foo") caught_panic-> case caught_panic.payload of
+                 Illegal_Argument.Error message _ -> "Illegal arguments were provided: "+message
+                 other_panic -> Panic.throw other_panic
+    throw : Any -> Panic
+    throw payload = @Builtin_Method "Panic.throw"
+
+    ## PRIVATE
+       Executes the provided action and if any panic was thrown, calls the
+       provided callback.
+
+       If action executes successfully, the result of `Panic.catch Any` is the
+       result of that action. Otherwise, it is the result of the provided
+       handler callback, executed with the caught panic as its first argument.
+
+       Arguments:
+       - action: The code to execute that potentially panics.
+       - handler: The callback to handle any panics.
+    catch_primitive : Any -> (Caught_Panic -> Any) -> Any
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
+
+    ## PRIVATE
+
+       Returns a raw representation of the stack trace attached to the provided
+       throwable. It can be a dataflow error, a panic or a native Java exception.
+       You probably want `Panic.get_attached_stack_trace` instead.
+    primitive_get_attached_stack_trace : Throwable -> Array
+    primitive_get_attached_stack_trace throwable = @Builtin_Method "Panic.primitive_get_attached_stack_trace"
+
+    ## ADVANCED
+       UNSTABLE
+
+       Returns the attached stack trace of the given throwable. Can be used to get
+       an Enso friendly stack trace from native Java exceptions.
+
+       The ordering of the resulting vector is such that the top stack frame is the
+       first element.
+    get_attached_stack_trace : Caught_Panic | Throwable -> Vector Runtime.Stack_Trace_Element
+    get_attached_stack_trace error =
+        throwable = case error of
+            Caught_Panic.Caught_Panic_Data _ internal_original_exception -> internal_original_exception
+            throwable -> throwable
+        prim_stack = Panic.primitive_get_attached_stack_trace throwable
+        stack_with_prims = Vector.from_polyglot_array prim_stack
+        stack_with_prims.map Runtime.wrap_primitive_stack_trace_element
+
+    ## Takes any value, and if it is a dataflow error, throws it as a Panic,
+       otherwise, returns the original value unchanged.
+
+       Arguments:
+       - value: The value to rethrow any errors on as a panic.
+
+       > Example
+         Rethrowing a dataflow error as a panic.
+
+             import Standard.Examples
+
+             example_rethrow = Panic.rethrow Examples.throw_error
+    rethrow : (Any ! Any) -> Any
+    rethrow value = value.catch Any Panic.throw
+
+    ## Executes the provided action and if a panic matching the provided type was
+       thrown, calls the provided callback.
+
+       If action executes successfully, the result of `Panic.catch` is the result of
+       that action. Otherwise, if a matching panic is thrown from within the action,
+       the result is obtained by calling the provided handler callback. Any
+       non-matching panics are forwarded without changes.
+
+       Arguments:
+       - panic_type: The expected panic type. It can either be an Enso type or a
+         Java class. If the Java class is provided, `Polyglot_Error` containing a
+         Java exception of this class will be matched.
+       - action: The code to execute that potentially panics.
+       - handler: The callback to handle the panics. The callback will be provided
+         with a `Caught_Panic` instance encapsulating the `payload` of the caught
+         panic and its stacktrace.
+
+       > Example
+         Handling a specific type of panic.
+
+             Panic.catch Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "Oh no!" Nothing)) error->
+                 "Caught an `Illegal_Argument`: "+error.payload.message
+
+       > Example
+         Handling any panic.
+
+             Panic.catch Any (Panic.throw (Illegal_Argument.Error "Oh no!" Nothing)) error->
+                 "Caught some panic!"
+
+       > Example
+         Convert a string to an integer, catching the Java `NumberFormatException`
+         and converting it to a more Enso-friendly dataflow error.
+
+             polyglot java import java.lang.Long
+             polyglot java import java.lang.NumberFormatException
+             parse str =
+                 Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
+                     Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+    catch : Any -> Any -> (Caught_Panic -> Any) -> Any
+    catch panic_type ~action handler =
+        Panic.catch_primitive action caught_panic->
+            case Meta.get_polyglot_language panic_type == "java" of
+                False -> case caught_panic.payload.is_a panic_type of
+                    True -> handler caught_panic
+                    False -> Panic.throw caught_panic
+                True -> case caught_panic.payload of
+                    Polyglot_Error.Polyglot_Error_Data java_exception ->
+                        case java_exception.is_a panic_type of
+                            True -> handler caught_panic
+                            False -> Panic.throw caught_panic
+                    _ -> Panic.throw caught_panic
+
+    ## Executes the provided action and if a Java exception matching the provided type was
+       thrown, calls the provided callback.
+
+       Normally, Java exceptions are wrapped in a `Polyglot_Error` instance, so
+       using a `Panic.catch` requires unwrapping the error by calling
+       `caught_panic.payload.cause`. This helper function allows the handler to
+       work with the Java exception directly. The downside is that if the Java
+       exception is rethrown, it will be rethrown as a Java exception object
+       wrapped in an Enso panic. So if the handler needs to rethrow the original
+       exception preserving its shape and stacktrace, `Panic.catch` should still
+       be preferred.`
+
+       > Example
+         Convert a string to an integer, catching the Java `NumberFormatException`
+         and converting it to a more Enso-friendly dataflow error.
+
+             polyglot java import java.lang.Long
+             polyglot java import java.lang.NumberFormatException
+             parse str =
+                 Panic.catch_java NumberFormatException (Long.parseLong str) java_exception->
+                     Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+java_exception.getMessage)
+    catch_java : Any -> Any -> (Throwable -> Any) -> Any
+    catch_java panic_type ~action handler =
+        Panic.catch_primitive action caught_panic-> case caught_panic.payload of
+            Polyglot_Error.Polyglot_Error_Data java_exception ->
+                case (panic_type == Any) || (java_exception.is_a panic_type) of
+                    True -> handler java_exception
+                    False -> Panic.throw caught_panic
+            _ -> Panic.throw caught_panic
+
+    ## Executes the provided action and converts a possible panic matching any of
+       the provided types into a dataflow Error.
+
+       If action executes successfully, the result of `Panic.recover` is the result
+       of that action. Otherwise, if it panicked with a type matching one of the
+       expected error types, that panic is returned as a dataflow error. Unexpected
+       panics are passed through as-is. it is the panic that was thrown after
+       conversion to a dataflow error.
+
+       Arguments:
+       - expected_types: The types of expected panics which should be recovered.
+         This can either be a Vector of types or a single type.
+       - action: The code to execute that potentially panics.
+
+       > Example
+         Converting an expected panic to a dataflow error.
+
+             Panic.recover Illegal_Argument.Error (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
+
+       > Example
+         Converting one of many expected panic types to a dataflow error.
+
+             Panic.recover [Illegal_Argument.Error, Illegal_State.Error] (Panic.throw (Illegal_Argument.Error "Oh!" Nothing))
+    recover : (Vector Any | Any) -> Any -> Any
+    recover expected_types ~action =
+        types_to_check = case expected_types of
+            _ : Vector -> expected_types
+            _ -> [expected_types]
+        Panic.catch Any action caught_panic->
+            is_matched = types_to_check.exists typ->
+                caught_panic.payload.is_a typ
+            case is_matched of
+                True -> caught_panic.convert_to_dataflow_error
+                False -> Panic.throw caught_panic
+
+    ## If a dataflow error had occurred, wrap it in a `Wrapped_Dataflow_Error` and promote to a Panic.
+
+       Arguments:
+       - value: value to return if not an error, or rethrow as a Panic.
+    throw_wrapped_if_error : Any -> Any
+    throw_wrapped_if_error ~value =
+        if value.is_error then Panic.throw (Wrapped_Dataflow_Error.Error value.catch) else value
+
+    ## Catch any `Wrapped_Dataflow_Error` Panic and rethrow it as a dataflow error.
+
+       Arguments:
+       - action: The code to execute that potentially raised a Wrapped_Dataflow_Error.
+    handle_wrapped_dataflow_error : Any -> Any
+    handle_wrapped_dataflow_error ~action =
+        Panic.catch Wrapped_Dataflow_Error.Error action caught_panic->
+            Error.throw caught_panic.payload.payload
+
+@Builtin_Type
+type Caught_Panic
+    ## A wrapper for a caught panic.
+
+       Arguments:
+       - payload: the payload carried by the error.
+       - internal_original_exception (private): the original Java exception that is
+         the source of this panic. Only for internal use. To get the Java exception
+         from polyglot exceptions, match the `payload` on `Polyglot_Error` and
+         extract the Java object from there.
+    Caught_Panic_Data payload internal_original_exception
+
+    ## Converts this caught panic into a dataflow error containing the same
+       payload and stack trace.
+    convert_to_dataflow_error : Error
+    convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+
+    ## Returns the stack trace of the caught panic.
+    stack_trace : Vector Runtime.Stack_Trace_Element
+    stack_trace self =
+        Panic.get_attached_stack_trace self
+
+## PRIVATE
+   Wraps a dataflow error lifted to a panic, making possible to distinguish it
+   from other panics.
+type Wrapped_Dataflow_Error
+    Error payload
+
+    ## PRIVATE
+       Throws the original error.
+    unwrap self = Error.throw self.payload
+

@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Vector.Vector
 
 ## A function is any type that represents a not-yet evaluated computation.

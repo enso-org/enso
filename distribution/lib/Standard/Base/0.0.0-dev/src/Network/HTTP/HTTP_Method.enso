@@ -1,0 +1,38 @@
+import project.Data.Text.Text
+
+type HTTP_Method
+    ## The HTTP method "OPTIONS".
+    Options
+
+    ## The HTTP method "GET".
+    Get
+
+    ## The HTTP method "HEAD".
+    Head
+
+    ## The HTTP method "POST".
+    Post
+
+    ## The HTTP method "PUT".
+    Put
+
+    ## The HTTP method "DELETE".
+    Delete
+
+    ## The HTTP method "TRACE".
+    Trace
+
+    ## The HTTP method "CONNECT".
+    Connect
+
+    ## Convert to a Text of the HTTP method name.
+    to_http_method_name : Text
+    to_http_method_name self =  case self of
+        HTTP_Method.Options -> "OPTIONS"
+        HTTP_Method.Get -> "GET"
+        HTTP_Method.Head -> "HEAD"
+        HTTP_Method.Post -> "POST"
+        HTTP_Method.Put -> "PUT"
+        HTTP_Method.Delete -> "DELETE"
+        HTTP_Method.Trace -> "TRACE"
+        HTTP_Method.Connect -> "CONNECT"

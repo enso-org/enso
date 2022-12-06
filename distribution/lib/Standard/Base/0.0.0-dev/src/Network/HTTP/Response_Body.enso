@@ -1,16 +1,16 @@
-from Standard.Base import all
+import project.Data.Json.Json
+import project.Data.Text.Extensions
+import project.Data.Text.Text
+import project.System.File.File
+import project.System.File.Write_Extensions
 
-## TODO Dubious constructor export
-from project.Network.Http.Response.Body.Body import all
-from project.Network.Http.Response.Body.Body export all
-
-type Body
+type Response_Body
 
     ## Response body
 
        Arguments:
        - bytes: The body of the response as binary data.
-    Body_Data bytes
+    Value bytes
 
     ## Convert response body to Text.
 
@@ -52,4 +52,3 @@ type Body
     to_file self file =
         self.bytes.write_bytes file
         file
-

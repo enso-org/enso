@@ -3,14 +3,7 @@
    In this file, Enso provides a set of standard options that must be supported
    by all regex engines integrated with Enso.
 
-from Standard.Base import all
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Option.Option import all
-from project.Data.Text.Regex.Option.Option export all
-from project.Data.Text.Regex.Engine.Engine export all
-
-type Option
+type Regex_Option
 
     ## Specifies that all predefined character classes and POSIX character
        classes will match _only_ on ASCII characters.
@@ -30,10 +23,10 @@ type Option
 
        Comments mode has the following changes:
        - Whitespace within the pattern is ignored, except when within a
-         character class or when preceeded by an unescaped backslash, or within
+         character class or when preceded by an unescaped backslash, or within
          grouping constructs (e.g. `(?...)`).
        - When a line contains a `#`, that is not in a character class and is not
-         preceeded by an unescaped backslash, all characters from the leftmost
+         preceded by an unescaped backslash, all characters from the leftmost
          such `#` to the end of the line are ignored. That is to say, they act
          as _comments_ in the regex.
     Comments

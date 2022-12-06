@@ -136,7 +136,7 @@ public class EnsoCompilerTest {
   @Test
   public void testImport() throws Exception {
     parseTest("""
-    from Standard.Base.Data.Any import all
+    import Standard.Base.Any.Any
     import project.IO
     import Standard.Base as Enso_List
     from Standard.Base import all hiding Number, Boolean, Decimal, Any
@@ -1191,11 +1191,17 @@ public class EnsoCompilerTest {
     """);
   }
 
-
   @Test
   public void testNPE183892665() throws Exception {
     parseTest("""
     foo : Integer ->
+    """);
+  }
+
+  @Test
+  public void testNamedDefaultedArguments183953473() throws Exception {
+    parseTest("""
+    main = @Tail_Call summator (current = 0) (acc = 1)
     """);
   }
 

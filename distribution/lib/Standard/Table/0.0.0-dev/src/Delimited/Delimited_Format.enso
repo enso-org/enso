@@ -7,9 +7,6 @@ import project.Delimited.Delimited_Reader
 import project.Delimited.Delimited_Writer
 import project.Delimited.Quote_Style.Quote_Style
 
-from project.Delimited.Delimited_Format.Delimited_Format import Delimited
-from project.Delimited.Delimited_Format.Delimited_Format export Delimited
-
 ## Read delimited files such as CSVs into a Table.
 type Delimited_Format
     ## Read delimited files such as CSVs into a Table.
@@ -20,7 +17,7 @@ type Delimited_Format
 
        Arguments:
        - delimiter: The delimiter character to split the file into columns. An
-         `Illegal_Argument_Error` error is returned if this is an empty string.
+         `Illegal_Argument` error is returned if this is an empty string.
        - encoding: The encoding to use when reading the file.
        - skip_rows: The number of rows to skip from the top of the file.
        - row_limit: The maximum number of rows to read from the file. This count
@@ -54,8 +51,8 @@ type Delimited_Format
     for_file : File -> Delimited_Format | Nothing
     for_file file =
         case file.extension of
-            ".csv" -> Delimited ','
-            ".tsv" -> Delimited '\t'
+            ".csv" -> Delimited_Format.Delimited ','
+            ".tsv" -> Delimited_Format.Delimited '\t'
             _ -> Nothing
 
     ## Implements the `File.read` for this `File_Format`
@@ -73,7 +70,7 @@ type Delimited_Format
        Note: This function is internal until such time as Atom cloning with modification is built into Enso.
     clone : Text -> Text -> (Boolean|Infer) -> Data_Formatter -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
     clone self (quote_style=self.quote_style) (headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
-        Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
+        Delimited_Format.Delimited self.delimiter self.encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
 
     ## Create a clone of this with specified quoting settings.
     with_quotes : Text -> Text -> Boolean -> Delimited_Format

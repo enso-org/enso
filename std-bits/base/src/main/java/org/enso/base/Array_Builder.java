@@ -127,4 +127,8 @@ public class Array_Builder<T> {
         return EMPTY_ARRAY;
     }
   }
+
+  public int getSize() {
+    return size;
+  }
 }

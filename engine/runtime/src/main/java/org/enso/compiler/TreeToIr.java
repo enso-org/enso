@@ -939,6 +939,10 @@ final class TreeToIr {
         var fnAsArg = translateCallArgument(fn.getArg());
         yield translateAnnotation(ir, fn.getFunc(), cons(fnAsArg, callArgs));
       }
+      case Tree.NamedApp fn -> {
+        var fnAsArg = translateCallArgument(fn);
+        yield translateAnnotation(ir, fn.getFunc(), cons(fnAsArg, callArgs));
+      }
       case Tree.ArgumentBlockApplication fn -> {
         var fnAsArg = translateCallArgument(fn.getLhs());
         var arg = translateCallArgument(expr);
