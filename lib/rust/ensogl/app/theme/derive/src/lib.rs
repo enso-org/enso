@@ -7,6 +7,20 @@
 //! appended to `base_path` to get the full path to the value in the theme. It can be overridden
 //! using the `theme_path` attribute on the field.
 //!
+//! A custom accessor function can be provided for each field using the `accessor` attribute. This
+//! function should have a following signature:
+//!
+//! ```ignore
+//! fn accessor<P: Into<ensogl_core::display::style::Path>>(
+//!    network: &frp::Network,
+//!    style: &StyleWatchFrp,
+//!    path: P,
+//! ) -> frp::Sampler<T>
+//! ```
+//! where `T` is the type of the field. This accessor will be used to retrieve the value from the
+//! stylesheet. If no accessor is provided, a standard getters of the [`StyleWatchFrp`] are used
+//! instead.
+//!
 //! Example usage
 //!```no_compile
 //! use ensogl_core::data::color;
@@ -19,6 +33,8 @@
 //!     some_color:  color::Rgba,
 //!     #[theme_path = "ensogl_hardcoded_theme::some_path::label"]
 //!     some_label:  String,
+//!     #[accessor = "my_custom_accessor"]
+//!     some_custom_value: CustomType,
 //! }
 //! ```
 
@@ -69,7 +85,7 @@ mod from_theme;
 
 
 /// Implements the `FromTheme` derive macro. See thr crate docs for more information.
-#[proc_macro_derive(FromTheme, attributes(base_path, theme_path))]
+#[proc_macro_derive(FromTheme, attributes(base_path, theme_path, accessor))]
 pub fn derive_from_thee(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     from_theme::expand(input).into()
