@@ -7,7 +7,6 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -23,6 +22,16 @@ public abstract class IsANode extends Node {
 
   public static IsANode build() {
     return IsANodeGen.create();
+  }
+
+  boolean isAnyType(Type t) {
+    var ctx = EnsoContext.get(this);
+    return ctx.getBuiltins().any() == t;
+  }
+
+  @Specialization(guards = "isAnyType(anyType)")
+  boolean doAnyCheck(Object any, Type anyType) {
+    return true;
   }
 
   @Specialization

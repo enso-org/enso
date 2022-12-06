@@ -3,18 +3,14 @@ package org.enso.interpreter.test;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.file.Paths;
-import java.util.BitSet;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.proxy.ProxyArray;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
@@ -56,12 +52,58 @@ public class MetaIsATest {
   }
 
   @Test
-  public void checkNumbers() {
+  public void checkNumbersAreNumber() {
     var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
     var typeNumber = g.typeNumber();
     for (var v : g.numbers()) {
       var r = isACheck.execute(v, typeNumber);
       assertTrue("Value " + v + " is a number", r.asBoolean());
+    }
+  }
+
+  @Test
+  public void checkNumbersAreAny() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    var typeAny = g.typeAny();
+    for (var v : g.numbers()) {
+      var r = isACheck.execute(v, typeAny);
+      assertTrue("Value " + v + " is any", r.asBoolean());
+    }
+  }
+
+  @Test
+  public void checkNumbersAreNotText() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.numbers()) {
+      var r = isACheck.execute(v, g.typeText());
+      assertFalse("Value " + v + " is not a string", r.asBoolean());
+    }
+  }
+
+  @Test
+  public void checkTextsAreText() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.textual()) {
+      var r = isACheck.execute(v, g.typeText());
+      assertTrue("Value " + v + " is a string", r.asBoolean());
+    }
+  }
+
+  @Test
+  public void checkTextsAreAny() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.textual()) {
+      var r = isACheck.execute(v, g.typeAny());
+      assertTrue("Value " + v + " is Any", r.asBoolean());
+    }
+  }
+
+  @Test
+  public void checkTextsAreNotNumbers() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.textual()) {
+      var r = isACheck.execute(v, g.typeNumber());
+      assertFalse("Value " + v + " is not a number", r.asBoolean());
     }
   }
 }

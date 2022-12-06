@@ -10,6 +10,7 @@ import java.util.Set;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.Assert;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -59,6 +60,12 @@ class ValuesGenerator {
     """, "Number");
   }
 
+  public Value typeText() {
+    return v("typeText", """
+    import Standard.Base.Data.Text.Text
+    """, "Text");
+  }
+
   public List<Value> numbers() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {
@@ -84,6 +91,38 @@ class ValuesGenerator {
     for (var v : collect) {
       assertTrue("It's a number" + v, v.isNumber());
     }
+    return collect;
+  }
+
+  public List<Value> textual() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, "", "'fourty two'"));
+      collect.add(v(null, "", "'?'"));
+      collect.add(v(null, "", """
+      '''
+      block of
+      multi-line
+      texts
+      """));
+    }
+
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue("fourty four from Java"));
+      collect.add(ctx.asValue('J'));
+    }
+
+    for (var v : collect) {
+      assertFalse("It's not a number" + v, v.isNumber());
+      assertTrue("It's not a string" + v, v.isString());
+    }
+    return collect;
+  }
+
+  public List<Value> values() {
+    var collect = new ArrayList<Value>();
+    collect.addAll(numbers());
+    collect.addAll(textual());
     return collect;
   }
 
