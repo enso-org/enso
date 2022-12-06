@@ -829,9 +829,10 @@ type Match
    - id: The group identifier with which the error is associated.
 handle_error : Any -> (Text | Integer) -> Any
 handle_error error id = case error of
-    Polyglot_Error.Error (_ : IndexOutOfBoundsException) -> No_Such_Group.Error id
-    Polyglot_Error.Error (_ : IllegalArgumentException) -> No_Such_Group.Error id
-    Polyglot_Error.Error err -> err
+    Polyglot_Error.Error err -> case err of
+        _ : IndexOutOfBoundsException -> No_Such_Group.Error id
+        _ : IllegalArgumentException -> No_Such_Group.Error id
+        _ -> err
     other -> other
 
 ## Options specific to the `Default` regular expression engine.
