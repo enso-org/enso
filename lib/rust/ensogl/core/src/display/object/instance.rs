@@ -1854,9 +1854,7 @@ impl Model {
 
     fn refresh_layout(&self) {
         self.refresh_layout_internal(true);
-        if self.layout.auto.get().is_some() {
-            self.refresh_layout_internal(false);
-        }
+        self.refresh_layout_internal(false);
     }
 
     fn refresh_layout_internal(&self, first_pass: bool) {
@@ -1878,22 +1876,12 @@ impl Model {
             }
         }
         match self.layout.auto.get() {
-            None => {
-                let mut max_size: Vector2<f32> = default();
-                for child in self.children() {
-                    child.refresh_layout();
-                    let child_size = child.size() + child.position().xy();
-                    max_size.x = max_size.x.max(child_size.x);
-                    max_size.y = max_size.y.max(child_size.y);
-                }
-                let resizing = self.layout.resizing.get();
-                if resizing.x.is_hug() {
-                    self.layout.size.set_x(max_size.x);
-                }
-                if resizing.y.is_hug() {
-                    self.layout.size.set_y(max_size.y);
-                }
-            }
+            None =>
+                if first_pass {
+                    self.refresh_layout_manual(X, first_pass);
+                } else {
+                    self.refresh_layout_manual(Y, first_pass);
+                },
             Some(AutoLayout::Horizontal(opts)) =>
                 self.refresh_linear_layout(X, Y, first_pass, opts, first_pass),
             Some(AutoLayout::Vertical(opts)) =>
@@ -1929,6 +1917,7 @@ impl Model {
                     min_x = min_x.min(child_min_x);
                     max_x = max_x.max(child_max_x);
                 }
+                println!("minx: {}, maxx: {}", min_x, max_x);
             }
             let new_size = max_x - min_x;
             let new_bbox_origin = min_x;
@@ -1947,6 +1936,9 @@ impl Model {
         }
     }
 
+    // TODO: wytlumaczyc ze kolejnosc wyliczania szerokosci i wysokosci musi byc inna czasami (jak w
+    // przykladzie) dlatego dwa passy.
+
     /// Updates a linear (horizontal or vertical) layout.
     ///
     ///
@@ -1961,8 +1953,8 @@ impl Model {
     /// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │   ┄── ▷ ──┄ : Horizontal auto-layout.
     /// │   │ │ L1  │  │   │ │ R1 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
     /// │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
-    /// │   │ │     │  ▼   │ ╰────╯   ▲   │
-    /// │   │ │     │  ▲   │ ╭────╮   ▼   │   Resizing Legend:             
+    /// │   │ │     │  ▼   │ ╰────╯   ▲   ▼
+    /// │   │ │     │  ▲   │ ╭────╮   ▼   ▲   Resizing Legend:             
     /// │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill resizing.
     /// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug resizing.  
     /// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed resizing.
@@ -3693,5 +3685,67 @@ mod layout_tests {
             .assert_node1_size(100.0, 100.0)
             .assert_node2_size(100.0, 100.0)
             .assert_node3_size(100.0, 100.0);
+    }
+    
+    /// ```text
+    ///      ╭─ ROOT ────────────────────────╮
+    ///      │                   ╭─ node3 ─╮ │
+    /// ╭─ node1 ─╮              │         │ │
+    /// │    │    │              │         │ │
+    /// │    │    │  ╭─ node2 ─╮ ╰─────────╯ │
+    /// ╰─────────╯  │         │             │
+    ///      ╰───────│─────────│─────────────╯
+    ///              ╰─────────╯  
+    /// ```
+    #[test]
+    fn test_layout_manual_fixed() {
+        let test = TestFlatChildren3::new();
+        test.root.set_size_xy(40.0, 20.0);
+        test.node1.set_size_xy(20.0, 20.0);
+        test.node2.set_size_xy(20.0, 20.0);
+        test.node3.set_size_xy(20.0, 20.0);
+        test.node1.set_xy(Vector2(-10.0, 0.0));
+        test.node2.set_xy(Vector2(10.0, -10.0));
+        test.node3.set_xy(Vector2(30.0, 10.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(-10.0, 0.0)
+            .assert_node2_position(10.0, -10.0)
+            .assert_node3_position(30.0, 10.0)
+            .assert_root_size(40.0, 20.0)
+            .assert_node1_size(20.0, 20.0)
+            .assert_node2_size(20.0, 20.0)
+            .assert_node3_size(20.0, 20.0);
+    }
+
+    /// ```text
+    /// ╭─────┬─ ROOT ─── ▶ ◀ ────────────────╮
+    /// │     ┆                   ╭─ node3 ─╮ │
+    /// │╭─ node1 ─╮              │         │ │
+    /// ││    ┆    │              │         │ ▼
+    /// ││    ┆    │  ╭─ node2 ─╮ ╰─────────╯ ▲
+    /// │╰────┼────╯  │         │             │
+    /// │     ◎┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┈┈┈┈┈┤
+    /// │             ╰─────────╯             │
+    /// ╰─────────────────────────────────────╯  
+    /// ```
+    #[test]
+    fn test_layout_manual_hug() {
+        let test = TestFlatChildren3::new();
+        test.node1.set_size_xy(20.0, 20.0);
+        test.node2.set_size_xy(20.0, 20.0);
+        test.node3.set_size_xy(20.0, 20.0);
+        test.node1.set_xy(Vector2(-10.0, 0.0));
+        test.node2.set_xy(Vector2(10.0, -10.0));
+        test.node3.set_xy(Vector2(30.0, 10.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(-10.0, 0.0)
+            .assert_node2_position(10.0, -10.0)
+            .assert_node3_position(30.0, 10.0)
+            .assert_root_size(60.0, 40.0)
+            .assert_node1_size(20.0, 20.0)
+            .assert_node2_size(20.0, 20.0)
+            .assert_node3_size(20.0, 20.0);
     }
 }
