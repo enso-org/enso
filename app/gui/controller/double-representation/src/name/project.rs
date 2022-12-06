@@ -28,6 +28,103 @@ pub const STANDARD_BASE_LIBRARY_PATH: &str = concatcp!(STANDARD_NAMESPACE, ".", 
 
 
 
+// ================
+// === Template ===
+// ================
+
+#[allow(missing_docs)]
+#[derive(Copy, Clone, Debug, Fail)]
+pub enum InvalidTemplateName {
+    #[fail(display = "The template name contains invalid characters.")]
+    ContainsInvalidCharacters,
+}
+
+/// The project template name.
+#[derive(Clone, Debug)]
+pub struct Template {
+    name: String,
+}
+
+impl Template {
+    /// Create the project template from string.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use double_representation::name::project::Template;
+    /// assert!(Template::from_text("hello").is_ok());
+    /// assert!(Template::from_text("hello_world").is_err());
+    /// ```
+    pub fn from_text(text: impl AsRef<str>) -> FallibleResult<Self> {
+        if text.as_ref().contains(|c: char| !c.is_ascii_alphanumeric()) {
+            Err(InvalidTemplateName::ContainsInvalidCharacters.into())
+        } else {
+            Ok(Template { name: text.as_ref().to_owned() })
+        }
+    }
+
+    /// Create the project template from string without validation.
+    pub fn unsafe_from_text(text: impl AsRef<str>) -> Self {
+        Template { name: text.as_ref().to_owned() }
+    }
+
+    /// Create a project name from the template name.
+    /// # Example
+    ///
+    /// ```rust
+    /// # use double_representation::name::project::Template;
+    /// let template = Template::unsafe_from_text("hello");
+    /// assert_eq!(template.to_project_name(), "Hello".to_owned());
+    /// ```
+    pub fn to_project_name(&self) -> String {
+        let mut name = self.name.to_string();
+        // Capitalize
+        if let Some(r) = name.get_mut(0..1) {
+            r.make_ascii_uppercase();
+        }
+
+        name
+    }
+}
+
+// === Conversions From and Into String ===
+
+impl TryFrom<&str> for Template {
+    type Error = failure::Error;
+
+    fn try_from(text: &str) -> Result<Self, Self::Error> {
+        Self::from_text(text)
+    }
+}
+
+impl TryFrom<String> for Template {
+    type Error = failure::Error;
+
+    fn try_from(text: String) -> Result<Self, Self::Error> {
+        Self::from_text(text)
+    }
+}
+
+impl From<Template> for String {
+    fn from(template: Template) -> Self {
+        String::from(&template.name)
+    }
+}
+
+impl From<&Template> for String {
+    fn from(template: &Template) -> Self {
+        template.name.to_owned()
+    }
+}
+
+impl Display for Template {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+
+
 // =====================
 // === QualifiedName ===
 // =====================
