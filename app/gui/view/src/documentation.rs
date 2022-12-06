@@ -279,12 +279,13 @@ impl View {
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
         let model = Model::new(scene);
         model.load_waiting_screen();
-        Self { model, visualization_frp, frp }.init(app, scene)
+        Self { model, visualization_frp, frp }.init(app)
     }
 
-    fn init(self, app: &Application, scene: &Scene) -> Self {
+    fn init(self, app: &Application) -> Self {
         let network = &self.frp.network;
         let model = &self.model;
+        let scene = &app.display.default_scene;
         let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
