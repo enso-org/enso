@@ -47,11 +47,19 @@ pub struct Template {
 
 impl Template {
     /// Create the project template from string.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use double_representation::name::project::Template;
+    /// assert!(Template::from_text("hello").is_ok());
+    /// assert!(Template::from_text("hello_world").is_err());
+    /// ```
     pub fn from_text(text: impl AsRef<str>) -> FallibleResult<Self> {
-        if text.as_ref().contains(|c: char| c.is_ascii_alphanumeric()) {
-            Ok(Template { name: text.as_ref().to_owned() })
-        } else {
+        if text.as_ref().contains(|c: char| !c.is_ascii_alphanumeric()) {
             Err(InvalidTemplateName::ContainsInvalidCharacters.into())
+        } else {
+            Ok(Template { name: text.as_ref().to_owned() })
         }
     }
 
@@ -61,6 +69,13 @@ impl Template {
     }
 
     /// Create a project name from the template name.
+    /// # Example
+    ///
+    /// ```rust
+    /// # use double_representation::name::project::Template;
+    /// let template = Template::unsafe_from_text("hello");
+    /// assert_eq!(template.to_project_name(), "Hello".to_owned());
+    /// ```
     pub fn to_project_name(&self) -> String {
         let mut name = self.name.to_string();
         // Capitalize
