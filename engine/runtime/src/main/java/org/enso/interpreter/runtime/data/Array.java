@@ -76,11 +76,21 @@ public final class Array implements TruffleObject {
    * @throws InvalidArrayIndexException when the index is out of bounds.
    */
   @ExportMessage
-  public Object readArrayElement(long index) throws InvalidArrayIndexException {
+  public Object readArrayElement(long index, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index >= items.length || index < 0) {
       throw InvalidArrayIndexException.create(index);
     }
-    return items[(int) index];
+
+    var v = items[(int) index];
+    if (this.hasWarnings(warnings)) {
+      Warning[] extracted = this.getWarnings(null, warnings);
+      if (warnings.hasWarnings(v)) {
+        v = warnings.removeWarnings(v);
+      }
+      return new WithWarnings(v, extracted);
+    }
+    return v;
   }
 
   public long length() {

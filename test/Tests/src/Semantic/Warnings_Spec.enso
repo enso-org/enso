@@ -199,7 +199,7 @@ spec = Test.group "Dataflow Warnings" <|
         res . should_equal [1, 0, 1, 0]
         Warning.get_all res . map .value . should_equal [4, 3, 2, 1]
         res.at 0 . should_equal 1
-        Warning.get_all (res.at 0) . map .value . should_equal [1]
+        Warning.get_all (res.at 0) . map .value . should_equal [4, 3, 2, 1]
 
         slice = res.slice 1 4
         Warning.get_all slice . map .value . should_equal [4, 3, 2, 1]
@@ -220,6 +220,6 @@ spec = Test.group "Dataflow Warnings" <|
 
         res . should_equal [[0], [0, 1], [0, 1, 0], [0, 1, 0, 1]]
         Warning.get_all res . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
-        Warning.get_all (res.at 2) . map .value . should_equal [2, 1, 0]
+        Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
 
 main = Test_Suite.run_main spec

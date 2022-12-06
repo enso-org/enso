@@ -124,9 +124,18 @@ public final class Vector implements TruffleObject {
   public Object readArrayElement(
       long index,
       @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     var v = interop.readArrayElement(storage, index);
+    if (warnings.hasWarnings(this)) {
+      Warning[] extracted = warnings.getWarnings(this, null);
+      if (warnings.hasWarnings(v)) {
+        v = warnings.removeWarnings(v);
+      }
+      ;
+      return new WithWarnings(toEnso.execute(v), extracted);
+    }
     return toEnso.execute(v);
   }
 
@@ -188,7 +197,9 @@ public final class Vector implements TruffleObject {
       for (long i = 0; i < len; i++) {
         sb.append(sep);
 
-        Object at = readArrayElement(i, iop, HostValueToEnsoNode.getUncached());
+        Object at =
+            readArrayElement(
+                i, iop, WarningsLibrary.getUncached(), HostValueToEnsoNode.getUncached());
         Object str = iop.toDisplayString(at, allowSideEffects);
         if (iop.isString(str)) {
           sb.append(iop.asString(str));

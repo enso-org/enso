@@ -13,6 +13,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
@@ -67,6 +68,7 @@ public final class ArraySlice implements TruffleObject {
   public Object readArrayElement(
       long index,
       @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index < 0 || index >= getArraySize(interop)) {
@@ -74,6 +76,13 @@ public final class ArraySlice implements TruffleObject {
     }
 
     var v = interop.readArrayElement(storage, start + index);
+    if (this.hasWarnings(warnings)) {
+      Warning[] extracted = this.getWarnings(null, warnings);
+      if (warnings.hasWarnings(v)) {
+        v = warnings.removeWarnings(v);
+      }
+      return new WithWarnings(toEnso.execute(v), extracted);
+    }
     return toEnso.execute(v);
   }
 

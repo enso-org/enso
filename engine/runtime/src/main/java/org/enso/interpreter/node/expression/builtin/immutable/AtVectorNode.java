@@ -10,6 +10,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEn
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 @BuiltinMethod(
     type = "Vector",
@@ -17,6 +18,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
     description = "Returns an element of Vector at the specified index.")
 public class AtVectorNode extends Node {
   private @Child InteropLibrary interop = InteropLibrary.getFactory().createDispatched(3);
+  private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(3);
   private @Child HostValueToEnsoNode convert = HostValueToEnsoNode.build();
 
   Object execute(Vector self, long index) {
@@ -31,7 +33,7 @@ public class AtVectorNode extends Node {
   private Object readElement(Vector self, long index) throws UnsupportedMessageException {
     try {
       long actualIndex = index < 0 ? index + self.length(interop) : index;
-      return self.readArrayElement(actualIndex, interop, convert);
+      return self.readArrayElement(actualIndex, interop, warnings, convert);
     } catch (InvalidArrayIndexException e) {
       EnsoContext ctx = EnsoContext.get(this);
       return DataflowError.withoutTrace(
