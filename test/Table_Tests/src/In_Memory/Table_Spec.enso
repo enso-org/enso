@@ -648,24 +648,6 @@ spec =
             t_2.at 'col2' . to_vector . should_equal (expected.at 'col2' . to_vector)
             t_2.at 'col3' . to_vector . should_equal (expected.at 'col3' . to_vector)
 
-    Test.group "Visualizing tables" <|
-        Test.specify "should specify default visualizations correctly" <|
-            c_1_1 = ['x', [1, 2, 3]]
-            c_1_2 = ['Y', [5.3, 56.2, 6.3]]
-            t_1 = Table.new [c_1_1, c_1_2]
-            t_1.default_visualization.should_equal Visualization.Id.scatter_plot
-
-            c_2_1 = ['LaTituDe', [5,3,2]]
-            c_2_2 = ['longitude', [6,7,8]]
-            t_2 = Table.new [c_2_1, c_2_2]
-            t_2.default_visualization.should_equal Visualization.Id.geo_map
-
-            c_3_1 = ['latitude', [5,2,5]]
-            c_3_2 = ['Y', [2,4,2]]
-            c_3_3 = ['name', ["foo", "bar", "baz"]]
-            t_3 = Table.new [c_3_1, c_3_2, c_3_3]
-            t_3.default_visualization.should_equal Visualization.Id.table
-
     Test.group "Use First Row As Names" <|
         expect_column_names names table =
             table.columns . map .name . should_equal names frames_to_skip=2
@@ -884,7 +866,7 @@ spec =
 
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
             t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
-            t.distinct . should_fail_with Illegal_Argument_Error_Data
+            t.distinct . should_fail_with Illegal_Argument.Error
 
         Test.specify "should group by all columns by default" <|
             a = ["A", ["a", "b", "a", "b", "a", "b"]]

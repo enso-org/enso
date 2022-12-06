@@ -164,7 +164,7 @@ java_time hour minute=0 second=0 nanoOfSecond=0 =
     Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
 
 java_parse time_text pattern=Nothing =
-    Panic.catch Polyglot_Error_Data handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error.Polyglot_Error_Data handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalTime.parse time_text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)

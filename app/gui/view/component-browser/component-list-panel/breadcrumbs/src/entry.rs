@@ -10,6 +10,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::Animation;
+use ensogl_derive_theme::FromTheme;
 use ensogl_grid_view::entry::Contour;
 use ensogl_grid_view::entry::EntryFrp;
 use ensogl_grid_view::Col;
@@ -27,15 +28,20 @@ pub mod separator {
     use super::*;
     use std::f32::consts::PI;
 
-    pub const ICON_WIDTH: f32 = 16.0;
+    pub const ICON_WIDTH: f32 = 30.0;
 
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
-        (style: Style, color: Vector4) {
+        (style: Style) {
+            let color = style.get_color(theme::separator::color);
             let width = style.get_number(theme::separator::width);
             let height = style.get_number(theme::separator::height);
             let triangle = Triangle(width, height).rotate((PI/2.0).radians());
+            let offset_x = style.get_number(theme::separator::offset_x).px();
+            let offset_y = style.get_number(theme::separator::offset_y).px();
+            let triangle = triangle.translate_x(offset_x);
+            let triangle = triangle.translate_y(offset_y);
             let shape = triangle.fill(color);
             shape.into()
         }
@@ -47,21 +53,19 @@ pub mod separator {
 pub mod ellipsis {
     use super::*;
 
-    pub const ICON_WIDTH: f32 = 32.0;
+    pub const ICON_WIDTH: f32 = 28.0;
 
     ensogl_core::shape! {
         above = [ensogl_grid_view::entry::shape];
         pointer_events = false;
-        (style: Style, alpha: f32) {
+        (style: Style) {
             let radius = style.get_number(theme::ellipsis::circles_radius).px();
             let gap = style.get_number(theme::ellipsis::circles_gap).px();
             let background_width = style.get_number(theme::ellipsis::background_width);
             let background_height = style.get_number(theme::ellipsis::background_height);
             let background_corners_radius = style.get_number(theme::ellipsis::background_corners_radius);
-            let col = style.get_color(theme::ellipsis::circles_color);
-            let circles_color = Var::<color::Rgba>::rgba(col.red,col.green,col.blue,alpha.clone());
-            let bg_col = style.get_color(theme::ellipsis::background_color);
-            let background_color = Var::<color::Rgba>::rgba(bg_col.red,bg_col.green,bg_col.blue,alpha);
+            let circles_color = style.get_color(theme::ellipsis::circles_color);
+            let background_color = style.get_color(theme::ellipsis::background_color);
 
             let tile_size = radius.clone() * 2.0 + gap;
             let circles = Circle(radius).repeat((tile_size.clone(), tile_size.clone()));
@@ -71,11 +75,39 @@ pub mod ellipsis {
             let background = background.corners_radius(background_corners_radius.px());
             let background = background.fill(background_color);
             let shape = background + circles;
+            let offset_x = style.get_number(theme::ellipsis::offset_x).px();
+            let offset_y = style.get_number(theme::ellipsis::offset_y).px();
+            let shape = shape.translate_x(offset_x);
+            let shape = shape.translate_y(offset_y);
             shape.into()
         }
     }
 }
 
+
+
+// =============
+// === Style ===
+// =============
+
+/// Stylesheet-defined portion of the entries' parameters.
+#[allow(missing_docs)]
+#[derive(Clone, Debug, Default, FromTheme)]
+#[base_path = "theme::entry"]
+pub struct Style {
+    /// The margin of the entry's [`Contour`]. The [`Contour`] specifies the size of the
+    /// clickable area of the entry. If the margin is zero, the contour covers the entire entry.
+    pub margin:                   f32,
+    pub hover_color:              color::Rgba,
+    #[theme_path = "theme::entry::font"]
+    pub font_name:                ImString,
+    pub text_y_offset:            f32,
+    pub text_padding_left:        f32,
+    pub text_size:                f32,
+    pub selected_color:           color::Rgba,
+    pub highlight_corners_radius: f32,
+    pub greyed_out_color:         color::Rgba,
+}
 
 
 // =============
@@ -178,25 +210,24 @@ impl EntryData {
         }
     }
 
-    fn update_layout(&self, contour: Contour, text_size: text::Size, text_padding: f32) {
+    fn update_layout(&self, contour: Contour, text_padding: f32, text_y_offset: f32) {
         let size = contour.size;
-        self.text.set_xy(Vector2(text_padding - size.x / 2.0, text_size.value / 2.0));
-        self.separator.size.set(size);
-        self.ellipsis.size.set(size);
+        self.text.set_xy(Vector2(text_padding - size.x / 2.0, text_y_offset));
+        self.separator.size.set(Vector2(separator::ICON_WIDTH, size.y));
+        self.ellipsis.size.set(Vector2(ellipsis::ICON_WIDTH, size.y));
     }
 
     fn set_default_color(&self, color: color::Lcha) {
         self.text.set_property_default(color);
-        self.ellipsis.alpha.set(color.alpha);
-        self.separator.color.set(color::Rgba::from(color).into());
     }
 
     fn set_font(&self, font: String) {
         self.text.set_font(font);
     }
 
-    fn set_default_text_size(&self, size: text::Size) {
-        self.text.set_property_default(size);
+    fn set_default_text_size(&self, size: f32) {
+        self.text.set_property_default(text::Size::new(size));
+        self.text.set_property_default(text::Weight::Medium);
     }
 
     fn is_state_change(&self, model: &Model) -> bool {
@@ -231,25 +262,18 @@ impl EntryData {
     }
 }
 
+
 // === Params ===
 
 /// The style parameters of Breadcrumbs' entries. See [`ensogl_grid_view::Frp::set_entries_params`].
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
 pub struct Params {
-    /// The margin of the entry's [`Contour`]. The [`Contour`] specifies the size of the
-    /// clickable area of the entry. If the margin is zero, the contour covers the entire entry.
-    pub margin:                   f32,
-    pub hover_color:              color::Lcha,
-    pub font_name:                ImString,
-    pub text_padding:             f32,
-    pub text_size:                text::Size,
-    pub selected_color:           color::Lcha,
-    pub highlight_corners_radius: f32,
-    pub greyed_out_color:         color::Lcha,
+    pub style:            Style,
     /// The first greyed out column. All columns to the right will also be greyed out.
-    pub greyed_out_start:         Option<Col>,
+    pub greyed_out_start: Option<Col>,
 }
+
 
 // === Entry ===
 
@@ -279,15 +303,16 @@ impl ensogl_grid_view::Entry for Entry {
         enso_frp::extend! { network
             init <- source_();
             size <- input.set_size.on_change();
-            margin <- input.set_params.map(|p| p.margin).on_change();
-            hover_color <- input.set_params.map(|p| p.hover_color).on_change();
-            font <- input.set_params.map(|p| p.font_name.clone_ref()).on_change();
-            text_padding <- input.set_params.map(|p| p.text_padding).on_change();
-            text_color <- input.set_params.map(|p| p.selected_color).on_change();
-            text_size <- input.set_params.map(|p| p.text_size).on_change();
-            greyed_out_color <- input.set_params.map(|p| p.greyed_out_color).on_change();
+            margin <- input.set_params.map(|p| p.style.margin).on_change();
+            hover_color <- input.set_params.map(|p| p.style.hover_color).cloned_into().on_change();
+            font <- input.set_params.map(|p| p.style.font_name.clone_ref()).on_change();
+            text_padding <- input.set_params.map(|p| p.style.text_padding_left).on_change();
+            text_color <- input.set_params.map(|p| p.style.selected_color).cloned_into().on_change();
+            text_y_offset <- input.set_params.map(|p| p.style.text_y_offset).on_change();
+            text_size <- input.set_params.map(|p| p.style.text_size).on_change();
+            greyed_out_color <- input.set_params.map(|p| p.style.greyed_out_color).cloned_into().on_change();
+            highlight_corners_radius <- input.set_params.map(|p| p.style.highlight_corners_radius).on_change();
             greyed_out_from <- input.set_params.map(|p| p.greyed_out_start).on_change();
-            highlight_corners_radius <- input.set_params.map(|p| p.highlight_corners_radius).on_change();
             transparent_color <- init.constant(color::Lcha::transparent());
 
             col <- input.set_location._1();
@@ -310,8 +335,8 @@ impl ensogl_grid_view::Entry for Entry {
                 size: *size - Vector2(*margin, *margin) * 2.0,
                 corners_radius: 0.0,
             });
-            layout <- all(contour, text_size, text_padding);
-            eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
+            layout <- all(contour, text_padding, text_y_offset);
+            eval layout ((&(c, to, tyo)) data.update_layout(c, to, tyo));
             eval color((c) data.set_default_color(*c));
             eval font((f) data.set_font(f.to_string()));
             eval text_size((s) data.set_default_text_size(*s));
@@ -335,8 +360,8 @@ impl ensogl_grid_view::Entry for Entry {
                     data.width(*text_padding)
                 })
             );
-            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             // For text entries, we also listen for [`Text::width`] changes.
+            text_width <- data.text.width.filter(f_!(data.is_text_displayed()));
             entry_width <- text_width.map2(&text_padding, f!((w, o) data.text_width(*w, *o)));
             out.override_column_width <+ entry_width;
         }

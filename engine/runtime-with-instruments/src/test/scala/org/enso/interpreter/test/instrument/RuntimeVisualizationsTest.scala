@@ -1957,12 +1957,12 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(116, 28)
+    val idMain = metadata.addItem(106, 28)
 
     val code =
       """import Standard.Base.Data.List
         |import Standard.Visualization
-        |from Standard.Base.Error.Common import all
+        |import Standard.Base.Error.Error
         |
         |main =
         |    Error.throw List.Empty_Error

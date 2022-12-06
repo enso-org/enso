@@ -1,13 +1,12 @@
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
+import project.Data.Range.Extensions
 import project.Data.Text.Text
+import project.Error.Error
 import project.Nothing.Nothing
 import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
-from project.Data.Json import all
-from project.Data.Range import all
-from project.Error.Common import Error, dataflow_error_handler
 
 ## Any is the universal top-type, with all other types being subsumed by it.
 
@@ -83,18 +82,18 @@ type Any
         self_meta = Meta.meta self
         that_meta = Meta.meta that
         case Pair.new self_meta that_meta of
-            Pair.Value (Meta.Atom_Data _) (Meta.Atom_Data _) ->
+            Pair.Value (Meta.Atom.Value _) (Meta.Atom.Value _) ->
                 c_1 = self_meta.constructor ...
                 c_2 = that_meta.constructor ...
                 if Meta.is_same_object c_1 c_2 . not then False else
                     f_1 = self_meta.fields
                     f_2 = that_meta.fields
                     0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
-            Pair.Value (Meta.Error_Data _) (Meta.Error_Data _) -> self_meta.payload == that_meta.payload
-            Pair.Value (Meta.Polyglot_Data o_1) (Meta.Polyglot_Data o_2) ->
-                langs_match = (self_meta.get_language == Meta.Java) && (that_meta.get_language == Meta.Java)
+            Pair.Value (Meta.Error.Value _) (Meta.Error.Value _) -> self_meta.payload == that_meta.payload
+            Pair.Value (Meta.Polyglot.Value o_1) (Meta.Polyglot.Value o_2) ->
+                langs_match = (self_meta.get_language == Meta.Language.Java) && (that_meta.get_language == Meta.Language.Java)
                 if langs_match.not then False else o_1.equals o_2
-            Pair.Value (Meta.Unresolved_Symbol_Data _) (Meta.Unresolved_Symbol_Data _) ->
+            Pair.Value (Meta.Unresolved_Symbol.Value _) (Meta.Unresolved_Symbol.Value _) ->
                 (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
             ## Constructor comparison is covered by the identity equality.
                Primitive objects should define their own equality.
@@ -261,13 +260,13 @@ type Any
          matching type. By default this is identity.
 
        > Example
-         Catching an `Illegal_Argument_Error` and returning its message.
+         Catching an `Illegal_Argument` and returning its message.
 
              from Standard.Base import all
 
              example_catch =
-                 error = Error.throw (Illegal_Argument_Error_Data "My message")
-                 error.catch Illegal_Argument_Error_Data (err -> err.message)
+                 error = Error.throw (Illegal_Argument.Error "My message")
+                 error.catch Illegal_Argument.Error (err -> err.message)
 
        > Example
          Catching any dataflow error and turning it into a regular value.
@@ -394,22 +393,3 @@ type Any
              (+1 >> *2) 2
     >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
     >> self ~that = x -> that (self x)
-
-    ## UNSTABLE
-       ADVANCED
-
-       Returns a Text used to display this value in the IDE.
-
-       The particular representation is left unspecified and subject to change in
-       the future. The current implementation uses JSON serialization as the
-       default.
-
-       Types defining their own versions of this method should ensure that the
-       result is reasonably small and that the operation is quick to compute.
-
-       > Example
-         Converting the number `2` into visualization data.
-
-             2.to_default_visualization_data
-    to_default_visualization_data : Text
-    to_default_visualization_data self = self.to_json.to_text

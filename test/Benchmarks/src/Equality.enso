@@ -26,7 +26,7 @@ count_entries vector element expected_count=1 =
     if count != expected_count then
         msg = "Expected " + expected_count.to_text + " entries of " + element.to_text + ", but got " + count.to_text
         IO.println msg
-        Panic.throw (Illegal_State_Error msg)
+        Panic.throw (Illegal_State.Error msg)
 
 ## Alternative implementation delegating to equals, for comparing polyglot performance.
 count_entries_polyglot vector element expected_count=1 =
@@ -37,7 +37,7 @@ count_entries_polyglot vector element expected_count=1 =
     if count != expected_count then
         msg = "Expected " + expected_count.to_text + " entries of " + element.to_text + ", but got " + count.to_text
         IO.println msg
-        Panic.throw (Illegal_State_Error msg)
+        Panic.throw (Illegal_State.Error msg)
 
 bench =
     n = 100000

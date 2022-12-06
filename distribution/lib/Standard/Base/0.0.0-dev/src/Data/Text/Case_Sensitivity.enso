@@ -1,4 +1,6 @@
-from Standard.Base import all
+import project.Data.Locale.Locale
+
+polyglot java import org.enso.base.text.TextFoldingStrategy
 
 type Case_Sensitivity
     ## Represents a case-sensitive comparison mode.
@@ -9,3 +11,11 @@ type Case_Sensitivity
        Arguments:
        - locale: The locale used for the comparison.
     Insensitive locale=Locale.default
+
+    ## PRIVATE
+       Creates a Java `TextFoldingStrategy` from the case sensitivity setting.
+    folding_strategy : Case_Sensitivity -> TextFoldingStrategy
+    folding_strategy case_sensitivity = case case_sensitivity of
+        Case_Sensitivity.Sensitive -> TextFoldingStrategy.unicodeNormalizedFold
+        Case_Sensitivity.Insensitive locale ->
+            TextFoldingStrategy.caseInsensitiveFold locale.java_locale

@@ -3,6 +3,9 @@ from Standard.Base import all
 from Standard.Table import Table, Column
 import Standard.Table.Data.Storage.Storage
 
+import project.Id as Id_Module
+import project.Id.Id
+
 ## PRIVATE
 
    Returns the given value if this is not an error. Propagates error otherwise.
@@ -107,6 +110,18 @@ Table.lookup_ignore_case : Text -> Column ! Nothing
 Table.lookup_ignore_case self name =
     self.all_columns.find <| col->
         col.name.equals_ignore_case name
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this table.
+Table.default_visualization : Id
+Table.default_visualization self =
+    cols = self.columns.map .name . map name-> name.to_case Case.Lower
+    if cols.contains "latitude" && cols.contains "longitude" then Id_Module.geo_map else
+        if cols.contains "x" && cols.contains "y" then Id_Module.scatter_plot else
+            Id_Module.table
 
 ## PRIVATE
 

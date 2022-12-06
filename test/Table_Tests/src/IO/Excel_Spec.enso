@@ -320,8 +320,8 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Worksheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
-            extra_another.write out (Excel (Worksheet "Another") False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
+            extra_another.write out (Excel (Worksheet "NoHeaders")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
+            extra_another.write out (Excel (Worksheet "Another") False) on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -394,66 +394,66 @@ spec =
             check_range (Excel_Range.from_address "Test!R1C1:R5C3") 'Test' [1, 1, 5, 3]
 
         Test.specify 'should fail gracefully for invalid patterns' <|
-            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.from_address "Test!$$QA1" . should_fail_with Illegal_Argument.Error
+            Excel_Range.from_address "Test!BADADDRESS" . should_fail_with Illegal_Argument.Error
 
         Test.specify 'should allow Range creation for a cell' <|
             check_range (Excel_Range.for_cell "Hello World" 123 14) 'Hello World' [14, 123, 14, 123] True
             check_range (Excel_Range.for_cell "Hello World" "DS" 14) 'Hello World' [14, 123, 14, 123] True
             Excel_Range.for_cell "Test" 123 14 . address . should_equal "Test!DS14"
             Excel_Range.for_cell "Hello World" 123 14 . address . should_equal "'Hello World'!DS14"
-            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_cell "Test" "ZZZ" 1 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_cell "Test" 20000 1 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_cell "Test" "ZZZ" 1 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_cell "Test" 0 1 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_cell "Test" 1 10000000 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_cell "Test" 1 0 . should_fail_with Illegal_Argument.Error
 
         Test.specify 'should allow Range creation for a range' <|
             check_range (Excel_Range.for_range "Hello World" 55 120 123 14) 'Hello World' [14, 55, 120, 123]
             check_range (Excel_Range.for_range "Hello World" "BC" 120 "DS" 14) 'Hello World' [14, 55, 120, 123]
             Excel_Range.for_range "Test" 55 120 123 14 . address . should_equal "Test!BC14:DS120"
             Excel_Range.for_range "Hello World" 55 120 123 14 . address . should_equal "'Hello World'!BC14:DS120"
-            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" "ZZZ" 1 123 14 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_range "Test" 20000 1 123 14 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" "ZZZ" 1 123 14 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 0 1 123 14 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 5 1 20000 14 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 5 1 0 14 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 5 0 123 14 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 5 10000000 123 14 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 5 1 123 0 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_range "Test" 5 1 123 10000000 . should_fail_with Illegal_Argument.Error
 
         Test.specify 'should allow Range creation for a column' <|
             check_range (Excel_Range.for_columns "Hello World" 123) 'Hello World' [Nothing, 123, Nothing, 123]
             check_range (Excel_Range.for_columns "Hello World" "DS") 'Hello World' [Nothing, 123, Nothing, 123]
             Excel_Range.for_columns "Test" 123 . address . should_equal "Test!DS"
             Excel_Range.for_columns "Hello World" 123 . address . should_equal "'Hello World'!DS"
-            Excel_Range.for_columns "Test" 20000 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_columns "Test" "ZZZ" . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_columns "Test" 0 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_columns "Test" 20000 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_columns "Test" "ZZZ" . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_columns "Test" 0 . should_fail_with Illegal_Argument.Error
 
         Test.specify 'should allow Range creation for columns' <|
             check_range (Excel_Range.for_columns "Hello World" "BC" 123) 'Hello World' [Nothing, 55, Nothing, 123]
             check_range (Excel_Range.for_columns "Hello World" 55 "DS") 'Hello World' [Nothing, 55, Nothing, 123]
             Excel_Range.for_columns "Test" 55 123 . address . should_equal "Test!BC:DS"
             Excel_Range.for_columns "Hello World" "BC" "DS" . address . should_equal "'Hello World'!BC:DS"
-            Excel_Range.for_columns "Test" 55 20000 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_columns "Test" 55 "ZZZ" . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_columns "Test" 55 0 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_columns "Test" 55 20000 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_columns "Test" 55 "ZZZ" . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_columns "Test" 55 0 . should_fail_with Illegal_Argument.Error
 
         Test.specify 'should allow Range creation for a row' <|
             check_range (Excel_Range.for_rows "Hello World" 123) 'Hello World' [123, Nothing, 123, Nothing]
             Excel_Range.for_rows "Test" 123 . address . should_equal "Test!123"
             Excel_Range.for_rows "Hello World" 123 . address . should_equal "'Hello World'!123"
-            Excel_Range.for_rows "Test" 20000000 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_rows "Test" 0 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_rows "Test" 20000000 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_rows "Test" 0 . should_fail_with Illegal_Argument.Error
 
         Test.specify 'should allow Range creation for rows' <|
             check_range (Excel_Range.for_rows "Hello World" 55 123) 'Hello World' [55, Nothing, 123, Nothing]
             Excel_Range.for_rows "Test" 55 123 . address . should_equal "Test!55:123"
             Excel_Range.for_rows "Hello World" 55 123 . address . should_equal "'Hello World'!55:123"
-            Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument_Error_Data
-            Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument_Error_Data
+            Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument.Error
+            Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument.Error
 
     xlsx_sheet = enso_project.data / "TestSheet.xlsx"
     xlsx_path = xlsx_sheet.path

@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Matching
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
-import Standard.Base.Data.Text.Text_Ordering.Text_Ordering
 
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
@@ -183,7 +182,7 @@ type Table_Column_Helper
                     Nothing -> True
                     1 -> True
                     0 -> False
-                    _ -> Panic.throw (Illegal_State_Error_Data "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
+                    _ -> Panic.throw (Illegal_State.Error "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
 
     ## PRIVATE
        A helper function which selects a single column from the table. It is aligned
@@ -194,7 +193,7 @@ type Table_Column_Helper
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
-                if matched_columns.length != 0 then Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
+                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
                     expression = (self.table.evaluate selector).catch Any _->Nothing
                     if Nothing != expression then expression else
                         problem_builder.report_missing_input_columns [selector]
@@ -242,11 +241,11 @@ rename_columns internal_columns mapping on_problems =
                 Nothing -> Nothing
                 _ ->
                     matched.add index
-                    new_name = case Meta.type_of ms of
-                        Regex_Matcher.Regex_Matcher ->
+                    new_name = case ms of
+                        _ : Regex_Matcher ->
                             pattern = ms.compile ((good_names.at index).at 0)
                             pattern.replace name ((good_names.at index).at 1)
-                        Text_Matcher.Text_Matcher -> (good_names.at index).at 1
+                        _ : Text_Matcher -> (good_names.at index).at 1
                     unique.make_unique new_name
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
@@ -317,7 +316,7 @@ sort_columns internal_columns direction text_ordering =
    Converts the generic `No_Matches_Found` error to a more specific
    `Missing_Input_Columns`. Any other errors are returned as-is.
 promote_no_matches_to_missing_columns error = case error of
-    Matching.No_Matches_Found_Data criteria -> Maybe.Some <| Missing_Input_Columns_Data criteria
+    Matching.No_Matches_Found.Error criteria -> Maybe.Some <| Missing_Input_Columns_Data criteria
     _ -> Nothing
 
 ## PRIVATE
@@ -406,9 +405,12 @@ type Column_Transform_Element
     Value column associated_selector
 
 ## PRIVATE
-prepare_order_by : Vector -> Vector Text | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
+prepare_order_by : Vector -> Text | Vector Text | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
+        _ : Text ->
+            unified_name_selectors = [Sort_Column.Name unified_name_selectors]
+            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         _ : Vector ->
             unified_name_selectors = column_selectors.map (Sort_Column.Name _)
             select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)

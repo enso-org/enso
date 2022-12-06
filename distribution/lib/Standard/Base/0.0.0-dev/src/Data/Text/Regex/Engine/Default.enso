@@ -33,12 +33,26 @@
 
      TBC
 
-from Standard.Base import all
+import project.Any.Any
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
+import project.Data.Range.Extensions
+import project.Data.Text.Matching_Mode
+import project.Data.Text.Regex.Invalid_Option
+import project.Data.Text.Regex.Invalid_Bounds_Error
+import project.Data.Text.Regex.Mode_Error
+import project.Data.Text.Regex.No_Such_Group
+import project.Data.Text.Regex.Regex_Mode.Regex_Mode
+import project.Data.Text.Regex.Regex_Option.Regex_Option
+import project.Data.Text.Text
+import project.Data.Text.Span.Utf_16_Span
+import project.Data.Vector.Vector
+import project.Meta
+import project.Nothing.Nothing
+import project.Panic.Panic
 
-import Standard.Base.Data.Text.Regex
-import Standard.Base.Data.Text.Regex.Engine
-import Standard.Base.Data.Text.Regex.Option as Global_Option
-import Standard.Base.Polyglot.Java
+from project.Data.Boolean import Boolean, True, False
+from project.Error.Common import Compile_Error, Syntax_Error_Data, Polyglot_Error
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IndexOutOfBoundsException
@@ -62,17 +76,13 @@ polyglot java import org.enso.base.Text_Utils
          import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 
          example_new =
-             engine_opts = [Default_Engine.Literal_Pattern]
+             engine_opts = [Default_Engine.Option.Literal_Pattern]
              Default_Engine.new engine_opts
-new : Vector Option -> Engine
-new opts=[] = Engine_Data opts
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Engine.Default.Engine import all
-from project.Data.Text.Regex.Engine.Default.Engine export all
+new : Vector (Regex_Option | Option) -> Default_Engine
+new opts=[] = Default_Engine.Value opts
 
 ## The default implementation of the `Data.Text.Regex.Engine.Engine` interface.
-type Engine
+type Default_Engine
 
     ## PRIVATE
 
@@ -81,7 +91,7 @@ type Engine
        Arguments:
        - engine_opts: Options for regex matching that are specific to this
          engine.
-    Engine_Data (engine_opts : Vector Option)
+    Value (engine_opts : Vector (Regex_Option | Option))
 
     ## ADVANCED
 
@@ -105,14 +115,14 @@ type Engine
          consisting of a single "a".
 
              import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-             import Standard.Base.Data.Text.Regex.Option as Global_Option
+             import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option
 
              example_compile =
                  expression = "^a$"
-                 options = [Global_Option.Multiline]
+                 options = [Regex_Option.Multiline]
                  engine = Default_Engine.new
                  engine.compile expression options
-    compile : Text -> Vector Global_Option.Option -> Pattern ! (Regex.Compile_Error | Invalid_Option_Error)
+    compile : Text -> Vector (Regex_Option | Option) -> Pattern ! (Compile_Error | Invalid_Option)
     compile self expression options =
         all_options = options + self.engine_opts
         options_bitmask = from_enso_options all_options
@@ -122,12 +132,12 @@ type Engine
             Java_Pattern.compile (unicode_regex.transform expression) options_bitmask
 
         internal_pattern = maybe_java_pattern.map_error case _ of
-            Polyglot_Error_Data err ->
+            Polyglot_Error.Polyglot_Error_Data err ->
                 if err.is_a PatternSyntaxException . not then err else
                     Syntax_Error_Data ("The regex could not be compiled: " + err.getMessage)
             other -> other
 
-        Pattern_Data internal_pattern all_options self
+        Pattern.Value internal_pattern all_options self
 
     ## ADVANCED
 
@@ -141,7 +151,7 @@ type Engine
          Turn a literal string into a regex that matches that string exactly.
 
              import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
-             import Standard.Base.Data.Text.Regex.Option as Global_Option
+             import Standard.Base.Data.Text.Regex.Regex_Option.Regex_Option
 
              example_escape =
                  literal_string = "\!\.|abcde"
@@ -149,10 +159,6 @@ type Engine
                  engine.escape literal_string
     escape : Text -> Text
     escape self expression = Java_Pattern.quote expression
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Engine.Default.Pattern import all
-from project.Data.Text.Regex.Engine.Default.Pattern export all
 
 ## The default implementation of the `Data.Text.Regex.Engine.Pattern` interface.
 type Pattern
@@ -165,7 +171,7 @@ type Pattern
        - internal_pattern: The internal representation of the compiled pattern.
        - options: The vector of options with which this pattern was built.
        - engine: A handle to the engine that built this pattern.
-    Pattern_Data (internal_pattern : Java_Pattern) (options : Vector (Global_Option.Option | Option)) (engine : Engine)
+    Value (internal_pattern : Java_Pattern) (options : Vector (Regex_Option | Option)) (engine : Default_Engine)
 
     ## PRIVATE
 
@@ -189,14 +195,14 @@ type Pattern
            in code unit space, normalization could shift these indices!
            This should be addressed when reviewing
            See: https://www.pivotaltracker.com/story/show/181524498
-        #normalized_input = if self.options.contains Global_Option.Ascii_Matching then input else
+        #normalized_input = if self.options.contains Regex_Option.Ascii_Matching then input else
         #    Text_Utils.normalize input
         normalized_input = input
         internal_matcher = self.internal_pattern.matcher normalized_input . region start end
 
-        if self.options.contains No_Anchoring_Bounds then
+        if self.options.contains Option.No_Anchoring_Bounds then
             internal_matcher.useAnchoringBounds False
-        if self.options.contains Transparent_Bounds then
+        if self.options.contains Option.Transparent_Bounds then
             internal_matcher.useTransparentBounds True
 
         internal_matcher
@@ -226,7 +232,7 @@ type Pattern
                  engine = Default.new
                  pattern = engine.compile ".." []
                  input = "abcdefghij"
-                 pattern.match input mode=Regex_Mode.First
+                 pattern.match input mode=Matching_Mode.First
 
        > Example
          Match up to the first 3 instances of the pattern `".."` in the input.
@@ -260,17 +266,17 @@ type Pattern
                  pattern = engine.compile ".*" []
                  input = "abcdefghij"
                  pattern.match input mode=Regex_Mode.Full
-    match : Text -> (Regex_Mode | Matching_Mode) -> Match | Vector Match | Nothing
+    match : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Match | Vector Match | Nothing
     match self input mode=Regex_Mode.All =
         do_match_mode mode start end = case mode of
             Matching_Mode.First ->
                 internal_matcher = self.build_matcher input start end
 
                 if internal_matcher . find start . not then Nothing else
-                    Match_Data internal_matcher start end input
+                    Match.Value internal_matcher start end input
             _ : Integer ->
                 if mode < 0 then Panic.throw <|
-                    Mode_Error_Data "Cannot match a negative number of times."
+                    Mode_Error.Error "Cannot match a negative number of times."
 
                 builder = Vector.new_builder
 
@@ -282,7 +288,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match_Data internal_matcher start end input)
+                            builder.append (Match.Value internal_matcher start end input)
                             match_end = internal_matcher.end 0
                             # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
@@ -302,7 +308,7 @@ type Pattern
                         found = internal_matcher.find offset
 
                         if found.not then Nothing else
-                            builder.append (Match_Data internal_matcher start end input)
+                            builder.append (Match.Value internal_matcher start end input)
                             match_end = internal_matcher.end 0
                             # Ensure progress even if the match is an empty string.
                             new_offset = if match_end > offset then match_end else offset+1
@@ -315,9 +321,9 @@ type Pattern
             Regex_Mode.Full ->
                 internal_matcher = self.build_matcher input start end
                 if internal_matcher.matches.not then Nothing else
-                    Match_Data internal_matcher start end input
+                    Match.Value internal_matcher start end input
             Regex_Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error_Data "Modes cannot be recursive."
+                Mode_Error.Error "Modes cannot be recursive."
 
         case mode of
             Regex_Mode.Bounded start end sub_mode ->
@@ -345,7 +351,7 @@ type Pattern
                  pattern.matches input
     matches : Text -> Boolean
     matches self input = case self.match input mode=Regex_Mode.Full of
-        Match_Data _ _ _ _ -> True
+        _ : Match -> True
         _ : Vector -> True
         _ -> False
 
@@ -410,11 +416,11 @@ type Pattern
                  pattern = engine.compile ".*" []
                  input = "abcdefghij"
                  pattern.find input mode=Regex_Mode.Full
-    find : Text -> (Regex_Mode | Matching_Mode) -> Text | Vector Text | Nothing
+    find : Text -> (Regex_Mode | Matching_Mode.First | Matching_Mode.Last) -> Text | Vector Text | Nothing
     find self input mode=Regex_Mode.All =
         matches = self.match input mode
         case matches of
-            Match_Data _ _ _ _ -> matches.group 0
+            _ : Match -> matches.group 0
             _ : Vector -> matches.map (_.group 0)
             _ -> matches
 
@@ -461,7 +467,7 @@ type Pattern
                  pattern = engine.compile "a" []
                  input = "bacadaeaf"
                  pattern.match input
-    split : Text -> Matching_Mode | Regex_Mode | Integer -> Vector Text
+    split : Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode | Integer -> Vector Text
     split self input mode=Regex_Mode.All =
         # Java uses this to mean the max length of the resulting array, so we
         # add 1.
@@ -469,16 +475,16 @@ type Pattern
             Matching_Mode.First -> 2
             _ : Integer ->
                 if mode < 0 then Panic.throw <|
-                    Mode_Error_Data "Cannot match a negative number of times."
+                    Mode_Error.Error "Cannot match a negative number of times."
 
                 mode + 1
             Regex_Mode.All -> -1
             Regex_Mode.Full -> Panic.throw <|
-                Mode_Error_Data "Splitting on a full match yields an empty text."
+                Mode_Error.Error "Splitting on a full match yields an empty text."
             Regex_Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error_Data "Splitting on a bounded region is not well-defined."
+                Mode_Error.Error "Splitting on a bounded region is not well-defined."
             Matching_Mode.Last -> Panic.throw <|
-                Mode_Error_Data "Splitting on the last match is not supported."
+                Mode_Error.Error "Splitting on the last match is not supported."
 
         splits = self.internal_pattern.split input limit
         Vector.from_polyglot_array splits
@@ -531,7 +537,7 @@ type Pattern
                  pattern = engine.compile "aa []
                  input = "aabbaabbbbbaab"
                  pattern.replace input "REPLACED"
-    replace : Text -> Text -> Regex_Mode | Matching_Mode | Integer -> Text
+    replace : Text -> Text -> Regex_Mode | Matching_Mode.First | Matching_Mode.Last | Integer -> Text
     replace self input replacement mode=Regex_Mode.All =
         do_replace_mode mode start end = case mode of
             Matching_Mode.First ->
@@ -539,7 +545,7 @@ type Pattern
                 internal_matcher.replaceFirst replacement
             _ : Integer ->
                 if mode < 0 then Panic.throw <|
-                    Mode_Error_Data "Cannot replace a negative number of times."
+                    Mode_Error.Error "Cannot replace a negative number of times."
 
                 internal_matcher = self.build_matcher input start end
                 buffer = StringBuffer.new
@@ -557,7 +563,7 @@ type Pattern
                 internal_matcher.replaceAll replacement
             Regex_Mode.Full ->
                 case self.match input mode=Regex_Mode.Full of
-                    Match_Data _ _ _ _ -> self.replace input replacement Matching_Mode.First
+                    _ : Match -> self.replace input replacement Matching_Mode.First
                     Nothing -> input
             Matching_Mode.Last ->
                 all_matches = self.match input
@@ -578,16 +584,12 @@ type Pattern
                     internal_matcher.appendTail buffer
                     buffer.to_text
             Regex_Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error_Data "Modes cannot be recursive."
+                Mode_Error.Error "Modes cannot be recursive."
 
         case mode of
             Regex_Mode.Bounded _ _ _ -> Panic.throw <|
-                Mode_Error_Data "Bounded replacements are not well-formed."
+                Mode_Error.Error "Bounded replacements are not well-formed."
             _ -> do_replace_mode mode 0 (Text_Utils.char_length input)
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Engine.Default.Match import all
-from project.Data.Text.Regex.Engine.Default.Match export all
 
 ## The default implementation of the `Data.Text.Regex.Engine.Match` interface.
 type Match
@@ -602,11 +604,11 @@ type Match
        - region_start: The start of the region over which the match was made.
        - region_end: The end of the region over which the match was made.
        - input: The input text that was being matched.
-    Match_Data (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer) (input : Text)
+    Value (internal_match : Java_Matcher) (region_start : Integer) (region_end : Integer) (input : Text)
 
     ## Gets the text matched by the group with the provided identifier, or
        `Nothing` if the group did not participate in the match. If no such group
-       exists for the provided identifier, a `No_Such_Group_Error` is returned.
+       exists for the provided identifier, a `No_Such_Group` is returned.
 
        Arguments:
        - id: The index or name of that group.
@@ -635,7 +637,7 @@ type Match
              example_group =
                  match = Examples.match
                  match.group "letters"
-    group : Integer | Text -> Text | Nothing ! Regex.No_Such_Group_Error
+    group : Integer | Text -> Text | Nothing ! No_Such_Group
     group self id =
         Panic.recover Any (self.internal_match.group id) . map_error (handle_error _ id)
 
@@ -663,7 +665,7 @@ type Match
              example_groups =
                  match = Examples.match
                  match.groups default="UNMATCHED"
-    groups : (a : Any) -> Vector (Text | a)
+    groups : Any -> Vector (Text | Any)
     groups self default=Nothing =
         group_numbers = 0.up_to self.internal_match.groupCount+1
         group_numbers.map n->
@@ -688,7 +690,7 @@ type Match
              example_groups =
                  match = Examples.match
                  matcg.named_groups default="UNMATCHED"
-    named_groups : (a : Any) -> Map Text (Text | a)
+    named_groups : Any -> Map Text (Text | Any)
     named_groups self default=Nothing =
         group_names = Vector.from_polyglot_array <|
             Regex_Utils.get_group_names self.internal_match.pattern
@@ -721,7 +723,7 @@ type Match
              example_start =
                  match = Examples.match
                  match.start 0
-    start : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    start : Integer | Text -> Integer | Nothing ! No_Such_Group
     start self id =
         result = Panic.recover Any (self.internal_match.start id)
         no_errors = result.map_error (handle_error _ id)
@@ -749,7 +751,7 @@ type Match
              example_end =
                  match = Examples.match
                  match.end 0
-    end : Integer | Text -> Integer | Nothing ! Regex.No_Such_Group_Error
+    end : Integer | Text -> Integer | Nothing ! No_Such_Group
     end self id =
         result = Panic.recover Any (self.internal_match.end id)
         no_errors = result.map_error (handle_error _ id)
@@ -775,10 +777,10 @@ type Match
              example_Span =
                  match = Examples.match
                  match.span 0
-    span : Integer | Text -> Utf_16_Span | Nothing ! Regex.No_Such_Group_Error
+    span : Integer | Text -> Utf_16_Span | Nothing ! No_Such_Group
     span self id = case self.group id of
         Nothing -> Nothing
-        _ -> Utf_16_Span_Data ((self.start id).up_to (self.end id)) self.input
+        _ -> Utf_16_Span.Value ((self.start id).up_to (self.end id)) self.input
 
     ## Returns the start character index of the match's region.
 
@@ -827,18 +829,14 @@ type Match
    - id: The group identifier with which the error is associated.
 handle_error : Any -> (Text | Integer) -> Any
 handle_error error id = case error of
-    Polyglot_Error_Data err ->
+    Polyglot_Error.Polyglot_Error_Data err ->
         is_ioob = err.is_a IndexOutOfBoundsException
         is_iae = err.is_a IllegalArgumentException
         maps_to_no_such_group = is_ioob || is_iae
 
         if maps_to_no_such_group.not then err else
-            Regex.No_Such_Group_Error_Data id
+            No_Such_Group.Error id
     other -> other
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Engine.Default.Option import all
-from project.Data.Text.Regex.Engine.Default.Option export all
 
 ## Options specific to the `Default` regular expression engine.
 type Option
@@ -876,78 +874,22 @@ type Option
 
    Arguments:
    - opts: The enso-side options to configure the regex.
-from_enso_options : Vector (Option | Global_Option.Option) -> Integer
+from_enso_options : Vector (Option | Regex_Option) -> Integer
 from_enso_options opts =
     java_flags = Panic.recover Any <| opts.flat_map case _ of
-        Literal_Pattern -> [Java_Pattern.LITERAL]
-        Unix_Lines -> [Java_Pattern.UNIX_LINES]
-        Global_Option.Case_Insensitive -> [Java_Pattern.CASE_INSENSITIVE]
-        Global_Option.Dot_Matches_Newline -> [Java_Pattern.DOTALL]
-        Global_Option.Multiline -> [Java_Pattern.MULTILINE]
-        Global_Option.Comments -> [Java_Pattern.COMMENTS]
-        Global_Option.Ascii_Matching -> []
-        No_Anchoring_Bounds -> []
-        Transparent_Bounds -> []
-        other -> Panic.throw (Invalid_Option_Error_Data other)
+        Option.Literal_Pattern -> [Java_Pattern.LITERAL]
+        Option.Unix_Lines -> [Java_Pattern.UNIX_LINES]
+        Option.No_Anchoring_Bounds -> []
+        Option.Transparent_Bounds -> []
+        Regex_Option.Case_Insensitive -> [Java_Pattern.CASE_INSENSITIVE]
+        Regex_Option.Dot_Matches_Newline -> [Java_Pattern.DOTALL]
+        Regex_Option.Multiline -> [Java_Pattern.MULTILINE]
+        Regex_Option.Comments -> [Java_Pattern.COMMENTS]
+        Regex_Option.Ascii_Matching -> []
+        other -> Panic.throw (Invalid_Option.Error other)
 
     options_bitmask = java_flags.fold 0 .bit_or
 
-    if opts.contains Global_Option.Ascii_Matching then options_bitmask else
+    if opts.contains Regex_Option.Ascii_Matching then options_bitmask else
         unicode = [Java_Pattern.CANON_EQ, Java_Pattern.UNICODE_CASE, Java_Pattern.UNICODE_CHARACTER_CLASS].fold 0 .bit_or
         options_bitmask.bit_or unicode
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Engine.Default.Invalid_Bounds_Error import all
-from project.Data.Text.Regex.Engine.Default.Invalid_Bounds_Error export all
-
-## PRIVATE
-
-   An error representing that the bounds for a match are invalid.
-type Invalid_Bounds_Error
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the invalid bounds error.
-    to_display_text : Text
-    to_display_text =
-        "The start bound cannot be greater than the end bound."
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Engine.Default.Mode_Error import all
-from project.Data.Text.Regex.Engine.Default.Mode_Error export all
-
-## PRIVATE
-
-   An error representing that there is something wrong with the mode for a regex
-   match.
-
-   Arguments:
-   - message: The text of the message to display to users.
-type Mode_Error
-    Mode_Error_Data (message : Text)
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the mode error.
-    to_display_text : Text
-    to_display_text self = self.message.to_text
-
-# TODO Dubious constructor export
-from project.Data.Text.Regex.Engine.Default.Invalid_Option_Error import all
-from project.Data.Text.Regex.Engine.Default.Invalid_Option_Error export all
-
-## PRIVATE
-
-   An error representing that one of the passed options was invalid.
-
-   Arguments:
-   - opt: The option that was not valid for this regex engine.
-type Invalid_Option_Error
-    Invalid_Option_Error_Data (opt : Any)
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the invalid option error.
-    to_display_text : Text
-    to_display_text self =
-        "The option " + self.opt.to_text + " is not valid for the default regex engine."

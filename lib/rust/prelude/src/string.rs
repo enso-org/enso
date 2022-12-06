@@ -12,6 +12,7 @@ use serde::Serialize;
 use std::borrow::Cow;
 use std::ops::Deref;
 use std::rc::Rc;
+use std::str::pattern;
 
 
 
@@ -21,6 +22,19 @@ use std::rc::Rc;
 
 pub trait StringOps {
     fn is_enclosed(&self, first_char: char, last_char: char) -> bool;
+
+    /// Splits `self` twice. Once at the first occurrence of `start_marker` and once at the first
+    /// occurence of `end_marker`. Returns a triple containing the split `self` as a prefix, middle,
+    /// and suffix. If `self` could not be split twice, returns [`None`].
+    ///
+    /// [`None`]: ::std::option::Option::None
+    fn split_twice<'a, P>(
+        &'a self,
+        start_marker: P,
+        end_marker: P,
+    ) -> Option<(&'a str, &'a str, &'a str)>
+    where
+        P: pattern::Pattern<'a>;
 }
 
 impl<T: AsRef<str>> StringOps for T {
@@ -38,6 +52,20 @@ impl<T: AsRef<str>> StringOps for T {
             let last = chars.last().or(first);
             first == Some(first_char) && last == Some(last_char)
         }
+    }
+
+    fn split_twice<'a, P>(
+        &'a self,
+        start_marker: P,
+        end_marker: P,
+    ) -> Option<(&'a str, &'a str, &'a str)>
+    where
+        P: pattern::Pattern<'a>,
+    {
+        let text = self.as_ref();
+        let (prefix, rest) = text.split_once(start_marker)?;
+        let (mid, suffix) = rest.split_once(end_marker)?;
+        Some((prefix, mid, suffix))
     }
 }
 
@@ -476,5 +504,8 @@ mod tests {
         // === Edge case of matching single char string ===
         assert!("{".is_enclosed('{', '{'));
         assert!("【".is_enclosed('【', '【'));
+
+        // === Splitting a string twice ===
+        assert!("a.b.c,d,e".split_twice('.', ',').unwrap() == ("a", "b.c", "d,e"));
     }
 }

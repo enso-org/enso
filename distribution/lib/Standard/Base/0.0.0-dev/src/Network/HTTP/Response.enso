@@ -1,25 +1,20 @@
-from Standard.Base import all
-
-import Standard.Base.Network.Http.Header
-import Standard.Base.Network.Http.Response.Body as Response_Body
-import Standard.Base.Network.Http.Status_Code
+import project.Data.Json.Json
+import project.Data.Vector.Vector
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.HTTP.Response_Body.Response_Body
 
 polyglot java import org.enso.base.Http_Utils
 
-## TODO Dubious constructor export
-from project.Network.Http.Response.Response import all
-from project.Network.Http.Response.Response export all
-
 type Response
-
     ## PRIVATE
 
        A type representing an HTTP response.
 
        Arguments:
-       - internal_http_response: The internal represnetation of the HTTP
+       - internal_http_response: The internal representation of the HTTP
          response.
-    Response_Data internal_http_response
+    Value internal_http_response
 
     ## Get the response headers.
 
@@ -45,7 +40,7 @@ type Response
 
              example_body = Examples.get_response.body
     body : Response_Body
-    body self = Response_Body.Body_Data (Vector.from_polyglot_array self.internal_http_response.body)
+    body self = Response_Body.Value (Vector.from_polyglot_array self.internal_http_response.body)
 
     ## Get the response status code.
 
@@ -56,8 +51,8 @@ type Response
              import Standard.Examples
 
              example_code = Examples.get_response.code
-    code : Status_Code
-    code self = Status_Code.Status_Code_Data self.internal_http_response.statusCode
+    code : HTTP_Status_Code
+    code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
 
     ## Convert the response to JSON.
 

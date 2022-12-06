@@ -1,9 +1,21 @@
-from Standard.Base import all hiding Java
-import Standard.Base
+import project.Any.Any
+import project.Data.Array.Array
+import project.Data.Numbers.Decimal
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
+import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Date.Date
+import project.Data.Time.Duration.Duration
+import project.Data.Time.Time_Of_Day.Time_Of_Day
+import project.Data.Time.Time_Zone.Time_Zone
+import project.Data.Vector.Vector
+import project.Polyglot.Java
 
-# TODO Dubious constructor export
-from project.Meta.Atom import all
-from project.Meta.Atom export all
+import project.Error.Error as Base_Error
+import project.Polyglot.Polyglot as Base_Polyglot
+
+from project.Data.Boolean import Boolean, True, False
 
 ## UNSTABLE
    ADVANCED
@@ -13,11 +25,21 @@ from project.Meta.Atom export all
    Arguments:
    - value: The value of the atom in the meta representation.
 type Atom
-    Atom_Data value
+    Value value
 
-# TODO Dubious constructor export
-from project.Meta.Constructor import all
-from project.Meta.Constructor export all
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a vector of field values of the given atom.
+    fields : Vector
+    fields self = Vector.from_polyglot_array (get_atom_fields self.value)
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a constructor value of the given atom.
+    constructor : Constructor
+    constructor self = get_atom_constructor self.value ...
 
 ## UNSTABLE
    ADVANCED
@@ -27,25 +49,42 @@ from project.Meta.Constructor export all
    Arguments:
    - value: The value of the constructor in the meta representation.
 type Constructor
-    Constructor_Data value
+    Value value
 
-# TODO Dubious constructor export
-from project.Meta.Primitive import all
-from project.Meta.Primitive export all
+    ## UNSTABLE
+       ADVANCED
+
+       Returns a vector of field names defined by a constructor.
+    fields : Vector
+    fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
+
+    ## UNSTABLE
+       ADVANCED
+
+       Returns the name of a constructor.
+    name : Text
+    name self = get_constructor_name self.value
+
+    ## UNSTABLE
+       ADVANCED
+
+       Creates a new atom of the given constructor.
+
+       Arguments:
+       - fields: A vector of arguments to pass to the constructor when creating the
+         new atom.
+    new : Vector -> Any
+    new self fields = new_atom self.value fields.to_array
 
 ## UNSTABLE
    ADVANCED
 
-   A primitive value meta-prepresentation.
+   A primitive value meta-representation.
 
    Arguments:
    - value: The value of the primitive object in the meta representation.
 type Primitive
-    Primitive_Data value
-
-# TODO Dubious constructor export
-from project.Meta.Unresolved_Symbol import all
-from project.Meta.Unresolved_Symbol export all
+    Value value
 
 ## UNSTABLE
    ADVANCED
@@ -55,7 +94,7 @@ from project.Meta.Unresolved_Symbol export all
    Arguments:
    - value: The value of the unresolved symbol in the meta representation.
 type Unresolved_Symbol
-    Unresolved_Symbol_Data value
+    Value value
 
     ## UNSTABLE
        ADVANCED
@@ -83,10 +122,6 @@ type Unresolved_Symbol
     scope : Any
     scope self = get_unresolved_symbol_scope self.value
 
-# TODO Dubious constructor export
-from project.Meta.Error import all
-from project.Meta.Error export all
-
 ## UNSTABLE
    ADVANCED
 
@@ -95,11 +130,7 @@ from project.Meta.Error export all
    Arguments:
    - value: The payload of the error.
 type Error
-    Error_Data value
-
-# TODO Dubious constructor export
-from project.Meta.Polyglot import all
-from project.Meta.Polyglot export all
+    Value value
 
 ## UNSTABLE
    ADVANCED
@@ -109,10 +140,48 @@ from project.Meta.Polyglot export all
    Arguments:
    - value: The polyglot value contained in the meta representation.
 type Polyglot
-    Polyglot_Data value
+    Value value
 
+    ## UNSTABLE
+       ADVANCED
 
-## Atom methods
+       Returns the language with which a polyglot value is associated.
+    get_language : Language
+    get_language self =
+        lang_str = get_polyglot_language self.value
+        if lang_str == "java" then Language.Java else Language.Unknown
+
+## UNSTABLE
+   ADVANCED
+
+   Checks whether `self` represents the same underlying reference as `value`.
+
+   Arguments:
+   - value_1: The first value.
+   - value_2: The second value.
+Any.is_same_object_as : Any -> Boolean
+Any.is_same_object_as self value = is_same_object self value
+
+## UNSTABLE
+   ADVANCED
+
+   Checks if `self` is an instance of `typ`.
+
+   Arguments:
+   - typ: The type to check `self` against.
+Any.is_a : Any -> Boolean
+Any.is_a self typ = is_a self typ
+
+## UNSTABLE
+   ADVANCED
+
+   Checks if `self` is an instance of `typ`.
+
+   Arguments:
+   - typ: The type to check `self` against.
+Base_Error.is_a : Any -> Boolean
+Base_Error.is_a self typ = typ==Any || typ==Base_Error
+
 ## PRIVATE
 
    Gets the atom constructor instance for the provided atom.
@@ -131,21 +200,6 @@ get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
 get_atom_fields : Atom -> Array
 get_atom_fields atom = @Builtin_Method "Meta.get_atom_fields"
 
-## UNSTABLE
-   ADVANCED
-
-   Returns a vector of field values of the given atom.
-Atom.fields : Vector
-Atom.fields self = Vector.from_polyglot_array (get_atom_fields self.value)
-
-## UNSTABLE
-   ADVANCED
-
-   Returns a constructor value of the given atom.
-Atom.constructor : Constructor
-Atom.constructor self = get_atom_constructor self.value ...
-
-# Polyglot methods
 ## PRIVATE
 
    Get a textual representation of the language from which an object comes.
@@ -155,16 +209,6 @@ Atom.constructor self = get_atom_constructor self.value ...
 get_polyglot_language : Any -> Text
 get_polyglot_language value = @Builtin_Method "Meta.get_polyglot_language"
 
-## UNSTABLE
-   ADVANCED
-
-   Returns the language with which a polyglot value is associated.
-Polyglot.get_language : Language
-Polyglot.get_language self =
-    lang_str = get_polyglot_language self.value
-    if lang_str == "java" then Java else Unknown
-
-# UnresolvedSymbol methods
 ## PRIVATE
 
    Creates an unresolved symbol for the name name in the scope.
@@ -193,7 +237,6 @@ get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_
 get_unresolved_symbol_scope : Unresolved_Symbol -> Any
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 
-# Constructor methods
 ## PRIVATE
 
    Get the fields of an atom constructor.
@@ -225,43 +268,17 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 ## UNSTABLE
    ADVANCED
 
-   Returns a vector of field names defined by a constructor.
-Constructor.fields : Vector
-Constructor.fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
-
-## UNSTABLE
-   ADVANCED
-
-   Returns the name of a constructor.
-Constructor.name : Text
-Constructor.name self = get_constructor_name self.value
-
-## UNSTABLE
-   ADVANCED
-
-   Creates a new atom of the given constructor.
-
-   Arguments:
-   - fields: A vector of arguments to pass to the constructor when creating the
-     new atom.
-Constructor.new : Vector -> Any
-Constructor.new self fields = new_atom self.value fields.to_array
-
-
-## UNSTABLE
-   ADVANCED
-
    Returns a meta-representation of a given runtime entity.
 
    Arguments:
    - value: The runtime entity to get the meta representation of.
-meta : Any -> Meta
-meta value = if is_atom value then Atom_Data value else
-    if is_atom_constructor value then Constructor_Data value else
-        if is_polyglot value then Polyglot_Data value else
-            if is_unresolved_symbol value then Unresolved_Symbol_Data value else
-                if is_error value then Error_Data value.catch else
-                    Primitive_Data value
+meta : Any -> Atom | Constructor | Primitive | Polyglot | Unresolved_Symbol | Error
+meta value = if is_atom value then Atom.Value value else
+    if is_atom_constructor value then Constructor.Value value else
+        if is_polyglot value then Polyglot.Value value else
+            if is_unresolved_symbol value then Unresolved_Symbol.Value value else
+                if is_error value then Error.Value value.catch else
+                    Primitive.Value value
 
 ## UNSTABLE
    ADVANCED
@@ -277,37 +294,6 @@ is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
 ## UNSTABLE
    ADVANCED
 
-   Checks whether `self` represents the same underlying reference as `value`.
-
-   Arguments:
-   - value_1: The first value.
-   - value_2: The second value.
-Any.is_same_object_as : Any -> Boolean
-Any.is_same_object_as self value = is_same_object self value
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
-Any.is_a : Any -> Boolean
-Any.is_a self typ = is_a self typ
-
-## UNSTABLE
-   ADVANCED
-
-   Checks if `self` is an instance of `typ`.
-
-   Arguments:
-   - typ: The type to check `self` against.
-Base.Error.is_a : Any -> Boolean
-Base.Error.is_a self typ = typ==Any || typ==Base.Error
-
-## UNSTABLE
-   ADVANCED
-
    Checks if `value` is an instance of `typ`.
 
    Arguments:
@@ -316,7 +302,7 @@ Base.Error.is_a self typ = typ==Any || typ==Base.Error
 is_a : Any -> Any -> Boolean
 is_a value typ = if is_same_object value typ then True else
     if typ == Any then True else
-        if is_error value then typ == Base.Error else
+        if is_error value then typ == Base_Error else
             case value of
                 _ : Vector -> typ.is_same_object_as Vector
                 _ : Array -> typ == Array
@@ -330,28 +316,27 @@ is_a value typ = if is_same_object value typ then True else
                 _ : Duration -> typ.is_same_object_as Duration
                 _ : Time_Of_Day -> typ.is_same_object_as Time_Of_Day
                 _ : Time_Zone -> typ.is_same_object_as Time_Zone
-                Base.Polyglot.Polyglot ->
-                    typ==Base.Polyglot.Polyglot || java_instance_check value typ
+                Base_Polyglot -> typ==Base_Polyglot || java_instance_check value typ
                 _ ->
                     meta_val = meta value
                     case meta_val of
-                        Atom_Data _ -> if is_atom typ then typ == value else
+                        _ : Atom -> if is_atom typ then typ == value else
                             meta_val.constructor == typ
-                        Constructor_Data _ ->
+                        _ : Constructor ->
                             meta_typ = meta typ
                             case meta_typ of
-                                Atom_Data _ -> meta_val == meta_typ.constructor
-                                Constructor_Data _ -> meta_val == meta_typ
+                                _ : Atom -> meta_val == meta_typ.constructor
+                                _ : Constructor -> meta_val == meta_typ
                                 _ -> False
-                        Error_Data _ -> typ == Error
-                        Unresolved_Symbol_Data _ -> typ == Unresolved_Symbol
+                        _ : Error -> typ == Error
+                        _ : Unresolved_Symbol -> typ == Unresolved_Symbol
                         _ -> False
 
 ## PRIVATE
 java_instance_check value typ =
     val_java = get_polyglot_language value == "java"
     typ_java = get_polyglot_language typ == "java"
-    val_java && typ_java && Base.Java.is_instance value typ
+    val_java && typ_java && Java.is_instance value typ
 
 ## UNSTABLE
    ADVANCED
@@ -362,10 +347,6 @@ java_instance_check value typ =
    - value: the value to get the type of.
 type_of : Any -> Any
 type_of value = @Builtin_Method "Meta.type_of"
-
-# TODO Dubious constructor export
-from project.Meta.Language import all
-from project.Meta.Language export all
 
 ## Represents a polyglot language.
 type Language

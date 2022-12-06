@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering

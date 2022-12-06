@@ -169,7 +169,8 @@ ensogl_core::define_endpoints_2! {
         set_column_width((Col, f32)),
         /// Set the entries parameters.
         set_entries_params(EntryParams),
-        /// Set the entries size. All entries have the same size.
+        /// Set the entry size. All entries have the same height, but the width can be changed
+        /// using [`set_column_width`] input or [`EntryFrp::override_column_width`] output.
         set_entries_size(Vector2),
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.

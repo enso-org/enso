@@ -12,7 +12,7 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 
 from project.Data.SQL import code
-from project.Errors import Unsupported_Database_Operation_Error_Data
+from project.Errors import Unsupported_Database_Operation
 
 ## PRIVATE
 
@@ -58,7 +58,7 @@ type SQLite_Dialect
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering = case internal_column.sql_type.is_likely_text of
         True ->
-            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation_Error_Data "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
                     Nothing ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
@@ -66,7 +66,7 @@ type SQLite_Dialect
                         Order_Descriptor.Value internal_column.expression sort_direction collation="BINARY"
                     Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
                         False ->
-                            Error.throw (Unsupported_Database_Operation_Error_Data "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
                         True ->
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
         False ->
@@ -110,7 +110,7 @@ resolve_target_sql_type aggregate = case aggregate of
 
 ## PRIVATE
 unsupported name =
-    Error.throw (Unsupported_Database_Operation_Error_Data name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
+    Error.throw (Unsupported_Database_Operation.Error name+" is not supported by SQLite backend. You may need to materialize the table and perform the operation in-memory.")
 
 ## PRIVATE
 agg_count_is_null = Base_Generator.lift_unary_op "COUNT_IS_NULL" arg->
@@ -154,7 +154,7 @@ first_last_aggregators =
 
 ## PRIVATE
 window_aggregate window_type ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State_Error_Data "Insufficient number of arguments for the operation.") else
+    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
         result_expr = args.head
         order_exprs = args.tail
 
@@ -174,7 +174,7 @@ concat_ops =
 ## PRIVATE
 agg_count_distinct args = case args.length == 1 of
     True -> code "COUNT(DISTINCT (" ++ args.first ++ "))"
-    False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
+    False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 agg_count_distinct_include_null args = case args.length == 1 of
@@ -183,7 +183,7 @@ agg_count_distinct_include_null args = case args.length == 1 of
         count = code "COUNT(DISTINCT " ++ arg ++ ")"
         all_nulls_case = code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
         count ++ " + " ++ all_nulls_case
-    False -> Error.throw (Illegal_Argument_Error_Data "COUNT_DISTINCT supports only single arguments in SQLite.")
+    False -> Error.throw (Illegal_Argument.Error "COUNT_DISTINCT supports only single arguments in SQLite.")
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
