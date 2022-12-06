@@ -14,6 +14,8 @@ import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.debug.DebuggerSession;
 import com.oracle.truffle.api.debug.SuspendedCallback;
 import com.oracle.truffle.api.debug.SuspendedEvent;
+import com.oracle.truffle.api.nodes.LanguageInfo;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -26,7 +28,9 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.enso.polyglot.MethodNames;
 import org.enso.polyglot.MethodNames.Module;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -51,8 +55,9 @@ public class DebuggingEnsoTest {
         .allowExperimentalOptions(true)
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/lib").toFile().getAbsolutePath()
+            Paths.get("../../distribution/component").toFile().getAbsolutePath()
         )
+        .logHandler(OutputStream.nullOutputStream())
         .build();
 
     context = Context.newBuilder()
@@ -99,15 +104,18 @@ public class DebuggingEnsoTest {
         .buildLiteral();
   }
 
+  private Value createEnsoMethod(String source, String methodName) {
+    Value module = context.eval(createEnsoSource(source));
+    return module.invokeMember(Module.EVAL_EXPRESSION, methodName);
+  }
 
   /**
    * Steps through recursive evaluation of factorial with an accumulator, and for each step,
    * checks the value of the `accumulator` variable.
    */
   @Test
-  @Ignore
-  public void recursiveFactorialCall() throws Exception {
-    final Source facSrc = createEnsoSource("""
+  public void recursiveFactorialCall() {
+    final Value facFn = createEnsoMethod("""
     fac : Number -> Number
     fac n =
         facacc : Number -> Number -> Number
@@ -116,10 +124,8 @@ public class DebuggingEnsoTest {
                 if stop then accumulator else @Tail_Call facacc n-1 n*accumulator
 
         facacc n 1
-    """);
+    """, "fac");
 
-    var module = context.eval(facSrc);
-    var facFn = module.invokeMember("eval_expression", "fac");
     final var values = new TreeSet<Integer>();
     try (var session = debugger.startSession((event) -> {
       final DebugValue accumulatorValue = findDebugValue(event, "accumulator");
@@ -141,9 +147,8 @@ public class DebuggingEnsoTest {
    * stack frames, including the stack frame of the caller method.
    */
   @Test
-  @Ignore
   public void callerVariablesAreVisibleOnPreviousStackFrame() {
-    Source fooSource = createEnsoSource("""
+    Value fooFunc = createEnsoMethod("""
         bar arg_bar =
             loc_bar = arg_bar + 1
             loc_bar
@@ -151,10 +156,7 @@ public class DebuggingEnsoTest {
         foo x =
             loc_foo = 1
             bar loc_foo
-        """);
-
-    Value module = context.eval(fooSource);
-    Value fooFunc = module.invokeMember("eval_expression", "foo");
+        """, "foo");
 
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       // TODO[PM]: This is a workaround for proper breakpoints, which do not work atm.
@@ -189,7 +191,7 @@ public class DebuggingEnsoTest {
    */
   @Test
   public void testHostValues() {
-    Source src = createEnsoSource("""
+     Value fooFunc = createEnsoMethod("""
         polyglot java import java.nio.file.Path
         polyglot java import java.util.ArrayList
         
@@ -199,9 +201,7 @@ public class DebuggingEnsoTest {
             list.add 10
             list.add 20
             tmp = 42
-        """);
-    Value module = context.eval(src);
-    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+        """, "foo");
 
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       switch (event.getSourceSection().getCharacters().toString().strip()) {
@@ -231,15 +231,13 @@ public class DebuggingEnsoTest {
 
   @Test
   public void testHostValueAsAtomField() {
-    Source src = createEnsoSource("""
+    Value fooFunc = createEnsoMethod("""
         from Standard.Base import Vector
         
         foo x =
             vec_builder = Vector.new_builder
             end = 42
-        """);
-    Value module = context.eval(src);
-    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+        """, "foo");
 
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       if (event.getSourceSection().getCharacters().toString().strip().equals("end = 42")) {
@@ -258,16 +256,14 @@ public class DebuggingEnsoTest {
 
   @Test
   public void testEvaluateExpression() {
-    Source src = createEnsoSource("""
+    Value fooFunc = createEnsoMethod("""
         polyglot java import java.nio.file.Path
         
         foo x =
             a = 10
             b = 20
             tmp = 42
-        """);
-    Value module = context.eval(src);
-    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+        """, "foo");
 
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       switch (event.getSourceSection().getCharacters().toString().strip()) {
@@ -287,15 +283,13 @@ public class DebuggingEnsoTest {
 
   @Test
   public void testRewriteLocalVariable() {
-    Source src = createEnsoSource("""
+    Value fooFunc = createEnsoMethod("""
         foo x =
             a = 10
             b = 20
             tmp = a + b
             end = 42
-        """);
-    Value module = context.eval(src);
-    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+        """, "foo");
 
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       switch (event.getSourceSection().getCharacters().toString().strip()) {
@@ -328,7 +322,7 @@ public class DebuggingEnsoTest {
 
   @Test
   public void testRewriteVariableInCallerStackFrame() {
-    Source src = createEnsoSource("""
+    Value fooFunc = createEnsoMethod("""
         bar =
             loc_bar = 42
         
@@ -337,9 +331,7 @@ public class DebuggingEnsoTest {
             b = 20  # Will get modified to 2
             bar
             a + b
-        """);
-    Value module = context.eval(src);
-    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+        """, "foo");
 
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       switch (event.getSourceSection().getCharacters().toString().strip()) {
@@ -368,9 +360,7 @@ public class DebuggingEnsoTest {
 
   @Test
   public void testFailingEvaluations() {
-    Source src = createEnsoSource("foo x = x");
-    Value module = context.eval(src);
-    Value fooFunc = module.invokeMember(Module.EVAL_EXPRESSION, "foo");
+    Value fooFunc = createEnsoMethod("foo x = x", "foo");
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       // This snippet is actually called from chromeinspector as the very first command
       // after typing anything in the console.
@@ -545,6 +535,68 @@ public class DebuggingEnsoTest {
         Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1))
     );
     testStepping(src, "foo", new Object[]{0}, steps, expectedLineNumbers);
+  }
+
+  /**
+   * Steps through some stdlib methods, enumerates all the values in frames and checks if all
+   * the host values are wrapped.
+   *
+   * Note that this is essentially a check whether the workaround for https://github.com/oracle/graal/issues/5513 works.
+   */
+  @Test
+  public void testAllHostObjectsAreWrapped() {
+    Value fooFunc = createEnsoMethod("""
+        from Standard.Base import Vector
+        foo x =
+            vec = [5, 5, 1, 2, 1]
+            vec.distinct
+        """, "foo");
+    List<FrameEntry> frames = new ArrayList<>();
+    try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
+      DebugScope topScope = event.getTopStackFrame().getScope();
+      var frameEntry = new FrameEntry(topScope.getName());
+      for (DebugValue declaredValue : topScope.getDeclaredValues()) {
+        LanguageInfo origLang = declaredValue.getOriginalLanguage();
+        String valueAsString = declaredValue.asInLanguage(origLang).toDisplayString();
+        frameEntry.addValue(declaredValue.getName(), valueAsString);
+      }
+      frames.add(frameEntry);
+      event.prepareStepInto(1);
+    })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+    // Throughout Vector.distinct call, there will definitely be at least one host object
+    // in one of the stack frames.
+    long hostObjectValues = frames.stream()
+        .filter(frameEntry ->
+            frameEntry
+                .values
+                .values()
+                .stream()
+                .anyMatch(displayString -> displayString.contains("HostObject"))
+        )
+        .count();
+    assertTrue(frames.size() > 1);
+    assertTrue(hostObjectValues > 1);
+  }
+
+  private static final class FrameEntry {
+    private final String scopeName;
+    private final Map<String, String> values = new HashMap<>();
+
+    FrameEntry(String scopeName) {
+      this.scopeName = scopeName;
+    }
+
+    void addValue(String name, String value) {
+      values.put(name, value);
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s: %s", scopeName, values);
+    }
   }
 
   // TODO[PM]: Re-enable (https://www.pivotaltracker.com/story/show/183854585)

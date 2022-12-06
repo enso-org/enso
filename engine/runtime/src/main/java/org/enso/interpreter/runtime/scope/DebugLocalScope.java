@@ -76,8 +76,8 @@ public class DebugLocalScope implements TruffleObject {
     this.allBindings = rootNode.getLocalScope().flattenBindings();
     this.bindingsByLevels = bindingsByLevels;
     this.bindingsByLevelsIdx = bindingsByLevelsIdx;
-    assert !this.bindingsByLevels.isEmpty();
-    assert 0 <= this.bindingsByLevelsIdx && this.bindingsByLevelsIdx < this.bindingsByLevels.size();
+    assert this.bindingsByLevels.isEmpty() ||
+        (0 <= this.bindingsByLevelsIdx && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
   }
 
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
@@ -94,6 +94,10 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   private static List<List<String>> gatherBindingsByLevels(Map<String, FramePointer> bindings) {
+    if (bindings.isEmpty()) {
+      return List.of();
+    }
+
     int maxParentLevel =
         bindings.values().stream()
             .max(Comparator.comparingInt(FramePointer::getParentLevel))
