@@ -2048,7 +2048,7 @@ class RuntimeVisualizationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty."}"""
+    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
   }
 
   it should "attach method pointer visualisation without arguments" in {
