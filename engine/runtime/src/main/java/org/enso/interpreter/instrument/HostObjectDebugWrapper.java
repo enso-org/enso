@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -52,11 +53,14 @@ public final class HostObjectDebugWrapper implements TruffleObject {
    * Serves as a workaround for https://github.com/oracle/graal/issues/5513.
    * @param object Object to potentialy wrap in {@link HostObjectDebugWrapper}.
    */
+  @TruffleBoundary
   public static Object wrapHostValues(Object object, InteropLibrary interop) {
     if (object instanceof Atom atom) {
-      Object[] wrappedFields = Arrays.stream(atom.getFields())
-          .map(field -> wrapHostValues(field, interop))
-          .toArray();
+      Object[] fields = atom.getFields();
+      Object[] wrappedFields = new Object[fields.length];
+      for (int i = 0; i < fields.length; i++) {
+        wrappedFields[i] = wrapHostValues(fields[i], interop);
+      }
       return new Atom(
           atom.getConstructor(),
           wrappedFields

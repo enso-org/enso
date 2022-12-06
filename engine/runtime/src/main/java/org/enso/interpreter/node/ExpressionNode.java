@@ -222,7 +222,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @return Value with all the host objects wrapped.
    */
   @OutgoingConverter
-  public Object convertHostObjects(Object retValue) {
+  public Object wrapHostObjects(Object retValue) {
     return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached());
   }
 
