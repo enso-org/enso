@@ -30,7 +30,9 @@ class ValuesGenerator {
 
 
   public static ValuesGenerator create(Context ctx, Language... langs) {
-    return new ValuesGenerator(ctx, EnumSet.copyOf(Arrays.asList(langs)));
+    var set = langs == null || langs.length == 0 ? EnumSet.allOf(Language.class)
+      : EnumSet.copyOf(Arrays.asList(langs));
+    return new ValuesGenerator(ctx, set);
   }
 
   private Value v(String k, String t, String s) {
@@ -68,6 +70,15 @@ class ValuesGenerator {
           @Tail_Call fac n*s n-1
       """, "fac 1 100"));
 
+    }
+
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue((byte) 33));
+      collect.add(ctx.asValue((short) 44));
+      collect.add(ctx.asValue((int) 5432));
+      collect.add(ctx.asValue((long) 5435432));
+      collect.add(ctx.asValue((float) Math.PI));
+      collect.add(ctx.asValue((double) Math.E));
     }
 
     for (var v : collect) {

@@ -40,7 +40,6 @@ public abstract class IsANode extends Node {
     return isNumberType(type);
   }
 
-
   private boolean isNumberType(Type type) {
     var numbers = EnsoContext.get(this).getBuiltins().number();
     if (type == numbers.getSmallInteger()) {
