@@ -95,7 +95,7 @@ spec setup =
             r1 . at "Y" . to_vector . should_equal [1]
             r1 . at "Z" . to_vector . should_equal [2]
 
-            r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "X") . order_by ["Y", "Z"]
+            r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "X") . order_by ["Z"]
             # TODO rename to Right_X
             expect_column_names ["X", "Y", "X_1", "Z"] r2
             r2 . at "X" . to_vector . should_equal ["a", "a", "B"]
@@ -103,14 +103,48 @@ spec setup =
             r2 . at "Y" . to_vector . should_equal [1, 1, 2]
             r2 . at "Z" . to_vector . should_equal [1, 2, 3]
 
-        Test.specify "should correctly handle Unicode equality" <|
-            Nothing
+        if setup.test_selection.supports_unicode_normalization then
+            Test.specify "should correctly handle Unicode equality" <|
+                t1 = table_builder [["X", ['s\u0301', 'S\u0301']], ["Y", [1, 2]]]
+                t2 = table_builder [["X", ['s', 'S', 'ś']], ["Z", [1, 2, 3]]]
 
-        Test.specify "should correctly handle Enso-specific equality logic" <|
-            Nothing
+                r1 = t1.join t2
+                expect_column_names ["X", "Y", "Z"] r1
+                r1 . at "X" . to_vector . should_equal ['ś']
+                r1 . at "Y" . to_vector . should_equal [1]
+                r1 . at "Z" . to_vector . should_equal [3]
 
-        Test.specify "should allow range-based joins (using between)" <|
-            Nothing
+                r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "X") . order_by ["Y"]
+                # TODO rename to Right_X
+                expect_column_names ["X", "Y", "X_1", "Z"] r2
+                r2 . at "X" . to_vector . should_equal ['s\u0301', 'S\u0301']
+                r2 . at "X_1" . to_vector . should_equal ['ś', 'ś']
+                r2 . at "Y" . to_vector . should_equal [1, 2]
+                r2 . at "Z" . to_vector . should_equal [3, 3]
+
+        # This may need a test_selection toggle in the future, depending on how well databases like coercing decimals and integers.
+        Test.specify "should correctly handle Enso Decimal-Integer equality" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [10, 20]]]
+            t2 = table_builder [["X", [2.0, 2.1, 0.0]], ["Z", [1, 2, 3]]]
+
+            r1 = t1.join t2
+            expect_column_names ["X", "Y", "Z"] r1
+            r1 . at "X" . to_vector . should_equal [2]
+            r1 . at "Y" . to_vector . should_equal [20]
+            r1 . at "Z" . to_vector . should_equal [1]
+
+        Test.specify "should allow range-based joins (using between) for numbers" <|
+            t1 = table_builder [["X", [1, 10, 12]], ["Y", [1, 2, 3]]]
+            t2 = table_builder [["lower", [1, 10, 8, 12]], ["upper", [1, 12, 30, 0]], ["Z", [1, 2, 3, 4]]]
+
+            t1.join t2 on=(Join_Condition.Between "X" "lower" "upper")
+            r1 = t1.join t2 . order_by ["X", "Z"]
+            expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
+            r1 . at "X" . to_vector . should_equal     [1, 10, 10, 12, 12]
+            r1 . at "Y" . to_vector . should_equal     [1, 2,  2,  3,  3]
+            r1 . at "lower" . to_vector . should_equal [1, 10, 8,  10, 8]
+            r1 . at "upper" . to_vector . should_equal [1, 12, 30, 12, 30]
+            r1 . at "Z" . to_vector . should_equal     [1, 2,  3,  2,  3]
 
         Test.specify "should allow to mix join conditions of various kinds" <|
             Nothing
@@ -130,16 +164,64 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
-            Nothing
+            t1 = table_builder ["X", ["1", "2", "c"], ["Y", [1, 2, 3]]]
+            t2 = table_builder ["Z", ["1", "2", "c"], ["W", [1, 2, 3]]]
+
+            expected_string err =
+                err.should_fail_with Invalid_Value_Type.Error
+                err.catch . should_equal (Invalid_Value_Type.Error Value_Type.Char Value_Type.Integer)
+
+            expected_string <|
+                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "W")
+            expected_string <|
+                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "Y" "Z")
 
         Test.specify "should report Invalid_Value_Type if non-numeric columns are provided to Between" <|
-            Nothing
+            t1 = table_builder ["X", ["1", "2", "c"], ["Y", [1, 2, 3]]]
+            t2 = table_builder ["Z", ["1", "2", "c"], ["W", [1, 2, 3]]]
+
+            expected_numeric err =
+                err.should_fail_with Invalid_Value_Type.Error
+                # TODO Integer, Decimal?? both are OK really
+                err.catch . should_equal (Invalid_Value_Type.Error Value_Type.Char Value_Type.Integer)
+
+            expected_numeric <|
+                t1.join t2 on=(Join_Condition.Between "X" "W" "W")
+            expected_numeric <|
+                t1.join t2 on=(Join_Condition.Between "X" "Z" "Z")
+            expected_numeric <|
+                t1.join t2 on=(Join_Condition.Between "Y" "W" "Z")
+            expected_numeric <|
+                t1.join t2 on=(Join_Condition.Between "Y" "Z" "W")
 
         Test.specify "should report Invalid_Value_Type if incompatible types are correlated" pending="We need more advanced value type support to implement this in full-generality." <|
-            Nothing
+            t1 = table_builder ["X", ["1", "2", "c"]]
+            t2 = table_builder ["Y", [1, 2, 3]]
+
+            r1 = t1.join t2 on=conditions on_problems=Problem_Behavior.Ignore
+            expect_column_names ["X", "Y"] r1
+            r1.row_count . should_equal 0
+
+            r2 = t1.join t2 on=conditions on_problems=Problem_Behavior.Report_Error
+            r2.should_fail_with Invalid_Value_Type.Error
 
         Test.specify "should warn when joining on equality of Decimal columns" <|
-            Nothing
+            t1 = table_builder [["X", [1.5, 2.0, 2.00000000001]], ["Y", [10, 20, 30]]]
+            t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
+
+            action1 = t1.join t2 on=(Join_Condition.Equals "X" "Z") on_problems=_
+            tester1 table =
+                expect_column_names ["X", "Y", "Z", "W"] table
+                # TODO
+            problems1 = []
+            Problems.test_problem_handling action1 problems1 tester1
+
+            action2 = t1.join t2 on=(Join_Condition.Equals "X" "W") on_problems=_
+            tester1 table =
+                expect_column_names ["X", "Y", "Z", "W"] table
+                # TODO
+            problems1 = []
+            Problems.test_problem_handling action1 problems1 tester1
 
         Test.specify "should correctly handle nulls in equality conditions" <|
             Nothing
