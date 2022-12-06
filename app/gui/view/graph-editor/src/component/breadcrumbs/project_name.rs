@@ -252,9 +252,12 @@ impl ProjectName {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
+        let saved_hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
+        let saved_deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
+        let saved_selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
+        let unsaved_hover_color = styles.get_color(theme::graph_editor::breadcrumbs::unsaved::hover);
+        let unsaved_deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::unsaved::deselected::left);
+        let unsaved_selected_color = styles.get_color(theme::graph_editor::breadcrumbs::unsaved::selected);
         let animations = Animations::new(network);
 
         frp::extend! { network
@@ -268,13 +271,17 @@ impl ProjectName {
 
             not_selected               <- frp.output.selected.map(|selected| !selected);
             mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
+            mouse_over_if_not_selected <- all2(
+                &frp.input.set_project_changed,
+                &mouse_over_if_not_selected,
+            ).map(move |(changed, _)| if *changed {unsaved_hover_color} else {saved_hover_color});
+            eval mouse_over_if_not_selected((&color) animations.color.set_target_value(color));
             mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
-            eval_ mouse_over_if_not_selected(
-                animations.color.set_target_value(hover_color);
-            );
-            eval_ mouse_out_if_not_selected(
-                animations.color.set_target_value(deselected_color);
-            );
+            mouse_out_if_not_selected <- all2(
+                &frp.input.set_project_changed,
+                &mouse_out_if_not_selected,
+            ).map(move |(changed, _)| if *changed {unsaved_deselected_color} else {saved_deselected_color});
+            eval mouse_out_if_not_selected((&color) animations.color.set_target_value(color));
             on_deselect <- not_selected.gate(&not_selected).constant(());
 
             edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
@@ -314,16 +321,24 @@ impl ProjectName {
 
             // === Selection ===
 
-            eval_ frp.select( animations.color.set_target_value(selected_color) );
+            selected_color <- all2(
+                &frp.input.set_project_changed,
+                &frp.select,
+            ).map(move |(changed, _)| if *changed {unsaved_selected_color} else {saved_selected_color});
+            eval selected_color((&color) animations.color.set_target_value(color) );
             frp.output.source.selected <+ frp.select.to_true();
 
             set_inactive <- any(&frp.deselect,&on_commit);
-            eval_ set_inactive ([text,animations]{
+            eval_ set_inactive ([text,animations] {
                 text.deprecated_set_focus(false);
                 text.remove_all_cursors();
-                animations.color.set_target_value(deselected_color);
             });
             frp.output.source.selected <+ set_inactive.to_false();
+            inactive_color <- all2(
+                &frp.input.set_project_changed,
+                &set_inactive,
+            ).map(move |(changed, _)| if *changed {unsaved_deselected_color} else {saved_deselected_color});
+            eval inactive_color ( (&color) animations.color.set_target_value(color));
 
 
             // === Animations ===
@@ -347,8 +362,6 @@ impl ProjectName {
              frp.output.source.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
                 cursor::Style::cursor()
              );
-
-             trace frp.input.set_project_changed;
         }
 
         frp.deselect();

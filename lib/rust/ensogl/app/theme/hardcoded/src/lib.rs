@@ -551,6 +551,14 @@ define_themes! { [light:0, dark:1]
                 left  = Lcha(0.0,0.0,0.0,0.5) , Lcha(1.0,0.0,0.0,0.5);
                 right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
             }
+            unsaved {
+                selected    = Lcha(0.5,1.0,0.2,0.7) , Lcha(0.5,1.0,0.2,0.7);
+                hover       = Lcha(0.5,1.0,0.2,0.7) , Lcha(0.5,1.0,0.2,0.7);
+                deselected  {
+                    left  = Lcha(0.5,1.0,0.2,0.5) , Lcha(1.0,1.0,0.2,0.5);
+                    right = Lcha(0.5,1.0,0.2,0.2) , Lcha(1.0,1.0,0.2,0.2);
+                }
+            }
             background = application::background , application::background;
             background {
                 corner_radius = 8.0 , 8.0;
