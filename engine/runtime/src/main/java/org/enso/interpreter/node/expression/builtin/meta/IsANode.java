@@ -6,8 +6,11 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.Number;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
     type = "Meta",
@@ -20,6 +23,42 @@ public abstract class IsANode extends Node {
 
   public static IsANode build() {
     return IsANodeGen.create();
+  }
+
+  @Specialization
+  boolean doLongCheck(long value, Type type) {
+    return isNumberType(type);
+  }
+
+  @Specialization
+  boolean doDoubleCheck(double value, Type type) {
+    return isNumberType(type);
+  }
+
+  @Specialization
+  boolean doBigIntegerCheck(EnsoBigInteger value, Type type) {
+    return isNumberType(type);
+  }
+
+
+  private boolean isNumberType(Type type) {
+    var numbers = EnsoContext.get(this).getBuiltins().number();
+    if (type == numbers.getSmallInteger()) {
+      return true;
+    }
+    if (type == numbers.getInteger()) {
+      return true;
+    }
+    if (type == numbers.getBigInteger()) {
+      return true;
+    }
+    if (type == numbers.getDecimal()) {
+      return true;
+    }
+    if (type == numbers.getNumber()) {
+      return true;
+    }
+    return false;
   }
 
   @Specialization
