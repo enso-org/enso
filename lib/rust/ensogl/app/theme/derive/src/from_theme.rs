@@ -20,6 +20,7 @@ use syn::Type;
 const BASE_PATH_ATTRIBUTE_NAME: &str = "base_path";
 // Sadly we can't use `path` here, because it conflicts with Rust's builtin attribute.
 const PATH_ATTRIBUTE_NAME: &str = "theme_path";
+const ACCESSOR_ATTRIBUTE_NAME: &str = "accessor";
 
 
 // ==================
@@ -31,11 +32,13 @@ enum ThemeTypes {
     Color,
     String,
     Number,
+    /// The type is not directly supported by the macro, but can be accessed using a custom
+    /// accessor.
+    Unknown,
 }
 
 impl ThemeTypes {
-    /// Return the corresponging [`ThemeType`] for the given [`Type`]. Panics with an error message
-    ///  indicating the wrong type if this is not a valid theme type.
+    /// Return the corresponging [`ThemeType`] for the given [`Type`].
     fn from_ty(ty: &Type) -> Self {
         match ty {
             Type::Path(type_path)
@@ -46,11 +49,7 @@ impl ThemeTypes {
             Type::Path(type_path)
                 if type_path.clone().into_token_stream().to_string().contains("Rgba") =>
                 Self::Color,
-            _ => panic!(
-                "The type `{:?}` cannot be derived from a theme. Only `ImString`,\
-             `color::Rgba` and `f32` are supported.",
-                ty
-            ),
+            _ => Self::Unknown,
         }
     }
 }
@@ -108,8 +107,7 @@ fn build_frp(
     }
 }
 
-/// Create the field initializers for the struct holding the theme values. They differ between
-/// types that implement copy or clone.
+/// Create the field initializers for the struct holding the theme values.
 fn make_struct_inits(
     fields: &syn::punctuated::Punctuated<syn::Field, syn::token::Comma>,
 ) -> TokenStream {
@@ -120,13 +118,9 @@ fn make_struct_inits(
             .ident
             .as_ref()
             .expect("Encountered unnamed struct field. This cannot not happen.");
-        let init = match ThemeTypes::from_ty(&field.ty) {
-            ThemeTypes::Color | ThemeTypes::Number => quote! {
-                #field_name:*#field_name,
-            },
-            ThemeTypes::String => quote! {
-                #field_name:#field_name.clone(),
-            },
+        // Keep in mind that all [`Copy`] types also implement [`Clone`].
+        let init = quote! {
+            #field_name : #field_name.clone(),
         };
         combined.extend(init);
     }
@@ -202,19 +196,28 @@ fn make_theme_getters(
                 (None, None) => panic!("Neither `base_path` nor `path` attributes were set."),
             };
 
-            let accessor = match ThemeTypes::from_ty(&f.ty) {
-                ThemeTypes::Color => quote! {
-                  get_color
-                },
-                ThemeTypes::String => quote! {
-                  get_text
-                },
-                ThemeTypes::Number => quote! {
-                  get_number
-                },
-            };
+            let accessor = get_path_from_metadata(&f.attrs, ACCESSOR_ATTRIBUTE_NAME)
+                .map(|accessor| {
+                    quote! { #accessor(&network, style, #field_path) }
+                })
+                .unwrap_or_else(|| match ThemeTypes::from_ty(&f.ty) {
+                    ThemeTypes::Color => quote! {
+                      StyleWatchFrp::get_color(style, #field_path)
+                    },
+                    ThemeTypes::String => quote! {
+                      StyleWatchFrp::get_text(style, #field_path)
+                    },
+                    ThemeTypes::Number => quote! {
+                      StyleWatchFrp::get_number(style, #field_path)
+                    },
+                    ThemeTypes::Unknown => panic!(
+                        "Unknown type for theme value, but no accessor was provided. \
+                        Use the `#[accessor]` attribute to provide a custom accessor function"
+                    ),
+                });
+
             quote! {
-                let #field_name = style.#accessor(#field_path);
+                let #field_name = #accessor;
             }
         })
         .collect()
