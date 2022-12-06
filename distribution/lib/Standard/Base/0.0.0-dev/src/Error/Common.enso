@@ -59,9 +59,9 @@ type Arity_Error
        does not match the expected number of arguments.
 
        Arguments:
-         - expected_min: the minimum expected number of arguments.
-         - expected_max: the maximum expected number of arguments.
-         - actual: the actual number of arguments passed.
+       - expected_min: the minimum expected number of arguments.
+       - expected_max: the maximum expected number of arguments.
+       - actual: the actual number of arguments passed.
     Error expected_min expected_max actual
 
 @Builtin_Type
@@ -137,7 +137,7 @@ type Not_Invokable
        call, but it cannot be called.
 
        Arguments:
-         - target: The called object.
+       - target: The called object.
     Error target
 
 @Builtin_Type
@@ -146,8 +146,8 @@ type Unsupported_Argument_Types
        types for the function.
 
        Arguments:
-         - arguments: The passed arguments.
-         - message: A detailed message.
+       - arguments: The passed arguments.
+       - message: A detailed message.
     Error arguments message
 
 @Builtin_Type
@@ -155,7 +155,7 @@ type Module_Does_Not_Exist
     ## An error that occurs when the specified module cannot be found.
 
        Arguments:
-         - name: The module searched for.
+       - name: The module searched for.
     Error name
 
 @Builtin_Type
@@ -163,7 +163,7 @@ type Invalid_Conversion_Target
     ## An error that occurs when the specified value cannot be converted to a given type
 
        Arguments:
-         - target: the type trying to be converted to.
+       - target: the type trying to be converted to.
     Error target
 
 @Builtin_Type
@@ -171,7 +171,7 @@ type No_Such_Conversion
     ## An error that occurs when the conversion from one type to another does not exist
 
        Arguments:
-         - target: the type trying to be converted to.
-         - that: the value to be converted.
-         - conversion: the conversion that was attempted.
+       - target: the type trying to be converted to.
+       - that: the value to be converted.
+       - conversion: the conversion that was attempted.
     Error target that conversion

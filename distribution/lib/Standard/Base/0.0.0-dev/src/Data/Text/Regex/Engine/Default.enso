@@ -132,9 +132,9 @@ type Default_Engine
             Java_Pattern.compile (unicode_regex.transform expression) options_bitmask
 
         internal_pattern = maybe_java_pattern.map_error case _ of
-            Polyglot_Error.Error (err : PatternSyntaxException) ->
-                Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
-            Polyglot_Error.Error err -> err
+            Polyglot_Error.Error err -> case err of
+                _ : PatternSyntaxException -> Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
+                _ -> err
             other -> other
 
         Pattern.Value internal_pattern all_options self
