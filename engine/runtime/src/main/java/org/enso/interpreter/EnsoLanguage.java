@@ -264,21 +264,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
       if (exprNode.isDefined()) {
         var language = EnsoLanguage.get(exprNode.get());
-        boolean isChromeInspectorAttached = context.hasChromeInspectorInstrument();
         return new ExecutableNode(language) {
           @Override
           public Object execute(VirtualFrame frame) {
-            Object retValue = exprNode.get().executeGeneric(frame);
-            // This is a workaround for https://github.com/oracle/graal/issues/5513
-            // chromeinspector interprets all the values returned from this node in
-            // original language, which throws NullPointerException for host object.
-            // Therefore, we have to wrap all the host objects in a simple wrapper
-            // that behaves just like a string.
-            if (isChromeInspectorAttached) {
-              return DebugLocalScope.wrapHostValues(retValue, InteropLibrary.getUncached());
-            } else {
-              return retValue;
-            }
+            return exprNode.get().executeGeneric(frame);
           }
         };
       }

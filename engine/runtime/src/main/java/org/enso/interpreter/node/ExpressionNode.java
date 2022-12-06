@@ -5,10 +5,12 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.GenerateWrapper;
+import com.oracle.truffle.api.instrumentation.GenerateWrapper.OutgoingConverter;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.NodeLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -207,6 +209,20 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   @Override
   public WrapperNode createWrapper(ProbeNode probe) {
     return new ExpressionNodeWrapper(this, probe);
+  }
+
+  /**
+   * Transitively converts the given value to a wrapper that treats the host objects
+   * as simple strings. This is a workaround for https://github.com/oracle/graal/issues/5513
+   * - there is a bug in chromeinspector which reinterprets host objects in host original
+   * language, which causes NullPointerException. Therefore, we have to wrap all the
+   * host objects.
+   * @param retValue Value returned from this expression node
+   * @return Value with all the host objects wrapped.
+   */
+  @OutgoingConverter
+  public Object convertHostObjects(Object retValue) {
+    return DebugLocalScope.wrapHostValues(retValue, InteropLibrary.getUncached());
   }
 
   @ExportMessage
