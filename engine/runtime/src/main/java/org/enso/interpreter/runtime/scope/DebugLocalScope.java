@@ -93,6 +93,29 @@ public class DebugLocalScope implements TruffleObject {
         childScope.bindingsByLevelsIdx + 1);
   }
 
+  /**
+   * Wraps given object in {@link HostWrapper} if necessary. The returned
+   * wrapper is a string from the Truffle perspective.
+   * <p>
+   * Serves as a workaround for https://github.com/oracle/graal/issues/5513.
+   * @param object Object to potentialy wrap in {@link HostWrapper}.
+   */
+  public static Object wrapHostValues(Object object, InteropLibrary interop) {
+    if (object instanceof Atom atom) {
+      Object[] wrappedFields = Arrays.stream(atom.getFields())
+          .map(field -> wrapHostValues(field, interop))
+          .toArray();
+      return new Atom(
+          atom.getConstructor(),
+          wrappedFields
+      );
+    } else if (isHostValue(object, interop)) {
+      return new HostWrapper(object);
+    } else {
+      return object;
+    }
+  }
+
   private static List<List<String>> gatherBindingsByLevels(Map<String, FramePointer> bindings) {
     if (bindings.isEmpty()) {
       return List.of();
@@ -194,22 +217,6 @@ public class DebugLocalScope implements TruffleObject {
 
   private static boolean isHostValue(Object value, InteropLibrary interop) {
     return EnsoContext.get(interop).getEnvironment().isHostObject(value);
-  }
-
-  private static Object wrapHostValues(Object object, InteropLibrary interop) {
-    if (object instanceof Atom atom) {
-      Object[] wrappedFields = Arrays.stream(atom.getFields())
-          .map(field -> wrapHostValues(field, interop))
-          .toArray();
-      return new Atom(
-          atom.getConstructor(),
-          wrappedFields
-      );
-    } else if (isHostValue(object, interop)) {
-      return new HostWrapper(object);
-    } else {
-      return object;
-    }
   }
 
   @ExportMessage

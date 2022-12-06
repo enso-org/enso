@@ -8,12 +8,16 @@ import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.data.CompilerConfig;
@@ -31,6 +35,7 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.scope.DebugLocalScope;
 import org.enso.interpreter.runtime.state.IOPermissions;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -47,10 +52,6 @@ import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The root of the Enso implementation.
@@ -263,10 +264,21 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
       if (exprNode.isDefined()) {
         var language = EnsoLanguage.get(exprNode.get());
+        boolean isChromeInspectorAttached = context.hasChromeInspectorInstrument();
         return new ExecutableNode(language) {
           @Override
           public Object execute(VirtualFrame frame) {
-            return exprNode.get().executeGeneric(frame);
+            Object retValue = exprNode.get().executeGeneric(frame);
+            // This is a workaround for https://github.com/oracle/graal/issues/5513
+            // chromeinspector interprets all the values returned from this node in
+            // original language, which throws NullPointerException for host object.
+            // Therefore, we have to wrap all the host objects in a simple wrapper
+            // that behaves just like a string.
+            if (isChromeInspectorAttached) {
+              return DebugLocalScope.wrapHostValues(retValue, InteropLibrary.getUncached());
+            } else {
+              return retValue;
+            }
           }
         };
       }

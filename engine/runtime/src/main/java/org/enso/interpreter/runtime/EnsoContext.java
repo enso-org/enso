@@ -254,6 +254,12 @@ public class EnsoContext {
   }
 
   /**
+   * Returns true if Chrome Inspector instrument is attached to this context.
+   */
+  public boolean hasChromeInspectorInstrument() {
+    return environment.getInstruments().containsKey("inspect");
+  }
+  /**
    * Fetches the module name associated with a given file, using the environment packages
    * information.
    *

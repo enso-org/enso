@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
@@ -554,11 +555,9 @@ public class DebuggingEnsoTest {
     List<FrameEntry> frames = new ArrayList<>();
     try (DebuggerSession session = debugger.startSession((SuspendedEvent event) -> {
       DebugScope topScope = event.getTopStackFrame().getScope();
-      var frameEntry = new FrameEntry(topScope.getName());
+      var frameEntry = new FrameEntry(topScope.getName(), event.getReturnValue());
       for (DebugValue declaredValue : topScope.getDeclaredValues()) {
-        LanguageInfo origLang = declaredValue.getOriginalLanguage();
-        String valueAsString = declaredValue.asInLanguage(origLang).toDisplayString();
-        frameEntry.addValue(declaredValue.getName(), valueAsString);
+        frameEntry.addValue(declaredValue);
       }
       frames.add(frameEntry);
       event.prepareStepInto(1);
@@ -584,18 +583,34 @@ public class DebuggingEnsoTest {
   private static final class FrameEntry {
     private final String scopeName;
     private final Map<String, String> values = new HashMap<>();
+    private final String returnValue;
 
-    FrameEntry(String scopeName) {
+    FrameEntry(String scopeName, DebugValue returnValue) {
+      Objects.requireNonNull(scopeName);
       this.scopeName = scopeName;
+      this.returnValue = returnValue != null ? toDisplayString(returnValue) : null;
     }
 
-    void addValue(String name, String value) {
-      values.put(name, value);
+    void addValue(DebugValue value) {
+      LanguageInfo originLang = value.getOriginalLanguage();
+      String valueDisplay = value.asInLanguage(originLang).toDisplayString();
+      String name = value.getName();
+      values.put(name, valueDisplay);
+    }
+
+    /**
+     * Emulates the behavior of the chromeinspector, by getting the origin language of the
+     * value, and interpreting the value in the origin language. This is problematic
+     * for host object.
+     */
+    private static String toDisplayString(DebugValue value) {
+      LanguageInfo originLang = value.getOriginalLanguage();
+      return value.asInLanguage(originLang).toDisplayString();
     }
 
     @Override
     public String toString() {
-      return String.format("%s: %s", scopeName, values);
+      return String.format("%s: Values=%s, RetValue=%s", scopeName, values, returnValue);
     }
   }
 
