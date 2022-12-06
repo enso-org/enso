@@ -269,9 +269,6 @@ impl Project {
         let root_path = Path::new(project_root_id, &path_segments);
         let language_server = self.model.json_rpc();
         async move {
-            // FIXME: Remove this when vcs_status is operational. Always report VCS dirty for testing.
-            return Ok(true);
-
             let status = language_server.vcs_status(&root_path).await;
             if let Err(RpcError::RemoteError(json_rpc::messages::Error {
                 code: error_code, ..
