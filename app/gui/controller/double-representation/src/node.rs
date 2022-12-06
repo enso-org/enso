@@ -8,6 +8,14 @@ use crate::LineKind;
 use ast::crumbs::Crumbable;
 use ast::enumerate_non_empty_lines;
 use ast::known;
+use ast::macros::skip_and_freeze::prefix_macro_body;
+use ast::macros::skip_and_freeze::prepend_with_macro;
+use ast::macros::skip_and_freeze::preserving_skip;
+use ast::macros::skip_and_freeze::preserving_skip_and_freeze;
+use ast::macros::skip_and_freeze::without_macros;
+use ast::macros::skip_and_freeze::MacrosInfo;
+use ast::macros::skip_and_freeze::FREEZE_MACRO_IDENTIFIER;
+use ast::macros::skip_and_freeze::SKIP_MACRO_IDENTIFIER;
 use ast::macros::DocumentationCommentInfo;
 use ast::macros::DocumentationCommentLine;
 use ast::Ast;
@@ -243,9 +251,9 @@ impl NodeInfo {
 #[allow(missing_docs)]
 pub enum MainLine {
     /// Code with assignment, e.g. `foo = 2 + 2`
-    Binding { infix: known::Infix },
+    Binding { macros_info: MacrosInfo, infix: known::Infix },
     /// Code without assignment (no variable binding), e.g. `2 + 2`.
-    Expression { ast: Ast },
+    Expression { macros_info: MacrosInfo, ast: Ast },
 }
 
 impl MainLine {
@@ -253,14 +261,16 @@ impl MainLine {
     /// expression.
     pub fn new_binding(infix: known::Infix) -> Option<MainLine> {
         infix.rarg.id?;
-        Some(MainLine::Binding { infix })
+        let macros_info = MacrosInfo::from_ast(&infix.rarg);
+        Some(MainLine::Binding { macros_info, infix })
     }
 
     /// Tries to interpret AST as node, treating whole AST as an expression.
     pub fn new_expression(ast: Ast) -> Option<MainLine> {
         ast.id?;
         // TODO what if we are given an assignment.
-        Some(MainLine::Expression { ast })
+        let macros_info = MacrosInfo::from_ast(&ast);
+        Some(MainLine::Expression { macros_info, ast })
     }
 
     /// Tries to interpret AST as node, treating whole AST as a node's primary line.
@@ -290,13 +300,13 @@ impl MainLine {
     pub fn id(&self) -> Id {
         // Panic must not happen, as the only available constructors checks that
         // there is an ID present.
-        self.expression().id.expect("Node AST must bear an ID")
+        self.whole_expression().id.expect("Node AST must bear an ID")
     }
 
     /// Updates the node's AST so the node bears the given ID.
     pub fn set_id(&mut self, new_id: Id) {
         match self {
-            MainLine::Binding { ref mut infix } => {
+            MainLine::Binding { ref mut infix, .. } => {
                 let new_rarg = infix.rarg.with_id(new_id);
                 let set = infix.set(&ast::crumbs::InfixCrumb::RightOperand.into(), new_rarg);
                 *infix = set.expect(
@@ -304,45 +314,46 @@ impl MainLine {
                                      succeed.",
                 );
             }
-            MainLine::Expression { ref mut ast } => {
+            MainLine::Expression { ref mut ast, .. } => {
                 *ast = ast.with_id(new_id);
             }
         };
     }
 
-    /// AST of the node's expression.
-    pub fn expression(&self) -> &Ast {
+    /// Visible portion of the node's expression. Does not contain `SKIP` and `FREEZE` macro calls.
+    pub fn expression(&self) -> Ast {
+        without_macros(self.whole_expression())
+    }
+
+    /// AST of the node's expression. Typically no external user wants to access it directly. Use
+    /// [`Self::expression`] instead.
+    fn whole_expression(&self) -> &Ast {
         match self {
-            MainLine::Binding { infix } => &infix.rarg,
-            MainLine::Expression { ast } => ast,
+            MainLine::Binding { infix, .. } => &infix.rarg,
+            MainLine::Expression { ast, .. } => ast,
         }
     }
 
     /// AST of the node's pattern (assignment's left-hand side).
     pub fn pattern(&self) -> Option<&Ast> {
         match self {
-            MainLine::Binding { infix } => Some(&infix.larg),
+            MainLine::Binding { infix, .. } => Some(&infix.larg),
             MainLine::Expression { .. } => None,
         }
     }
 
     /// Mutable AST of the node's expression. Maintains ID.
     pub fn set_expression(&mut self, expression: Ast) {
-        let id = self.id();
-        match self {
-            MainLine::Binding { ref mut infix } =>
-                infix.update_shape(|infix| infix.rarg = expression),
-            MainLine::Expression { ref mut ast } => *ast = expression,
-        };
-        // Id might have been overwritten by the AST we have set. Now we restore it.
-        self.set_id(id);
+        self.modify_expression(move |ast| {
+            *ast = preserving_skip_and_freeze(ast, |ast| *ast = expression.clone());
+        });
     }
 
     /// The whole AST of node.
     pub fn ast(&self) -> &Ast {
         match self {
-            MainLine::Binding { infix } => infix.into(),
-            MainLine::Expression { ast } => ast,
+            MainLine::Binding { infix, .. } => infix.into(),
+            MainLine::Expression { ast, .. } => ast,
         }
     }
 
@@ -350,11 +361,11 @@ impl MainLine {
     /// assignment infix will be introduced.
     pub fn set_pattern(&mut self, pattern: Ast) {
         match self {
-            MainLine::Binding { infix } => {
+            MainLine::Binding { infix, .. } => {
                 // Setting infix operand never fails.
                 infix.update_shape(|infix| infix.larg = pattern)
             }
-            MainLine::Expression { ast } => {
+            MainLine::Expression { ast, .. } => {
                 let infix = ast::Infix {
                     larg: pattern,
                     loff: 1,
@@ -363,9 +374,97 @@ impl MainLine {
                     rarg: ast.clone(),
                 };
                 let infix = known::Infix::new(infix, None);
-                *self = MainLine::Binding { infix };
+                let macros_info = MacrosInfo::from_ast(&infix.rarg);
+                *self = MainLine::Binding { macros_info, infix };
             }
         }
+    }
+
+    /// The info about macro calls in the expression.
+    pub fn macros_info(&self) -> &MacrosInfo {
+        match self {
+            Self::Expression { macros_info, .. } => macros_info,
+            Self::Binding { macros_info, .. } => macros_info,
+        }
+    }
+
+    fn macros_info_mut(&mut self) -> &mut MacrosInfo {
+        match self {
+            Self::Expression { macros_info, .. } => macros_info,
+            Self::Binding { macros_info, .. } => macros_info,
+        }
+    }
+
+    /// Modify AST, adding or removing `SKIP` macro call. Does nothing if [`skip`] argument already
+    /// matches the inner state.
+    pub fn set_skip(&mut self, skip: bool) {
+        if skip != self.macros_info().skip {
+            if skip {
+                self.add_skip_macro();
+            } else {
+                self.remove_skip_macro();
+            }
+        }
+    }
+
+    /// Modify AST, adding or removing `FREEZE` macro call. Does nothing if [`skip`] argument
+    /// already matches the inner state.
+    pub fn set_freeze(&mut self, freeze: bool) {
+        if freeze != self.macros_info().freeze {
+            if freeze {
+                self.add_freeze_macro();
+            } else {
+                self.remove_freeze_macro();
+            }
+        }
+    }
+
+    /// Modify expression, preserving the AST id.
+    fn modify_expression(&mut self, f: impl Fn(&mut Ast)) {
+        let id = self.id();
+        match self {
+            Self::Binding { infix, .. } => {
+                infix.update_shape(|infix| f(&mut infix.rarg));
+            }
+            Self::Expression { ast, .. } => f(ast),
+        }
+        self.set_id(id);
+    }
+
+    /// Add [`SKIP`] macro call to the AST. Preserves the expression id and [`FREEZE`] macro calls.
+    fn add_skip_macro(&mut self) {
+        self.modify_expression(|ast| {
+            prepend_with_macro(ast, SKIP_MACRO_IDENTIFIER);
+        });
+        self.macros_info_mut().skip = true;
+    }
+
+    /// Remove [`SKIP`] macro call from the AST. Preserves the expression id and [`FREEZE`] macro
+    /// calls.
+    fn remove_skip_macro(&mut self) {
+        self.modify_expression(|ast| {
+            *ast = prefix_macro_body(ast);
+        });
+        self.macros_info_mut().skip = false;
+    }
+
+    /// Add [`FREEZE`] macro call to the AST. Preserves the expression id and [`SKIP`] macro calls.
+    fn add_freeze_macro(&mut self) {
+        self.modify_expression(|ast| {
+            *ast = preserving_skip(ast, |ast| prepend_with_macro(ast, FREEZE_MACRO_IDENTIFIER));
+        });
+        self.macros_info_mut().freeze = true;
+    }
+
+    /// Remove [`FREEZE`] macro call from the AST. Preserves the expression id and [`SKIP`] macro
+    /// calls.
+    fn remove_freeze_macro(&mut self) {
+        self.modify_expression(|ast| {
+            *ast = preserving_skip(ast, |ast| {
+                *ast = prefix_macro_body(ast);
+            });
+        });
+        self.macros_info_mut().freeze = false;
     }
 
     /// Clear the pattern (left side of assignment) for node.
@@ -373,8 +472,11 @@ impl MainLine {
     /// If it is already an Expression node, no change is done.
     pub fn clear_pattern(&mut self) {
         match self {
-            MainLine::Binding { infix } =>
-                *self = MainLine::Expression { ast: infix.rarg.clone_ref() },
+            MainLine::Binding { infix, macros_info } =>
+                *self = MainLine::Expression {
+                    macros_info: *macros_info,
+                    ast:         infix.rarg.clone_ref(),
+                },
             MainLine::Expression { .. } => {}
         }
     }
@@ -497,6 +599,76 @@ mod tests {
         node.set_pattern(Ast::var("baz"));
 
         assert_eq!(node.repr(), "baz = bar");
+        assert_eq!(node.id(), id);
+    }
+
+    #[test]
+    fn adding_skip_macro_test() {
+        let id = uuid::Uuid::new_v4();
+        let larg = Ast::var("foo");
+        let rarg = Ast::var("bar").with_id(id);
+        let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
+        let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
+
+        assert_eq!(node.repr(), "foo = bar");
+        assert_eq!(node.id(), id);
+
+        node.set_skip(true);
+
+        assert_eq!(node.repr(), format!("foo = {SKIP_MACRO_IDENTIFIER} bar"));
+        assert_eq!(node.id(), id);
+
+        node.set_skip(false);
+
+        assert_eq!(node.repr(), format!("foo = bar"));
+        assert_eq!(node.id(), id);
+    }
+
+    #[test]
+    fn adding_freeze_macro_test() {
+        let id = uuid::Uuid::new_v4();
+        let larg = Ast::var("foo");
+        let rarg = Ast::var("bar").with_id(id);
+        let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
+        let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
+
+        assert_eq!(node.repr(), "foo = bar");
+        assert_eq!(node.id(), id);
+
+        node.set_freeze(true);
+
+        assert_eq!(node.repr(), format!("foo = {FREEZE_MACRO_IDENTIFIER} bar"));
+        assert_eq!(node.id(), id);
+
+        node.set_freeze(false);
+
+        assert_eq!(node.repr(), format!("foo = bar"));
+        assert_eq!(node.id(), id);
+    }
+
+    #[test]
+    fn mixing_skip_and_freeze_macros_test() {
+        let id = uuid::Uuid::new_v4();
+        let larg = Ast::var("foo");
+        let rarg = Ast::var("bar").with_id(id);
+        let line_ast = Ast::infix(larg, ASSIGNMENT, rarg);
+        let mut node = NodeInfo::from_main_line_ast(&line_ast).unwrap();
+
+        assert_eq!(node.repr(), "foo = bar");
+        node.set_skip(true);
+        assert_eq!(node.repr(), format!("foo = {SKIP_MACRO_IDENTIFIER} bar"));
+
+        node.set_freeze(true);
+        assert_eq!(
+            node.repr(),
+            format!("foo = {SKIP_MACRO_IDENTIFIER} {FREEZE_MACRO_IDENTIFIER} bar")
+        );
+
+        node.set_freeze(false);
+        assert_eq!(node.repr(), format!("foo = {SKIP_MACRO_IDENTIFIER} bar"));
+
+        node.set_skip(false);
+        assert_eq!(node.repr(), format!("foo = bar"));
         assert_eq!(node.id(), id);
     }
 }

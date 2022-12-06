@@ -298,6 +298,8 @@ ensogl::define_endpoints_2! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
+        set_skip_macro        (bool),
+        set_freeze_macro      (bool),
         set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
@@ -781,6 +783,8 @@ impl Node {
             show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
+            action_bar.set_action_freeze_state <+ input.set_freeze_macro;
+            action_bar.set_action_skip_state <+ input.set_skip_macro;
 
 
             // === View Mode ===
