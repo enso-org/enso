@@ -31,7 +31,6 @@ object Main {
 
   private val RUN_OPTION                     = "run"
   private val INSPECT_OPTION                 = "inspect"
-  private val INSPECT_PATH_OPTION            = "inspect-path"
   private val DUMP_GRAPHS_OPTION             = "dump-graphs"
   private val HELP_OPTION                    = "help"
   private val NEW_OPTION                     = "new"
@@ -101,12 +100,6 @@ object Main {
     val inspect = CliOption.builder
       .longOpt(INSPECT_OPTION)
       .desc("Start the Chrome inspector when --run is used.")
-      .build
-    val inspectPath = CliOption.builder
-      .longOpt(INSPECT_PATH_OPTION)
-      .hasArg(true)
-      .numberOfArgs(1)
-      .desc("Path to the Chrome inspector when --inspect is used.")
       .build
     val dumpGraphs = CliOption.builder
       .longOpt(DUMP_GRAPHS_OPTION)
@@ -358,7 +351,6 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(inspect)
-      .addOption(inspectPath)
       .addOption(dumpGraphs)
       .addOption(docs)
       .addOption(preinstall)
@@ -520,7 +512,6 @@ object Main {
     * @param logMasking     is the log masking enabled
     * @param enableIrCaches are IR caches enabled
     * @param inspect        shall inspect option be enabled
-    * @param inspectPath    path to the chrome inspect. Makes sense only if `inspect` is true
     * @param dump           shall graphs be sent to the IGV
     */
   private def run(
@@ -532,7 +523,6 @@ object Main {
     enableIrCaches: Boolean,
     enableAutoParallelism: Boolean,
     inspect: Boolean,
-    inspectPath: Option[String],
     dump: Boolean
   ): Unit = {
     val file = new File(path)
@@ -562,9 +552,6 @@ object Main {
     }
     if (inspect) {
       options.put("inspect", "")
-      if (inspectPath.isDefined) {
-        options.put("inspect.Path", inspectPath.get)
-      }
     }
     val context = new ContextFactory().create(
       projectRoot,
@@ -1073,7 +1060,6 @@ object Main {
         shouldEnableIrCaches(line),
         line.hasOption(AUTO_PARALLELISM_OPTION),
         line.hasOption(INSPECT_OPTION),
-        Option(line.getOptionValue(INSPECT_PATH_OPTION)),
         line.hasOption(DUMP_GRAPHS_OPTION)
       )
     }
