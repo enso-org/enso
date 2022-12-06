@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Network.Http
-import Standard.Base.Network.Http.Response.Response as Http_Response
-import Standard.Base.Network.URI
+import Standard.Base.Network.HTTP.Response.Response
+import Standard.Base.Network.HTTP.Response_Body.Response_Body
+
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Engine.Default.Match as Default_Engine_Match
 
@@ -41,7 +41,7 @@ xls =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
     file = enso_project.data / 'spreadsheet.xls'
     if file.exists.not then
-        Http.fetch url . to_file file
+        HTTP.fetch url . to_file file
     file
 
 ## An example XLSX file for experimenting with Table and its APIs.
@@ -56,7 +56,7 @@ xlsx =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsx"
     file = enso_project.data / 'spreadsheet.xlsx'
     if file.exists.not then
-        Http.fetch url . to_file file
+        HTTP.fetch url . to_file file
     file
 
 ## A file that is used for writing temporary data as part of tests.
@@ -142,20 +142,20 @@ geo_data_url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/Bus_Stop_Be
    ! Makes a Network Request
      Calling this method will cause Enso to make a network request to a data
      endpoint.
-get_response : Http_Response
-get_response = Http.get geo_data_url
+get_response : Response
+get_response = HTTP.fetch geo_data_url
 
 ## Gets HTTP data from a network endpoint.
 
    ! Makes a Network Request
      Calling this method will cause Enso to make a network request to a data
      endpoint.
-get_geo_data : Http.Response.Body
-get_geo_data = Http.fetch geo_data_url
+get_geo_data : Response_Body
+get_geo_data = HTTP.fetch geo_data_url
 
 ## A simple HTTP client for examples.
-http_client : Http
-http_client = Http.new (timeout = Duration.new seconds=30)
+http_client : HTTP
+http_client = HTTP.new (timeout = Duration.new seconds=30)
 
 ## A basic URI for examples.
 uri : URI
@@ -173,7 +173,7 @@ image_file =
     url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     file = enso_project.data / "image.png"
     if file.exists.not then
-        Http.fetch url . to_file file
+        HTTP.fetch url . to_file file
     file
 
 ## A PNG image.
@@ -273,4 +273,4 @@ match : Default_Engine_Match
 match =
     engine = Default_Engine.new
     pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
-    pattern.match "aa ab abc a bc bcd" mode=Regex_Mode.First
+    pattern.match "aa ab abc a bc bcd" mode=Matching_Mode.First

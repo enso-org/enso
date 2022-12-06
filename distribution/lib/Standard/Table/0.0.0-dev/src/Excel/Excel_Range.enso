@@ -6,7 +6,7 @@ polyglot java import org.enso.table.excel.ExcelRange as Java_Range
    Wrapper for validation of a value prior to execution.
 validate : Boolean -> Text -> Any
 validate validation ~error_message ~wrapped =
-    if validation then wrapped else Error.throw (Illegal_Argument_Error_Data error_message)
+    if validation then wrapped else Error.throw (Illegal_Argument.Error error_message)
 
 ## PRIVATE
 excel_2007_column_limit = 16384
@@ -84,7 +84,7 @@ type Excel_Range
     ## Creates a Range from an address.
     from_address : Text -> Excel_Range
     from_address address =
-        Illegal_Argument_Error.handle_java_exception <|
+        Illegal_Argument.handle_java_exception <|
             Excel_Range.Value (Java_Range.new address)
 
     ## Create a Range for a single cell.

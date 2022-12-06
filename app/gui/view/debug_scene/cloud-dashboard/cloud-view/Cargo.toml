@@ -1,0 +1,12 @@
+[package]
+name = "enso_cloud_view"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+enso-prelude = { path = "../../../../../../lib/rust/prelude" }
+serde = { version = "1.0.144", features = ["derive"] }
+svix-ksuid = { git = "https://github.com/svix/rust-ksuid" }
+
+[dev-dependencies]
+serde_json = "1.0.85"

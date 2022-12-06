@@ -310,7 +310,7 @@ spec = Test.group "Vectors" <|
         [1, 2, 3, 4, 5, 6].short_display_text max_entries=3 . should_equal "[1, 2, 3 and 3 more elements]"
         (0.up_to 100).to_vector.short_display_text max_entries=2 . should_equal "[0, 1 and 98 more elements]"
 
-        [].short_display_text max_entries=0 . should_fail_with Illegal_Argument_Error_Data
+        [].short_display_text max_entries=0 . should_fail_with Illegal_Argument.Error
 
     Test.specify "should define equality" <|
         [1,2,3]==[1,2] . should_be_false
@@ -398,8 +398,8 @@ spec = Test.group "Vectors" <|
         vec.take (Every 2 first=100) . should_equal []
         vec.take (Every 200) . should_equal [1]
         [].take (Every 2) . should_equal []
-        vec.take (Every 0) . should_fail_with Illegal_Argument_Error_Data
-        [].take (Every 0) . should_fail_with Illegal_Argument_Error_Data
+        vec.take (Every 0) . should_fail_with Illegal_Argument.Error
+        [].take (Every 0) . should_fail_with Illegal_Argument.Error
 
         vec.drop (Every 1) . should_equal []
         vec.drop (Every 3) . should_equal [2, 3, 5, 6]
@@ -408,8 +408,8 @@ spec = Test.group "Vectors" <|
         vec.drop (Every 2 first=100) . should_equal vec
         vec.drop (Every 200) . should_equal [2, 3, 4, 5, 6]
         [].drop (Every 2) . should_equal []
-        vec.drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
-        [].drop (Every 0) . should_fail_with Illegal_Argument_Error_Data
+        vec.drop (Every 0) . should_fail_with Illegal_Argument.Error
+        [].drop (Every 0) . should_fail_with Illegal_Argument.Error
 
         vec.take (By_Index 0) . should_equal [1]
         [].take (By_Index 0) . should_fail_with Index_Out_Of_Bounds_Error_Data

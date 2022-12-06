@@ -46,7 +46,6 @@
 use crate::prelude::*;
 use ensogl_core::display::shape::*;
 
-use crate::navigator::navigator_shadow;
 use crate::navigator::Navigator as SectionNavigator;
 
 use enso_frp as frp;
@@ -60,9 +59,9 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
+use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 use ensogl_hardcoded_theme::application::component_browser::component_list_panel as theme;
-use ensogl_list_view as list_view;
 use ensogl_shadow as shadow;
 
 
@@ -148,7 +147,7 @@ impl AllStyles {
     fn breadcrumbs_pos(&self) -> Vector2 {
         let crop_left = self.panel.breadcrumbs_crop_left;
         let x = -self.grid.width / 2.0 + self.navigator.width / 2.0 + crop_left;
-        let y = self.grid.height / 2.0 + self.panel.menu_height / 2.0 - self.grid.padding;
+        let y = self.size().y / 2.0;
         Vector2(x, y)
     }
 
@@ -179,36 +178,47 @@ mod background {
     use super::*;
 
     ensogl_core::shape! {
-        below = [grid::entry::background, list_view::overlay];
+        below = [grid::entry::background, grid_view::entry::overlay, grid_view::selectable::highlight::shape];
         (style:Style,bg_color:Vector4) {
             let alpha = Var::<f32>::from(format!("({0}.w)",bg_color));
             let bg_color = &Var::<color::Rgba>::from(bg_color.clone());
 
+            let grid_padding = style.get_number(theme::grid::padding);
             let grid_width = style.get_number(theme::grid::width);
             let grid_height = style.get_number(theme::grid::height);
             let corners_radius = style.get_number(theme::corners_radius);
             let menu_divider_color = style.get_color(theme::menu_divider_color);
+            let navigator_divider_color = style.get_color(theme::navigator_divider_color);
+            let menu_divider_width = grid_width - grid_padding * 2.0;
             let menu_divider_height = style.get_number(theme::menu_divider_height);
+            let navigator_divider_width = style.get_number(theme::navigator_divider_width);
             let menu_height = style.get_number(theme::menu_height);
             let navigator_width = style.get_number(theme::navigator::width);
 
             let width = grid_width + navigator_width;
             let height = grid_height + menu_height;
 
-            let divider_x_pos = navigator_width / 2.0;
-            let divider_y_pos = height / 2.0 - menu_height + menu_divider_height ;
+            let menu_divider_x_pos = navigator_width / 2.0;
+            let menu_divider_y_pos = height / 2.0 - menu_height + menu_divider_height;
+            let navigator_divider_x = -width / 2.0 + navigator_width - navigator_divider_width / 2.0;
+            let navigator_divider_y = 0.0;
 
-            let divider = Rect((grid_width.px(),menu_divider_height.px()));
-            let divider = divider.fill(menu_divider_color);
-            let divider = divider.translate_x(divider_x_pos.px());
-            let divider = divider.translate_y(divider_y_pos.px());
+            let menu_divider = Rect((menu_divider_width.px(),menu_divider_height.px()));
+            let menu_divider = menu_divider.fill(menu_divider_color);
+            let menu_divider = menu_divider.translate_x(menu_divider_x_pos.px());
+            let menu_divider = menu_divider.translate_y(menu_divider_y_pos.px());
+
+            let navigator_divider = Rect((navigator_divider_width.px(), height.px()));
+            let navigator_divider = navigator_divider.fill(navigator_divider_color);
+            let navigator_divider = navigator_divider.translate_x(navigator_divider_x.px());
+            let navigator_divider = navigator_divider.translate_y(navigator_divider_y.px());
 
             let base_shape = Rect((width.px(), height.px()));
             let base_shape = base_shape.corners_radius(corners_radius.px());
             let background = base_shape.fill(bg_color);
             let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
 
-            (shadow + background + divider).into()
+            (shadow + background + menu_divider + navigator_divider).into()
         }
     }
 }
@@ -225,13 +235,6 @@ mod background {
 pub struct Model {
     display_object:        display::object::Instance,
     background:            background::View,
-    // FIXME[#182593513]: This separate shape for navigator shadow can be removed and replaced
-    //   with a shadow embedded into the [`background`] shape when the
-    //   [issue](https://www.pivotaltracker.com/story/show/182593513) is fixed.
-    //   To display the shadow correctly it needs to be clipped to the [`background`] shape, but
-    //   we can't do that because of a bug in the renderer. So instead we add the shadow as a
-    //   separate shape and clip it using `size.set(...)`.
-    navigator_shadow:      navigator_shadow::View,
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
     pub breadcrumbs:       breadcrumbs::Breadcrumbs,
@@ -246,8 +249,6 @@ impl Model {
 
         let background = background::View::new();
         display_object.add_child(&background);
-        let navigator_shadow = navigator_shadow::View::new();
-        display_object.add_child(&navigator_shadow);
 
         let grid = app.new_view::<grid::View>();
         display_object.add_child(&grid);
@@ -259,15 +260,7 @@ impl Model {
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
 
-        Self {
-            display_object,
-            background,
-            navigator_shadow,
-            grid,
-            section_navigator,
-            scene_navigator,
-            breadcrumbs,
-        }
+        Self { display_object, background, grid, section_navigator, scene_navigator, breadcrumbs }
     }
 
     fn set_initial_breadcrumbs(&self) {
@@ -280,11 +273,6 @@ impl Model {
         self.background.bg_color.set(style.panel.background_color.into());
         self.background.size.set(style.background_sprite_size());
         self.section_navigator.update_layout(style);
-
-        let navigator_shadow_x = -style.grid.width / 2.0;
-        self.navigator_shadow.set_x(navigator_shadow_x);
-        let section_navigator_shadow_size = Vector2(style.navigator.width, style.size().y);
-        self.navigator_shadow.size.set(section_navigator_shadow_size);
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.set_size(style.breadcrumbs_size());
@@ -395,14 +383,6 @@ impl component::Frp<Model> for Frp {
 
             model.grid.switch_section <+ model.section_navigator.chosen_section.filter_map(|s| *s);
             model.section_navigator.select_section <+ model.grid.active_section.on_change();
-
-
-            // === Navigator icons colors ===
-
-            let vivid_color = style.get_color(theme::navigator::icon_strong_color);
-            let dull_color = style.get_color(theme::navigator::icon_weak_color);
-            let params = icon::Params { vivid_color, dull_color };
-            model.section_navigator.set_bottom_buttons_entry_params(params);
 
 
             // === Breadcrumbs ===

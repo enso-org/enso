@@ -1,0 +1,105 @@
+import project.Any.Any
+import project.Data.Map.Map
+import project.Data.Numbers.Integer
+import project.Data.Text.Span.Span
+import project.Data.Text.Text
+import project.Data.Text.Regex.No_Such_Group
+import project.Data.Vector.Vector
+import project.Error.Common.Unimplemented
+import project.Nothing.Nothing
+
+## The `Data.Text.Regex.Engine.Match` interface.
+type Match
+
+    ## PRIVATE
+
+       Gets the text matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match. If no such group
+       exists for the provided identifier, a `No_Such_Group` is returned.
+
+       Arguments:
+       - id: The index or name of that group.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+    group : Integer | Text -> Text | Nothing ! No_Such_Group
+    group self _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Gets a vector containing the results of _all_ of the capturing groups in
+       the pattern, replacing the value of groups that did not participate in
+       the match with `default`.
+
+       Arguments:
+       - default: The value to return for a given index when the group at that
+         index did not participate in the match. The default for this argument
+         should be `Nothing`.
+
+       ? The Full Match
+         The group with index 0 is always the full match of the pattern.
+
+       ? Named Groups by Index
+         If the regex contained named groups, these may also be accessed by
+         index based on their position in the pattern.
+    groups : Any -> Vector (Text | Any)
+    groups self _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Gets a map containing the named capturing groups for the pattern,
+       replacing the value for groups that did not participate in the match with
+       `default`.
+
+       Arguments:
+       - default: The value to return for a given name when the group at that
+         index did not participate in the match. This should default to
+         `Nothing`.
+    named_groups : Any -> Map Text (Text | Any)
+    named_groups self _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Gets the index of the first character captured by the group with the
+       given identifier, or `Nothing` if the group did not participate in the
+       match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the start index for.
+    start : Integer | Text -> Integer | Nothing ! No_Such_Group
+    start self _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Gets the index of the first character after `start` that was not captured
+       by the group with the given identifier, or `Nothing` if the group did not
+       participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+    end : Integer | Text -> Integer | Nothing ! No_Such_Group
+    end self _ = Unimplemented.throw "This is an intercace only."
+
+    ## PRIVATE
+
+       Returns the span matched by the group with the provided identifier, or
+       `Nothing` if the group did not participate in the match.
+
+       Arguments:
+       - id: The identifier for the group to fetch the end index for.
+    span : Integer | Text -> Span | Nothing ! No_Such_Group
+    span self _ = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+
+       Returns the start character index of the match's region.
+    start_position : Integer
+    start_position self = Unimplemented.throw "This is an interface only."
+
+    ## Returns the end character index of the match's region.
+    end_position : Integer
+    end_position self = Unimplemented.throw "This is an interface only."

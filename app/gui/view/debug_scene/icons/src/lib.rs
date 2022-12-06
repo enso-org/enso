@@ -14,7 +14,8 @@ use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
 use ide_view_component_list_panel_grid::entry::icon;
-use ide_view_component_list_panel_grid::entry::icon::SHRINK_AMOUNT;
+use ide_view_component_list_panel_icons::SHRINK_AMOUNT;
+use ide_view_component_list_panel_icons::SIZE;
 
 
 
@@ -29,7 +30,7 @@ mod frame {
 
     ensogl::shape! {
         (style:Style) {
-            let inner = Rect((icon::SIZE.px(), icon::SIZE.px()));
+            let inner = Rect((SIZE.px(), SIZE.px()));
             let outer = inner.grow(0.2.px());
             let shape = (outer - inner).fill(color::Rgba::black());
             shape.shrink(SHRINK_AMOUNT.px()).into()
@@ -72,7 +73,7 @@ pub fn entry_point_searcher_icons() {
     let grid = DomSymbol::new(&grid_div);
     scene.dom.layers.back.manage(&grid);
     world.add_child(&grid);
-    grid.set_size(Vector2(1000.0, icon::SIZE));
+    grid.set_size(Vector2(1000.0, SIZE));
     mem::forget(grid);
 
 
@@ -80,9 +81,8 @@ pub fn entry_point_searcher_icons() {
 
     let mut x = -300.0;
     icon::Id::for_each(|id| {
-        let shape = id.create_shape(Vector2(icon::SIZE, icon::SIZE));
-        shape.set_vivid_color(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
-        shape.set_dull_color(color::Rgba(0.655, 0.788, 0.624, 1.0).into());
+        let shape = id.create_shape(Vector2(SIZE, SIZE));
+        shape.set_color(color::Rgba(0.243, 0.541, 0.160, 1.0).into());
         shape.set_x(x);
         x += 20.0;
         world.add_child(&shape);

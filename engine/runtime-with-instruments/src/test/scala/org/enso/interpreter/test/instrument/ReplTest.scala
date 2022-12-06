@@ -298,7 +298,7 @@ class ReplTest
       val code =
         """
           |import Standard.Base.Runtime.Debug
-          |from Standard.Base.Error.Common import Panic
+          |import Standard.Base.Panic.Panic
           |
           |main =
           |    Debug.breakpoint

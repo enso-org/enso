@@ -221,7 +221,7 @@ spec =
             file_2 = (enso_project.data / "transient" / "non-text_but_no_formatter.csv")
             file_2.delete_if_exists
             result_2 = table_2.write file_2 format
-            result_2 . should_fail_with Illegal_Argument_Error_Data
+            result_2 . should_fail_with Illegal_Argument.Error
             text_2 = Data.read_text_file file_2
             text_2.should_equal ""
 
@@ -290,7 +290,7 @@ spec =
             file.delete_if_exists
             no_header_format = Delimited "," . without_headers
             existing_table.write file no_header_format on_existing_file=Existing_File_Behavior.Overwrite
-            appending_table.write file on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
+            appending_table.write file on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
             file.delete
 
         Test.specify "should fail when appending and matching columns by name but headers are disabled (headers=False)" <|
@@ -300,7 +300,7 @@ spec =
             file.delete_if_exists
             no_header_format = Delimited "," . without_headers
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
-            appending_table.write file no_header_format on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument_Error_Data
+            appending_table.write file no_header_format on_existing_file=Existing_File_Behavior.Append . should_fail_with Illegal_Argument.Error
             file.delete
 
         Test.specify "should fail on column mismatch when appending to a file by name" <|
@@ -533,7 +533,7 @@ spec =
             file.delete_if_exists
             initial_table.write file (Delimited ',' line_endings=Line_Ending_Style.Mac_Legacy)
             result = table_to_append.write file (Delimited ',' line_endings=Line_Ending_Style.Unix) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position
-            result . should_fail_with Illegal_Argument_Error_Data
+            result . should_fail_with Illegal_Argument.Error
             result.catch.message . should_equal "The explicitly provided line endings ('\n') do not match the line endings in the file ('\r')."
             file.delete
 

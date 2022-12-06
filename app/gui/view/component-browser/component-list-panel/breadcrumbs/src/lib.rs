@@ -52,7 +52,6 @@ use ensogl_core::Animation;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Viewport;
 use ensogl_hardcoded_theme::application::component_browser as component_browser_theme;
-use ensogl_text as text;
 use entry::Entry;
 use grid_view::Col;
 
@@ -175,55 +174,15 @@ impl Model {
             );
             grid.model_for_entry <+ requested_entry;
         }
-        let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
-        let params = Self::params_from_style(&style, &network, init.clone_ref());
+        let style_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let style = entry::Style::from_theme(&network, &style_frp);
         frp::extend! { network
+            params <- style.update.map(|s| entry::Params { style: s.clone(), greyed_out_start: None });
             grid.set_entries_params <+ params;
         }
         init.emit(());
+        style.init.emit(());
         Self { display_object, grid, entries, network, mask, show_ellipsis }
-    }
-
-    /// Prepare an [`frp::Sampler`] that emits the parameters for the grid view's entries on
-    /// style sheet changes.
-    fn params_from_style(
-        style: &StyleWatchFrp,
-        network: &frp::Network,
-        init: frp::Source<()>,
-    ) -> frp::Sampler<entry::Params> {
-        frp::extend! { network
-            let margin = style.get_number(theme::entry::margin);
-            let hover_color = style.get_color(theme::entry::hover_color);
-            let font = style.get_text(theme::entry::font);
-            let text_padding = style.get_number(theme::entry::text_padding_left);
-            let text_size = style.get_number(theme::entry::text_size);
-            let selected_color = style.get_color(theme::entry::selected_color);
-            let highlight_corners_radius = style.get_number(theme::entry::highlight_corners_radius);
-            let greyed_out_color = style.get_color(theme::entry::greyed_out_color);
-            greyed_out_start <- init.constant(None);
-            text_params <- all4(&init, &text_padding,&text_size,&font);
-            colors <- all4(&init, &hover_color,&selected_color,&greyed_out_color);
-            params <- all_with6(&init,&margin,&text_params,&colors,&highlight_corners_radius,
-                &greyed_out_start,
-                |_,&margin,text_params,colors,&highlight_corners_radius,&greyed_out_start| {
-                    let (_, text_padding,text_size,font) = text_params;
-                    let (_, hover_color,selected_color,greyed_out_color) = colors;
-                    entry::Params {
-                        margin,
-                        text_padding:      *text_padding,
-                        text_size:         text::Size::from(*text_size),
-                        hover_color:       hover_color.into(),
-                        font_name:         font.clone(),
-                        selected_color:    selected_color.into(),
-                        highlight_corners_radius,
-                        greyed_out_color:  greyed_out_color.into(),
-                        greyed_out_start
-                    }
-                }
-            );
-            params_sampler <- params.sampler();
-        }
-        params_sampler
     }
 
 
@@ -498,8 +457,8 @@ impl Breadcrumbs {
             eval input.set_entry(((index, entry)) model.set_entry(entry, *index));
             out.selected <+ selected;
 
-            scroll_anim.target <+ all_with3(&model.grid.content_size, &input.set_size, &model.grid
-                .entry_selected,
+            scroll_anim.target <+ all_with3(
+                &model.grid.content_size, &input.set_size, &model.grid.entry_selected,
                 f!((content_size, size, _) {
                     model.update_layout(*content_size, *size);
                     model.offset(*content_size, *size)

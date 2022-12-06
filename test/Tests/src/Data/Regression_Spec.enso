@@ -1,4 +1,4 @@
-from Standard.Base import Nothing, Vector, Number, Decimal, True, Illegal_Argument_Error_Data, False, Regression
+from Standard.Base import Nothing, Vector, Number, Decimal, True, Illegal_Argument, False, Regression
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -19,7 +19,7 @@ spec =
         Test.specify "return an error if the vector lengths do not match" <|
             known_xs = [2, 3, 5, 7, 9]
             known_ys = [4, 5, 7, 10]
-            Regression.fit_least_squares known_xs known_ys . should_fail_with Illegal_Argument_Error_Data
+            Regression.fit_least_squares known_xs known_ys . should_fail_with Illegal_Argument.Error
 
         Test.specify "return an error if the X values are all the same" <|
             known_xs = [2, 2, 2, 2]
