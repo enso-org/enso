@@ -114,8 +114,13 @@ public final class WithWarnings implements TruffleObject {
   }
 
   @ExportMessage
-  Object removeWarnings() {
-    return value;
+  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    if (warnings.hasWarnings(value)) {
+      return warnings.removeWarnings(value);
+    } else {
+      return value;
+    }
   }
 
   @ExportMessage

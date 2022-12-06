@@ -96,6 +96,20 @@ spec = Test.group "Dataflow Warnings" <|
         r.should_equal 3
         Warning.get_all r . map .value . should_equal ['warn!', 'warn!!']
 
+    Test.specify "should be passed correctly when combined with warnings added in branches" <|
+        one = Warning.attach "first" "1"
+
+        b = case one of
+            _ : Text -> Warning.attach "a" True
+            _        -> Warning.attach "b" False
+
+        v = case b of
+            True -> 0
+            False -> 1
+
+        v . should_equal 0
+        Warning.get_all v . map .value . should_equal ["a", "first"]
+
     Test.specify "should thread warnings through case expressions" <|
         z = Warning.attach (My_Warning.Value "warn!!!") 3
         y = Warning.attach (My_Warning.Value "warn!!") 2

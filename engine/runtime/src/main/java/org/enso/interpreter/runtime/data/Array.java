@@ -154,30 +154,24 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
     ArrayRope<Warning> ropeOfWarnings = new ArrayRope<>();
     for (int i = 0; i < items.length; i++) {
       if (warnings.hasWarnings(items[i])) {
-        try {
-          ropeOfWarnings = ropeOfWarnings.prepend(warnings.getWarnings(items[i], location));
-        } catch (UnsupportedMessageException e) {
-          throw new IllegalStateException(e);
-        }
+        ropeOfWarnings = ropeOfWarnings.prepend(warnings.getWarnings(items[i], location));
       }
     }
     return ropeOfWarnings.toArray(Warning[]::new);
   }
 
   @ExportMessage
-  Array removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+  Array removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
     Object[] items = new Object[this.items.length];
     for (int i = 0; i < this.items.length; i++) {
       if (warnings.hasWarnings(this.items[i])) {
-        try {
-          items[i] = warnings.removeWarnings(this.items[i]);
-        } catch (UnsupportedMessageException e) {
-          throw new IllegalStateException(e);
-        }
+        items[i] = warnings.removeWarnings(this.items[i]);
       } else {
         items[i] = this.items[i];
       }
