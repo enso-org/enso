@@ -291,8 +291,8 @@ impl View for SliderCollection {
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::Press;
         vec![
-            Self::self_shortcut(Press, "a", "init_sliders"),
-            Self::self_shortcut(Press, "d", "drop_sliders"),
+            Self::self_shortcut(Press, "ctrl a", "init_sliders"),
+            Self::self_shortcut(Press, "ctrl d", "drop_sliders"),
         ]
     }
 }
