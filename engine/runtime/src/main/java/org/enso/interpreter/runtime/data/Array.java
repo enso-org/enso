@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -32,10 +33,12 @@ public final class Array implements TruffleObject {
    *
    * @param items the element values
    */
-  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.", autoRegister = false)
+  @Builtin.Method(
+      expandVarargs = 4,
+      description = "Creates an array with given elements.",
+      autoRegister = false)
   public Array(Object... items) {
     this.items = items;
-    this.withWarnings = hasWarningElements(items);
   }
 
   /**
@@ -43,7 +46,9 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(description = "Creates an uninitialized array of a given size.", autoRegister = false)
+  @Builtin.Method(
+      description = "Creates an uninitialized array of a given size.",
+      autoRegister = false)
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -131,10 +136,9 @@ public final class Array implements TruffleObject {
     return true;
   }
 
-  @ExplodeLoop
-  private boolean hasWarningElements(Object[] items) {
+  private boolean hasWarningElements(Object[] items, WarningsLibrary warnings) {
     for (int i = 0; i < items.length; i++) {
-      if (items[i] instanceof WithWarnings) {
+      if (warnings.hasWarnings(items[i])) {
         return true;
       }
     }
@@ -142,36 +146,38 @@ public final class Array implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasWarnings() {
+  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
     if (withWarnings == null) {
-      withWarnings = hasWarningElements(items);
+      withWarnings = hasWarningElements(items, warnings);
     }
     return withWarnings;
   }
 
   @ExportMessage
-  @ExplodeLoop
-  Warning[] getWarnings(Node location) {
-    ArrayRope<Warning> warnings = new ArrayRope<>();
+  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    ArrayRope<Warning> ropeOfWarnings = new ArrayRope<>();
     for (int i = 0; i < items.length; i++) {
-      if (items[i] instanceof WithWarnings w) {
-        if (location != null) {
-          warnings = warnings.prepend(w.getReassignedWarnings(location));
-        } else {
-          warnings = warnings.prepend(w.collectWarnings());
+      if (warnings.hasWarnings(items[i])) {
+        try {
+          ropeOfWarnings = ropeOfWarnings.prepend(warnings.getWarnings(items[i], location));
+        } catch (UnsupportedMessageException e) {
+          throw new IllegalStateException(e);
         }
       }
     }
-    return warnings.toArray(Warning[]::new);
+    return ropeOfWarnings.toArray(Warning[]::new);
   }
 
   @ExportMessage
-  @ExplodeLoop
-  Array removeWarnings() {
+  Array removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
     Object[] items = new Object[this.items.length];
     for (int i = 0; i < this.items.length; i++) {
-      if (this.items[i] instanceof WithWarnings w) {
-        items[i] = w.getValue();
+      if (warnings.hasWarnings(this.items[i])) {
+        try {
+          items[i] = warnings.removeWarnings(this.items[i]);
+        } catch (UnsupportedMessageException e) {
+          throw new IllegalStateException(e);
+        }
       } else {
         items[i] = this.items[i];
       }

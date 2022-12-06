@@ -5,12 +5,14 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 
 public abstract class ExpectStringNode extends Node {
@@ -32,9 +34,13 @@ public abstract class ExpectStringNode extends Node {
     return str;
   }
 
-  @Specialization
-  String doWarning(WithWarnings value) {
-    return execute(value.getValue());
+  @Specialization(guards = "warnings.hasWarnings(warning)")
+  String doWarning(Object warning, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      return execute(warnings.removeWarnings(warning));
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Fallback
