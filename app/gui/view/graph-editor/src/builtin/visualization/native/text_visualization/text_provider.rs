@@ -69,7 +69,8 @@ impl StringTextProvider {
     pub fn new(text: String, chunk_size: usize) -> Self {
         let frp = Frp::new();
 
-        frp.private().output.line_count.emit(text.lines().count() as u32);
+        let line_count = text.lines().count() as u32;
+        frp.private().output.line_count.emit(line_count);
         let longest_line_frp = &frp.private().output.longest_line;
         let longest_line = text.lines().map(|line| line.chars().count()).max().unwrap_or(0) as u32;
         longest_line_frp.emit(longest_line);

@@ -248,7 +248,10 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
 
-            longest_line <- text_provider.longest_line.map(
+            longest_line_with_init <- all(&init, &text_provider.longest_line)._1();
+            lines_with_init        <- all(&init, &text_provider.line_count)._1();
+
+            longest_line <- longest_line_with_init.map(
                 f!([longest_observed_line](longest_line) {
                     let observed_value = longest_observed_line.get();
                     let longest_line = observed_value.max(*longest_line);
@@ -257,15 +260,15 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                 })
             ).on_change();
 
-            line_count <- text_provider.line_count.map(f!([max_observed_lines](line_count) {
+            line_count <- lines_with_init.map(f!([max_observed_lines](line_count) {
                 let observed_value = max_observed_lines.get();
                 let max_lines = observed_value.max(*line_count);
                 max_observed_lines.set(max_lines);
                 max_lines
             })).on_change();
 
-            content_size <- all(init, on_data_update, longest_line, line_count).map(
-                |(_, _, width,height)| {
+            content_size <- all(on_data_update, longest_line, line_count).map(
+                |(_, width,height)| {
                 let columns = (*width as usize / CHARS_PER_CHUNK) + 1;
                 let rows = *height as usize;
                 ( rows.max(1), columns.max(1) )
