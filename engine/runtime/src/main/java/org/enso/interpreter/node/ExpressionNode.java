@@ -1,7 +1,7 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.NodeField;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.GenerateWrapper;
@@ -41,9 +41,9 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @ExportLibrary(NodeLibrary.class)
 @GenerateWrapper
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
-  private @CompilerDirectives.CompilationFinal int sourceStartIndex;
-  private @CompilerDirectives.CompilationFinal int sourceLength;
-  private @CompilerDirectives.CompilationFinal UUID id = null;
+  private @CompilationFinal int sourceStartIndex;
+  private @CompilationFinal int sourceLength;
+  private @CompilationFinal UUID id = null;
 
   public static boolean isWrapper(ExpressionNode node) {
     return node instanceof ExpressionNodeWrapper;

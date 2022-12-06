@@ -111,8 +111,7 @@ public class EnsoContext {
             isParallelismEnabled,
             true,
             environment.getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY),
-            scala.Option.empty()
-        );
+            scala.Option.empty());
     this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
