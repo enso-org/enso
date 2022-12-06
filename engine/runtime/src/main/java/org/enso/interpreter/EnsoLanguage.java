@@ -13,6 +13,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.Objects;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.data.CompilerConfig;
@@ -290,10 +291,11 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       return true;
     } else if (ast instanceof Tree.BodyBlock block) {
       return block
-              .getStatements()
-              .stream()
-              .map(Line::getExpression)
-              .anyMatch((Tree expr) -> astContainsExprTypes(expr, exprTypes));
+          .getStatements()
+          .stream()
+          .map(Line::getExpression)
+          .filter(Objects::nonNull)
+          .anyMatch((Tree expr) -> astContainsExprTypes(expr, exprTypes));
     } else {
       return false;
     }
