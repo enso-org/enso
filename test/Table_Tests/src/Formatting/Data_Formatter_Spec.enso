@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style
 from Standard.Table.Errors import all
@@ -59,7 +61,7 @@ spec =
 
             r1 = plain_formatter.parse "1E3" Decimal
             r1.should_equal Nothing
-            Warning.get_all r1 . map .value . should_equal [(Invalid_Format_Data Nothing Decimal ["1E3"])]
+            Warning.get_all r1 . map .value . should_equal [(Invalid_Format.Error Nothing Decimal ["1E3"])]
 
             exponential_formatter.parse "1E3" . should_equal 1000.0
             exponential_formatter.parse "1E3" Decimal . should_equal 1000.0

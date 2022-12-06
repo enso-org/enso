@@ -9,25 +9,23 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "No_Such_Conversion_Error", name = "to_display_text")
-public abstract class NoSuchConversionErrorToDisplayTextNode extends Node {
-  static NoSuchConversionErrorToDisplayTextNode build() {
-    return NoSuchConversionErrorToDisplayTextNodeGen.create();
+@BuiltinMethod(type = "Not_Invokable", name = "to_display_text")
+public abstract class NotInvokableToDisplayTextNode extends Node {
+  static NotInvokableToDisplayTextNode build() {
+    return NotInvokableToDisplayTextNodeGen.create();
   }
 
   abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
-    return Text.create("Could not find a conversion from `")
-        .add(displayTypeNode.execute(self.getFields()[1]))
-        .add("` to `")
+    return Text.create("Type error: expected a function, but got ")
         .add(displayTypeNode.execute(self.getFields()[0]))
-        .add("`");
+        .add(".");
   }
 
   @Specialization
   Text doConstructor(AtomConstructor self) {
-    return Text.create("Conversion could not be found.");
+    return Text.create("Type error.");
   }
 }

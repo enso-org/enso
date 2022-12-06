@@ -4,12 +4,14 @@ import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
 import project.Data.Text.Text
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Incomparable_Values.Incomparable_Values
+import project.Error.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Time_Error, Illegal_Argument, Incomparable_Values_Error
 
 polyglot java import java.time.Period as Java_Period
 polyglot java import java.time.DateTimeException
@@ -141,10 +143,10 @@ type Period
         ensure_period that <|
             self.internal_period.equals that.internal_period
 
-    ## Just throws Incomparable_Values_Error, because periods cannot be
+    ## Just throws `Incomparable_Values`, because periods cannot be
        compared without additional context.
 
        To compare two Periods, use something like:
        `(start_date + period1) .compare_to (start_date + period2)`
-    compare_to : Period -> Nothing ! Incomparable_Values_Error
-    compare_to self _ = Error.throw Incomparable_Values_Error
+    compare_to : Period -> Nothing ! Incomparable_Values
+    compare_to self _ = Error.throw Incomparable_Values

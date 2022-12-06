@@ -10,6 +10,9 @@ import project.Data.Text.Text
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Encoding_Error.Encoding_Error
+import project.Error.File_Error.File_Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
@@ -21,7 +24,6 @@ import project.System.File_Format.File_Format
 import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Unsupported_File_Type, Illegal_Argument, File_Error, Encoding_Error
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
@@ -161,7 +163,7 @@ type File
        - format: A `File_Format` object used to read file into memory.
          If `Auto_Detect` is specified; the provided file determines the specific
          type and configures it appropriately. If there is no matching type then
-         a `Unsupported_File_Type` error is returned.
+         a `File_Error.Unsupported_Type` error is returned.
        - on_problems: Specifies the behavior when a problem occurs during the
          function.
          By default, a warning is issued, but the operation proceeds.
@@ -184,7 +186,7 @@ type File
              import Standard.Examples
 
              example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
-    read : File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
+    read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         format.read self on_problems
 

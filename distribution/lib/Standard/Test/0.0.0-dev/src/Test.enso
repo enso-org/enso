@@ -201,6 +201,13 @@ type Spec
 type Behavior
     Value name result time_taken
 
+
+    ## PRIVATE
+
+      Checks if the behavior is pending.
+    is_pending : Boolean
+    is_pending self = self.result.is_pending
+
     ## PRIVATE
 
        Checks if the behavior is a failure.

@@ -1,4 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Polyglot_Error
+import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -115,7 +118,7 @@ specWith name create_new_time parse_time =
             time_1>time_2 . should_be_true
             time_1<time_2 . should_be_false
 
-            time_2.compare_to (Date_Time.new 1999 1 1 4 0 10) . should_fail_with Type_Error_Data
+            time_2.compare_to (Date_Time.new 1999 1 1 4 0 10) . should_fail_with Type_Error.Error
 
         Test.specify "should correctly determine the type of timeofday" <|
             new_timeofday = create_new_time 15 37 58
@@ -164,7 +167,7 @@ java_time hour minute=0 second=0 nanoOfSecond=0 =
     Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
 
 java_parse time_text pattern=Nothing =
-    Panic.catch Polyglot_Error.Polyglot_Error_Data handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error.Error handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalTime.parse time_text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)
