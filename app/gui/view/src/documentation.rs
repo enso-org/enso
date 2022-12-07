@@ -326,8 +326,8 @@ impl View {
 
             // === Mouse Cursor ===
 
-            app.frp.show_default_cursor <+ overlay.events.mouse_over;
-            app.frp.hide_default_cursor <+ overlay.events.mouse_out;
+            app.frp.show_system_cursor <+ overlay.events.mouse_over;
+            app.frp.hide_system_cursor <+ overlay.events.mouse_out;
         }
         visualization.pass_events_to_dom_if_active(scene, network);
         self

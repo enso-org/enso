@@ -41,10 +41,10 @@ pub mod traits {
 crate::define_endpoints_2! {
     Input {
         set_tooltip(tooltip::Style),
-        /// Show the default mouse cursor.
-        show_default_cursor(),
-        /// Hide the default mouse cursor.
-        hide_default_cursor(),
+        /// Show the system mouse cursor.
+        show_system_cursor(),
+        /// Hide the system mouse cursor.
+        hide_system_cursor(),
     }
     Output {
         tooltip(tooltip::Style)
@@ -80,8 +80,9 @@ pub struct ApplicationData {
 }
 
 impl ApplicationData {
-    /// Show or hide the mouse cursor by setting the `cursor` CSS property of the `body` element.
-    fn show_cursor(&self, show: bool) {
+    /// Show or hide the system mouse cursor by setting the `cursor` CSS property of the `body`
+    /// element.
+    fn show_system_cursor(&self, show: bool) {
         let style = if show { "auto" } else { "none" };
         web::document.body_or_panic().set_style_or_warn("cursor", style);
     }
@@ -125,11 +126,11 @@ impl Application {
         let network = self.frp.network();
         enso_frp::extend! { network
             frp.private.output.tooltip <+ frp.private.input.set_tooltip;
-            eval_ frp.private.input.show_default_cursor(data.show_cursor(true));
-            eval_ frp.private.input.hide_default_cursor(data.show_cursor(false));
+            eval_ frp.private.input.show_system_cursor(data.show_system_cursor(true));
+            eval_ frp.private.input.hide_system_cursor(data.show_system_cursor(false));
         }
-        // We hide the default cursor to replace it with the ensogl cursor.
-        self.frp.hide_default_cursor();
+        // We hide the system cursor to replace it with the EnsoGL-provided one.
+        self.frp.hide_system_cursor();
 
         self
     }
