@@ -17,14 +17,14 @@ import project.Polyglot.Polyglot as Base_Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 
-## UNSTABLE
-   ADVANCED
-
-   An Atom meta-representation.
-
-   Arguments:
-   - value: The value of the atom in the meta representation.
 type Atom
+    ## UNSTABLE
+       ADVANCED
+
+       An Atom meta-representation.
+
+       Arguments:
+       - value: The value of the atom in the meta representation.
     Value value
 
     ## UNSTABLE
@@ -39,16 +39,18 @@ type Atom
 
        Returns a constructor value of the given atom.
     constructor : Constructor
-    constructor self = get_atom_constructor self.value ...
+    constructor self =
+        java_constructor = get_atom_constructor self.value ...
+        Meta.Constructor.Value java_constructor
 
-## UNSTABLE
-   ADVANCED
-
-   A constructor meta-representation.
-
-   Arguments:
-   - value: The value of the constructor in the meta representation.
 type Constructor
+    ## UNSTABLE
+       ADVANCED
+
+       A constructor meta-representation.
+
+       Arguments:
+       - value: The value of the constructor in the meta representation.
     Value value
 
     ## UNSTABLE
@@ -56,14 +58,18 @@ type Constructor
 
        Returns a vector of field names defined by a constructor.
     fields : Vector
-    fields self = Vector.from_polyglot_array (get_constructor_fields self.value)
+    fields self =
+        c = self.value ...
+        Vector.from_polyglot_array (get_constructor_fields c)
 
     ## UNSTABLE
        ADVANCED
 
        Returns the name of a constructor.
     name : Text
-    name self = get_constructor_name self.value
+    name self =
+        c = self.value ...
+        get_constructor_name c
 
     ## UNSTABLE
        ADVANCED
@@ -74,26 +80,28 @@ type Constructor
        - fields: A vector of arguments to pass to the constructor when creating the
          new atom.
     new : Vector -> Any
-    new self fields = new_atom self.value fields.to_array
+    new self fields =
+        ctor = self.value ...
+        new_atom ctor fields.to_array
 
-## UNSTABLE
-   ADVANCED
-
-   A primitive value meta-representation.
-
-   Arguments:
-   - value: The value of the primitive object in the meta representation.
 type Primitive
+    ## UNSTABLE
+       ADVANCED
+
+       A primitive value meta-representation.
+
+       Arguments:
+       - value: The value of the primitive object in the meta representation.
     Value value
 
-## UNSTABLE
-   ADVANCED
-
-   An unresolved symbol meta-representation.
-
-   Arguments:
-   - value: The value of the unresolved symbol in the meta representation.
 type Unresolved_Symbol
+    ## UNSTABLE
+       ADVANCED
+
+       An unresolved symbol meta-representation.
+
+       Arguments:
+       - value: The value of the unresolved symbol in the meta representation.
     Value value
 
     ## UNSTABLE
@@ -122,24 +130,24 @@ type Unresolved_Symbol
     scope : Any
     scope self = get_unresolved_symbol_scope self.value
 
-## UNSTABLE
-   ADVANCED
-
-   An error meta-representation, containing the payload of a dataflow error.
-
-   Arguments:
-   - value: The payload of the error.
 type Error
+    ## UNSTABLE
+       ADVANCED
+
+       An error meta-representation, containing the payload of a dataflow error.
+
+       Arguments:
+       - value: The payload of the error.
     Value value
 
-## UNSTABLE
-   ADVANCED
-
-   A polyglot value meta-representation.
-
-   Arguments:
-   - value: The polyglot value contained in the meta representation.
 type Polyglot
+    ## UNSTABLE
+       ADVANCED
+
+       A polyglot value meta-representation.
+
+       Arguments:
+       - value: The polyglot value contained in the meta representation.
     Value value
 
     ## UNSTABLE
@@ -188,7 +196,7 @@ Base_Error.is_a self typ = typ==Any || typ==Base_Error
 
    Arguments:
    - atom: The atom to obtain the constructor for.
-get_atom_constructor : Atom -> Constructor
+get_atom_constructor : Atom -> Any
 get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"
 
 ## PRIVATE
@@ -243,7 +251,7 @@ get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol
 
    Arguments:
    - atom_constructor: The constructor from which to get the fields.
-get_constructor_fields : Constructor -> Array
+get_constructor_fields : Any -> Array
 get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_fields"
 
 ## PRIVATE
@@ -252,7 +260,7 @@ get_constructor_fields atom_constructor = @Builtin_Method "Meta.get_constructor_
 
    Arguments:
    - atom_constructor: The atom constructor from which to obtain the name.
-get_constructor_name : Constructor -> Text
+get_constructor_name : Any -> Text
 get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_name"
 
 ## PRIVATE
@@ -262,7 +270,7 @@ get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_na
    Arguments:
    - constructor: The constructor for the atom to create.
    - fields: The arguments to pass to constructor.
-new_atom : Constructor -> Array -> Atom
+new_atom : Any -> Array -> Atom
 new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
 ## UNSTABLE
@@ -321,7 +329,7 @@ is_a value typ = if is_same_object value typ then True else
                     meta_val = meta value
                     case meta_val of
                         _ : Atom -> if is_atom typ then typ == value else
-                            meta_val.constructor == typ
+                            meta_val.constructor.value == typ
                         _ : Constructor ->
                             meta_typ = meta typ
                             case meta_typ of

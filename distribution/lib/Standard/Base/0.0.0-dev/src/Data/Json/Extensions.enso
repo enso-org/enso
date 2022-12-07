@@ -29,7 +29,7 @@ Any.to_json self =
     m = Meta.meta self
     case m of
         _ : Meta.Atom ->
-            cons = Meta.Constructor.Value m.constructor
+            cons = m.constructor
             fs = m.fields
             fnames = cons.fields
             json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
