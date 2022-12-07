@@ -2,6 +2,12 @@ from Standard.Base import all
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Column.Column
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
@@ -30,7 +36,7 @@ import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Internal.Rows_View import Rows_View
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
+from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
 from project.Data.Column import get_item_string
 from project.Internal.Filter_Condition_Helpers import make_filter_column
@@ -63,8 +69,8 @@ type Table
         cols = columns.map c->
             case c of
                 _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
-                Column.Column_Data java_col -> java_col
-        Table.Table_Data (Java_Table.new cols.to_array)
+                Column.Value java_col -> java_col
+        Table.Value (Java_Table.new cols.to_array)
 
     ## Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
@@ -97,7 +103,7 @@ type Table
 
        Arguments:
        - java_table: The internal java representation of the table.
-    Table_Data java_table
+    Value java_table
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
@@ -198,15 +204,15 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.at -1
-    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
-            Column.Column_Data (java_columns.at selector)
+            Column.Value (java_columns.at selector)
         _ : Text ->
             case self.java_table.getColumnOrIndexByName selector of
-                Nothing -> Error.throw (No_Such_Column_Error_Data selector)
-                c -> Column.Column_Data c
+                Nothing -> Error.throw (No_Such_Column.Error selector)
+                c -> Column.Value c
 
     ## Returns the number of columns in the table.
     column_count : Integer
@@ -248,7 +254,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -300,7 +306,7 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Remove the first two columns and the last column.
@@ -350,7 +356,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.reorder_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Swap the first two columns.
@@ -491,7 +497,7 @@ type Table
          - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
          - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
          - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If an aggregation fails, an `Invalid_Aggregation`.
          - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
          - If there are more than 10 issues with a single column, an `Additional_Warnings`.
 
@@ -510,7 +516,7 @@ type Table
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
             java_table = index.makeTable new_columns.to_array
-            new_table = Table.Table_Data java_table
+            new_table = Table.Value java_table
 
             on_problems.attach_problems_after new_table <|
                 problems = java_table.getProblems
@@ -534,7 +540,7 @@ type Table
            `Column_Matched_By_Multiple_Selectors`.
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If values do not implement an ordering, an
-           `Incomparable_Values_Error`.
+           `Incomparable_Values`.
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
@@ -604,7 +610,7 @@ type Table
                  table = Examples.inventory_table
                  table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
-    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
+    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -612,9 +618,9 @@ type Table
             selected_columns = columns_for_ordering.map c->c.column.java_column
             ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
-            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values_Error.handle_errors <|
+            java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
-            Table.Table_Data java_table
+            Table.Value java_table
 
     ## Returns the distinct set of rows within the specified columns from the
        input table.
@@ -654,7 +660,7 @@ type Table
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|
             self.java_table.distinct java_columns.to_array text_folding_strategy
-        on_problems.attach_problems_after (Table.Table_Data java_table) <|
+        on_problems.attach_problems_after (Table.Value java_table) <|
             problems = java_table.getProblems
             Aggregate_Column_Helper.parse_aggregated_problems problems
 
@@ -685,7 +691,7 @@ type Table
                 if matching_input.length == 1 then matching_input.first.datatype else
                     first_type = matching_input.first.datatype
                     ambiguous = matching_input.exists s-> s.datatype != first_type
-                    problem_builder.append (Duplicate_Type_Selector.Duplicate_Type_Selector_Data column.name ambiguous)
+                    problem_builder.append (Duplicate_Type_Selector.Error column.name ambiguous)
                     if ambiguous then Nothing else first_type
 
         expected_types = case column_types of
@@ -705,9 +711,9 @@ type Table
                             if found.not then
                                 missing_columns.append selector
                 if missing_columns.is_empty.not then
-                    problem_builder.append (Missing_Input_Columns.Missing_Input_Columns_Data missing_columns.to_vector)
+                    problem_builder.append (Missing_Input_Columns.Error missing_columns.to_vector)
                 if invalid_indices.is_empty.not then
-                    problem_builder.append (Column_Indexes_Out_Of_Range.Column_Indexes_Out_Of_Range_Data invalid_indices.to_vector)
+                    problem_builder.append (Column_Indexes_Out_Of_Range.Error invalid_indices.to_vector)
                 columns.map_with_index find_datatype
 
         new_columns = columns.zip expected_types column-> expected_type-> case expected_type of
@@ -720,7 +726,7 @@ type Table
                 new_storage = new_storage_and_problems.value
                 problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
                 problems.each problem_builder.append
-                Column.Column_Data (Java_Column.new column.name column.java_column.getIndex new_storage)
+                Column.Value (Java_Column.new column.name column.java_column.getIndex new_storage)
 
         ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
            https://github.com/enso-org/enso/pull/3400
@@ -770,12 +776,12 @@ type Table
        > Example
          Remove leading and trailing spaces from cells in multiple columns.
 
-             table.replace_text (Column_Selector.By_Name ["foo", "bar"]) "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Regex_Matcher_Data
+             table.replace_text (Column_Selector.By_Name ["foo", "bar"]) "^\s*(.*?)\s*$" "$1" matcher=Regex_Matcher.Value
 
        > Example
          Replace texts in quotes with parentheses in column at index 1.
 
-             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Regex_Matcher_Data
+             table.replace_text 1 '"(.*?)"' '($1)' matcher=Regex_Matcher.Value
     replace_text : (Text | Integer | Column_Selector) -> Text -> Text -> Matching_Mode.First | Matching_Mode.Last | Regex_Mode -> (Text_Matcher | Regex_Matcher) -> Problem_Behavior -> Table
     replace_text self columns=(Column_Selector.By_Index [0]) term="" new_text="" mode=Regex_Mode.All matcher=Text_Matcher.Case_Sensitive on_problems=Problem_Behavior.Report_Warning = if term.is_empty then self else
         problem_builder = Problem_Builder.new
@@ -797,7 +803,7 @@ type Table
             Storage.Text -> map_preserve_name column do_replace
             Storage.Any -> map_preserve_name column do_replace_only_text
             _ ->
-                problem = Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char column.value_type
+                problem = Invalid_Value_Type.Error Value_Type.Char column.value_type
                 problem_builder.report_other_warning problem
                 column
 
@@ -822,9 +828,9 @@ type Table
          or not.
        - on_problems: is the behavior to take when the filter cannot be applied.
          The following happens in warning mode:
-         If a column name cannot be found, a `No_Such_Column_Error` warning is
+         If a column name cannot be found, a `No_Such_Column` warning is
          raised and the original table is returned.
-         If a column index is invalid, an `Index_Out_Of_Bounds_Error` warning is
+         If a column index is invalid, an `Index_Out_Of_Bounds` warning is
          raised and the original table is returned.
          If the column is an invalid type for the filter, an
          `Invalid_Value_Type` warning is raised and an empty table is returned.
@@ -854,7 +860,7 @@ type Table
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
-            mask filter_column = Table.Table_Data (self.java_table.mask filter_column.java_column)
+            mask filter_column = Table.Value (self.java_table.mask filter_column.java_column)
             case filter of
                 _ : Filter_Condition ->
                     on_problems.handle_errors fallback=self.with_no_rows <|
@@ -951,7 +957,7 @@ type Table
                 on_problems.handle_errors expression fallback=self
         _ : Vector -> self.set name (Column.from_vector name column)
         _ : Column ->
-            Table.Table_Data (self.java_table.addOrReplaceColumn (column.rename name . java_column))
+            Table.Value (self.java_table.addOrReplaceColumn (column.rename name . java_column))
 
     ## PRIVATE
     evaluate : Text -> Column
@@ -969,7 +975,7 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Column_Data
+    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Value
 
     ## UNSTABLE
 
@@ -1007,8 +1013,8 @@ type Table
              example_set_index = Examples.inventory_table.set_index "item_name"
     set_index : Text | Column -> Table
     set_index self index = case index of
-        _ : Text -> Table.Table_Data (self.java_table.indexFromColumn index)
-        Column.Column_Data c -> Table.Table_Data (self.java_table.indexFromColumn c)
+        _ : Text -> Table.Value (self.java_table.indexFromColumn index)
+        Column.Value c -> Table.Value (self.java_table.indexFromColumn c)
 
     ## Returns the index of this table, as a column that is indexed by itself.
 
@@ -1024,7 +1030,7 @@ type Table
     index : Column ! No_Index_Set_Error
     index self = case self.java_table.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Column_Data i
+        i -> Column.Value i
 
     ## Joins two tables according to the specified join conditions.
 
@@ -1043,7 +1049,7 @@ type Table
 
          - If a column name cannot be found, a `No_Such_Column` is reported
            and an empty result is reported.
-         - If a column index is invalid, an `Index_Out_Of_Bounds_Error` is
+         - If a column index is invalid, an `Index_Out_Of_Bounds` is
            reported and an empty result is reported.
          - If a join condition correlates columns whose types are not compatible
            (for example comparing numeric types with text), a
@@ -1104,10 +1110,10 @@ type Table
             # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
             Nothing ->
                 new_table = self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-                Table.Table_Data new_table
+                Table.Value new_table
             java_conditions ->
                 new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
-                Table.Table_Data new_table
+                Table.Value new_table
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1175,8 +1181,8 @@ type Table
     concat self other = case other of
         _ : Vector ->
             java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
-            Table.Table_Data (Java_Table.concat java_tables.to_array)
-        Table.Table_Data other_java_table -> Table.Table_Data (Java_Table.concat [self.java_table, other_java_table].to_array)
+            Table.Value (Java_Table.concat java_tables.to_array)
+        Table.Value other_java_table -> Table.Value (Java_Table.concat [self.java_table, other_java_table].to_array)
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -1222,7 +1228,7 @@ type Table
         java_id = id_columns.map .java_column
 
         id_columns.each k-> unique.make_unique k.name
-        result = Table.Table_Data (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
+        result = Table.Value (Java_Table.transpose java_id.to_array java_data.to_array (unique.make_unique name_field) (unique.make_unique value_field))
         problem_builder.attach_problems_after on_problems result
 
     ## Returns a new table using a chosen field as the column header and then
@@ -1251,7 +1257,7 @@ type Table
            time it is matched.
          - If grouping on, using as the column name, or computing the `Mode` on
            a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If an aggregation fails, an `Invalid_Aggregation`.
          - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
          - If there are more than 10 issues with a single column, an `Additional_Warnings`.
     cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
@@ -1294,7 +1300,7 @@ type Table
                 False ->
                     index.makeCrossTabTable java_key_columns.to_array matched_name.first.java_column data_columns.to_array
 
-            on_problems.attach_problems_after (Table.Table_Data result) <|
+            on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
                 Aggregate_Column_Helper.parse_aggregated_problems problems
 
@@ -1305,7 +1311,7 @@ type Table
         length = self.row_count
         offset = Math.max (Math.min start length) 0
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
-        Table.Table_Data (self.java_table.slice offset limit)
+        Table.Value (self.java_table.slice offset limit)
 
     ## UNSTABLE
 
@@ -1321,7 +1327,7 @@ type Table
     reverse : Table
     reverse self =
         mask = OrderBuilder.buildReversedMask self.row_count
-        Table.Table_Data <| self.java_table.applyMask mask
+        Table.Value <| self.java_table.applyMask mask
 
     ## ALIAS Write JSON
        UNSTABLE
@@ -1409,10 +1415,10 @@ type Table
         case format of
             _ : Auto_Detect ->
                 base_format = format.get_format file
-                if base_format == Nothing then Error.throw (Unsupported_File_Type.Error ("No File_Format supports '" + file.extension + "'")) else
+                if base_format == Nothing then Error.throw (File_Error.Unsupported_Type file) else
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
-                Panic.catch No_Such_Method_Error_Data (format.write_table file self on_existing_file match_columns on_problems) _->
+                Panic.catch No_Such_Method.Error (format.write_table file self on_existing_file match_columns on_problems) _->
                     name = Meta.get_constructor_name (Meta.meta format).constructor
                     Error.throw (Illegal_Argument.Error ("Saving a Table as " + name + " is not supported."))
 
@@ -1493,7 +1499,7 @@ print_table header rows indices_count format_term =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
-    Table.Table_Data (table.java_table.slice normalized.to_array)
+    Table.Value (table.java_table.slice normalized.to_array)
 
 ## PRIVATE
 make_join_helpers left_table right_table =

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Syntax_Error
 
 import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Header.Header
@@ -39,7 +40,7 @@ spec =
             http = HTTP.new (version = version_setting)
             http.version.should_equal version_setting
         Test.specify "should throw error when requesting invalid URI" <|
-            HTTP.new.get "not a uri" . should_fail_with Syntax_Error_Data
+            HTTP.new.get "not a uri" . should_fail_with Syntax_Error.Error
 
         Test.specify "should send Get request using fetch" <|
             expected_response = Json.parse <| '''

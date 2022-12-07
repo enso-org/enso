@@ -94,8 +94,7 @@ public abstract class CaseNode extends ExpressionNode {
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          EnsoContext.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(object),
-          this);
+          EnsoContext.get(this).getBuiltins().error().makeInexhaustivePatternMatch(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
       return e.getResult();

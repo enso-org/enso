@@ -1,11 +1,11 @@
 import project.Any.Any
 import project.Data.Locale.Locale
 import project.Data.Ordering.Ordering
+import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Type_Error_Data
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -67,7 +67,7 @@ type Text
              "a".compare_to "b"
     compare_to : Text -> Ordering
     compare_to self that =
-        if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
+        if that.is_nothing then Error.throw (Type_Error.Error Text that "that") else
             comparison_result = Text_Utils.compare_normalized self that
             Ordering.from_sign comparison_result
 
@@ -117,7 +117,7 @@ type Text
              "a".compare_to_ignore_case "b"
     compare_to_ignore_case : Text -> Locale -> Ordering
     compare_to_ignore_case self that locale=Locale.default =
-        if that.is_nothing then Error.throw (Type_Error_Data Text that "that") else
+        if that.is_nothing then Error.throw (Type_Error.Error Text that "that") else
             comparison_result = Text_Utils.compare_normalized_ignoring_case self that locale.java_locale
             Ordering.from_sign comparison_result
 

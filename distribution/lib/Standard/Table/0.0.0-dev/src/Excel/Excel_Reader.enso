@@ -1,10 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 
-from project.Errors import Invalid_Location_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data
+from project.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
@@ -18,11 +19,11 @@ polyglot java import org.enso.table.util.problems.InvalidNames
 prepare_reader_table : Problem_Behavior -> Any -> Table
 prepare_reader_table on_problems result_with_problems =
     map_problem java_problem =
-        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.duplicatedNames) else
-              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names_Data (Vector.from_polyglot_array java_problem.invalidNames) else
+        if Java.is_instance java_problem DuplicateNames then Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array java_problem.duplicatedNames) else
+              if Java.is_instance java_problem InvalidNames then Invalid_Output_Column_Names.Error (Vector.from_polyglot_array java_problem.invalidNames) else
                 java_problem
     parsing_problems = Vector.from_polyglot_array (result_with_problems.problems) . map map_problem
-    on_problems.attach_problems_after (Table.Table_Data result_with_problems.value) parsing_problems
+    on_problems.attach_problems_after (Table.Value result_with_problems.value) parsing_problems
 
 ## PRIVATE
    Convert Boolean|Infer to the correct HeaderBehavior
@@ -40,7 +41,7 @@ handle_reader file reader =
     bad_format caught_panic = Error.throw (File_Error.IO_Error file caught_panic.payload.cause.getMessage)
     handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
 
-    bad_argument caught_panic = Error.throw (Invalid_Location_Data caught_panic.payload.cause.getCause)
+    bad_argument caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.cause.getCause)
     handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
 
     File_Error.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|

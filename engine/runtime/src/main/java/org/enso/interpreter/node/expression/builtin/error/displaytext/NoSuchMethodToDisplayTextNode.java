@@ -11,10 +11,10 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "No_Such_Method_Error", name = "to_display_text")
-public abstract class NoSuchMethodErrorToDisplayTextNode extends Node {
-  static NoSuchMethodErrorToDisplayTextNode build() {
-    return NoSuchMethodErrorToDisplayTextNodeGen.create();
+@BuiltinMethod(type = "No_Such_Method", name = "to_display_text")
+public abstract class NoSuchMethodToDisplayTextNode extends Node {
+  static NoSuchMethodToDisplayTextNode build() {
+    return NoSuchMethodToDisplayTextNodeGen.create();
   }
 
   abstract Text execute(Object self);

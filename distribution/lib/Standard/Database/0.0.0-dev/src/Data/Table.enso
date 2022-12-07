@@ -1,4 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Expression.Expression
@@ -12,7 +17,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column_Error, No_Such_Column_Error_Data
+from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
@@ -86,12 +91,12 @@ type Table
 
        Arguments:
        - selector: The name or index of the column to get.
-    at : Text | Integer -> Column ! No_Such_Column_Error | Index_Out_Of_Bounds_Error
+    at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ : Text ->
             candidates = self.internal_columns + self.context.meta_index
-            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column_Error_Data selector)
+            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column.Error selector)
             self.make_column internal_column
 
     ## Returns the number of columns in the table.
@@ -134,7 +139,7 @@ type Table
        > Example
          Select columns matching a regular expression.
 
-             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.select_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Select the first two columns and the last column, moving the last one to front.
@@ -186,7 +191,7 @@ type Table
        > Example
          Remove columns matching a regular expression.
 
-             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.remove_columns (Column_Selector.By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Remove the first two columns and the last column.
@@ -236,7 +241,7 @@ type Table
        > Example
          Move columns matching a regular expression to front, keeping columns matching "foo.+" before columns matching "b.*".
 
-             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive))
+             table.reorder_columns (By_Name ["foo.+", "b.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive))
 
        > Example
          Swap the first two columns.
@@ -360,7 +365,7 @@ type Table
          The following happens in warning mode:
          If a column name cannot be found, a `No_Such_Column` warning is raised
          and the original table is returned.
-         If a column index is invalid, an `Index_Out_Of_Bounds_Error` warning is
+         If a column index is invalid, an `Index_Out_Of_Bounds` warning is
          raised and the original table is returned.
          If the column is an invalid type for the filter, an
          `Invalid_Value_Type` warning is raised and an empty table is returned.
@@ -597,7 +602,7 @@ type Table
            `Column_Matched_By_Multiple_Selectors`.
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If values do not implement an ordering, an
-           `Incomparable_Values_Error`.
+           `Incomparable_Values`.
 
        Missing (`Nothing`) values are sorted as less than any other object.
 
@@ -629,7 +634,7 @@ type Table
          descending order.
 
              table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
-    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values_Error
+    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -789,7 +794,7 @@ type Table
          - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
          - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
          - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If an aggregation fails, an `Invalid_Aggregation`.
          - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
          - If there are more than 10 issues with a single column, an `Additional_Warnings`.
 
@@ -809,7 +814,9 @@ type Table
                 agg = p.second
                 new_name = p.first
                 Aggregate_Helper.make_aggregate_column self agg new_name . catch
+
             partitioned = results.partition (_.is_a Internal_Column.Value)
+
             ## When working on join we may encounter further issues with having
                aggregate columns exposed directly, it may be useful to re-use
                the `lift_aggregate` method to push the aggregates into a
@@ -879,7 +886,7 @@ type Table
            time it is matched.
          - If grouping on, using as the column name, or computing the `Mode` on
            a floating point number, a `Floating_Point_Grouping`.
-         - If an aggregation fails, an `Invalid_Aggregation_Method`.
+         - If an aggregation fails, an `Invalid_Aggregation`.
          - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
          - If there are more than 10 issues with a single column, an `Additional_Warnings`.
     cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table

@@ -35,7 +35,7 @@ public class AtVectorNode extends Node {
     } catch (InvalidArrayIndexException e) {
       EnsoContext ctx = EnsoContext.get(this);
       return DataflowError.withoutTrace(
-          ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, self.length(interop)), this);
+          ctx.getBuiltins().error().makeIndexOutOfBounds(index, self.length(interop)), this);
     }
   }
 }

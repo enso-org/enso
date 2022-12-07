@@ -1,5 +1,6 @@
 from Standard.Base import all
-from Standard.Base.Data.Numbers import Number_Parse_Error
+import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options

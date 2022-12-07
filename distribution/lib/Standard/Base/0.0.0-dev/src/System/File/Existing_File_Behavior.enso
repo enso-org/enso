@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Error.Error
+import project.Error.File_Error.File_Error
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Panic.Caught_Panic
@@ -8,7 +9,6 @@ import project.System.File.File_Access.File_Access
 import project.System.File.Output_Stream
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import File_Error
 
 ## Specifies the behavior of a write operation when the destination file
    already exists.

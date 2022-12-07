@@ -41,7 +41,7 @@ spec setup =
             t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
 
         Test.specify "should correctly handle regexes matching multiple names" <|
-            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name ".*ta"  Sort_Direction.Descending] (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive))
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name ".*ta"  Sort_Direction.Descending] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive))
             t1.at "beta" . to_vector . should_equal ["b", "b", "a", "a"]
             t1.at "delta" . to_vector . should_equal ["a1", "a03", "a2", "a10"]
             t1.at "gamma" . to_vector . should_equal [2, 4, 3, 1]
@@ -52,7 +52,7 @@ spec setup =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Indexes_Out_Of_Range_Data [100, -200, 300]]
+            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate indices" <|
@@ -61,7 +61,7 @@ spec setup =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Duplicate_Column_Selectors_Data [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]]
+            problems = [Duplicate_Column_Selectors.Error [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
@@ -71,7 +71,7 @@ spec setup =
                 table.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
                 table.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
                 table.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
-            problems = [Input_Indices_Already_Matched_Data [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
+            problems = [Input_Indices_Already_Matched.Error [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -80,7 +80,7 @@ spec setup =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Matched_By_Multiple_Selectors_Data "alpha" [Sort_Column.Name "alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]]
+            problems = [Column_Matched_By_Multiple_Selectors.Error "alpha" [Sort_Column.Name "alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" <|
@@ -89,7 +89,7 @@ spec setup =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Matched_By_Multiple_Selectors_Data "alpha" [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending]]
+            problems = [Column_Matched_By_Multiple_Selectors.Error "alpha" [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
@@ -99,7 +99,7 @@ spec setup =
             tester table =
                 table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
                 table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Missing_Input_Columns_Data [Sort_Column.Name "hmm", Sort_Column.Name weird_name]]
+            problems = [Missing_Input_Columns.Error [Sort_Column.Name "hmm", Sort_Column.Name weird_name]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -110,7 +110,7 @@ spec setup =
 
             selector = Sort_Column_Selector.By_Column [bar, weird_column, Sort_Column.Column foo]
             problem = table.order_by selector on_problems=Problem_Behavior.Report_Error . catch
-            problem.should_be_a Missing_Input_Columns_Data
+            problem.should_be_a Missing_Input_Columns.Error
             problem.criteria.map (selector-> selector.column.name) . should_equal ["weird_column"]
 
             t2 = table.order_by selector on_problems=Problem_Behavior.Ignore

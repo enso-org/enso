@@ -3,7 +3,7 @@ from Standard.Base import all
 ## An ID used by the visualization system to identify different ways of
    displaying data.
 type Id
-    ## A builtin visulization, implemented in the graphical interface and not
+    ## A builtin visualization, implemented in the graphical interface and not
        imported from any library.
     Builtin name
 
@@ -20,84 +20,77 @@ type Id
                 Json.from_pairs [["name", full_name]]
         Json.from_pairs [["library", project], ["name", self.name]]
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin JSON visualization
-json : Id
-json = Id.Builtin "JSON"
+       An identifier for the builtin JSON visualization
+    json : Id
+    json = Id.Builtin "JSON"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin Scatter Plot visualization
-scatter_plot : Id
-scatter_plot = Id.Builtin "Scatter Plot"
+       An identifier for the builtin Scatter Plot visualization
+    scatter_plot : Id
+    scatter_plot = Id.Builtin "Scatter Plot"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin Histogram visualization
-histogram : Id
-histogram = Id.Builtin "Histogram"
+       An identifier for the builtin Histogram visualization
+    histogram : Id
+    histogram = Id.Builtin "Histogram"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin Heatmap visualization
-heatmap : Id
-heatmap = Id.Builtin "Heatmap"
+       An identifier for the builtin Heatmap visualization
+    heatmap : Id
+    heatmap = Id.Builtin "Heatmap"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin Table visualization
-table : Id
-table = Id.Builtin "Table"
+       An identifier for the builtin Table visualization
+    table : Id
+    table = Id.Builtin "Table"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin SQL Query visualization
-sql_query : Id
-sql_query = Id.Builtin "SQL Query"
+       An identifier for the builtin SQL Query visualization
+    sql_query : Id
+    sql_query = Id.Builtin "SQL Query"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin Geo Map visualization
-geo_map : Id
-geo_map = Id.Builtin "Geo Map"
+       An identifier for the builtin Geo Map visualization
+    geo_map : Id
+    geo_map = Id.Builtin "Geo Map"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   An identifier for the builtin Image visualization
-image : Id
-image = Id.Builtin "Image"
+       An identifier for the builtin Image visualization
+    image : Id
+    image = Id.Builtin "Image"
 
-## UNSTABLE
-   ADVANCED
+    ## UNSTABLE
+       ADVANCED
 
-   Creates an ID for a library-defined visualization
+       Creates an ID for a library-defined visualization
 
-   Arguments:
-   - module: the module defining this visualization
-   - visualization_name: the name of the visualization
+       Arguments:
+       - module: the module defining this visualization
+       - visualization_name: the name of the visualization
 
-   > Example
-     Identify the `"My Visualization"` visualization defined in `Standard.Base`.
+       > Example
+         Identify the `"My Visualization"` visualization defined in `Standard.Base`.
 
-            import Standard.Base
-            import Standard.Visualization
+                import Standard.Base
+                import Standard.Visualization
 
-            example_id = Visualization.Id.from_module Base "My Visualization"
-from_module module visualization_name =
-    Id.Library module.enso_project visualization_name
-
-## UNSTABLE
-   ADVANCED
-
-   Specifies that the builtin JSON visualization should be used for any type,
-   unless specified otherwise.
-Any.default_visualization self = json
+                example_id = Visualization.Id.from_module Base "My Visualization"
+    from_module module visualization_name =
+        Id.Library module.enso_project visualization_name

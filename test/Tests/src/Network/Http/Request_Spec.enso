@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Syntax_Error
 
 import Standard.Base.Network.HTTP.Form.Form
 import Standard.Base.Network.HTTP.Header.Header
@@ -13,7 +14,7 @@ spec =
     test_headers = [Header.application_json, Header.new "X-Foo-Id" "0123456789"]
     Test.group "Request" <|
         Test.specify "should return error when creating request from invalid URI" <|
-            Request.new HTTP_Method.Post "invalid uri" . should_fail_with Syntax_Error_Data
+            Request.new HTTP_Method.Post "invalid uri" . should_fail_with Syntax_Error.Error
         Test.specify "should get method" <|
             req = Request.new HTTP_Method.Post test_uri
             req.method.should_equal HTTP_Method.Post
