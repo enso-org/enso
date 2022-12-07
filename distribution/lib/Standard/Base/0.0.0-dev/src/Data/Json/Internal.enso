@@ -314,7 +314,7 @@ into_helper fmt json = case fmt of
         case m of
             _ : Meta.Atom -> case json of
                 Json.Object json_fields ->
-                    cons = Meta.Constructor.Value m.constructor
+                    cons = m.constructor
                     field_names = cons.fields
                     field_formats = m.fields
                     field_values = field_names.zip field_formats n-> inner_format->
