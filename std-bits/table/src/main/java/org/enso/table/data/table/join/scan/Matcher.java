@@ -6,38 +6,31 @@ import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.table.join.Between;
 import org.enso.table.data.table.join.Equals;
 import org.enso.table.data.table.join.EqualsIgnoreCase;
-import org.enso.table.data.table.join.JoinCondition;
 
+import java.util.Comparator;
 import java.util.Locale;
+import java.util.function.BiFunction;
 
 public interface Matcher {
   boolean matches(int left, int right);
 
-  static Matcher create(JoinCondition condition) {
-    return switch (condition) {
-      case Equals eq -> new EqualsMatcher(eq);
-      case EqualsIgnoreCase eq -> new EqualsIgnoreCaseMatcher(eq);
-      case Between between -> new BetweenMatcher(between);
-      default -> throw new UnsupportedOperationException("Unsupported join condition: " + condition);
-    };
-  }
-
-
   class EqualsMatcher implements Matcher {
 
+    private final BiFunction<Object, Object, Boolean> equalityFallback;
     private final Storage<?> leftStorage;
     private final Storage<?> rightStorage;
-    public EqualsMatcher(Equals eq) {
+    public EqualsMatcher(Equals eq, BiFunction<Object, Object, Boolean> equalityFallback) {
       leftStorage = eq.left().getStorage();
       rightStorage = eq.right().getStorage();
+      this.equalityFallback = equalityFallback;
     }
 
     @Override
     public boolean matches(int left, int right) {
       Object leftValue = leftStorage.getItemBoxed(left);
       Object rightValue = rightStorage.getItemBoxed(right);
-      // TODO normalize equality of strings and decimals with ints
-      return leftValue.equals(rightValue);
+      // We could do a fast-path for some known primitive types, but it doesn't matter as it will be replaced with hashing soon anyway.
+      return equalityFallback.apply(leftValue, rightValue);
     }
   }
 
@@ -71,11 +64,16 @@ public interface Matcher {
   }
 
   class BetweenMatcher implements Matcher {
-    public BetweenMatcher(Between between) {
+
+    private final Comparator<Object> objectComparator;
+    public BetweenMatcher(Between between, Comparator<Object> objectComparator) {
+      this.objectComparator = objectComparator;
     }
 
     @Override
     public boolean matches(int left, int right) {
+      // We could do a fast-path for some known primitive types, but it doesn't matter as it should be replaced with sorting optimization soon(ish).
+      // TODO
       throw new IllegalStateException("Not implemented yet.");
     }
   }

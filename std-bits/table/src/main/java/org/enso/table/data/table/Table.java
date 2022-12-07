@@ -21,6 +21,7 @@ import org.enso.table.operations.Distinct;
 import org.enso.table.util.NameDeduplicator;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -285,12 +286,12 @@ public class Table {
    *
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
-  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> comparator) {
+  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
     // TODO adding prefix for right columns
     NameDeduplicator deduplicator = new NameDeduplicator();
 
-    JoinStrategy strategy = new IndexJoin(comparator);
-
+    JoinStrategy strategy = new ScanJoin(objectComparator, equalityFallback);
+    JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
     JoinResult joinResult = (keepLeftUnmatched || keepMatched || keepRightUnmatched) ? strategy.join(this, right, conditions) : null;
 
