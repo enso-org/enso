@@ -1419,7 +1419,7 @@ type Table
                     self.write file format=base_format on_existing_file match_columns on_problems
             _ ->
                 Panic.catch No_Such_Method.Error (format.write_table file self on_existing_file match_columns on_problems) _->
-                    name = Meta.get_constructor_name (Meta.meta format).constructor
+                    name = (Meta.meta format).constructor.name
                     Error.throw (Illegal_Argument.Error ("Saving a Table as " + name + " is not supported."))
 
     ## Creates a text representation of the table using the CSV format.
