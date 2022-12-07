@@ -401,7 +401,6 @@ mod tests {
         // Expect a 2nd call to `write_vcs` if the first failed because the VCS was not initialized.
         let vcs_clone = vcs.clone();
         let root_path_clone = root_path.clone();
-        let vcs_entry_clone = vcs_entry.clone();
         json_client.expect.save_vcs(move |path, name| {
             assert_eq!(path, &root_path_clone);
             assert_eq!(name, &None);
@@ -409,7 +408,7 @@ mod tests {
             let count = vcs_clone.commit_count.get();
             vcs_clone.commit_count.set(count + 1);
             vcs_clone.dirty.set(false);
-            Ok(vcs_entry_clone)
+            Ok(vcs_entry)
         });
 
         let vcs_clone = vcs.clone();
