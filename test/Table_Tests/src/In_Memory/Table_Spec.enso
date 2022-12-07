@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
@@ -1083,7 +1084,7 @@ spec =
     Test.group "[In-Memory] Table.join" <|
         Test.specify "should correctly report unsupported cross-backend joins" <|
             t = Table.new [["X", [1, 2, 3]]]
-            t.join 42 . should_fail_with Type_Error_Data
+            t.join 42 . should_fail_with Type_Error.Error
 
             db = Database.connect (SQLite In_Memory)
             db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])

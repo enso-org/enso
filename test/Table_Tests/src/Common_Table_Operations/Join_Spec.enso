@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
+import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
@@ -176,7 +177,7 @@ spec setup =
             r1 . at "upper" . to_vector . should_equal ["a", "ccc", "ccc"]
             r1 . at "Z" . to_vector . should_equal     [10,   20,    20]
 
-        if setup.supports_unicode_normalization then
+        if setup.test_selection.supports_unicode_normalization then
             Test.specify "should allow range-based joins (using Between) for text with Unicode normalization" <|
                 t1 = table_builder [["X", ['s\u0301', 's']], ["Y", [1, 2]]]
                 t2 = table_builder [["lower", ['s', 'ś']], ["upper", ['sa', 'ś']], ["Z", [10, 20]]]
@@ -206,7 +207,7 @@ spec setup =
             t1 = table_builder [["X", [1, 12, 12, 0]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "A", "a", "ą"]], ["W", [1, 2, 3, 4]]]
             t2 = table_builder [["X", [12, 12, 1]], ["l", [0, 100, 100]], ["u", [10, 100, 100]], ["Z", ["A", "A", "A"]], ["W'", [10, 20, 30]]]
 
-            r1 = t1.join t2 on=[Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", qJoin_Condition.Equals "X" "X"] . order_by ["Y"]
+            r1 = t1.join t2 on=[Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", Join_Condition.Equals "X" "X"] . order_by ["Y"]
             expect_column_names ["X", "Y", "Z", "W", "l", "u", "Z_1", "W'"] r1
             r1.at "X" . to_vector . should_equal [12, 12]
             r1.at "Y" . to_vector . should_equal [2, 3]
@@ -268,11 +269,11 @@ spec setup =
             t1 = table_builder ["X", ["1", "2", "c"]]
             t2 = table_builder ["Y", [1, 2, 3]]
 
-            r1 = t1.join t2 on=conditions on_problems=Problem_Behavior.Ignore
+            r1 = t1.join t2 on_problems=Problem_Behavior.Ignore
             expect_column_names ["X", "Y"] r1
             r1.row_count . should_equal 0
 
-            r2 = t1.join t2 on=conditions on_problems=Problem_Behavior.Report_Error
+            r2 = t1.join t2 on_problems=Problem_Behavior.Report_Error
             r2.should_fail_with Invalid_Value_Type.Error
 
         Test.specify "should report Invalid_Value_Type if incompatible columns types are correlated in Between" pending="We need more advanced value type support to implement this in full-generality." <|
@@ -306,15 +307,15 @@ spec setup =
             Problems.test_problem_handling action1 problems1 tester1
 
             action2 = t1.join t2 on=(Join_Condition.Equals "X" "W") on_problems=_
-            tester1 table =
+            tester2 table =
                 expect_column_names ["X", "Y", "Z", "W"] table
                 t1 = table.order_by ["Y", "W"]
                 t1.at "X" . to_vector . should_equal [2.0]
                 t1.at "Y" . to_vector . should_equal [20]
                 t1.at "Z" . to_vector . should_equal [1.5]
                 t1.at "W" . to_vector . should_equal [2]
-            problems1 = [Floating_Point_Grouping.Error "X" [0, 1, 2]]
-            Problems.test_problem_handling action1 problems1 tester1
+            problems2 = [Floating_Point_Grouping.Error "X" [0, 1, 2]]
+            Problems.test_problem_handling action2 problems2 tester2
 
             # But joining on the Between condition should not give such warnings
             r2 = t1.join t2 on=(Join_Condition.Between "X" "Z" "W")

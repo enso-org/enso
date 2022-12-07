@@ -4,6 +4,7 @@ import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
@@ -1089,7 +1090,7 @@ type Table
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
-        if Table_Helpers.is_table right . not then Error.throw (Type_Error_Data Table right "right") else
+        if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
             same_backend = case right of
                 _ : Table -> True
                 _ -> False
