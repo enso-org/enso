@@ -114,4 +114,13 @@ public final class EnsoDate implements TruffleObject {
   public final Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_LOCAL_DATE.format(date);
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof EnsoDate otherDate) {
+      return this.date.equals(otherDate.date);
+    } else {
+      return false;
+    }
+  }
 }

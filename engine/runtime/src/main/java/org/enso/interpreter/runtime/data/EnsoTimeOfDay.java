@@ -142,7 +142,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
   }
 
   @ExportMessage
-  final boolean isDate() {
+  boolean isDate() {
     return false;
   }
 
@@ -159,5 +159,14 @@ public final class EnsoTimeOfDay implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().timeOfDay();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof EnsoTimeOfDay other) {
+      return localTime.equals(other.localTime);
+    } else {
+      return false;
+    }
   }
 }

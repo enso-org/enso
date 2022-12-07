@@ -251,6 +251,15 @@ public final class EnsoDateTime implements TruffleObject {
     return DateTimeFormatter.ISO_ZONED_DATE_TIME.format(dateTime);
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof EnsoDateTime other) {
+      return dateTime.equals(other.dateTime);
+    } else {
+      return false;
+    }
+  }
+
   // 15. October 1582
   /** 15. October 1582 in UTC timezone. Note that Java considers an epoch start 1.1.1970 UTC. */
   private static final EnsoDateTime epochStart =
