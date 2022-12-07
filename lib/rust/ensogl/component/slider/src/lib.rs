@@ -433,6 +433,17 @@ impl Slider {
                     SliderOrientation::Vertical => *height,
                 }
             );
+            slider_length <- all3(
+                &slider_length,
+                &input.set_value_indicator,
+                &input.set_thumb_size
+            );
+            slider_length <- slider_length.map(|(length, indicator, thumb_size)|
+                match indicator {
+                    ValueIndicator::Thumb => length * (1.0 - thumb_size),
+                    ValueIndicator::Track => *length,
+                }
+            );
             slider_range <- all2(&input.set_min_value, &input.set_max_value);
             slider_range <- slider_range.map(|(min, max)| max - min);
             prec_at_mouse_speed <- all2(&slider_length, &slider_range).map(|(l, r)| r / l);
