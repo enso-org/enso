@@ -34,6 +34,12 @@ spec = Test.group "Meta-Value Manipulation" <|
         meta_atom.constructor.value.should_equal My_Type.Value
         meta_atom.fields.should_equal [1, "foo", Nothing]
         Meta.meta (meta_atom.constructor.value) . new [1, "foo", Nothing] . should_equal atom
+    Test.specify "should allow getting a value's constructor's name" <|
+        Meta.meta List.Nil . constructor . name . should_equal "Nil"
+        Meta.meta (List.Cons 1 List.Nil) . constructor . name . should_equal "Cons"
+    Test.specify "should allow getting a value's constructor's fields" <|
+        Meta.meta List.Nil . constructor . fields . should_equal []
+        Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
     Test.specify "should allow creating atoms from atom constructors" <|
         atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
         (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
