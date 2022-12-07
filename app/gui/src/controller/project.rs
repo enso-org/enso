@@ -363,9 +363,9 @@ mod tests {
             message:   "message".into(),
         };
         let vcs_status = language_server::response::VcsStatus {
-            dirty:  false,
-            changed: Vec::new(),
-            last_save:  vcs_entry.clone(),
+            dirty:     false,
+            changed:   Vec::new(),
+            last_save: vcs_entry.clone(),
         };
 
         let vcs_clone = vcs.clone();
@@ -449,9 +449,9 @@ mod tests {
     fn save_project_snapshot() {
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let vcs = Rc::new(VcsMockState {
-                init: Cell::new(true),
+                init:         Cell::new(true),
                 commit_count: Cell::new(2),
-                dirty: Cell::new(false),
+                dirty:        Cell::new(false),
             });
             let project = setup_mock_project(vcs.clone());
             let project_controller = controller::Project::new(project, default());

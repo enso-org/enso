@@ -18,7 +18,7 @@ use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::formatting::Size as TextSize;
-use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme::graph_editor::breadcrumbs as breadcrumbs_theme;
 
 
 
@@ -138,7 +138,7 @@ impl ProjectNameModel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
-        let base_color = style.get_color(theme::graph_editor::breadcrumbs::transparent);
+        let base_color = style.get_color(breadcrumbs_theme::transparent);
         let text_size: TextSize = TEXT_SIZE.into();
         let text_field = app.new_view::<text::Text>();
         text_field.set_property_default(base_color);
@@ -252,12 +252,12 @@ impl ProjectName {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let saved_hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let saved_deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let saved_selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
-        let unsaved_hover_color = styles.get_color(theme::graph_editor::breadcrumbs::unsaved::hover);
-        let unsaved_deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::unsaved::deselected::left);
-        let unsaved_selected_color = styles.get_color(theme::graph_editor::breadcrumbs::unsaved::selected);
+        let saved_hover_color = styles.get_color(breadcrumbs_theme::hover);
+        let saved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
+        let saved_selected_color = styles.get_color(breadcrumbs_theme::selected);
+        let unsaved_hover_color = styles.get_color(breadcrumbs_theme::unsaved::hover);
+        let unsaved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
+        let unsaved_selected_color = styles.get_color(breadcrumbs_theme::selected);
         let animations = Animations::new(network);
 
         frp::extend! { network
@@ -280,7 +280,10 @@ impl ProjectName {
             mouse_out_if_not_selected <- all2(
                 &frp.input.set_project_changed,
                 &mouse_out_if_not_selected,
-            ).map(move |(changed, _)| if *changed {unsaved_deselected_color} else {saved_deselected_color});
+            );
+            mouse_out_if_not_selected <- mouse_out_if_not_selected.map(move |(changed, _)|
+                if *changed {unsaved_deselected_color} else {saved_deselected_color}
+            );
             eval mouse_out_if_not_selected((&color) animations.color.set_target_value(color));
             on_deselect <- not_selected.gate(&not_selected).constant(());
 
@@ -321,10 +324,10 @@ impl ProjectName {
 
             // === Selection ===
 
-            selected_color <- all2(
-                &frp.input.set_project_changed,
-                &frp.select,
-            ).map(move |(changed, _)| if *changed {unsaved_selected_color} else {saved_selected_color});
+            selected_color <- all2(&frp.input.set_project_changed, &frp.select);
+            selected_color <- selected_color.map(move |(changed, _)|
+                if *changed {unsaved_selected_color} else {saved_selected_color}
+            );
             eval selected_color((&color) animations.color.set_target_value(color) );
             frp.output.source.selected <+ frp.select.to_true();
 
@@ -334,10 +337,10 @@ impl ProjectName {
                 text.remove_all_cursors();
             });
             frp.output.source.selected <+ set_inactive.to_false();
-            inactive_color <- all2(
-                &frp.input.set_project_changed,
-                &set_inactive,
-            ).map(move |(changed, _)| if *changed {unsaved_deselected_color} else {saved_deselected_color});
+            inactive_color <- all2(&frp.input.set_project_changed, &set_inactive);
+            inactive_color <- inactive_color.map(move |(changed, _)|
+                if *changed {unsaved_deselected_color} else {saved_deselected_color}
+            );
             eval inactive_color ( (&color) animations.color.set_target_value(color));
 
 
