@@ -39,6 +39,12 @@ type Test_Setup
          support particular features.
     Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection
 
+    ## Specifies if the given Table backend supports custom Enso types.
+
+       Currently, only the in-memory backend does.
+    supports_custom_objects : Boolean
+    supports_custom_objects self = self.is_database.not
+
 type Test_Selection
     ## The configuration specifying what features are supported by a given
        backend, driving what kind of test suites should be enabled.
