@@ -116,7 +116,6 @@ public record MethodParameter(int index, String name, String tpe, List<String> a
     }
 
     private final static String TruffleDSLPkgAnnotation = "@com.oracle.truffle.api.dsl";
-    private final static String TruffleLibraryPkgAnnotation = "com.oracle.truffle.api.interop.InteropLibrary";
 
     /**
      * Check if the parameter contains a Truffle-DSL annotation.
@@ -129,7 +128,8 @@ public record MethodParameter(int index, String name, String tpe, List<String> a
     }
 
     public boolean isTruffleCachedParam() {
-        return tpe.startsWith(TruffleLibraryPkgAnnotation);
+        return tpe.startsWith(CachedLibraryMethodParameter.INTEROP_LIBRARY) ||
+        tpe.startsWith(CachedLibraryMethodParameter.WARNINGS_LIBRARY);
     }
 
 
