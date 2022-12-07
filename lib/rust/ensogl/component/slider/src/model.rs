@@ -272,12 +272,12 @@ impl Model {
     pub fn set_track_fraction(&self, (fraction, orientation): &(f32, SliderOrientation)) {
         match orientation {
             SliderOrientation::Horizontal => {
-                self.track.slider_fraction_horizontal.set(*fraction);
+                self.track.slider_fraction_horizontal.set(fraction.clamp(0.0, 1.0));
                 self.track.slider_fraction_vertical.set(1.0);
             }
             SliderOrientation::Vertical => {
                 self.track.slider_fraction_horizontal.set(1.0);
-                self.track.slider_fraction_vertical.set(*fraction);
+                self.track.slider_fraction_vertical.set(fraction.clamp(0.0, 1.0));
             }
         }
     }
