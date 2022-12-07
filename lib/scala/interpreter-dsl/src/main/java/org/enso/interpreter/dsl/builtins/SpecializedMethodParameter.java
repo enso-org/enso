@@ -25,6 +25,8 @@ abstract class SpecializedMethodParameter {
         return new InjectedMethodParameter(param);
       } else if (param.tpe().equals(CachedLibraryMethodParameter.INTEROP_LIBRARY)) {
         return new CachedLibraryMethodParameter(param, "limit=\"1\"");
+      } else if (param.tpe().equals(CachedLibraryMethodParameter.WARNINGS_LIBRARY)) {
+        return new CachedLibraryMethodParameter(param, "limit=\"1\"");
       } else {
         return new RegularMethodParameter(param);
       }
@@ -120,6 +122,8 @@ class CachedLibraryMethodParameter extends SpecializedMethodParameter {
   }
 
   public static final String INTEROP_LIBRARY = "com.oracle.truffle.api.interop.InteropLibrary";
+  public static final String WARNINGS_LIBRARY =
+      "org.enso.interpreter.runtime.error.WarningsLibrary";
 }
 
 class InjectedMethodParameter extends SpecializedMethodParameter {
