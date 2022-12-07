@@ -410,7 +410,7 @@ prepare_order_by : Vector -> Text | Vector Text | Sort_Column_Selector -> Proble
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         _ : Text ->
-            unified_name_selectors = [Sort_Column.Name unified_name_selectors]
+            unified_name_selectors = [Sort_Column.Name column_selectors]
             select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         _ : Vector ->
             unified_name_selectors = column_selectors.map (Sort_Column.Name _)
