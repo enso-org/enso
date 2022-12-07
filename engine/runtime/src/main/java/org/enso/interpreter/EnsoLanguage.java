@@ -217,7 +217,11 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       );
       if (astContainsExprTypes(inlineExpr, undesirableExprTypes)) {
         throw new InlineParsingException(
-            "Inline parsing request contains some of undesirable expression types: " + undesirableExprTypes,
+            "Inline parsing request contains some of undesirable expression types: "
+                + undesirableExprTypes
+                + "\n"
+                + "Parsed expression: \n"
+                + inlineExpr.codeRepr(),
             null
         );
       }
