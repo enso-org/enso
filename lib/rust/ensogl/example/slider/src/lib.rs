@@ -131,6 +131,7 @@ impl Model {
         slider5.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
         slider5.frp.set_label("Hard limits");
         slider5.frp.set_orientation(slider::SliderOrientation::Vertical);
+        slider5.frp.set_max_disp_decimal_places(4);
         self.root.add_child(&slider5);
         self.sliders.borrow_mut().push(slider5);
 
@@ -145,6 +146,7 @@ impl Model {
         slider6.frp.set_lower_limit_type(slider::SliderLimit::Soft);
         slider6.frp.set_upper_limit_type(slider::SliderLimit::Soft);
         slider6.frp.set_orientation(slider::SliderOrientation::Vertical);
+        slider6.frp.set_max_disp_decimal_places(4);
         self.root.add_child(&slider6);
         self.sliders.borrow_mut().push(slider6);
 
