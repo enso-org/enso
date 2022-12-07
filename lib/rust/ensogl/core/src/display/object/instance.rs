@@ -165,7 +165,7 @@ pub struct Model {
     #[deref]
     hierarchy: HierarchyModel,
     event:     EventModel,
-    layout:    RefCell<LayoutModel>,
+    layout:    LayoutModel,
 }
 
 
@@ -211,7 +211,7 @@ impl Model {
         let network = frp::Network::new("display_object");
         let hierarchy = HierarchyModel::new(&network);
         let event = EventModel::new(&network);
-        let layout = RefCell::new(LayoutModel::new());
+        let layout = LayoutModel::new();
         Self { network, hierarchy, event, layout, name }
     }
 }
@@ -1258,7 +1258,7 @@ impl Debug for InstanceDef {
             // .field("is_dirty", &self.dirty.check_all())
             // .field("dirty", &self.dirty)
             .field("position", &self.position().xy().as_slice())
-            .field("size", &self.layout.borrow().size.as_slice())
+            .field("size", &self.layout.size.get().as_slice())
             // .field("layout", &self.layout)
             .finish()
     }
@@ -1840,32 +1840,6 @@ macro_rules! gen_layout_object_builder_alignment_matrix {
 // === LayoutModel ===
 // ===================
 
-#[derive(Clone, Copy, Debug)]
-pub struct LayoutObjectConfig {
-    min_size: Vector2<f32>,
-    max_size: Vector2<f32>,
-    resizing: Vector2<Resizing>,
-    grow:     Vector2<f32>,
-    shrink:   Vector2<f32>,
-}
-
-impl LayoutObjectConfig {
-    pub fn new() -> Self {
-        let min_size = default();
-        let max_size = Vector2::new(f32::INFINITY, f32::INFINITY);
-        let resizing = default();
-        let grow = default();
-        let shrink = default();
-        Self { min_size, max_size, resizing, grow, shrink }
-    }
-}
-
-impl Default for LayoutObjectConfig {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// The layout description of a display object.
 ///
 /// The [`size`] field describes the bounding box dimension, while the [`bbox_origin`], its left
@@ -1873,13 +1847,16 @@ impl Default for LayoutObjectConfig {
 /// layout, the origin is the left bottom corner of the bounding box of all children.
 ///
 /// See the docs of [`Instance`] to learn more about the layout system.
-#[derive(Debug, Deref, Default)]
+#[derive(Debug)]
 pub struct LayoutModel {
-    #[deref]
-    config:      LayoutObjectConfig,
-    auto:        Option<AutoLayout>,
-    size:        Vector2<f32>,
-    bbox_origin: Vector2<f32>,
+    auto:        RefCell<Option<AutoLayout>>,
+    min_size:    Cell<Vector2<f32>>,
+    max_size:    Cell<Vector2<f32>>,
+    resizing:    Cell<Vector2<Resizing>>,
+    grow:        Cell<Vector2<f32>>,
+    shrink:      Cell<Vector2<f32>>,
+    size:        Cell<Vector2<f32>>,
+    bbox_origin: Cell<Vector2<f32>>,
     // FIXME
     //  mozliwe ze powinnimsy miec cos w stylu bbox_origin_alignment, ktory ustawia to gdzie jest
     //  origin tego display objecta. Wtedy sprity moga ustawiac to by default w srodku.
@@ -1888,27 +1865,35 @@ pub struct LayoutModel {
 
 impl LayoutModel {
     fn new() -> Self {
-        default()
+        let auto = default();
+        let min_size = default();
+        let max_size = Cell::new(Vector2(f32::INFINITY, f32::INFINITY));
+        let resizing = default();
+        let grow = default();
+        let shrink = default();
+        let size = default();
+        let bbox_origin = default();
+        Self { auto, min_size, max_size, resizing, grow, shrink, size, bbox_origin }
     }
 }
 
 impl Model {
     fn resizing(&self) -> Vector2<Resizing> {
-        self.layout.borrow().resizing
+        self.layout.resizing.get()
     }
 
     fn set_resizing(&self, resizing: impl IntoResizing) {
         self.dirty.transformation.set();
-        *self.layout.borrow_mut().resizing = resizing.into_resizing();
+        self.layout.resizing.set(resizing.into_resizing());
     }
 
     fn modify_resizing(&self, f: impl FnOnce(&mut Vector2<Resizing>)) {
         self.dirty.transformation.set();
-        f(&mut *self.layout.borrow_mut().resizing);
+        self.layout.resizing.modify(f);
     }
 
     fn bbox_origin(&self) -> Vector2<f32> {
-        self.layout.borrow().bbox_origin
+        self.layout.bbox_origin.get()
     }
 
     fn size(&self) -> Vector2<f32> {
