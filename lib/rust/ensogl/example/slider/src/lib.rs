@@ -104,6 +104,9 @@ impl Model {
         slider3.frp.set_height(50.0);
         slider3.set_y(0.0);
         slider3.frp.set_value_indicator_color(color::Lcha(0.4, 0.7, 0.7, 1.0));
+        slider3.frp.set_default_value(100.0);
+        slider3.frp.set_value(100.0);
+        slider3.frp.set_max_value(500.0);
         slider3.frp.set_label("Adaptive lower limit");
         slider3.frp.set_lower_limit_type(slider::SliderLimit::Adaptive);
         self.root.add_child(&slider3);
