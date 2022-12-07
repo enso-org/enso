@@ -256,8 +256,8 @@ impl ProjectName {
         let saved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
         let saved_selected_color = styles.get_color(breadcrumbs_theme::selected);
         let unsaved_hover_color = styles.get_color(breadcrumbs_theme::unsaved::hover);
-        let unsaved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
-        let unsaved_selected_color = styles.get_color(breadcrumbs_theme::selected);
+        let unsaved_deselected_color = styles.get_color(breadcrumbs_theme::unsaved::deselected::left);
+        let unsaved_selected_color = styles.get_color(breadcrumbs_theme::unsaved::selected);
         let animations = Animations::new(network);
 
         frp::extend! { network
@@ -269,23 +269,19 @@ impl ProjectName {
                                           &model.view.events.mouse_over);
             frp.source.mouse_down <+ model.view.events.mouse_down_primary;
 
-            not_selected               <- frp.output.selected.map(|selected| !selected);
-            mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
-            mouse_over_if_not_selected <- all2(
+            text_color <- all3(
+                &frp.output.selected,
+                &frp.source.is_hovered,
                 &frp.input.set_project_changed,
-                &mouse_over_if_not_selected,
-            ).map(move |(changed, _)| if *changed {unsaved_hover_color} else {saved_hover_color});
-            eval mouse_over_if_not_selected((&color) animations.color.set_target_value(color));
-            mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
-            mouse_out_if_not_selected <- all2(
-                &frp.input.set_project_changed,
-                &mouse_out_if_not_selected,
-            );
-            mouse_out_if_not_selected <- mouse_out_if_not_selected.map(move |(changed, _)|
-                if *changed {unsaved_deselected_color} else {saved_deselected_color}
-            );
-            eval mouse_out_if_not_selected((&color) animations.color.set_target_value(color));
-            on_deselect <- not_selected.gate(&not_selected).constant(());
+            ).map(move |(selected, hovered, changed)| match (*selected, *hovered, *changed) {
+                (true, _, true) => unsaved_selected_color,
+                (true, _, false) => saved_selected_color,
+                (false, false, true) => unsaved_deselected_color,
+                (false, false, false) => saved_deselected_color,
+                (false, true, true) => unsaved_hover_color,
+                (false, true, false) => saved_hover_color,
+            });
+            eval text_color((&color) animations.color.set_target_value(color));
 
             edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
             start_editing <- any(edit_click,frp.input.start_editing);
@@ -319,6 +315,8 @@ impl ProjectName {
             eval commit_text((text) model.commit(text));
             on_commit <- commit_text.constant(());
 
+            not_selected <- frp.output.selected.map(|selected| !selected);
+            on_deselect <- not_selected.gate(&not_selected).constant(());
             frp.output.source.edit_mode <+ on_deselect.to_false();
 
 
@@ -337,11 +335,6 @@ impl ProjectName {
                 text.remove_all_cursors();
             });
             frp.output.source.selected <+ set_inactive.to_false();
-            inactive_color <- all2(&frp.input.set_project_changed, &set_inactive);
-            inactive_color <- inactive_color.map(move |(changed, _)|
-                if *changed {unsaved_deselected_color} else {saved_deselected_color}
-            );
-            eval inactive_color ( (&color) animations.color.set_target_value(color));
 
 
             // === Animations ===
