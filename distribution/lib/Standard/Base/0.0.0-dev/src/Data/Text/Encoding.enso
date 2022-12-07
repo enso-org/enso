@@ -2,8 +2,8 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Panic.Panic
-
-from project.Error.Common import Illegal_Argument, Encoding_Error
+import project.Error.Encoding_Error.Encoding_Error
+import project.Error.Illegal_Argument.Illegal_Argument
 
 polyglot java import java.nio.charset.Charset
 polyglot java import java.nio.charset.UnsupportedCharsetException

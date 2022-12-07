@@ -1,8 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 import Standard.Base.Data.Noise.Generator
 import Standard.Base.Data.Noise.Deterministic_Random
-import Standard.Base.Error.Common
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions

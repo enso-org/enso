@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -6,7 +7,7 @@ import Standard.Test.Extensions
 spec =
     Test.group "JavaScript Objects, Arrays & Functions" <|
         Test.specify "Missing method" <|
-            Test.expect_panic_with data.missing No_Such_Method_Error_Data
+            Test.expect_panic_with data.missing No_Such_Method.Error
 
         Test.specify "Found method" <|
             data.classes

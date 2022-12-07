@@ -1,4 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Delimited
 import Standard.Table.Data.Table_Conversions
@@ -37,7 +40,7 @@ spec =
                 table.at "c" . to_vector . should_equal ["3"]
                 table.at "Column_2" . to_vector . should_equal ["4"]
                 table.at "d" . to_vector . should_equal ["5"]
-            problems = [Invalid_Output_Column_Names_Data [Nothing, Nothing]]
+            problems = [Invalid_Output_Column_Names.Error [Nothing, Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should infer headers based on the first two rows" <|
@@ -121,7 +124,7 @@ spec =
 
             # Currently mixed line endings are not supported.
             'a,b,c\nd,e,f\r1,2,3'.write (path 'mixed.csv')
-            Data.read_file (path 'mixed.csv') (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row_Data
+            Data.read_file (path 'mixed.csv') (Delimited "," headers=True value_formatter=Nothing) Problem_Behavior.Report_Error . should_fail_with Invalid_Row.Error
 
             ['crlf.csv', 'lf.csv', 'cr.csv', 'mixed.csv'].each (path >> .delete)
 
@@ -199,7 +202,7 @@ spec =
                 table.columns.map .name . should_equal ['a', 'b', 'c', 'a_1']
                 table.at 'a' . to_vector . should_equal ['1']
                 table.at 'a_1' . to_vector . should_equal ['4']
-            problems = [Duplicate_Output_Column_Names_Data ['a']]
+            problems = [Duplicate_Output_Column_Names.Error ['a']]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should handle quotes" <|
@@ -241,7 +244,7 @@ spec =
                 table.at 'a' . to_vector . should_equal ['1', 'abc']
                 table.at 'b' . to_vector . should_equal ['2', '"def,g h i\n7,8,9\n']
                 table.at 'c' . to_vector . should_equal ['3', Nothing]
-            problems_2 = [Invalid_Row_Data 3 1 ['abc', '"def,g h i\n7,8,9\n'], Mismatched_Quote]
+            problems_2 = [Invalid_Row.Error 3 1 ['abc', '"def,g h i\n7,8,9\n'], Mismatched_Quote]
             Problems.test_problem_handling action_2 problems_2 tester_2
 
         Test.specify "should handle too long and too short rows" <|
@@ -253,7 +256,7 @@ spec =
                 table.at 'a' . to_vector . should_equal ['1', '1', '1', Nothing, '1', '1']
                 table.at 'b' . to_vector . should_equal ['2', '2', '2', Nothing, Nothing, '2']
                 table.at 'c' . to_vector . should_equal ['3', '3', Nothing, Nothing, Nothing, '3']
-            problems_kept = [Invalid_Row_Data 2 0 ['1', '2', '3', '4'], Invalid_Row_Data 4 2 ['1', '2'], Invalid_Row_Data 5 3 [Nothing], Invalid_Row_Data 6 4 ['1'], Invalid_Row_Data 7 5 ['1', '2', '3', '4', '5', '6', '7', '8']]
+            problems_kept = [Invalid_Row.Error 2 0 ['1', '2', '3', '4'], Invalid_Row.Error 4 2 ['1', '2'], Invalid_Row.Error 5 3 [Nothing], Invalid_Row.Error 6 4 ['1'], Invalid_Row.Error 7 5 ['1', '2', '3', '4', '5', '6', '7', '8']]
             Problems.test_problem_handling (action keep_invalid_rows=True) problems_kept tester_kept
 
             tester_dropped table =
@@ -261,7 +264,7 @@ spec =
                 table.at 'a' . to_vector . should_equal ['1']
                 table.at 'b' . to_vector . should_equal ['2']
                 table.at 'c' . to_vector . should_equal ['3']
-            problems_dropped = [Invalid_Row_Data 2 Nothing ['1', '2', '3', '4'], Invalid_Row_Data 4 Nothing ['1', '2'], Invalid_Row_Data 5 Nothing [Nothing], Invalid_Row_Data 6 Nothing ['1'], Invalid_Row_Data 7 Nothing ['1', '2', '3', '4', '5', '6', '7', '8']]
+            problems_dropped = [Invalid_Row.Error 2 Nothing ['1', '2', '3', '4'], Invalid_Row.Error 4 Nothing ['1', '2'], Invalid_Row.Error 5 Nothing [Nothing], Invalid_Row.Error 6 Nothing ['1'], Invalid_Row.Error 7 Nothing ['1', '2', '3', '4', '5', '6', '7', '8']]
             Problems.test_problem_handling (action keep_invalid_rows=False) problems_dropped tester_dropped
 
         Test.specify "should aggregate invalid rows over some limit" <|
@@ -273,7 +276,7 @@ spec =
                 table.at 'a' . to_vector . should_equal ['0', '5']
                 table.at 'b' . to_vector . should_equal ['x', 'u']
                 table.at 'c' . to_vector . should_equal ['y', 'v']
-            problems = [Invalid_Row_Data 3 Nothing ['1'], Invalid_Row_Data 4 Nothing ['2'], Invalid_Row_Data 5 Nothing ['3'], Invalid_Row_Data 6 Nothing ['4'], Invalid_Row_Data 8 Nothing ['6'], Invalid_Row_Data 9 Nothing ['7'], Invalid_Row_Data 10 Nothing ['8'], Invalid_Row_Data 11 Nothing ['9'], Invalid_Row_Data 12 Nothing ['10'], Invalid_Row_Data 13 Nothing ['11'], Additional_Invalid_Rows_Data 3]
+            problems = [Invalid_Row.Error 3 Nothing ['1'], Invalid_Row.Error 4 Nothing ['2'], Invalid_Row.Error 5 Nothing ['3'], Invalid_Row.Error 6 Nothing ['4'], Invalid_Row.Error 8 Nothing ['6'], Invalid_Row.Error 9 Nothing ['7'], Invalid_Row.Error 10 Nothing ['8'], Invalid_Row.Error 11 Nothing ['9'], Invalid_Row.Error 12 Nothing ['10'], Invalid_Row.Error 13 Nothing ['11'], Additional_Invalid_Rows.Error 3]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should allow to skip rows" <|

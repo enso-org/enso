@@ -20,13 +20,16 @@ import project.Data.Text.Text
 import project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
 import project.Data.Vector.Vector
+import project.Error.Common.Compile_Error
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
+import project.Error.Encoding_Error.Encoding_Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, Illegal_Argument, Encoding_Error
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
@@ -101,20 +104,20 @@ Text.each self function =
      Get the individual characters in the text "건반(Korean)".
 
          "건반(Korean)".at 1 == "반"
-Text.at : Integer -> Text ! Index_Out_Of_Bounds_Error
+Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
     case index < 0 of
         True ->
             length = self.length
             new_index = index + length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds_Error_Data index length) else
+            if new_index < 0 then Error.throw (Index_Out_Of_Bounds.Error index length) else
                 self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)) else
+            if (next == -1) then (Error.throw (Index_Out_Of_Bounds.Error index self.length)) else
                 Text_Utils.substring self first next
 
 ## ALIAS Get Characters
@@ -157,7 +160,7 @@ Text.characters self =
              regex = "a[ab]c"
              "aabbbbccccaabcaaaa".match regex == "abc"
 Text.match : Text -> (Matching_Mode.First | Matching_Mode.Last) -> (Text_Matcher | Regex_Matcher) -> Text | Nothing
-Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matcher_Data =
+Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Value =
     case self.locate term mode matcher of
         Nothing -> Nothing
         span -> span.text
@@ -181,7 +184,7 @@ Text.match self term mode=Matching_Mode.First matcher=Regex_Matcher.Regex_Matche
              regex = "a[ab]c"
              "aabcbbccaacaa".match regex == ["abc", "aac"]
 Text.match_all : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
-Text.match_all self term=".*" matcher=Regex_Matcher.Regex_Matcher_Data =
+Text.match_all self term=".*" matcher=Regex_Matcher.Value =
     self.locate_all term matcher . map .text
 
 ## ALIAS Check Matches
@@ -202,8 +205,8 @@ Text.match_all self term=".*" matcher=Regex_Matcher.Regex_Matcher_Data =
          example_match =
              regex = ".+@.+"
              "contact@enso.org".is_match regex
-Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Regex.Compile_Error
-Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case matcher of
+Text.is_match : Text -> (Text_Matcher | Regex_Matcher) -> Boolean ! Compile_Error
+Text.is_match self pattern=".*" matcher=Regex_Matcher.Value = case matcher of
     Text_Matcher.Case_Sensitive -> self == pattern
     Text_Matcher.Case_Insensitive locale -> self.equals_ignore_case pattern locale
     _ : Regex_Matcher ->
@@ -231,12 +234,12 @@ Text.is_match self pattern=".*" matcher=Regex_Matcher.Regex_Matcher_Data = case 
    > Example
      Split the text on a regex pattern.
 
-         "abc--def==>ghi".split "[-=>]+" Regex_Matcher.Regex_Matcher_Data == ["abc", "def", "ghi"]
+         "abc--def==>ghi".split "[-=>]+" Regex_Matcher.Value == ["abc", "def", "ghi"]
 
    > Example
      Split the text on any whitespace.
 
-         'abc  def\tghi'.split '\\s+' Regex_Matcher.Regex_Matcher_Data == ["abc", "def", "ghi"]
+         'abc  def\tghi'.split '\\s+' Regex_Matcher.Value == ["abc", "def", "ghi"]
 Text.split : Text -> (Text_Matcher | Regex_Matcher) -> Vector Text
 Text.split self delimiter="," matcher=Text_Matcher.Case_Sensitive = if delimiter.is_empty then Error.throw (Illegal_Argument.Error "The delimiter cannot be empty.") else
     case matcher of
@@ -454,11 +457,11 @@ Text.lines self keep_endings=False =
          "Hello World!".insert 0 " Cruel" == " CruelHello World!"
          "Hello World!".insert 5 " Cruel" == "Hello Cruel World!"
          "Hello World!".insert -1 " Cruel" == "Hello World! Cruel"
-Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds_Error
+Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds
 Text.insert self index that =
     len = self.length
     idx = if index < 0 then len + index + 1 else index
-    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds_Error_Data index len) else
+    if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds.Error index len) else
         if idx == 0 then that + self else
             if idx == len then self + that else
                 pre = self.take (0.up_to idx)
@@ -486,7 +489,7 @@ Text.insert self index that =
          "A0".is_digit == False
          "A0".is_digit 1 == True
          "건반(Korean)".is_digit 1 == False
-Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds_Error
+Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds
 Text.is_digit self (index=0) =
     grapheme = self.at index
     char = (Text_Utils.get_chars grapheme).at 0
@@ -859,11 +862,11 @@ Text.repeat self count=1 =
          "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
          "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
          "Hello World!".take (Sample 3 seed=42) == "l d"
-Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds_Error
+Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
 Text.take self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
-        Range.Value start end 1 ->
+        Range.Between start end 1 ->
             Text_Utils.substring self start end
         Codepoint_Ranges.Value char_ranges _ ->
             slice_text self char_ranges
@@ -905,11 +908,11 @@ Text.take self range=(Index_Sub_Range.First 1) =
          "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
          "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
          "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
-Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds_Error
+Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
 Text.drop self range=(Index_Sub_Range.First 1) =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
-        Range.Value start end 1 ->
+        Range.Between start end 1 ->
             if start == 0 then Text_Utils.drop_first self end else
                 prefix = Text_Utils.substring self 0 start
                 if end == (Text_Utils.char_length self) then prefix else

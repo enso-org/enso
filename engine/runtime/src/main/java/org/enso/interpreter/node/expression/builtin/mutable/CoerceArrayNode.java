@@ -41,7 +41,7 @@ public abstract class CoerceArrayNode extends Node {
     } catch (InvalidArrayIndexException e) {
       Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(
-          builtins.error().makeInvalidArrayIndexError(arr, e.getInvalidIndex()), this);
+          builtins.error().makeInvalidArrayIndex(arr, e.getInvalidIndex()), this);
     }
   }
 
@@ -59,7 +59,7 @@ public abstract class CoerceArrayNode extends Node {
     } catch (InvalidArrayIndexException e) {
       Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(
-          builtins.error().makeInvalidArrayIndexError(arr, e.getInvalidIndex()), this);
+          builtins.error().makeInvalidArrayIndex(arr, e.getInvalidIndex()), this);
     }
   }
 

@@ -6,13 +6,15 @@ import project.Data.Ordering.Comparator
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Incomparable_Values.Incomparable_Values
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Vector import Empty_Error
-from project.Error.Common import Illegal_Argument, Unsupported_Argument_Types, Unsupported_Argument_Types_Data, Incomparable_Values_Error
+from project.Error.Common import Unsupported_Argument_Types
 
 polyglot java import org.enso.base.statistics.Moments
 polyglot java import org.enso.base.statistics.MomentStatistic
@@ -56,7 +58,7 @@ type Rank_Method
 
         report_nullpointer caught_panic = Error.throw (Illegal_Argument.Error caught_panic.payload.cause.getMessage)
         handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
-        handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values_Error)
+        handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values)
 
         handle_classcast <| handle_nullpointer <|
             java_ranks = Rank.rank input.to_array Comparator.new java_method
@@ -137,7 +139,12 @@ type Statistic
        - statistics: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        count_min_max = statistics.any s->((s.is_a Statistic.Count) || (s.is_a Statistic.Minimum) || (s.is_a Statistic.Maximum))
+        count_min_max = statistics.any s->
+            case s of
+                Statistic.Count -> True
+                Statistic.Minimum -> True
+                Statistic.Maximum -> True
+                _ -> False
 
         java_stats = statistics.map to_moment_statistic
         skip_java_stats = java_stats.all s->s.is_nothing
@@ -146,7 +153,7 @@ type Statistic
             statistics.map_with_index i->v->
                 if java_stats.at i . is_nothing then Nothing else
                     Error.throw (Illegal_Argument.Error ("Can only compute " + v.to_text + " on numerical data sets."))
-        handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_invalid
+        handle_unsupported = Panic.catch Unsupported_Argument_Types.Error handler=report_invalid
 
         empty_map s = if (s == Statistic.Count) || (s == Statistic.Sum) then 0 else
             if (s == Statistic.Minimum) || (s == Statistic.Maximum) then Error.throw Empty_Error else
@@ -160,10 +167,10 @@ type Statistic
             statistics.map_with_index i->s->case s of
                 Statistic.Count -> count_min_max_values.count
                 Statistic.Minimum ->
-                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
+                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values) else
                         count_min_max_values.minimum
                 Statistic.Maximum ->
-                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values_Error) else
+                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values) else
                         count_min_max_values.maximum
                 Statistic.Covariance s -> calculate_correlation_statistics data s . covariance
                 Statistic.Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
@@ -233,7 +240,7 @@ to_moment_statistic s = case s of
 wrap_java_call : Any -> Any
 wrap_java_call ~function =
     report_unsupported _ = Error.throw (Illegal_Argument.Error ("Can only compute correlations on numerical data sets."))
-    handle_unsupported = Panic.catch Unsupported_Argument_Types_Data handler=report_unsupported
+    handle_unsupported = Panic.catch Unsupported_Argument_Types.Error handler=report_unsupported
 
     handle_unsupported <| Illegal_Argument.handle_java_exception <| function
 

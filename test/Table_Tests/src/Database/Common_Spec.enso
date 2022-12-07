@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Table, Sort_Column, Column_Selector, Sort_Column_Selector
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data
+from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns
 
 from Standard.Database import all
 from Standard.Database.Errors import Unsupported_Database_Operation
@@ -211,7 +211,7 @@ spec prefix connection =
             action = df.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
             tester table =
                 table.at 'id' . to_vector . should_equal [1,2,3,4,5,6]
-            problems = [Missing_Input_Columns_Data [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            problems = [Missing_Input_Columns.Error [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
             Problems.test_problem_handling action problems tester
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|

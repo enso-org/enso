@@ -1,4 +1,6 @@
 from Standard.Base import all hiding First, Last
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all

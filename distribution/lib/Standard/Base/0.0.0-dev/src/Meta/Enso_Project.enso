@@ -9,7 +9,7 @@ type Project_Description
        Arguments:
        - prim_root_file: The primitive root file of the project.
        - prim_config: The primitive config of the project.
-    Project_Description_Data prim_root_file prim_config
+    Value prim_root_file prim_config
 
 
     ## Returns the root directory of the project.

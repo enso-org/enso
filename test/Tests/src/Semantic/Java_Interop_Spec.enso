@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
+
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
@@ -25,7 +27,7 @@ spec =
         Test.specify "should report missing method error on Java Arrays" <|
             list = ArrayList.new
             list.add 432
-            Test.expect_panic_with (list.asList) No_Such_Method_Error_Data
+            Test.expect_panic_with (list.asList) No_Such_Method.Error
         Test.specify "should auto-convert numeric types across the polyglot boundary" <|
             (Float.valueOf "123.3" + 5).should_equal 128.3 epsilon=0.0001
             (Integer.sum 1 2 + 3) . should_equal 6

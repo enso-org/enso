@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 from Standard.Test import Test, Test_Suite

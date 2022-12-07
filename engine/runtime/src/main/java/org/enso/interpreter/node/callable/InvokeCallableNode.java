@@ -254,7 +254,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Fallback
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
-    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokableError(callable);
+    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
     throw new PanicException(error, this);
   }
 
