@@ -9,3 +9,6 @@ rustflags = [
   "-C",
   "link-args=-z stack-size=2097152",
 ]
+
+[alias]
+cli="run --profile buildscript --target-dir target/enso-build --package enso-build-cli --bin enso-build-cli --"

@@ -28,14 +28,22 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
-use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ensogl_text_msdf::run_once_initialized;
 
-type EntryData = i32;
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct EntryData(i32);
+
+impl dropdown::DropdownValue for EntryData {
+    fn label(&self) -> ImString {
+        format!("{}", self.0).into()
+    }
+}
+
+
 
 // ===================
 // === Entry Point ===
@@ -70,14 +78,9 @@ fn init(app: &Application) {
     let dropdown = setup_dropdown(app);
     world.add_child(&dropdown);
 
-    dropdown.request_model_for_visible_entries();
+    // dropdown.request_model_for_visible_entries();
 
     let output_text = setup_output_text(app, &dropdown);
-
-    frp::new_network! { network
-        is_single <- source::<bool>();
-        is_multi <- source::<bool>();
-    }
 
     let (single_selection, is_single) = setup_button(app, Vector2(-200.0, -100.0), "Single Select");
     let (multi_selection, is_multi) = setup_button(app, Vector2(-200.0, -130.0), "Multi Select");
@@ -89,7 +92,6 @@ fn init(app: &Application) {
         dropdown.set_max_selected <+ selection_mode;
 
         eval selection_mode([is_single, is_multi](mode) {
-            warn!("eval");
             is_single.emit(*mode == 1);
             is_multi.emit(*mode > 1);
         });
@@ -101,14 +103,19 @@ fn init(app: &Application) {
     let navigator = Navigator::new(scene, &scene.camera());
     navigator.disable_wheel_panning();
 
-    std::mem::forget((dropdown, navigator, output_text, network));
+    let dropdown2 = app.new_view::<dropdown::Dropdown<&str>>();
+    dropdown2.set_xy(Vector2(300.0, 0.0));
+    dropdown2.set_all_entries(vec![
+        "Hello", "World", "This", "Is", "A", "Test", "Dropdown", "With", "Static", "Strings",
+    ]);
+    world.add_child(&dropdown2);
+
+    std::mem::forget((dropdown, dropdown2, navigator, output_text, network));
 }
 
 
-fn model_for_entry(row: usize) -> dropdown::DropdownEntry<EntryData> {
-    let val = row as i32 * 3 / 2 - 7;
-    let odd_even = if val % 2 == 0 { "even" } else { "odd" };
-    dropdown::DropdownEntry::<EntryData>::new(val, format!("{odd_even} {val}").into())
+fn entry_for_row(row: usize) -> EntryData {
+    EntryData(row as i32 * 3 / 2 - 7)
 }
 
 fn setup_dropdown(app: &Application) -> dropdown::Dropdown<EntryData> {
@@ -117,7 +124,8 @@ fn setup_dropdown(app: &Application) -> dropdown::Dropdown<EntryData> {
     dropdown.set_number_of_entries(20);
 
     frp::new_network! { network
-        dropdown.model_for_entry <+ dropdown.model_for_entry_needed.map(|row| (*row, model_for_entry(*row)));
+        entries <- dropdown.entries_in_range_needed.map(|range| (range.clone(), range.clone().map(entry_for_row).collect()));
+        dropdown.provide_entries_at_range <+ entries;
     }
 
     std::mem::forget(network);
@@ -130,12 +138,11 @@ fn setup_output_text(app: &Application, dropdown: &dropdown::Dropdown<EntryData>
     text.set_xy(Vector2(-200.0, -200.0));
 
     frp::new_network! { network
-        text.set_content <+ dropdown.selected_values.map(|values| {
+        text.set_content <+ dropdown.selected_entries.map(|entries| {
             use std::fmt::Write;
             let mut buf = String::new();
-            for val in values {
-                let content = val.value;
-                write!(&mut buf, "{content} ").unwrap();
+            for EntryData(val) in entries {
+                write!(&mut buf, "{val} ").unwrap();
             }
             ImString::from(buf)
         });
