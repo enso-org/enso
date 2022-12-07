@@ -283,7 +283,7 @@ impl<S: Shape> ShapeSystem<S> {
     #[profile(Debug)]
     pub fn new_instance(&self) -> ShapeInstance<S> {
         let sprite = self.model.sprite_system.new_instance();
-        sprite.set_size_fill();
+        sprite.allow_grow();
         let id = sprite.instance_id;
         let shape = S::new_instance_params(&sprite, &self.gpu_params, id);
         let display_object = display::object::Instance::new_named("ShapeSystem");
@@ -297,7 +297,7 @@ impl<S: Shape> ShapeSystem<S> {
     #[profile(Debug)]
     pub(crate) fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
         let sprite = self.model.sprite_system.new_instance();
-        sprite.set_size_fill();
+        sprite.allow_grow();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
         let shape = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
