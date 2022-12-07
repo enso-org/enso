@@ -165,7 +165,7 @@ pub struct Model {
     #[deref]
     hierarchy: HierarchyModel,
     event:     EventModel,
-    layout:    LayoutModel,
+    layout:    RefCell<LayoutModel>,
 }
 
 
@@ -203,12 +203,7 @@ impl InstanceDef {
 impl Model {
     /// Constructor.
     pub fn new() -> Self {
-        let network = frp::Network::new("display_object");
-        let hierarchy = HierarchyModel::new(&network);
-        let event = EventModel::new(&network);
-        let layout = LayoutModel::new();
-        let name = "display_object";
-        Self { network, hierarchy, event, layout, name }
+        Self::new_named("UnnamedDisplayObject")
     }
 
     /// Constructor.
@@ -216,7 +211,7 @@ impl Model {
         let network = frp::Network::new("display_object");
         let hierarchy = HierarchyModel::new(&network);
         let event = EventModel::new(&network);
-        let layout = LayoutModel::new();
+        let layout = RefCell::new(LayoutModel::new());
         Self { network, hierarchy, event, layout, name }
     }
 }
@@ -1260,11 +1255,11 @@ impl Debug for InstanceDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DisplayObject")
             .field("name", &self.name)
-            .field("is_dirty", &self.dirty.check_all())
-            .field("dirty", &self.dirty)
-            .field("position", &self.position().as_slice())
-            .field("size", &self.layout.size.get().as_slice())
-            .field("layout", &self.layout)
+            // .field("is_dirty", &self.dirty.check_all())
+            // .field("dirty", &self.dirty)
+            .field("position", &self.position().xy().as_slice())
+            .field("size", &self.layout.borrow().size.as_slice())
+            // .field("layout", &self.layout)
             .finish()
     }
 }
@@ -1393,18 +1388,18 @@ macro_rules! with_display_object_alignment_named_matrix {
 
 use crate::display::layout::alignment;
 
-pub type AlignmentSecondary = alignment::Dim1;
+pub type Alignment = alignment::Dim2;
 
-macro_rules! gen_alignment_primary {
-    ([$($name:tt)*]) => { paste! {
-        #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-        pub enum AlignmentPrimary {
-            #[default]
-            $([<$name:camel>]),*
-        }
-    }};
-}
-with_display_object_alignment_primary!(gen_alignment_primary);
+// macro_rules! gen_alignment_primary {
+//     ([$($name:tt)*]) => { paste! {
+//         #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+//         pub enum AlignmentPrimary {
+//             #[default]
+//             $([<$name:camel>]),*
+//         }
+//     }};
+// }
+// with_display_object_alignment_primary!(gen_alignment_primary);
 
 
 
@@ -1486,7 +1481,7 @@ pub struct Horizontal;
 pub struct Vertical;
 
 /// The auto layout mode. It is used to automatically position the children of a display object.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum AutoLayout {
     Horizontal(LayoutOptions),
@@ -1503,6 +1498,20 @@ impl AutoLayout {
     pub fn vertical() -> AutoLayoutBuilder<Vertical> {
         default()
     }
+
+    // pub fn def_column(&mut self) {
+    //     match self {
+    //         AutoLayout::Horizontal(opts) => opts.def_column(),
+    //         AutoLayout::Vertical(opts) => opts.def_column(),
+    //     }
+    // }
+
+    pub fn set_column_count(&mut self, count: usize) {
+        match self {
+            AutoLayout::Horizontal(opts) => opts.set_column_count(count),
+            AutoLayout::Vertical(opts) => opts.set_column_count(count),
+        }
+    }
 }
 
 /// Defines the struct and also getters and setters for the [`AutoLayout`] struct.
@@ -1514,7 +1523,7 @@ macro_rules! def_layout_options {
         ),* $(,)?}
     ) => { paste!{
         /// Options for the auto layout mode.
-        #[derive(Clone, Copy, Debug, Default, PartialEq)]
+        #[derive(Clone, Debug, Default, PartialEq)]
         pub struct $name {$(
             $(#$meta)*
             pub $field : $ty
@@ -1528,14 +1537,14 @@ macro_rules! def_layout_options {
                     AutoLayout::Vertical(options) => options.$field = $field,
                 }
             }
-
-            /// Update the value with the provided function.
-            pub fn [<update_ $field>](&mut self, f: impl FnOnce($ty) -> $ty) {
-                match self {
-                    AutoLayout::Horizontal(options) => options.$field = f(options.$field),
-                    AutoLayout::Vertical(options) => options.$field = f(options.$field),
-                }
-            }
+            //
+            // /// Update the value with the provided function.
+            // pub fn [<update_ $field>](&mut self, f: impl FnOnce($ty) -> $ty) {
+            //     match self {
+            //         AutoLayout::Horizontal(options) => options.$field = f(options.$field),
+            //         AutoLayout::Vertical(options) => options.$field = f(options.$field),
+            //     }
+            // }
 
             /// Modify the value with the provided function.
             pub fn [<modify_ $field>](&mut self, f: impl FnOnce(&mut $ty)) {
@@ -1548,19 +1557,52 @@ macro_rules! def_layout_options {
     }};
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct UnresolvedAxis {
+    resizing: Resizing,
+    grow:     Option<f32>,
+    shrink:   Option<f32>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ResolvedAxis {
+    resizing: Resizing,
+    grow:     f32,
+    shrink:   f32,
+    size:     f32,
+}
+
 def_layout_options!(
     pub struct LayoutOptions {
-        pub alignment_primary:   AlignmentPrimary,
-        pub alignment_secondary: AlignmentSecondary,
+        pub alignment:            Alignment,
         /// The spacing between children.
-        pub spacing:             f32,
+        pub spacing:              f32,
         /// The padding between the children and the edge of the parent.
-        pub padding:             Vector2<f32>,
+        pub padding:              Vector2<f32>,
         /// Indicates whether the children should be placed in order or in a reversed order.
-        pub reversed:            bool,
-        pub wrapped:             bool,
+        pub reversed:             bool,
+        pub wrapped:              bool,
+        pub first_axes:           Vector2<UnresolvedAxis>,
+        pub other_axes:           (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>),
+        pub prim_axis_elem_count: Option<usize>,
     }
 );
+
+impl LayoutOptions {
+    // pub fn def_column(&mut self) {
+    //     self.columns.push(UnresolvedAxis {})
+    // }
+
+    pub fn axes(&self) -> (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>) {
+        let x = vec![self.first_axes.x].extended(self.other_axes.0.iter().cloned());
+        let y = vec![self.first_axes.y].extended(self.other_axes.1.iter().cloned());
+        (x, y)
+    }
+
+    pub fn set_column_count(&mut self, count: usize) {
+        self.prim_axis_elem_count = Some(count)
+    }
+}
 
 
 
@@ -1570,7 +1612,7 @@ def_layout_options!(
 
 /// An [`AutoLayout`] builder. Layouts have a lot of options and this builder allows setting them
 /// in a convenient way.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct AutoLayoutBuilder<Layout> {
     pub options: LayoutOptions,
@@ -1579,15 +1621,15 @@ pub struct AutoLayoutBuilder<Layout> {
 
 #[allow(missing_docs)]
 impl<Layout> AutoLayoutBuilder<Layout> {
-    pub fn alignment_primary(mut self, alignment: AlignmentPrimary) -> Self {
-        self.options.alignment_primary = alignment;
-        self
-    }
-
-    pub fn alignment_secondary(mut self, alignment: AlignmentSecondary) -> Self {
-        self.options.alignment_secondary = alignment;
-        self
-    }
+    // pub fn alignment_primary(mut self, alignment: AlignmentPrimary) -> Self {
+    //     self.options.alignment_primary = alignment;
+    //     self
+    // }
+    //
+    // pub fn alignment_secondary(mut self, alignment: Alignment) -> Self {
+    //     self.options.alignment_secondary = alignment;
+    //     self
+    // }
 
     pub fn spacing(mut self, spacing: f32) -> Self {
         self.options.spacing = spacing;
@@ -1654,23 +1696,50 @@ impl<Layout> LayoutObjectBuilder<Layout> {
         Self { instance, layout }
     }
 
-    fn alignment_primary(self, alignment: AlignmentPrimary) -> Self {
+    fn set_alignment(self, alignment: Alignment) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.set_alignment_primary(alignment);
+                layout.set_alignment(alignment);
+            });
+        });
+        self
+    }
+    //
+    // fn def_column(self) -> Self {
+    //     self.instance.def.modify_layout(|opt_layout| {
+    //         opt_layout.as_mut().map(|layout| {
+    //             layout.def_column();
+    //         });
+    //     });
+    //     self
+    // }
+
+    fn set_column_count(self, count: usize) -> Self {
+        self.instance.def.modify_layout(|opt_layout| {
+            opt_layout.as_mut().map(|layout| {
+                layout.set_column_count(count);
             });
         });
         self
     }
 
-    fn alignment_secondary(self, alignment: AlignmentSecondary) -> Self {
-        self.instance.def.modify_layout(|opt_layout| {
-            opt_layout.as_mut().map(|layout| {
-                layout.set_alignment_secondary(alignment);
-            });
-        });
-        self
-    }
+    // fn alignment_primary(self, alignment: AlignmentPrimary) -> Self {
+    //     self.instance.def.modify_layout(|opt_layout| {
+    //         opt_layout.as_mut().map(|layout| {
+    //             layout.set_alignment_primary(alignment);
+    //         });
+    //     });
+    //     self
+    // }
+    //
+    // fn alignment_secondary(self, alignment: Alignment) -> Self {
+    //     self.instance.def.modify_layout(|opt_layout| {
+    //         opt_layout.as_mut().map(|layout| {
+    //             layout.set_alignment_secondary(alignment);
+    //         });
+    //     });
+    //     self
+    // }
 
     pub fn spacing(self, spacing: f32) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
@@ -1715,7 +1784,7 @@ impl<Layout> LayoutObjectBuilder<Layout> {
     pub fn reverse(self) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.update_reversed(|t| !t);
+                layout.modify_reversed(|t| *t = !*t);
             });
         });
         self
@@ -1724,7 +1793,7 @@ impl<Layout> LayoutObjectBuilder<Layout> {
     pub fn wrap(self) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.update_wrapped(|t| !t);
+                layout.modify_wrapped(|t| *t = !*t);
             });
         });
         self
@@ -1732,40 +1801,23 @@ impl<Layout> LayoutObjectBuilder<Layout> {
 }
 
 macro_rules! gen_layout_object_builder_alignment {
-    ([$alignment_type:ident $alignment_type1:ident $alignment_type2:ident] [$($name:ident)*]) => {
+    ([$([$name:ident $x:ident $y:ident])*]) => {
         paste! {
             impl<Layout> LayoutObjectBuilder<Layout> {$(
                 /// Constructor.
-                pub fn [<alignment_ $alignment_type _ $name>](self) -> Self {
-                    self.[<alignment _ $alignment_type>](
-                        [<Alignment $alignment_type:camel>]::[<$name:camel>]
-                    )
-                }
-            )*}
-
-            impl LayoutObjectBuilder<$alignment_type1> {$(
-                /// Constructor.
-                pub fn [<alignment_ x _ $name>](self) -> Self {
-                    self.[<alignment _ $alignment_type>](
-                        [<Alignment $alignment_type:camel>]::[<$name:camel>]
-                    )
-                }
-            )*}
-
-            impl LayoutObjectBuilder<$alignment_type2> {$(
-                /// Constructor.
-                pub fn [<alignment_ y _ $name>](self) -> Self {
-                    self.[<alignment _ $alignment_type>](
-                        [<Alignment $alignment_type:camel>]::[<$name:camel>]
-                    )
+                pub fn [<set_alignment_ $name>](self) -> Self {
+                    self.set_alignment(Alignment::$name())
                 }
             )*}
         }
     }
 }
 
-with_display_object_alignment_primary!(gen_layout_object_builder_alignment[primary Horizontal Vertical]);
-with_display_object_alignment_secondary!(gen_layout_object_builder_alignment[secondary Vertical Horizontal]);
+crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
+
+// with_display_object_alignment_primary!(gen_layout_object_builder_alignment[primary Horizontal
+// Vertical]); with_display_object_alignment_secondary!
+// (gen_layout_object_builder_alignment[secondary Vertical Horizontal]);
 
 macro_rules! gen_layout_object_builder_alignment_matrix {
     ([$([$f:ident $primary:ident $secondary:ident])*]) => { paste! {
@@ -1774,19 +1826,45 @@ macro_rules! gen_layout_object_builder_alignment_matrix {
             pub fn [<alignment_ $f>](self) -> Self {
                 self
                     .alignment_primary(AlignmentPrimary::[<$primary:camel>])
-                    .alignment_secondary(AlignmentSecondary::[<$secondary:camel>])
+                    .alignment_secondary(Alignment::[<$secondary:camel>])
             }
         )*}
     }}
 }
 
-with_display_object_alignment_named_matrix!(gen_layout_object_builder_alignment_matrix);
+// with_display_object_alignment_named_matrix!(gen_layout_object_builder_alignment_matrix);
 
 
 
 // ===================
 // === LayoutModel ===
 // ===================
+
+#[derive(Clone, Copy, Debug)]
+pub struct LayoutObjectConfig {
+    min_size: Vector2<f32>,
+    max_size: Vector2<f32>,
+    resizing: Vector2<Resizing>,
+    grow:     Vector2<f32>,
+    shrink:   Vector2<f32>,
+}
+
+impl LayoutObjectConfig {
+    pub fn new() -> Self {
+        let min_size = default();
+        let max_size = Vector2::new(f32::INFINITY, f32::INFINITY);
+        let resizing = default();
+        let grow = default();
+        let shrink = default();
+        Self { min_size, max_size, resizing, grow, shrink }
+    }
+}
+
+impl Default for LayoutObjectConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// The layout description of a display object.
 ///
@@ -1795,14 +1873,13 @@ with_display_object_alignment_named_matrix!(gen_layout_object_builder_alignment_
 /// layout, the origin is the left bottom corner of the bounding box of all children.
 ///
 /// See the docs of [`Instance`] to learn more about the layout system.
-#[derive(Debug, Default)]
+#[derive(Debug, Deref, Default)]
 pub struct LayoutModel {
-    auto:        Cell<Option<AutoLayout>>,
-    size:        Cell<Vector2<f32>>,
-    bbox_origin: Cell<Vector2<f32>>,
-    resizing:    Cell<Vector2<Resizing>>,
-    grow:        Cell<Vector2<f32>>,
-    shrink:      Cell<Vector2<f32>>,
+    #[deref]
+    config:      LayoutObjectConfig,
+    auto:        Option<AutoLayout>,
+    size:        Vector2<f32>,
+    bbox_origin: Vector2<f32>,
     // FIXME
     //  mozliwe ze powinnimsy miec cos w stylu bbox_origin_alignment, ktory ustawia to gdzie jest
     //  origin tego display objecta. Wtedy sprity moga ustawiac to by default w srodku.
@@ -1817,21 +1894,21 @@ impl LayoutModel {
 
 impl Model {
     fn resizing(&self) -> Vector2<Resizing> {
-        self.layout.resizing.get()
+        self.layout.borrow().resizing
     }
 
     fn set_resizing(&self, resizing: impl IntoResizing) {
         self.dirty.transformation.set();
-        self.layout.resizing.set(resizing.into_resizing());
+        *self.layout.borrow_mut().resizing = resizing.into_resizing();
     }
 
     fn modify_resizing(&self, f: impl FnOnce(&mut Vector2<Resizing>)) {
         self.dirty.transformation.set();
-        self.layout.resizing.modify(f);
+        f(&mut *self.layout.borrow_mut().resizing);
     }
 
     fn bbox_origin(&self) -> Vector2<f32> {
-        self.layout.bbox_origin.get()
+        self.layout.borrow().bbox_origin
     }
 
     fn size(&self) -> Vector2<f32> {
@@ -1882,17 +1959,11 @@ impl Model {
 impl Model {
     fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
         self.dirty.transformation.set();
-        self.layout.auto.set(layout.into());
-    }
-
-    fn update_layout(&self, f: impl FnOnce(Option<AutoLayout>) -> Option<AutoLayout>) {
-        self.set_layout(f(self.layout.auto.get()));
+        *self.layout.auto.borrow_mut() = layout.into();
     }
 
     fn modify_layout(&self, f: impl FnOnce(&mut Option<AutoLayout>)) {
-        let mut layout = self.layout.auto.get();
-        f(&mut layout);
-        self.set_layout(layout);
+        f(&mut *self.layout.auto.borrow_mut());
     }
 
     fn refresh_layout(&self) {
@@ -1909,14 +1980,20 @@ impl Model {
                     println!("[X] Setting size.{:?} of {} to {}", "x", self.name, v);
                     self.layout.size.set_x(v);
                 }
-                _ => {}
+                _ => {
+                    println!("[X2] Setting size.{:?} of {} to 0", "x", self.name);
+                    self.layout.size.set_x(0.0);
+                }
             }
             match resizing.y {
                 Resizing::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "y", self.name, v);
                     self.layout.size.set_y(v);
                 }
-                _ => {}
+                _ => {
+                    println!("[X2] Setting size.{:?} of {} to 0", "y", self.name);
+                    self.layout.size.set_y(0.0);
+                }
             }
         }
     }
@@ -1926,11 +2003,11 @@ impl Model {
             return;
         }
         if first_pass {
-            if self.layout.auto.get().is_some() {
+            if self.layout.auto.borrow().is_some() {
                 self.layout.bbox_origin.set(default());
             }
         }
-        match self.layout.auto.get() {
+        match &*self.layout.auto.borrow() {
             None =>
                 if first_pass {
                     self.refresh_layout_manual(X, first_pass);
@@ -1938,9 +2015,9 @@ impl Model {
                     self.refresh_layout_manual(Y, first_pass);
                 },
             Some(AutoLayout::Horizontal(opts)) =>
-                self.refresh_linear_layout(X, Y, first_pass, opts, first_pass),
+                self.refresh_linear_layout(X, Y, first_pass, &opts, first_pass),
             Some(AutoLayout::Vertical(opts)) =>
-                self.refresh_linear_layout(Y, X, !first_pass, opts, first_pass),
+                self.refresh_linear_layout(Y, X, !first_pass, &opts, first_pass),
         }
     }
 
@@ -2095,11 +2172,13 @@ impl Model {
         x: Dim1,
         y: Dim2,
         update_x: bool,
-        opts: LayoutOptions,
+        opts: &LayoutOptions,
         first_pass: bool,
     ) where
         Vector2<Resizing>: DimSetter<Dim1>,
         Vector2<Resizing>: DimSetter<Dim2>,
+        Vector2<alignment::Dim1>: DimSetter<Dim1>,
+        Vector2<alignment::Dim1>: DimSetter<Dim2>,
         Vector2<f32>: DimSetter<Dim1>,
         Vector2<f32>: DimSetter<Dim2>,
         Vector3<f32>: DimSetter<Dim1>,
@@ -2116,123 +2195,117 @@ impl Model {
         if update_x {
             // === Recomputing X-axis elements size of the X-axis horizontal layout ===
 
-            let total_padding_x = 2.0 * opts.padding.get_dim(x);
-            let total_spacing_x = (children.len() - 1) as f32 * opts.spacing;
-            let space_left = if resizing.is_fixed() {
-                let mut space_used = 0.0;
-                let mut children_to_grow = vec![];
-                for child in &children {
-                    if child.layout.grow.get_dim(x) > 0.0 {
-                        children_to_grow.push(child);
-                    } else {
+            let defined_axes = opts.axes().0; // FIXME: get_dim
+            let column_count = opts.prim_axis_elem_count.unwrap_or_else(|| children.len());
+            let column_axes = defined_axes.iter().cycle().enumerate().take(column_count);
+            println!("column_count: {}", column_count);
+            let unresolved_columns = column_axes
+                .map(|(i, t)| {
+                    (*t, children.iter().skip(i).step_by(column_count).cloned().collect_vec())
+                })
+                .collect_vec();
+            println!("unresolved_columns: {:?}", unresolved_columns);
+            let resolved_columns = unresolved_columns
+                .into_iter()
+                .map(|(axis, children)| {
+                    let mut grow = 0.0;
+                    let mut shrink = 999.0; // FIXME
+                    let mut size = 0.0;
+                    for child in &children {
                         child.refresh_self_size(first_pass);
-                        child.refresh_layout_internal(first_pass);
-                        space_used += child.layout.size.get_dim(x);
-                        println!("space used so far: {}", space_used);
+                        if child.layout.resizing.get_dim(x).is_hug() {
+                            child.refresh_layout_internal(first_pass);
+                        }
+                        let child_size = child.layout.size.get_dim(x);
+                        let child_grow = child.layout.grow.get_dim(x);
+                        let child_shrink = child.layout.shrink.get_dim(x);
+                        grow = if child_grow > grow { child_grow } else { grow };
+                        shrink = if child_shrink < shrink { child_shrink } else { shrink };
+                        size = if child_size > size { child_size } else { size };
                     }
-                }
+                    grow = axis.grow.unwrap_or(grow);
+                    shrink = axis.shrink.unwrap_or(shrink);
+                    let resizing = axis.resizing;
+                    let resolved_axis = ResolvedAxis { resizing, grow, shrink, size };
+                    (resolved_axis, children)
+                })
+                .collect_vec();
+
+            let space_left = if resizing.is_fixed() {
                 let width = self.layout.size.get_dim(x);
-                let mut space_left = width - space_used - total_padding_x - total_spacing_x;
-                println!("space left: {}", space_left);
-                let fill_size = space_left.max(0.0) / children_to_grow.len() as f32;
-                for child in children_to_grow {
-                    child.refresh_self_size(first_pass);
-                    println!("Setting size.{:?} of {} to {}", x, child.name, fill_size);
-                    child.layout.size.set_dim(x, fill_size);
-                    child.refresh_layout_internal(first_pass);
-                    space_left -= fill_size;
+                let total_padding_x = 2.0 * opts.padding.get_dim(x);
+                let total_spacing_x = (children.len() - 1) as f32 * opts.spacing;
+                let mut space_left = width - total_padding_x - total_spacing_x;
+                let mut total_grow_coeff = 0.0;
+                for column in &resolved_columns {
+                    space_left -= column.0.size;
+                    total_grow_coeff += column.0.grow;
+                }
+
+                let mut pos_x = opts.padding.get_dim(x);
+                for column in &resolved_columns {
+                    let column_grow = column.0.grow;
+                    let grow_size = if column_grow > 0.0 {
+                        column.0.grow / total_grow_coeff * space_left
+                    } else {
+                        0.0
+                    };
+                    space_left -= grow_size;
+                    let column_size = column.0.size + grow_size;
+                    for child in &column.1 {
+                        if child.layout.grow.get_dim(x) > 0.0 {
+                            child.layout.size.set_dim(x, column_size);
+                        }
+                        let child_size = child.size();
+                        let bbox_origin = child.bbox_origin();
+                        child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
+                        pos_x += child_size.get_dim(x) + opts.spacing;
+                    }
                 }
                 space_left
             } else {
-                // Hug resizing branch.
-                let mut max_x = 0.0;
-                for child in &children {
-                    if child.layout.grow.get_dim(x) > 0.0 {
-                        println!("Setting size.{:?} of {} to {}", x, child.name, 0.0);
-                        child.layout.size.set_dim(x, 0.0);
-                    }
-                    child.refresh_self_size(first_pass);
-                    child.refresh_layout_internal(first_pass);
-                    max_x += child.layout.size.get_dim(x);
-                }
-                max_x += total_padding_x + total_spacing_x;
-                println!("Setting size.{:?} of {} to {}", x, self.name, max_x);
-                self.layout.size.set_dim(x, max_x);
-                0.0
+                todo!()
             };
-
-
-            // === Recomputing X-axis elements position of the X-axis horizontal layout ===
-
-            match opts.alignment_primary {
-                AlignmentPrimary::Start | AlignmentPrimary::Center | AlignmentPrimary::End => {
-                    let normalized = match opts.alignment_primary {
-                        AlignmentPrimary::Start => 0.0,
-                        AlignmentPrimary::Center => 0.5,
-                        AlignmentPrimary::End => 1.0,
-                        _ => unreachable!(),
-                    };
-                    let mut pos_x = opts.padding.get_dim(x);
-                    pos_x += normalized * space_left;
-                    for child in &children {
-                        let size = child.size();
-                        let bbox_origin = child.bbox_origin();
-                        child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
-                        pos_x += size.get_dim(x) + opts.spacing;
-                    }
-                }
-                AlignmentPrimary::SpaceBetween => {
-                    let mut pos_x = opts.padding.get_dim(x);
-                    let spacing = space_left / (children.len() - 1) as f32;
-                    for child in &children {
-                        let size = child.size();
-                        let bbox_origin = child.bbox_origin();
-                        child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
-                        pos_x += size.get_dim(x) + opts.spacing + spacing;
-                    }
-                }
-                _ => panic!(),
-            }
         } else {
-            // === Recomputing Y-axis elements size of the X-axis horizontal layout ===
-
-            let padding_y = opts.padding.get_dim(y);
-            let total_padding_y = 2.0 * opts.padding.get_dim(y);
-            let mut children_to_grow = vec![];
-            let mut height: f32 = 0.0;
-            for child in &children {
-                if child.layout.grow.get_dim(y) > 0.0 {
-                    children_to_grow.push(child);
-                } else {
-                    child.refresh_self_size(first_pass);
-                    child.refresh_layout_internal(first_pass);
-                    height = height.max(child.layout.size.get_dim(y));
-                }
-            }
-
-            if self.layout.resizing.get_dim(y).is_hug() {
-                let height = height + 2.0 * opts.padding.get_dim(y);
-                println!("Setting size.{:?} of {} to {}", y, self.name, height);
-                self.layout.size.set_dim(y, height);
-            } else {
-                height = self.layout.size.get_dim(y) - total_padding_y;
-            }
-
-            for child in children_to_grow {
-                child.refresh_self_size(first_pass);
-                println!("Setting size.{:?} of {} to {}", y, child, height);
-                child.layout.size.set_dim(y, height);
-                child.refresh_layout_internal(first_pass);
-            }
-
-
-            // === Recomputing Y-axis elements position of the X-axis horizontal layout ===
-
-            for child in &children {
-                let space_left = height - child.size().get_dim(y);
-                let pos_y = padding_y + opts.alignment_secondary.normalized() * space_left;
-                child.set_position_dim(y, pos_y);
-            }
+            // // === Recomputing Y-axis elements size of the X-axis horizontal layout ===
+            //
+            // let padding_y = opts.padding.get_dim(y);
+            // let total_padding_y = 2.0 * opts.padding.get_dim(y);
+            // let mut children_to_grow = vec![];
+            // let mut height: f32 = 0.0;
+            // for child in &children {
+            //     if child.layout.grow.get_dim(y) > 0.0 {
+            //         children_to_grow.push(child);
+            //     } else {
+            //         child.refresh_self_size(first_pass);
+            //         child.refresh_layout_internal(first_pass);
+            //         height = height.max(child.layout.size.get_dim(y));
+            //     }
+            // }
+            //
+            // if self.layout.resizing.get_dim(y).is_hug() {
+            //     let height = height + 2.0 * opts.padding.get_dim(y);
+            //     println!("Setting size.{:?} of {} to {}", y, self.name, height);
+            //     self.layout.size.set_dim(y, height);
+            // } else {
+            //     height = self.layout.size.get_dim(y) - total_padding_y;
+            // }
+            //
+            // for child in children_to_grow {
+            //     child.refresh_self_size(first_pass);
+            //     println!("Setting size.{:?} of {} to {}", y, child, height);
+            //     child.layout.size.set_dim(y, height);
+            //     child.refresh_layout_internal(first_pass);
+            // }
+            //
+            //
+            // // === Recomputing Y-axis elements position of the X-axis horizontal layout ===
+            //
+            // for child in &children {
+            //     let space_left = height - child.size().get_dim(y);
+            //     let pos_y = padding_y + opts.alignment.get_dim(y).normalized() * space_left;
+            //     child.set_position_dim(y, pos_y);
+            // }
         }
     }
 }
@@ -2563,13 +2636,13 @@ pub trait ObjectOps: Object {
 
     // === Layout ===
 
-    /// Get the current auto-layout settings.
-    fn layout(&self) -> Option<AutoLayout> {
-        self.display_object().def.layout.auto.get()
-    }
+    // /// Get the current auto-layout settings.
+    // fn layout(&self) -> Option<AutoLayout> {
+    //     self.display_object().def.layout.auto.get()
+    // }
 
     /// Place children in a horizontal layout.
-    fn set_layout_horizontal(&self) -> LayoutObjectBuilder<Horizontal> {
+    fn use_auto_layout(&self) -> LayoutObjectBuilder<Horizontal> {
         let instance = self.display_object();
         instance.def.set_layout(AutoLayout::horizontal());
         LayoutObjectBuilder::new(instance)
@@ -3436,10 +3509,10 @@ mod layout_tests {
         r.add_child(&r1);
         r.add_child(&r2);
 
-        root.set_layout_horizontal().alignment_center();
+        root.use_auto_layout().set_alignment_center();
         root.set_size((100.0, 100.0));
 
-        l.set_layout_horizontal();
+        l.use_auto_layout();
         l.set_size_x_hug(0.0).allow_grow_x();
         l1.set_size((0.0, 50.0)).allow_grow_x();
 
@@ -3465,6 +3538,28 @@ mod layout_tests {
         assert_eq!(r2.size(), Vector2(30.0, 50.0));
     }
 
+    #[test]
+    fn test_column() {
+        let world = World::new();
+        let root = Instance::new_named("Root");
+        let node1 = Instance::new_named("node1");
+        let node2 = Instance::new_named("node2");
+        root.add_child(&node1);
+        root.add_child(&node2);
+
+        root.use_auto_layout();
+        root.set_size((200.0, 200.0));
+        node1.set_size((100.0, 100.0));
+        node2.set_size((100.0, 100.0));
+
+        root.update(&world.default_scene);
+
+        println!("node1: {:?}", node1);
+        println!("node1: {:?}", node2);
+
+        assert_eq!(1, 2);
+    }
+
     // /// ```text
     // /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
     // /// │       ⋯5            ⋯5            ⋯5        │
@@ -3477,7 +3572,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_hug_resizing() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().padding_xy(3.0, 5.0).spacing(1.0);
+    //     test.root.use_auto_layout().padding_xy(3.0, 5.0).spacing(1.0);
     //     test.node1.set_size((20.0, 200.0));
     //     test.node2.set_size((30.0, 300.0));
     //     test.node3.set_size((50.0, 500.0));
@@ -3538,7 +3633,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_nested_hug_resizing() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal();
+    //     test.root.use_auto_layout();
     //     test.node1.set_size_x_hug(200.0);
     //     test.node2.set_size_hug();
     //     test.node3.set_size_fill_hug();
@@ -3596,7 +3691,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_packed_left_alignment() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().alignment_start_center();
+    //     test.root.use_auto_layout().alignment_start_center();
     //     test.root.set_size((1000.0, 1000.0));
     //     test.node1.set_size((100.0, 100.0));
     //     test.node2.set_size((100.0, 100.0));
@@ -3621,7 +3716,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_packed_center_alignment() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().alignment_center();
+    //     test.root.use_auto_layout().alignment_center();
     //     test.root.set_size((1000.0, 1000.0));
     //     test.node1.set_size((100.0, 100.0));
     //     test.node2.set_size((100.0, 100.0));
@@ -3646,7 +3741,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_packed_right_alignment() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().alignment_end_center();
+    //     test.root.use_auto_layout().alignment_end_center();
     //     test.root.set_size((1000.0, 1000.0));
     //     test.node1.set_size((100.0, 100.0));
     //     test.node2.set_size((100.0, 100.0));
@@ -3672,7 +3767,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_packed_left_alignment_overflow() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().alignment_start_center();
+    //     test.root.use_auto_layout().alignment_start_center();
     //     test.root.set_size((150.0, 100.0));
     //     test.node1.set_size((100.0, 100.0));
     //     test.node2.set_size((100.0, 100.0));
@@ -3698,7 +3793,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_packed_center_alignment_overflow() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().alignment_center();
+    //     test.root.use_auto_layout().alignment_center();
     //     test.root.set_size((200.0, 100.0));
     //     test.node1.set_size((100.0, 100.0));
     //     test.node2.set_size((100.0, 100.0));
@@ -3724,7 +3819,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_packed_right_alignment_overflow() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().alignment_end_center();
+    //     test.root.use_auto_layout().alignment_end_center();
     //     test.root.set_size((150.0, 100.0));
     //     test.node1.set_size((100.0, 100.0));
     //     test.node2.set_size((100.0, 100.0));
@@ -3749,7 +3844,7 @@ mod layout_tests {
     // #[test]
     // fn test_horizontal_spaced_alignment() {
     //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_horizontal().alignment_end_center();
+    //     test.root.use_auto_layout().alignment_end_center();
     //     test.root.set_size((1000.0, 100.0));
     //     test.node1.set_size((100.0, 100.0));
     //     test.node2.set_size((100.0, 100.0));

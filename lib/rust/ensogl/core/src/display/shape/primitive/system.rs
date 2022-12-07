@@ -289,7 +289,7 @@ impl<S: Shape> ShapeSystem<S> {
         let display_object = display::object::Instance::new_named("ShapeSystem");
         display_object.add_child(&sprite);
         // FIXME: workaround:
-        display_object.set_layout_horizontal();
+        display_object.use_auto_layout();
         let sprite = RefCell::new(sprite);
         ShapeInstance { sprite, shape, display_object }
     }
@@ -304,7 +304,7 @@ impl<S: Shape> ShapeSystem<S> {
         let display_object = display::object::Instance::new_named("ShapeSystem");
         display_object.add_child(&sprite);
         // FIXME: workaround:
-        display_object.set_layout_horizontal();
+        display_object.use_auto_layout();
         let sprite = RefCell::new(sprite);
         let shape = ShapeInstance { sprite, shape, display_object };
         (shape, global_id)
