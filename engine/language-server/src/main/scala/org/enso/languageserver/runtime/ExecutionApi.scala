@@ -115,7 +115,6 @@ object ExecutionApi {
     }
   }
 
-
   case object ExecutionContextGetComponentGroups
       extends Method("executionContext/getComponentGroups") {
 
