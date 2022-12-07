@@ -329,7 +329,7 @@ impl ProjectName {
             frp.output.source.selected <+ frp.select.to_true();
 
             set_inactive <- any(&frp.deselect,&on_commit);
-            eval_ set_inactive ([text,animations] {
+            eval_ set_inactive ([text] {
                 text.deprecated_set_focus(false);
                 text.remove_all_cursors();
             });

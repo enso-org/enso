@@ -263,7 +263,7 @@ impl Project {
 
     /// Check whether the current state of the project differs from the last snapshot in the VCS.
     #[profile(Detail)]
-    pub fn check_project_snapshot_is_dirty(&self) -> impl Future<Output = FallibleResult<bool>> {
+    pub fn check_project_vcs_is_outdated(&self) -> impl Future<Output = FallibleResult<bool>> {
         let project_root_id = self.model.project_content_root_id();
         let path_segments: [&str; 0] = [];
         let root_path = Path::new(project_root_id, &path_segments);

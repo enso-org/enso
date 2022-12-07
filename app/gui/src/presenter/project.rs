@@ -185,7 +185,7 @@ impl Model {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
         executor::global::spawn(async move {
-            match controller.check_project_snapshot_is_dirty().await {
+            match controller.check_project_vcs_is_outdated().await {
                 Err(err) => error!("Error while checking project snapshot status: {err}"),
                 Ok(dirty) => breadcrumbs.set_project_changed(dirty),
             }
