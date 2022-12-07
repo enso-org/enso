@@ -78,6 +78,14 @@ object Runtime {
         name  = "recomputeContextResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.InterruptContextRequest],
+        name  = "interruptContextRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.InterruptContextResponse],
+        name  = "interruptContextResponse"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.GetComponentGroupsRequest],
         name  = "getComponentGroupsRequest"
       ),
@@ -1165,6 +1173,22 @@ object Runtime {
       * @param contextId the context's id.
       */
     final case class RecomputeContextResponse(contextId: ContextId)
+        extends ApiResponse
+
+    /** A Request sent from the client to the runtime server, to interrupt
+      * the execution context.
+      *
+      * @param contextId the context's id.
+      */
+    final case class InterruptContextRequest(contextId: ContextId)
+        extends ApiRequest
+
+    /** A response sent from the server upon handling the
+      * [[InterruptContextRequest]].
+      *
+      * @param contextId the context's id.
+      */
+    final case class InterruptContextResponse(contextId: ContextId)
         extends ApiResponse
 
     /** A request sent from the client to the runtime server to get the
