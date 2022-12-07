@@ -436,7 +436,8 @@ public class DebuggingEnsoTest {
   }
 
   private static List<Integer> mapLinesToLineNumbers(Source src, List<String> lines) {
-    String[] linesInSrc = src.getCharacters().toString().split(System.lineSeparator());
+    // We use \n even on Windows
+    String[] linesInSrc = src.getCharacters().toString().split("\n");
     return lines.stream()
         .map(line -> {
           for (int i = 0; i < linesInSrc.length; i++) {
