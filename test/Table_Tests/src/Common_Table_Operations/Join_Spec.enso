@@ -197,10 +197,10 @@ spec setup =
 
                 r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") . order_by ["Z"]
                 expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
-                r1 . at "X" . to_vector . to_text . should_equal "[Value 1 2, Value 20 30]"
+                r1 . at "X" . to_vector . to_text . should_equal "[(My_Type.Value 1 2), (My_Type.Value 20 30)]"
                 r1 . at "Y" . to_vector . should_equal [2, 1]
-                r1 . at "lower" . to_vector . to_text . should_equal "[Value 3 0, Value 10 10]"
-                r1 . at "upper" . to_vector . to_text . should_equal "[Value 2 1, Value 100 0]""
+                r1 . at "lower" . to_vector . to_text . should_equal "[(My_Type.Value 3 0), (My_Type.Value 10 10)]"
+                r1 . at "upper" . to_vector . to_text . should_equal "[(My_Type.Value 2 1), (My_Type.Value 100 0)]"
                 r1 . at "Z" . to_vector . should_equal [10, 20]
 
         Test.specify "should allow to mix join conditions of various kinds" <|

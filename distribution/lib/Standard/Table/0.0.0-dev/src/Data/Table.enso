@@ -1112,7 +1112,7 @@ type Table
                 join_resolution = make_join_helpers self right . resolve on on_problems
                 right_columns_to_drop = join_resolution.redundant_column_names
 
-                object_comparator = .compare_to
+                object_comparator = Comparator.new
                 equality_fallback = .==
 
                 case join_resolution.conditions of
