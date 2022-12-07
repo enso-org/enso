@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Error.Common as Errors
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import project.Data.Column_Type_Selection.Auto
 import project.Data.Storage.Storage
@@ -101,9 +101,9 @@ type Data_Formatter
        - time_formats: Expected time formats.
     with_datetime_formats : (Text|[Text]) -> (Text|[Text]) -> (Text|[Text]) -> Data_Formatter
     with_datetime_formats self datetime_formats=self.datetime_formats date_formats=self.date_formats time_formats=self.time_formats =
-        datetime_vector = if datetime_formats.is_a Text then [datetime_formats] else datetime_formats
-        date_vector = if date_formats.is_a Text then [date_formats] else date_formats
-        time_vector = if time_formats.is_a Text then [time_formats] else time_formats
+        datetime_vector = wrap_text_in_vector datetime_formats
+        date_vector = wrap_text_in_vector date_formats
+        time_vector = wrap_text_in_vector time_formats
         self.clone datetime_formats=datetime_vector date_formats=date_vector time_formats=time_vector
 
     ## Specify values for Boolean parsing.
@@ -113,8 +113,8 @@ type Data_Formatter
        - false_values: Values representing False.
     with_boolean_values : (Text|[Text]) -> (Text|[Text]) -> Data_Formatter
     with_boolean_values self true_values false_values =
-        true_vector = if true_values.is_a Text then [true_values] else true_values
-        false_vector = if false_values.is_a Text then [false_values] else false_values
+        true_vector = wrap_text_in_vector true_values
+        false_vector = wrap_text_in_vector false_values
         self.clone true_values=true_vector false_values=false_vector
 
     ## Create a clone of self with a specified Locale.
@@ -238,3 +238,9 @@ type Data_Formatter
         Storage.Time_Of_Day -> self.make_time_of_day_formatter
         Storage.Date_Time -> self.make_date_time_formatter
         Storage.Any -> self.make_auto_formatter
+
+## PRIVATE
+   Utility function to convert single text value to a vector
+wrap_text_in_vector v = case v of
+    _ : Text -> [v]
+    _ -> v

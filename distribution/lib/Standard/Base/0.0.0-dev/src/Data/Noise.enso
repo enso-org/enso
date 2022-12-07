@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
 import project.Data.Numbers.Number
-import project.Error.Common.Unimplemented
+import project.Error.Unimplemented.Unimplemented
 
 polyglot java import java.lang.Long
 polyglot java import java.util.Random

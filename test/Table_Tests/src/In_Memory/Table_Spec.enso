@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Table import Table, Column, Sort_Column, Column_Selector, Sort_Column_Selector, Aggregate_Column
 import Standard.Table.Main as Table_Module
@@ -6,7 +8,7 @@ from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all hiding Fir
 from Standard.Table.Data.Table import Empty_Error
 from Standard.Table.Data.Storage import Storage
 import Standard.Table.Data.Value_Type.Value_Type
-from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data, Floating_Point_Grouping_Data, Invalid_Value_Type
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Grouping, Invalid_Value_Type
 
 import Standard.Visualization
 
@@ -30,54 +32,6 @@ type My
 
 spec =
     run_common_spec Common_Table_Operations.Main.spec
-
-    Test.group "JSON construction" <|
-        geo_json = Json.parse <| '''
-            {
-              "type": "FeatureCollection",
-              "features": [
-                { "type": "Feature", "properties": { "foo": 1, "bar": "value2"}, "geometry": { "type": "Point", "coordinates": [ -118.58, 34.19 ] } },
-                { "type": "Feature", "properties": { "foo": 2, "baz": 3}, "geometry": { "type": "Point", "coordinates": [ 10.11, 4.88, 19 ] } }
-              ]
-            }
-        Test.specify "should allow converting a JSON array into a table" <|
-            r_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
-            r_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
-            r_3 = Json.from_pairs [['baz', False], ['foo', 13]]
-            t = [r_1, r_2, r_3].to_json.to_table ['foo', 'bar', 'baz']
-            t.columns.map .name . should_equal ['foo', 'bar', 'baz']
-            t.at 'foo' . to_vector . should_equal [20, Nothing, 13]
-            t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
-            t.at 'baz' . to_vector . should_equal [False, True, False]
-
-        Test.specify "should allow converting a GeoJSON array of features into a table" <|
-            fields = ['foo', 'bar', 'baz', 'longitude', 'elevation']
-            t = geo_json.get "features" . to_table fields
-            t.columns.map .name . should_equal fields
-            t.at 'foo' . to_vector . should_equal [1, 2]
-            t.at 'bar' . to_vector . should_equal ['value2', Nothing]
-            t.at 'baz' . to_vector . should_equal [Nothing, 3]
-            t.at 'longitude' . to_vector . should_equal [-118.58, 10.11]
-            t.at 'elevation' . to_vector . should_equal [Nothing, 19]
-
-        Test.specify "should allow converting a GeoJSON object into a table with provided fields" <|
-            fields = ['foo', 'bar', 'longitude']
-            t = geo_json.to_table fields
-            t.columns.map .name . should_equal fields
-            t.at 'foo' . to_vector . should_equal [1, 2]
-            t.at 'bar' . to_vector . should_equal ['value2', Nothing]
-            t.at 'longitude' . to_vector . should_equal [-118.58, 10.11]
-
-        Test.specify "should allow converting a GeoJSON object into a table containing all available fields" <|
-            fields = ['bar', 'baz', 'elevation', 'foo',  'latitude', 'longitude']
-            t = geo_json.to_table
-            t.columns.map .name . should_equal fields
-            t.at 'foo' . to_vector . should_equal [1, 2]
-            t.at 'bar' . to_vector . should_equal ['value2', Nothing]
-            t.at 'baz' . to_vector . should_equal [Nothing, 3]
-            t.at 'longitude' . to_vector . should_equal [-118.58, 10.11]
-            t.at 'latitude' . to_vector . should_equal [34.19, 4.88]
-            t.at 'elevation' . to_vector . should_equal [Nothing, 19]
 
     make_varied_type_table =
         strs = ["strs", ["a", "b", "c", Nothing]]
@@ -152,7 +106,7 @@ spec =
             t.at 's\u0301ciana' . to_vector . should_equal [1, 2, 3]
             t.at 'cafe\u0301' . to_vector . should_equal [4, 5, 6]
             t.at 'café' . to_vector . should_equal [4, 5, 6]
-            t.at 'sciana' . should_fail_with No_Such_Column_Error_Data
+            t.at 'sciana' . should_fail_with No_Such_Column.Error
 
     Test.group "Vector conversion" <|
         Test.specify "should allow converting columns to valid vectors" <|
@@ -414,7 +368,7 @@ spec =
             action = df.order_by (Sort_Column_Selector.By_Name ['foobar']) on_problems=_
             tester table =
                 table.at 'Id' . to_vector . should_equal [1,2,3,4,5,6]
-            problems = [Missing_Input_Columns_Data [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            problems = [Missing_Input_Columns.Error [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
             Problems.test_problem_handling action problems tester
 
         Test.specify 'should correctly reorder all kinds of columns and leave the original columns untouched' <|
@@ -474,7 +428,7 @@ spec =
             r5.at 'ints' . to_vector . should_equal [2, 3, 4, 5, 1]
 
             r6 = df.order_by (Sort_Column_Selector.By_Name ['mixed_dates'])
-            r6 . should_fail_with Incomparable_Values_Error
+            r6 . should_fail_with Incomparable_Values
 
     Test.group "Sorting Columns" <|
         Test.specify 'should sort columns with specified ordering and missing placement' <|
@@ -667,7 +621,7 @@ spec =
             table = Table.new [c_0, c_2]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["Column_1", "1"]
-            problems = [Invalid_Output_Column_Names_Data [""]]
+            problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: invalid names Nothing" <|
@@ -676,7 +630,7 @@ spec =
             table = Table.new [c_0, c_2]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "Column_1"]
-            problems = [Invalid_Output_Column_Names_Data [Nothing]]
+            problems = [Invalid_Output_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
@@ -687,7 +641,7 @@ spec =
             table = Table.new [c_0, c_1, c_2, c_3]
             action = table.use_first_row_as_names on_problems=_
             tester = expect_column_names ["A", "A_1", "A_2", "A_3"]
-            problems = [Duplicate_Output_Column_Names_Data ["A", "A", "A"]]
+            problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 
     Test.group "Table.replace_text" <|
@@ -724,7 +678,7 @@ spec =
             bools = ["bools", [False, False, True, True, False]]
             texts = ["texts", ["foo", "bar", "baz", "spam"]]
             table = Table.new [bools, texts]
-            actual = table.replace_text "texts" "(a|o)" "$1e" matcher=Regex_Matcher.Regex_Matcher_Data
+            actual = table.replace_text "texts" "(a|o)" "$1e" matcher=Regex_Matcher.Value
             actual.at "texts" . to_vector . should_equal ["foeoe", "baer", "baez", "spaem"]
             Problems.assume_no_problems actual
 
@@ -732,14 +686,14 @@ spec =
             table = Table.new [["bools", [False, True]], ["texts", ["foo", "bar"]]]
             action = table.replace_text "invalid_name" "a" "b" on_problems=_
             tester = _.should_equal table
-            problems = [Missing_Input_Columns_Data ['invalid_name']]
+            problems = [Missing_Input_Columns.Error ['invalid_name']]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should return warnings and errors when selected non-text column" <|
             table = Table.new [["bools", [False, True]], ["texts", ["foo", "bar"]]]
             action = table.replace_text "bools" "a" "b" on_problems=_
             tester = _.should_equal table
-            problems = [Invalid_Value_Type.Invalid_Value_Type_Data Value_Type.Char Value_Type.Boolean]
+            problems = [Invalid_Value_Type.Error Value_Type.Char Value_Type.Boolean]
             Problems.test_problem_handling action problems tester
 
     Test.group "[In-Memory] Table.aggregate" <|
@@ -842,14 +796,14 @@ spec =
             action1 = t1.distinct on_problems=_
             tester1 table =
                 table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping_Data "Distinct" [0, 1, 2, 3, 4]]
+            problems1 = [Floating_Point_Grouping.Error "Distinct" [0, 1, 2, 3, 4]]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
             action2 = t2.distinct on_problems=_
             tester2 table =
                 table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
-            problems2 = [Floating_Point_Grouping_Data "Distinct" [0, 1, 2, 3, 4, 5]]
+            problems2 = [Floating_Point_Grouping.Error "Distinct" [0, 1, 2, 3, 4, 5]]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should report a warning and report the whole table if no columns were selected" <|
@@ -861,7 +815,7 @@ spec =
             Problems.test_problem_handling action1 problems1 test
 
             action2 = t.distinct (Column_Selector.By_Name ["mismatched"]) on_problems=_
-            problems2 = [Missing_Input_Columns_Data ["mismatched"], No_Input_Columns_Selected]
+            problems2 = [Missing_Input_Columns.Error ["mismatched"], No_Input_Columns_Selected]
             Problems.test_problem_handling action2 problems2 test
 
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|

@@ -1,72 +1,16 @@
 import project.Data.Text.Text
-import project.Error.Error
 import project.Meta
-import project.Nothing.Nothing
-import project.Panic.Panic
 
-polyglot java import java.lang.IllegalArgumentException
-
-polyglot java import java.io.IOException
-polyglot java import java.nio.file.AccessDeniedException
-polyglot java import java.nio.file.NoSuchFileException
-polyglot java import java.nio.file.FileAlreadyExistsException
-polyglot java import java.lang.ClassCastException
-
-type Illegal_State
-    ## UNSTABLE
-
-       A generic error that indicates that a given operation cannot be performed
-       in some specific conditions.
-
-       Arguments:
-       - message: the error message explaining why the operation cannot be
-         performed.
-       - cause: (optional) another error that is the cause of this one.
-    Error message cause=Nothing
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the encoding error.
-    to_display_text : Text
-    to_display_text self = "Illegal State: " + self.message
-
-type Illegal_Argument
-
-    ## UNSTABLE
-
-       A generic error that indicates that the provided argument is not valid
-       for the operation.
-
-       Arguments:
-       - message: the error message explaining why the argument is illegal.
-       - cause: (optional) another error that is the cause of this one.
-    Error message cause=Nothing
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the encoding error.
-    to_display_text : Text
-    to_display_text self = "Illegal Argument: " + self.message
-
-    ## PRIVATE
-       Capture a Java IllegalArgumentException and rethrow
-    handle_java_exception =
-        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument.Error cause.getMessage cause))
-
-# TODO Dubious constructor export
-from project.Error.Common.Index_Out_Of_Bounds_Error import all
-from project.Error.Common.Index_Out_Of_Bounds_Error export all
-
-## UNSTABLE
-
-   An error indicating that a requested index was out of bounds of a collection.
-
-   Arguments:
-   - index: The requested index.
-   - length: The length of the collection.
 @Builtin_Type
-type Index_Out_Of_Bounds_Error
-    Index_Out_Of_Bounds_Error_Data index length
+type Index_Out_Of_Bounds
+    ## UNSTABLE
+
+       An error indicating that a requested index was out of bounds of a collection.
+
+       Arguments:
+       - index: The requested index.
+       - length: The length of the collection.
+    Error index length
 
     ## PRIVATE
 
@@ -75,93 +19,69 @@ type Index_Out_Of_Bounds_Error
     to_display_text self =
         "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
 
-# TODO Dubious constructor export
-from project.Error.Common.Syntax_Error import all
-from project.Error.Common.Syntax_Error export all
-
-## The runtime representation of a syntax error.
-
-   Arguments:
-   - message: A description of the erroneous syntax.
 @Builtin_Type
 type Syntax_Error
-    Syntax_Error_Data message
+    ## The runtime representation of a syntax error.
 
-# TODO Dubious constructor export
-from project.Error.Common.Type_Error import all
-from project.Error.Common.Type_Error export all
+       Arguments:
+       - message: A description of the erroneous syntax.
+   Error message
 
-## The runtime representation of a type error.
-
-   Arguments:
-   - expected: The expected type at the error location.
-   - actual: The actual type at the error location.
-   - name: The name of the argument whose type is mismatched.
 @Builtin_Type
 type Type_Error
-    Type_Error_Data expected actual name
+    ## The runtime representation of a type error.
 
-# TODO Dubious constructor export
-from project.Error.Common.Compile_Error import all
-from project.Error.Common.Compile_Error export all
+       Arguments:
+       - expected: The expected type at the error location.
+       - actual: The actual type at the error location.
+       - name: The name of the argument whose type is mismatched.
+    Error expected actual name
 
-## The runtime representation of a compilation error.
-
-   Arguments:
-   - message: A description of the erroneous state.
 @Builtin_Type
 type Compile_Error
-    Compile_Error_Data message
+    ## The runtime representation of a compilation error.
 
-# TODO Dubious constructor export
-from project.Error.Common.Inexhaustive_Pattern_Match_Error import all
-from project.Error.Common.Inexhaustive_Pattern_Match_Error export all
+       Arguments:
+       - message: A description of the erroneous state.
+    Error message
 
-## The error thrown when a there is no pattern to match on the scrutinee.
-
-   Arguments:
-   - scrutinee: The scrutinee that failed to match.
 @Builtin_Type
-type Inexhaustive_Pattern_Match_Error
-    Inexhaustive_Pattern_Match_Error_Data scrutinee
+type Inexhaustive_Pattern_Match
+    ## The error thrown when a there is no pattern to match on the scrutinee.
 
-# TODO Dubious constructor export
-from project.Error.Common.Arity_Error import all
-from project.Error.Common.Arity_Error export all
+       Arguments:
+       - scrutinee: The scrutinee that failed to match.
+    Error scrutinee
 
-## The error thrown when the number of arguments provided to an operation
-   does not match the expected number of arguments.
-
-   Arguments:
-     - expected_min: the minimum expected number of arguments.
-     - expected_max: the maximum expected number of arguments.
-     - actual: the actual number of arguments passed.
 @Builtin_Type
 type Arity_Error
-    Arity_Error_Data expected_min expected_max actual
+    ## The error thrown when the number of arguments provided to an operation
+       does not match the expected number of arguments.
 
-## The error thrown when the program attempts to read from a state slot that has
-   not yet been initialized.
+       Arguments:
+       - expected_min: the minimum expected number of arguments.
+       - expected_max: the maximum expected number of arguments.
+       - actual: the actual number of arguments passed.
+    Error expected_min expected_max actual
 
-   Arguments:
-   - key: The key for the state slot that was not initialized.
 @Builtin_Type
 type Uninitialized_State
-    Uninitialized_State_Data key
+    ## The error thrown when the program attempts to read from a state slot that has
+       not yet been initialized.
 
-# TODO Dubious constructor export
-from project.Error.Common.No_Such_Method_Error import all
-from project.Error.Common.No_Such_Method_Error export all
+       Arguments:
+       - key: The key for the state slot that was not initialized.
+    Error key
 
-## The error thrown when the specified symbol does not exist as a method on
-   the target.
-
-   Arguments:
-   - target: The target on which the attempted method call was performed.
-   - symbol: The symbol that was attempted to be called on target.
 @Builtin_Type
-type No_Such_Method_Error
-    No_Such_Method_Error_Data target symbol
+type No_Such_Method
+    ## The error thrown when the specified symbol does not exist as a method on
+       the target.
+
+       Arguments:
+       - target: The target on which the attempted method call was performed.
+       - symbol: The symbol that was attempted to be called on target.
+    Error target symbol
 
     ## ADVANCED
        UNSTABLE
@@ -180,235 +100,78 @@ type No_Such_Method_Error
     method_name self =
         Meta.meta self.symbol . name
 
-## An error that occurred across a polyglot boundary.
-
-   Arguments:
-   - cause: A polyglot object corresponding to the original error.
 @Builtin_Type
 type Polyglot_Error
-    Polyglot_Error_Data cause
+    ## An error that occurred across a polyglot boundary.
+
+       Arguments:
+       - cause: A polyglot object corresponding to the original error.
+   Error cause
 
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.
 @Builtin_Type
 type Module_Not_In_Package_Error
 
-# TODO Dubious constructor export
-from project.Error.Common.Arithmetic_Error import all
-from project.Error.Common.Arithmetic_Error export all
-
-## An error for when an erroneous arithmetic computation takes place.
-
-   Arguments:
-   - message: A description of the error condition.
 @Builtin_Type
 type Arithmetic_Error
-    Arithmetic_Error_Data message
+    ## An error for when an erroneous arithmetic computation takes place.
 
-# TODO Dubious constructor export
-from project.Error.Common.Invalid_Array_Index_Error import all
-from project.Error.Common.Invalid_Array_Index_Error export all
-
-## An error that occurs when a program requests a read from an array index
-   that is out of bounds in the array.
-
-   Arguments:
-   - array: The array in which the index was requested.
-   - index: The index that was out of bounds.
-@Builtin_Type
-type Invalid_Array_Index_Error
-    Invalid_Array_Index_Error_Data array index
-
-# TODO Dubious constructor export
-from project.Error.Common.Not_Invokable_Error import all
-from project.Error.Common.Not_Invokable_Error export all
-
-## An error that occurs when an object is used as a function in a function
-   call, but it cannot be called.
-
-   Arguments:
-     - target: The called object.
-@Builtin_Type
-type Not_Invokable_Error
-    Not_Invokable_Error_Data target
-
-# TODO Dubious constructor export
-from project.Error.Common.Unsupported_Argument_Types import all
-from project.Error.Common.Unsupported_Argument_Types export all
-
-## An error that occurs when arguments used in a function call are invalid
-   types for the function.
-
-   Arguments:
-     - arguments: The passed arguments.
-     - message: A detailed message.
-@Builtin_Type
-type Unsupported_Argument_Types
-    Unsupported_Argument_Types_Data arguments message
-
-## TODO Dubious constructor export
-from project.Error.Common.Module_Does_Not_Exist import all
-from project.Error.Common.Module_Does_Not_Exist export all
-
-## An error that occurs when the specified module cannot be found.
-
-   Arguments:
-     - name: The module searched for.
-@Builtin_Type
-type Module_Does_Not_Exist
-    Module_Does_Not_Exist_Data name
-
-## TODO Dubious constructor export
-from project.Error.Common.Invalid_Conversion_Target_Error import all
-from project.Error.Common.Invalid_Conversion_Target_Error export all
-
-## An error that occurs when the specified value cannot be converted to a given type
-## FIXME: please check
-
-   Arguments:
-     - target: ...
-@Builtin_Type
-type Invalid_Conversion_Target_Error
-    Invalid_Conversion_Target_Error_Data target
-
-## TODO Dubious constructor export
-from project.Error.Common.No_Such_Conversion_Error import all
-from project.Error.Common.No_Such_Conversion_Error export all
-
-## An error that occurs when the conversion from one type to another does not exist
-## FIXME: please check
-
-   Arguments:
-     - target: ...
-     - that: ...
-     - conversion: ...
-@Builtin_Type
-type No_Such_Conversion_Error
-    No_Such_Conversion_Error_Data target that conversion
-
-## UNSTABLE
-
-   A type used to represent that something has not yet been implemented.
-
-   Arguments:
-   - message: The message describing what implementation is missing.
-type Unimplemented
+       Arguments:
+       - message: A description of the error condition.
     Error message
 
-    ## PRIVATE
-
-       Converts the unimplemented error to a human-readable error message.
-    to_display_text : Text
-    to_display_text self = "An implementation is missing: " + self.message
-
-    ## ADVANCED
-
-       A function that can be used to indicate that something hasn't been
-       implemented yet.
+@Builtin_Type
+type Invalid_Array_Index
+    ## An error that occurs when a program requests a read from an array index
+       that is out of bounds in the array.
 
        Arguments:
-       - message: A description of what implementation is missing.
+       - array: The array in which the index was requested.
+       - index: The index that was out of bounds.
+    Error array index
 
-       > Example
-         Throwing an error to show that something is unimplemented.
-
-             import Standard.Base.Error.Common as Errors
-
-             example_unimplemented = Errors.Unimplemented.throw
-    throw : Text -> Nothing
-    throw message="" = Panic.throw (Unimplemented.Error message)
-
-type Time_Error
-
-    ## UNSTABLE
-
-       An error produced while working with time- and date-related methods.
+@Builtin_Type
+type Not_Invokable
+    ## An error that occurs when an object is used as a function in a function
+       call, but it cannot be called.
 
        Arguments:
-       - error_message: The message for the error.
-    Error error_message
+       - target: The called object.
+    Error target
 
-    ## PRIVATE
-    epoch_start : Time_Error
-    epoch_start = Time_Error.Error "Epoch start underflow"
-
-    to_display_text : Text
-    to_display_text self = self.error_message
-
-## Indicates that the given file's type is not supported.
-type Unsupported_File_Type
-    Error filename
-
-    to_display_text : Text
-    to_display_text self =
-        "The "+self.filename+" has a type that is not supported."
-
-## UNSTABLE
-
-   An error indicating that some elements are incomparable.
-
-type Incomparable_Values_Error
-    ## ADVANCED
-       Catches possible errors from comparing values and throws an
-       Incomparable_Values_Error if any occur.
-    handle_errors ~function =
-        handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
-        handle ClassCastException <|
-            handle No_Such_Method_Error_Data <|
-                handle Type_Error_Data <|
-                    handle Unsupported_Argument_Types_Data <|
-                        function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
-
-## Errors when reading or writing to a file.
-type File_Error
-
-    ## An error that indicates that the requested file does not exist.
+@Builtin_Type
+type Unsupported_Argument_Types
+    ## An error that occurs when arguments used in a function call are invalid
+       types for the function.
 
        Arguments:
-       - file: The file that doesn't exist.
-    Not_Found file
+       - arguments: The passed arguments.
+       - message: A detailed message.
+    Error arguments message
 
-    ## Indicates that a destination file already exists.
-    Already_Exists file
-
-    ## A generic IO error.
+@Builtin_Type
+type Module_Does_Not_Exist
+    ## An error that occurs when the specified module cannot be found.
 
        Arguments:
-       - file: The file that couldn't be read.
-       - message: The message for the error.
-    IO_Error file message
+       - name: The module searched for.
+    Error name
 
-    ## UNSTABLE
+@Builtin_Type
+type Invalid_Conversion_Target
+    ## An error that occurs when the specified value cannot be converted to a given type
 
-       Convert the File error to a human-readable format.
-    to_display_text : Text
-    to_display_text self = case self of
-        File_Error.Not_Found  file -> "The file at " + file.path + " does not exist."
-        File_Error.IO_Error file msg -> msg.to_text + " (" + file.path + ")."
-        File_Error.Already_Exists file -> "The file at "+file.path+" already exists."
+       Arguments:
+       - target: the type trying to be converted to.
+    Error target
 
-    ## PRIVATE
+@Builtin_Type
+type No_Such_Conversion
+    ## An error that occurs when the conversion from one type to another does not exist
 
-       Utility method for running an action with Java exceptions mapping.
-    handle_java_exceptions file ~action =
-        Panic.catch IOException action caught_panic->
-            File_Error.wrap_io_exception file caught_panic.payload.cause
-
-    ## PRIVATE
-
-       Converts a Java `IOException` into its Enso counterpart.
-    wrap_io_exception file io_exception =
-        if io_exception.is_a NoSuchFileException then Error.throw (File_Error.Not_Found file) else
-            if io_exception.is_a FileAlreadyExistsException then Error.throw (File_Error.Already_Exists file) else
-                if io_exception.is_a AccessDeniedException then Error.throw (File_Error.IO_Error file "You do not have permission to access the file") else
-                    Error.throw (File_Error.IO_Error file "An IO error has occurred: "+io_exception.to_text)
-
-## One or more byte sequences were not decodable using the Encoding.
-type Encoding_Error
-    Error (message:Text)
-
-    ## PRIVATE
-
-       Provides a human-readable representation of the encoding error.
-    to_display_text : Text
-    to_display_text self = "Encoding_Error: " + self.message
+       Arguments:
+       - target: the type trying to be converted to.
+       - that: the value to be converted.
+       - conversion: the conversion that was attempted.
+    Error target that conversion

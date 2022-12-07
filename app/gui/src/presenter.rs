@@ -103,20 +103,25 @@ impl Model {
     #[profile(Task)]
     fn create_project(&self, template: Option<&str>) {
         let controller = self.controller.clone_ref();
-        let template = template.map(ToOwned::to_owned);
-        crate::executor::global::spawn(async move {
-            if let Ok(managing_api) = controller.manage_projects() {
-                if let Err(err) = managing_api.create_new_project(template.clone()).await {
-                    if let Some(template) = template {
-                        error!("Could not create new project from template {template}: {err}.");
-                    } else {
-                        error!("Could not create new project: {err}.");
+        if let Ok(template) =
+            template.map(double_representation::name::project::Template::from_text).transpose()
+        {
+            crate::executor::global::spawn(async move {
+                if let Ok(managing_api) = controller.manage_projects() {
+                    if let Err(err) = managing_api.create_new_project(template.clone()).await {
+                        if let Some(template) = template {
+                            error!("Could not create new project from template {template}: {err}.");
+                        } else {
+                            error!("Could not create new project: {err}.");
+                        }
                     }
+                } else {
+                    warn!("Project creation failed: no ProjectManagingAPI available.");
                 }
-            } else {
-                warn!("Project creation failed: no ProjectManagingAPI available.");
-            }
-        });
+            })
+        } else if let Some(template) = template {
+            error!("Invalid project template name: {template}");
+        };
     }
 }
 

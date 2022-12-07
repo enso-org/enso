@@ -4,11 +4,12 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Nothing.Nothing
+import project.Error.Illegal_State.Illegal_State
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Illegal_Argument, Illegal_State
 
 ## Represents a right-exclusive range of integer values.
 type Range
@@ -20,7 +21,7 @@ type Range
        - step: The step between values. Must be a positive value.
     new : Integer -> Integer -> Integer -> Range
     new start=0 end=100 step=1 =
-        Range.Value start end (if start > end then -1 else 1) . with_step step
+        Range.Between start end (if start > end then -1 else 1) . with_step step
 
     ## UNSTABLE
        A representation of a right-exclusive range of integer values.
@@ -30,7 +31,7 @@ type Range
        - end: The right boundary of the range. Its value is excluded.
        - step: The step between consecutive elements of the range. It must be
          non-zero. Defaults to 1.
-    Value (start : Integer) (end : Integer) (step : Integer = 1)
+    Between (start : Integer) (end : Integer) (step : Integer = 1)
 
     ## Creates a copy of this range with a changed step.
 
@@ -48,7 +49,7 @@ type Range
         _ : Integer ->
             if new_step == 0 then throw_zero_step_error else
                 if new_step < 0 then Error.throw (Illegal_Argument.Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
-                    Range.Value self.start self.end self.step.signum*new_step
+                    Range.Between self.start self.end self.step.signum*new_step
         _ ->
             Error.throw (Illegal_Argument.Error "Range step should be an integer.")
 

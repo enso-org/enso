@@ -1,6 +1,7 @@
 from Standard.Base import all
-
-from Standard.Base.Error.Common import Time_Error
+import Standard.Base.Error.Common.Polyglot_Error
+import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -132,9 +133,9 @@ spec_with name create_new_date parse_date =
             date_1<date_2 . should_be_false
 
             datetime = Date_Time.new 2021 1 2 12 40
-            date_1.compare_to datetime . should_fail_with Type_Error_Data
-            date_1<datetime . should_fail_with Type_Error_Data
-            date_1>=datetime . should_fail_with Type_Error_Data
+            date_1.compare_to datetime . should_fail_with Type_Error.Error
+            date_1<datetime . should_fail_with Type_Error.Error
+            date_1>=datetime . should_fail_with Type_Error.Error
             date_1==datetime . should_be_false
 
         Test.specify "should create date before epoch start" <|
@@ -143,8 +144,10 @@ spec_with name create_new_date parse_date =
             (create_new_date 100 1 2).day    . should_equal 2
 
         Test.specify "Gregorian calendar related functionality should produce warning before epoch start" <|
-            expect_warning value =
-                (Warning.get_all value . map .value . exists (_.is_a Time_Error.Error)) . should_be_true
+            is_time_error v = case v of
+                _ : Time_Error -> True
+                _ -> False
+            expect_warning value = (Warning.get_all value . map .value . exists is_time_error) . should_be_true
             dates_before_epoch = [(create_new_date 100), (create_new_date 500 6 3)]
             dates_before_epoch.each date->
                 expect_warning date.week_of_year
@@ -434,7 +437,7 @@ js_array_date year month=1 day=1 =
     js_set_zone arr.at(0)
 
 java_parse date_text pattern=Nothing =
-    Panic.catch Polyglot_Error.Polyglot_Error_Data handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error.Error handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalDate.parse date_text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDate.parse date_text formatter

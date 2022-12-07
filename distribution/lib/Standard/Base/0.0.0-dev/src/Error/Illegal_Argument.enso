@@ -1,0 +1,29 @@
+import project.Data.Text.Text
+import project.Error.Error
+import project.Nothing.Nothing
+import project.Panic.Panic
+
+polyglot java import java.lang.IllegalArgumentException
+
+type Illegal_Argument
+
+    ## UNSTABLE
+
+       A generic error that indicates that the provided argument is not valid
+       for the operation.
+
+       Arguments:
+       - message: the error message explaining why the argument is illegal.
+       - cause: (optional) another error that is the cause of this one.
+    Error message cause=Nothing
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the encoding error.
+    to_display_text : Text
+    to_display_text self = "Illegal Argument: " + self.message
+
+    ## PRIVATE
+       Capture a Java `IllegalArgumentException` and convert it to Enso dataflow error - `Illegal_Argument_Error`.
+    handle_java_exception =
+        Panic.catch_java IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument.Error cause.getMessage cause))

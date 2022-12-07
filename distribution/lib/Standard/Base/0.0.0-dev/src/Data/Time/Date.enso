@@ -13,7 +13,11 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Common.Polyglot_Error
+import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Time_Error.Time_Error
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
@@ -22,7 +26,6 @@ import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
-from project.Error.Common import Type_Error_Data, Time_Error, Polyglot_Error, Illegal_Argument
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import java.time.temporal.ChronoField
@@ -199,7 +202,7 @@ type Date
             _ : Text -> parse_builtin text pattern
             _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
         result . map_error <| case _ of
-            Polyglot_Error.Polyglot_Error_Data err -> Time_Error.Error err.getMessage
+            Polyglot_Error.Error err -> Time_Error.Error err.getMessage
             ex -> ex
 
     ## Get the year field.
@@ -596,7 +599,7 @@ type Date
         _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             Ordering.from_sign sign
-        _ -> Error.throw (Type_Error_Data Date that "that")
+        _ -> Error.throw (Type_Error.Error Date that "that")
 
     ## Compares two Dates for equality.
     == : Date -> Boolean

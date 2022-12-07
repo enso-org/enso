@@ -10,7 +10,11 @@ import project.Data.Pair.Pair
 import project.Data.Range.Range
 import project.Data.Range.Extensions
 import project.Data.Text.Text
+import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Common.No_Such_Method
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Incomparable_Values.Incomparable_Values
 import project.Function.Function
 import project.Math
 import project.Nothing.Nothing
@@ -19,7 +23,6 @@ import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Illegal_Argument, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
@@ -160,7 +163,7 @@ type Vector a
          Get the last element of a vector.
 
              [1, 2, 3].at -1 == 3
-    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at : Integer -> Any ! Index_Out_Of_Bounds
     at self index = @Builtin_Method "Vector.at"
 
     ## Combines all the elements of the vector, by iteratively applying the
@@ -233,11 +236,11 @@ type Vector a
          Compute the sum of all fo the elements in a vector.
 
              [0, 1, 2].sum
-    sum : Any ! (Empty_Error | No_Such_Method_Error)
+    sum : Any ! (Empty_Error | No_Such_Method)
     sum self =
         result = Panic.recover Any <| self.reduce (+)
         result.map_error x->case x of
-            No_Such_Method_Error_Data _ _ -> x
+            _ : No_Such_Method -> x
             Empty_Error -> x
             _ -> Panic.throw x
 
@@ -793,7 +796,7 @@ type Vector a
     first : Vector ! Empty_Error
     first self = self.head
 
-    ## Get the second element from the vector, or a `Index_Out_Of_Bounds_Error` if the
+    ## Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
        vector doesn't have a second element.
 
        Useful when tuples are implemented as vectors.
@@ -802,7 +805,7 @@ type Vector a
          The following code returns 2.
 
              [1, 2, 3, 4].second
-    second : Vector ! Index_Out_Of_Bounds_Error
+    second : Vector ! Index_Out_Of_Bounds
     second self = self.at 1
 
     ## Get all elements in the vector except the first.
@@ -854,7 +857,7 @@ type Vector a
          Sorting a vector of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Direction.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values_Error
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values
     sort self (on = x -> x) (by = (_.compare_to _)) (order = Sort_Direction.Ascending) =
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
@@ -870,7 +873,7 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        Incomparable_Values_Error.handle_errors <|
+        Incomparable_Values.handle_errors <|
             new_vec_arr.sort compare
             Vector.from_polyglot_array new_vec_arr
 
@@ -908,7 +911,7 @@ type Vector a
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        Incomparable_Values_Error.handle_errors <|
+        Incomparable_Values.handle_errors <|
             builder = Vector.new_builder
             result = self.fold Map.empty existing->
                 item->
@@ -1049,11 +1052,11 @@ type Builder
        - index: The location in the vector to get the element from. The index is
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
-    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at : Integer -> Any ! Index_Out_Of_Bounds
     at self index =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
+            Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
     ## Checks whether a predicate holds for at least one element of this builder.
 
@@ -1104,7 +1107,7 @@ slice_ranges vector ranges =
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
                 _ : Integer -> [vector.at ranges.first]
-                Range.Value start end step -> case step == 1 of
+                Range.Between start end step -> case step == 1 of
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
 
@@ -1118,7 +1121,7 @@ slice_many_ranges vector ranges =
     ranges.each descriptor-> case descriptor of
         _ : Integer ->
             builder.append (vector.at descriptor)
-        Range.Value start end step -> case step == 1 of
+        Range.Between start end step -> case step == 1 of
             True ->
                 builder.append_vector_range vector start end
             False ->

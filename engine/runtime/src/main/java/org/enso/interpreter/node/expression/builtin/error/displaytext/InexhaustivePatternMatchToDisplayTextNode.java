@@ -9,23 +9,23 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Not_Invokable_Error", name = "to_display_text")
-public abstract class NotInvokableErrorToDisplayTextNode extends Node {
-  static NotInvokableErrorToDisplayTextNode build() {
-    return NotInvokableErrorToDisplayTextNodeGen.create();
+@BuiltinMethod(type = "Inexhaustive_Pattern_Match", name = "to_display_text")
+public abstract class InexhaustivePatternMatchToDisplayTextNode extends Node {
+  static InexhaustivePatternMatchToDisplayTextNode build() {
+    return InexhaustivePatternMatchToDisplayTextNodeGen.create();
   }
 
   abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
-    return Text.create("Type error: expected a function, but got ")
+    return Text.create("Inexhaustive pattern match: no branch matches ")
         .add(displayTypeNode.execute(self.getFields()[0]))
         .add(".");
   }
 
   @Specialization
   Text doConstructor(AtomConstructor self) {
-    return Text.create("Type error.");
+    return Text.create("Inexhaustive pattern match.");
   }
 }

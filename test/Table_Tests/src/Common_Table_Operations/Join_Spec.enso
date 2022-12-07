@@ -85,7 +85,7 @@ spec setup =
                 expect_column_names ["X", "Y", "Z", "W"] table
                 table.row_count . should_equal 0
                 table.at "X" . to_vector . should_equal []
-            problems = [Column_Indexes_Out_Of_Range_Data [42, -3], Missing_Input_Columns_Data ["foo", "baz"]]
+            problems = [Column_Indexes_Out_Of_Range.Error [42, -3], Missing_Input_Columns.Error ["foo", "baz"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should rename columns of the right table to avoid duplicates" <|

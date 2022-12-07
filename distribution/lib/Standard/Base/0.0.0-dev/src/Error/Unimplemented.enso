@@ -1,0 +1,35 @@
+import project.Data.Text.Text
+import project.Nothing.Nothing
+import project.Panic.Panic
+
+type Unimplemented
+    ## UNSTABLE
+
+       A type used to represent that something has not yet been implemented.
+
+       Arguments:
+       - message: The message describing what implementation is missing.
+    Error message
+
+    ## PRIVATE
+
+       Converts the unimplemented error to a human-readable error message.
+    to_display_text : Text
+    to_display_text self = "An implementation is missing: " + self.message
+
+    ## ADVANCED
+
+       A function that can be used to indicate that something hasn't been
+       implemented yet.
+
+       Arguments:
+       - message: A description of what implementation is missing.
+
+       > Example
+         Throwing an error to show that something is unimplemented.
+
+             import Standard.Base.Error.Common as Errors
+
+             example_unimplemented = Errors.Unimplemented.throw
+    throw : Text -> Nothing
+    throw message="" = Panic.throw (Unimplemented.Error message)
