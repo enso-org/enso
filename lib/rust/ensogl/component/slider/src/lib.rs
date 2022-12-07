@@ -684,16 +684,22 @@ impl Slider {
             thumb_pos <- all3(&track_pos_anim.value, &input.set_thumb_size, &input.set_orientation);
             eval thumb_pos((v) model.set_thumb_fraction(v));
 
-            value_text_left_pos_x <- all2(
+            value_text_left_pos_x <- all3(
                 &model.value_text_left.width,
                 &model.value_text_dot.width,
+                &output.precision,
             );
-            value_text_left_pos_x <- value_text_left_pos_x.map(|(left, dot)| -*left - *dot / 2.0);
+            value_text_left_pos_x <- value_text_left_pos_x.map(
+                // Center text if precision higher than 1.0 (integer display), else align to dot.
+                |(left, dot, prec)| if *prec >= 1.0 {- *left / 2.0} else {- *left - *dot / 2.0}
+            );
             eval value_text_left_pos_x((x) model.value_text_left.set_x(*x));
             eval model.value_text_left.height((h) model.value_text_left.set_y(*h / 2.0));
-            eval model.value_text_dot.width((w) model.value_text_dot.set_x(-*w / 2.0));
+            eval model.value_text_dot.width((w) {
+                model.value_text_dot.set_x(-*w / 2.0);
+                model.value_text_right.set_x(*w / 2.0);
+            });
             eval model.value_text_dot.height((h) model.value_text_dot.set_y(*h / 2.0));
-            eval model.value_text_dot.width((w) model.value_text_right.set_x(*w / 2.0));
             eval model.value_text_right.height((h) model.value_text_right.set_y(*h / 2.0));
             eval model.value_text_edit.width((w) model.value_text_edit.set_x(-*w / 2.0));
             eval model.value_text_edit.height((h) model.value_text_edit.set_y(*h / 2.0));
