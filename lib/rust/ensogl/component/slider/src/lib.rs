@@ -424,6 +424,13 @@ impl Slider {
             output.dragged <+ component_drag;
 
 
+            // === Get slider value on drag start ===
+
+            value_reset <- input.set_default_value.sample(&component_ctrl_click);
+            value_on_click <- output.value.sample(&component_click);
+            value_on_click <- any2(&value_reset, &value_on_click);
+
+
             // === Precision calculation ===
 
             slider_length <- all3(&input.set_orientation, &input.set_width, &input.set_height);
@@ -512,9 +519,6 @@ impl Slider {
 
             // === Value calculation ===
 
-            value_reset <- input.set_default_value.sample(&component_ctrl_click);
-            value_on_click <- output.value.sample(&component_click);
-            value_on_click <- any2(&value_reset, &value_on_click);
             update_value <- bool(&component_release, &value_on_click);
             value <- all3(&value_on_click, &precision, &drag_delta_primary);
             value <- value.gate(&update_value);
@@ -535,7 +539,7 @@ impl Slider {
 
             small_value_step <- all2(&precision, &prec_at_mouse_speed);
             small_value_step <- small_value_step.map(|(prec, threshold)| prec <= threshold);
-            mouse_adjust <- drag_delta_primary.map(|x| *x != 0.0).gate(&update_value);
+            mouse_adjust <- drag_delta_primary.map(|x| *x != 0.0);
             skip_value_anim <- value.constant(()).gate(&small_value_step).gate(&mouse_adjust);
             model.value_animation.target <+ value;
             model.value_animation.skip <+ skip_value_anim;
