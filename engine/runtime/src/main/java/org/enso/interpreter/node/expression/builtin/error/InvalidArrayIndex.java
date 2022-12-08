@@ -6,9 +6,14 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class NoSuchMethodError extends UniquelyConstructibleBuiltin {
+public class InvalidArrayIndex extends UniquelyConstructibleBuiltin {
+  @Override
+  protected String getConstructorName() {
+    return "Error";
+  }
+
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("target", "symbol");
+    return List.of("array", "index");
   }
 }

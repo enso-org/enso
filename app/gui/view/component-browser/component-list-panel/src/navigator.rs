@@ -6,9 +6,9 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::grid::entry::icon;
 use crate::AllStyles;
 
-use crate::grid::entry::icon;
 use enso_frp as frp;
 use ensogl_core::animation::animation::delayed::DelayedAnimation;
 use ensogl_core::application::tooltip;

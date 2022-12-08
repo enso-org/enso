@@ -1,5 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Data.Vector import Empty_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -149,13 +151,13 @@ spec =
             ord_set.compute Statistic.Minimum . should_equal (Ord.Value 10)
             ord_set.compute Statistic.Maximum . should_equal (Ord.Value 2)
 
-        Test.specify "should fail with Incomparable_Values_Error on custom type without compare_to" <|
+        Test.specify "should fail with Incomparable_Values on custom type without compare_to" <|
             no_ord_set.compute . should_equal 3
-            no_ord_set.compute Statistic.Minimum . should_fail_with Incomparable_Values_Error
-            no_ord_set.compute Statistic.Maximum . should_fail_with Incomparable_Values_Error
+            no_ord_set.compute Statistic.Minimum . should_fail_with Incomparable_Values
+            no_ord_set.compute Statistic.Maximum . should_fail_with Incomparable_Values
 
-        Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
-            [1, False].compute Statistic.Minimum . should_fail_with Incomparable_Values_Error
+        Test.specify "should fail with Incomparable_Values on mixed Vectors" <|
+            [1, False].compute Statistic.Minimum . should_fail_with Incomparable_Values
 
     Test.group "Rank Data" <|
         Test.specify "can rank a Decimal data series" <|
@@ -178,12 +180,12 @@ spec =
             values = ["G", "AA", "B", "G", "D"]
             Statistic.rank_data values . should_equal [1.5, 5, 4, 1.5, 3]
 
-        Test.specify "should fail with Incomparable_Values_Error on custom type without compare_to" <|
+        Test.specify "should fail with Incomparable_Values on custom type without compare_to" <|
             values = [No_Ord.Value 10, No_Ord.Value 2, No_Ord.Value 9]
-            Statistic.rank_data values . should_fail_with Incomparable_Values_Error
+            Statistic.rank_data values . should_fail_with Incomparable_Values
 
-        Test.specify "should fail with Incomparable_Values_Error on mixed Vectors" <|
-            Statistic.rank_data [1, "A"] . should_fail_with Incomparable_Values_Error
+        Test.specify "should fail with Incomparable_Values on mixed Vectors" <|
+            Statistic.rank_data [1, "A"] . should_fail_with Incomparable_Values
 
         Test.specify "should fail with Illegal_Argument on Vectors with Nothing" <|
             Statistic.rank_data [1, Nothing, 4] . should_fail_with Illegal_Argument.Error

@@ -7,13 +7,15 @@ import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Illegal_State.Illegal_State
+import project.Error.Time_Error.Time_Error
 import project.Meta
 import project.Panic.Panic
 import project.Runtime
 import project.System
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Type_Error_Data, Time_Error, Illegal_Argument, Illegal_State
 
 polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.Period as Java_Period

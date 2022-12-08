@@ -4,7 +4,7 @@ import project.Data.Text.Matching_Mode
 import project.Data.Text.Regex.Regex_Mode.Regex_Mode
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Common.Unimplemented
+import project.Error.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 
 ## The `Data.Text.Regex.Engine.Pattern` interface.

@@ -76,7 +76,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       return (Type) self;
     } else {
       throw new PanicException(
-          EnsoContext.get(thisNode).getBuiltins().error().makeInvalidConversionTargetError(self),
+          EnsoContext.get(thisNode).getBuiltins().error().makeInvalidConversionTarget(self),
           thisNode);
     }
   }
@@ -212,10 +212,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
-        EnsoContext.get(this)
-            .getBuiltins()
-            .error()
-            .makeNoSuchConversionError(self, that, conversion),
+        EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(self, that, conversion),
         this);
   }
 

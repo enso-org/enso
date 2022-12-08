@@ -56,7 +56,7 @@ public abstract class CopyNode extends Node {
           EnsoContext.get(this)
               .getBuiltins()
               .error()
-              .makeInvalidArrayIndexError(src, e.getInvalidIndex()),
+              .makeInvalidArrayIndex(src, e.getInvalidIndex()),
           this);
     }
     return EnsoContext.get(this).getBuiltins().nothing();

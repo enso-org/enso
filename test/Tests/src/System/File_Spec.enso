@@ -1,4 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions

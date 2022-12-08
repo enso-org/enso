@@ -27,7 +27,7 @@ public abstract class MethodResolverNode extends Node {
     var result = execute(type, symbol);
     if (result == null) {
       throw new PanicException(
-          EnsoContext.get(this).getBuiltins().error().makeNoSuchMethodError(self, symbol), this);
+          EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
     return result;
   }

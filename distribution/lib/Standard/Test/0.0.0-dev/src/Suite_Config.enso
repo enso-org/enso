@@ -22,9 +22,11 @@ find_caller_script stack =
 
     find_caller idx =
         source = stack.at idx . source_location
-        if source.is_a Source_Location.Value then stack.at idx . source_location . file else
-            if (idx + 1 == stack.length) then Nothing else
-                @Tail_Call find_caller (idx + 1)
+        case source of
+            _ : Source_Location -> stack.at idx . source_location . file
+            _ ->
+                if (idx + 1 == stack.length) then Nothing else
+                    @Tail_Call find_caller (idx + 1)
 
     find_caller (main_index + 1)
 

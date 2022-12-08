@@ -14,6 +14,11 @@ import java.util.List;
 @BuiltinType
 public class PolyglotError extends UniquelyConstructibleBuiltin {
   @Override
+  protected String getConstructorName() {
+    return "Error";
+  }
+
+  @Override
   protected List<String> getConstructorParamNames() {
     return List.of("cause");
   }

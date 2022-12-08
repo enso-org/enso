@@ -1,11 +1,13 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 import project.Data.Table
 import project.Data.Match_Columns.Match_Columns
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 import project.Excel.Excel_Reader
-from project.Errors import Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from project.Errors import Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.read.ExcelReader
 polyglot java import org.enso.table.write.ExcelWriter
@@ -58,13 +60,13 @@ write_file file table on_existing_file section headers match_columns _ xls_forma
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file
 handle_writer ~writer =
-    bad_location caught_panic = Error.throw (Invalid_Location_Data caught_panic.payload.cause.getCause)
+    bad_location caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.cause.getCause)
     handle_bad_location = Panic.catch InvalidLocationException handler=bad_location
 
-    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded_Data caught_panic.payload.cause.getMessage)
+    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded.Error caught_panic.payload.cause.getMessage)
     handle_range_exceeded = Panic.catch RangeExceededException handler=throw_range_exceeded
 
-    throw_existing_data caught_panic = Error.throw (Existing_Data_Data caught_panic.payload.cause.getMessage)
+    throw_existing_data caught_panic = Error.throw (Existing_Data.Error caught_panic.payload.cause.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
     ## Should be impossible - occurs if no fallback serializer is provided.
