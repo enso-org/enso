@@ -669,7 +669,8 @@ impl Slider {
         let input = &self.frp.input;
         let output = &self.frp.private.output;
         let model = &self.model;
-        let track_pos_anim = Animation::new_non_init(network);
+        let min_limit_anim = Animation::new_non_init(network);
+        let max_limit_anim = Animation::new_non_init(network);
 
         frp::extend! { network
             comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
@@ -677,12 +678,12 @@ impl Slider {
             eval input.set_value_indicator((i) model.set_value_indicator(i));
             output.width <+ input.set_width;
             output.height <+ input.set_height;
-            track_pos <- all3(&output.value, &output.min_value, &output.max_value);
-            track_pos_anim.target <+ track_pos.map(|(value, min, max)| (value - min) / (max - min));
-            track_pos <- all2(&track_pos_anim.value, &input.set_orientation);
-            eval track_pos((v) model.set_track_fraction(v));
-            thumb_pos <- all3(&track_pos_anim.value, &input.set_thumb_size, &input.set_orientation);
-            eval thumb_pos((v) model.set_thumb_fraction(v));
+            min_limit_anim.target <+ output.min_value;
+            max_limit_anim.target <+ output.max_value;
+            indicator_pos <- all3(&output.value, &min_limit_anim.value, &max_limit_anim.value);
+            indicator_pos <- indicator_pos.map(|(value, min, max)| (value - min) / (max - min));
+            indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.set_orientation);
+            eval indicator_pos((v) model.set_indicator_position(v));
 
             value_text_left_pos_x <- all3(
                 &model.value_text_left.width,

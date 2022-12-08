@@ -268,32 +268,22 @@ impl Model {
         }
     }
 
-    /// Set the fraction of the slider filled by the track.
-    pub fn set_track_fraction(&self, (fraction, orientation): &(f32, SliderOrientation)) {
-        match orientation {
-            SliderOrientation::Horizontal => {
-                self.track.slider_fraction_horizontal.set(fraction.clamp(0.0, 1.0));
-                self.track.slider_fraction_vertical.set(1.0);
-            }
-            SliderOrientation::Vertical => {
-                self.track.slider_fraction_horizontal.set(1.0);
-                self.track.slider_fraction_vertical.set(fraction.clamp(0.0, 1.0));
-            }
-        }
-    }
-
-    /// Set the fraction of the slider filled by the thumb.
-    pub fn set_thumb_fraction(
+    /// Set the position of the value indicator.
+    pub fn set_indicator_position(
         &self,
         (fraction, size, orientation): &(f32, f32, SliderOrientation),
     ) {
         self.thumb.slider_fraction.set(*fraction);
         match orientation {
             SliderOrientation::Horizontal => {
+                self.track.slider_fraction_horizontal.set(fraction.clamp(0.0, 1.0));
+                self.track.slider_fraction_vertical.set(1.0);
                 self.thumb.thumb_width.set(*size);
                 self.thumb.thumb_height.set(1.0);
             }
             SliderOrientation::Vertical => {
+                self.track.slider_fraction_horizontal.set(1.0);
+                self.track.slider_fraction_vertical.set(fraction.clamp(0.0, 1.0));
                 self.thumb.thumb_width.set(1.0);
                 self.thumb.thumb_height.set(*size);
             }
