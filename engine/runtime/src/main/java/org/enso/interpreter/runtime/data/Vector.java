@@ -13,16 +13,18 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
+@ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Vector.Vector")
 public final class Vector implements TruffleObject {
   private final Object storage;
@@ -122,9 +124,18 @@ public final class Vector implements TruffleObject {
   public Object readArrayElement(
       long index,
       @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     var v = interop.readArrayElement(storage, index);
+    if (warnings.hasWarnings(this)) {
+      Warning[] extracted = warnings.getWarnings(this, null);
+      if (warnings.hasWarnings(v)) {
+        v = warnings.removeWarnings(v);
+      }
+      ;
+      return new WithWarnings(toEnso.execute(v), extracted);
+    }
     return toEnso.execute(v);
   }
 
@@ -186,7 +197,9 @@ public final class Vector implements TruffleObject {
       for (long i = 0; i < len; i++) {
         sb.append(sep);
 
-        Object at = readArrayElement(i, iop, HostValueToEnsoNode.getUncached());
+        Object at =
+            readArrayElement(
+                i, iop, WarningsLibrary.getUncached(), HostValueToEnsoNode.getUncached());
         Object str = iop.toDisplayString(at, allowSideEffects);
         if (iop.isString(str)) {
           sb.append(iop.asString(str));
@@ -216,6 +229,23 @@ public final class Vector implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().vector();
+  }
+
+  @ExportMessage
+  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.hasWarnings(this.storage);
+  }
+
+  @ExportMessage
+  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    return warnings.getWarnings(this.storage, location);
+  }
+
+  @ExportMessage
+  Vector removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    return new Vector(warnings.removeWarnings(this.storage));
   }
 
   //

@@ -11,6 +11,7 @@ use crate::controller::ide::API;
 use crate::ide::initializer;
 use crate::notification;
 
+use double_representation::name::project;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectMetadata;
@@ -119,22 +120,24 @@ impl API for Handle {
 
 impl ManagingProjectAPI for Handle {
     #[profile(Objective)]
-    fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult> {
+    fn create_new_project(&self, template: Option<project::Template>) -> BoxFuture<FallibleResult> {
         async move {
             use model::project::Synchronized as Project;
 
             let list = self.project_manager.list_projects(&None).await?;
             let existing_names: HashSet<_> =
                 list.projects.into_iter().map(|p| p.name.into()).collect();
-            let name = template.clone().unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned());
-            let name = choose_new_project_name(&existing_names, &name);
+            let name = make_project_name(&template);
+            let name = choose_unique_project_name(&existing_names, &name);
             let name = ProjectName::new_unchecked(name);
             let version =
                 enso_config::ARGS.preferred_engine_version.as_ref().map(ToString::to_string);
             let action = MissingComponentAction::Install;
 
-            let create_result =
-                self.project_manager.create_project(&name, &template, &version, &action).await?;
+            let create_result = self
+                .project_manager
+                .create_project(&name, &template.map(|t| t.into()), &version, &action)
+                .await?;
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
             let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
@@ -167,11 +170,19 @@ impl ManagingProjectAPI for Handle {
 
 /// Select a new name for the project in a form of <suggested_name>_N, where N is a unique sequence
 /// number.
-fn choose_new_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
+fn choose_unique_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
     let first_candidate = suggested_name.to_owned();
     let nth_project_name = |i| iformat!("{suggested_name}_{i}");
     let candidates = (1..).map(nth_project_name);
     let mut candidates = iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.
     candidates.find(|c| !existing_names.contains(c)).unwrap()
+}
+
+/// Come up with a project name.
+fn make_project_name(template: &Option<project::Template>) -> String {
+    template
+        .as_ref()
+        .map(|t| t.to_project_name())
+        .unwrap_or_else(|| UNNAMED_PROJECT_NAME.to_owned())
 }

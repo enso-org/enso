@@ -8,10 +8,10 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Invalid_Array_Index_Error", name = "to_display_text")
-public abstract class InvalidArrayIndexErrorToDisplayTextNode extends Node {
-  static InvalidArrayIndexErrorToDisplayTextNode build() {
-    return InvalidArrayIndexErrorToDisplayTextNodeGen.create();
+@BuiltinMethod(type = "Invalid_Array_Index", name = "to_display_text")
+public abstract class InvalidArrayIndexToDisplayTextNode extends Node {
+  static InvalidArrayIndexToDisplayTextNode build() {
+    return InvalidArrayIndexToDisplayTextNodeGen.create();
   }
 
   abstract Text execute(Object self);

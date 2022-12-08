@@ -1,4 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.Common.Unsupported_Argument_Types
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Runtime.Ref.Ref
 
@@ -23,27 +27,27 @@ spec = Test.group "Range" <|
         range_3.step  . should_equal -1
 
     Test.specify "should allow creation with Range.new" <|
-        Range.new . should_equal (Range.Value 0 100 1)
-        Range.new 5 20 . should_equal (Range.Value 5 20 1)
-        Range.new 20 5 . should_equal (Range.Value 20 5 -1)
-        Range.new 5 20 5 . should_equal (Range.Value 5 20 5)
-        Range.new 20 5 5 . should_equal (Range.Value 20 5 -5)
+        Range.new . should_equal (Range.Between 0 100 1)
+        Range.new 5 20 . should_equal (Range.Between 5 20 1)
+        Range.new 20 5 . should_equal (Range.Between 20 5 -1)
+        Range.new 5 20 5 . should_equal (Range.Between 5 20 5)
+        Range.new 20 5 5 . should_equal (Range.Between 20 5 -5)
 
     Test.specify "should allow setting a new step magnitude" <|
-        1.up_to 2 . with_step 3 . should_equal (Range.Value 1 2 3)
+        1.up_to 2 . with_step 3 . should_equal (Range.Between 1 2 3)
 
-        0.up_to 10 . with_step 2 . should_equal (Range.Value 0 10 2)
+        0.up_to 10 . with_step 2 . should_equal (Range.Between 0 10 2)
         0.up_to 10 . with_step 2 . to_vector . should_equal [0, 2, 4, 6, 8]
 
-        10.down_to 0 . with_step 2 . should_equal (Range.Value 10 0 -2)
+        10.down_to 0 . with_step 2 . should_equal (Range.Between 10 0 -2)
         10.down_to 0 . with_step 2 . to_vector . should_equal [10, 8, 6, 4, 2]
 
         1.up_to 2 . with_step 0.5 . should_fail_with Illegal_Argument.Error
         1.up_to 2 . with_step -1 . should_fail_with Illegal_Argument.Error
         0.up_to 2.0 . should_fail_with Illegal_Argument.Error
         0.down_to 2.0 . should_fail_with Illegal_Argument.Error
-        Test.expect_panic_with (0.0.up_to 2) No_Such_Method_Error_Data
-        Test.expect_panic_with (0.0.down_to 2) No_Such_Method_Error_Data
+        Test.expect_panic_with (0.0.up_to 2) No_Such_Method.Error
+        Test.expect_panic_with (0.0.down_to 2) No_Such_Method.Error
 
     Test.specify "should have a length" <|
         0.up_to 100 . length . should_equal 100
@@ -88,9 +92,9 @@ spec = Test.group "Range" <|
         range.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3]
         range.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5]
 
-        Test.expect_panic_with (range.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
-        Test.expect_panic_with (range.filter (Filter_Condition.Like "a%")) Unsupported_Argument_Types_Data
-        Test.expect_panic_with (range.filter (Filter_Condition.Not_Like "a_")) Unsupported_Argument_Types_Data
+        Test.expect_panic_with (range.filter (Filter_Condition.Starts_With "a")) No_Such_Method.Error
+        Test.expect_panic_with (range.filter (Filter_Condition.Like "a%")) Unsupported_Argument_Types.Error
+        Test.expect_panic_with (range.filter (Filter_Condition.Not_Like "a_")) Unsupported_Argument_Types.Error
         range.filter Filter_Condition.Is_True . should_equal []
         range.filter Filter_Condition.Is_False . should_equal []
         range.filter Filter_Condition.Is_Nothing . should_equal []
@@ -180,17 +184,17 @@ spec = Test.group "Range" <|
             verify_contains r [] [-1, 0, 1, 2, 10]
 
         check_empty_range (0.up_to 0)
-        check_empty_range (Range.Value 1 1)
-        check_empty_range (Range.Value 2 2 4)
-        check_empty_range (Range.Value 0 -1 2)
-        check_empty_range (Range.Value 0 -10 2)
-        check_empty_range (Range.Value 10 0 2)
-        check_empty_range (Range.Value -1 0 -1)
-        check_empty_range (Range.Value 0 10 -1)
-        check_empty_range (Range.Value -1 0 -2)
+        check_empty_range (Range.Between 1 1)
+        check_empty_range (Range.Between 2 2 4)
+        check_empty_range (Range.Between 0 -1 2)
+        check_empty_range (Range.Between 0 -10 2)
+        check_empty_range (Range.Between 10 0 2)
+        check_empty_range (Range.Between -1 0 -1)
+        check_empty_range (Range.Between 0 10 -1)
+        check_empty_range (Range.Between -1 0 -2)
 
     Test.specify "should behave correctly when containing exactly one element" <|
-        r1 = Range.Value 10 11
+        r1 = Range.Between 10 11
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
         r1.length . should_equal 1
@@ -207,7 +211,7 @@ spec = Test.group "Range" <|
         verify_contains r1 [10] [-1, 0, 1, 2, 9, 11, 12]
 
     Test.specify "should behave correctly with step greater than 1" <|
-        r1 = Range.Value 0 10 2
+        r1 = Range.Between 0 10 2
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
         r1.length . should_equal 5
@@ -223,7 +227,7 @@ spec = Test.group "Range" <|
         r1.find (x-> x*x == 25) . should_equal Nothing
         verify_contains r1 [0, 2, 4, 6, 8] [-3, -2, -1, 1, 3, 5, 7, 11, 12, 13, 14]
 
-        r2 = Range.Value 0 3 2
+        r2 = Range.Between 0 3 2
         r2.is_empty . should_be_false
         r2.not_empty . should_be_true
         r2.length . should_equal 2
@@ -239,7 +243,7 @@ spec = Test.group "Range" <|
         r2.find (x-> x*x == 4) . should_equal 2
         verify_contains r2 [0, 2] [-3, -2, -1, 1, 3, 4, 5]
 
-        r3 = Range.Value 5 6 200
+        r3 = Range.Between 5 6 200
         r3.is_empty . should_be_false
         r3.not_empty . should_be_true
         r3.length . should_equal 1
@@ -255,7 +259,7 @@ spec = Test.group "Range" <|
         r3.find (x-> x*x == 25) . should_equal 5
         verify_contains r3 [5] [0, 1, 4, 6, 7, 10]
 
-        r4 = Range.Value 5 8 2
+        r4 = Range.Between 5 8 2
         r4.is_empty . should_be_false
         r4.not_empty . should_be_true
         r4.length . should_equal 2
@@ -271,7 +275,7 @@ spec = Test.group "Range" <|
         r4.find (x-> x*x == 4) . should_equal Nothing
         verify_contains r4 [5, 7] [0, 1, 4, 6, 8, 10]
 
-        r5 = Range.Value 5 7 2
+        r5 = Range.Between 5 7 2
         r5.is_empty . should_be_false
         r5.not_empty . should_be_true
         r5.length . should_equal 1
@@ -287,7 +291,7 @@ spec = Test.group "Range" <|
         r5.find (x-> x*x == 4) . should_equal Nothing
         verify_contains r5 [5] [0, 1, 4, 6, 7, 10]
 
-        r6 = Range.Value 0 10 3
+        r6 = Range.Between 0 10 3
         r6.is_empty . should_be_false
         r6.not_empty . should_be_true
         r6.length . should_equal 4
@@ -305,7 +309,7 @@ spec = Test.group "Range" <|
         verify_contains r6 [0, 3, 6, 9] [-3, -2, -1, 1, 2, 4, 5, 7, 8, 10, 11]
 
     Test.specify "should behave correctly with negative step" <|
-        r1 = Range.Value 4 0 -1
+        r1 = Range.Between 4 0 -1
         r1.is_empty . should_be_false
         r1.not_empty . should_be_true
         r1.length . should_equal 4
@@ -321,7 +325,7 @@ spec = Test.group "Range" <|
         r1.find (x-> x*x == 0) . should_equal Nothing
         verify_contains r1 [4, 3, 2, 1] [-2, -1, 0, 5, 6, 7, 10]
 
-        r2 = Range.Value 4 0 -2
+        r2 = Range.Between 4 0 -2
         r2.is_empty . should_be_false
         r2.not_empty . should_be_true
         r2.length . should_equal 2
@@ -337,7 +341,7 @@ spec = Test.group "Range" <|
         r2.find (x-> x*x == 0) . should_equal Nothing
         verify_contains r2 [4, 2] [-2, -1, 0, 1, 3, 5, 6, 7, 10]
 
-        r3 = Range.Value 4 0 -10
+        r3 = Range.Between 4 0 -10
         r3.is_empty . should_be_false
         r3.not_empty . should_be_true
         r3.length . should_equal 1
@@ -353,7 +357,7 @@ spec = Test.group "Range" <|
         r3.find (x-> x*x == 0) . should_equal Nothing
         verify_contains r3 [4] [-2, -1, 0, 1, 2, 3, 5, 6, 7, 10]
 
-        r4 = Range.Value 3 0 -3
+        r4 = Range.Between 3 0 -3
         r4.is_empty . should_be_false
         r4.not_empty . should_be_true
         r4.length . should_equal 1
@@ -371,7 +375,7 @@ spec = Test.group "Range" <|
 
     Test.specify "should report errors if trying to set step to 0" <|
         0.up_to 0 . with_step 0 . should_fail_with Illegal_State.Error
-        invalid_range = Range.Value 0 0 0
+        invalid_range = Range.Between 0 0 0
         invalid_range . length . should_fail_with Illegal_State.Error
         invalid_range . is_empty . should_fail_with Illegal_State.Error
         invalid_range . not_empty . should_fail_with Illegal_State.Error

@@ -10,6 +10,7 @@ use crate::model::module::NodeMetadata;
 
 use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
+use ast::macros::skip_and_freeze::MacrosInfo;
 use ast::macros::DocumentationCommentInfo;
 use double_representation::connection;
 use double_representation::definition;
@@ -217,18 +218,21 @@ pub struct NodeTrees {
     pub inputs:  SpanTree,
     /// Describes node outputs, i.e. its pattern. `None` if a node is not an assignment.
     pub outputs: Option<SpanTree>,
+    /// Info about macros used in the node's expression.
+    macros_info: MacrosInfo,
 }
 
 impl NodeTrees {
     #[allow(missing_docs)]
     pub fn new(node: &NodeInfo, context: &impl SpanTreeContext) -> Option<NodeTrees> {
-        let inputs = SpanTree::new(node.expression(), context).ok()?;
+        let inputs = SpanTree::new(&node.expression(), context).ok()?;
+        let macros_info = *node.main_line.macros_info();
         let outputs = if let Some(pat) = node.pattern() {
             Some(SpanTree::new(pat, context).ok()?)
         } else {
             None
         };
-        Some(NodeTrees { inputs, outputs })
+        Some(NodeTrees { inputs, outputs, macros_info })
     }
 
     /// Converts AST crumbs (as obtained from double rep's connection endpoint) into the
@@ -237,17 +241,25 @@ impl NodeTrees {
         &'a self,
         ast_crumbs: &'b [ast::Crumb],
     ) -> Option<span_tree::node::NodeFoundByAstCrumbs<'a, 'b>> {
+        use ast::crumbs::Crumb::Infix;
+        // If we have macros in the expression, we need to skip their crumbs, as [`SKIP`] and
+        // [`FREEZE`] macros are not displayed in the expression.
+        let skip_macros = self.macros_info.macros_count();
         if let Some(outputs) = self.outputs.as_ref() {
             // Node in assignment form. First crumb decides which span tree to use.
-            let tree = match ast_crumbs.get(0) {
-                Some(ast::crumbs::Crumb::Infix(InfixCrumb::LeftOperand)) => Some(outputs),
-                Some(ast::crumbs::Crumb::Infix(InfixCrumb::RightOperand)) => Some(&self.inputs),
+            let first_crumb = ast_crumbs.get(0);
+            let is_input = matches!(first_crumb, Some(Infix(InfixCrumb::RightOperand)));
+            let tree = match first_crumb {
+                Some(Infix(InfixCrumb::LeftOperand)) => Some(outputs),
+                Some(Infix(InfixCrumb::RightOperand)) => Some(&self.inputs),
                 _ => None,
             };
-            tree.and_then(|tree| tree.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[1..]))
+            let skip = if is_input { skip_macros + 1 } else { 1 };
+            tree.and_then(|tree| tree.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..]))
         } else {
+            let skip = skip_macros;
             // Expression node - there is only inputs span tree.
-            self.inputs.root_ref().get_descendant_by_ast_crumbs(ast_crumbs)
+            self.inputs.root_ref().get_descendant_by_ast_crumbs(&ast_crumbs[skip..])
         }
     }
 }
@@ -574,7 +586,7 @@ impl Handle {
     /// The caller should make sure that obtained name won't collide with any symbol usage before
     /// actually introducing it. See `variable_name_for`.
     pub fn variable_name_base_for(node: &MainLine) -> String {
-        name_for_ast(node.expression())
+        name_for_ast(&node.expression())
     }
 
     /// Identifiers introduced or referred to in the current graph's scope.
@@ -632,7 +644,7 @@ impl Handle {
     ) -> FallibleResult<EndpointInfo> {
         let destination_node = self.node_info(connection.destination.node)?;
         let target_node_ast = destination_node.expression();
-        EndpointInfo::new(&connection.destination, target_node_ast, context)
+        EndpointInfo::new(&connection.destination, &target_node_ast, context)
     }
 
     /// Obtains information about connection's source endpoint.
@@ -871,6 +883,24 @@ impl Handle {
                 md.position = Some(position.into());
             }),
         )
+    }
+
+    /// Mark the node as skipped by prepending "SKIP" macro call to its AST.
+    pub fn set_node_action_skip(&self, node_id: ast::Id, skip: bool) -> FallibleResult {
+        self.update_node(node_id, |mut node| {
+            node.set_skip(skip);
+            node
+        })?;
+        Ok(())
+    }
+
+    /// Mark the node as frozen by prepending "FREEZE" macro call to its AST.
+    pub fn set_node_action_freeze(&self, node_id: ast::Id, freeze: bool) -> FallibleResult {
+        self.update_node(node_id, |mut node| {
+            node.set_freeze(freeze);
+            node
+        })?;
+        Ok(())
     }
 
     /// Collapses the selected nodes.

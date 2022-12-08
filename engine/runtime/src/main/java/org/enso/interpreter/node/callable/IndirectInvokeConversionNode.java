@@ -221,10 +221,7 @@ public abstract class IndirectInvokeConversionNode extends Node {
       @CachedLibrary(limit = "10") TypesLibrary methods,
       @CachedLibrary(limit = "10") InteropLibrary interop) {
     throw new PanicException(
-        EnsoContext.get(this)
-            .getBuiltins()
-            .error()
-            .makeNoSuchConversionError(self, that, conversion),
+        EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(self, that, conversion),
         this);
   }
 }

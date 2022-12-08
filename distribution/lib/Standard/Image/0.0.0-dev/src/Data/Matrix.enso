@@ -151,8 +151,8 @@ type Matrix
              example_get = Examples.matrix.get 0 0
     get : Integer -> Integer -> Vector ! Matrix_Error
     get self row column =
-        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns row) else
-            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns column) else
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns column) else
                 arr = Java_Matrix.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 

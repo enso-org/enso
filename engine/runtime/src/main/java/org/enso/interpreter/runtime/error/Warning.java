@@ -91,8 +91,8 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static Array getAll(WithWarnings value) {
-    Warning[] warnings = value.getWarningsArray();
+  public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
+    Warning[] warnings = value.getWarningsArray(warningsLib);
     Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
     Object[] result = new Object[warnings.length];
     System.arraycopy(warnings, 0, result, 0, warnings.length);
@@ -104,8 +104,16 @@ public final class Warning implements TruffleObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static Array getAll(Object value) {
-    return new Array();
+  public static Array getAll(Object value, WarningsLibrary warnings) {
+    if (warnings.hasWarnings(value)) {
+      try {
+        return new Array((Object[]) warnings.getWarnings(value, null));
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    } else {
+      return new Array();
+    }
   }
 
   @Builtin.Method(

@@ -42,4 +42,8 @@ public final class EnsoCompiler implements AutoCloseable {
   public IR.Module generateIR(Tree t) {
     return TreeToIr.MODULE.translate(t);
   }
+
+  public scala.Option<IR.Expression> generateIRInline(Tree t) {
+    return TreeToIr.MODULE.translateInline(t);
+  }
 }

@@ -1,13 +1,18 @@
 package org.enso.interpreter.runtime.error;
 
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(TypesLibrary.class)
+@ExportLibrary(WarningsLibrary.class)
 public final class WithWarnings implements TruffleObject {
   private final ArrayRope<Warning> warnings;
   private final Object value;
@@ -42,16 +47,35 @@ public final class WithWarnings implements TruffleObject {
     return new WithWarnings(value, warnings.prepend(newWarnings));
   }
 
-  public Warning[] getWarningsArray() {
-    return warnings.toArray(Warning[]::new);
+  public Warning[] getWarningsArray(WarningsLibrary warningsLibrary) {
+    Warning[] warningsArr = warnings.toArray(Warning[]::new);
+    Warning[] allWarnings;
+
+    if (warningsLibrary != null && warningsLibrary.hasWarnings(value)) {
+      try {
+        Warning[] valuesWarnings = warningsLibrary.getWarnings(value, null);
+        allWarnings = new Warning[valuesWarnings.length + warningsArr.length];
+        System.arraycopy(warningsArr, 0, allWarnings, 0, warningsArr.length);
+        System.arraycopy(valuesWarnings, 0, allWarnings, warningsArr.length, valuesWarnings.length);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    } else {
+      allWarnings = warningsArr;
+    }
+    return allWarnings;
   }
 
-  public ArrayRope<Warning> getWarnings() {
+  public ArrayRope<Warning> collectWarnings() {
     return warnings;
   }
 
   public ArrayRope<Warning> getReassignedWarnings(Node location) {
-    Warning[] warnings = getWarningsArray();
+    return getReassignedWarnings(location, null);
+  }
+
+  public ArrayRope<Warning> getReassignedWarnings(Node location, WarningsLibrary warningsLibrary) {
+    Warning[] warnings = getWarningsArray(warningsLibrary);
     for (int i = 0; i < warnings.length; i++) {
       warnings[i] = warnings[i].reassign(location);
     }
@@ -71,6 +95,31 @@ public final class WithWarnings implements TruffleObject {
       return ((WithWarnings) target).prepend(warnings);
     } else {
       return new WithWarnings(target, warnings);
+    }
+  }
+
+  @ExportMessage
+  boolean hasWarnings() {
+    return warnings.size() > 0;
+  }
+
+  @ExportMessage
+  Warning[] getWarnings(
+      Node location, @CachedLibrary(limit = "3") WarningsLibrary warningsLibrary) {
+    if (location != null) {
+      return getReassignedWarnings(location, warningsLibrary).toArray(Warning[]::new);
+    } else {
+      return warnings.toArray(Warning[]::new);
+    }
+  }
+
+  @ExportMessage
+  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    if (warnings.hasWarnings(value)) {
+      return warnings.removeWarnings(value);
+    } else {
+      return value;
     }
   }
 

@@ -8,6 +8,11 @@ import java.util.List;
 @BuiltinType
 public class CaughtPanic extends UniquelyConstructibleBuiltin {
   @Override
+  protected String getConstructorName() {
+    return "Panic";
+  }
+
+  @Override
   protected List<String> getConstructorParamNames() {
     return List.of("payload", "internal_original_exception");
   }
