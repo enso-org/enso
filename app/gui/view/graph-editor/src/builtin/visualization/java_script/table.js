@@ -179,13 +179,35 @@ class TableVisualization extends Visualization {
                 if (content instanceof Object) {
                     const type = content.type
                     if (type === 'Date') {
-                        to_render = new Date(content.year, content.month, content.day).toISOString().substring(0, 10)
+                        to_render = new Date(content.year, content.month, content.day)
+                            .toISOString()
+                            .substring(0, 10)
                     } else if (type === 'Time_Of_Day') {
-                        const js_date = new Date(0, 0, 0, content.hour, content.minute, content.second, content.nanosecond / 1000000)
-                        to_render = js_date.toTimeString().substring(0, 8) + (js_date.getMilliseconds() == 0 ? '' : '.' + js_date.getMilliseconds())
+                        const js_date = new Date(
+                            0,
+                            0,
+                            0,
+                            content.hour,
+                            content.minute,
+                            content.second,
+                            content.nanosecond / 1000000
+                        )
+                        to_render =
+                            js_date.toTimeString().substring(0, 8) +
+                            (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
                     } else if (type === 'Date_Time') {
-                        const js_date = new Date(content.year, content.month, content.day, content.hour, content.minute, content.second, content.nanosecond / 1000000)
-                        to_render = js_date.toISOString().substring(0, 19).replace('T', ' ') + (js_date.getMilliseconds() == 0 ? '' : '.' + js_date.getMilliseconds())
+                        const js_date = new Date(
+                            content.year,
+                            content.month,
+                            content.day,
+                            content.hour,
+                            content.minute,
+                            content.second,
+                            content.nanosecond / 1000000
+                        )
+                        to_render =
+                            js_date.toISOString().substring(0, 19).replace('T', ' ') +
+                            (js_date.getMilliseconds() === 0 ? '' : '.' + js_date.getMilliseconds())
                     }
                 }
                 result += '<td class="plaintext">' + to_render + '</td>'
