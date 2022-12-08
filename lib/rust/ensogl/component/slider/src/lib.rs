@@ -444,7 +444,7 @@ impl Slider {
                     ValueIndicator::Track => *length,
                 }
             );
-            slider_range <- all2(&input.set_min_value, &input.set_max_value);
+            slider_range <- all2(&output.min_value, &output.max_value);
             slider_range <- slider_range.map(|(min, max)| max - min);
             prec_at_mouse_speed <- all2(&slider_length, &slider_range).map(|(l, r)| r / l);
 
