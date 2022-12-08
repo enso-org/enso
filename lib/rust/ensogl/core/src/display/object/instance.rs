@@ -1506,10 +1506,10 @@ impl AutoLayout {
     //     }
     // }
 
-    pub fn set_column_count(&mut self, count: usize) {
+    pub fn set_max_columns(&mut self, count: usize) {
         match self {
-            AutoLayout::Horizontal(opts) => opts.set_column_count(count),
-            AutoLayout::Vertical(opts) => opts.set_column_count(count),
+            AutoLayout::Horizontal(opts) => opts.set_max_columns(count),
+            AutoLayout::Vertical(opts) => opts.set_max_columns(count),
         }
     }
 }
@@ -1560,6 +1560,8 @@ macro_rules! def_layout_options {
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct UnresolvedAxis {
     resizing: Resizing,
+    min_size: Option<f32>,
+    max_size: Option<f32>,
     grow:     Option<f32>,
     shrink:   Option<f32>,
 }
@@ -1567,40 +1569,55 @@ pub struct UnresolvedAxis {
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ResolvedAxis {
     resizing: Resizing,
+    min_size: f32,
+    max_size: f32,
     grow:     f32,
     shrink:   f32,
     size:     f32,
 }
 
+#[derive(Debug, Deref)]
+pub struct ResolvedColumn {
+    #[deref]
+    axis:     ResolvedAxis,
+    children: Vec<Instance>,
+}
+
 def_layout_options!(
     pub struct LayoutOptions {
-        pub alignment:            Alignment,
+        pub alignment:      Alignment,
         /// The spacing between children.
-        pub spacing:              f32,
+        pub spacing:        f32,
         /// The padding between the children and the edge of the parent.
-        pub padding:              Vector2<f32>,
+        pub padding:        Vector2<f32>,
         /// Indicates whether the children should be placed in order or in a reversed order.
-        pub reversed:             bool,
-        pub wrapped:              bool,
-        pub first_axes:           Vector2<UnresolvedAxis>,
-        pub other_axes:           (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>),
-        pub prim_axis_elem_count: Option<usize>,
+        pub reversed:       bool,
+        pub wrapped:        bool,
+        pub first_axes:     Vector2<UnresolvedAxis>,
+        pub other_axes:     (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>),
+        pub max_axes_count: Vector2<Option<usize>>,
     }
 );
 
 impl LayoutOptions {
-    // pub fn def_column(&mut self) {
-    //     self.columns.push(UnresolvedAxis {})
-    // }
-
-    pub fn axes(&self) -> (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>) {
-        let x = vec![self.first_axes.x].extended(self.other_axes.0.iter().cloned());
-        let y = vec![self.first_axes.y].extended(self.other_axes.1.iter().cloned());
-        (x, y)
+    pub fn set_max_columns(&mut self, count: usize) {
+        self.max_axes_count.set_x(Some(count))
     }
+}
 
-    pub fn set_column_count(&mut self, count: usize) {
-        self.prim_axis_elem_count = Some(count)
+pub trait AxesGetter<T> {
+    fn axes(&self, dim: T) -> Vec<UnresolvedAxis>;
+}
+
+impl AxesGetter<X> for LayoutOptions {
+    fn axes(&self, _dim: X) -> Vec<UnresolvedAxis> {
+        vec![self.first_axes.x].extended(self.other_axes.0.iter().cloned())
+    }
+}
+
+impl AxesGetter<Y> for LayoutOptions {
+    fn axes(&self, _dim: Y) -> Vec<UnresolvedAxis> {
+        vec![self.first_axes.y].extended(self.other_axes.1.iter().cloned())
     }
 }
 
@@ -1714,10 +1731,10 @@ impl<Layout> LayoutObjectBuilder<Layout> {
     //     self
     // }
 
-    fn set_column_count(self, count: usize) -> Self {
+    fn set_max_columns(self, count: usize) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.set_column_count(count);
+                layout.set_max_columns(count);
             });
         });
         self
@@ -1819,18 +1836,18 @@ crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
 // Vertical]); with_display_object_alignment_secondary!
 // (gen_layout_object_builder_alignment[secondary Vertical Horizontal]);
 
-macro_rules! gen_layout_object_builder_alignment_matrix {
-    ([$([$f:ident $primary:ident $secondary:ident])*]) => { paste! {
-        impl<Layout> LayoutObjectBuilder<Layout> {$(
-            /// Constructor.
-            pub fn [<alignment_ $f>](self) -> Self {
-                self
-                    .alignment_primary(AlignmentPrimary::[<$primary:camel>])
-                    .alignment_secondary(Alignment::[<$secondary:camel>])
-            }
-        )*}
-    }}
-}
+// macro_rules! gen_layout_object_builder_alignment_matrix {
+//     ([$([$f:ident $primary:ident $secondary:ident])*]) => { paste! {
+//         impl<Layout> LayoutObjectBuilder<Layout> {$(
+//             /// Constructor.
+//             pub fn [<alignment_ $f>](self) -> Self {
+//                 self
+//                     .alignment_primary(AlignmentPrimary::[<$primary:camel>])
+//                     .alignment_secondary(Alignment::[<$secondary:camel>])
+//             }
+//         )*}
+//     }}
+// }
 
 // with_display_object_alignment_named_matrix!(gen_layout_object_builder_alignment_matrix);
 
@@ -1892,12 +1909,30 @@ impl Model {
         self.layout.resizing.modify(f);
     }
 
+    fn modify_max_size(&self, f: impl FnOnce(&mut Vector2<f32>)) {
+        self.dirty.transformation.set();
+        self.layout.max_size.modify(f);
+    }
+
+    fn modify_min_size(&self, f: impl FnOnce(&mut Vector2<f32>)) {
+        self.dirty.transformation.set();
+        self.layout.min_size.modify(f);
+    }
+
     fn bbox_origin(&self) -> Vector2<f32> {
         self.layout.bbox_origin.get()
     }
 
     fn size(&self) -> Vector2<f32> {
         self.layout.size.get()
+    }
+
+    fn set_max_size_x(&self, x: f32) {
+        self.modify_max_size(|t| t.x = x)
+    }
+
+    fn set_min_size_x(&self, x: f32) {
+        self.modify_min_size(|t| t.x = x)
     }
 
     fn set_size(&self, size: impl IntoVector2<f32>) {
@@ -1930,6 +1965,18 @@ impl Model {
 
     fn allow_grow_y(&self) {
         self.layout.grow.set_y(1.0);
+    }
+
+    fn allow_shrink(&self) {
+        self.layout.shrink.set(Vector2(1.0, 1.0));
+    }
+
+    fn allow_shrink_x(&self) {
+        self.layout.shrink.set_x(1.0);
+    }
+
+    fn allow_shrink_y(&self) {
+        self.layout.shrink.set_y(1.0);
     }
 
     fn set_size_hug_y(&self, y: f32) {
@@ -1984,6 +2031,7 @@ impl Model {
     }
 
     fn refresh_layout_internal(&self, first_pass: bool) {
+        println!("[{}] refresh_layout_internal. first pass? {}", self.name, first_pass);
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
             return;
         }
@@ -2000,9 +2048,12 @@ impl Model {
                     self.refresh_layout_manual(Y, first_pass);
                 },
             Some(AutoLayout::Horizontal(opts)) =>
-                self.refresh_linear_layout(X, Y, first_pass, &opts, first_pass),
-            Some(AutoLayout::Vertical(opts)) =>
-                self.refresh_linear_layout(Y, X, !first_pass, &opts, first_pass),
+                if first_pass {
+                    self.refresh_linear_layout(X, &opts, first_pass);
+                } else {
+                    self.refresh_linear_layout(Y, &opts, first_pass);
+                },
+            Some(AutoLayout::Vertical(opts)) => panic!(),
         }
     }
 
@@ -2040,7 +2091,6 @@ impl Model {
             }
             let new_size = max_x - min_x;
             let new_bbox_origin = min_x;
-            let resizing = self.layout.resizing.get();
             if self.layout.resizing.get_dim(x).is_hug() {
                 println!("[M] Setting size.{:?} of {} to {}", x, self.name, new_size);
                 self.layout.size.set_dim(x, new_size);
@@ -2152,145 +2202,152 @@ impl Model {
     ///
     /// The [`first_pass`] flag indicated whether we are in the first or the second pass.
     #[inline(always)]
-    fn refresh_linear_layout<Dim1: Copy, Dim2: Copy>(
-        &self,
-        x: Dim1,
-        y: Dim2,
-        update_x: bool,
-        opts: &LayoutOptions,
-        first_pass: bool,
-    ) where
-        Vector2<Resizing>: DimSetter<Dim1>,
-        Vector2<Resizing>: DimSetter<Dim2>,
-        Vector2<alignment::Dim1>: DimSetter<Dim1>,
-        Vector2<alignment::Dim1>: DimSetter<Dim2>,
-        Vector2<f32>: DimSetter<Dim1>,
-        Vector2<f32>: DimSetter<Dim2>,
-        Vector3<f32>: DimSetter<Dim1>,
-        Vector3<f32>: DimSetter<Dim2>,
-        Dim1: Debug,
-        Dim2: Debug,
-    {
-        println!("[{}] refresh_linear_layout. Update x? {}", self.name, update_x);
+    fn refresh_linear_layout<Dim: Copy>(&self, x: Dim, opts: &LayoutOptions, first_pass: bool)
+    where
+        Vector2<Resizing>: DimSetter<Dim>,
+        Vector2<alignment::Dim1>: DimSetter<Dim>,
+        Vector2<f32>: DimSetter<Dim>,
+        Vector3<f32>: DimSetter<Dim>,
+        Dim: Debug,
+        LayoutOptions: AxesGetter<Dim>, {
+        println!("[{}] refresh_linear_layout. First pass: {}", self.name, first_pass);
         let children = if opts.reversed { self.children().reversed() } else { self.children() };
         if children.is_empty() {
             return;
         }
         let resizing = self.layout.resizing.get_dim(x);
-        if update_x {
-            // === Recomputing X-axis elements size of the X-axis horizontal layout ===
+        // === Recomputing X-axis elements size of the X-axis horizontal layout ===
 
-            let defined_axes = opts.axes().0; // FIXME: get_dim
-            let column_count = opts.prim_axis_elem_count.unwrap_or_else(|| children.len());
-            let column_axes = defined_axes.iter().cycle().enumerate().take(column_count);
-            println!("column_count: {}", column_count);
-            let unresolved_columns = column_axes
+        let defined_axes = opts.axes(x);
+        // FIXME: get_dim(X) here:
+        let prim_axis_column_count =
+            opts.max_axes_count.get_dim(X).unwrap_or_else(|| children.len());
+        let unresolved_columns = if first_pass {
+            let column_axes = defined_axes.iter().cycle().enumerate().take(prim_axis_column_count);
+            println!("prim_axis_column_count: {}", prim_axis_column_count);
+            column_axes
                 .map(|(i, t)| {
-                    (*t, children.iter().skip(i).step_by(column_count).cloned().collect_vec())
+                    (
+                        *t,
+                        children
+                            .iter()
+                            .skip(i)
+                            .step_by(prim_axis_column_count)
+                            .cloned()
+                            .collect_vec(),
+                    )
                 })
-                .collect_vec();
-            println!("unresolved_columns: {:?}", unresolved_columns);
-            let resolved_columns = unresolved_columns
-                .into_iter()
-                .map(|(axis, children)| {
-                    let mut grow = 0.0;
-                    let mut shrink = 999.0; // FIXME
-                    let mut size = 0.0;
-                    for child in &children {
-                        child.refresh_self_size(first_pass);
-                        if child.layout.resizing.get_dim(x).is_hug() {
-                            child.refresh_layout_internal(first_pass);
-                        }
-                        let child_size = child.layout.size.get_dim(x);
-                        let child_grow = child.layout.grow.get_dim(x);
-                        let child_shrink = child.layout.shrink.get_dim(x);
-                        grow = if child_grow > grow { child_grow } else { grow };
-                        shrink = if child_shrink < shrink { child_shrink } else { shrink };
-                        size = if child_size > size { child_size } else { size };
-                    }
-                    grow = axis.grow.unwrap_or(grow);
-                    shrink = axis.shrink.unwrap_or(shrink);
-                    let resizing = axis.resizing;
-                    let resolved_axis = ResolvedAxis { resizing, grow, shrink, size };
-                    (resolved_axis, children)
-                })
-                .collect_vec();
-
-            let space_left = if resizing.is_fixed() {
-                let width = self.layout.size.get_dim(x);
-                let total_padding_x = 2.0 * opts.padding.get_dim(x);
-                let total_spacing_x = (children.len() - 1) as f32 * opts.spacing;
-                let mut space_left = width - total_padding_x - total_spacing_x;
-                let mut total_grow_coeff = 0.0;
-                for column in &resolved_columns {
-                    space_left -= column.0.size;
-                    total_grow_coeff += column.0.grow;
-                }
-
-                let mut pos_x = opts.padding.get_dim(x);
-                for column in &resolved_columns {
-                    let column_grow = column.0.grow;
-                    let grow_size = if column_grow > 0.0 {
-                        column.0.grow / total_grow_coeff * space_left
-                    } else {
-                        0.0
-                    };
-                    space_left -= grow_size;
-                    let column_size = column.0.size + grow_size;
-                    for child in &column.1 {
-                        if child.layout.grow.get_dim(x) > 0.0 {
-                            child.layout.size.set_dim(x, column_size);
-                        }
-                        let child_size = child.size();
-                        let bbox_origin = child.bbox_origin();
-                        child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
-                        pos_x += child_size.get_dim(x) + opts.spacing;
-                    }
-                }
-                space_left
-            } else {
-                todo!()
-            };
+                .collect_vec()
         } else {
-            // // === Recomputing Y-axis elements size of the X-axis horizontal layout ===
-            //
-            // let padding_y = opts.padding.get_dim(y);
-            // let total_padding_y = 2.0 * opts.padding.get_dim(y);
-            // let mut children_to_grow = vec![];
-            // let mut height: f32 = 0.0;
-            // for child in &children {
-            //     if child.layout.grow.get_dim(y) > 0.0 {
-            //         children_to_grow.push(child);
-            //     } else {
-            //         child.refresh_self_size(first_pass);
-            //         child.refresh_layout_internal(first_pass);
-            //         height = height.max(child.layout.size.get_dim(y));
-            //     }
-            // }
-            //
-            // if self.layout.resizing.get_dim(y).is_hug() {
-            //     let height = height + 2.0 * opts.padding.get_dim(y);
-            //     println!("Setting size.{:?} of {} to {}", y, self.name, height);
-            //     self.layout.size.set_dim(y, height);
-            // } else {
-            //     height = self.layout.size.get_dim(y) - total_padding_y;
-            // }
-            //
-            // for child in children_to_grow {
-            //     child.refresh_self_size(first_pass);
-            //     println!("Setting size.{:?} of {} to {}", y, child, height);
-            //     child.layout.size.set_dim(y, height);
-            //     child.refresh_layout_internal(first_pass);
-            // }
-            //
-            //
-            // // === Recomputing Y-axis elements position of the X-axis horizontal layout ===
-            //
-            // for child in &children {
-            //     let space_left = height - child.size().get_dim(y);
-            //     let pos_y = padding_y + opts.alignment.get_dim(y).normalized() * space_left;
-            //     child.set_position_dim(y, pos_y);
-            // }
+            let column_count = children.len().div_ceil(prim_axis_column_count);
+            let column_axes = defined_axes.iter().cycle().enumerate().take(column_count);
+            column_axes
+                .map(|(i, t)| {
+                    (
+                        *t,
+                        children
+                            .iter()
+                            .skip(i * prim_axis_column_count)
+                            .take(prim_axis_column_count)
+                            .cloned()
+                            .collect_vec(),
+                    )
+                })
+                .collect_vec()
+        };
+        // println!("unresolved_columns: {:#?}", unresolved_columns);
+        let resolved_columns = unresolved_columns
+            .into_iter()
+            .map(|(axis, children)| {
+                let mut grow = 0.0;
+                let mut shrink = 0.0;
+                let mut min_size = 0.0;
+                let mut max_size = f32::INFINITY;
+                let mut size = 0.0;
+                for child in &children {
+                    child.refresh_self_size(first_pass);
+                    if child.layout.resizing.get_dim(x).is_hug() {
+                        child.refresh_layout_internal(first_pass);
+                    }
+                    grow += child.layout.grow.get_dim(x);
+                    shrink += child.layout.shrink.get_dim(x);
+                    min_size = f32::max(min_size, child.layout.min_size.get_dim(x));
+                    max_size = f32::min(max_size, child.layout.max_size.get_dim(x));
+                    size = f32::max(size, child.layout.size.get_dim(x));
+                }
+                let child_count = children.len() as f32;
+                let grow = axis.grow.unwrap_or_else(|| grow / child_count);
+                let shrink = axis.shrink.unwrap_or_else(|| shrink / child_count);
+                let min_size = axis.min_size.unwrap_or(min_size);
+                let max_size = axis.max_size.unwrap_or(max_size);
+                let resizing = axis.resizing;
+                let axis = ResolvedAxis { resizing, grow, shrink, size, min_size, max_size };
+                ResolvedColumn { axis, children }
+            })
+            .collect_vec();
+
+        println!("resolved_columns: {:#?}", resolved_columns);
+
+
+        let total_padding_x = 2.0 * opts.padding.get_dim(x);
+        let total_spacing_x = (resolved_columns.len() - 1) as f32 * opts.spacing;
+        let mut space_left_with_pref_sizes =
+            self.layout.size.get_dim(x) - total_padding_x - total_spacing_x;
+        let mut total_grow_coeff = 0.0;
+        let mut total_shrink_coeff = 0.0;
+        for column in &resolved_columns {
+            space_left_with_pref_sizes -= column.size;
+            total_grow_coeff += column.grow;
+            total_shrink_coeff += column.shrink;
+        }
+
+        if self.layout.resizing.get_dim(x).is_hug() && space_left_with_pref_sizes < 0.0 {
+            self.layout.size.update_dim(x, |t| t - space_left_with_pref_sizes);
+            space_left_with_pref_sizes = 0.0;
+        }
+
+        let mut space_left = self.layout.size.get_dim(x) - total_padding_x - total_spacing_x;
+
+        let grow_coeff = if total_grow_coeff > 0.0 {
+            f32::max(0.0, space_left_with_pref_sizes / total_grow_coeff)
+        } else {
+            0.0
+        };
+        let shrink_coeff = if total_shrink_coeff > 0.0 {
+            f32::min(0.0, space_left_with_pref_sizes / total_shrink_coeff)
+        } else {
+            0.0
+        };
+        let mut pos_x = opts.padding.get_dim(x);
+        for column in &resolved_columns {
+            let grow_size = column.grow * grow_coeff;
+            let shrink_size = column.shrink * shrink_coeff;
+            let column_size = column.size + grow_size + shrink_size;
+            let column_size = f32::max(column.min_size, column_size);
+            let column_size = f32::min(column.max_size, column_size);
+            space_left -= column_size;
+            for child in &column.children {
+                println!(">> child: {:?}", child);
+                let child_size = child.layout.size.get_dim(x);
+                let child_can_grow = child.layout.grow.get_dim(x) > 0.0;
+                let child_can_shrink = child.layout.shrink.get_dim(x) > 0.0;
+                if child_can_grow && child_size < column_size {
+                    let size = f32::min(column_size, child.layout.max_size.get_dim(x));
+                    child.layout.size.set_dim(x, size);
+                }
+                if child_can_shrink && child_size > column_size {
+                    let size = f32::max(column_size, child.layout.min_size.get_dim(x));
+                    child.layout.size.set_dim(x, size);
+                }
+                if child_size != child.layout.size.get_dim(x) {
+                    child.refresh_layout_internal(first_pass);
+                }
+                let child_size = child.size();
+                let bbox_origin = child.bbox_origin();
+                child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
+                println!("<< child: {:?}", child);
+            }
+            pos_x += column_size + opts.spacing;
         }
     }
 }
@@ -2665,6 +2722,16 @@ pub trait ObjectOps: Object {
         self
     }
 
+    fn set_max_size_x(&self, x: f32) -> &Self {
+        self.display_object().def.set_max_size_x(x);
+        self
+    }
+
+    fn set_min_size_x(&self, x: f32) -> &Self {
+        self.display_object().def.set_min_size_x(x);
+        self
+    }
+
     /// Set the current resizing mode.
     fn set_size_x_hug(&self, x: f32) -> &Self {
         self.display_object().def.set_size_x_hug(x);
@@ -2693,6 +2760,21 @@ pub trait ObjectOps: Object {
 
     fn allow_grow_y(&self) -> &Self {
         self.display_object().def.allow_grow_y();
+        self
+    }
+
+    fn allow_shrink(&self) -> &Self {
+        self.display_object().def.allow_shrink();
+        self
+    }
+
+    fn allow_shrink_x(&self) -> &Self {
+        self.display_object().def.allow_shrink_x();
+        self
+    }
+
+    fn allow_shrink_y(&self) -> &Self {
+        self.display_object().def.allow_shrink_y();
         self
     }
 
@@ -3392,8 +3474,8 @@ mod layout_tests {
             impl [<TestFlatChildren $total>] {
                 fn new() -> Self {
                     let world = World::new();
-                    let root = Instance::new();
-                    $(let [<node $num>] = Instance::new();)*
+                    let root = Instance::new_named("root");
+                    $(let [<node $num>] = Instance::new_named(stringify!([<node $num>]));)*
                     world.add_child(&root);
                     $(root.add_child(&[<node $num>]);)*
                     Self { world, root, $([<node $num>]),* }
@@ -3443,26 +3525,27 @@ mod layout_tests {
     /// Input:
     ///
     /// ```text
-    /// ╭▷ ROOT ──────────────────────────╮
-    /// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │
-    /// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │
-    /// │   │ │ L1  │  │   │ │ R1 ▲   │   │
-    /// │   │ │     │  │   │ │    ▼   │   │
-    /// │   │ │     │  ▼   │ ╰────╯   ▲   │
-    /// │   │ │     │  ▲   │ ╭────╮   ▼   │
-    /// │   │ │     │  │   │ │ R2 ▲   │   │
-    /// │   │ │     │  │   │ │    ▼   │   │
-    /// │   │ ╰─────╯  │   │ ╰────╯   │   │
-    /// │   ╰──────────╯   ╰──────────╯   │
-    /// ╰─────────────────────────────────╯
+    /// ╭────────────────────────────────╮
+    /// │ root                       △   │
+    /// │   ╭─────────┬▷  ╭── ▶ ◀ ───┤   │
+    /// │   │ l       │   │ r    △   │   │
+    /// │   │ ╭────┬▷ │   │ ╭────┤   │   │
+    /// │   │ │ l1 │  │   │ │ R1 │   │   │
+    /// │   │ │    │  ▼   │ ╰────╯   │   │
+    /// │   │ │    │  ▲   │      △   │   │
+    /// │   │ │    │  │   │ ╭────┤   │   │
+    /// │   │ │    │  │   │ │ R2 │   │   │
+    /// │   │ ╰────╯  │   │ ╰────╯   │   │
+    /// │   ╰─────────╯   ╰──────────╯   │
+    /// ╰────────────────────────────────╯
     /// ```
     ///
     /// Output:
     /// The dimensions in parentheses were provided manually.
     ///
     /// ```text
-    /// ╭▷ ROOT ─────────────────────────────────────────╮
-    /// │                          ╭R─ ▶ ◀ ──────╮       │
+    /// ╭────────────────────────────────────────────────╮
+    /// │ root                     ╭R─ ▶ ◀ ──────╮       │
     /// │                          ▽ ╭────╮      │       │
     /// │                          │ │ R2 ▲ 50   │       │
     /// │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
@@ -3478,7 +3561,7 @@ mod layout_tests {
     /// │                               30               │
     /// ╰────────────────────────────────────────────────╯
     ///                      (100)
-    /// ```   
+    /// ```
     #[test]
     fn test_mixed_layouts() {
         let world = World::new();
@@ -3494,15 +3577,15 @@ mod layout_tests {
         r.add_child(&r1);
         r.add_child(&r2);
 
-        root.use_auto_layout().set_alignment_center();
+        root.use_auto_layout();
         root.set_size((100.0, 100.0));
 
         l.use_auto_layout();
-        l.set_size_x_hug(0.0).allow_grow_x();
+        l.set_size_y_to_hug().allow_grow_x();
         l1.set_size((0.0, 50.0)).allow_grow_x();
 
-        r.set_layout_vertical();
-        r.set_size_hug_y(0.0).allow_grow_y();
+        r.use_auto_layout().set_max_columns(1);
+        r.set_size_x_to_hug().allow_grow_y();
         r1.set_size((20.0, 0.0)).allow_grow_y();
         r2.set_size((30.0, 0.0)).allow_grow_y();
 
@@ -3510,7 +3593,7 @@ mod layout_tests {
 
         println!("L size: {:?}", l.size());
         assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(l.position().xy(), Vector2(0.0, 25.0));
+        assert_eq!(l.position().xy(), Vector2(0.0, 0.0));
         assert_eq!(r.position().xy(), Vector2(70.0, 0.0));
         assert_eq!(l1.position().xy(), Vector2(0.0, 0.0));
         assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
@@ -3523,26 +3606,215 @@ mod layout_tests {
         assert_eq!(r2.size(), Vector2(30.0, 50.0));
     }
 
+    /// ```text
+    /// ╭─────────────── ▶ ◀ ───────────────╮
+    /// │ root                              │
+    /// │                        ╭───────╮  │
+    /// │             ╭───────╮  │ node3 │  │
+    /// │  ╭───────╮  │ node2 │  │       │  ▼
+    /// │  │ node1 │  │       │  │       │  ▲
+    /// │  │       │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  ╰───────╯  │
+    /// ╰───────────────────────────────────╯
+    /// ```
     #[test]
-    fn test_column() {
-        let world = World::new();
-        let root = Instance::new_named("Root");
-        let node1 = Instance::new_named("node1");
-        let node2 = Instance::new_named("node2");
-        root.add_child(&node1);
-        root.add_child(&node2);
+    fn test_horizontal_layout_with_fixed_children() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.node1.set_size((1.0, 1.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((3.0, 3.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(1.0, 0.0)
+            .assert_node3_position(3.0, 0.0)
+            .assert_root_size(6.0, 3.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(3.0, 3.0);
+    }
 
-        root.use_auto_layout();
-        root.set_size((200.0, 200.0));
-        node1.set_size((100.0, 100.0));
-        node2.set_size((100.0, 100.0));
+    /// ```text
+    /// ╭──── ▶ ◀ ────────╮
+    /// │ root            │
+    /// │  ╭───────────╮  │
+    /// │  │ node3     │  │
+    /// │  │           │  │
+    /// │  ╰───────────╯  │
+    /// │  ╭─────────╮    │
+    /// │  │ node2   │    ▼
+    /// │  │         │    ▲
+    /// │  ╰─────────╯    │
+    /// │  ╭───────╮      │
+    /// │  │ node1 │      │
+    /// │  │       │      │
+    /// │  ╰───────╯      │
+    /// ╰─────────────────╯
+    /// ```
+    #[test]
+    fn test_vertical_layout_with_fixed_children() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_max_columns(1);
+        test.node1.set_size((1.0, 1.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((3.0, 3.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 1.0)
+            .assert_node3_position(0.0, 3.0)
+            .assert_root_size(3.0, 6.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(3.0, 3.0);
+    }
 
-        root.update(&world.default_scene);
+    /// ```text
+    /// ╭─────────────── ▶ ◀ ───────────────╮
+    /// │ root                              │
+    /// │  ╭─ ▶ ◀ ─╮  ╭───────╮  ╭─ ▶ ◀ ─╮  │
+    /// │  │ node1 │  │ node2 │  │ node3 ▼  ▼
+    /// │  │       │  │       │  │       ▲  ▲
+    /// │  ╰───────╯  ╰───────╯  ╰───────╯  │
+    /// ╰───────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_hug_children() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.node1.set_size_hug_y(1.0);
+        test.node2.set_size((2.0, 2.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 0.0)
+            .assert_node3_position(2.0, 0.0)
+            .assert_root_size(2.0, 2.0)
+            .assert_node1_size(0.0, 1.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(0.0, 0.0);
+    }
 
-        println!("node1: {:?}", node1);
-        println!("node1: {:?}", node2);
+    /// ```text
+    /// ╭──────────────────────────────────────────╮
+    /// │ root                                     │
+    /// │  ╭─ ▶ ◀ ─╮  ╭───────┬───────▷┤ ╭─ ▶ ◀ ─╮ │
+    /// │  │ node1 │  │ node2 │          │ node3 │ ▼
+    /// │  │       │  │       │          │       │ ▲
+    /// │  ╰───────╯  ╰───────╯          ╰───────╯ │
+    /// ╰──────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_children_that_grow() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.root.set_size_x_hug(10.0);
+        test.node1.set_size_hug_y(1.0);
+        test.node2.set_size((2.0, 2.0)).allow_grow_x();
+        test.node3.set_size((3.0, 3.0));
+        test.run()
+            .assert_root_size(10.0, 3.0)
+            .assert_node1_size(0.0, 1.0)
+            .assert_node2_size(7.0, 2.0)
+            .assert_node3_size(3.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 0.0)
+            .assert_node3_position(7.0, 0.0);
+    }
 
-        assert_eq!(1, 2);
+    /// ```text
+    /// ╭──────────────────────────────────────────╮
+    /// │ root                                     │
+    /// │  ╭─ ▶ ◀ ─╮  ╭───────┬─▷┤ ╭─ ▶ ◀ ─╮       │
+    /// │  │ node1 │  │ node2 │    │ node3 │       ▼
+    /// │  │       │  │       │    │       │       ▲
+    /// │  ╰───────╯  ╰───────╯    ╰───────╯       │
+    /// ╰──────────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_children_that_grow_to_a_limit() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.root.set_size_x_hug(10.0);
+        test.node1.set_size_hug_y(1.0);
+        test.node2.set_size((2.0, 2.0)).allow_grow_x().set_max_size_x(4.0);
+        test.node3.set_size((3.0, 3.0));
+        test.run()
+            .assert_root_size(10.0, 3.0)
+            .assert_node1_size(0.0, 1.0)
+            .assert_node2_size(4.0, 2.0)
+            .assert_node3_size(3.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 0.0)
+            .assert_node3_position(4.0, 0.0);
+    }
+
+    /// ```text
+    /// ╭────────────────────────────╮
+    /// │ root                       │
+    /// │  ╭───────╮  ╭───┼◁──╮  ╭───┼───╮
+    /// │  │ node1 │  │ node2 │  │ node3 │
+    /// │  │       │  │       │  │   │   │
+    /// │  ╰───────╯  ╰───────╯  ╰───┼───╯
+    /// ╰────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_children_that_shrink_to_a_limit() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.root.set_size_x_hug(4.0);
+        test.node1.set_size((1.0, 1.0));
+        test.node2.set_size((2.0, 2.0)).allow_shrink_x().set_min_size_x(1.0);
+        test.node3.set_size((3.0, 3.0));
+        test.run()
+            .assert_root_size(4.0, 3.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(1.0, 2.0)
+            .assert_node3_size(3.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(1.0, 0.0)
+            .assert_node3_position(2.0, 0.0);
+    }
+
+    /// ```text
+    /// ╭──────────────────────────────────────╮
+    /// │ root                    △            │
+    /// │             ╭── ▶ ◀ ────┼▷ ╭───────╮ │
+    /// │             │ node2     │  │ node3 │ │     
+    /// │             │╭─────────╮│  │       │ │       
+    /// │  ╭───────╮  ││ node2_1 ││  │       │ │
+    /// │  │ node1 │  │╰─────────╯│  │       │ │
+    /// │  ╰───────╯  ╰───────────╯  ╰───────╯ │
+    /// ╰──────────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_hug_child_that_can_grow_in_a_hug_column() {
+        let test = TestFlatChildren3::new();
+        let node2_1 = Instance::new_named("node2_1");
+        test.node2.add_child(&node2_1);
+
+        test.root.use_auto_layout();
+        test.root.set_size_x_hug(10.0);
+        test.node1.set_size((1.0, 1.0));
+        test.node2.use_auto_layout();
+        test.node2.allow_grow_x().allow_grow_y();
+        node2_1.set_size((1.0, 1.0));
+        test.node3.set_size((3.0, 3.0));
+        test.run()
+            .assert_root_size(10.0, 3.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(6.0, 3.0)
+            .assert_node3_size(3.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(1.0, 0.0)
+            .assert_node3_position(7.0, 0.0);
+        assert_eq!(node2_1.size(), Vector2(1.0, 1.0));
+        assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
     }
 
     // /// ```text

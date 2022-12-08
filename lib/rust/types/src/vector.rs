@@ -1,5 +1,15 @@
+//! Additional methods for [`nalgebra::Vector`] structs.
+
 use nalgebra::*;
 
+
+
+// ===================
+// === IntoVector2 ===
+// ===================
+
+/// Additional conversions from some struct to [`Vector2`].
+#[allow(missing_docs)]
 pub trait IntoVector2<T> {
     fn into_vector2(self) -> Vector2<T>;
 }
@@ -17,6 +27,13 @@ impl<T, S: Into<T>> IntoVector2<T> for (S, S) {
 }
 
 
+
+// ===================
+// === IntoVector2 ===
+// ===================
+
+/// Additional conversions from some struct to [`Vector3`].
+#[allow(missing_docs)]
 pub trait IntoVector3<T> {
     fn into_vector3(self) -> Vector3<T>;
 }

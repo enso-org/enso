@@ -64,11 +64,9 @@ use crate::prelude::*;
 use crate::system::gpu::types::*;
 
 use crate::display;
-use crate::display::object::instance::GenericLayoutApi;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
-use crate::display::symbol::geometry::compound::sprite;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
@@ -106,11 +104,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     fn pointer_events() -> bool;
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
-    fn new_instance_params(
-        sprite: &Sprite,
-        gpu_params: &Self::GpuParams,
-        id: InstanceIndex,
-    ) -> Self;
+    fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceIndex) -> Self;
     fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
 }
@@ -206,7 +200,6 @@ impl<S: Shape> ShapeInstance<S> {
         // and the new child has bigger size, the parent would also need to be updated).
         // However, we control the layout of the sprite, so we know it did not change.
         self.display_object.refresh_layout();
-        warn!("is scene dirty? {:#?}", crate::display::world::scene().display_object());
     }
 }
 
@@ -285,7 +278,7 @@ impl<S: Shape> ShapeSystem<S> {
         let sprite = self.model.sprite_system.new_instance();
         sprite.allow_grow();
         let id = sprite.instance_id;
-        let shape = S::new_instance_params(&sprite, &self.gpu_params, id);
+        let shape = S::new_instance_params(&self.gpu_params, id);
         let display_object = display::object::Instance::new_named("ShapeSystem");
         display_object.add_child(&sprite);
         // FIXME: workaround:
@@ -300,7 +293,7 @@ impl<S: Shape> ShapeSystem<S> {
         sprite.allow_grow();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
-        let shape = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
+        let shape = S::new_instance_params(&self.gpu_params, instance_id);
         let display_object = display::object::Instance::new_named("ShapeSystem");
         display_object.add_child(&sprite);
         // FIXME: workaround:
@@ -622,7 +615,6 @@ macro_rules! _shape {
                 }
 
                 fn new_instance_params(
-                    sprite: &Sprite,
                     gpu_params:&Self::GpuParams,
                     id: InstanceIndex
                 ) -> Shape {

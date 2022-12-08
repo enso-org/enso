@@ -255,6 +255,50 @@ crate::with_swizzling_for_dim_unique!(4, gen_dim_x_setter_impl_for_vector, Vecto
 
 
 // ==========================
+// === Getters for Tuples ===
+// ==========================
+
+macro_rules! gen_dim_x_impl_for_tuple {
+    ([$vec:tt] $dim:tt $( $name:ident $swizzling_dim:tt [$($dim_ix:tt)*] [$($dim_ord:tt)*] )*) => {
+        paste! {
+            impl<T: Copy> [<Dim $dim>] for $vec<T> {
+                type [<Dim $dim Type>] = [<Tuple $dim>]<T>;
+                $(
+                    fn $name(&self) -> Self::[<Dim $swizzling_dim Type>] {
+                        gen_dim_impl_for_tuple_body!{self, $swizzling_dim, [$($dim_ix)*]}
+                    }
+                )*
+            }
+        }
+    };
+}
+
+macro_rules! gen_dim_impl_for_tuple_body {
+    ($this:tt, $swizzling_dim:tt, [$($dim_ix:tt),*]) => {
+        ( $( $this.$dim_ix ),* )
+    };
+}
+
+type Tuple1<T> = T;
+type Tuple2<T> = (T, T);
+type Tuple3<T> = (T, T, T);
+type Tuple4<T> = (T, T, T, T);
+
+crate::with_swizzling_for_dim!(1, gen_dim_x_impl_for_tuple, Tuple2);
+crate::with_swizzling_for_dim!(2, gen_dim_x_impl_for_tuple, Tuple2);
+
+crate::with_swizzling_for_dim!(1, gen_dim_x_impl_for_tuple, Tuple3);
+crate::with_swizzling_for_dim!(2, gen_dim_x_impl_for_tuple, Tuple3);
+crate::with_swizzling_for_dim!(3, gen_dim_x_impl_for_tuple, Tuple3);
+
+crate::with_swizzling_for_dim!(1, gen_dim_x_impl_for_tuple, Tuple4);
+crate::with_swizzling_for_dim!(2, gen_dim_x_impl_for_tuple, Tuple4);
+crate::with_swizzling_for_dim!(3, gen_dim_x_impl_for_tuple, Tuple4);
+crate::with_swizzling_for_dim!(4, gen_dim_x_impl_for_tuple, Tuple4);
+
+
+
+// ==========================
 // === Generic Dim Traits ===
 // ==========================
 
@@ -340,6 +384,19 @@ gen_dim_impl_for_vector!(Vector2, x, y);
 gen_dim_impl_for_vector!(Vector3, x, y, z);
 gen_dim_impl_for_vector!(Vector4, x, y, z, w);
 
+
+// impl<T: Scalar + Copy> Dim<X> for (T, T) {
+//     fn get_dim(&self, _dim: X) -> Self::Dim1Type {
+//         self.x()
+//     }
+// }
+// impl<T: Scalar + Copy> DimSetter<X> for Vector2<T> { fn set_dim(&mut self, _dim: X, value:
+// Self::Dim1Type) { self.set_x(value) } } impl<T: Scalar + Copy> Dim<Y> for Vector2<T> {
+//     fn get_dim(&self, _dim: Y) -> Self::Dim1Type {
+//         self.y()
+//     }
+// }
+// impl<T: Scalar + Copy> Dim
 
 
 // =====================================================
