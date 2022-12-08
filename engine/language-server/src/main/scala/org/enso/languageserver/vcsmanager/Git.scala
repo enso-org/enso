@@ -1,7 +1,7 @@
 package org.enso.languageserver.vcsmanager
 
 import java.io.{FileNotFoundException, IOException}
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import org.enso.languageserver.effect.BlockingIO
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.api.ResetCommand.ResetType
@@ -27,6 +27,7 @@ import scala.jdk.CollectionConverters._
 import zio.blocking.effectBlocking
 
 import java.time.Instant
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
@@ -37,6 +38,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
   private def repository(root: Path): Repository = {
     val builder = new FileRepositoryBuilder()
     builder
+      .setWorkTree(root.toFile)
       .setGitDir(root.resolve(gitDir).toFile)
       .setMustExist(true)
       .build()
@@ -78,11 +80,17 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         if (dotGit.exists() && dotGit.isFile) {
           dotGit.delete()
         }
+      }
 
-        // Exclude <enso-data>/.git
-        jgit
-          .reset()
-          .addPath(gitDir.toString)
+      val isDataDir =
+        (x: Path) => ensoDataDirectory.map(_ == x).getOrElse(false)
+      val filesToAdd =
+        listDirectoryFiles(root, Set(gitDir)).filterNot(isDataDir)
+      if (!filesToAdd.isEmpty) {
+        filesToAdd
+          .foldLeft(jgit.add()) { case (cmd, filePath) =>
+            cmd.addFilepattern(filePath.toString)
+          }
           .call()
       }
 
@@ -106,18 +114,28 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
       val commitName = named.getOrElse(Instant.now().toString)
       val jgit       = new JGit(repo)
-      // Add all modified and new files to the index
-      jgit
-        .add()
-        .addFilepattern(".")
-        .call()
 
-      // Include deletion
+      // Include files that already are/were in the index
       jgit
         .add()
         .addFilepattern(".")
         .setUpdate(true)
         .call()
+
+      val status    = jgit.status.call()
+      val untracked = status.getUntracked()
+      val isDataDir = (x: String) =>
+        ensoDataDirectory.map(dataDir => dataDir.toString == x).getOrElse(false)
+      val filesToAdd = untracked.asScala.flatMap { file =>
+        if (!file.startsWith(gitDir.toString) && !isDataDir(file)) {
+          Some(file)
+        } else None
+      }
+      if (!filesToAdd.isEmpty) {
+        val addCmd = jgit.add()
+        filesToAdd.foreach(addCmd.addFilepattern(_))
+        addCmd.call()
+      }
 
       val revCommit = jgit
         .commit()
@@ -184,7 +202,11 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       val status    = statusCmd.call()
       val changed =
         status.getModified().asScala.toList ++
-        status.getUntracked().asScala.toList ++
+        status
+          .getUntracked()
+          .asScala
+          .toList
+          .filterNot(_.startsWith(gitDir.toString)) ++
         status.getRemoved().asScala.toList
       val changedPaths = changed.map(name => Path.of(name)).toSet
       val logCmd       = jgit.log()
@@ -196,7 +218,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
             Option(RepoCommit(log.getName, log.getShortMessage()))
           } else None
         }) getOrElse null
-      RepoStatus(!status.isClean(), changedPaths, last)
+      RepoStatus(changed.nonEmpty, changedPaths, last)
     }.mapError(errorHandling)
   }
 
@@ -224,6 +246,42 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
     case _: RefNotFoundException         => SaveNotFound
     case _: RepoExists                   => RepoAlreadyExists
     case ex                              => GenericVcsFailure(ex.getMessage)
+  }
+
+  private def listDirectoryFiles(
+    rootDir: Path,
+    excludeDirs: Set[Path]
+  ): List[Path] = {
+    listDirectoryFiles(rootDir, rootDir, excludeDirs)
+  }
+  private def listDirectoryFiles(
+    rootDir: Path,
+    dir: Path,
+    excludeDirs: Set[Path]
+  ): List[Path] = {
+    val stream = Files.newDirectoryStream(dir)
+    try {
+      stream
+        .iterator()
+        .asScala
+        .flatMap { absolutePath =>
+          val relativePath = rootDir.relativize(absolutePath)
+          if (absolutePath.toFile.isDirectory) {
+            if (excludeDirs.forall(!relativePath.startsWith(_))) {
+              relativePath :: listDirectoryFiles(
+                rootDir,
+                absolutePath,
+                excludeDirs
+              )
+            } else Nil
+          } else {
+            List(relativePath)
+          }
+        }
+        .toList
+    } finally {
+      if (stream != null) stream.close()
+    }
   }
 }
 
