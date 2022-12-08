@@ -101,7 +101,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type InstanceParams: Debug + InstanceParamsTrait;
     type GpuParams: Debug;
     type SystemData: CustomSystemData<Self>;
-    type ShapeData: Debug + ShapeSystemFlavorProvider;
+    type ShapeData: Debug;
     fn pointer_events() -> bool;
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
@@ -112,6 +112,9 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     ) -> ShapeWithSize<Self>;
     fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
+    fn flavor(_data: &Self::ShapeData) -> ShapeSystemFlavor {
+        ShapeSystemFlavor { flavor: 0 }
+    }
 }
 
 /// An alias for [`Shape]` where [`Shape::ShapeData`] is [`Default`].
@@ -150,23 +153,16 @@ impl<S: Shape> CustomSystemData<S> for () {
 /// This is what happens with fonts. For each font family, a separate glyph atlas is created, and
 /// thus, a shape system needs to be created for each used font family. The [`ShapeSystemFlavor`] is
 /// used to differentiate such shape systems. You do not need to care about it in most cases.
+///
+/// The flavor for given shape definition is specified in the [`shape!`] macro using `flavor =
+/// path::to::function` syntax. The flavor function or method should take a reference to
+/// [`ShapeData`] and return a [`ShapeSystemFlavor`]. If not specified, the default static value of
+/// 0 is used.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct ShapeSystemFlavor {
     /// The flavor of the shape system. In most cases, it is computed as a hash of some value, like
     /// a hash of font family name.
     pub flavor: u64,
-}
-
-/// Provider of a shape system flavor. Read docs of [`ShapeSystemFlavor`] for more information.
-#[allow(missing_docs)]
-pub trait ShapeSystemFlavorProvider {
-    fn flavor(&self) -> ShapeSystemFlavor;
-}
-
-impl<T> ShapeSystemFlavorProvider for T {
-    default fn flavor(&self) -> ShapeSystemFlavor {
-        ShapeSystemFlavor { flavor: 0 }
-    }
 }
 
 
@@ -551,6 +547,7 @@ macro_rules! shape {
     (
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -559,6 +556,7 @@ macro_rules! shape {
         $crate::_shape! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
@@ -573,6 +571,7 @@ macro_rules! _shape {
     (
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
+        $(flavor = [$flavor:path];)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -673,13 +672,17 @@ macro_rules! _shape {
                     // Silencing warnings about not used style.
                     let _unused = &$style;
                     $(
-                        let $gpu_param : display::shape::primitive::def::Var<$gpu_param_type> =
+                        let $gpu_param : $crate::display::shape::primitive::def::Var<$gpu_param_type> =
                             concat!("input_",stringify!($gpu_param)).into();
                         // Silencing warnings about not used shader input variables.
                         let _unused = &$gpu_param;
                     )*
                     $($body)*
                 }
+
+                $(fn flavor(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
+                    $flavor(data)
+                })?
             }
 
             /// An initialized, GPU-bound shape definition. All changed parameters are immediately
