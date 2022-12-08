@@ -399,7 +399,7 @@ impl Slider {
             drag_start_pos <- mouse.position.sample(&component_click);
             drag_end_pos <- mouse.position.gate(&component_drag);
             drag_end_pos <- any2(&drag_end_pos, &drag_start_pos);
-            drag_delta <- all2(&drag_end_pos, &drag_start_pos).map(|(end, start)| end - start);;
+            drag_delta <- all2(&drag_end_pos, &drag_start_pos).map(|(end, start)| end - start);
             drag_delta_primary <- all2(&drag_delta, &input.set_orientation);
             drag_delta_primary <- drag_delta_primary.map( |(delta, orientation)|
                 match orientation {
@@ -529,10 +529,12 @@ impl Slider {
             output.value <+ value;
             output.precision <+ precision;
 
-            skip_value_anim <- all2(&precision, &prec_at_mouse_speed);
-            skip_value_anim <- skip_value_anim.map(|(prec, threshold)| prec <= threshold);
+            small_value_step <- all2(&precision, &prec_at_mouse_speed);
+            small_value_step <- small_value_step.map(|(prec, threshold)| prec <= threshold);
+            mouse_adjust <- drag_delta_primary.map(|x| *x != 0.0).gate(&update_value);
+            skip_value_anim <- value.constant(()).gate(&small_value_step).gate(&mouse_adjust);
             model.value_animation.target <+ value;
-            model.value_animation.skip <+ value.constant(()).gate(&skip_value_anim);
+            model.value_animation.skip <+ skip_value_anim;
         };
     }
 
