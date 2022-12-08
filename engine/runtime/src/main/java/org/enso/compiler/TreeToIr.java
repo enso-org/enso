@@ -23,6 +23,7 @@ import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
+import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Foreign$Definition;
@@ -239,7 +240,8 @@ final class TreeToIr {
         var body = translateExpression(fn.getBody());
 
         if (body == null) {
-            throw new NullPointerException();
+            var error = translateSyntaxError(inputAst, new IR$Error$Syntax$UnsupportedSyntax("Block without body"));
+            yield cons(error, appendTo);
         }
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           methodRef,
