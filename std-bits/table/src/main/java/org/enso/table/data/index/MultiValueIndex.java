@@ -186,4 +186,16 @@ public class MultiValueIndex {
 
     return output;
   }
+
+  public Set<MultiValueKeyBase> keys() {
+    return locs.keySet();
+  }
+
+  public boolean contains(MultiValueKeyBase key) {
+    return this.locs.containsKey(key);
+  }
+
+  public List<Integer> get(MultiValueKeyBase key) {
+    return this.locs.get(key);
+  }
 }

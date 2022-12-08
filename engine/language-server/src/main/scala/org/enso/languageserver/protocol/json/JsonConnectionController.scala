@@ -485,6 +485,8 @@ class JsonConnectionController(
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextRecompute -> executioncontext.RecomputeHandler
         .props(requestTimeout, contextRegistry, rpcSession),
+      ExecutionContextInterrupt -> executioncontext.InterruptHandler
+        .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextGetComponentGroups -> executioncontext.GetComponentGroupsHandler
         .props(requestTimeout, contextRegistry, rpcSession.clientId),
       GetSuggestionsDatabaseVersion -> search.GetSuggestionsDatabaseVersionHandler

@@ -13,10 +13,7 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.join.JoinCondition;
-import org.enso.table.data.table.join.JoinResult;
-import org.enso.table.data.table.join.JoinStrategy;
-import org.enso.table.data.table.join.ScanJoin;
+import org.enso.table.data.table.join.*;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -288,16 +285,14 @@ public class Table {
    *
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
-  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix) {
+  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> comparator) {
     // TODO adding prefix for right columns
     NameDeduplicator deduplicator = new NameDeduplicator();
 
-    JoinStrategy strategy = new ScanJoin();
-    JoinResult joinResult = null;
+    JoinStrategy strategy = new IndexJoin(comparator);
+
     // Only compute the join if there are any results to be returned.
-    if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
-      joinResult = strategy.join(this, right, conditions);
-    }
+    JoinResult joinResult = (keepLeftUnmatched || keepMatched || keepRightUnmatched) ? strategy.join(this, right, conditions) : null;
 
     List<Integer> leftRows = new ArrayList<>();
     List<Integer> rightRows = new ArrayList<>();
