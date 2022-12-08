@@ -41,6 +41,10 @@ pub mod traits {
 crate::define_endpoints_2! {
     Input {
         set_tooltip(tooltip::Style),
+        /// Show the system mouse cursor.
+        show_system_cursor(),
+        /// Hide the system mouse cursor.
+        hide_system_cursor(),
     }
     Output {
         tooltip(tooltip::Style)
@@ -75,6 +79,15 @@ pub struct ApplicationData {
     update_themes_handle: callback::Handle,
 }
 
+impl ApplicationData {
+    /// Show or hide the system mouse cursor by setting the `cursor` CSS property of the `body`
+    /// element.
+    fn show_system_cursor(&self, show: bool) {
+        let style = if show { "auto" } else { "none" };
+        web::document.body_or_panic().set_style_or_warn("cursor", style);
+    }
+}
+
 impl Application {
     /// Constructor.
     pub fn new(dom: impl DomPath) -> Self {
@@ -89,13 +102,8 @@ impl Application {
         let themes = theme::Manager::from(&display.default_scene.style_sheet);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
-        web::document.body_or_panic().set_style_or_warn("cursor", "none");
         let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
         let frp = Frp::new();
-        let _network = frp.network();
-        enso_frp::extend! { _network
-            frp.private.output.tooltip <+ frp.private.input.set_tooltip;
-        }
 
         let data = ApplicationData {
             logger,
@@ -109,7 +117,22 @@ impl Application {
             frp,
         };
 
-        Self { inner: Rc::new(data) }
+        Self { inner: Rc::new(data) }.init()
+    }
+
+    fn init(self) -> Self {
+        let frp = &self.frp;
+        let data = &self.inner;
+        let network = self.frp.network();
+        enso_frp::extend! { network
+            frp.private.output.tooltip <+ frp.private.input.set_tooltip;
+            eval_ frp.private.input.show_system_cursor(data.show_system_cursor(true));
+            eval_ frp.private.input.hide_system_cursor(data.show_system_cursor(false));
+        }
+        // We hide the system cursor to replace it with the EnsoGL-provided one.
+        self.frp.hide_system_cursor();
+
+        self
     }
 
     /// Create a new instance of a view.
