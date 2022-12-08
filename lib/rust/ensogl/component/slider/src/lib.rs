@@ -471,11 +471,13 @@ impl Slider {
                     let sign = offset.signum();
                     // Calculate mouse y-position offset beyond margin.
                     let offset = offset.abs() - margin;
-                    if offset < 0.0 { return None } // No adjustment offset beyond margin.
+                    if offset < 0.0 { return None } // No adjustment if offset is within margin.
                     // Calculate number of steps and direction of the precision adjustment.
                     let steps = (offset / step_size).ceil() * sign;
                     match steps {
-                        steps if steps > 0.0 => Some(steps - 1.0), // Adjust for skipped step 0.
+                        // Step 0 is over the component, which returns early. Make step 0 be the
+                        // first adjustment step above the component (precision = 1.0).
+                        steps if steps > 0.0 => Some(steps - 1.0),
                         steps => Some(steps),
                     }
                 }
