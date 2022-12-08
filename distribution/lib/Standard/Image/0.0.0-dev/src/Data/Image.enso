@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
 
 import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
@@ -169,8 +170,8 @@ type Image
              example_get = Examples.image.get 10 10
     get : Integer -> Integer -> Vector ! Matrix_Error
     get self row column =
-        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns row) else
-            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns column) else
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns column) else
                 arr = Java_Image.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 

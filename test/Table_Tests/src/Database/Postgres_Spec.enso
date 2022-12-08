@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Table

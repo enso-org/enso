@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.atom;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
@@ -10,6 +11,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -21,6 +23,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public class InstantiateNode extends ExpressionNode {
   private final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;
+  private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(3);
   private @CompilationFinal(dimensions = 1) ConditionProfile[] profiles;
   private @CompilationFinal(dimensions = 1) ConditionProfile[] warningProfiles;
   private @CompilationFinal(dimensions = 1) BranchProfile[] sentinelProfiles;
@@ -70,11 +73,14 @@ public class InstantiateNode extends ExpressionNode {
       Object argument = arguments[i].executeGeneric(frame);
       if (profile.profile(TypesGen.isDataflowError(argument))) {
         return argument;
-      } else if (warningProfile.profile(argument instanceof WithWarnings)) {
+      } else if (warningProfile.profile(warnings.hasWarnings(argument))) {
         anyWarnings = true;
-        WithWarnings originalArg = (WithWarnings) argument;
-        accumulatedWarnings = accumulatedWarnings.append(originalArg.getReassignedWarnings(this));
-        argumentValues[i] = originalArg.getValue();
+        try {
+          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(argument, this));
+          argumentValues[i] = warnings.removeWarnings(argument);
+        } catch (UnsupportedMessageException e) {
+          throw new IllegalStateException(e);
+        }
       } else if (TypesGen.isPanicSentinel(argument)) {
         sentinelProfile.enter();
         throw TypesGen.asPanicSentinel(argument);

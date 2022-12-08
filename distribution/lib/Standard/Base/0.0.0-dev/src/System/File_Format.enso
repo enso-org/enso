@@ -2,12 +2,13 @@ import project.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.File_Error.File_Error
 import project.Error.Problem_Behavior.Problem_Behavior
+import project.Error.Unimplemented.Unimplemented
 import project.Nothing.Nothing
 import project.System.File.File
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Unsupported_File_Type, Unimplemented
 
 polyglot java import org.enso.base.file_format.FileFormatSPI
 
@@ -18,10 +19,10 @@ format_types = Vector.from_polyglot_array (FileFormatSPI.get_types False)
 type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
-    read : File -> Problem_Behavior -> Any ! Unsupported_File_Type
+    read : File -> Problem_Behavior -> Any ! File_Error
     read self file on_problems =
         reader = Auto_Detect.get_format file
-        if reader == Nothing then Error.throw (Unsupported_File_Type.Error ("No known File_Format supports '" + file.extension + "'")) else
+        if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
             reader.read file on_problems
 
     ## PRIVATE

@@ -32,8 +32,8 @@ print_report spec config builder =
     if config.should_output_junit then
         builder.append ('    <testsuite name="' + (escape_xml spec.name) + '" timestamp="' + (Date_Time.now.format "yyyy-MM-dd'T'HH:mm:ss") + '"')
         builder.append (' tests="' + spec.behaviors.length.to_text + '"')
-        builder.append (' disabled="' + spec.behaviors.filter (x->(x.is_a Test_Result.Pending)) . length . to_text + '"')
-        builder.append (' errors="' + spec.behaviors.filter (x->(x.is_a Test_Result.Failure)) . length . to_text + '"')
+        builder.append (' disabled="' + spec.behaviors.filter _.is_pending . length . to_text + '"')
+        builder.append (' errors="' + spec.behaviors.filter _.is_fail . length . to_text + '"')
         builder.append (' time="' + total_time.total_seconds.to_text + '"')
         builder.append ('>\n')
 
@@ -55,7 +55,7 @@ print_report spec config builder =
             builder.append '</testcase>\n'
         builder.append '    </testsuite>\n'
 
-    should_print_behavior = config.print_only_failures.not || spec.behaviors.any (b -> b.result.is_a Test_Result.Failure)
+    should_print_behavior = config.print_only_failures.not || spec.behaviors.any (b -> b.result.is_fail)
     if should_print_behavior then
         IO.println (spec.name + ":  [" + total_time.total_milliseconds.to_text + "ms]")
         spec.behaviors.reverse.each behavior->

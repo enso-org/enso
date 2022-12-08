@@ -147,6 +147,28 @@ impl Model {
         self.state.update_from_view().set_node_expression(id, expression);
     }
 
+    /// The user skipped the node by pressing on the "skip" button next to it.
+    fn node_action_skip(&self, id: ViewNodeId, enabled: bool) {
+        self.log_action(
+            || {
+                let ast_id = self.state.update_from_view().set_node_skip(id, enabled)?;
+                Some(self.controller.graph().set_node_action_skip(ast_id, enabled))
+            },
+            "skip node",
+        );
+    }
+
+    /// The user frozen the node by pressing on the "freeze" button next to it.
+    fn node_action_freeze(&self, id: ViewNodeId, enabled: bool) {
+        self.log_action(
+            || {
+                let ast_id = self.state.update_from_view().set_node_freeze(id, enabled)?;
+                Some(self.controller.graph().set_node_action_freeze(ast_id, enabled))
+            },
+            "freeze node",
+        );
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
@@ -350,6 +372,36 @@ impl Model {
 // === ViewUpdate ===
 // ==================
 
+// === ExpressionUpdate ===
+
+/// Helper struct storing information about node's expression updates.
+/// Includes not only the updated expression, but also an information about `SKIP` and
+/// `FREEZE` macros updates.
+#[derive(Clone, Debug, Default)]
+struct ExpressionUpdate {
+    id:             ViewNodeId,
+    expression:     node_view::Expression,
+    skip_updated:   Option<bool>,
+    freeze_updated: Option<bool>,
+}
+
+impl ExpressionUpdate {
+    fn expression(&self) -> (ViewNodeId, node_view::Expression) {
+        (self.id, self.expression.clone())
+    }
+
+    fn skip(&self) -> Option<(ViewNodeId, bool)> {
+        self.skip_updated.map(|skip| (self.id, skip))
+    }
+
+    fn freeze(&self) -> Option<(ViewNodeId, bool)> {
+        self.freeze_updated.map(|freeze| (self.id, freeze))
+    }
+}
+
+
+// === ViewUpdate ===
+
 /// Structure handling view update after graph invalidation.
 ///
 /// Because updating various graph elements (nodes, connections, types) bases on the same data
@@ -388,14 +440,21 @@ impl ViewUpdate {
     ///
     /// The nodes not having views are also updated in the state.
     #[profile(Task)]
-    fn set_node_expressions(&self) -> Vec<(ViewNodeId, node_view::Expression)> {
+    fn set_node_expressions(&self) -> Vec<ExpressionUpdate> {
         self.nodes
             .iter()
             .filter(|node| self.state.should_receive_expression_auto_updates(node.id()))
             .filter_map(|node| {
                 let id = node.main_line.id();
                 let trees = self.trees.get(&id).cloned().unwrap_or_default();
-                self.state.update_from_controller().set_node_expression(node, trees)
+                let change = self.state.update_from_controller();
+                if let Some((id, expression)) = change.set_node_expression(node, trees) {
+                    let skip_updated = change.set_node_skip(node);
+                    let freeze_updated = change.set_node_freeze(node);
+                    Some(ExpressionUpdate { id, expression, skip_updated, freeze_updated })
+                } else {
+                    None
+                }
             })
             .collect()
     }
@@ -501,13 +560,18 @@ impl Graph {
             // === Refreshing Nodes ===
 
             remove_node <= update_data.map(|update| update.remove_nodes());
-            update_node_expression <= update_data.map(|update| update.set_node_expressions());
+            expression_update <= update_data.map(|update| update.set_node_expressions());
+            update_node_expression <- expression_update.map(ExpressionUpdate::expression);
+            set_node_skip <- expression_update.filter_map(ExpressionUpdate::skip);
+            set_node_freeze <- expression_update.filter_map(ExpressionUpdate::freeze);
             set_node_position <= update_data.map(|update| update.set_node_positions());
             set_node_visualization <= update_data.map(|update| update.set_node_visualizations());
             enable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_some().as_some(*id));
             disable_vis <- set_node_visualization.filter_map(|(id,path)| path.is_none().as_some(*id));
             view.remove_node <+ remove_node;
             view.set_node_expression <+ update_node_expression;
+            view.set_node_skip <+ set_node_skip;
+            view.set_node_freeze <+ set_node_freeze;
             view.set_node_position <+ set_node_position;
             view.set_visualization <+ set_node_visualization;
             view.enable_visualization <+ enable_vis;
@@ -556,6 +620,8 @@ impl Graph {
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
             eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone_ref()));
+            eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
+            eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
 
 
             // === Dropping Files ===

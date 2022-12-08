@@ -2,20 +2,23 @@ package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.source.SourceSection;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.source.SourceSection;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -70,8 +73,9 @@ public class DebugLocalScope implements TruffleObject {
     this.allBindings = rootNode.getLocalScope().flattenBindings();
     this.bindingsByLevels = bindingsByLevels;
     this.bindingsByLevelsIdx = bindingsByLevelsIdx;
-    assert !this.bindingsByLevels.isEmpty();
-    assert 0 <= this.bindingsByLevelsIdx && this.bindingsByLevelsIdx < this.bindingsByLevels.size();
+    assert this.bindingsByLevels.isEmpty()
+        || (0 <= this.bindingsByLevelsIdx
+            && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
   }
 
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
@@ -88,6 +92,10 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   private static List<List<String>> gatherBindingsByLevels(Map<String, FramePointer> bindings) {
+    if (bindings.isEmpty()) {
+      return List.of();
+    }
+
     int maxParentLevel =
         bindings.values().stream()
             .max(Comparator.comparingInt(FramePointer::getParentLevel))
@@ -138,7 +146,7 @@ public class DebugLocalScope implements TruffleObject {
 
   @ExportMessage
   boolean isMemberModifiable(String memberName) {
-    return false;
+    return allBindings.containsKey(memberName);
   }
 
   @ExportMessage
@@ -172,14 +180,23 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(String member) {
+  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop) {
     FramePointer framePtr = allBindings.get(member);
-    return getValue(frame, framePtr);
+    if (framePtr == null) {
+      return null;
+    } else {
+      Object value = getValue(frame, framePtr);
+      return HostObjectDebugWrapper.wrapHostValues(value, interop);
+    }
   }
 
   @ExportMessage
-  void writeMember(String member, Object value) throws UnsupportedMessageException {
-    throw UnsupportedMessageException.create();
+  void writeMember(String member, Object value) throws UnknownIdentifierException {
+    if (!allBindings.containsKey(member)) {
+      throw UnknownIdentifierException.create(member);
+    }
+    FramePointer framePtr = allBindings.get(member);
+    setValue(frame, framePtr, value);
   }
 
   @ExportMessage
@@ -231,7 +248,13 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   private Object getValue(MaterializedFrame frame, FramePointer ptr) {
-    return getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
+    return ptr == null ? null : getProperFrame(frame, ptr).getValue(ptr.getFrameSlotIdx());
+  }
+
+  private void setValue(MaterializedFrame frame, FramePointer ptr, Object value) {
+    assert ptr != null;
+    MaterializedFrame properFrame = getProperFrame(frame, ptr);
+    properFrame.setObject(ptr.getFrameSlotIdx(), value);
   }
 
   private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {

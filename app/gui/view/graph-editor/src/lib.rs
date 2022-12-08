@@ -598,6 +598,8 @@ ensogl::define_endpoints_2! {
         edit_node                    (NodeId),
         collapse_nodes               ((Vec<NodeId>,NodeId)),
         set_node_expression          ((NodeId,node::Expression)),
+        set_node_skip                ((NodeId,bool)),
+        set_node_freeze              ((NodeId,bool)),
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
@@ -1899,6 +1901,20 @@ impl GraphEditorModel {
         }
     }
 
+    fn set_node_skip(&self, node_id: impl Into<NodeId>, skip: &bool) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_skip_macro(*skip);
+        }
+    }
+
+    fn set_node_freeze(&self, node_id: impl Into<NodeId>, freeze: &bool) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_freeze_macro(*freeze);
+        }
+    }
+
     fn set_node_comment(&self, node_id: impl Into<NodeId>, comment: impl Into<node::Comment>) {
         let node_id = node_id.into();
         let comment = comment.into();
@@ -3078,6 +3094,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
     out.node_expression_set <+ set_node_expression_string;
 
+    }
+
+
+    // === Set Node SKIP and FREEZE macros ===
+
+    frp::extend! { network
+        eval inputs.set_node_skip(((id, skip)) model.set_node_skip(id, skip));
+        eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(id, freeze));
     }
 
 

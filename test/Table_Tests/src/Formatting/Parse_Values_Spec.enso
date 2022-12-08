@@ -36,15 +36,15 @@ spec = Test.group "Table.parse_values" <|
         t1_zeros = ["+00", "-00", "+01", "-01", "01", "000", "0010"]
         t3 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Integer]
         t3.at "ints" . to_vector . should_equal t1_parsed
-        Warning.get_all t3 . map .value . should_equal [Leading_Zeros.Leading_Zeros_Data "ints" Integer t1_zeros]
+        Warning.get_all t3 . map .value . should_equal [Leading_Zeros.Error "ints" Integer t1_zeros]
 
         t4 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
         t4.at "ints" . to_vector . should_equal t1_parsed
-        Warning.get_all t4 . map .value . should_equal [Leading_Zeros.Leading_Zeros_Data "ints" Decimal t1_zeros]
+        Warning.get_all t4 . map .value . should_equal [Leading_Zeros.Error "ints" Decimal t1_zeros]
 
         t5 = t2.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
         t5.at "floats" . to_vector . should_equal [0.0, 0.0, Nothing, Nothing, Nothing, 1.0]
-        Warning.get_all t5 . map .value . should_equal [Leading_Zeros.Leading_Zeros_Data "floats" Decimal ["00.", "01.0", '-0010.0000']]
+        Warning.get_all t5 . map .value . should_equal [Leading_Zeros.Error "floats" Decimal ["00.", "01.0", '-0010.0000']]
 
         opts = Data_Formatter.Value allow_leading_zeros=True
         t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
@@ -110,12 +110,12 @@ spec = Test.group "Table.parse_values" <|
             t.at "datetimes" . to_vector . should_equal [Nothing, Date_Time.new 2001 1 1 12 34 56, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             t.at "times" . to_vector . should_equal [Nothing, Nothing, Time_Of_Day.new 10 0 10, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
         problems =
-            ints = Invalid_Format.Invalid_Format_Data "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
-            floats = Invalid_Format.Invalid_Format_Data "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
-            bools = Invalid_Format.Invalid_Format_Data "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]
-            dates = Invalid_Format.Invalid_Format_Data "dates" Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-            datetimes = Invalid_Format.Invalid_Format_Data "datetimes" Date_Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
-            times = Invalid_Format.Invalid_Format_Data "times" Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            ints = Invalid_Format.Error "ints" Integer ["1.0", "foobar", "", "--1", "+-1", "-+1"]
+            floats = Invalid_Format.Error "floats" Decimal ["1e6", "foobar", "", "--1", "+-1", "-+1"]
+            bools = Invalid_Format.Error "bools" Boolean ["fAlSE", "foobar", "", "0", "1", "truefalse"]
+            dates = Invalid_Format.Error "dates" Date ["2001-01-01 12:34:56", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            datetimes = Invalid_Format.Error "datetimes" Date_Time ["2001-01-01", "10:00:10", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
+            times = Invalid_Format.Error "times" Time_Of_Day ["2001-01-01", "2001-01-01 12:34:56", "Tuesday", "foobar", "", "10:99:99", "1/2/2003", "2001-30-10"]
             [ints, floats, bools, dates, datetimes, times]
         Problems.test_problem_handling action problems tester
 
@@ -133,7 +133,7 @@ spec = Test.group "Table.parse_values" <|
             t.at "floats" . to_vector . should_equal [1.0]
             t.at "ints" . to_vector . should_equal ["1"]
             t.at "bools" . to_vector . should_equal [True]
-        problems = [Missing_Input_Columns.Missing_Input_Columns_Data ["bars", "foos"], Column_Indexes_Out_Of_Range.Column_Indexes_Out_Of_Range_Data [100, -100]]
+        problems = [Missing_Input_Columns.Error ["bars", "foos"], Column_Indexes_Out_Of_Range.Error [100, -100]]
         Problems.test_problem_handling action problems tester
 
     Test.specify "should report duplicate columns in Column_Type_Selection" <|
@@ -145,7 +145,7 @@ spec = Test.group "Table.parse_values" <|
             t.at "ints" . to_vector . should_equal [1]
             t.at "bools" . to_vector . should_equal [True]
             t.at "foo" . to_vector . should_equal ["42"]
-        problems = [(Duplicate_Type_Selector.Duplicate_Type_Selector_Data "floats" ambiguous=True), (Duplicate_Type_Selector.Duplicate_Type_Selector_Data "bools" ambiguous=False)]
+        problems = [(Duplicate_Type_Selector.Error "floats" ambiguous=True), (Duplicate_Type_Selector.Error "bools" ambiguous=False)]
         Problems.test_problem_handling action problems tester
 
     Test.specify "should guess the datatype for columns" <|
@@ -204,10 +204,10 @@ spec = Test.group "Table.parse_values" <|
         t3 = Table.new [["xs", ["1,2", "1.2", "_0", "0_", "1_0_0"]]]
         t4 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Decimal]
         t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, 100.0]
-        Warning.get_all t4 . map .value . should_equal [Invalid_Format.Invalid_Format_Data "xs" Decimal ["1.2", "_0", "0_"]]
+        Warning.get_all t4 . map .value . should_equal [Invalid_Format.Error "xs" Decimal ["1.2", "_0", "0_"]]
         t5 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Integer]
         t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 100.0]
-        Warning.get_all t5 . map .value . should_equal [Invalid_Format.Invalid_Format_Data "xs" Integer ["1,2", "1.2", "_0", "0_"]]
+        Warning.get_all t5 . map .value . should_equal [Invalid_Format.Error "xs" Integer ["1,2", "1.2", "_0", "0_"]]
 
     Test.specify "should allow to specify custom values for booleans" <|
         opts_1 = Data_Formatter.Value true_values=["1", "YES"] false_values=["0"]
@@ -218,7 +218,7 @@ spec = Test.group "Table.parse_values" <|
         t3 = Table.new [["bools", ["1", "NO", "False", "True", "YES", "no", "oui", "0"]]]
         t4 = t3.parse_values opts_1 column_types=[Column_Type_Selection.Value 0 Boolean]
         t4.at "bools" . to_vector . should_equal [True, Nothing, Nothing, Nothing, True, Nothing, Nothing, False]
-        Warning.get_all t4 . map .value . should_equal [Invalid_Format.Invalid_Format_Data "bools" Boolean ["NO", "False", "True", "no", "oui"]]
+        Warning.get_all t4 . map .value . should_equal [Invalid_Format.Error "bools" Boolean ["NO", "False", "True", "no", "oui"]]
 
     whitespace_table =
         ints = ["ints", ["0", "1 ", "0 1", "     2"]]
@@ -239,12 +239,12 @@ spec = Test.group "Table.parse_values" <|
         t1.at "times" . to_vector . should_equal [Time_Of_Day.new 11 0 0, Time_Of_Day.new, Nothing, Nothing]
         warnings = Warning.get_all t1 . map .value
         expected_warnings = Vector.new_builder
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "ints" Integer ["0 1"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "floats" Decimal ["- 1"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "bools" Boolean ["t rue"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "dates" Date ["2022 - 07 - 17", ""])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "datetimes" Date_Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "times" Time_Of_Day ["00 : 00 : 00"])
+        expected_warnings.append (Invalid_Format.Error "ints" Integer ["0 1"])
+        expected_warnings.append (Invalid_Format.Error "floats" Decimal ["- 1"])
+        expected_warnings.append (Invalid_Format.Error "bools" Boolean ["t rue"])
+        expected_warnings.append (Invalid_Format.Error "dates" Date ["2022 - 07 - 17", ""])
+        expected_warnings.append (Invalid_Format.Error "datetimes" Date_Time ["2022 - 07 - 17  1:2:3", "2022-01-01     11:59:00"])
+        expected_warnings.append (Invalid_Format.Error "times" Time_Of_Day ["00 : 00 : 00"])
         warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
     Test.specify "should fail to parse if whitespace is present and trimming is turned off" <|
@@ -259,12 +259,12 @@ spec = Test.group "Table.parse_values" <|
         t1.at "times" . to_vector . should_equal nulls
         warnings = Warning.get_all t1 . map .value
         expected_warnings = Vector.new_builder
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "ints" Integer ["1 ", "0 1", "     2"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "floats" Decimal ["0    ", " 2.0", "- 1"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "bools" Boolean ["True ", " false", "t rue"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "dates" Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "datetimes" Date_Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"])
-        expected_warnings.append (Invalid_Format.Invalid_Format_Data "times" Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
+        expected_warnings.append (Invalid_Format.Error "ints" Integer ["1 ", "0 1", "     2"])
+        expected_warnings.append (Invalid_Format.Error "floats" Decimal ["0    ", " 2.0", "- 1"])
+        expected_warnings.append (Invalid_Format.Error "bools" Boolean ["True ", " false", "t rue"])
+        expected_warnings.append (Invalid_Format.Error "dates" Date [" 2022-01-01", "2022-07-17    ", "2022 - 07 - 17", ""])
+        expected_warnings.append (Invalid_Format.Error "datetimes" Date_Time [" 2022-01-01 11:59:00   ", "2022 - 07 - 17  1:2:3 ", "2022-01-01     11:59:00"])
+        expected_warnings.append (Invalid_Format.Error "times" Time_Of_Day ["11:00:00 ", "  00:00:00", "00 : 00 : 00"])
         warnings.should_contain_the_same_elements_as expected_warnings.to_vector
 
     Test.specify "should fallback to text if whitespace is present and trimming is turned off" <|
