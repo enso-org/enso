@@ -576,7 +576,6 @@ impl Slider {
             eval input.set_value_text_hidden((v) model.set_value_text_hidden(*v));
             value <- output.value.gate_not(&input.set_value_text_hidden).on_change();
             precision <- output.precision.gate_not(&input.set_value_text_hidden).on_change();
-
             value_is_default <- all2(&value, &input.set_default_value).map(|(val, def)| val==def);
             value_is_default_true <- value_is_default.on_true();
             value_is_default_false <- value_is_default.on_false();
@@ -588,11 +587,10 @@ impl Slider {
             value_text_left <- value_text_left_right._0();
             value_text_right <- value_text_left_right._1();
             model.value_text_left.set_content <+ value_text_left;
-            value_text_right_is_visible <- value_text_right.map(|t| t.is_some());
+            value_text_right_is_visible <- value_text_right.map(|t| t.is_some()).on_change();
             value_text_right <- value_text_right.gate(&value_text_right_is_visible);
             model.value_text_right.set_content <+ value_text_right.unwrap();
-            value_text_right_visibility_change <- value_text_right_is_visible.on_change();
-            eval value_text_right_visibility_change((v) model.set_value_text_right_visible(*v));
+            eval value_text_right_is_visible((v) model.set_value_text_right_visible(*v));
         };
     }
 
