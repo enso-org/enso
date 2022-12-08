@@ -150,7 +150,7 @@ pub struct ShapeData {
     pub font: FontWithAtlas,
 }
 
-impl display::shape::system::ShapeSystemFlavorProvider for ShapeData {
+impl ShapeData {
     fn flavor(&self) -> display::shape::system::ShapeSystemFlavor {
         let mut hasher = DefaultHasher::new();
         std::hash::Hash::hash(&self.font.name(), &mut hasher);
@@ -163,6 +163,7 @@ mod glyph_shape {
     ensogl_core::shape! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
+        flavor = ShapeData::flavor;
         (
             style: Style,
             font_size: f32,
