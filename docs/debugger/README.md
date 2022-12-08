@@ -38,8 +38,20 @@ copy the printed URL into chrome browser and you should see:
 
 ![Chrome Debugger](chrome-debugger.png)
 
-Step in, step over, set breakpoints, watch values of your variables as execution
-of your Enso program progresses.
+Step in, step over, set breakpoints, watch values of the variables as well as
+evaluate arbitrary expressions in the console. Note that as of December 2022,
+with GraalVM 22.3.0, there is a well-known
+[bug in Truffle](https://github.com/oracle/graal/issues/5513) that causes
+`NullPointerException` when a host object gets into the chrome inspector. There
+is a workaround for that, but it may not work in certain situations. Therefore,
+if you encounter `NullPointerException` thrown from
+
+```
+at org.graalvm.truffle/com.oracle.truffle.polyglot.PolyglotContextImpl.getContext(PolyglotContextImpl.java:685)
+```
+
+simply ignore it. It will be handled within the debugger and should not affect
+the rest of the environment.
 
 # Debugging Enso and Java Code at Once
 

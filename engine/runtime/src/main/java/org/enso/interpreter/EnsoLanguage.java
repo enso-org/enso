@@ -1,14 +1,27 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLogger;
-import com.oracle.truffle.api.Option;
 import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.enso.compiler.Compiler;
+import org.enso.compiler.context.InlineContext;
+import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.exception.CompilationAbortedException;
+import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.distribution.locking.LockManager;
@@ -17,9 +30,12 @@ import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.state.IOPermissions;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.service.ExecutionService;
@@ -28,11 +44,10 @@ import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
+import org.enso.syntax2.Line;
+import org.enso.syntax2.Tree;
 import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
-
-import java.util.Optional;
-import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
 
@@ -172,6 +187,121 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   protected CallTarget parse(ParsingRequest request) {
     RootNode root = ProgramRootNode.build(this, request.getSource());
     return root.getCallTarget();
+  }
+
+  /**
+   * Parses the given Enso source code snippet in {@code request}.
+   *
+   * Inline parsing does not handle the following expressions:
+   * <ul>
+   *     <li>Assignments</li>
+   *     <li>Imports and exports</li>
+   * </ul>
+   * When given the aforementioned expressions in the request, {@code null}
+   * will be returned.
+   *
+   * @param request request for inline parsing
+   * @throws Exception if the compiler failed to parse
+   * @return An {@link ExecutableNode} representing an AST fragment if the request contains
+   *   syntactically correct Enso source, {@code null} otherwise.
+   */
+  @Override
+  protected ExecutableNode parse(InlineParsingRequest request) throws Exception {
+    if (request.getLocation().getRootNode() instanceof EnsoRootNode ensoRootNode) {
+      var context = EnsoContext.get(request.getLocation());
+      Tree inlineExpr = context.getCompiler().parseInline(request.getSource());
+      var undesirableExprTypes = List.of(
+          Tree.Assignment.class,
+          Tree.Import.class,
+          Tree.Export.class
+      );
+      if (astContainsExprTypes(inlineExpr, undesirableExprTypes)) {
+        throw new InlineParsingException(
+            "Inline parsing request contains some of undesirable expression types: "
+                + undesirableExprTypes
+                + "\n"
+                + "Parsed expression: \n"
+                + inlineExpr.codeRepr(),
+            null
+        );
+      }
+
+      var module = ensoRootNode.getModuleScope().getModule();
+      var localScope = ensoRootNode.getLocalScope();
+      var outputRedirect = new ByteArrayOutputStream();
+      var redirectConfigWithStrictErrors = new CompilerConfig(
+          false,
+          false,
+          true,
+          scala.Option.apply(new PrintStream(outputRedirect))
+      );
+      var inlineContext = new InlineContext(
+          module,
+          scala.Some.apply(localScope),
+          scala.Some.apply(false),
+          scala.Option.empty(),
+          scala.Option.empty(),
+          redirectConfigWithStrictErrors
+      );
+      Compiler silentCompiler = context.getCompiler().duplicateWithConfig(redirectConfigWithStrictErrors);
+      scala.Option<ExpressionNode> exprNode;
+      try {
+        exprNode = silentCompiler
+            .runInline(
+                request.getSource().getCharacters().toString(),
+                inlineContext
+            );
+      } catch (UnhandledEntity e) {
+        throw new InlineParsingException("Unhandled entity: " + e.entity(), e);
+      } catch (CompilationAbortedException e) {
+        assert outputRedirect.toString().lines().count() > 1 : "Expected a header line from the compiler";
+        String compilerErrOutput = outputRedirect.toString()
+            .lines()
+            .skip(1)
+            .collect(Collectors.joining(";"));
+        throw new InlineParsingException(compilerErrOutput, e);
+      } finally {
+        silentCompiler.shutdown(false);
+      }
+
+      if (exprNode.isDefined()) {
+        var language = EnsoLanguage.get(exprNode.get());
+        return new ExecutableNode(language) {
+          @Override
+          public Object execute(VirtualFrame frame) {
+            return exprNode.get().executeGeneric(frame);
+          }
+        };
+      }
+    }
+    return null;
+  }
+
+  private static final class InlineParsingException extends Exception {
+    InlineParsingException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
+  /**
+   * Returns true if the given ast transitively contains any of {@code exprTypes}.
+   */
+  private boolean astContainsExprTypes(Tree ast, List<Class<? extends Tree>> exprTypes) {
+    boolean astMatchesExprType = exprTypes
+          .stream()
+          .anyMatch(exprType -> exprType.equals(ast.getClass()));
+    if (astMatchesExprType) {
+      return true;
+    } else if (ast instanceof Tree.BodyBlock block) {
+      return block
+          .getStatements()
+          .stream()
+          .map(Line::getExpression)
+          .filter(Objects::nonNull)
+          .anyMatch((Tree expr) -> astContainsExprTypes(expr, exprTypes));
+    } else {
+      return false;
+    }
   }
 
   @Option(
