@@ -39,33 +39,32 @@ public class TypePatternBenchmarks {
       .allowIO(true)
       .allowAllAccess(true)
       .build();
-    var module = ctx.eval("enso", "\n" +
-      "from Standard.Base import Integer, Vector, Any, Decimal\n" +
-      "\n" +
-      "avg arr =\n" +
-      "    sum acc i = if i == arr.length then acc else\n" +
-      "        @Tail_Call sum (acc + arr.at i) i+1\n" +
-      "    (sum 0 0) / arr.length\n" +
-      "\n" +
-      "avg_pattern self arr pattern =\n" +
-      "    avg (arr.map (pattern self))\n" +
-      "\n" +
-      "gen_vec size value =\n" +
-      "    b = Vector.new_builder size\n" +
-      "    b.append value\n" +
-      "    b.append value\n" +
-      "    add_more n = if n == size then b else\n" +
-      "        b.append value\n" +
-      "        @Tail_Call add_more n+1\n" +
-      "    add_more 2 . to_vector\n" +
-      "\n" +
-      "match_any = v -> case v of\n" +
-      "    n : Any -> n + 1\n" +
-      "\n" +
-      "match_dec = v -> case v of\n" +
-      "    n : Decimal -> n + 1\n" +
-      "\n" +
-      "\n");
+    var module = ctx.eval("enso", """
+        from Standard.Base import Integer, Vector, Any, Decimal
+
+        avg arr =
+            sum acc i = if i == arr.length then acc else
+                @Tail_Call sum (acc + arr.at i) i+1
+            (sum 0 0) / arr.length
+
+        avg_pattern self arr pattern =
+            avg (arr.map (pattern self))
+
+        gen_vec size value =
+            b = Vector.new_builder size
+            b.append value
+            b.append value
+            add_more n = if n == size then b else
+                b.append value
+                @Tail_Call add_more n+1
+            add_more 2 . to_vector
+
+        match_any = v -> case v of
+            n : Any -> n + 1
+
+        match_dec = v -> case v of
+            n : Decimal -> n + 1
+        """);
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
