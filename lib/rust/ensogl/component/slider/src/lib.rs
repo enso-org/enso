@@ -444,7 +444,11 @@ impl Slider {
                     ValueIndicator::Track => *length,
                 }
             );
-            slider_range <- all2(&output.min_value, &output.max_value);
+            min_value_on_click <- output.min_value.sample(&component_click);
+            min_value_on_click <- any2(&min_value_on_click, &input.set_min_value);
+            max_value_on_click <- output.max_value.sample(&component_click);
+            max_value_on_click <- any2(&max_value_on_click, &input.set_max_value);
+            slider_range <- all2(&min_value_on_click, &max_value_on_click);
             slider_range <- slider_range.map(|(min, max)| max - min);
             prec_at_mouse_speed <- all2(&slider_length, &slider_range).map(|(l, r)| r / l);
 
