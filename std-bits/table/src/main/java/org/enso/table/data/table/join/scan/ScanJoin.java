@@ -2,6 +2,7 @@ package org.enso.table.data.table.join.scan;
 
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.join.*;
+import org.enso.table.data.table.problems.AggregatedProblems;
 import org.graalvm.collections.Pair;
 
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ public class ScanJoin implements JoinStrategy {
       }
     }
 
-    return new JoinResult(matches);
+    AggregatedProblems problems = AggregatedProblems.merge(matchers.stream().map(Matcher::getProblems).toArray(AggregatedProblems[]::new));
+    return new JoinResult(matches, problems);
   }
 }

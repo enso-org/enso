@@ -232,7 +232,7 @@ parse_aggregated_problems problems =
         parsed = Vector.new problems_array.length i->
             p = problems_array.at i
             if Java.is_instance p InvalidAggregation then Invalid_Aggregation.Error p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
-                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping.Error p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping.Error p.getColumnName else
                     if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter.Error p.getColumnName (Vector.from_polyglot_array p.getRows) else
                         Invalid_Aggregation.Error Nothing -1 "Unknown Error"
 

@@ -366,7 +366,8 @@ public class Table {
       }
     }
 
-    return new Table(newColumns.toArray(new Column[0]));
+    AggregatedProblems problems = joinResult != null ? joinResult.problems() : new AggregatedProblems();
+    return new Table(newColumns.toArray(new Column[0]), problems);
   }
 
   /**

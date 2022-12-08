@@ -1,12 +1,15 @@
 package org.enso.table.data.table.join.scan;
 
 import org.enso.base.Text_Utils;
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.table.join.Between;
 import org.enso.table.data.table.join.Equals;
 import org.enso.table.data.table.join.EqualsIgnoreCase;
 import org.enso.table.data.table.join.JoinCondition;
+import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.data.table.problems.FloatingPointGrouping;
 
 import java.util.Comparator;
 import java.util.Locale;
@@ -35,18 +38,40 @@ public class MatcherFactory {
     private final BiFunction<Object, Object, Boolean> equalityFallback;
     private final Storage<?> leftStorage;
     private final Storage<?> rightStorage;
+    private final String leftColumnName;
+    private final String rightColumnName;
+
+    private final AggregatedProblems problems;
+
     public EqualsMatcher(Equals eq, BiFunction<Object, Object, Boolean> equalityFallback) {
       leftStorage = eq.left().getStorage();
       rightStorage = eq.right().getStorage();
+      leftColumnName = eq.left().getName();
+      rightColumnName = eq.right().getName();
       this.equalityFallback = equalityFallback;
+      problems = new AggregatedProblems();
     }
 
     @Override
     public boolean matches(int left, int right) {
       Object leftValue = leftStorage.getItemBoxed(left);
       Object rightValue = rightStorage.getItemBoxed(right);
+
+      if (NumericConverter.isCoercibleToDouble(leftValue)) {
+        problems.add(new FloatingPointGrouping(leftColumnName, left));
+      }
+
+      if (NumericConverter.isCoercibleToDouble(rightValue)) {
+        problems.add(new FloatingPointGrouping(rightColumnName, right));
+      }
+
       // We could do a fast-path for some known primitive types, but it doesn't matter as it will be replaced with hashing soon anyway.
       return equalityFallback.apply(leftValue, rightValue);
+    }
+
+    @Override
+    public AggregatedProblems getProblems() {
+      return problems;
     }
   }
 

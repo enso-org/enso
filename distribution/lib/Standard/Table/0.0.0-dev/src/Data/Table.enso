@@ -1115,14 +1115,16 @@ type Table
                 object_comparator = Comparator.new
                 equality_fallback = .==
 
-                case join_resolution.conditions of
+                new_java_table = case join_resolution.conditions of
                     # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
                     Nothing ->
-                        new_table = self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
-                        Table.Value new_table
+                        self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
                     java_conditions ->
-                        new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
-                        Table.Value new_table
+                        self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
+
+                on_problems.attach_problems_after (Table.Value new_java_table) <|
+                    problems = new_java_table.getProblems
+                    Aggregate_Column_Helper.parse_aggregated_problems problems
 
     ## ALIAS dropna
        ALIAS drop_missing_rows

@@ -1244,7 +1244,7 @@ spec setup =
         Test.specify "should warn if grouping on a floating point" <|
             action = table.aggregate [Group_By 1] on_problems=_
             # All rows are marked as floating point, because the integers get coerced to double when stored in DoubleStorage
-            problems = [Floating_Point_Grouping.Error "GroupBy" [0, 1, 2]]
+            problems = [Floating_Point_Grouping.Error "GroupBy"]
             tester = expect_column_names ["Value"]
             Problems.test_problem_handling action problems tester
 

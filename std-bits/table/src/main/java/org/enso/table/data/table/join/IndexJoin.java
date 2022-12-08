@@ -4,6 +4,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.data.table.problems.AggregatedProblems;
 import org.graalvm.collections.Pair;
 
 import java.util.ArrayList;
@@ -44,7 +45,12 @@ public class IndexJoin implements JoinStrategy {
                 }
             }
         }
-        return new JoinResult(matches);
+
+        AggregatedProblems problems = AggregatedProblems.merge(new AggregatedProblems[]{
+            leftIndex.getProblems(),
+            rightIndex.getProblems()
+        });
+        return new JoinResult(matches, problems);
     }
 
     public static boolean isSupported(JoinCondition condition) {
