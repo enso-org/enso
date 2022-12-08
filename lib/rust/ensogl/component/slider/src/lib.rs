@@ -349,9 +349,9 @@ pub struct Slider {
 impl Slider {
     /// Construct a new slider component.
     pub fn new(app: &Application) -> Self {
-        let model = Rc::new(Model::new(app));
-        let app = app.clone_ref();
         let frp = Frp::new();
+        let model = Rc::new(Model::new(app, frp.network()));
+        let app = app.clone_ref();
         Self { frp, model, app }.init()
     }
 
@@ -526,6 +526,11 @@ impl Slider {
             ).map(value_limit_clamp);
             output.value <+ value;
             output.precision <+ precision;
+
+            skip_value_anim <- all2(&precision, &prec_at_mouse_speed);
+            skip_value_anim <- skip_value_anim.map(|(prec, threshold)| prec <= threshold);
+            model.value_animation.target <+ value;
+            model.value_animation.skip <+ value.constant(()).gate(&skip_value_anim);
         };
     }
 
@@ -678,7 +683,7 @@ impl Slider {
             output.height <+ input.set_height;
             min_limit_anim.target <+ output.min_value;
             max_limit_anim.target <+ output.max_value;
-            indicator_pos <- all3(&output.value, &min_limit_anim.value, &max_limit_anim.value);
+            indicator_pos <- all3(&model.value_animation.value, &min_limit_anim.value, &max_limit_anim.value);
             indicator_pos <- indicator_pos.map(|(value, min, max)| (value - min) / (max - min));
             indicator_pos <- all3(&indicator_pos, &input.set_thumb_size, &input.set_orientation);
             eval indicator_pos((v) model.set_indicator_position(v));
@@ -796,7 +801,9 @@ impl Slider {
 
             output.editing <+ editing;
             output.precision <+ prec_after_edit.gate(&edit_success);
-            output.value <+ value_after_edit.gate(&edit_success);
+            value_after_edit <- value_after_edit.gate(&edit_success);
+            output.value <+ value_after_edit;
+            model.value_animation.target <+ value_after_edit;
             editing_event <- any2(&start_editing, &stop_editing);
             editing <- all2(&editing, &output.precision).sample(&editing_event);
             eval editing((t) model.set_edit_mode(t));

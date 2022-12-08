@@ -10,6 +10,7 @@ use crate::ValueIndicator;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
+use ensogl_core::Animation;
 use ensogl_hardcoded_theme::component::slider as theme;
 use ensogl_text as text;
 use ensogl_text::formatting::ResolvedProperty;
@@ -165,13 +166,15 @@ pub struct Model {
     pub value_text_edit:  text::Text,
     /// Tooltip component showing either a tooltip message or slider precision changes.
     pub tooltip:          Tooltip,
+    /// Animation component that smoothly adjusts the slider value on large jumps.
+    pub value_animation:  Animation<f32>,
     /// Root of the display object.
     pub root:             display::object::Instance,
 }
 
 impl Model {
     /// Create a new slider model.
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, frp_network: &frp::Network) -> Self {
         let root = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
         let value_text_left = app.new_view::<text::Text>();
@@ -179,6 +182,7 @@ impl Model {
         let value_text_right = app.new_view::<text::Text>();
         let value_text_edit = app.new_view::<text::Text>();
         let tooltip = Tooltip::new(app);
+        let value_animation = Animation::new_non_init(frp_network);
         let background = background::View::new();
         let track = track::View::new();
         let thumb = thumb::View::new();
@@ -213,6 +217,7 @@ impl Model {
             value_text_right,
             value_text_edit,
             tooltip,
+            value_animation,
             root,
         };
         model.init(style)
