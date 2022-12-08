@@ -1109,10 +1109,10 @@ type Table
         case join_resolution.conditions of
             # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
             Nothing ->
-                new_table = self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
+                new_table = self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix Comparator.new
                 Table.Value new_table
             java_conditions ->
-                new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix
+                new_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix Comparator.new
                 Table.Value new_table
 
     ## ALIAS dropna
