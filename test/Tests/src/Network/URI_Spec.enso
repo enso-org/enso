@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Syntax_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -28,6 +29,6 @@ spec =
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_fail_with Nothing
         Test.specify "should return Syntax_Error when parsing invalid URI" <|
-            URI.parse "a b c" . should_fail_with Syntax_Error_Data
+            URI.parse "a b c" . should_fail_with Syntax_Error.Error
 
 main = Test_Suite.run_main spec

@@ -133,6 +133,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/push`](#executioncontextpush)
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
+  - [`executionContext/interrupt`](#executioncontextinterrupt)
   - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
@@ -1889,6 +1890,7 @@ destroying the context.
 
 - [`executionContext/destroy`](#executioncontextdestroy)
 - [`executionContext/recompute`](#executioncontextrecompute)
+- [`executionContext/interrupt`](#executioncontextinterrupt)
 - [`executionContext/push`](#executioncontextpush)
 - [`executionContext/pop`](#executioncontextpop)
 - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
@@ -3729,6 +3731,35 @@ null;
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
+
+### `executionContext/interrupt`
+
+Sent from the client to the server to interrupt the program execution in the
+provided execution context.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
 
 ### `executionContext/getComponentGroups`
 

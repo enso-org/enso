@@ -207,6 +207,21 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
+      case InterruptContextRequest(client, contextId) =>
+        if (store.hasContext(client.clientId, contextId)) {
+          val handler =
+            context.actorOf(
+              InterruptContextHandler.props(
+                runtimeFailureMapper,
+                timeout,
+                runtime
+              )
+            )
+          handler.forward(Api.InterruptContextRequest(contextId))
+        } else {
+          sender() ! AccessDenied
+        }
+
       case GetComponentGroupsRequest(clientId, contextId) =>
         if (store.hasContext(clientId, contextId)) {
           val handler =

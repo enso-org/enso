@@ -5,7 +5,6 @@ import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
@@ -22,7 +21,6 @@ import project.Network.Proxy.Proxy
 import project.Network.URI.URI
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Time_Error
 
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpRequest
@@ -435,7 +433,9 @@ type HTTP
                     Pair.new req (body_publishers.ofString text)
                 Request_Body.Json json ->
                     builder.header Header.application_json.name Header.application_json.value
-                    json_body = if json.is_a Text then json else json.to_text
+                    json_body = case json of
+                        _ : Text -> json
+                        _ -> json.to_text
                     Pair.new req (body_publishers.ofString json_body)
                 Request_Body.Form form ->
                     add_multipart form =

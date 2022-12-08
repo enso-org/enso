@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.File_Error.File_Error
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Nothing.Nothing
 import project.System.File.File
@@ -9,7 +10,6 @@ import project.System.File_Format.Auto_Detect
 import project.System.File_Format.File_Format
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Unsupported_File_Type, File_Error
 
 ## Read a file using the specified file format
 
@@ -18,7 +18,7 @@ from project.Error.Common import Unsupported_File_Type, File_Error
    - format: A `File_Format` object used to read file into memory.
      If `Auto_Detect` is specified; the provided file determines the specific
      type and configures it appropriately. If there is no matching type then
-     a `Unsupported_File_Type` error is returned.
+     a `File_Error.Unsupported_Type` error is returned.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -41,7 +41,7 @@ from project.Error.Common import Unsupported_File_Type, File_Error
          import Standard.Examples
 
          example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
-read_file : File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
+read_file : File_Format -> Problem_Behavior -> Any ! File_Error
 read_file path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
 

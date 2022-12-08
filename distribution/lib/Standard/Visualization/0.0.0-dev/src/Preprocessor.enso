@@ -1,4 +1,5 @@
 from Standard.Base import all
+import project.Helpers
 
 ## PRIVATE
 
@@ -12,5 +13,7 @@ error_preprocessor x =
     ok = '{ message: ""}'
     result = x.map_error err->
         message = err.to_display_text
-        '{ "kind": "Dataflow", "message": ' + message.to_json.to_text + '}'
+        stack_trace = x.get_stack_trace_text.if_nothing "" . split '\n'
+        full_message = message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
+        '{ "kind": "Dataflow", "message": ' + full_message.to_json.to_text + '}'
     if result.is_error then result.catch else ok

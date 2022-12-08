@@ -12,7 +12,7 @@ import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from project.Data.Aggregate_Column.Aggregate_Column import all
 import project.Data.Table.Table
-from project.Errors import Missing_Input_Columns_Data, Column_Indexes_Out_Of_Range, No_Output_Columns, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, Invalid_Aggregation_Data, Floating_Point_Grouping_Data, Unquoted_Delimiter_Data, Additional_Warnings_Data
+from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
@@ -77,9 +77,9 @@ prepare_aggregate_columns aggregates table =
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names_Data unique.invalid_names)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names_Data unique.renames)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
 
     Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
 
@@ -221,7 +221,7 @@ java_aggregator name column =
         Shortest c _ -> ShortestOrLongestAggregator.new name c.java_column -1
         Longest c _ -> ShortestOrLongestAggregator.new name c.java_column 1
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
-        _ -> Error.throw (Invalid_Aggregation_Data name -1 "Unsupported aggregation")
+        _ -> Error.throw (Invalid_Aggregation.Error name -1 "Unsupported aggregation")
 
 ## PRIVATE
    Convert Java aggregated problems to Enso Vector of equivalents
@@ -231,10 +231,10 @@ parse_aggregated_problems problems =
         problems_array = problems.getProblems
         parsed = Vector.new problems_array.length i->
             p = problems_array.at i
-            if Java.is_instance p InvalidAggregation then Invalid_Aggregation_Data p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
-                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
-                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter_Data p.getColumnName (Vector.from_polyglot_array p.getRows) else
-                        Invalid_Aggregation_Data Nothing -1 "Unknown Error"
+            if Java.is_instance p InvalidAggregation then Invalid_Aggregation.Error p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
+                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping.Error p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter.Error p.getColumnName (Vector.from_polyglot_array p.getRows) else
+                        Invalid_Aggregation.Error Nothing -1 "Unknown Error"
 
         if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings_Data (problems.getCount - problems_array.length)]
+            parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]

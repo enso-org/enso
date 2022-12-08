@@ -2,11 +2,10 @@ import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Json.Json
 import project.Data.Text.Text
+import project.Error.Common.Syntax_Error
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-from project.Error.Common import Syntax_Error
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
@@ -41,7 +40,7 @@ type URI
     parse : Text -> URI ! Syntax_Error
     parse text =
         Panic.catch_java Any (URI.Value (Java_URI.create text)) java_exception->
-            Error.throw (Syntax_Error.Syntax_Error_Data ("URI syntax error: " + java_exception.getMessage))
+            Error.throw (Syntax_Error.Error ("URI syntax error: " + java_exception.getMessage))
 
     ## PRIVATE
 
