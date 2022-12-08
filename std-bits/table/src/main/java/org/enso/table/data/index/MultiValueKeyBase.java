@@ -66,7 +66,10 @@ public abstract class MultiValueKeyBase {
     return false;
   }
 
-  /** Finds which columns contain a float value at this index position and returns their positions in this index. */
+  /**
+   * Finds which columns contain a float value at this index position and returns their positions in
+   * this index.
+   */
   public List<Integer> floatColumnPositions() {
     List<Integer> result = new ArrayList<>();
     for (int i = 0; i < storages.length; i++) {

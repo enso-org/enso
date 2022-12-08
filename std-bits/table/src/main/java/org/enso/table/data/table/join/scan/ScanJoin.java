@@ -16,7 +16,8 @@ public class ScanJoin implements JoinStrategy {
   private final Comparator<Object> objectComparator;
   private final BiFunction<Object, Object, Boolean> equalityFallback;
 
-  public ScanJoin(Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
+  public ScanJoin(
+      Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
     this.objectComparator = objectComparator;
     this.equalityFallback = equalityFallback;
   }
@@ -46,7 +47,9 @@ public class ScanJoin implements JoinStrategy {
       }
     }
 
-    AggregatedProblems problems = AggregatedProblems.merge(matchers.stream().map(Matcher::getProblems).toArray(AggregatedProblems[]::new));
+    AggregatedProblems problems =
+        AggregatedProblems.merge(
+            matchers.stream().map(Matcher::getProblems).toArray(AggregatedProblems[]::new));
     return new JoinResult(matches, problems);
   }
 }

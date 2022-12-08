@@ -47,9 +47,11 @@ public class MultiValueIndex {
 
         if (key.hasFloatValues()) {
           final int row = i;
-          key.floatColumnPositions().forEach(columnIx -> {
-            problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row));
-          });
+          key.floatColumnPositions()
+              .forEach(
+                  columnIx -> {
+                    problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row));
+                  });
         }
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
