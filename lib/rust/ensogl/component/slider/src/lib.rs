@@ -167,8 +167,8 @@ fn adapt_upper_limit(
         let extend = value > max_ext;
         let shrink = value < min + range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let max_ext = match (extend, shrink) {
-            (true, _) => min + range * 2.0,
-            (_, true) => min + range * 0.5,
+            (true, _) => adapt_upper_limit(&(value, min, max, min + range * 2.0, upper_limit)),
+            (_, true) => adapt_upper_limit(&(value, min, max, min + range * 0.5, upper_limit)),
             _ => max_ext,
         };
         max_ext.max(max) // Do no set extended limit below original `max`.
@@ -186,8 +186,8 @@ fn adapt_lower_limit(
         let extend = value < min_ext;
         let shrink = value > max - range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
         let min_ext = match (extend, shrink) {
-            (true, _) => max - range * 2.0,
-            (_, true) => max - range * 0.5,
+            (true, _) => adapt_lower_limit(&(value, min, max, max - range * 2.0, lower_limit)),
+            (_, true) => adapt_lower_limit(&(value, min, max, max - range * 0.5, lower_limit)),
             _ => min_ext,
         };
         min_ext.min(min) // Do no set extended limit above original `min`.
