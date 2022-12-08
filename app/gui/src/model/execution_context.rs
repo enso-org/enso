@@ -497,6 +497,10 @@ pub trait API: Debug {
     /// Interrupt the program execution.
     #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
     fn interrupt<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
+    /// Restart the program execution.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn restart<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes

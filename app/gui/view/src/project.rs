@@ -86,6 +86,8 @@ ensogl::define_endpoints! {
         values_updated(),
         /// Interrupt the running program.
         execution_context_interrupt(),
+        /// Restart the program execution.
+        execution_context_restart(),
     }
 
     Output {
@@ -837,6 +839,7 @@ impl application::View for View {
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd shift p", "execution_context_interrupt"),
+            (Press, "", "cmd shift l", "execution_context_restart"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

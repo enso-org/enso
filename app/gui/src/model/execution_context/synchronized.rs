@@ -297,6 +297,14 @@ impl model::execution_context::API for ExecutionContext {
         }
         .boxed_local()
     }
+
+    fn restart(&self) -> BoxFuture<FallibleResult> {
+        async move {
+            self.language_server.client.recompute(&self.id).await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
 }
 
 impl Drop for ExecutionContext {

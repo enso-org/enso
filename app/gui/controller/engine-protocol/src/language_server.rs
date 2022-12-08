@@ -151,9 +151,13 @@ trait API {
     fn modify_visualisation
     (&self, visualisation_id: Uuid, visualisation_config: VisualisationConfiguration) -> ();
 
-    /// Interrupt execution of running program.
+    /// Interrupt the program execution.
     #[MethodInput=InterruptInput, rpc_name="executionContext/interrupt"]
     fn interrupt(&self, context_id: ContextId) -> ();
+
+    /// Restart the program execution.
+    #[MethodInput=RecomputeInput, rpc_name="executionContext/recompute"]
+    fn recompute(&self, context_id: ContextId) -> ();
 
     /// Obtain the full suggestions database.
     #[MethodInput=GetSuggestionsDatabaseInput, rpc_name="search/getSuggestionsDatabase"]
