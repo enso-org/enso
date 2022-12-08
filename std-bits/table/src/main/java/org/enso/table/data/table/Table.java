@@ -292,7 +292,7 @@ public class Table {
     JoinStrategy strategy = new IndexJoin(comparator);
 
     // Only compute the join if there are any results to be returned.
-    JoinResult joinResult = (keepLeftUnmatched || keepMatched || keepRightUnmatched) ? joinResult = strategy.join(this, right, conditions) : null;
+    JoinResult joinResult = (keepLeftUnmatched || keepMatched || keepRightUnmatched) ? strategy.join(this, right, conditions) : null;
 
     List<Integer> leftRows = new ArrayList<>();
     List<Integer> rightRows = new ArrayList<>();
