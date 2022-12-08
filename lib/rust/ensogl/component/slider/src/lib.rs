@@ -196,7 +196,7 @@ fn adapt_lower_limit(
     }
 }
 
-/// Clamp the slider's value if the limits are set to `SliderLimit::Hard`.
+/// Clamp the slider's value according to the selected limits setting.
 fn value_limit_clamp(
     &(value, min, max, lower_limit, upper_limit): &(f32, f32, f32, SliderLimit, SliderLimit),
 ) -> f32 {
