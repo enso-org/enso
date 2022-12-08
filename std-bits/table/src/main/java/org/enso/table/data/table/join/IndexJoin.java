@@ -27,22 +27,27 @@ public class IndexJoin implements JoinStrategy {
             return new ScanJoin().join(left, right, conditions);
         }
 
-        var leftEquals = equalConditions.stream().map(Equals::left).toArray(Column[]::new);
-        var leftIndex = new MultiValueIndex(leftEquals, left.rowCount(), comparator);
+        try {
+            var leftEquals = equalConditions.stream().map(Equals::left).toArray(Column[]::new);
+            var leftIndex = new MultiValueIndex(leftEquals, left.rowCount(), comparator);
 
-        var rightEquals = equalConditions.stream().map(Equals::right).toArray(Column[]::new);
-        var rightIndex = new MultiValueIndex(rightEquals, right.rowCount(), comparator);
+            var rightEquals = equalConditions.stream().map(Equals::right).toArray(Column[]::new);
+            var rightIndex = new MultiValueIndex(rightEquals, right.rowCount(), comparator);
 
-        List<Pair<Integer, Integer>> matches = new ArrayList<>();
-        for (var leftKey : leftIndex.keys()) {
-            if (rightIndex.contains(leftKey)) {
-                for (var leftRow : leftIndex.get(leftKey)) {
-                    for (var rightRow : rightIndex.get(leftKey)) {
-                        matches.add(Pair.create(leftRow, rightRow));
+            List<Pair<Integer, Integer>> matches = new ArrayList<>();
+            for (var leftKey : leftIndex.keys()) {
+                if (rightIndex.contains(leftKey)) {
+                    for (var leftRow : leftIndex.get(leftKey)) {
+                        for (var rightRow : rightIndex.get(leftKey)) {
+                            matches.add(Pair.create(leftRow, rightRow));
+                        }
                     }
                 }
             }
+            return new JoinResult(matches);
+        } catch (IllegalStateException e) {
+            // Fallback for custom objects
+            return new ScanJoin().join(left, right, conditions);
         }
-        return new JoinResult(matches);
     }
 }
