@@ -328,7 +328,6 @@ spec setup =
                 t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
                 action3 = t1.join t2 on=(Join_Condition.Equals "X" "Z") on_problems=_
                 tester3 table =
-                    table.print
                     expect_column_names ["X", "Y", "Z", "W"] table
                     t1 = table.order_by ["Y", "W"]
                     t1.at "X" . to_vector . should_equal [2.0, 2.0, 2, 2]
