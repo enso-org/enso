@@ -35,6 +35,11 @@ spec setup =
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
+        Test.specify "should work with single column name" <|
+            t1 = table.order_by "alpha"
+            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
             t2 = table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -8 Sort_Direction.Descending])
             t2.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
             t2.at "gamma" . to_vector . should_equal [3, 1, 4, 2]

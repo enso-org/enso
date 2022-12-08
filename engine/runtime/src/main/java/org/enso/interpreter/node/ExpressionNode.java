@@ -1,14 +1,16 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.NodeField;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.GenerateWrapper;
+import com.oracle.truffle.api.instrumentation.GenerateWrapper.OutgoingConverter;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.ProbeNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.NodeLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -17,6 +19,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
+import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -41,9 +44,9 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @ExportLibrary(NodeLibrary.class)
 @GenerateWrapper
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
-  private @CompilerDirectives.CompilationFinal int sourceStartIndex;
-  private @CompilerDirectives.CompilationFinal int sourceLength;
-  private @CompilerDirectives.CompilationFinal UUID id = null;
+  private @CompilationFinal int sourceStartIndex;
+  private @CompilationFinal int sourceLength;
+  private @CompilationFinal UUID id = null;
 
   public static boolean isWrapper(ExpressionNode node) {
     return node instanceof ExpressionNodeWrapper;
@@ -207,6 +210,20 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
   @Override
   public WrapperNode createWrapper(ProbeNode probe) {
     return new ExpressionNodeWrapper(this, probe);
+  }
+
+  /**
+   * Transitively converts the given value to a wrapper that treats the host objects
+   * as simple strings. This is a workaround for https://github.com/oracle/graal/issues/5513
+   * - there is a bug in chromeinspector which reinterprets host objects in host original
+   * language, which causes NullPointerException. Therefore, we have to wrap all the
+   * host objects.
+   * @param retValue Value returned from this expression node
+   * @return Value with all the host objects wrapped.
+   */
+  @OutgoingConverter
+  public Object wrapHostObjects(Object retValue) {
+    return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached());
   }
 
   @ExportMessage
