@@ -177,6 +177,15 @@ impl Model {
             }
         })
     }
+
+    fn execution_context_interrupt(&self) {
+        let controller = self.graph_controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.execution_ctx.interrupt().await {
+                error!("Error interrupting execution context: {err}");
+            }
+        })
+    }
 }
 
 
@@ -246,6 +255,8 @@ impl Project {
             view.values_updated <+ values_computed;
 
             eval_ view.save_project_snapshot(model.save_project_snapshot());
+
+            eval_ view.execution_context_interrupt(model.execution_context_interrupt());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

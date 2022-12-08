@@ -250,6 +250,10 @@ impl model::execution_context::API for ExecutionContext {
             Err(InvalidVisualizationId(visualization_id).into())
         }
     }
+
+    fn interrupt(&self) -> BoxFuture<FallibleResult> {
+        futures::future::ready(Ok(())).boxed_local()
+    }
 }
 
 

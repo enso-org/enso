@@ -75,17 +75,17 @@ pub enum Notification {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
     #[allow(missing_docs)]
-    pub logger:    Logger,
+    pub logger:        Logger,
     /// A handle to basic graph operations.
-    graph:         Rc<RefCell<controller::Graph>>,
+    graph:             Rc<RefCell<controller::Graph>>,
     /// Execution Context handle, its call stack top contains `graph`'s definition.
-    execution_ctx: model::ExecutionContext,
+    pub execution_ctx: model::ExecutionContext,
     /// The handle to project controller is necessary, as entering nodes might need to switch
     /// modules, and only the project can provide their controllers.
-    project:       model::Project,
+    project:           model::Project,
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
-    notifier:      crate::notification::Publisher<Notification>,
+    notifier:          crate::notification::Publisher<Notification>,
 }
 
 impl Handle {

@@ -84,6 +84,8 @@ ensogl::define_endpoints! {
         disable_debug_mode(),
         /// A set of value updates has been processed and rendered.
         values_updated(),
+        /// Interrupt the running program.
+        execution_context_interrupt(),
     }
 
     Output {
@@ -834,6 +836,7 @@ impl application::View for View {
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
+            (Press, "", "cmd shift p", "execution_context_interrupt"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
