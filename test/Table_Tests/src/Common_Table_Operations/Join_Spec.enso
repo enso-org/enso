@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
@@ -99,7 +100,7 @@ spec setup =
             r1 . at "Y" . to_vector . should_equal [1]
             r1 . at "Z" . to_vector . should_equal [2]
 
-            r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "X") . order_by ["Z"]
+            r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") . order_by ["Z"]
             # TODO rename to Right_X
             expect_column_names ["X", "Y", "X_1", "Z"] r2
             r2 . at "X" . to_vector . should_equal ["a", "a", "B"]
@@ -118,7 +119,7 @@ spec setup =
                 r1 . at "Y" . to_vector . should_equal [1]
                 r1 . at "Z" . to_vector . should_equal [3]
 
-                r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "X") . order_by ["Y"]
+                r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") . order_by ["Y"]
                 # TODO rename to Right_X
                 expect_column_names ["X", "Y", "X_1", "Z"] r2
                 r2 . at "X" . to_vector . should_equal ['s\u0301', 'S\u0301']
@@ -233,7 +234,7 @@ spec setup =
             t7 = table_builder [["X", ["a", "B"]], ["Y", [1, 2]]]
             t8 = table_builder [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
 
-            r2 = t7.join t8 on=[Join_Condition.Equals_Ignore_Case "X" "X", Join_Condition.Equals_Ignore_Case "X" "X", Join_Condition.Equals_Ignore_Case "X" "X"] . order_by ["Z"]
+            r2 = t7.join t8 on=[Join_Condition.Equals_Ignore_Case "X", Join_Condition.Equals_Ignore_Case "X", Join_Condition.Equals_Ignore_Case "X" "X"] . order_by ["Z"]
             r2 . at "X" . to_vector . should_equal ["a", "a", "B"]
             r2 . at "X_1" . to_vector . should_equal ["A", "a", "b"]
             r2 . at "Z" . to_vector . should_equal [1, 2, 3]
@@ -253,17 +254,16 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
-            t1 = table_builder ["X", ["1", "2", "c"], ["Y", [1, 2, 3]]]
-            t2 = table_builder ["Z", ["1", "2", "c"], ["W", [1, 2, 3]]]
+            t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]
+            t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
 
-            expected_string err =
-                err.should_fail_with Invalid_Value_Type.Error
-                err.catch . should_equal (Invalid_Value_Type.Error Value_Type.Char Value_Type.Integer)
+            tester table =
+                expect_column_names ["X", "Y", "Z", "W"] table
+                table.row_count . should_equal 0
+            problems = [Invalid_Value_Type.Error Value_Type.Char Value_Type.Integer]
 
-            expected_string <|
-                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "W")
-            expected_string <|
-                t1.join t2 on=(Join_Condition.Equals_Ignore_Case "Y" "Z")
+            Problems.test_problem_handling (t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X" "W") on_problems=_) problems tester
+            Problems.test_problem_handling (t1.join t2 on=(Join_Condition.Equals_Ignore_Case "Y" "Z") on_problems=_) problems tester
 
         Test.specify "should report Invalid_Value_Type if incompatible types are correlated" pending="We need more advanced value type support to implement this in full-generality." <|
             t1 = table_builder ["X", ["1", "2", "c"]]
@@ -322,13 +322,37 @@ spec setup =
             Problems.assume_no_problems r2
 
         Test.specify "should correctly handle nulls in equality conditions" <|
-            Nothing
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
+
+            r1 = t1.join t2 . order_by ["Y"]
+            expect_column_names ["X", "Y", "Z"] r1
+            r1.at "X" . to_vector . should_equal [Nothing, Nothing, "a", Nothing, Nothing]
+            r1.at "Y" . to_vector . should_equal [1, 1, 2, 3, 3]
+            r1.at "Z" . to_vector . should_equal [20, 30, 10, 20, 30]
 
         Test.specify "should correctly handle nulls in case-insensitive equality conditions" <|
-            Nothing
+            t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
+            t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
+
+            r1 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") . order_by ["Y"]
+            expect_column_names ["X", "Y", "X_1", "Z"] r1
+            r1.at "X" . to_vector . should_equal ["A", Nothing, Nothing, "a", Nothing, Nothing]
+            r1.at "X_1" . to_vector . should_equal ["a", Nothing, Nothing, "a", Nothing, Nothing]
+            r1.at "Y" . to_vector . should_equal [0, 1, 1, 2, 3, 3]
+            r1.at "Z" . to_vector . should_equal [10, 20, 30, 10, 20, 30]
 
         Test.specify "should correctly handle nulls in between conditions" <|
-            Nothing
+            t1 = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0, 1, 2, 3]]]
+            t2 = table_builder [["l", [Nothing, 0, 1]], ["u", [100, 10, Nothing]], ["Z", [10, 20, 30]]]
+
+            r1 = t1.join t2 on=(Join_Condition.Between "X" "l" "u") . order_by ["Y"]
+            expect_column_names ["X", "Y", "l", "u", "Z"] r1
+            r1.at "X" . to_vector . should_equal [1, 2]
+            r1.at "Y" . to_vector . should_equal [0, 2]
+            r1.at "l" . to_vector . should_equal [0, 0]
+            r1.at "u" . to_vector . should_equal [10, 10]
+            r1.at "Z" . to_vector . should_equal [20, 20]
 
         Test.specify "should rename columns of the right table to avoid duplicates" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
@@ -353,3 +377,8 @@ spec setup =
             # expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y", "Right_Y_1", "Right_Y_3", "Right_Y_4"] t6
             # Renames happen in the order of appearance of columns
             # expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y", "Right_Y_1", "Right_Y_1_1", "Right_Y_4"] t6
+
+        Test.specify "should pass dataflow errors through" <|
+            error = Error.throw (Illegal_State.Error "FOO")
+            t1.join error . should_fail_with Illegal_State.Error
+            t1.join t2 on=["X", error] . should_fail_with Illegal_State.Error

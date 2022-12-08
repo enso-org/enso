@@ -75,6 +75,15 @@ public class MatcherFactory {
     public boolean matches(int left, int right) {
       String leftValue = leftStorage.getItem(left);
       String rightValue = rightStorage.getItem(right);
+
+      if (leftValue == null && rightValue == null) {
+        return true;
+      }
+
+      if (leftValue == null || rightValue == null) {
+        return false;
+      }
+
       return Text_Utils.equals_ignore_case(leftValue, rightValue, locale);
     }
   }
@@ -97,6 +106,12 @@ public class MatcherFactory {
       Object leftValue = leftStorage.getItemBoxed(left);
       Object rightLowerValue = rightLowerStorage.getItemBoxed(right);
       Object rightUpperValue = rightUpperStorage.getItemBoxed(right);
+
+      // If any value is missing, such a pair of rows is never correlated with Between as we assume the ordering is not well-defined for missing values.
+      if (leftValue == null || rightLowerValue == null || rightUpperValue == null) {
+        return false;
+      }
+
       // We could do a fast-path for some known primitive types, but it doesn't matter as it should be replaced with sorting optimization soon(ish).
       return objectComparator.compare(leftValue, rightLowerValue) >= 0 && objectComparator.compare(leftValue, rightUpperValue) <= 0;
     }
