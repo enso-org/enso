@@ -776,8 +776,7 @@ impl Slider {
             model.value_text_edit.set_content <+ value_text_on_edit;
             stop_editing <- any2(&input.finish_value_editing, &input.cancel_value_editing);
             editing <- bool(&stop_editing, &start_editing);
-            eval editing((t) model.set_edit_mode(*t));
-            output.editing <+ editing;
+
             value_text_after_edit <-
                 model.value_text_edit.content.sample(&input.finish_value_editing);
             value_text_after_edit <- value_text_after_edit.map(|s| String::from(s).to_im_string());
@@ -794,8 +793,13 @@ impl Slider {
                 &input.set_lower_limit_type,
                 &input.set_upper_limit_type,
             ).map(value_limit_clamp);
+
+            output.editing <+ editing;
             output.precision <+ prec_after_edit.gate(&edit_success);
             output.value <+ value_after_edit.gate(&edit_success);
+            editing_event <- any2(&start_editing, &stop_editing);
+            editing <- all2(&editing, &output.precision).sample(&editing_event);
+            eval editing((t) model.set_edit_mode(t));
         };
     }
 

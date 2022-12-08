@@ -402,8 +402,8 @@ impl Model {
 
     /// Set whether the value is being edited. This hides the value display and shows a text editor
     /// field to enter a new value.
-    pub fn set_edit_mode(&self, editing: bool) {
-        if editing {
+    pub fn set_edit_mode(&self, (editing, precision): &(bool, f32) ) {
+        if *editing {
             self.root.remove_child(&self.value_text_left);
             self.root.remove_child(&self.value_text_dot);
             self.root.remove_child(&self.value_text_right);
@@ -413,8 +413,10 @@ impl Model {
             self.value_text_edit.cursor_select_to_text_end();
         } else {
             self.root.add_child(&self.value_text_left);
-            self.root.add_child(&self.value_text_dot);
-            self.root.add_child(&self.value_text_right);
+            if *precision < 1.0 {
+                self.root.add_child(&self.value_text_dot);
+                self.root.add_child(&self.value_text_right);
+            }
             self.root.remove_child(&self.value_text_edit);
             self.value_text_edit.deprecated_defocus();
             self.value_text_edit.remove_all_cursors();
