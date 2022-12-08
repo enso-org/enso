@@ -14,6 +14,7 @@ import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.*;
+import org.enso.table.data.table.join.scan.ScanJoin;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -290,10 +291,15 @@ public class Table {
     // TODO adding prefix for right columns
     NameDeduplicator deduplicator = new NameDeduplicator();
 
-    JoinStrategy strategy = new ScanJoin(objectComparator, equalityFallback);
+    // TODO We'll want a mixed strategy doing Index for supported conditions and then scanning on subgroups. For now Index works only for the simple happy path.
+    boolean allCanUseIndex = conditions.stream().allMatch(IndexJoin::isSupported);
+    JoinStrategy strategy = allCanUseIndex ? new IndexJoin(objectComparator) : new ScanJoin(objectComparator, equalityFallback);
+
     JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
-    JoinResult joinResult = (keepLeftUnmatched || keepMatched || keepRightUnmatched) ? strategy.join(this, right, conditions) : null;
+    if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
+      joinResult = strategy.join(this, right, conditions);
+    }
 
     List<Integer> leftRows = new ArrayList<>();
     List<Integer> rightRows = new ArrayList<>();
