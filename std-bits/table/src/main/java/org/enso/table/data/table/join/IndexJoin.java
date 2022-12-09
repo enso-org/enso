@@ -1,8 +1,10 @@
 package org.enso.table.data.table.join;
 
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.data.table.problems.AggregatedProblems;
 import org.graalvm.collections.Pair;
 
 import java.util.ArrayList;
@@ -24,30 +26,41 @@ public class IndexJoin implements JoinStrategy {
                 .filter(c -> c != null)
                 .collect(Collectors.toList());
         if (equalConditions.size() != conditions.size()) {
-            return new ScanJoin().join(left, right, conditions);
+            throw new IllegalArgumentException("Currently conditions other than Equals are not supported in index-joins.");
         }
 
-        try {
-            var leftEquals = equalConditions.stream().map(Equals::left).toArray(Column[]::new);
-            var leftIndex = new MultiValueIndex(leftEquals, left.rowCount(), comparator);
+        var leftEquals = equalConditions.stream().map(Equals::left).toArray(Column[]::new);
+        var leftIndex = new MultiValueIndex(leftEquals, left.rowCount(), comparator);
 
-            var rightEquals = equalConditions.stream().map(Equals::right).toArray(Column[]::new);
-            var rightIndex = new MultiValueIndex(rightEquals, right.rowCount(), comparator);
+        var rightEquals = equalConditions.stream().map(Equals::right).toArray(Column[]::new);
+        var rightIndex = new MultiValueIndex(rightEquals, right.rowCount(), comparator);
 
-            List<Pair<Integer, Integer>> matches = new ArrayList<>();
-            for (var leftKey : leftIndex.keys()) {
-                if (rightIndex.contains(leftKey)) {
-                    for (var leftRow : leftIndex.get(leftKey)) {
-                        for (var rightRow : rightIndex.get(leftKey)) {
-                            matches.add(Pair.create(leftRow, rightRow));
-                        }
+        List<Pair<Integer, Integer>> matches = new ArrayList<>();
+        for (var leftKey : leftIndex.keys()) {
+            if (rightIndex.contains(leftKey)) {
+                for (var leftRow : leftIndex.get(leftKey)) {
+                    for (var rightRow : rightIndex.get(leftKey)) {
+                        matches.add(Pair.create(leftRow, rightRow));
                     }
                 }
             }
-            return new JoinResult(matches);
-        } catch (IllegalStateException e) {
-            // Fallback for custom objects
-            return new ScanJoin().join(left, right, conditions);
         }
+
+        AggregatedProblems problems = AggregatedProblems.merge(new AggregatedProblems[]{
+            leftIndex.getProblems(),
+            rightIndex.getProblems()
+        });
+        return new JoinResult(matches, problems);
+    }
+
+    public static boolean isSupported(JoinCondition condition) {
+        if (condition instanceof Equals eq) {
+            // Currently hashing works only for builtin types.
+            return isBuiltinType(eq.left().getStorage()) && isBuiltinType(eq.right().getStorage());
+        } else return false;
+    }
+
+    private static boolean isBuiltinType(Storage<?> storage) {
+        return storage.getType() != Storage.Type.OBJECT;
     }
 }
