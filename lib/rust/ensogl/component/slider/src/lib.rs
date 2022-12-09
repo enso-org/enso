@@ -395,6 +395,7 @@ impl Slider {
             );
             component_drag <- bool(&component_release, &component_click);
             component_drag <- component_drag.gate_not(&input.set_slider_disabled);
+            component_drag <- component_drag.gate_not(&keyboard.is_control_down);
             component_ctrl_click <- component_click.gate(&keyboard.is_control_down);
             drag_start_pos <- mouse.position.sample(&component_click);
             drag_end_pos <- mouse.position.gate(&component_drag);
