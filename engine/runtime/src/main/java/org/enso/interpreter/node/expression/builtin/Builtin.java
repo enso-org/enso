@@ -58,7 +58,7 @@ public abstract class Builtin {
         s.initialize(language, scope, builtins);
         supertype = s.getType();
       }
-      type = getDeclaredConstructors().size() == 0 ?
+      type = isInstanceOfItself() ?
           Type.createSingleton(name, scope, supertype, true) :
           Type.create(name, scope, supertype, builtins.get(Any.class).getType(), true);
     }
@@ -73,6 +73,10 @@ public abstract class Builtin {
     }
     type.generateGetters(language);
     postInitialize();
+  }
+
+  protected boolean isInstanceOfItself() {
+    return getDeclaredConstructors().size() == 0 &&getSuperType() == Any.class;
   }
 
   protected void postInitialize() {}

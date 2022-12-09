@@ -10,6 +10,7 @@ import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -43,10 +44,10 @@ public class MetaIsATest {
 
     check x y = Meta.is_a x y
     """, "check.enso")
-            .uri(facUri)
+            .uri(uri)
             .buildLiteral();
 
-    var module = ctx.eval(facSrc);
+    var module = ctx.eval(src);
     isACheck = module.invokeMember("eval_expression", "check");
     assertTrue("it is a function", isACheck.canExecute());
   }
@@ -90,6 +91,30 @@ public class MetaIsATest {
   }
 
   @Test
+  public void checkIntegerIsNotInstanceOfInteger() {
+    var g = ValuesGenerator.create(ctx);
+    var t = g.typeInteger();
+    var r = isACheck.execute(t, t);
+    assertFalse("Integer is not instance of Integer", r.asBoolean());
+  }
+
+  @Test
+  public void checkNumberIsNotInstanceOfNumber() {
+    var g = ValuesGenerator.create(ctx);
+    var t = g.typeNumber();
+    var r = isACheck.execute(t, t);
+    assertFalse("Number is not instance of Number", r.asBoolean());
+  }
+
+  @Test
+  public void checkAnyIsInstanceOfAny() {
+    var g = ValuesGenerator.create(ctx);
+    var t = g.typeAny();
+    var r = isACheck.execute(t, t);
+    assertTrue("Everything is instance of Any even Any", r.asBoolean());
+  }
+
+  @Test
   public void checkTextsAreNotNumbers() {
     var g = ValuesGenerator.create(ctx);
     for (var v : g.textual()) {
@@ -110,9 +135,16 @@ public class MetaIsATest {
   @Test
   public void typesAreNotInstancesOfThemselves() throws Exception {
     var g = ValuesGenerator.create(ctx);
+    var f = new StringBuilder();
     for (var v : g.allTypes()) {
+      if (v.equals(g.typeAny())) {
+        continue;
+      }
       var r = isACheck.execute(v, v);
-      assertTrue("Type " + v + " is instance of itself", r.asBoolean());
+      if (r.asBoolean()) {
+        f.append("\nType ").append(v).append(" should not be instance of itself");
+      }
     }
+    assertEquals(f.toString(), 0, f.length());
   }
 }

@@ -61,6 +61,12 @@ class ValuesGenerator {
     """, "Number");
   }
 
+  public Value typeInteger() {
+    return v("typeInteger", """
+    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
+    """, "Integer");
+  }
+
   public Value typeText() {
     return v("typeText", """
     import Standard.Base.Data.Text.Text
