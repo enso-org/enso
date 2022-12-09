@@ -22,10 +22,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["unbounded_depth"] }
 shrinkwraprs = { version = "0.2.1" }
 uuid = { version = "0.8", features = ["serde", "v5", "wasm-bindgen"] }
-wasm-bindgen = { version = "0.2.78" }
+wasm-bindgen = { workspace = true }
 
 [dev-dependencies]
-wasm-bindgen-test = { version = "0.3.8" }
+wasm-bindgen-test = { workspace = true }
 
 [build-dependencies]
 ide-ci = { path = "../../../../build/ci_utils" }

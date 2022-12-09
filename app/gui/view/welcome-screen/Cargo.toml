@@ -10,5 +10,5 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl = { path = "../../../../lib/rust/ensogl" }
 enso-frp = { path = "../../../../lib/rust/frp" }
-wasm-bindgen = { version = "0.2.78", features = ["nightly", "serde-serialize"] }
+wasm-bindgen = { workspace = true }
 web-sys = { version = "0.3.4", features = [] }
