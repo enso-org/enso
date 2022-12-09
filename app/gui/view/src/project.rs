@@ -164,7 +164,8 @@ impl SearcherVariant {
 
     fn set_navigator(&self, navigator: Navigator) {
         if let Self::ComponentBrowser(browser) = self {
-            browser.model().list.model().set_navigator(Some(navigator))
+            browser.model().list.model().set_navigator(Some(navigator.clone_ref()));
+            browser.model().documentation.model.set_navigator(Some(navigator));
         }
     }
 
