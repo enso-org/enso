@@ -9,6 +9,7 @@ use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 
 use crate::dropdown::entry::Entry;
+use crate::dropdown::entry::EntryParams;
 use crate::dropdown::DropdownValue;
 
 
@@ -17,7 +18,9 @@ use crate::dropdown::DropdownValue;
 // =================
 
 /// Dropdown corner radius.
-const CORNER_RADIUS: f32 = 12.0;
+const CORNER_RADIUS: f32 = 8.0;
+/// Dropdown padding.
+const CLIP_PADDING: f32 = 3.0;
 
 
 
@@ -37,6 +40,9 @@ mod rounded_rect {
     }
 }
 
+pub type RoundedRect = rounded_rect::View;
+
+
 
 // =============
 // === Model ===
@@ -46,7 +52,7 @@ mod rounded_rect {
 #[derivative(Clone(bound = ""))]
 pub struct Model<T> {
     display_object:       display::object::Instance,
-    pub background:       rounded_rect::View,
+    pub background:       RoundedRect,
     pub grid:             Grid,
     pub selected_entries: Rc<RefCell<HashSet<T>>>,
     pub cache:            Rc<RefCell<EntryCache<T>>>,
@@ -60,11 +66,14 @@ impl<T> component::Model for Model<T> {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
 
-        let background = rounded_rect::View::new();
+        let background = RoundedRect::new();
         let grid = Grid::new(app);
-        // grid.display_object().add_child(&background);
         display_object.add_child(&background);
         display_object.add_child(&grid);
+
+        let inner_corners_radius = CORNER_RADIUS - CLIP_PADDING;
+        grid.set_entries_params(EntryParams { corners_radius: inner_corners_radius, ..default() });
+        grid.scroll_frp().set_corner_radius(inner_corners_radius);
 
         Model { background, grid, display_object, selected_entries: default(), cache: default() }
     }
@@ -73,16 +82,22 @@ impl<T> component::Model for Model<T> {
 impl<T: DropdownValue> Model<T> {
     pub fn set_dimensions(&self, num_entries: usize, max_size: Vector2, entry_height: f32) {
         let grid_inner_height = num_entries as f32 * entry_height;
-        let height = grid_inner_height.min(max_size.y);
-        let width = max_size.x;
+        let inner_height = grid_inner_height.min(max_size.y - CLIP_PADDING * 2.0);
+        let outer_width = max_size.x;
+        let outer_height = inner_height + CLIP_PADDING * 2.0;
+        let inner_width = outer_width - CLIP_PADDING * 2.0;
+        let inner_size = Vector2(inner_width, inner_height);
+        let outer_size = Vector2(outer_width, outer_height);
 
-        self.background.size.set(Vector2(width, height));
-        self.background.set_xy(Vector2(width, -height) / 2.0);
-        self.grid.set_y(0.0);
-        self.grid.scroll_frp().resize(Vector2(width, height));
-        self.grid.scroll_frp().set_corner_radius_bottom_right(CORNER_RADIUS);
-        self.grid.scroll_frp().set_corner_radius_bottom_left(CORNER_RADIUS);
-        self.grid.set_entries_size(Vector2(width, entry_height));
+        self.background.size.set(outer_size);
+        // align the dropdown origin to its top left corner
+        self.background.set_xy(Vector2(outer_width, -outer_height) / 2.0);
+        self.background.corner_radius.set(CORNER_RADIUS);
+
+        self.grid.set_xy(Vector2(CLIP_PADDING, -CLIP_PADDING));
+        self.grid.scroll_frp().resize(inner_size);
+        self.grid.set_entries_size(Vector2(inner_width, entry_height));
+        // self.grid.set_entr(Vector2(inner_width, entry_height));
         self.grid.resize_grid(num_entries, 1);
     }
 

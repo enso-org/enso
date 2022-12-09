@@ -32,14 +32,19 @@ pub mod model;
 // =================
 
 /// Size of single entry in pixels.
-const ENTRY_HEIGHT: f32 = 25.0;
+const ENTRY_HEIGHT: f32 = 24.0;
 /// Default maximum external size of the whole dropdown.
-const DEFAULT_SIZE: Vector2 = Vector2(150.0, 400.0);
-const DEFAULT_COLOR: Lcha = Lcha::new(0.44682, 0.30307, 0.9668195, 0.7);
+const DEFAULT_SIZE: Vector2 = Vector2(80.0, 300.0);
+// const DEFAULT_COLOR: Lcha = Lcha::new(0.44682, 0.30307, 0.96682, 0.7);
+
+// BASE COLOR
+// const DEFAULT_COLOR: Lcha = Lcha::new(0.49112, 0.27123, 0.72659, 1.0);
+// MIXED COLOR (15% white on top)
+const DEFAULT_COLOR: Lcha = Lcha::new(0.56708, 0.23249, 0.71372, 1.0);
+
+
 /// Default maximum number of entries that can be cached at once.
 const DEFAULT_MAX_ENTRIES: usize = 128;
-
-
 // ===========
 // === FRP ===
 // ===========
@@ -149,11 +154,12 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
         let input = &api.input;
         let output = &api.output;
 
-        // frp::extend! { network
-        //     eval_ model.background.events.mouse_down (model.background.focus());
-        //     is_focused <- bool(&focus_out, &focus_in);
-        //     output.is_focused <+ is_focused;
-        // }
+        frp::extend! { network
+            // eval_ model.background.events.mouse_down (model.background.focus());
+            // is_focused <- bool(&focus_out, &focus_in);
+            // output.is_focused <+ is_focused;
+        }
+        output.is_focused.emit(true); // TODO: focus handling
 
         // static entries support
         frp::extend! { network
@@ -173,7 +179,6 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
         }
 
 
-
         frp::extend! { network
             requested_index <- model.grid.model_for_entry_needed._0();
             missing_ranges <- requested_index.filter_map(f!([model] (&row) {
@@ -184,6 +189,12 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
                 }
             }));
             output.entries_in_range_needed <+ missing_ranges;
+
+            // request initial batch of entries after creating the dropdown
+            let after_animations = ensogl_core::animation::on_after_animations();
+            once_after_animations <- after_animations.constant(true).on_change().constant(());
+            model.grid.request_model_for_visible_entries <+ once_after_animations;
+
         }
         frp::extend! { network
 
@@ -226,11 +237,10 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             model.grid.accept_selected_entry <+ input.toggle_focused_entry;
             model.grid.move_selection_up <+ input.focus_previous_entry;
             model.grid.move_selection_down <+ input.focus_next_entry;
+            model.grid.select_entry <+ model.grid.entry_hovered;
         }
-        frp::extend! { network
-            entry_hovered <- model.grid.entry_hovered.filter_map(|l| *l);
-            entry_selected <- model.grid.entry_selected.filter_map(|l| *l);
-        }
+
+        // selection
         frp::extend! { network
             selection_pruned <- input.set_max_selected.map(f!((max) model.set_max_selection(*max))).on_true();
             selection_accepted <- model.grid.entry_accepted.map2(&input.set_max_selected,
@@ -238,24 +248,23 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             selection_set <- input.set_selected_entries.map2(&input.set_max_selected,
                 f!((values, max) model.set_selection(values, *max)));
             selection_changed <- any3(&selection_accepted, &selection_set, &selection_pruned);
-        }
-        frp::extend! { network
-            selected_entries_to_update <- selection_changed.map(f!([model] (entries) {
-                let cache = model.cache.borrow();
-                model.selected_entries.borrow().iter().filter_map(|entry| {
-                    let pos = cache.get_position(entry)?;
-                    let entry = model_for_entry(entry, model.is_selected(entry));
-                    Some((pos, 0, entry))
-                }).collect_vec()
-            }));
-            model.grid.model_for_entry <+ selected_entries_to_update.iter();
-        }
-        frp::extend! { network
             output.selected_entries <+ selection_changed.map(f!((()) model.get_selected_entries()));
         }
+
         frp::extend! { network
-            eval entry_hovered ([]((row, _col)) warn!("Hovered entry ({row})."));
-            eval entry_selected ([]((row, _col)) warn!("Selected entry ({row})."));
+            viewport_needs_update <- any(selection_changed);
+            viewport_entries_to_update <- visible_range.sample(&viewport_needs_update);
+            viewport_entries_to_update <- viewport_entries_to_update.map(f!([model] (range) {
+                let cache = model.cache.borrow();
+                range.clone().filter_map(|index| {
+                    let entry = cache.get(index)?;
+                    let entry = model_for_entry(entry, model.is_selected(entry));
+                    Some((index, 0, entry))
+                }).collect_vec()
+            }));
+            model.grid.model_for_entry <+ viewport_entries_to_update.iter();
+        }
+        frp::extend! { network
             eval model.grid.entry_accepted ([]((row, _col)) warn!("ACCEPTED entry ({row})."));
         }
     }
@@ -264,7 +273,7 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
         use shortcut::ActionType::*;
         [
             (Press, "is_focused", "down", "focus_next_entry"),
-            (Press, "is_focused", "up", "select_previous_entry"),
+            (Press, "is_focused", "up", "focus_previous_entry"),
             (Press, "is_focused", "enter", "accept_focused_entry"),
         ]
         .iter()

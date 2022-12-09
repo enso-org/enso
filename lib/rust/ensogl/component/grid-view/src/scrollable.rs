@@ -13,7 +13,6 @@ use enso_frp as frp;
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::Application;
 use ensogl_core::display;
-use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::scene::Layer;
 use ensogl_scroll_area::ScrollArea;
 
