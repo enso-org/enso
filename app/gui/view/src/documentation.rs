@@ -68,7 +68,6 @@ pub struct Model {
     overlay:            overlay::View,
     display_object:     display::object::Instance,
     code_copy_closures: Rc<CloneCell<Vec<CodeCopyClosure>>>,
-    scene_navigator:    Rc<RefCell<Option<Navigator>>>,
 }
 
 impl Model {
@@ -117,18 +116,8 @@ impl Model {
         scene.dom.layers.node_searcher.manage(&inner_dom);
 
         let code_copy_closures = default();
-        let scene_navigator = default();
-        Model {
-            logger,
-            outer_dom,
-            inner_dom,
-            size,
-            overlay,
-            display_object,
-            code_copy_closures,
-            scene_navigator,
-        }
-        .init()
+        Model { logger, outer_dom, inner_dom, size, overlay, display_object, code_copy_closures }
+            .init()
     }
 
     fn init(self) -> Self {

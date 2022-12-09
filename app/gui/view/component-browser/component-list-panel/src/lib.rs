@@ -238,14 +238,12 @@ pub struct Model {
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
     pub breadcrumbs:       breadcrumbs::Breadcrumbs,
-    scene_navigator:       Rc<RefCell<Option<Navigator>>>,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
-        let scene_navigator = default();
 
         let background = background::View::new();
         display_object.add_child(&background);
@@ -260,7 +258,7 @@ impl Model {
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
 
-        Self { display_object, background, grid, section_navigator, scene_navigator, breadcrumbs }
+        Self { display_object, background, grid, section_navigator, breadcrumbs }
     }
 
     fn set_initial_breadcrumbs(&self) {
