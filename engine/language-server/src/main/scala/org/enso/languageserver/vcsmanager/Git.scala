@@ -85,11 +85,13 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       val isDataDir =
         (x: Path) => ensoDataDirectory.map(_ == x).getOrElse(false)
       val filesToAdd =
-        listDirectoryFiles(root, Set(gitDir)).filterNot(isDataDir)
+        listDirectoryFiles(root, Set(gitDir))
+          .filterNot(isDataDir)
+          .map(ensureUnixPathSeparator)
       if (!filesToAdd.isEmpty) {
         filesToAdd
           .foldLeft(jgit.add()) { case (cmd, filePath) =>
-            cmd.addFilepattern(filePath.toString)
+            cmd.addFilepattern(filePath)
           }
           .call()
       }
@@ -104,6 +106,13 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       ()
     }.mapError(errorHandling)
   }
+
+  private def ensureUnixPathSeparator(path: Path): String =
+    ensureUnixPathSeparator(path.toString)
+
+  // AddCommand.addFilePattern always expects `/` separator
+  private def ensureUnixPathSeparator(path: String): String =
+    path.replaceAll("\\\\", "/")
 
   override def commit(
     root: Path,
@@ -133,7 +142,9 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       }
       if (!filesToAdd.isEmpty) {
         val addCmd = jgit.add()
-        filesToAdd.foreach(addCmd.addFilepattern(_))
+        filesToAdd.foreach(filePath =>
+          addCmd.addFilepattern(ensureUnixPathSeparator(filePath))
+        )
         addCmd.call()
       }
 

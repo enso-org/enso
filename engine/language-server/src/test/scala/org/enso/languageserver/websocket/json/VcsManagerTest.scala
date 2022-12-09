@@ -855,7 +855,9 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     jgit
       .add()
       .addFilepattern(
-        config.vcsManager.dataDirectory.resolve("suggestions.db").toString
+        ensureUnixPathSeparator(
+          config.vcsManager.dataDirectory.resolve("suggestions.db")
+        )
       )
       .call()
     jgit
@@ -867,6 +869,9 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
       .call()
     test(client)
   }
+
+  private def ensureUnixPathSeparator(path: Path): String =
+    path.toString.replaceAll("\\\\", "/")
 
   private def repository(path: Path): Repository = {
     val builder = new FileRepositoryBuilder();
@@ -896,7 +901,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     paths.forall(path =>
       try {
         val relativePath = root.toPath.relativize(path)
-        jgit.add().addFilepattern(relativePath.toString).call()
+        jgit.add().addFilepattern(ensureUnixPathSeparator(relativePath)).call()
         true
       } catch {
         case _: Throwable => false

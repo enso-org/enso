@@ -366,8 +366,16 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
     def isPathUnderVcs(repo: Repository, relativePath: Path): Boolean = {
       val jgit = new JGit(repo)
-      jgit.log().addPath(relativePath.toString).call().iterator().hasNext
+      jgit
+        .log()
+        .addPath(ensureUnixPathSeparator(relativePath))
+        .call()
+        .iterator()
+        .hasNext
     }
+
+    private def ensureUnixPathSeparator(path: Path): String =
+      path.toString.replaceAll("\\\\", "/")
 
     def hasUntrackedFiles(repoDir: Path): Boolean = {
       hasUntrackedFiles(testRepo(repoDir))
