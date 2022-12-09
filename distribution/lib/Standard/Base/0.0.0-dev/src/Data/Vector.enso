@@ -204,6 +204,26 @@ type Vector a
         f = acc -> ix -> function acc ix (self.at ix)
         0.up_to self.length . fold init f
 
+    ## Combines all the elements of the vector, by iteratively applying the
+       passed function with next elements of the vector. After each step the
+       value is added resulting in a new Vector of the same size as self.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking two elements and combining them.
+
+       > Example
+         Compute the running sum of all of the elements in a vector
+
+            [1, 2, 3].running_fold 0 (+)
+    running_fold : Any -> (Any -> Any -> Any) -> Vector Any
+    running_fold self init function =
+        wrapped builder value =
+            current = if builder.length == 0 then init else builder.last
+            builder.append (function current value)
+        built = self.fold (Vector.new_builder self.length) wrapped
+        built.to_vector
+
     ## Combines all the elements of a non-empty vector using a binary operation.
 
        Arguments:
