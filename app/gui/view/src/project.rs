@@ -838,8 +838,8 @@ impl application::View for View {
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
-            (Press, "", "cmd shift p", "execution_context_interrupt"),
-            (Press, "", "cmd shift l", "execution_context_restart"),
+            (Press, "", "cmd shift t", "execution_context_interrupt"),
+            (Press, "", "cmd shift r", "execution_context_restart"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))
