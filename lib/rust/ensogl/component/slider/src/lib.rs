@@ -162,7 +162,7 @@ pub enum SliderLimit {
 fn adapt_upper_limit(
     &(value, min, max, max_ext, upper_limit): &(f32, f32, f32, f32, SliderLimit),
 ) -> f32 {
-    if upper_limit == SliderLimit::Adaptive {
+    if upper_limit == SliderLimit::Adaptive && value > max {
         let range = max_ext - min;
         let extend = value > max_ext;
         let shrink = value < min + range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
@@ -181,7 +181,7 @@ fn adapt_upper_limit(
 fn adapt_lower_limit(
     &(value, min, max, min_ext, lower_limit): &(f32, f32, f32, f32, SliderLimit),
 ) -> f32 {
-    if lower_limit == SliderLimit::Adaptive {
+    if lower_limit == SliderLimit::Adaptive && value < min {
         let range = max - min_ext;
         let extend = value < min_ext;
         let shrink = value > max - range * ADAPTIVE_LIMIT_SHRINK_THRESHOLD;
