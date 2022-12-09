@@ -55,7 +55,6 @@ use ensogl_core::data::bounding_box::BoundingBox;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
-use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;

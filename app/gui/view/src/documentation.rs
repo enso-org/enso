@@ -9,7 +9,6 @@ use crate::graph_editor::component::visualization;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;

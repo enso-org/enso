@@ -24,7 +24,6 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::Animation;
@@ -167,19 +166,16 @@ impl SearcherVariant {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
                 let grid = &view.model().list.model().grid;
-                let panel = &view.model().list;
-                let documentation = &view.model().documentation;
                 frp::extend! {project_view_network
                     is_empty <- source::<bool>();
                     editing_committed <- grid.expression_accepted.constant(());
-                    is_hovered <- panel.is_hovered || documentation.frp.is_hovered;
                 }
                 is_empty.emit(false);
                 SearcherFrp {
                     editing_committed,
                     is_visible: view.output.is_visible.clone_ref().into(),
                     is_empty: is_empty.into(),
-                    is_hovered: is_hovered.into(),
+                    is_hovered: view.output.is_hovered.clone_ref().into(),
                 }
             }
             SearcherVariant::OldNodeSearcher(view) => {
