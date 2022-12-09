@@ -244,11 +244,11 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
         frp::extend! { network
             selection_pruned <- input.set_max_selected.map(f!((max) model.set_max_selection(*max))).on_true();
             selection_accepted <- model.grid.entry_accepted.map2(&input.set_max_selected,
-                f!(((row, _), max) model.select_entry_at_index(*row, *max)));
+                f!(((row, _), max) model.accept_entry_at_index(*row, *max)));
             selection_set <- input.set_selected_entries.map2(&input.set_max_selected,
                 f!((values, max) model.set_selection(values, *max)));
             selection_changed <- any3(&selection_accepted, &selection_set, &selection_pruned);
-            output.selected_entries <+ selection_changed.map(f!((()) model.get_selected_entries()));
+            output.selected_entries <+ selection_changed.map(f!((()) model.get_selected_entries())).on_change();
         }
 
         frp::extend! { network
@@ -264,9 +264,6 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             }));
             model.grid.model_for_entry <+ viewport_entries_to_update.iter();
         }
-        frp::extend! { network
-            eval model.grid.entry_accepted ([]((row, _col)) warn!("ACCEPTED entry ({row})."));
-        }
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
@@ -274,7 +271,7 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
         [
             (Press, "is_focused", "down", "focus_next_entry"),
             (Press, "is_focused", "up", "focus_previous_entry"),
-            (Press, "is_focused", "enter", "accept_focused_entry"),
+            (Press, "is_focused", "enter", "toggle_focused_entry"),
         ]
         .iter()
         .map(|(a, b, c, d)| Dropdown::<T>::self_shortcut_when(*a, *c, *d, *b))

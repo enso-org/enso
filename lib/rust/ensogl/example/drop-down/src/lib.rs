@@ -43,6 +43,15 @@ impl dropdown::DropdownValue for EntryData {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct SelectConfigEntry(ImString, usize);
+
+impl dropdown::DropdownValue for SelectConfigEntry {
+    fn label(&self) -> ImString {
+        self.0.clone()
+    }
+}
+
 
 
 // ===================
@@ -73,44 +82,69 @@ fn init(app: &Application) {
 
     let world = &app.display;
     let scene = &world.default_scene;
-
-    app.views.register::<dropdown::Dropdown<EntryData>>();
-    let dropdown = setup_dropdown(app);
-    world.add_child(&dropdown);
-
-    // dropdown.request_model_for_visible_entries();
-
-    let output_text = setup_output_text(app, &dropdown);
-
-    let (single_selection, is_single) = setup_button(app, Vector2(-200.0, -100.0), "Single Select");
-    let (multi_selection, is_multi) = setup_button(app, Vector2(-200.0, -130.0), "Multi Select");
-
-    frp::new_network! { network
-        single <- single_selection.constant(1);
-        multi  <- multi_selection.constant(1000);
-        selection_mode <- any(single,multi);
-        dropdown.set_max_selected <+ selection_mode;
-
-        eval selection_mode([is_single, is_multi](mode) {
-            is_single.emit(*mode == 1);
-            is_multi.emit(*mode > 1);
-        });
-    }
-
-    is_single.emit(true);
-    is_multi.emit(false);
-
     let navigator = Navigator::new(scene, &scene.camera());
     navigator.disable_wheel_panning();
 
-    let dropdown2 = app.new_view::<dropdown::Dropdown<&str>>();
-    dropdown2.set_xy(Vector2(300.0, 0.0));
-    dropdown2.set_all_entries(vec![
-        "Hello", "World", "This", "Is", "A", "Test", "Dropdown", "With", "Static", "Strings",
-    ]);
-    world.add_child(&dropdown2);
+    app.views.register::<dropdown::Dropdown<EntryData>>();
+    let main_dropdown = setup_dropdown(app);
+    world.add_child(&main_dropdown);
 
-    std::mem::forget((dropdown, dropdown2, navigator, output_text, network));
+    let output_text = setup_output_text(app, &main_dropdown);
+
+
+    let config_dropdown = app.new_view::<dropdown::Dropdown<SelectConfigEntry>>();
+    world.add_child(&config_dropdown);
+    config_dropdown.set_xy(Vector2(-200.0, 0.0));
+    config_dropdown.set_max_size(Vector2(150.0, 200.0));
+    config_dropdown.set_all_entries(vec![
+        SelectConfigEntry("Single select".into(), 1),
+        SelectConfigEntry("Multi select".into(), 1000),
+    ]);
+
+    let secondary_dropdown = app.new_view::<dropdown::Dropdown<EntryData>>();
+    world.add_child(&secondary_dropdown);
+    secondary_dropdown.set_xy(Vector2(100.0, 0.0));
+
+
+
+    let static_entries =
+        vec!["Hello", "World", "This", "Is", "A", "Test", "Dropdown", "With", "Static", "Strings"];
+    let dropdown_static1 = app.new_view::<dropdown::Dropdown<&str>>();
+    dropdown_static1.set_xy(Vector2(300.0, 0.0));
+    dropdown_static1.set_all_entries(static_entries.clone());
+
+    let dropdown_static2 = app.new_view::<dropdown::Dropdown<&str>>();
+    dropdown_static2.set_xy(Vector2(400.0, 0.0));
+    dropdown_static2.set_all_entries(static_entries.clone());
+    world.add_child(&dropdown_static1);
+    world.add_child(&dropdown_static2);
+
+
+    frp::new_network! { network
+        main_dropdown.set_max_selected <+ config_dropdown.selected_entries.map(|entries| {
+            entries.iter().next().map_or(1, |entry| entry.1)
+        });
+
+        dropdown_static1.set_selected_entries <+ dropdown_static2.selected_entries;
+        dropdown_static2.set_selected_entries <+ dropdown_static1.selected_entries;
+
+        secondary_dropdown.set_all_entries <+ main_dropdown.selected_entries.map(|entries| {
+            entries.iter().cloned().collect()
+        });
+    }
+
+
+
+    std::mem::forget((
+        main_dropdown,
+        config_dropdown,
+        secondary_dropdown,
+        dropdown_static1,
+        dropdown_static2,
+        navigator,
+        output_text,
+        network,
+    ));
 }
 
 
@@ -165,41 +199,4 @@ mod button_bg {
             out.into()
         }
     }
-}
-
-fn setup_button(
-    app: &Application,
-    pos: Vector2,
-    text: &str,
-) -> (frp::Stream<()>, frp::Source<bool>) {
-    let label = app.new_view::<text::Text>();
-    let bg = button_bg::View::new();
-    label.set_xy(pos);
-    label.set_content(text.to_string());
-    bg.set_xy(pos);
-    let color_active = Vector4(0.6, 0.95, 0.8, 1.0);
-    let color_inactive = Vector4(0.9, 1.0, 0.95, 1.0);
-
-    app.display.add_child(&bg);
-    app.display.add_child(&label);
-    label.add_to_scene_layer(&app.display.default_scene.layers.label);
-
-    frp::new_network! { network
-        is_active <- source::<bool>();
-        trigger <- bg.events.mouse_down.constant(());
-
-        size <- all(&label.width, &label.height);
-        eval size([bg] ((w, h)) {
-            let bg_size = Vector2(w + 10.0, h + 10.0);
-            bg.size.set(bg_size);
-            bg.set_xy(pos + Vector2(w / 2.0, -h / 2.0));
-        });
-        color <- is_active.map(move |active| if *active { color_active } else { color_inactive });
-        eval color((color) bg.color_rgba.set(*color));
-    }
-
-    is_active.emit(false);
-
-    std::mem::forget((network, label, bg));
-    (trigger.into(), is_active.into())
 }

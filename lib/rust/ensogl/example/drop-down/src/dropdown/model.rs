@@ -107,15 +107,17 @@ impl<T: DropdownValue> Model<T> {
         entries.extend(selected.iter().take(max_selected).cloned());
     }
 
-    pub fn select_entry_at_index(&self, index: usize, max_selected: usize) {
+    pub fn accept_entry_at_index(&self, index: usize, max_selected: usize) {
         let cache = self.cache.borrow();
         let Some(entry) = cache.get(index) else { return };
-        let mut entries = self.selected_entries.borrow_mut();
-        if entries.len() < max_selected {
-            entries.insert(entry.clone());
+        let mut selected = self.selected_entries.borrow_mut();
+        if selected.contains(&entry) {
+            selected.remove(&entry);
+        } else if selected.len() < max_selected {
+            selected.insert(entry.clone());
         } else if max_selected == 1 {
-            entries.clear();
-            entries.insert(entry.clone());
+            selected.clear();
+            selected.insert(entry.clone());
         }
     }
 
@@ -155,7 +157,6 @@ impl<T: PartialEq + Hash> display::Object for Model<T> {
 
 type DropdownGridEntry = Entry;
 type Grid = grid_view::scrollable::SelectableGridView<DropdownGridEntry>; // selectable is probably wrong, need multiselect
-type InnerEntryModel = <DropdownGridEntry as grid_view::entry::Entry>::Model;
 
 
 // ===================
@@ -168,12 +169,11 @@ type InnerEntryModel = <DropdownGridEntry as grid_view::entry::Entry>::Model;
 #[derive(Debug)]
 pub struct EntryCache<T> {
     position_to_entry: HashMap<usize, T>,
-    entry_to_position: HashMap<T, usize>,
 }
 
 impl<T> Default for EntryCache<T> {
     fn default() -> Self {
-        Self { position_to_entry: default(), entry_to_position: default() }
+        Self { position_to_entry: default() }
     }
 }
 
@@ -194,24 +194,17 @@ impl<T> EntryCache<T> {
         }
 
         for (position, entry) in update_range.zip(new_entries) {
-            self.entry_to_position.insert(entry.clone(), position);
             self.position_to_entry.insert(position, entry.clone());
         }
     }
 
-    pub fn prune_cache(&mut self, visible_range: Range<usize>) {
-        self.position_to_entry.retain(|k, _| visible_range.contains(k));
-        self.entry_to_position.retain(|_, v| visible_range.contains(v));
+    pub fn prune_cache(&mut self, retain_range: Range<usize>) {
+        self.position_to_entry.retain(|k, _| retain_range.contains(k));
     }
 
     /// Get entry value at position.
     pub fn get(&self, position: usize) -> Option<&T>
     where T: Clone {
         self.position_to_entry.get(&position)
-    }
-
-    pub fn get_position(&self, value: &T) -> Option<usize>
-    where T: Hash + Eq {
-        self.entry_to_position.get(value).copied()
     }
 }
