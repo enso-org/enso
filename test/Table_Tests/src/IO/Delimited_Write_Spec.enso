@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Column, Data_Formatter, Quote_Style, Column_Name_Mapping, Match_Columns, Delimited
 from Standard.Table.Errors import all
@@ -310,7 +312,7 @@ spec =
             file.delete_if_exists
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
             result = appending_table.write file on_existing_file=Existing_File_Behavior.Append
-            result . should_fail_with Column_Name_Mismatch_Data
+            result . should_fail_with Column_Name_Mismatch.Error
             result.catch.missing . should_equal ["A"]
             result.catch.extras . should_equal ["X"]
             result.catch.to_display_text . should_equal "Columns mismatch. Missing from new data: [A] Extras in new data: [X]"
@@ -351,13 +353,13 @@ spec =
             existing_table.write file on_existing_file=Existing_File_Behavior.Overwrite
 
             result_1 = appending_table_1.write file match_columns=Match_Columns.By_Position on_existing_file=Existing_File_Behavior.Append
-            result_1 . should_fail_with Column_Count_Mismatch_Data
+            result_1 . should_fail_with Column_Count_Mismatch.Error
             result_1.catch.expected . should_equal 3
             result_1.catch.actual . should_equal 2
             result_1.catch.to_display_text . should_equal "Expected 3 columns, got 2."
 
             result_2 = appending_table_2.write file match_columns=Match_Columns.By_Position on_existing_file=Existing_File_Behavior.Append
-            result_2 . should_fail_with Column_Count_Mismatch_Data
+            result_2 . should_fail_with Column_Count_Mismatch.Error
             result_2.catch.expected . should_equal 3
             result_2.catch.actual . should_equal 4
             result_2.catch.to_display_text . should_equal "Expected 3 columns, got 4."

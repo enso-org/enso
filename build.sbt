@@ -1391,9 +1391,6 @@ lazy val runtime = (project in file("engine/runtime"))
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(
-      Defaults.compilersSetting
-    ), // Compile benchmarks with javac, due to jmh issues
     Benchmark / javacOptions --= Seq(
       "-source",
       frgaalSourceLevel,

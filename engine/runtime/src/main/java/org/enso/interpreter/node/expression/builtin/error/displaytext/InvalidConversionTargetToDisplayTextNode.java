@@ -12,10 +12,10 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Invalid_Conversion_Target_Error", name = "to_display_text")
-public abstract class InvalidConversionTargetErrorToDisplayTextNode extends Node {
-  static InvalidConversionTargetErrorToDisplayTextNode build() {
-    return InvalidConversionTargetErrorToDisplayTextNodeGen.create();
+@BuiltinMethod(type = "Invalid_Conversion_Target", name = "to_display_text")
+public abstract class InvalidConversionTargetToDisplayTextNode extends Node {
+  static InvalidConversionTargetToDisplayTextNode build() {
+    return InvalidConversionTargetToDisplayTextNodeGen.create();
   }
 
   abstract Text execute(Object self);

@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Data.Text.Span.Utf_16_Span
+import Standard.Base.Error.Common.Syntax_Error
 
 from Standard.Base.Data.Text.Regex import No_Such_Group, Invalid_Option
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
@@ -67,7 +69,7 @@ spec =
 
         Test.specify "should return a syntax error of the regex syntax is invalid" <|
             engine = Default_Engine.new
-            engine.compile "^(a" [] . should_fail_with Syntax_Error_Data
+            engine.compile "^(a" [] . should_fail_with Syntax_Error.Error
 
         Test.specify "should throw an invalid options error if an option is invalid" <|
             engine = Default_Engine.new

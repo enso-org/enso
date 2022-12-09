@@ -14,14 +14,15 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Time_Error, Type_Error_Data
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
@@ -697,7 +698,7 @@ type Date_Time
         _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that
             Ordering.from_sign sign
-        _ -> Error.throw (Type_Error_Data Date_Time that "that")
+        _ -> Error.throw (Type_Error.Error Date_Time that "that")
 
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean

@@ -1,5 +1,6 @@
 from Standard.Base import all
-from Standard.Base.Error.Common import Unsupported_File_Type
+import Standard.Base.Error.Encoding_Error.Encoding_Error
+import Standard.Base.Error.File_Error.File_Error
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -12,7 +13,7 @@ spec =
     Test.group "Auto_Detect" <|
         Test.specify "should raise an error when reading an unknown file" <|
             bytes = sample_xxx.read
-            bytes.should_fail_with Unsupported_File_Type.Error
+            bytes.should_fail_with File_Error.Unsupported_Type
 
         Test.specify "should be able to read a text file" <|
             content = sample_txt.read

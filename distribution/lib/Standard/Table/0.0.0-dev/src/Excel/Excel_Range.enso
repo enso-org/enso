@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 polyglot java import org.enso.table.excel.ExcelRange as Java_Range
 
@@ -78,8 +79,10 @@ type Excel_Range
     ## Given a column name, parses to the index (1-based) or return index
        unchanged.
     column_index : (Text|Integer) -> Integer
-    column_index column =
-        if column.is_a Integer then column else Java_Range.parseA1Column column
+    column_index column = case column of
+        _ : Integer -> column
+        _ : Text -> Java_Range.parseA1Column column
+        _ -> Error.throw (Illegal_Argument.Error "Column must be a Text or Integer")
 
     ## Creates a Range from an address.
     from_address : Text -> Excel_Range

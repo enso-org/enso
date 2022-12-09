@@ -1,14 +1,51 @@
 from Standard.Base import all
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Delimited_Reader
 import project.Delimited.Delimited_Writer
+import project.Errors.Invalid_JSON_Format
 
 Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a Delimited_Format.Delimited then Delimited_Reader.read_text that format on_problems else
-        Unimplemented.throw "Table.from for fixed-width files is not yet implemented."
+    case format of
+        _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
+        _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
 Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
-    if format.is_a Delimited_Format.Delimited then Delimited_Writer.write_text that format else
-        Unimplemented.throw "Text.from for fixed-width files is not yet implemented."
+    case format of
+        _ : Delimited_Format -> Delimited_Writer.write_text that format
+        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
+
+## ALIAS To Table
+
+   Converts a JSON array into a dataframe, by looking up the requested keys
+   from each item.
+
+   Arguments:
+   - fields: a vector of texts representing the names of fields to look up.
+
+   The function assumes the elements have one of the following structures:
+   - a JSON object containing the requested keys. In case an item is not an
+     object, or the request key does not exist, the relevant values of the table
+     will be set to `Nothing`.
+
+   > Example Converts a JSON array containing key-value pairs into a table for the
+     provided headers.
+
+         from Standard.Table import Table
+         import Standard.Examples
+
+         example_to_table =
+             json = Examples.simple_table_json
+             headers = Examples.simple_table_json_headers
+             json.to_table headers
+Json.to_table : Vector -> Table
+Json.to_table self fields=Nothing = case self of
+    Json.Array items ->
+        rows = items.map item-> case item of
+            Json.Object row -> fields.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
+            _ -> Vector.fill fields.length Nothing
+        cols = fields.map_with_index i-> n-> [n, rows.map (_.at i)]
+        Table.new cols
+    _ -> Invalid_JSON_Format.throw "Json.to_table expects a JSON array."

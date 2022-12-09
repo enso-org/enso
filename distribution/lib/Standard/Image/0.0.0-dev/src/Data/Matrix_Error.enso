@@ -11,7 +11,7 @@ type Matrix_Error
        - rows: The number of rows in the matrix.
        - columns: The number of columns in the matrix.
        - index: The requested index in the matrix.
-    Index_Out_Of_Bounds_Error rows columns index
+    Index_Out_Of_Bounds rows columns index
 
     ## UNSTABLE
 
@@ -24,7 +24,7 @@ type Matrix_Error
        Pretty-prints a matrix error to be readable by the users.
     to_display_text : Text
     to_display_text self = case self of
-        Matrix_Error.Index_Out_Of_Bounds_Error rows columns index ->
+        Matrix_Error.Index_Out_Of_Bounds rows columns index ->
             'For a matrix with dimensions ' + rows.to_text + 'x' + columns.to_text + ', the index ' + index.to_text + ' is out of bounds.'
         Matrix_Error.Dimensions_Not_Equal ->
             'Dimensions are not equal.'

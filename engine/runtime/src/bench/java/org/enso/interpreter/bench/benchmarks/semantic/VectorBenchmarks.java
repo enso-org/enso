@@ -1,12 +1,15 @@
-package org.enso.interpreter.bench.benchmarks.semantic;
+    package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -34,7 +37,7 @@ public class VectorBenchmarks {
   private Value self;
 
   @Setup
-  public void initializeBenchmark(BenchmarkParams params) {
+  public void initializeBenchmark(BenchmarkParams params) throws Exception {
     Engine eng = Engine.newBuilder()
       .allowExperimentalOptions(true)
       .logHandler(new ByteArrayOutputStream())
@@ -47,36 +50,38 @@ public class VectorBenchmarks {
       .allowIO(true)
       .allowAllAccess(true)
       .build();
-    var module = ctx.eval("enso", "\n" +
-      "import Standard.Base.Data.Vector.Vector\n" +
-      "import Standard.Base.Data.Array_Proxy.Array_Proxy\n" +
-      "\n" +
-      "avg arr =\n" +
-      "    sum acc i = if i == arr.length then acc else\n" +
-      "        sum (acc + arr.at i) i+1\n" +
-      "    (sum 0 0) / arr.length\n" +
-      "\n" +
-      "fibarr size modulo = \n" +
-      "    b = Vector.new_builder size\n" +
-      "    b.append 1\n" +
-      "    b.append 1\n" +
-      "    \n" +
-      "    add_more n = if n == size then b else \n" +
-      "        b.append <| (b.at n-1 + b.at n-2) % modulo\n" +
-      "        @Tail_Call add_more n+1\n" +
-      "    \n" +
-      "    add_more 2 . to_vector\n" +
-      "\n" +
-      "to_vector arr = Vector.from_polyglot_array arr\n" +
-      "to_array vec = vec.to_array\n" +
-      "slice vec = vec.slice\n" +
-      "fill_proxy proxy vec = \n" +
-      "  size v = vec.length\n" +
-      "  at i = vec.at i\n" +
-      "  proxy.init size at\n" +
-      "create_array_proxy vec =\n" +
-      "  Array_Proxy.from_proxy_object vec\n" +
-      "\n");
+
+    var code = """
+        import Standard.Base.Data.Vector.Vector
+        import Standard.Base.Data.Array_Proxy.Array_Proxy
+
+        avg arr =
+            sum acc i = if i == arr.length then acc else
+                sum (acc + arr.at i) i+1
+            (sum 0 0) / arr.length
+
+        fibarr size modulo =
+            b = Vector.new_builder size
+            b.append 1
+            b.append 1
+
+            add_more n = if n == size then b else
+                b.append <| (b.at n-1 + b.at n-2) % modulo
+                @Tail_Call add_more n+1
+
+            add_more 2 . to_vector
+
+        to_vector arr = Vector.from_polyglot_array arr
+        to_array vec = vec.to_array
+        slice vec = vec.slice
+        fill_proxy proxy vec =
+          size v = vec.length
+          at i = vec.at i
+          proxy.init size at
+        create_array_proxy vec =
+          Array_Proxy.from_proxy_object vec
+        """;
+    var module = ctx.eval("enso", code);
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);

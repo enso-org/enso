@@ -9,23 +9,25 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Inexhaustive_Pattern_Match_Error", name = "to_display_text")
-public abstract class InexhaustivePatternMatchErrorToDisplayTextNode extends Node {
-  static InexhaustivePatternMatchErrorToDisplayTextNode build() {
-    return InexhaustivePatternMatchErrorToDisplayTextNodeGen.create();
+@BuiltinMethod(type = "No_Such_Conversion", name = "to_display_text")
+public abstract class NoSuchConversionToDisplayTextNode extends Node {
+  static NoSuchConversionToDisplayTextNode build() {
+    return NoSuchConversionToDisplayTextNodeGen.create();
   }
 
   abstract Text execute(Object self);
 
   @Specialization
   Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode) {
-    return Text.create("Inexhaustive pattern match: no branch matches ")
+    return Text.create("Could not find a conversion from `")
+        .add(displayTypeNode.execute(self.getFields()[1]))
+        .add("` to `")
         .add(displayTypeNode.execute(self.getFields()[0]))
-        .add(".");
+        .add("`");
   }
 
   @Specialization
   Text doConstructor(AtomConstructor self) {
-    return Text.create("Inexhaustive pattern match.");
+    return Text.create("Conversion could not be found.");
   }
 }

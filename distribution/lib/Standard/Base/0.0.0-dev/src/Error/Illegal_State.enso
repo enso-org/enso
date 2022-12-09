@@ -1,0 +1,20 @@
+import project.Data.Text.Text
+import project.Nothing.Nothing
+
+type Illegal_State
+    ## UNSTABLE
+
+       A generic error that indicates that a given operation cannot be performed
+       in some specific conditions.
+
+       Arguments:
+       - message: the error message explaining why the operation cannot be
+         performed.
+       - cause: (optional) another error that is the cause of this one.
+    Error message cause=Nothing
+
+    ## PRIVATE
+
+       Provides a human-readable representation of the encoding error.
+    to_display_text : Text
+    to_display_text self = "Illegal State: " + self.message
