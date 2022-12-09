@@ -83,12 +83,12 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       }
 
       val isDataDir =
-        (x: Path) => ensoDataDirectory.map(_ == x).getOrElse(false)
+        ensoDataDirectory.contains _
       val filesToAdd =
         listDirectoryFiles(root, Set(gitDir))
           .filterNot(isDataDir)
           .map(ensureUnixPathSeparator)
-      if (!filesToAdd.isEmpty) {
+      if (filesToAdd.nonEmpty) {
         filesToAdd
           .foldLeft(jgit.add()) { case (cmd, filePath) =>
             cmd.addFilepattern(filePath)
