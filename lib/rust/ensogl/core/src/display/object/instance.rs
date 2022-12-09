@@ -1635,7 +1635,6 @@ def_layout_options!(
         pub gap:            Vector2<Unit>,
         /// Indicates whether the children should be placed in order or in a reversed order.
         pub reversed:       bool,
-        pub wrapped:        bool,
         pub first_axes:     Vector2<UnresolvedAxis>,
         pub other_axes:     (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>),
         pub max_axes_count: Vector2<Option<usize>>,
@@ -1701,18 +1700,8 @@ impl<Layout> AutoLayoutBuilder<Layout> {
         self
     }
 
-    pub fn wrapped(mut self, wrapped: bool) -> Self {
-        self.options.wrapped = wrapped;
-        self
-    }
-
     pub fn reverse(mut self) -> Self {
         self.options.reversed = !self.options.reversed;
-        self
-    }
-
-    pub fn wrap(mut self) -> Self {
-        self.options.wrapped = true;
         self
     }
 }
@@ -1814,28 +1803,10 @@ impl<Layout> LayoutObjectBuilder<Layout> {
         self
     }
 
-    pub fn wrapped(self, wrapped: bool) -> Self {
-        self.instance.def.modify_layout(|opt_layout| {
-            opt_layout.as_mut().map(|layout| {
-                layout.set_wrapped(wrapped);
-            });
-        });
-        self
-    }
-
     pub fn reverse(self) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
                 layout.modify_reversed(|t| *t = !*t);
-            });
-        });
-        self
-    }
-
-    pub fn wrap(self) -> Self {
-        self.instance.def.modify_layout(|opt_layout| {
-            opt_layout.as_mut().map(|layout| {
-                layout.modify_wrapped(|t| *t = !*t);
             });
         });
         self
@@ -1936,7 +1907,7 @@ macro_rules! with_spacing_matrix {
 #[derive(Debug)]
 pub struct LayoutModel {
     auto:        RefCell<Option<AutoLayout>>,
-    alignment:   Cell<Alignment>,
+    alignment:   Cell<Vector2<Option<alignment::Dim1>>>,
     margin:      Cell<Vector2<SideSpacing>>,
     padding:     Cell<Vector2<SideSpacing>>,
     min_size:    Cell<Vector2<f32>>,
@@ -1982,18 +1953,18 @@ impl LayoutModel {
 }
 
 macro_rules! gen_layout_model_alignment {
-    ([$([$name:ident $x:ident $y:ident])*]) => {
+    ([$([$name:ident $x:tt $y:tt])*]) => {
         paste! {
             impl LayoutModel {$(
                 /// Alignment setter.
                 pub fn [<align_ $name>](&self) {
-                    self.alignment.set(Alignment::$name())
+                    self.alignment.set(alignment::OptDim2::$name().vector)
                 }
             )*}
         }
     }
 }
-crate::with_alignment_dim2_named_matrix!(gen_layout_model_alignment);
+crate::with_alignment_opt_dim2_named_matrix!(gen_layout_model_alignment);
 
 impl LayoutModel {
     pub fn set_margin_all(&self, value: Unit) {
@@ -2418,6 +2389,7 @@ impl Model {
     fn refresh_linear_layout<Dim: Copy>(&self, x: Dim, opts: &LayoutOptions, first_pass: bool)
     where
         Vector2<Resizing>: DimSetter<Dim>,
+        Vector2<Option<alignment::Dim1>>: DimSetter<Dim>,
         Vector2<alignment::Dim1>: DimSetter<Dim>,
         Vector2<SideSpacing>: DimSetter<Dim>,
         Vector2<f32>: DimSetter<Dim>,
@@ -2577,8 +2549,9 @@ impl Model {
                 }
                 let child_unused_space =
                     f32::max(0.0, column_size_minus_margin - child.layout.size.get_dim(x));
-                let child_alignment = child.layout.alignment.get().get_dim(x).normalized();
-                let child_offset = child_unused_space * child_alignment;
+                let def_alignment = opts.alignment.get_dim(x);
+                let alignment = child.layout.alignment.get_dim(x).unwrap_or(def_alignment);
+                let child_offset = child_unused_space * alignment.normalized();
                 let bbox_origin = child.bbox_origin();
                 child.set_position_dim(
                     x,

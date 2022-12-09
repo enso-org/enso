@@ -88,6 +88,25 @@ impl Dim2 {
 
 
 
+// ========================================
+// === 2-dimensional Optional Alignment ===
+// ========================================
+
+#[derive(Clone, Copy, Debug, Deref, Default, PartialEq)]
+pub struct OptDim2 {
+    pub vector: Vector2<Option<Dim1>>,
+}
+
+#[allow(missing_docs)]
+impl OptDim2 {
+    /// Constructor.
+    pub fn new(horizontal: Option<Dim1>, vertical: Option<Dim1>) -> Self {
+        Self { vector: Vector2(horizontal, vertical) }
+    }
+}
+
+
+
 // ======================================
 // === 2-dimensional Alignment Macros ===
 // ======================================
@@ -162,6 +181,96 @@ macro_rules! with_alignment_dim2_named_matrix {
 }
 
 
+
+// ===============================================
+// === 2-dimensional Optional Alignment Macros ===
+// ===============================================
+
+/// Runs the provided macro with two alignment anchor arrays, one for horizontal and one for
+/// vertical. For example, if run with the arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args] [left center right] [bottom center top] }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_alignment_opt_dim2_anchors {
+    ($f:path $([$($args:tt)*])?) => {
+        $f! { $([$($args)*])? [[left] [center] [right] []] [[bottom] [center] [top] []] }
+    };
+}
+
+/// Runs the provided macro with an alignment anchor matrix. For example, if run with the arguments
+/// `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args] [left bottom] [left center] ... [center bottom] ... [bottom top] }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_alignment_opt_dim2_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $crate::with_alignment_opt_dim2_anchors! {enso_shapely::cartesian [$f $([$($args)*])?] }
+    };
+}
+
+/// Runs the provided macro with an alignment anchor matrix annotated with a name for the anchor
+/// pair. The name is created as `$x_$y` with the exception for both anchors being `center`, then
+/// the name is simply `center`. For example, if run with the arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{ [args]
+///     [left_bottom left bottom]
+///     [left_center left center]
+///     ...
+///     [center_bottom center bottom]
+///     [center center center]
+///     [center_top center top]
+///     ...
+///     [bottom top]
+/// }
+/// ```
+///
+/// The `[args]` argument is optional.
+#[macro_export]
+macro_rules! with_alignment_opt_dim2_named_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $crate::with_alignment_opt_dim2_matrix! {
+            $crate::with_alignment_opt_dim2_named_matrix [$f $([$($args)*])?]
+        }
+    };
+    ([$($fs:tt)*] $($ts:tt)*) => {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ [$($fs)*] [] $($ts)*}
+    };
+    (@ $fs:tt [$($out:tt)*] [[[center] [center]] $($ts:tt)*]) => {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ $fs [$($out)* [center [center] [center]]] [$($ts)*]}
+    };
+    (@ $fs:tt [$($out:tt)*] [[[center] []] $($ts:tt)*]) => {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ $fs [$($out)* [center_x [] [center]]] [$($ts)*]}
+    };
+    (@ $fs:tt [$($out:tt)*] [[[] [center]] $($ts:tt)*]) => {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ $fs [$($out)* [center_y [] [center]]] [$($ts)*]}
+    };
+    (@ $fs:tt [$($out:tt)*] [[[$x:ident] [$y:ident]] $($ts:tt)*]) => { paste! {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ $fs [$($out)* [[<$x _ $y>] [$x] [$y]]] [$($ts)*]}
+    }};
+    (@ $fs:tt [$($out:tt)*] [[[$x:ident] []] $($ts:tt)*]) => { paste! {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ $fs [$($out)* [[<$x>] [$x] []]] [$($ts)*]}
+    }};
+    (@ $fs:tt [$($out:tt)*] [[[] [$y:ident]] $($ts:tt)*]) => { paste! {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ $fs [$($out)* [[<$y>] [] [$y]]] [$($ts)*]}
+    }};
+    (@ $fs:tt [$($out:tt)*] [[[] []] $($ts:tt)*]) => { paste! {
+        $crate::with_alignment_opt_dim2_named_matrix! {@ $fs [$($out)* [default [] []]] [$($ts)*]}
+    }};
+    (@ [$f:path $([$($args:tt)*])?] $out:tt []) => {
+        $f! { $([$($args)*])? $out }
+    };
+}
+
+
 // ============================================
 // === 2-dimensional Alignment Constructors ===
 // ============================================
@@ -178,3 +287,28 @@ macro_rules! gen_dim2_cons {
 }
 
 with_alignment_dim2_named_matrix!(gen_dim2_cons);
+
+
+
+// =====================================================
+// === 2-dimensional Optional Alignment Constructors ===
+// =====================================================
+
+macro_rules! opt {
+    () => { None };
+    ($($ts:tt)*) => { Some($($ts)*) };
+}
+
+
+macro_rules! gen_opt_dim2_cons {
+    ([$([$f:ident [$($x:ident)?] [$($y:ident)?]])*]) => {
+        impl OptDim2 {$(
+            /// Constructor.
+            pub fn $f() -> Self {
+                Self::new(opt!{$(Dim1::$x())?}, opt!{$(Dim1::$y())?})
+            }
+        )*}
+    }
+}
+
+with_alignment_opt_dim2_named_matrix!(gen_opt_dim2_cons);
