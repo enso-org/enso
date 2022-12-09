@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Matching
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
@@ -416,9 +417,9 @@ prepare_order_by internal_columns column_selectors problem_builder =
             select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         Sort_Column.Name _ _ -> select_columns_by_name internal_columns [column_selectors] Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         Sort_Column.Index _ _ -> select_columns_by_index internal_columns [column_selectors] problem_builder index_extractor=(_.index)
-        Sort_Column.Column _ _ -> select_columns_by_column_reference [column_selectors] unified_column_selectors problem_builder column_extractor=(_.column)
+        Sort_Column.Column _ _ -> select_columns_by_column_reference internal_columns [column_selectors] problem_builder column_extractor=(_.column)
         _ : Vector ->
-            unified_name_selectors = name_selectors.map selector-> case selector of
+            unified_name_selectors = column_selectors.map selector-> case selector of
                 _ : Text -> Sort_Column.Name selector
                 Sort_Column.Name _ _ -> selector
                 _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed as a Vector.")
