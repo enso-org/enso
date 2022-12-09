@@ -1,8 +1,10 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Numbers.Decimal
+import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Ordering.Comparator
+import project.Data.Ordering.Ordering
 import project.Data.Range.Extensions
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -279,3 +281,86 @@ Vector.compute self statistic=Statistic.Count =
 Vector.compute_bulk : Vector Statistic -> Vector Any
 Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.compute_bulk self statistics
+
+type Statistic_Aggregator
+    ## PRIVATE
+       Aggregator for computing moments.
+       This class is used to compute the moments of a data set.
+    Value order:Integer count:Integer incomparable:Boolean minimum:(Any|Nothing) maximum:(Any|Nothing) sums:(Vector Decimal)
+
+    ## Create an aggregator for computing moments.
+    new : Integer -> Statistic_Aggregator
+    new order=0 = Statistic_Aggregator.Value order 0 False Nothing Nothing (Vector.fill order 0)
+
+    ## Add a value to the aggregator.
+    append : Any -> Statistic_Aggregator
+    append self value =
+        if value.is_nothing then self else
+            count = self.count + 1
+
+            minimum = if self.incomparable then self.minimum else
+                if self.minimum.is_nothing then value else
+                    case safe_compare_to self.minimum value of
+                        Nothing -> Nothing
+                        Ordering.Greater -> value
+                        _ -> self.minimum
+
+            maximum = if self.incomparable then self.maximum else
+                if self.maximum.is_nothing then value else
+                    case safe_compare_to self.maximum value of
+                        Nothing -> Nothing
+                        Ordering.Less -> value
+                        _ -> self.maximum
+
+            sums = if self.sums.is_nothing then self.sums else
+                case value of
+                    Number -> 0.up_to self.order . map i->(self.sums.at i + value^i)
+                    _ -> Nothing
+
+            Statistic_Aggregator.Value self.order count (self.incomparable || minimum.is_nothing || maximum.is_nothing) minimum maximum sums
+
+    ## Get a Statistic based off the result of the aggregation.
+    compute : Statistic -> Any
+    compute self statistic=Statistic.Count = case statistic of
+        Statistic.Count -> self.count
+        Statistic.Minimum -> if self.incomparable then Error.throw Incomparable_Values else self.minimum
+        Statistic.Maximum -> if self.incomparable then Error.throw Incomparable_Values else self.maximum
+        Statistic.Sum -> if self.order == 0 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Sum.") else
+            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Sum on purely numerical data sets.")) else
+                self.sums.at 1
+        Statistic.Mean -> if self.order == 0 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Mean.") else
+            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Mean on purely numerical data sets.")) else
+                self.sums.at 1 / self.count
+        Statistic.Variance p -> if self.order < 2 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Variance.") else
+            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Variance on purely numerical data sets.")) else
+                min_count = if p then 0 else 1
+                if self.count <= min_count then Number.nan else
+                    (self.sums.at 1 - self.sums.at 2 ^ 2 / self.count) / (self.count - min_count)
+        Statistic.Standard_Deviation p -> if self.order < 2 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Standard_Deviation.") else
+            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Standard_Deviation on purely numerical data sets.")) else
+                min_count = if p then 0 else 1
+                if self.count <= min_count then Number.nan else
+                    (self.sums.at 1 - self.sums.at 2 ^ 2 / self.count) / (self.count - min_count) ^ 0.5
+        Statistic.Skew p -> if self.order < 3 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Skew.") else
+            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Skew on purely numerical data sets.")) else
+                if self.count < 3 then Number.nan else
+                    avg = self.sums.at 1 / self.count
+                    st_dev = self.compute (Statistic.Standard_Deviation p)
+                    scale = 1 / (st_dev ^ 3) / (if p then self.count else (self.count - 1) * (self.count - 2) / self.count)
+                    (self.sums.at 2 - 3 * avg * self.sums.at 1 + 2 * avg * avg * self.sums 0) * scale
+        Statistic.Kurtosis -> if self.order < 4 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Kurtosis.") else
+            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Skew on purely numerical data sets.")) else
+                if self.count < 4 then Number.nan else
+                    n = self.count
+                    avg = self.sums.at 1 / n
+                    var = self.compute (Statistic.Variance False)
+                    scale = n * (n + 1) / ((n - 1) * (n - 2) * (n - 3) * var * var)
+                    shift = 3 * (n - 1) * (n - 1) / ((n - 2) * (n - 3))
+                    (self.sums.at 3 - 4 * avg * self.sums.at 2 + 6 * avg * avg * self.sums.at 1 - avg * avg * avg * self.sums.at 0) * scale - shift
+        _ -> Error.throw (Illegal_Argument.Error ("Cannot compute " + statistic.to_text + " on a single data set."))
+
+## PRIVATE
+safe_compare_to : Any -> Any -> Ordering | Nothing
+safe_compare_to a b =
+    result = Incomparable_Values.handle_errors <| a.compare_to b
+    result.catch Incomparable_Values _->Nothing
