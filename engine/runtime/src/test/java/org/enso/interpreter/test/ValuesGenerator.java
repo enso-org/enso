@@ -39,7 +39,8 @@ class ValuesGenerator {
   private Value v(String k, String t, String s) {
     var v = values.get(k);
     if (v == null) {
-      v = ctx.eval("enso", t + "\nn = " + s).invokeMember("eval_expression", s);
+      var f = ctx.eval("enso", t + "\nn = " + s);
+      v = f.invokeMember("eval_expression", "n");
       if (k != null) {
         values.put(k, v);
       }
