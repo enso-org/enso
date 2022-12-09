@@ -1276,6 +1276,51 @@ impl Debug for Instance {
 // === Layout and Size =============================================================================
 // =================================================================================================
 
+use unit2::Fraction;
+use unit2::Percent;
+
+// ============
+// === Unit ===
+// ============
+
+#[derive(Clone, Copy, Debug, PartialEq, From)]
+pub enum Unit {
+    Pixels(f32),
+    Fraction(Fraction),
+    Percent(Percent),
+}
+
+impl Unit {
+    pub fn resolve(&self, parent_size: f32, free_space: f32) -> f32 {
+        match self {
+            Unit::Pixels(value) => *value,
+            Unit::Fraction(value) => value.unchecked_raw() * parent_size,
+            Unit::Percent(value) => value.unchecked_raw() * free_space,
+        }
+    }
+
+    pub fn resolve_fixed(&self) -> f32 {
+        match self {
+            Unit::Pixels(value) => *value,
+            Unit::Fraction(_) => 0.0,
+            Unit::Percent(_) => 0.0,
+        }
+    }
+}
+
+impl Default for Unit {
+    fn default() -> Self {
+        Self::Pixels(0.0)
+    }
+}
+
+impl From<i32> for Unit {
+    fn from(value: i32) -> Self {
+        Self::Pixels(value as f32)
+    }
+}
+
+
 // ========================
 // === Alignment Macros ===
 // ========================
@@ -1587,9 +1632,7 @@ def_layout_options!(
     pub struct LayoutOptions {
         pub alignment:      Alignment,
         /// The spacing between children.
-        pub spacing:        f32,
-        /// The padding between the children and the edge of the parent.
-        pub padding:        Vector2<f32>,
+        pub gap:            Vector2<Unit>,
         /// Indicates whether the children should be placed in order or in a reversed order.
         pub reversed:       bool,
         pub wrapped:        bool,
@@ -1648,13 +1691,8 @@ impl<Layout> AutoLayoutBuilder<Layout> {
     //     self
     // }
 
-    pub fn spacing(mut self, spacing: f32) -> Self {
-        self.options.spacing = spacing;
-        self
-    }
-
-    pub fn padding(mut self, padding: Vector2<f32>) -> Self {
-        self.options.padding = padding;
+    pub fn set_gap(mut self, gap: Vector2<Unit>) -> Self {
+        self.options.gap = gap;
         self
     }
 
@@ -1758,26 +1796,13 @@ impl<Layout> LayoutObjectBuilder<Layout> {
     //     self
     // }
 
-    pub fn spacing(self, spacing: f32) -> Self {
+    pub fn set_gap(self, gap: impl IntoVector2<Unit>) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.set_spacing(spacing);
+                layout.set_gap(gap.into_vector2());
             });
         });
         self
-    }
-
-    pub fn padding(self, padding: Vector2<f32>) -> Self {
-        self.instance.def.modify_layout(|opt_layout| {
-            opt_layout.as_mut().map(|layout| {
-                layout.set_padding(padding);
-            });
-        });
-        self
-    }
-
-    pub fn padding_xy(self, x: f32, y: f32) -> Self {
-        self.padding(Vector2::new(x, y))
     }
 
     pub fn reversed(self, reversed: bool) -> Self {
@@ -1857,6 +1882,50 @@ crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
 // === LayoutModel ===
 // ===================
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct SideSpacing<T = Unit> {
+    pub start: T,
+    pub end:   T,
+}
+
+impl<T> SideSpacing<T> {
+    pub fn new(start: T, end: T) -> Self {
+        Self { start, end }
+    }
+
+    pub fn total(self) -> T
+    where T: Add<Output = T> {
+        self.start + self.end
+    }
+}
+
+impl SideSpacing<Unit> {
+    pub fn resolve(self, parent_size: f32, free_space: f32) -> SideSpacing<f32> {
+        SideSpacing::new(
+            self.start.resolve(parent_size, free_space),
+            self.end.resolve(parent_size, free_space),
+        )
+    }
+
+    pub fn resolve_fixed(self) -> SideSpacing<f32> {
+        SideSpacing::new(self.start.resolve_fixed(), self.end.resolve_fixed())
+    }
+}
+
+impl<T: Copy> From<T> for SideSpacing<T> {
+    fn from(value: T) -> Self {
+        Self { start: value, end: value }
+    }
+}
+
+macro_rules! with_spacing_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $f! { $([$($args)*])? [[left x start] [right x end] [bottom y start] [top y end]] }
+    }
+}
+
+
+
 /// The layout description of a display object.
 ///
 /// The [`size`] field describes the bounding box dimension, while the [`bbox_origin`], its left
@@ -1867,6 +1936,9 @@ crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
 #[derive(Debug)]
 pub struct LayoutModel {
     auto:        RefCell<Option<AutoLayout>>,
+    alignment:   Cell<Alignment>,
+    margin:      Cell<Vector2<SideSpacing>>,
+    padding:     Cell<Vector2<SideSpacing>>,
     min_size:    Cell<Vector2<f32>>,
     max_size:    Cell<Vector2<f32>>,
     resizing:    Cell<Vector2<Resizing>>,
@@ -1883,6 +1955,9 @@ pub struct LayoutModel {
 impl LayoutModel {
     fn new() -> Self {
         let auto = default();
+        let alignment = default();
+        let margin = default();
+        let padding = default();
         let min_size = default();
         let max_size = Cell::new(Vector2(f32::INFINITY, f32::INFINITY));
         let resizing = default();
@@ -1890,9 +1965,77 @@ impl LayoutModel {
         let shrink = default();
         let size = default();
         let bbox_origin = default();
-        Self { auto, min_size, max_size, resizing, grow, shrink, size, bbox_origin }
+        Self {
+            auto,
+            alignment,
+            margin,
+            padding,
+            min_size,
+            max_size,
+            resizing,
+            grow,
+            shrink,
+            size,
+            bbox_origin,
+        }
     }
 }
+
+macro_rules! gen_layout_model_alignment {
+    ([$([$name:ident $x:ident $y:ident])*]) => {
+        paste! {
+            impl LayoutModel {$(
+                /// Alignment setter.
+                pub fn [<align_ $name>](&self) {
+                    self.alignment.set(Alignment::$name())
+                }
+            )*}
+        }
+    }
+}
+crate::with_alignment_dim2_named_matrix!(gen_layout_model_alignment);
+
+impl LayoutModel {
+    pub fn set_margin_all(&self, value: Unit) {
+        let margin = SideSpacing::from(value);
+        self.margin.set(Vector2(margin, margin));
+    }
+
+    pub fn set_margin_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
+        let horizontal = SideSpacing::new(left, right);
+        let vertical = SideSpacing::new(bottom, top);
+        self.margin.set(Vector2(horizontal, vertical));
+    }
+
+    pub fn set_padding_all(&self, value: Unit) {
+        let padding = SideSpacing::from(value);
+        self.padding.set(Vector2(padding, padding));
+    }
+
+    pub fn set_padding_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
+        let horizontal = SideSpacing::new(left, right);
+        let vertical = SideSpacing::new(bottom, top);
+        self.padding.set(Vector2(horizontal, vertical));
+    }
+}
+
+macro_rules! gen_layout_model_spacing {
+    ([$tp: ident] [ $([$name:ident $axis:ident $loc:ident])* ]) => {
+        paste! {
+            impl LayoutModel {$(
+                /// SideSpacing setter.
+                pub fn [<set_ $tp _ $name>](&self, value: Unit) {
+                    self.$tp.modify(|t| t.$axis.$loc = value);
+                }
+            )*}
+        }
+    }
+}
+
+with_spacing_matrix!(gen_layout_model_spacing[margin]);
+with_spacing_matrix!(gen_layout_model_spacing[padding]);
+
+
 
 impl Model {
     fn resizing(&self) -> Vector2<Resizing> {
@@ -1987,6 +2130,76 @@ impl Model {
         self.set_resizing((Resizing::Hug, Resizing::Hug))
     }
 }
+
+macro_rules! gen_alignment_setters {
+    ([$([$name:ident $x:ident $y:ident])*]) => {
+        paste! {
+            impl Model {$(
+                /// Alignment setter.
+                pub fn [<align_ $name>](&self) {
+                    self.layout.[<align_ $name>]()
+                }
+            )*}
+        }
+    }
+}
+crate::with_alignment_dim2_named_matrix!(gen_alignment_setters);
+
+
+macro_rules! redirect_margin_properties {
+    ($($path:tt)*) => {
+        with_spacing_matrix!(redirect_side_spacing_properties_internal1[margin $($path)*]);
+    }
+}
+
+macro_rules! redirect_padding_properties {
+    ($($path:tt)*) => {
+        with_spacing_matrix!(redirect_side_spacing_properties_internal1[padding $($path)*]);
+    }
+}
+
+macro_rules! redirect_side_spacing_properties_internal1 {
+    ($path:tt [ $([$name:ident $axis:ident $loc:ident])* ]) => {
+        redirect_side_spacing_properties_internal2!{$path}
+        $(redirect_side_spacing_properties_internal3!{$path $name $axis $loc})*
+    }
+}
+
+macro_rules! redirect_side_spacing_properties_internal2 {
+    ([$tp:ident $($path:tt)*]) => { paste! {
+        fn [<set_ $tp _all>](&self, value: impl Into<Unit>) {
+            self.$($path)*.[<set_ $tp _all>](value.into());
+        }
+
+        fn [<set_ $tp _trbl>](
+            &self,
+            top: impl Into<Unit>,
+            right: impl Into<Unit>,
+            bottom: impl Into<Unit>,
+            left: impl Into<Unit>
+        ) {
+            self.$($path)*.[<set_ $tp _trbl>](top.into(), right.into(), bottom.into(), left.into());
+        }
+    }}
+}
+
+macro_rules! redirect_side_spacing_properties_internal3 {
+    ([$tp:ident $($path:tt)*] $name:ident $axis:ident $loc:ident) => {
+        paste! {
+            /// Setter.
+            fn [<set_ $tp _ $name>](&self, value: impl Into<Unit>) {
+                self.$($path)*.[<set_ $tp _ $name>](value.into())
+            }
+        }
+    }
+}
+
+impl Model {
+    redirect_margin_properties!(layout);
+    redirect_padding_properties!(layout);
+}
+
+
 
 impl Model {
     fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
@@ -2206,7 +2419,9 @@ impl Model {
     where
         Vector2<Resizing>: DimSetter<Dim>,
         Vector2<alignment::Dim1>: DimSetter<Dim>,
+        Vector2<SideSpacing>: DimSetter<Dim>,
         Vector2<f32>: DimSetter<Dim>,
+        Vector2<Unit>: DimSetter<Dim>,
         Vector3<f32>: DimSetter<Dim>,
         Dim: Debug,
         LayoutOptions: AxesGetter<Dim>, {
@@ -2269,11 +2484,13 @@ impl Model {
                     if child.layout.resizing.get_dim(x).is_hug() {
                         child.refresh_layout_internal(first_pass);
                     }
+                    let child_margin = child.layout.margin.get_dim(x).resolve_fixed();
+                    let child_size = child.layout.size.get_dim(x) + child_margin.total();
                     grow += child.layout.grow.get_dim(x);
                     shrink += child.layout.shrink.get_dim(x);
                     min_size = f32::max(min_size, child.layout.min_size.get_dim(x));
                     max_size = f32::min(max_size, child.layout.max_size.get_dim(x));
-                    size = f32::max(size, child.layout.size.get_dim(x));
+                    size = f32::max(size, child_size);
                 }
                 let child_count = children.len() as f32;
                 let grow = axis.grow.unwrap_or_else(|| grow / child_count);
@@ -2289,10 +2506,13 @@ impl Model {
         println!("resolved_columns: {:#?}", resolved_columns);
 
 
-        let total_padding_x = 2.0 * opts.padding.get_dim(x);
-        let total_spacing_x = (resolved_columns.len() - 1) as f32 * opts.spacing;
+        let gap_def = opts.gap.get_dim(x);
+        let padding_def = self.layout.padding.get_dim(x);
+        let gap_count = (resolved_columns.len() - 1) as f32;
+        let fixed_padding = padding_def.resolve_fixed().total();
+        let fixed_gap = gap_count * gap_def.resolve_fixed();
         let mut space_left_with_pref_sizes =
-            self.layout.size.get_dim(x) - total_padding_x - total_spacing_x;
+            self.layout.size.get_dim(x) - fixed_padding - fixed_gap;
         let mut total_grow_coeff = 0.0;
         let mut total_shrink_coeff = 0.0;
         for column in &resolved_columns {
@@ -2306,7 +2526,11 @@ impl Model {
             space_left_with_pref_sizes = 0.0;
         }
 
-        let mut space_left = self.layout.size.get_dim(x) - total_padding_x - total_spacing_x;
+        let self_size = self.layout.size.get_dim(x);
+        let padding = padding_def.resolve(self_size, space_left_with_pref_sizes);
+        let gap = gap_def.resolve(self_size, space_left_with_pref_sizes);
+        let total_gap = gap_count * gap;
+        let mut space_left = self_size - padding.total() - total_gap;
 
         let grow_coeff = if total_grow_coeff > 0.0 {
             f32::max(0.0, space_left_with_pref_sizes / total_grow_coeff)
@@ -2318,7 +2542,7 @@ impl Model {
         } else {
             0.0
         };
-        let mut pos_x = opts.padding.get_dim(x);
+        let mut pos_x = padding.start;
         for column in &resolved_columns {
             let grow_size = column.grow * grow_coeff;
             let shrink_size = column.shrink * shrink_coeff;
@@ -2329,25 +2553,40 @@ impl Model {
             for child in &column.children {
                 println!(">> child: {:?}", child);
                 let child_size = child.layout.size.get_dim(x);
+                let child_unused_space = f32::max(0.0, column_size - child_size);
+                let unresolved_margin = child.layout.margin.get_dim(x);
+                let margin = unresolved_margin.resolve(self_size, child_unused_space);
+                let column_size_minus_margin = column_size - margin.start - margin.end;
+
                 let child_can_grow = child.layout.grow.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink.get_dim(x) > 0.0;
-                if child_can_grow && child_size < column_size {
-                    let size = f32::min(column_size, child.layout.max_size.get_dim(x));
+                if child_can_grow && child_size < column_size_minus_margin {
+                    let size = f32::min(column_size_minus_margin, child.layout.max_size.get_dim(x));
                     child.layout.size.set_dim(x, size);
                 }
-                if child_can_shrink && child_size > column_size {
-                    let size = f32::max(column_size, child.layout.min_size.get_dim(x));
+                if child_can_shrink && child_size > column_size_minus_margin {
+                    let size = f32::max(column_size_minus_margin, child.layout.min_size.get_dim(x));
                     child.layout.size.set_dim(x, size);
                 }
                 if child_size != child.layout.size.get_dim(x) {
+                    // Child size changed. There is one case when this might be a second call to
+                    // refresh layout of the same child. If the child resizing is set to hug, the
+                    // child can grow, and the column size is greater than earlier computed hugged
+                    // child size, we need to refresh the child layout again.
                     child.refresh_layout_internal(first_pass);
                 }
-                let child_size = child.size();
+                let child_unused_space =
+                    f32::max(0.0, column_size_minus_margin - child.layout.size.get_dim(x));
+                let child_alignment = child.layout.alignment.get().get_dim(x).normalized();
+                let child_offset = child_unused_space * child_alignment;
                 let bbox_origin = child.bbox_origin();
-                child.set_position_dim(x, pos_x - bbox_origin.get_dim(x));
+                child.set_position_dim(
+                    x,
+                    pos_x - bbox_origin.get_dim(x) + child_offset + margin.start,
+                );
                 println!("<< child: {:?}", child);
             }
-            pos_x += column_size + opts.spacing;
+            pos_x += column_size + gap;
         }
     }
 }
@@ -2549,10 +2788,16 @@ macro_rules! gen_setters {
 
 impl<T: Object + ?Sized> ObjectOps for T {}
 
+
+
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
 #[allow(missing_docs)]
 pub trait ObjectOps: Object {
+    redirect_margin_properties!(display_object().def);
+    redirect_padding_properties!(display_object().def);
+
+
     // === Transformations ===
 
     gen_object_trans!(position);
@@ -2588,6 +2833,18 @@ pub trait ObjectOps: Object {
     /// transformations of their parents.
     fn add_child<T: Object + ?Sized>(&self, child: &T) {
         self.display_object().def.add_child(child.display_object());
+    }
+
+    fn new_child(&self) -> Instance {
+        let child = Instance::new();
+        self.add_child(&child);
+        child
+    }
+
+    fn new_child_named(&self, name: &'static str) -> Instance {
+        let child = Instance::new_named(name);
+        self.add_child(&child);
+        child
     }
 
     fn add_children<T: Object>(&self, children: impl IntoIterator<Item = T>) {
@@ -2794,6 +3051,8 @@ pub trait ObjectOps: Object {
         self.display_object().def.refresh_layout()
     }
 }
+
+
 
 /// Trait exposing the generic API for working with layouts. Until you are creating layouts shared
 /// by multiple display objects and you need to store their configurations, you'd not need to use
@@ -3525,85 +3784,81 @@ mod layout_tests {
     /// Input:
     ///
     /// ```text
-    /// ╭────────────────────────────────╮
-    /// │ root                       △   │
-    /// │   ╭─────────┬▷  ╭── ▶ ◀ ───┤   │
-    /// │   │ l       │   │ r    △   │   │
-    /// │   │ ╭────┬▷ │   │ ╭────┤   │   │
-    /// │   │ │ l1 │  │   │ │ R1 │   │   │
-    /// │   │ │    │  ▼   │ ╰────╯   │   │
-    /// │   │ │    │  ▲   │      △   │   │
-    /// │   │ │    │  │   │ ╭────┤   │   │
-    /// │   │ │    │  │   │ │ R2 │   │   │
-    /// │   │ ╰────╯  │   │ ╰────╯   │   │
-    /// │   ╰─────────╯   ╰──────────╯   │
-    /// ╰────────────────────────────────╯
+    /// ╭──────────────────────────────╮
+    /// │ root                      △  │
+    /// │  ╭─────────┬▷  ╭── ▶ ◀ ───┤  │
+    /// │  │ l       │   │ r    △   │  │
+    /// │  │ ╭────┬▷ │   │ ╭────┤   │  │
+    /// │  │ │ l1 │  │   │ │ R2 │   │  │
+    /// │  │ │    │  ▼   │ ╰────╯   │  │
+    /// │  │ │    │  ▲   │      △   │  │
+    /// │  │ │    │  │   │ ╭────┤   │  │
+    /// │  │ │    │  │   │ │ R1 │   │  │
+    /// │  │ ╰────╯  │   │ ╰────╯   │  │
+    /// │  ╰─────────╯   ╰──────────╯  │
+    /// ╰──────────────────────────────╯
     /// ```
     ///
     /// Output:
     /// The dimensions in parentheses were provided manually.
     ///
     /// ```text
-    /// ╭────────────────────────────────────────────────╮
-    /// │ root                     ╭R─ ▶ ◀ ──────╮       │
-    /// │                          ▽ ╭────╮      │       │
-    /// │                          │ │ R2 ▲ 50   │       │
-    /// │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
-    /// │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
-    /// │  │ │ L1  │        ▼      │  (30)       │       │
-    /// │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
-    /// │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
-    /// │  │   70           │      │ │ R1 ▲ 50   │       │
-    /// │  ╰────────────────╯      │ │    ▼      │       │
-    /// │         70               │ ╰────╯      │       │
-    /// │                          │  (20)       │       │
-    /// │                          ╰─────────────╯       │
-    /// │                               30               │
-    /// ╰────────────────────────────────────────────────╯
-    ///                      (100)
+    /// ╭───────────────────────────────────────────╮
+    /// │ root                                △     │
+    /// │                    ╭── ▶ ◀ ─────────┤     │
+    /// │                    │ r         △    │     │
+    /// │  ╭────────────┬▷   │ ╭─────────┤    │     │
+    /// │  │ l          │    │ │ R2      │ 5  │     │
+    /// │  │ ╭────┬▷    │    │ ╰─────────╯    │     │
+    /// │  │ │ l1 │     ▼    │     (3)        │ 10  │ (10)
+    /// │  │ │    │ (4) ▲ 4  │       △        │     │
+    /// │  │ ╰────╯     │    │ ╭─────┤        │     │
+    /// │  │   7        │    │ │ R1  │ 5      │     │
+    /// │  ╰────────────╯    │ ╰─────╯        │     │
+    /// │        7           │   (2)          │     │
+    /// │                    ╰────────────────╯     │
+    /// │                             3             │
+    /// ╰───────────────────────────────────────────╯
+    ///                     (10)
     /// ```
     #[test]
     fn test_mixed_layouts() {
         let world = World::new();
         let root = Instance::new_named("Root");
-        let l = Instance::new_named("L");
-        let l1 = Instance::new_named("L1");
-        let r = Instance::new_named("R");
-        let r1 = Instance::new_named("R1");
-        let r2 = Instance::new_named("R2");
-        root.add_child(&l);
-        root.add_child(&r);
-        l.add_child(&l1);
-        r.add_child(&r1);
-        r.add_child(&r2);
+        let l = root.new_child_named("L");
+        let r = root.new_child_named("R");
+        let l1 = l.new_child_named("L1");
+        let r1 = r.new_child_named("R1");
+        let r2 = r.new_child_named("R2");
 
         root.use_auto_layout();
-        root.set_size((100.0, 100.0));
+        root.set_size((10.0, 10.0));
 
+        l.align_center();
         l.use_auto_layout();
         l.set_size_y_to_hug().allow_grow_x();
-        l1.set_size((0.0, 50.0)).allow_grow_x();
+        l1.set_size((0.0, 4.0)).allow_grow_x();
 
         r.use_auto_layout().set_max_columns(1);
         r.set_size_x_to_hug().allow_grow_y();
-        r1.set_size((20.0, 0.0)).allow_grow_y();
-        r2.set_size((30.0, 0.0)).allow_grow_y();
+        r1.set_size((2.0, 0.0)).allow_grow_y();
+        r2.set_size((3.0, 0.0)).allow_grow_y();
 
         root.update(&world.default_scene);
 
         println!("L size: {:?}", l.size());
         assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(l.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(r.position().xy(), Vector2(70.0, 0.0));
+        assert_eq!(l.position().xy(), Vector2(0.0, 3.0));
+        assert_eq!(r.position().xy(), Vector2(7.0, 0.0));
         assert_eq!(l1.position().xy(), Vector2(0.0, 0.0));
         assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
-        assert_eq!(r2.position().xy(), Vector2(0.0, 50.0));
+        assert_eq!(r2.position().xy(), Vector2(0.0, 5.0));
 
-        assert_eq!(root.size(), Vector2(100.0, 100.0));
-        assert_eq!(l.size(), Vector2(70.0, 50.0));
-        assert_eq!(r.size(), Vector2(30.0, 100.0));
-        assert_eq!(r1.size(), Vector2(20.0, 50.0));
-        assert_eq!(r2.size(), Vector2(30.0, 50.0));
+        assert_eq!(root.size(), Vector2(10.0, 10.0));
+        assert_eq!(l.size(), Vector2(7.0, 4.0));
+        assert_eq!(r.size(), Vector2(3.0, 10.0));
+        assert_eq!(r1.size(), Vector2(2.0, 5.0));
+        assert_eq!(r2.size(), Vector2(3.0, 5.0));
     }
 
     /// ```text
@@ -3815,6 +4070,131 @@ mod layout_tests {
             .assert_node3_position(7.0, 0.0);
         assert_eq!(node2_1.size(), Vector2(1.0, 1.0));
         assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
+    }
+
+    /// ```text
+    /// ╭────────────┬───────  ▶ ◀ ────────┬───────────╮
+    /// │ root       ┆ ╱╱╱╱╱╱           ╱╱ ┆           │
+    /// │            ┆ ╱╱╱╱╱╱           ╱╱ ┆ ╭───────╮ │
+    /// │            ┆ ╱╱╱╱╱╱ ╭───────╮ ╱╱ ┆ │ node3 │ │
+    /// │  ╭───────╮ ┆ ╱╱╱╱╱╱ │ node2 │ ╱╱ ┆ │       │ ▼
+    /// │  │ node1 │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ ▲
+    /// │  │       │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ │
+    /// │  ╰───────╯ ┆ ╱╱╱╱╱╱ ╰───────╯ ╱╱ ┆ ╰───────╯ │
+    /// ╰────────────┴─────────────────────┴───────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_fixed_children_and_margin() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.node1.set_size((1.0, 1.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((3.0, 3.0));
+        test.node2.set_margin_left(10.0);
+        test.node2.set_margin_right(1.0);
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(11.0, 0.0)
+            .assert_node3_position(14.0, 0.0)
+            .assert_root_size(17.0, 3.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(3.0, 3.0);
+    }
+
+    /// ```text
+    /// ╭───────────────┬─── ▶ ◀ ───┬───────────────╮
+    /// │ root ╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │
+    /// │ ╱╱╱           ┆           ┆ ╭───────╮ ╱╱╱ │
+    /// │ ╱╱╱           ┆ ╭───────╮ ┆ │ node3 │ ╱╱╱ │
+    /// │ ╱╱╱ ╭───────╮ ┆ │ node2 │ ┆ │       │ ╱╱╱ ▼
+    /// │ ╱╱╱ │ node1 │ ┆ │       │ ┆ │       │ ╱╱╱ ▲
+    /// │ ╱╱╱ │       │ ┆ │       │ ┆ │       │ ╱╱╱ │
+    /// │ ╱╱╱ ╰───────╯ ┆ ╰───────╯ ┆ ╰───────╯ ╱╱╱ │
+    /// │ ╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │
+    /// ╰───────────────┴───────────┴───────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_fixed_children_and_padding() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.root.set_padding_all(10.0);
+        test.node1.set_size((1.0, 1.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((3.0, 3.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(10.0, 10.0)
+            .assert_node2_position(11.0, 10.0)
+            .assert_node3_position(13.0, 10.0)
+            .assert_root_size(26.0, 23.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(3.0, 3.0);
+    }
+
+    /// ```text
+    /// ╭────────────────────────╮
+    /// │ root                   │
+    /// │  ╭───────╮             │
+    /// │  │ node3 │             │
+    /// │  │       │             │
+    /// │  ╰───────╯             │
+    /// │  ╭───────╮  ╭───────╮  │
+    /// │  │ node1 │  │ node2 │  │
+    /// │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  │
+    /// ╰────────────────────────╯
+    /// ```
+    #[test]
+    fn test_simple_grid_layout() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_max_columns(2);
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 2.0));
+        test.run()
+            .assert_root_size(4.0, 4.0)
+            .assert_node1_size(2.0, 2.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(2.0, 2.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(2.0, 0.0)
+            .assert_node3_position(0.0, 2.0);
+    }
+
+    /// ```text
+    /// ╭─────────────────────────────╮
+    /// │ root       ╱╱╱╱╱╱           │
+    /// │  ╭───────╮ ╱╱╱╱╱╱           │
+    /// │  │ node3 │ ╱╱╱╱╱╱           │
+    /// │  │       │ ╱╱╱╱╱╱           │
+    /// │  ╰───────╯ ╱╱╱╱╱╱           │
+    /// │ ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │
+    /// │  ╭───────╮ ╱╱╱╱╱╱ ╭───────╮ │
+    /// │  │ node1 │ ╱╱╱╱╱╱ │ node2 │ │
+    /// │  │       │ ╱╱╱╱╱╱ │       │ │
+    /// │  ╰───────╯ ╱╱╱╱╱╱ ╰───────╯ │
+    /// ╰─────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_simple_grid_layout_with_gap() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_max_columns(2).set_gap((5.0, 3.0));
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 2.0));
+        test.run()
+            .assert_root_size(9.0, 7.0)
+            .assert_node1_size(2.0, 2.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(2.0, 2.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(7.0, 0.0)
+            .assert_node3_position(0.0, 5.0);
     }
 
     // /// ```text
