@@ -57,14 +57,21 @@ print_report spec config builder =
 
     should_print_behavior = config.print_only_failures.not || spec.behaviors.any (b -> b.result.is_fail)
     if should_print_behavior then
-        IO.println (spec.name + ":  [" + total_time.total_milliseconds.to_text + "ms]")
+        spec_description =
+            counts = spec.tests_succeeded.to_text + "/" + spec.tests_executed.to_text
+            times = total_time.total_milliseconds.to_text + "ms"
+            "[" + counts + ", " + times + "]"
+        IO.println (spec.name + ":  " + spec_description)
         spec.behaviors.reverse.each behavior->
+            make_behavior_description behavior =
+                times = behavior.time_taken.total_milliseconds.to_text + "ms"
+                "[" + times + "]"
             case behavior.result of
                 Test_Result.Success ->
                     if config.print_only_failures.not then
-                        IO.println ("    - " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
+                        IO.println ("    - " + behavior.name + " " + make_behavior_description behavior)
                 Test_Result.Failure msg details ->
-                    IO.println ("    - [FAILED] " + behavior.name + " [" + behavior.time_taken.total_milliseconds.to_text + "ms]")
+                    IO.println ("    - [FAILED] " + behavior.name + " " + make_behavior_description behavior)
                     IO.println ("        Reason: " + msg)
                     if details.is_nothing.not then
                         IO.println details

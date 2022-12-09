@@ -46,7 +46,12 @@ public class MultiValueIndex {
         MultiValueKeyBase key = keyFactory.apply(i);
 
         if (key.hasFloatValues()) {
-          problems.add(new FloatingPointGrouping("GroupBy", i));
+          final int row = i;
+          key.floatColumnPositions()
+              .forEach(
+                  columnIx -> {
+                    problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row));
+                  });
         }
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
@@ -168,6 +173,10 @@ public class MultiValueIndex {
     }
 
     return new Table(output, merged);
+  }
+
+  public AggregatedProblems getProblems() {
+    return problems;
   }
 
   public int[] makeOrderMap(int rowCount) {
