@@ -46,7 +46,12 @@ public class MultiValueIndex {
         MultiValueKeyBase key = keyFactory.apply(i);
 
         if (key.hasFloatValues()) {
-          problems.add(new FloatingPointGrouping("GroupBy", i));
+          final int row = i;
+          key.floatColumnPositions()
+              .forEach(
+                  columnIx -> {
+                    problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row));
+                  });
         }
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
@@ -170,6 +175,10 @@ public class MultiValueIndex {
     return new Table(output, merged);
   }
 
+  public AggregatedProblems getProblems() {
+    return problems;
+  }
+
   public int[] makeOrderMap(int rowCount) {
     if (this.locs.size() == 0) {
       return new int[0];
@@ -185,5 +194,17 @@ public class MultiValueIndex {
     }
 
     return output;
+  }
+
+  public Set<MultiValueKeyBase> keys() {
+    return locs.keySet();
+  }
+
+  public boolean contains(MultiValueKeyBase key) {
+    return this.locs.containsKey(key);
+  }
+
+  public List<Integer> get(MultiValueKeyBase key) {
+    return this.locs.get(key);
   }
 }

@@ -65,4 +65,12 @@ public class AggregatedProblems {
 
     return new AggregatedProblems(merged, count);
   }
+
+  public static AggregatedProblems of(Problem... problems) {
+    AggregatedProblems result = new AggregatedProblems();
+    for (Problem p : problems) {
+      result.add(p);
+    }
+    return result;
+  }
 }
