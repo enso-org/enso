@@ -78,6 +78,8 @@ import scala.jdk.javaapi.CollectionConverters;
 
 final class TreeToIr {
   static final TreeToIr MODULE = new TreeToIr();
+  static final String SKIP_MACRO_IDENTIFIER = "SKIP";
+  static final String FREEZE_MACRO_IDENTIFIER = "FREEZE";
 
   private TreeToIr() {
   }
@@ -726,9 +728,9 @@ final class TreeToIr {
           sep = "_";
         }
         var fullName = fnName.toString();
-        if (fullName.equals("FREEZE")) {
+        if (fullName.equals(FREEZE_MACRO_IDENTIFIER)) {
           yield translateExpression(app.getSegments().get(0).getBody(), false);
-        } else if (fullName.equals("SKIP")) {
+        } else if (fullName.equals(SKIP_MACRO_IDENTIFIER)) {
           var body = app.getSegments().get(0).getBody();
           var subexpression = Objects.requireNonNullElse(applySkip(body), body);
           yield translateExpression(subexpression, false);
@@ -929,7 +931,7 @@ final class TreeToIr {
     while (!done && tree != null) {
       tree = switch (tree) {
         case Tree.MultiSegmentApp app
-                when "FREEZE".equals(app.getSegments().get(0).getHeader().codeRepr()) ->
+                when FREEZE_MACRO_IDENTIFIER.equals(app.getSegments().get(0).getHeader().codeRepr()) ->
                 app.getSegments().get(0).getBody();
         case Tree.Invalid ignored -> null;
         case Tree.BodyBlock ignored -> null;
