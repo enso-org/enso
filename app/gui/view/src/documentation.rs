@@ -9,6 +9,7 @@ use crate::graph_editor::component::visualization;
 use enso_frp as frp;
 use ensogl::application::Application;
 use ensogl::display;
+use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
@@ -67,6 +68,7 @@ pub struct Model {
     overlay:            overlay::View,
     display_object:     display::object::Instance,
     code_copy_closures: Rc<CloneCell<Vec<CodeCopyClosure>>>,
+    scene_navigator:    Rc<RefCell<Option<Navigator>>>,
 }
 
 impl Model {
@@ -115,8 +117,18 @@ impl Model {
         scene.dom.layers.node_searcher.manage(&inner_dom);
 
         let code_copy_closures = default();
-        Model { logger, outer_dom, inner_dom, size, overlay, display_object, code_copy_closures }
-            .init()
+        let scene_navigator = default();
+        Model {
+            logger,
+            outer_dom,
+            inner_dom,
+            size,
+            overlay,
+            display_object,
+            code_copy_closures,
+            scene_navigator,
+        }
+        .init()
     }
 
     fn init(self) -> Self {
@@ -220,6 +232,23 @@ impl Model {
         self.inner_dom.set_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
         self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding));
         self.inner_dom.dom().set_style_or_warn("padding-top", format!("{}px", PADDING_TOP));
+    }
+
+    /// Set the navigator so it can be disabled on hover.
+    pub fn set_navigator(&self, navigator: Option<Navigator>) {
+        *self.scene_navigator.borrow_mut() = navigator;
+    }
+
+    fn on_hover_start(&self) {
+        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
+            navigator.disable();
+        }
+    }
+
+    fn on_hover_end(&self) {
+        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
+            navigator.enable();
+        }
     }
 }
 
@@ -328,6 +357,22 @@ impl View {
 
             app.frp.show_system_cursor <+ overlay.events.mouse_over;
             app.frp.hide_system_cursor <+ overlay.events.mouse_out;
+
+
+            // === Hover ===
+
+            eval_ model.overlay.events.mouse_over(model.on_hover_start());
+            eval_ model.overlay.events.mouse_out(model.on_hover_end());
+            is_hovered <- any(...);
+            is_hovered <+ model.overlay.events.mouse_over.constant(true);
+            is_hovered <+ model.overlay.events.mouse_out.constant(false);
+            let mouse_up = scene.mouse.frp.up.clone_ref();
+            let mouse_down = scene.mouse.frp.down.clone_ref();
+            let mouse_wheel = scene.mouse.frp.wheel.clone_ref();
+            let mouse_position = scene.mouse.frp.position.clone_ref();
+            caught_mouse <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
+            pass_to_dom <- caught_mouse.gate(&is_hovered);
+            eval_ pass_to_dom(scene.current_js_event.pass_to_dom.emit(()));
         }
         visualization.pass_events_to_dom_if_active(scene, network);
         self
