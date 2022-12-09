@@ -131,12 +131,14 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .setUpdate(true)
         .call()
 
-      val status    = jgit.status.call()
-      val untracked = status.getUntracked()
-      val isDataDir = (x: String) =>
-        ensoDataDirectory.map(dataDir => dataDir.toString == x).getOrElse(false)
-      val filesToAdd = untracked.asScala.flatMap { file =>
-        if (!file.startsWith(gitDir.toString) && !isDataDir(file)) {
+      val status      = jgit.status.call()
+      val untracked   = status.getUntracked().asScala.map(ensureUnixPathSeparator)
+      val unixGitDir  = ensureUnixPathSeparator(gitDir)
+      val unixDataDir = ensoDataDirectory.map(ensureUnixPathSeparator)
+      val isDataDir =
+        (x: String) => unixDataDir.map(dataDir => dataDir == x).getOrElse(false)
+      val filesToAdd = untracked.flatMap { file =>
+        if (!file.startsWith(unixGitDir) && !isDataDir(file)) {
           Some(file)
         } else None
       }
@@ -207,17 +209,19 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
   override def status(root: Path): BlockingIO[VcsFailure, RepoStatus] = {
     effectBlocking {
-      val repo      = repository(root)
-      val jgit      = new JGit(repo)
-      val statusCmd = jgit.status()
-      val status    = statusCmd.call()
+      val repo       = repository(root)
+      val jgit       = new JGit(repo)
+      val statusCmd  = jgit.status()
+      val status     = statusCmd.call()
+      val unixGitDir = ensureUnixPathSeparator(gitDir)
       val changed =
         status.getModified().asScala.toList ++
         status
           .getUntracked()
           .asScala
           .toList
-          .filterNot(_.startsWith(gitDir.toString)) ++
+          .map(ensureUnixPathSeparator)
+          .filterNot(_.startsWith(unixGitDir)) ++
         status.getRemoved().asScala.toList
       val changedPaths = changed.map(name => Path.of(name)).toSet
       val logCmd       = jgit.log()
