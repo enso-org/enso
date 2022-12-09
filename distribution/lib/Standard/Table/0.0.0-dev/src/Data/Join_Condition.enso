@@ -1,7 +1,11 @@
+from Standard.Base import all
+
 type Join_Condition
     ## Specifies a join condition that correlates rows from the two tables if
        the element from the `left_column` of the left table is equal to the
        element from the `right_column` of the right table.
+
+       Missing values are treated as equal to each other.
 
        Arguments:
         - left_column: A name or index of a column in the left table.
@@ -12,6 +16,8 @@ type Join_Condition
        the element from the `left` column of the left table is equal to the
        element from the `right` column of the right table, ignoring case.
 
+       Missing values are treated as equal to each other.
+
        This is only supported for text columns.
 
        Case insensitive comparisons may make it impossible for a database
@@ -20,13 +26,19 @@ type Join_Condition
 
        Arguments:
         - left: A name or index of a column in the left table.
-        - right: A name or index of a column in the right table.
-    Equals_Ignore_Case (left : Text | Integer) (right : Text | Integer)
+        - right: A name or index of a column in the right table. Defaults to the
+          same column selector as provided for `left`.
+        - locale: The locale to use for case insensitive comparisons.
+    Equals_Ignore_Case (left : Text | Integer) (right : Text | Integer = left) (locale : Locale = Locale.default)
 
     ## Specifies a join condition that correlates rows from the two tables if
        the element from the `left` column of the left table fits between the
        corresponding elements from `right_lower` and `right_upper` columns of
        the right table. The comparison is inclusive.
+
+       Pairs of rows in which any of `left`, `right_lower`, or `right_upper` is
+       missing are ignored, as the comparison is assumed to be not well-defined
+       for missing values.
 
        Arguments:
         - left: A name or index of a column in the left table.
