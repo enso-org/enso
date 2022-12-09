@@ -539,8 +539,10 @@ impl Slider {
 
             small_value_step <- all2(&precision, &prec_at_mouse_speed);
             small_value_step <- small_value_step.map(|(prec, threshold)| prec <= threshold);
-            mouse_adjust <- drag_delta_primary.map(|x| *x != 0.0);
-            skip_value_anim <- value.constant(()).gate(&small_value_step).gate(&mouse_adjust);
+            prec_adjust <- precision.on_change().constant(());
+            value_adjust <- drag_delta_primary.map(|x| *x != 0.0);
+            value_adjust <- bool(&prec_adjust, &value_adjust);
+            skip_value_anim <- value.constant(()).gate(&small_value_step).gate(&value_adjust);
             model.value_animation.target <+ value;
             model.value_animation.skip <+ skip_value_anim;
         };
