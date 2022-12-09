@@ -139,6 +139,7 @@ struct SearcherFrp {
     editing_committed: frp::Stream,
     is_visible:        frp::Stream<bool>,
     is_empty:          frp::Stream<bool>,
+    is_hovered:        frp::Stream<bool>,
 }
 
 /// A structure containing the Searcher View: the old Node Searcher of a new Component Browser.
@@ -162,29 +163,27 @@ impl SearcherVariant {
         }
     }
 
-    fn set_navigator(&self, navigator: Navigator) {
-        if let Self::ComponentBrowser(browser) = self {
-            browser.model().list.model().set_navigator(Some(navigator.clone_ref()));
-            browser.model().documentation.model.set_navigator(Some(navigator));
-        }
-    }
-
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
                 let grid = &view.model().list.model().grid;
+                let panel = &view.model().list;
+                let documentation = &view.model().documentation;
                 frp::extend! {project_view_network
                     is_empty <- source::<bool>();
                     editing_committed <- grid.expression_accepted.constant(());
+                    is_hovered <- panel.is_hovered || documentation.frp.is_hovered;
                 }
                 is_empty.emit(false);
                 SearcherFrp {
                     editing_committed,
                     is_visible: view.output.is_visible.clone_ref().into(),
                     is_empty: is_empty.into(),
+                    is_hovered: is_hovered.into(),
                 }
             }
             SearcherVariant::OldNodeSearcher(view) => {
+                let documentation = view.documentation();
                 frp::extend! {project_view_network
                     editing_committed <- view.editing_committed.constant(());
                 }
@@ -192,6 +191,7 @@ impl SearcherVariant {
                     editing_committed,
                     is_visible: view.output.is_visible.clone_ref().into(),
                     is_empty: view.output.is_empty.clone_ref().into(),
+                    is_hovered: documentation.frp.is_hovered.clone_ref().into(),
                 }
             }
         }
@@ -273,7 +273,6 @@ impl Model {
         let display_object = display::object::Instance::new();
         let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
-        searcher.set_navigator(graph_editor.model.navigator.clone_ref());
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new();
@@ -746,7 +745,8 @@ impl View {
             // === Disabling Navigation ===
 
             let documentation = model.searcher.documentation();
-            disable_navigation           <- documentation.frp.is_selected || frp.open_dialog_shown;
+            searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
+            disable_navigation <- searcher_active || frp.open_dialog_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
             // === Disabling Dropping ===

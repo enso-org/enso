@@ -91,6 +91,7 @@ ensogl::define_endpoints_2! {
         is_visible(bool),
         size(Vector2),
         expression_input_position(Vector2),
+        is_hovered(bool),
     }
 }
 
@@ -138,6 +139,8 @@ impl component::Frp<Model> for Frp {
                 &snap,
                 Model::expression_input_position
             );
+
+            out.is_hovered <+ list_panel.is_hovered || documentation.frp.is_hovered;
         }
         init.emit(());
     }

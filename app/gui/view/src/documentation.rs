@@ -233,23 +233,6 @@ impl Model {
         self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding));
         self.inner_dom.dom().set_style_or_warn("padding-top", format!("{}px", PADDING_TOP));
     }
-
-    /// Set the navigator so it can be disabled on hover.
-    pub fn set_navigator(&self, navigator: Option<Navigator>) {
-        *self.scene_navigator.borrow_mut() = navigator;
-    }
-
-    fn on_hover_start(&self) {
-        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
-            navigator.disable();
-        }
-    }
-
-    fn on_hover_end(&self) {
-        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
-            navigator.enable();
-        }
-    }
 }
 
 
@@ -267,6 +250,8 @@ ensogl::define_endpoints! {
         /// Indicates whether the documentation panel has been selected through clicking into
         /// it, or deselected by clicking somewhere else.
         is_selected(bool),
+        /// Indicates whether the documentation panel has been hovered.
+        is_hovered(bool),
     }
 }
 
@@ -361,17 +346,14 @@ impl View {
 
             // === Hover ===
 
-            eval_ model.overlay.events.mouse_over(model.on_hover_start());
-            eval_ model.overlay.events.mouse_out(model.on_hover_end());
-            is_hovered <- any(...);
-            is_hovered <+ model.overlay.events.mouse_over.constant(true);
-            is_hovered <+ model.overlay.events.mouse_out.constant(false);
+            frp.source.is_hovered <+ model.overlay.events.mouse_over.constant(true);
+            frp.source.is_hovered <+ model.overlay.events.mouse_out.constant(false);
             let mouse_up = scene.mouse.frp.up.clone_ref();
             let mouse_down = scene.mouse.frp.down.clone_ref();
             let mouse_wheel = scene.mouse.frp.wheel.clone_ref();
             let mouse_position = scene.mouse.frp.position.clone_ref();
             caught_mouse <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
-            pass_to_dom <- caught_mouse.gate(&is_hovered);
+            pass_to_dom <- caught_mouse.gate(&frp.source.is_hovered);
             eval_ pass_to_dom(scene.current_js_event.pass_to_dom.emit(()));
         }
         visualization.pass_events_to_dom_if_active(scene, network);

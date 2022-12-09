@@ -7,6 +7,7 @@ use crate::prelude::*;
 
 use crate::animation::physics;
 use crate::control::callback;
+use crate::define_endpoints_2;
 use crate::display::camera::Camera2d;
 use crate::display::navigation::navigator::events::NavigatorEvents;
 use crate::display::object::traits::*;
@@ -238,6 +239,21 @@ impl NavigatorModel {
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
+define_endpoints_2! {
+    Input {
+        enable(),
+        disable(),
+    }
+    Output {
+        enabled(bool),
+    }
+}
+
+
 // =================
 // === Navigator ===
 // =================
@@ -246,13 +262,26 @@ impl NavigatorModel {
 #[derive(Clone, CloneRef, Debug, Shrinkwrap)]
 pub struct Navigator {
     #[shrinkwrap(main_field)]
-    model: Rc<NavigatorModel>,
+    model:   Rc<NavigatorModel>,
+    #[allow(missing_docs)]
+    pub frp: Frp,
 }
 
 impl Navigator {
     pub fn new(scene: &Scene, camera: &Camera2d) -> Self {
         let model = Rc::new(NavigatorModel::new(scene, camera));
-        Navigator { model }
+        let frp = Frp::new();
+        let out = &frp.private.output;
+
+        let network = frp.network();
+        frp::extend! { network
+            eval_ frp.enable(model.enable());
+            eval_ frp.disable(model.disable());
+            out.enabled <+ frp.enable.constant(true);
+            out.enabled <+ frp.disable.constant(false);
+        }
+
+        Navigator { model, frp }
     }
 }
 
