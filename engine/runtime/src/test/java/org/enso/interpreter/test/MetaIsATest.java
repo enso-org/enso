@@ -37,8 +37,8 @@ public class MetaIsATest {
     final Map<String, Language> langs = ctx.getEngine().getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
 
-    final URI facUri = new URI("memory://choose.enso");
-    final Source facSrc = Source.newBuilder("enso", """
+    final URI uri = new URI("memory://choose.enso");
+    final Source src = Source.newBuilder("enso", """
     import Standard.Base.Meta
 
     check x y = Meta.is_a x y
