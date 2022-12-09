@@ -10,7 +10,6 @@ polyglot java import java.util.AbstractList
 polyglot java import java.util.ArrayList
 polyglot java import java.util.List as JList
 
-
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
@@ -262,6 +261,14 @@ spec = Test.group "Pattern Matches" <|
             ArrayList -> Nothing
             Class -> Test.fail "Expected to match on a polyglot symbol."
             _ -> Test.fail "Expected to match on a polyglot symbol."
+
+        # Tests a bug where array matching a polyglot Object[] array would fail if the same branch mis-matched earlier.
+        foo x = case x of
+            _ : Array -> "array"
+            _ : Text -> "text"
+        v = ["X", list.toArray]
+        u = v.map foo
+        u.should_equal ["text", "array"]
 
     Test.specify "should correctly pattern match on supertype" <|
         case 1 of
