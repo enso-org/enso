@@ -299,9 +299,9 @@ impl WorldData {
                 if key == "Backquote" {
                     stats_monitor.toggle()
                 } else if key == "KeyP" {
-                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                    enso_debug_api::save_profile(&profiler::internal::get_log());
                 } else if key == "KeyQ" {
-                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                    enso_debug_api::save_profile(&profiler::internal::get_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);

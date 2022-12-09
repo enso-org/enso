@@ -127,6 +127,9 @@
 
 // === Features ===
 #![feature(test)]
+#![feature(local_key_cell_methods)]
+#![feature(maybe_uninit_uninit_array)]
+#![feature(extend_one)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -323,7 +326,7 @@ pub async fn join<T: futures::Future, U: futures::Future>(t: T, u: U) -> (T::Out
 #[doc(inline)]
 pub use enso_profiler_macros::profile;
 
-enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
+enso_profiler_macros::define_profiling_levels![Objective, Task, Detail, Debug];
 
 
 // === APP_LIFETIME ===
@@ -343,7 +346,7 @@ mod log_tests {
     use profiler::profile;
 
     fn get_log() -> Vec<profiler::internal::Event> {
-        crate::internal::take_raw_log().events
+        crate::internal::get_raw_log().events
     }
 
     #[test]
@@ -477,7 +480,8 @@ mod bench {
         for _ in 0..count {
             let _profiler = start_objective!(profiler::APP_LIFETIME, "log_measurement");
         }
-        test::black_box(crate::EVENTS.take_all());
+        let events: Vec<_> = crate::EVENTS.clone_all();
+        test::black_box(events);
     }
 
     #[bench]
@@ -497,6 +501,7 @@ mod bench {
                 parent: profiler::EventId::APP_LIFETIME,
                 start:  None,
                 label:  profiler::Label(""),
+                level:  Default::default(),
             }));
             log.push(profiler::Event::End {
                 id:        profiler::EventId::implicit(),
