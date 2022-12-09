@@ -871,7 +871,10 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
   }
 
   private def ensureUnixPathSeparator(path: Path): String =
-    path.toString.replaceAll("\\\\", "/")
+    ensureUnixPathSeparator(path.toString)
+
+  private def ensureUnixPathSeparator(path: String): String =
+    path.replaceAll("\\\\", "/")
 
   private def repository(path: Path): Repository = {
     val builder = new FileRepositoryBuilder();
@@ -913,11 +916,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     val jgit   = new JGit(repository(root.toPath))
     val status = jgit.status().call()
     val changed =
-      status.getUntracked().asScala ++ status.getModified().asScala ++ status
-        .getRemoved()
-        .asScala
-    val gitdir = config.vcsManager.dataDirectory.resolve(VcsApi.DefaultRepoDir)
-    changed.toList.filterNot(file => file.startsWith(gitdir.toString)).isEmpty
+      (status.getUntracked().asScala
+      ++ status.getModified().asScala
+      ++ status.getRemoved().asScala)
+    val gitDir = ensureUnixPathSeparator(
+      config.vcsManager.dataDirectory.resolve(VcsApi.DefaultRepoDir)
+    )
+    changed.toList
+      .map(ensureUnixPathSeparator)
+      .filterNot(file => file.startsWith(gitDir))
+      .isEmpty
   }
 
 }
