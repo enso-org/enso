@@ -596,8 +596,8 @@ define_themes! { [light:0, dark:1]
                 selected    = Lcha(0.5,1.0,0.2,0.7) , Lcha(0.5,1.0,0.2,0.7);
                 hover       = Lcha(0.5,1.0,0.2,0.7) , Lcha(0.5,1.0,0.2,0.7);
                 deselected  {
-                    left  = Lcha(0.5,1.0,0.2,0.5) , Lcha(1.0,1.0,0.2,0.5);
-                    right = Lcha(0.5,1.0,0.2,0.2) , Lcha(1.0,1.0,0.2,0.2);
+                    left  = Lcha(0.5,1.0,0.2,0.5) , Lcha(0.5,1.0,0.2,0.5);
+                    right = Lcha(0.5,1.0,0.2,0.2) , Lcha(0.5,1.0,0.2,0.2);
                 }
             }
             background = application::background , application::background;
