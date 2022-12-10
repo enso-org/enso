@@ -1402,41 +1402,64 @@ macro_rules! gen_spacing_props_for_layout_model2 {
     )*}}
 }
 
+macro_rules! gen_prop_accessors {
+    ($name:ident : Vector2<f32>) => {
+        paste! {
+            fn [<modify_ $name>](&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
+                self.display_object().modify_layout(|l| l.$name.modify_(f));
+                self
+            }
+
+            fn [<set_ $name>](&self, value: Vector2<f32>) -> &Self {
+                self.[<modify_ $name>](|t| *t = value)
+            }
+
+            fn [<update_ $name>](&self, f: impl FnOnce(Vector2<f32>) -> Vector2<f32>) -> &Self {
+                self.[<modify_ $name>](|t| *t = f(*t))
+            }
+
+            fn [<modify_ $name _x>](&self, f: impl FnOnce(&mut f32)) -> &Self {
+                self.[<modify_ $name>](|t| f(&mut t.x))
+            }
+
+            fn [<set_ $name _x>](&self, v: f32) -> &Self {
+                self.[<modify_ $name _x>](|t| *t = v)
+            }
+
+            fn [<update_ $name _x>](&self, f: impl FnOnce(f32) -> f32) -> &Self {
+                self.[<modify_ $name _x>](|t| *t = f(*t))
+            }
+
+            fn [<modify_ $name _y>](&self, f: impl FnOnce(&mut f32)) -> &Self {
+                self.[<modify_ $name>](|t| f(&mut t.y))
+            }
+
+            fn [<set_ $name _y>](&self, v: f32) -> &Self {
+                self.[<modify_ $name _y>](|t| *t = v)
+            }
+
+            fn [<update_ $name _y>](&self, f: impl FnOnce(f32) -> f32) -> &Self {
+                self.[<modify_ $name _y>](|t| *t = f(*t))
+            }
+        }
+    };
+}
+
 
 impl<T: Object + ?Sized> LayoutOps for T {}
 pub trait LayoutOps: Object {
     crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_alignment_setters);
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[margin]);
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[padding]);
-    
+
     fn resizing(&self) -> Vector2<Resizing> {
         self.display_object().def.layout.resizing.get()
     }
 
-    fn modify_resizing(&self, f: impl FnOnce(&mut Vector2<Resizing>)) -> &Self {
-        self.display_object().modify_layout(|l| l.resizing.modify_(f));
-        self
-    }
+    gen_prop_accessors!(max_size: Vector2<f32>);
+    gen_prop_accessors!(min_size: Vector2<f32>);
 
-    fn update_resizing(&self, f: impl FnOnce(Vector2<Resizing>) -> Vector2<Resizing>) -> &Self {
-        self.display_object().modify_layout(|l| l.resizing.update_(f));
-        self
-    }
 
-    fn set_resizing_x(&self, t: impl Into<Resizing>) -> &Self {
-        self.display_object().modify_layout(|l| l.resizing.set_x(t.into()));
-        self
-    }
-
-    fn modify_max_size(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
-        self.display_object().modify_layout(|l| l.max_size.modify_(f));
-        self
-    }
-
-    fn modify_min_size(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
-        self.display_object().modify_layout(|l| l.min_size.modify_(f));
-        self
-    }
 
     fn bbox_origin(&self) -> Vector2<f32> {
         self.display_object().def.layout.bbox_origin.get()
@@ -1444,16 +1467,6 @@ pub trait LayoutOps: Object {
 
     fn size(&self) -> Vector2<f32> {
         self.display_object().def.layout.size.get()
-    }
-
-    fn set_max_size_x(&self, x: f32) -> &Self {
-        self.modify_max_size(|t| t.x = x);
-        self
-    }
-
-    fn set_min_size_x(&self, x: f32) -> &Self {
-        self.modify_min_size(|t| t.x = x);
-        self
     }
 
     fn set_size(&self, size: impl IntoVector2<f32>) -> &Self {
@@ -2578,9 +2591,42 @@ pub trait GenericLayoutApi: Object {
         self.display_object().def.set_layout(layout)
     }
 
+    fn modify_resizing(&self, f: impl FnOnce(&mut Vector2<Resizing>)) -> &Self {
+        self.display_object().modify_layout(|l| l.resizing.modify_(f));
+        self
+    }
+
     /// Resizing setter.
-    fn set_resizing(&self, t: impl IntoResizing) {
-        self.display_object().modify_layout(|l| l.resizing.set(t.into_resizing()));
+    fn set_resizing(&self, v: impl IntoResizing) -> &Self {
+        self.modify_resizing(|t| *t = v.into_resizing())
+    }
+
+    fn update_resizing(&self, f: impl FnOnce(Vector2<Resizing>) -> Vector2<Resizing>) -> &Self {
+        self.modify_resizing(|t| *t = f(*t))
+    }
+
+    fn modify_resizing_x(&self, f: impl FnOnce(&mut Resizing)) -> &Self {
+        self.modify_resizing(|t| f(&mut t.x))
+    }
+
+    fn set_resizing_x(&self, v: impl Into<Resizing>) -> &Self {
+        self.modify_resizing_x(|t| *t = v.into())
+    }
+
+    fn update_resizing_x(&self, f: impl FnOnce(Resizing) -> Resizing) -> &Self {
+        self.modify_resizing_x(|t| *t = f(*t))
+    }
+
+    fn modify_resizing_y(&self, f: impl FnOnce(&mut Resizing)) -> &Self {
+        self.modify_resizing(|t| f(&mut t.y))
+    }
+
+    fn set_resizing_y(&self, v: impl Into<Resizing>) -> &Self {
+        self.modify_resizing_y(|t| *t = v.into())
+    }
+
+    fn update_resizing_y(&self, f: impl FnOnce(Resizing) -> Resizing) -> &Self {
+        self.modify_resizing_y(|t| *t = f(*t))
     }
 }
 
