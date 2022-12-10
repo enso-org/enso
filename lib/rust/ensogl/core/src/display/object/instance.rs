@@ -1278,20 +1278,36 @@ impl Debug for Instance {
 // === Layout and Size =============================================================================
 // =================================================================================================
 
-// ==================
-// === AutoLayout ===
-// ==================
+// ======================
+// === Column and Row ===
+// ======================
 
 /// The auto-layout grid column or row definition.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
-pub struct ColumnOrRowDefinition {
+pub struct ColumnOrRow {
     resizing: Resizing,
     min_size: Option<f32>,
     max_size: Option<f32>,
     grow:     Option<f32>,
     shrink:   Option<f32>,
 }
+
+#[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
+pub struct Column {
+    def: ColumnOrRow,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
+pub struct Row {
+    def: ColumnOrRow,
+}
+
+
+
+// ==================
+// === AutoLayout ===
+// ==================
 
 /// The auto-layout options. The auto-layout is similar to a mix of CSS flexbox and CSS grid with a
 /// few additions. Read the docs of this module to learn more.
@@ -1302,36 +1318,16 @@ pub struct AutoLayout {
     /// The spacing between axes.
     pub gap: Vector2<Unit>,
     /// Indicates whether the axes should be placed in order or in a reversed order.
-    pub reverse_columns_and_rows: Vector2<bool>,
+    pub reversed_columns_and_rows: Vector2<bool>,
     /// First column and row definition.
-    pub first_column_and_row: Vector2<ColumnOrRowDefinition>,
+    pub first_column_and_row: (Column, Row),
     /// Other columns and rows definitions.
-    pub other_columns_and_rows: (Vec<ColumnOrRowDefinition>, Vec<ColumnOrRowDefinition>),
+    pub other_columns_and_rows: (Vec<Column>, Vec<Row>),
     /// The number of columns and rows in the grid. If it's set to [`None`], the columns and rows
     /// will grow on demand.
-    pub max_columns_and_rows_count: Vector2<Option<usize>>,
+    pub max_columns_and_rows: Vector2<Option<usize>>,
 }
 
-impl AutoLayout {
-    /// Constructor.
-    pub fn new() -> Self {
-        default()
-    }
-}
-
-impl AutoLayout {
-    pub fn set_max_columns(&mut self, count: usize) {
-        self.max_columns_and_rows_count.set_x(Some(count))
-    }
-
-    pub fn reverse_columns(&mut self) {
-        self.reverse_columns_and_rows.update_x(|t| !t)
-    }
-
-    pub fn reverse_rows(&mut self) {
-        self.reverse_columns_and_rows.update_y(|t| !t)
-    }
-}
 
 
 // === ColumnAndRowDefinitionsGetter ===
@@ -1340,18 +1336,20 @@ impl AutoLayout {
 /// of the first column/row and other columns/rows if defined.
 #[allow(missing_docs)]
 pub trait ColumnAndRowDefinitionsGetter<T> {
-    fn column_or_row_definition(&self, dim: T) -> Vec<ColumnOrRowDefinition>;
+    fn columns_or_rows(&self, dim: T) -> Vec<ColumnOrRow>;
 }
 
 impl ColumnAndRowDefinitionsGetter<X> for AutoLayout {
-    fn column_or_row_definition(&self, _dim: X) -> Vec<ColumnOrRowDefinition> {
-        vec![self.first_column_and_row.x].extended(self.other_columns_and_rows.0.iter().cloned())
+    fn columns_or_rows(&self, _dim: X) -> Vec<ColumnOrRow> {
+        vec![*self.first_column_and_row.0]
+            .extended(self.other_columns_and_rows.0.iter().map(|t| **t))
     }
 }
 
 impl ColumnAndRowDefinitionsGetter<Y> for AutoLayout {
-    fn column_or_row_definition(&self, _dim: Y) -> Vec<ColumnOrRowDefinition> {
-        vec![self.first_column_and_row.y].extended(self.other_columns_and_rows.1.iter().cloned())
+    fn columns_or_rows(&self, _dim: Y) -> Vec<ColumnOrRow> {
+        vec![*self.first_column_and_row.1]
+            .extended(self.other_columns_and_rows.1.iter().map(|t| **t))
     }
 }
 
@@ -1363,66 +1361,142 @@ impl ColumnAndRowDefinitionsGetter<Y> for AutoLayout {
 
 #[allow(missing_docs)]
 impl Model {
-    fn modify_layout(&self, f: impl FnOnce(&mut AutoLayout)) {
+    fn modify_layout<T>(&self, f: impl FnOnce(&mut AutoLayout) -> T) -> Option<T> {
         self.modify_opt_layout(|opt_layout| {
             if let Some(layout) = opt_layout {
-                f(layout)
+                Some(f(layout))
             } else {
                 warn!(
-                    "Cannot modify layout because this display object does not use auto-layout. \
-                Use `use_auto_layout` to enable it first."
+                    "Cannot access auto-layout properties because this display object does not use \
+                    auto-layout. Use `use_auto_layout` to enable it first."
                 );
+                None
             }
-        });
+        })
     }
 
     fn set_children_alignment(&self, value: alignment::Dim2) {
-        self.modify_layout(|l| l.children_alignment = value)
+        self.modify_layout(|l| l.children_alignment = value);
     }
 
     fn set_reverse_columns_and_rows(&self, value: Vector2<bool>) {
-        self.modify_layout(|l| l.reverse_columns_and_rows = value)
-    }
-
-    fn set_gap(&self, value: impl IntoVector2<Unit>) {
-        self.modify_layout(|l| l.gap = value.into_vector2())
-    }
-
-    fn set_gap_x(&self, value: impl Into<Unit>) {
-        self.modify_layout(|l| l.gap.x = value.into())
-    }
-
-    fn set_gap_y(&self, value: impl Into<Unit>) {
-        self.modify_layout(|l| l.gap.y = value.into())
-    }
-
-    fn set_max_columns(&self, count: usize) {
-        self.modify_layout(|l| l.set_max_columns(count))
-    }
-
-    pub fn reverse_columns(&self) {
-        self.modify_layout(|l| l.reverse_columns())
-    }
-
-    pub fn reverse_rows(&self) {
-        self.modify_layout(|l| l.reverse_rows())
+        self.modify_layout(|l| l.reversed_columns_and_rows = value);
     }
 }
+
 
 macro_rules! gen_layout_object_builder_alignment {
-    ([$([$name:ident $x:ident $y:ident])*]) => {
-        paste! {
-            impl Model {$(
-                /// Constructor.
-                pub fn [<align_children_ $name>](&self) {
-                    self.set_children_alignment(alignment::Dim2::$name())
-                }
-            )*}
+    ([$([$name:ident $x:ident $y:ident])*]) => { paste! { $(
+        /// Constructor.
+        fn [<align_children_ $name>](&self) {
+            self.display_object().def.set_children_alignment(alignment::Dim2::$name())
         }
-    }
+    )*}}
 }
 
-crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
+impl<T: Object + ?Sized> AutoLayoutOps for T {}
+pub trait AutoLayoutOps: Object {
+    fn set_gap(&self, value: impl IntoVector2<Unit>) -> &Self {
+        self.display_object().def.modify_layout(|l| l.gap = value.into_vector2());
+        self
+    }
+
+    fn modify_gap(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
+        self.display_object().def.modify_layout(|l| f(&mut l.gap));
+        self
+    }
+
+    fn update_gap(&self, f: impl FnOnce(&Vector2<Unit>) -> Vector2<Unit>) -> &Self {
+        self.display_object().def.modify_layout(|l| l.gap = f(&l.gap));
+        self
+    }
+
+    fn set_gap_x(&self, value: impl Into<Unit>) -> &Self {
+        self.display_object().def.modify_layout(|l| l.gap.x = value.into());
+        self
+    }
+
+    fn modify_gap_x(&self, f: impl FnOnce(&mut Unit)) -> &Self {
+        self.display_object().def.modify_layout(|l| f(&mut l.gap.x));
+        self
+    }
+
+    fn update_gap_x(&self, f: impl FnOnce(&Unit) -> Unit) -> &Self {
+        self.display_object().def.modify_layout(|l| l.gap.x = f(&l.gap.x));
+        self
+    }
+
+    fn set_gap_y(&self, value: impl Into<Unit>) -> &Self {
+        self.display_object().def.modify_layout(|l| l.gap.y = value.into());
+        self
+    }
+
+    fn modify_gap_y(&self, f: impl FnOnce(&mut Unit)) -> &Self {
+        self.display_object().def.modify_layout(|l| f(&mut l.gap.y));
+        self
+    }
+
+    fn update_gap_y(&self, f: impl FnOnce(&Unit) -> Unit) -> &Self {
+        self.display_object().def.modify_layout(|l| l.gap.y = f(&l.gap.y));
+        self
+    }
+
+    fn set_max_columns(&self, count: impl Into<Option<usize>>) -> &Self {
+        self.display_object().def.modify_layout(|l| l.max_columns_and_rows.set_x(count.into()));
+        self
+    }
+
+    fn modify_max_columns(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
+        self.display_object().def.modify_layout(|l| f(&mut l.max_columns_and_rows.x));
+        self
+    }
+
+    fn update_max_columns(&self, f: impl FnOnce(&Option<usize>) -> Option<usize>) -> &Self {
+        self.display_object()
+            .def
+            .modify_layout(|l| l.max_columns_and_rows.x = f(&l.max_columns_and_rows.x));
+        self
+    }
+
+    fn set_max_rows(&self, count: impl Into<Option<usize>>) -> &Self {
+        self.display_object().def.modify_layout(|l| l.max_columns_and_rows.set_y(count.into()));
+        self
+    }
+
+    fn modify_max_rows(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
+        self.display_object().def.modify_layout(|l| f(&mut l.max_columns_and_rows.y));
+        self
+    }
+
+    fn update_max_rows(&self, f: impl FnOnce(&Option<usize>) -> Option<usize>) -> &Self {
+        self.display_object()
+            .def
+            .modify_layout(|l| l.max_columns_and_rows.y = f(&l.max_columns_and_rows.y));
+        self
+    }
+
+    fn set_columns_reversed(&self, rev: bool) -> &Self {
+        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.set_x(rev));
+        self
+    }
+
+    fn set_rows_reversed(&self, rev: bool) -> &Self {
+        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.set_y(rev));
+        self
+    }
+
+    fn reverse_columns(&self) -> &Self {
+        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.update_x(|t| !t));
+        self
+    }
+
+    fn reverse_rows(&self) -> &Self {
+        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.update_y(|t| !t));
+        self
+    }
+
+    crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
+}
 
 
 
@@ -1677,8 +1751,8 @@ impl Model {
         *self.layout.auto_layout.borrow_mut() = layout.into();
     }
 
-    fn modify_opt_layout(&self, f: impl FnOnce(&mut Option<AutoLayout>)) {
-        f(&mut *self.layout.auto_layout.borrow_mut());
+    fn modify_opt_layout<T>(&self, f: impl FnOnce(&mut Option<AutoLayout>) -> T) -> T {
+        f(&mut *self.layout.auto_layout.borrow_mut())
     }
 
     fn refresh_layout(&self) {
@@ -1925,10 +1999,10 @@ impl Model {
         let resizing = self.layout.resizing.get_dim(x);
         // === Recomputing X-axis elements size of the X-axis horizontal layout ===
 
-        let defined_axes = opts.column_or_row_definition(x);
+        let defined_axes = opts.columns_or_rows(x);
         // FIXME: get_dim(X) here:
         let prim_axis_column_count =
-            opts.max_columns_and_rows_count.get_dim(X).unwrap_or_else(|| children.len());
+            opts.max_columns_and_rows.get_dim(X).unwrap_or_else(|| children.len());
         let unresolved_columns = if first_pass {
             let column_axes = defined_axes.iter().cycle().enumerate().take(prim_axis_column_count);
             println!("prim_axis_column_count: {}", prim_axis_column_count);
@@ -1995,7 +2069,7 @@ impl Model {
             })
             .collect_vec();
 
-        let resolved_columns = if opts.reverse_columns_and_rows.get_dim(x) {
+        let resolved_columns = if opts.reversed_columns_and_rows.get_dim(x) {
             resolved_columns.reversed()
         } else {
             resolved_columns
@@ -2320,7 +2394,7 @@ impl<T: Object + ?Sized> ObjectOps for T {}
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
 #[allow(missing_docs)]
-pub trait ObjectOps: Object {
+pub trait ObjectOps: Object + AutoLayoutOps {
     // === Transformations ===
 
     gen_object_trans!(position);
@@ -2461,7 +2535,7 @@ pub trait ObjectOps: Object {
     /// Layout children using an auto-layout algorithm.
     fn use_auto_layout(&self) -> &Self {
         let instance = self.display_object();
-        instance.def.set_layout(AutoLayout::new());
+        instance.def.set_layout(AutoLayout::default());
         self
     }
 
@@ -2469,33 +2543,6 @@ pub trait ObjectOps: Object {
     fn set_layout_manual(&self) {
         self.display_object().def.set_layout(None);
     }
-
-    fn set_gap_x(&self, value: impl Into<Unit>) -> &Self {
-        self.display_object().def.set_gap_x(value);
-        self
-    }
-
-    fn set_gap_y(&self, value: impl Into<Unit>) -> &Self {
-        self.display_object().def.set_gap_y(value);
-        self
-    }
-
-    fn set_max_columns(&self, count: usize) -> &Self {
-        self.display_object().def.set_max_columns(count);
-        self
-    }
-
-    fn reverse_columns(&self) -> &Self {
-        self.display_object().def.reverse_columns();
-        self
-    }
-
-    fn reverse_rows(&self) -> &Self {
-        self.display_object().def.reverse_rows();
-        self
-    }
-
-    crate::with_alignment_dim2_named_matrix!(gen_children_alignment_for_object);
 
 
     // === Layout properties ===
