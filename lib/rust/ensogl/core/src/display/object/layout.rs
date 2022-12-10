@@ -37,7 +37,7 @@ impl Unit {
 
     /// Resolve the unit to fixed pixel value. If the unit was set to be a fraction or percent, it
     /// will result in 0. This is mostly used in layouting algorithm.
-    pub fn resolve_fixed_only(&self) -> f32 {
+    pub fn resolve_const_only(&self) -> f32 {
         match self {
             Unit::Pixels(value) => *value,
             Unit::Fraction(_) => 0.0,
@@ -60,13 +60,13 @@ impl From<i32> for Unit {
 
 
 
-// ================
-// === Resizing ===
-// ================
+// ============
+// === Size ===
+// ============
 
 /// The resizing of display objects.
 #[derive(Clone, Copy, Debug, Default, PartialEq, From)]
-pub enum Resizing {
+pub enum Size {
     /// In this mode, the display object size will be set to the size of its content. In case of
     /// siplay object with no children, their size will be set to 0.
     #[default]
@@ -75,81 +75,44 @@ pub enum Resizing {
     Fixed(Unit),
 }
 
-impl Resizing {
-    /// Checks whether the resizing mode is [`Resizing::Hug`].
+impl Size {
+    /// Checks whether the resizing mode is [`Size::Hug`].
     pub fn is_hug(self) -> bool {
-        self == Resizing::Hug
+        self == Size::Hug
     }
 
-    /// Checks whether the resizing mode is [`Resizing::Fixed`].
+    /// Checks whether the resizing mode is [`Size::Fixed`].
     pub fn is_fixed(self) -> bool {
         match self {
-            Resizing::Fixed(_) => true,
+            Size::Fixed(_) => true,
             _ => false,
         }
     }
 }
 
-impl From<f32> for Resizing {
+impl From<f32> for Size {
     fn from(value: f32) -> Self {
         Self::Fixed(Unit::from(value))
     }
 }
 
-impl From<i32> for Resizing {
+impl From<i32> for Size {
     fn from(value: i32) -> Self {
         Self::Fixed(Unit::from(value))
     }
 }
 
-impl From<Fraction> for Resizing {
+impl From<Fraction> for Size {
     fn from(value: Fraction) -> Self {
         Self::Fixed(Unit::from(value))
     }
 }
 
-impl From<Percent> for Resizing {
+impl From<Percent> for Size {
     fn from(value: Percent) -> Self {
         Self::Fixed(Unit::from(value))
     }
 }
-
-/// Just like `Into<Vector2<Resizing>>`. It is needed because of Rust limitations regarding
-/// implementing traits for structs not owned by this crate.
-#[allow(missing_docs)]
-pub trait IntoResizing {
-    fn into_resizing(self) -> Vector2<Resizing>;
-}
-
-impl IntoResizing for Vector2<f32> {
-    fn into_resizing(self) -> Vector2<Resizing> {
-        Vector2::new(self.x.into(), self.y.into())
-    }
-}
-
-impl IntoResizing for Vector2<Unit> {
-    fn into_resizing(self) -> Vector2<Resizing> {
-        Vector2::new(self.x.into(), self.y.into())
-    }
-}
-
-impl IntoResizing for Vector2<Resizing> {
-    fn into_resizing(self) -> Vector2<Resizing> {
-        self
-    }
-}
-
-macro_rules! impl_tuple_into_resizing {
-    ($(($a:tt, $b:tt)),*) => {$(
-        impl IntoResizing for ($a, $b) {
-            fn into_resizing(self) -> Vector2<Resizing> {
-                Vector2::new(self.0.into(), self.1.into())
-            }
-        }
-    )*};
-}
-
-impl_tuple_into_resizing!((f32, f32), (f32, Resizing), (Resizing, f32), (Resizing, Resizing));
 
 
 
@@ -187,7 +150,7 @@ impl SideSpacing<Unit> {
     }
 
     pub fn resolve_fixed(self) -> SideSpacing<f32> {
-        SideSpacing::new(self.start.resolve_fixed_only(), self.end.resolve_fixed_only())
+        SideSpacing::new(self.start.resolve_const_only(), self.end.resolve_const_only())
     }
 }
 

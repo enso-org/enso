@@ -72,17 +72,16 @@ pub struct ChildIndex(usize);
 /// Display objects can position its children automatically and then, recompute their size based on
 /// the children bounding box. There are three layouts available: manual, horizontal, and vertical.
 ///
-/// ## Resizing
-/// Every display object can be configured with a horizontal and vertical resizing mode. There are
+/// ## Size
+/// Every display object can be configured with a horizontal and vertical size mode. There are
 /// three modes available:
 /// - `Hug` (default). In this mode, the display object size will be set to the bounding box of its
 ///   children. In case of no children, the display object will be resized to (0,0). The only
-///   exception is setting the hug resizing on a display object with a manual layout. Then, its size
+///   exception is setting the hug size on a display object with a manual layout. Then, its size
 ///   will be set to the children bounding box clipped to the positive X- and Y-axis.
 /// - `Fill`. In this mode, the display object will fill the free space in its parent. If several
 ///   children are set to this mode, the free space will be divided evenly between them. If the
-///   parent resizing was set to `Hug`, all its children with resizing set to `Fill` will be resized
-///   to 0.
+///   parent size was set to `Hug`, all its children with size set to `Fill` will be resized to 0.
 /// - `Fixed`. In this mode, the display object size will be fixed. The size of children can be
 ///   smaller or bigger than the size of the parent object.
 ///
@@ -104,11 +103,11 @@ pub struct ChildIndex(usize);
 /// size is smaller than the cumulative size of its children, the children will overlap.
 ///
 /// ## Layout documentation
-/// Documentation of the layout uses drawings with graphical symbols for different resizing and
+/// Documentation of the layout uses drawings with graphical symbols for different size and
 /// layout modes. For example, the illustration below shows a ROOT display object with a horizontal
-/// layout and fixed resizing. The L child has a horiontal layout, fill horizontal resizing, and a
-/// fixed vertical resizing. The R child has a vertical layout, hug horizontal resizing, and a fill
-/// vertical resizing.
+/// layout and fixed size. The L child has a horiontal layout, fill horizontal size, and a
+/// fixed vertical size. The R child has a vertical layout, hug horizontal size, and a fill
+/// vertical size.
 ///
 /// ```text
 /// ╭▷ ROOT ──────────────────────────╮
@@ -117,10 +116,10 @@ pub struct ChildIndex(usize);
 /// │   │ │ L1  │  │   │ │ R2 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
 /// │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
 /// │   │ │     │  ▼   │ ╰────╯   ▲   │
-/// │   │ │     │  ▲   │ ╭────╮   ▼   │   Resizing Legend:             
-/// │   │ │     │  │   │ │ R1 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill resizing.
-/// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug resizing.  
-/// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed resizing.
+/// │   │ │     │  ▲   │ ╭────╮   ▼   │   Size Legend:             
+/// │   │ │     │  │   │ │ R1 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill size.
+/// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug size.  
+/// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed size.
 /// │   ╰──────────╯   ╰──────────╯   │
 /// ╰─────────────────────────────────╯
 /// ```
@@ -1286,7 +1285,7 @@ impl Debug for Instance {
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct ColumnOrRow {
-    resizing: Resizing,
+    size:     Size,
     min_size: Option<f32>,
     max_size: Option<f32>,
     grow:     Option<f32>,
@@ -1323,9 +1322,9 @@ pub struct LayoutModel {
     #[derivative(Default(value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector2())"))]
     max_size:      Cell<Vector2<Unit>>,
     min_size:      Cell<Vector2<Unit>>,
-    resizing:      Cell<Vector2<Resizing>>,
-    grow:          Cell<Vector2<f32>>,
-    shrink:        Cell<Vector2<f32>>,
+    size:          Cell<Vector2<Size>>,
+    grow_factor:   Cell<Vector2<f32>>,
+    shrink_factor: Cell<Vector2<f32>>,
     computed_size: Cell<Vector2<f32>>,
     bbox_origin:   Cell<Vector2<f32>>,
 }
@@ -1361,6 +1360,12 @@ impl Model {
     fn modify_layout(&self, f: impl FnOnce(&LayoutModel)) {
         self.dirty.transformation.set();
         f(&self.layout);
+    }
+
+    fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
+        self.modify_layout(|l| {
+            l.auto_layout.replace(layout.into());
+        });
     }
 }
 
@@ -1403,42 +1408,46 @@ macro_rules! gen_spacing_props_for_layout_model2 {
 }
 
 macro_rules! gen_prop_accessors {
-    ($name:ident : Vector2<Unit>) => {
+    ($name:ident : Vector2<$ty:ty>) => {
         paste! {
-            fn [<modify_ $name>](&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
+            fn $name(&self) -> Vector2<$ty> {
+                self.display_object().layout.$name.get()
+            }
+
+            fn [<modify_ $name>](&self, f: impl FnOnce(&mut Vector2<$ty>)) -> &Self {
                 self.display_object().modify_layout(|l| l.$name.modify_(f));
                 self
             }
 
-            fn [<set_ $name>](&self, value: impl IntoVector2<Unit>) -> &Self {
+            fn [<set_ $name>](&self, value: impl IntoVector2<$ty>) -> &Self {
                 self.[<modify_ $name>](|t| *t = value.into_vector2())
             }
 
-            fn [<update_ $name>](&self, f: impl FnOnce(Vector2<Unit>) -> Vector2<Unit>) -> &Self {
+            fn [<update_ $name>](&self, f: impl FnOnce(Vector2<$ty>) -> Vector2<$ty>) -> &Self {
                 self.[<modify_ $name>](|t| *t = f(*t))
             }
 
-            fn [<modify_ $name _x>](&self, f: impl FnOnce(&mut Unit)) -> &Self {
+            fn [<modify_ $name _x>](&self, f: impl FnOnce(&mut $ty)) -> &Self {
                 self.[<modify_ $name>](|t| f(&mut t.x))
             }
 
-            fn [<set_ $name _x>](&self, v: impl Into<Unit>) -> &Self {
+            fn [<set_ $name _x>](&self, v: impl Into<$ty>) -> &Self {
                 self.[<modify_ $name _x>](|t| *t = v.into())
             }
 
-            fn [<update_ $name _x>](&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
+            fn [<update_ $name _x>](&self, f: impl FnOnce($ty) -> $ty) -> &Self {
                 self.[<modify_ $name _x>](|t| *t = f(*t))
             }
 
-            fn [<modify_ $name _y>](&self, f: impl FnOnce(&mut Unit)) -> &Self {
+            fn [<modify_ $name _y>](&self, f: impl FnOnce(&mut $ty)) -> &Self {
                 self.[<modify_ $name>](|t| f(&mut t.y))
             }
 
-            fn [<set_ $name _y>](&self, v: impl Into<Unit>) -> &Self {
+            fn [<set_ $name _y>](&self, v: impl Into<$ty>) -> &Self {
                 self.[<modify_ $name _y>](|t| *t = v.into())
             }
 
-            fn [<update_ $name _y>](&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
+            fn [<update_ $name _y>](&self, f: impl FnOnce($ty) -> $ty) -> &Self {
                 self.[<modify_ $name _y>](|t| *t = f(*t))
             }
         }
@@ -1454,10 +1463,9 @@ pub trait LayoutOps: Object {
 
     gen_prop_accessors!(max_size: Vector2<Unit>);
     gen_prop_accessors!(min_size: Vector2<Unit>);
-
-    fn resizing(&self) -> Vector2<Resizing> {
-        self.display_object().def.layout.resizing.get()
-    }
+    gen_prop_accessors!(size: Vector2<Size>);
+    gen_prop_accessors!(grow_factor: Vector2<f32>);
+    gen_prop_accessors!(shrink_factor: Vector2<f32>);
 
     fn bbox_origin(&self) -> Vector2<f32> {
         self.display_object().def.layout.bbox_origin.get()
@@ -1467,68 +1475,53 @@ pub trait LayoutOps: Object {
         self.display_object().def.layout.computed_size.get()
     }
 
-    fn set_size(&self, size: impl IntoVector2<Unit>) -> &Self {
-        self.set_resizing(size.into_vector2());
-        self
-    }
-
-    fn set_size_x(&self, x: impl Into<Unit>) -> &Self {
-        self.modify_resizing(|t| t.x = Resizing::Fixed(x.into()));
-        self
-    }
 
     fn set_size_x_hug(&self, x: f32) -> &Self {
-        self.set_resizing((x, Resizing::Hug));
+        self.set_size((x, Size::Hug));
         self
     }
 
     fn set_size_x_to_hug(&self) -> &Self {
-        self.modify_resizing(|t| t.x = Resizing::Hug);
+        self.modify_size(|t| t.x = Size::Hug);
         self
     }
 
     fn set_size_y_to_hug(&self) -> &Self {
-        self.modify_resizing(|t| t.y = Resizing::Hug);
+        self.modify_size(|t| t.y = Size::Hug);
         self
     }
 
     fn allow_grow(&self) -> &Self {
-        self.display_object().modify_layout(|l| l.grow.set(Vector2::new(1.0, 1.0)));
-        self
+        self.set_grow_factor((1.0, 1.0))
     }
 
     fn allow_grow_x(&self) -> &Self {
-        self.display_object().modify_layout(|l| l.grow.set_x(1.0));
-        self
+        self.set_grow_factor_x(1.0)
     }
 
     fn allow_grow_y(&self) -> &Self {
-        self.display_object().modify_layout(|l| l.grow.set_y(1.0));
-        self
+        self.set_grow_factor_y(1.0)
     }
 
     fn allow_shrink(&self) -> &Self {
-        self.display_object().modify_layout(|l| l.shrink.set(Vector2::new(1.0, 1.0)));
-        self
+        self.set_shrink_factor((1.0, 1.0))
     }
 
     fn allow_shrink_x(&self) -> &Self {
-        self.display_object().modify_layout(|l| l.shrink.set_x(1.0));
-        self
+        self.set_shrink_factor_x(1.0)
     }
 
     fn allow_shrink_y(&self) -> &Self {
-        self.display_object().modify_layout(|l| l.shrink.set_y(1.0));
-        self
+        self.set_shrink_factor_y(1.0)
     }
 
     fn set_size_hug_y(&self, y: f32) -> &Self {
-        self.set_resizing((Resizing::Hug, y));
+        self.set_size((Size::Hug, y));
         self
     }
 
     fn set_size_hug(&self) -> &Self {
-        self.set_resizing((Resizing::Hug, Resizing::Hug));
+        self.set_size((Size::Hug, Size::Hug));
         self
     }
 
@@ -1536,6 +1529,7 @@ pub trait LayoutOps: Object {
         self.display_object().modify_layout(|l| l.set_margin_all(value.into()));
         self
     }
+
     fn set_margin_trbl(
         &self,
         top: impl Into<Unit>,
@@ -1553,6 +1547,7 @@ pub trait LayoutOps: Object {
         self.display_object().modify_layout(|l| l.set_padding_all(value.into()));
         self
     }
+
     fn set_padding_trbl(
         &self,
         top: impl Into<Unit>,
@@ -1564,15 +1559,6 @@ pub trait LayoutOps: Object {
             l.set_padding_trbl(top.into(), right.into(), bottom.into(), left.into())
         });
         self
-    }
-}
-
-
-
-impl Model {
-    fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
-        self.dirty.transformation.set();
-        *self.layout.auto_layout.borrow_mut() = layout.into();
     }
 }
 
@@ -1788,21 +1774,21 @@ impl Model {
 
     fn refresh_self_size(&self, first_pass: bool) {
         if first_pass {
-            let resizing = self.layout.resizing.get();
-            match resizing.x {
-                Resizing::Fixed(v) => {
+            let size = self.layout.size.get();
+            match size.x {
+                Size::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "x", self.name, v);
-                    self.layout.computed_size.set_x(v.resolve_fixed_only());
+                    self.layout.computed_size.set_x(v.resolve_const_only());
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "x", self.name);
                     self.layout.computed_size.set_x(0.0);
                 }
             }
-            match resizing.y {
-                Resizing::Fixed(v) => {
+            match size.y {
+                Size::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "y", self.name, v);
-                    self.layout.computed_size.set_y(v.resolve_fixed_only());
+                    self.layout.computed_size.set_y(v.resolve_const_only());
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "y", self.name);
@@ -1840,13 +1826,13 @@ impl Model {
 
     fn refresh_layout_manual<Dim: Copy>(&self, x: Dim, first_pass: bool)
     where
-        Vector2<Resizing>: DimSetter<Dim>,
+        Vector2<Size>: DimSetter<Dim>,
         Vector2<f32>: DimSetter<Dim>,
         Vector3<f32>: DimSetter<Dim>,
         Dim: Debug, {
         let children = self.children();
         if children.is_empty() {
-            if self.layout.resizing.get_dim(x).is_hug() {
+            if self.layout.size.get_dim(x).is_hug() {
                 println!("[M] Setting size.{:?} of {} to {}", x, self.name, 0.0);
                 self.layout.computed_size.set_dim(x, 0.0);
                 self.layout.bbox_origin.set_dim(x, 0.0);
@@ -1856,7 +1842,7 @@ impl Model {
             let mut max_x: f32 = f32::MIN;
             let mut children_to_grow = vec![];
             for child in &children {
-                if child.layout.grow.get_dim(x) > 0.0 {
+                if child.layout.grow_factor.get_dim(x) > 0.0 {
                     children_to_grow.push(child);
                 } else {
                     child.refresh_self_size(first_pass);
@@ -1872,7 +1858,7 @@ impl Model {
             }
             let new_size = max_x - min_x;
             let new_bbox_origin = min_x;
-            if self.layout.resizing.get_dim(x).is_hug() {
+            if self.layout.size.get_dim(x).is_hug() {
                 println!("[M] Setting size.{:?} of {} to {}", x, self.name, new_size);
                 self.layout.computed_size.set_dim(x, new_size);
                 self.layout.bbox_origin.set_dim(x, new_bbox_origin);
@@ -1897,12 +1883,12 @@ impl Model {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ResolvedAxis {
-    resizing: Resizing,
-    min_size: f32,
-    max_size: f32,
-    grow:     f32,
-    shrink:   f32,
-    size:     f32,
+    size:          Size,
+    min_size:      f32,
+    max_size:      f32,
+    grow:          f32,
+    shrink:        f32,
+    computed_size: f32,
 }
 
 #[derive(Debug, Deref)]
@@ -1931,34 +1917,34 @@ impl Model {
     /// │   │ │ L1  │  │   │ │ R1 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
     /// │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
     /// │   │ │     │  ▼   │ ╰────╯   ▲   ▼
-    /// │   │ │     │  ▲   │ ╭────╮   ▼   ▲   Resizing Legend:             
-    /// │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill resizing.
-    /// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug resizing.  
-    /// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed resizing.
+    /// │   │ │     │  ▲   │ ╭────╮   ▼   ▲   Size Legend:             
+    /// │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill size.
+    /// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug size.  
+    /// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed size.
     /// │   ╰──────────╯   ╰──────────╯   │
     /// ╰─────────────────────────────────╯
     /// ```
     ///
     /// 1. In the first pass, we are updating the horizontal layout.
-    ///    a) First, we are visiting the `L` object. It's X-axis resizing is set to `Fill`, so we
+    ///    a) First, we are visiting the `L` object. It's X-axis size is set to `Fill`, so we
     ///       can't determine its width yet. Neither we can update the X-axis layout of its child,
     ///       as it may depend on the `L` object width.
-    ///    b) Then, we are visiting the `R` object. It's X-axis resizing is set to `Hug`, so we need
+    ///    b) Then, we are visiting the `R` object. It's X-axis size is set to `Hug`, so we need
     ///       to visit its children to find the widest one. It's layout is set to vertical. Unlike
     ///       in the case of the `L` and `R` objects, we are computing the size in the orthogonal
     ///       direction than the layout the children are placed in.
-    ///    c) As the `ROOT` object's width resizing is set to `Fixed`, after finding the `R` object
+    ///    c) As the `ROOT` object's width size is set to `Fixed`, after finding the `R` object
     ///       width, we can compute the `L` object width.
     ///    d) Finally, we can update the `L` object children layout.
     ///
     /// 2. In the second pass, we are updating the vertical layout.
-    ///    a) First, we are visiting the `L` object. It's Y-axis resizing is set to `Hug`, so we
+    ///    a) First, we are visiting the `L` object. It's Y-axis size is set to `Hug`, so we
     ///       need to visit its children to find the tallest one.
-    ///    b) The `L1` object's Y-axis resizing is set to `Fixed`, so we can simply update its
+    ///    b) The `L1` object's Y-axis size is set to `Fixed`, so we can simply update its
     ///       height.
-    ///    c) Next, we are visiting the `R` object. It's Y-axis resizing is set to `Fill`, so we can
+    ///    c) Next, we are visiting the `R` object. It's Y-axis size is set to `Fill`, so we can
     ///       compute it, as the `ROOT` object height is fixed.
-    ///    d) Finally, we can update the `R` object children layout. Both children Y-axis resizing
+    ///    d) Finally, we can update the `R` object children layout. Both children Y-axis size
     ///       is set to `Fill`, so they are equally using the available space.
     ///
     /// Please note, that this algorithm could not be realized in a single pass, as we can't compute
@@ -2007,10 +1993,14 @@ impl Model {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
     // FIXME: sizes of elements can be now not pixels - its not working now.
+    // FIXME: origin points
+    // FIXME: testing integration
+    // FIXME: demo scene
+    // FIXME: docs
     #[inline(always)]
     fn refresh_linear_layout<Dim: Copy>(&self, x: Dim, opts: &AutoLayout, first_pass: bool)
     where
-        Vector2<Resizing>: DimSetter<Dim>,
+        Vector2<Size>: DimSetter<Dim>,
         Vector2<alignment::OptDim1>: DimSetter<Dim>,
         Vector2<alignment::Dim1>: DimSetter<Dim>,
         Vector2<SideSpacing>: DimSetter<Dim>,
@@ -2025,7 +2015,7 @@ impl Model {
         if children.is_empty() {
             return;
         }
-        let resizing = self.layout.resizing.get_dim(x);
+        let size = self.layout.size.get_dim(x);
         // === Recomputing X-axis elements size of the X-axis horizontal layout ===
 
         let defined_axes = opts.columns_or_rows(x);
@@ -2073,30 +2063,30 @@ impl Model {
                 let mut shrink = 0.0;
                 let mut min_size = 0.0;
                 let mut max_size = f32::INFINITY;
-                let mut size = 0.0;
+                let mut computed_size = 0.0;
                 for child in &children {
                     child.refresh_self_size(first_pass);
-                    if child.layout.resizing.get_dim(x).is_hug() {
+                    if child.layout.size.get_dim(x).is_hug() {
                         child.refresh_layout_internal(first_pass);
                     }
                     let child_margin = child.layout.margin.get_dim(x).resolve_fixed();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
-                    grow += child.layout.grow.get_dim(x);
-                    shrink += child.layout.shrink.get_dim(x);
-                    // FIXME: resolve_fixed_only here
+                    grow += child.layout.grow_factor.get_dim(x);
+                    shrink += child.layout.shrink_factor.get_dim(x);
+                    // FIXME: resolve_const_only here
                     min_size =
-                        f32::max(min_size, child.layout.min_size.get_dim(x).resolve_fixed_only());
+                        f32::max(min_size, child.layout.min_size.get_dim(x).resolve_const_only());
                     max_size =
-                        f32::min(max_size, child.layout.max_size.get_dim(x).resolve_fixed_only());
-                    size = f32::max(size, child_size);
+                        f32::min(max_size, child.layout.max_size.get_dim(x).resolve_const_only());
+                    computed_size = f32::max(computed_size, child_size);
                 }
                 let child_count = children.len() as f32;
                 let grow = axis.grow.unwrap_or_else(|| grow / child_count);
                 let shrink = axis.shrink.unwrap_or_else(|| shrink / child_count);
                 let min_size = axis.min_size.unwrap_or(min_size);
                 let max_size = axis.max_size.unwrap_or(max_size);
-                let resizing = axis.resizing;
-                let axis = ResolvedAxis { resizing, grow, shrink, size, min_size, max_size };
+                let size = axis.size;
+                let axis = ResolvedAxis { size, grow, shrink, computed_size, min_size, max_size };
                 ResolvedColumn { axis, children }
             })
             .collect_vec();
@@ -2114,18 +2104,18 @@ impl Model {
         let padding_def = self.layout.padding.get_dim(x);
         let gap_count = (resolved_columns.len() - 1) as f32;
         let fixed_padding = padding_def.resolve_fixed().total();
-        let fixed_gap = gap_count * gap_def.resolve_fixed_only();
+        let fixed_gap = gap_count * gap_def.resolve_const_only();
         let mut space_left_with_pref_sizes =
             self.layout.computed_size.get_dim(x) - fixed_padding - fixed_gap;
         let mut total_grow_coeff = 0.0;
         let mut total_shrink_coeff = 0.0;
         for column in &resolved_columns {
-            space_left_with_pref_sizes -= column.size;
+            space_left_with_pref_sizes -= column.computed_size;
             total_grow_coeff += column.grow;
             total_shrink_coeff += column.shrink;
         }
 
-        if self.layout.resizing.get_dim(x).is_hug() && space_left_with_pref_sizes < 0.0 {
+        if self.layout.size.get_dim(x).is_hug() && space_left_with_pref_sizes < 0.0 {
             self.layout.computed_size.update_dim(x, |t| t - space_left_with_pref_sizes);
             space_left_with_pref_sizes = 0.0;
         }
@@ -2150,7 +2140,7 @@ impl Model {
         for column in &resolved_columns {
             let grow_size = column.grow * grow_coeff;
             let shrink_size = column.shrink * shrink_coeff;
-            let column_size = column.size + grow_size + shrink_size;
+            let column_size = column.computed_size + grow_size + shrink_size;
             let column_size = f32::max(column.min_size, column_size);
             let column_size = f32::min(column.max_size, column_size);
             space_left -= column_size;
@@ -2162,27 +2152,27 @@ impl Model {
                 let margin = unresolved_margin.resolve(self_size, child_unused_space);
                 let column_size_minus_margin = column_size - margin.start - margin.end;
 
-                let child_can_grow = child.layout.grow.get_dim(x) > 0.0;
-                let child_can_shrink = child.layout.shrink.get_dim(x) > 0.0;
+                let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;
+                let child_can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
                 if child_can_grow && child_size < column_size_minus_margin {
-                    // FIXME: resolve_fixed_only here
+                    // FIXME: resolve_const_only here
                     let size = f32::min(
                         column_size_minus_margin,
-                        child.layout.max_size.get_dim(x).resolve_fixed_only(),
+                        child.layout.max_size.get_dim(x).resolve_const_only(),
                     );
                     child.layout.computed_size.set_dim(x, size);
                 }
                 if child_can_shrink && child_size > column_size_minus_margin {
-                    // FIXME: resolve_fixed_only here
+                    // FIXME: resolve_const_only here
                     let size = f32::max(
                         column_size_minus_margin,
-                        child.layout.min_size.get_dim(x).resolve_fixed_only(),
+                        child.layout.min_size.get_dim(x).resolve_const_only(),
                     );
                     child.layout.computed_size.set_dim(x, size);
                 }
                 if child_size != child.layout.computed_size.get_dim(x) {
                     // Child size changed. There is one case when this might be a second call to
-                    // refresh layout of the same child. If the child resizing is set to hug, the
+                    // refresh layout of the same child. If the child size is set to hug, the
                     // child can grow, and the column size is greater than earlier computed hugged
                     // child size, we need to refresh the child layout again.
                     child.refresh_layout_internal(first_pass);
@@ -2603,44 +2593,6 @@ pub trait GenericLayoutApi: Object {
     /// Layout setter.
     fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
         self.display_object().def.set_layout(layout)
-    }
-
-    fn modify_resizing(&self, f: impl FnOnce(&mut Vector2<Resizing>)) -> &Self {
-        self.display_object().modify_layout(|l| l.resizing.modify_(f));
-        self
-    }
-
-    /// Resizing setter.
-    fn set_resizing(&self, v: impl IntoResizing) -> &Self {
-        self.modify_resizing(|t| *t = v.into_resizing())
-    }
-
-    fn update_resizing(&self, f: impl FnOnce(Vector2<Resizing>) -> Vector2<Resizing>) -> &Self {
-        self.modify_resizing(|t| *t = f(*t))
-    }
-
-    fn modify_resizing_x(&self, f: impl FnOnce(&mut Resizing)) -> &Self {
-        self.modify_resizing(|t| f(&mut t.x))
-    }
-
-    fn set_resizing_x(&self, v: impl Into<Resizing>) -> &Self {
-        self.modify_resizing_x(|t| *t = v.into())
-    }
-
-    fn update_resizing_x(&self, f: impl FnOnce(Resizing) -> Resizing) -> &Self {
-        self.modify_resizing_x(|t| *t = f(*t))
-    }
-
-    fn modify_resizing_y(&self, f: impl FnOnce(&mut Resizing)) -> &Self {
-        self.modify_resizing(|t| f(&mut t.y))
-    }
-
-    fn set_resizing_y(&self, v: impl Into<Resizing>) -> &Self {
-        self.modify_resizing_y(|t| *t = v.into())
-    }
-
-    fn update_resizing_y(&self, f: impl FnOnce(Resizing) -> Resizing) -> &Self {
-        self.modify_resizing_y(|t| *t = f(*t))
     }
 }
 
@@ -3844,7 +3796,7 @@ mod layout_tests {
     // /// ╰─────────────────────────────────────────────╯
     // /// ```
     // #[test]
-    // fn test_horizontal_hug_resizing() {
+    // fn test_horizontal_hug_size() {
     //     let test = TestFlatChildren3::new();
     //     test.root.use_auto_layout().padding_xy(3.0, 5.0).spacing(1.0);
     //     test.node1.set_size((20.0, 200.0));
@@ -3879,7 +3831,7 @@ mod layout_tests {
     // /// ╰─────────────────╯
     // /// ```
     // #[test]
-    // fn test_vertical_hug_resizing() {
+    // fn test_vertical_hug_size() {
     //     let test = TestFlatChildren3::new();
     //     test.root.set_layout_vertical().padding_xy(3.0, 5.0).spacing(1.0);
     //     test.node1.set_size((20.0, 200.0));
@@ -3905,7 +3857,7 @@ mod layout_tests {
     // /// ╰─────────────────────────────────────────╯
     // /// ```
     // #[test]
-    // fn test_horizontal_nested_hug_resizing() {
+    // fn test_horizontal_nested_hug_size() {
     //     let test = TestFlatChildren3::new();
     //     test.root.use_auto_layout();
     //     test.node1.set_size_x_hug(200.0);
@@ -3939,7 +3891,7 @@ mod layout_tests {
     // /// ╰───────────────╯
     // /// ```
     // #[test]
-    // fn test_vertical_nested_hug_resizing() {
+    // fn test_vertical_nested_hug_size() {
     //     let test = TestFlatChildren3::new();
     //     test.root.set_layout_vertical();
     //     test.node1.set_size_hug_y(200.0);
