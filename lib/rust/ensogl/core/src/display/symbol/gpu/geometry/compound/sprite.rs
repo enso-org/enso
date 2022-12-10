@@ -132,7 +132,7 @@ impl SizedObject {
             eval_ display_object.on_updated ([transform, size] {
                 if let Some(display_object) = weak_display_object.upgrade() {
                     transform.set(display_object.transformation_matrix());
-                    size.set(display_object.size());
+                    size.set(display_object.computed_size());
                 }
             });
         }

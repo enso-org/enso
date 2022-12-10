@@ -1260,7 +1260,7 @@ impl Debug for InstanceDef {
             // .field("is_dirty", &self.dirty.check_all())
             // .field("dirty", &self.dirty)
             .field("position", &self.position().xy().as_slice())
-            .field("size", &self.layout.size.get().as_slice())
+            .field("size", &self.layout.computed_size.get().as_slice())
             // .field("layout", &self.layout)
             .finish()
     }
@@ -1316,18 +1316,18 @@ pub struct Row {
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
 pub struct LayoutModel {
-    auto_layout: RefCell<Option<AutoLayout>>,
-    alignment:   Cell<alignment::OptDim2>,
-    margin:      Cell<Vector2<SideSpacing>>,
-    padding:     Cell<Vector2<SideSpacing>>,
+    auto_layout:   RefCell<Option<AutoLayout>>,
+    alignment:     Cell<alignment::OptDim2>,
+    margin:        Cell<Vector2<SideSpacing>>,
+    padding:       Cell<Vector2<SideSpacing>>,
     #[derivative(Default(value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector2())"))]
-    max_size:    Cell<Vector2<Unit>>,
-    min_size:    Cell<Vector2<Unit>>,
-    resizing:    Cell<Vector2<Resizing>>,
-    grow:        Cell<Vector2<f32>>,
-    shrink:      Cell<Vector2<f32>>,
-    size:        Cell<Vector2<f32>>,
-    bbox_origin: Cell<Vector2<f32>>,
+    max_size:      Cell<Vector2<Unit>>,
+    min_size:      Cell<Vector2<Unit>>,
+    resizing:      Cell<Vector2<Resizing>>,
+    grow:          Cell<Vector2<f32>>,
+    shrink:        Cell<Vector2<f32>>,
+    computed_size: Cell<Vector2<f32>>,
+    bbox_origin:   Cell<Vector2<f32>>,
 }
 
 
@@ -1463,8 +1463,8 @@ pub trait LayoutOps: Object {
         self.display_object().def.layout.bbox_origin.get()
     }
 
-    fn size(&self) -> Vector2<f32> {
-        self.display_object().def.layout.size.get()
+    fn computed_size(&self) -> Vector2<f32> {
+        self.display_object().def.layout.computed_size.get()
     }
 
     fn set_size(&self, size: impl IntoVector2<Unit>) -> &Self {
@@ -1792,21 +1792,21 @@ impl Model {
             match resizing.x {
                 Resizing::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "x", self.name, v);
-                    self.layout.size.set_x(v.resolve_fixed_only());
+                    self.layout.computed_size.set_x(v.resolve_fixed_only());
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "x", self.name);
-                    self.layout.size.set_x(0.0);
+                    self.layout.computed_size.set_x(0.0);
                 }
             }
             match resizing.y {
                 Resizing::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "y", self.name, v);
-                    self.layout.size.set_y(v.resolve_fixed_only());
+                    self.layout.computed_size.set_y(v.resolve_fixed_only());
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "y", self.name);
-                    self.layout.size.set_y(0.0);
+                    self.layout.computed_size.set_y(0.0);
                 }
             }
         }
@@ -1848,7 +1848,7 @@ impl Model {
         if children.is_empty() {
             if self.layout.resizing.get_dim(x).is_hug() {
                 println!("[M] Setting size.{:?} of {} to {}", x, self.name, 0.0);
-                self.layout.size.set_dim(x, 0.0);
+                self.layout.computed_size.set_dim(x, 0.0);
                 self.layout.bbox_origin.set_dim(x, 0.0);
             }
         } else {
@@ -1862,7 +1862,7 @@ impl Model {
                     child.refresh_self_size(first_pass);
                     child.refresh_layout_internal(first_pass);
                     let child_pos = child.position().get_dim(x);
-                    let child_size = child.size().get_dim(x);
+                    let child_size = child.computed_size().get_dim(x);
                     let child_bbox_origin = child.bbox_origin().get_dim(x);
                     let child_min_x = child_pos + child_bbox_origin;
                     let child_max_x = child_min_x + child_size;
@@ -1874,7 +1874,7 @@ impl Model {
             let new_bbox_origin = min_x;
             if self.layout.resizing.get_dim(x).is_hug() {
                 println!("[M] Setting size.{:?} of {} to {}", x, self.name, new_size);
-                self.layout.size.set_dim(x, new_size);
+                self.layout.computed_size.set_dim(x, new_size);
                 self.layout.bbox_origin.set_dim(x, new_bbox_origin);
             } else {
                 self.layout.bbox_origin.set_dim(x, 0.0);
@@ -1885,9 +1885,9 @@ impl Model {
                     "[M] Setting size.{:?} of {} to {}",
                     x,
                     child.name,
-                    self.layout.size.get_dim(x)
+                    self.layout.computed_size.get_dim(x)
                 );
-                child.layout.size.set_dim(x, self.layout.size.get_dim(x));
+                child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
                 child.refresh_layout_internal(first_pass);
             }
         }
@@ -2080,7 +2080,7 @@ impl Model {
                         child.refresh_layout_internal(first_pass);
                     }
                     let child_margin = child.layout.margin.get_dim(x).resolve_fixed();
-                    let child_size = child.layout.size.get_dim(x) + child_margin.total();
+                    let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
                     grow += child.layout.grow.get_dim(x);
                     shrink += child.layout.shrink.get_dim(x);
                     // FIXME: resolve_fixed_only here
@@ -2116,7 +2116,7 @@ impl Model {
         let fixed_padding = padding_def.resolve_fixed().total();
         let fixed_gap = gap_count * gap_def.resolve_fixed_only();
         let mut space_left_with_pref_sizes =
-            self.layout.size.get_dim(x) - fixed_padding - fixed_gap;
+            self.layout.computed_size.get_dim(x) - fixed_padding - fixed_gap;
         let mut total_grow_coeff = 0.0;
         let mut total_shrink_coeff = 0.0;
         for column in &resolved_columns {
@@ -2126,11 +2126,11 @@ impl Model {
         }
 
         if self.layout.resizing.get_dim(x).is_hug() && space_left_with_pref_sizes < 0.0 {
-            self.layout.size.update_dim(x, |t| t - space_left_with_pref_sizes);
+            self.layout.computed_size.update_dim(x, |t| t - space_left_with_pref_sizes);
             space_left_with_pref_sizes = 0.0;
         }
 
-        let self_size = self.layout.size.get_dim(x);
+        let self_size = self.layout.computed_size.get_dim(x);
         let padding = padding_def.resolve(self_size, space_left_with_pref_sizes);
         let gap = gap_def.resolve(self_size, space_left_with_pref_sizes);
         let total_gap = gap_count * gap;
@@ -2156,7 +2156,7 @@ impl Model {
             space_left -= column_size;
             for child in &column.children {
                 println!(">> child: {:?}", child);
-                let child_size = child.layout.size.get_dim(x);
+                let child_size = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size - child_size);
                 let unresolved_margin = child.layout.margin.get_dim(x);
                 let margin = unresolved_margin.resolve(self_size, child_unused_space);
@@ -2170,7 +2170,7 @@ impl Model {
                         column_size_minus_margin,
                         child.layout.max_size.get_dim(x).resolve_fixed_only(),
                     );
-                    child.layout.size.set_dim(x, size);
+                    child.layout.computed_size.set_dim(x, size);
                 }
                 if child_can_shrink && child_size > column_size_minus_margin {
                     // FIXME: resolve_fixed_only here
@@ -2178,9 +2178,9 @@ impl Model {
                         column_size_minus_margin,
                         child.layout.min_size.get_dim(x).resolve_fixed_only(),
                     );
-                    child.layout.size.set_dim(x, size);
+                    child.layout.computed_size.set_dim(x, size);
                 }
-                if child_size != child.layout.size.get_dim(x) {
+                if child_size != child.layout.computed_size.get_dim(x) {
                     // Child size changed. There is one case when this might be a second call to
                     // refresh layout of the same child. If the child resizing is set to hug, the
                     // child can grow, and the column size is greater than earlier computed hugged
@@ -2188,7 +2188,7 @@ impl Model {
                     child.refresh_layout_internal(first_pass);
                 }
                 let child_unused_space =
-                    f32::max(0.0, column_size_minus_margin - child.layout.size.get_dim(x));
+                    f32::max(0.0, column_size_minus_margin - child.layout.computed_size.get_dim(x));
                 let def_alignment = opts.children_alignment.get_dim(x);
                 let alignment = child.layout.alignment.get().get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
@@ -3331,7 +3331,7 @@ mod layout_tests {
                 }
 
                 fn assert_root_size(&self, x:f32, y:f32) -> &Self {
-                    assert_eq!(self.root.size().as_slice(), &[x,y]);
+                    assert_eq!(self.root.computed_size().as_slice(), &[x,y]);
                     self
                 }
 
@@ -3342,7 +3342,7 @@ mod layout_tests {
                     }
 
                     fn [<assert_node $num _size>](&self, x:f32, y:f32) -> &Self {
-                        assert_eq!(self.[<node $num>].size().as_slice(), &[x,y]);
+                        assert_eq!(self.[<node $num>].computed_size().as_slice(), &[x,y]);
                         self
                     }
                 )*
@@ -3421,7 +3421,7 @@ mod layout_tests {
 
         root.update(&world.default_scene);
 
-        println!("L size: {:?}", l.size());
+        println!("L size: {:?}", l.computed_size());
         assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
         assert_eq!(l.position().xy(), Vector2(0.0, 3.0));
         assert_eq!(r.position().xy(), Vector2(7.0, 0.0));
@@ -3429,11 +3429,11 @@ mod layout_tests {
         assert_eq!(r1.position().xy(), Vector2(0.0, 0.0));
         assert_eq!(r2.position().xy(), Vector2(0.0, 5.0));
 
-        assert_eq!(root.size(), Vector2(10.0, 10.0));
-        assert_eq!(l.size(), Vector2(7.0, 4.0));
-        assert_eq!(r.size(), Vector2(3.0, 10.0));
-        assert_eq!(r1.size(), Vector2(2.0, 5.0));
-        assert_eq!(r2.size(), Vector2(3.0, 5.0));
+        assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
+        assert_eq!(l.computed_size(), Vector2(7.0, 4.0));
+        assert_eq!(r.computed_size(), Vector2(3.0, 10.0));
+        assert_eq!(r1.computed_size(), Vector2(2.0, 5.0));
+        assert_eq!(r2.computed_size(), Vector2(3.0, 5.0));
     }
 
     /// ```text
@@ -3643,7 +3643,7 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(1.0, 0.0)
             .assert_node3_position(7.0, 0.0);
-        assert_eq!(node2_1.size(), Vector2(1.0, 1.0));
+        assert_eq!(node2_1.computed_size(), Vector2(1.0, 1.0));
         assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
     }
 
