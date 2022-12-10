@@ -1,5 +1,6 @@
 package org.enso.table.data.index;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.ArrayList;
@@ -52,14 +53,10 @@ public abstract class MultiValueKeyBase {
     return hasFloatValues;
   }
 
-  protected boolean isFloatingPoint(Object value) {
-    return value instanceof Double || value instanceof Float;
-  }
-
   private boolean findFloats() {
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
-      if (isFloatingPoint(value)) {
+      if (NumericConverter.isDecimalLike(value)) {
         return true;
       }
     }
@@ -74,7 +71,7 @@ public abstract class MultiValueKeyBase {
     List<Integer> result = new ArrayList<>();
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
-      if (isFloatingPoint(value)) {
+      if (NumericConverter.isDecimalLike(value)) {
         result.add(i);
       }
     }

@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 
@@ -37,7 +38,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
 
       Object value = this.get(i);
       if (value != null) {
-        hasFloatValues = hasFloatValues || isFloatingPoint(value);
+        hasFloatValues = hasFloatValues || NumericConverter.isDecimalLike(value);
         Object folded = foldObject(value);
         h += folded.hashCode();
       }

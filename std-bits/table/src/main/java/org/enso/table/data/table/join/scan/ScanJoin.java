@@ -34,10 +34,10 @@ public class ScanJoin implements JoinStrategy {
     for (int l = 0; l < ls; ++l) {
       for (int r = 0; r < rs; ++r) {
         boolean match = true;
-        for (Matcher matcher : matchers) {
+        checkMatch: for (Matcher matcher : matchers) {
           if (!matcher.matches(l, r)) {
             match = false;
-            break;
+            break checkMatch;
           }
         }
 
