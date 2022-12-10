@@ -120,3 +120,56 @@ macro_rules! impl_tuple_into_resizing {
 }
 
 impl_tuple_into_resizing!((f32, f32), (f32, Resizing), (Resizing, f32), (Resizing, Resizing));
+
+
+
+// ===================
+// === SideSpacing ===
+// ===================
+
+/// Data model used for expressing margin and padding.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[allow(missing_docs)]
+pub struct SideSpacing<T = Unit> {
+    pub start: T,
+    pub end:   T,
+}
+
+impl<T> SideSpacing<T> {
+    /// Constructor.
+    pub fn new(start: T, end: T) -> Self {
+        Self { start, end }
+    }
+
+    /// A sum of start and end values.
+    pub fn total(self) -> T
+    where T: Add<Output = T> {
+        self.start + self.end
+    }
+}
+
+impl SideSpacing<Unit> {
+    pub fn resolve(self, parent_size: f32, free_space: f32) -> SideSpacing<f32> {
+        SideSpacing::new(
+            self.start.resolve(parent_size, free_space),
+            self.end.resolve(parent_size, free_space),
+        )
+    }
+
+    pub fn resolve_fixed(self) -> SideSpacing<f32> {
+        SideSpacing::new(self.start.resolve_fixed_only(), self.end.resolve_fixed_only())
+    }
+}
+
+impl<T: Copy> From<T> for SideSpacing<T> {
+    fn from(value: T) -> Self {
+        Self { start: value, end: value }
+    }
+}
+
+#[macro_export]
+macro_rules! with_display_object_side_spacing_matrix {
+    ($f:path $([$($args:tt)*])?) => {
+        $f! { $([$($args)*])? [[left x start] [right x end] [bottom y start] [top y end]] }
+    }
+}

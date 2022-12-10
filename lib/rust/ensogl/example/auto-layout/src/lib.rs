@@ -69,7 +69,7 @@ pub fn main() {
 
     let root = display::object::Instance::new();
     root.set_size(Vector2::new(300.0, 100.0));
-    root.set_layout_horizontal();
+    root.use_auto_layout();
     root.add_child(&rect1);
     root.add_child(&rect2);
     world.add_child(&root);

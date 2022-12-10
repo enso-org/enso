@@ -33,8 +33,8 @@ macro_rules! _cartesian_impl {
     ([$f:path] $out:tt [] $b:tt $init_b:tt) => {
         $f!{ $out }
     };
-    ([$f:path [$args:tt]] $out:tt [] $b:tt $init_b:tt) => {
-        $f!{ [$args] $out }
+    ([$f:path [$($args:tt)*]] $out:tt [] $b:tt $init_b:tt) => {
+        $f!{ [$($args)*] $out }
     };
     ($f:tt $out:tt [$a:tt $($at:tt)*] [] $init_b:tt) => {
         $crate::_cartesian_impl!{ $f $out [$($at)*] $init_b $init_b }
