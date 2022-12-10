@@ -1293,14 +1293,276 @@ pub struct ColumnOrRow {
     shrink:   Option<f32>,
 }
 
+/// The auto-layout column definition.
 #[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
 pub struct Column {
     def: ColumnOrRow,
 }
 
+/// The auto-layout row definition.
 #[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
 pub struct Row {
     def: ColumnOrRow,
+}
+
+
+
+// ===================
+// === LayoutModel ===
+// ===================
+
+/// Layout properties of this display object. It can be considered similar to the [`AutoLayout`]
+/// struct, which describes the layout properties of children.
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
+pub struct LayoutModel {
+    auto_layout: RefCell<Option<AutoLayout>>,
+    alignment:   Cell<alignment::OptDim2>,
+    margin:      Cell<Vector2<SideSpacing>>,
+    padding:     Cell<Vector2<SideSpacing>>,
+    min_size:    Cell<Vector2<f32>>,
+    #[derivative(Default(value = "Cell::new(Vector2(f32::INFINITY, f32::INFINITY))"))]
+    max_size:    Cell<Vector2<f32>>,
+    resizing:    Cell<Vector2<Resizing>>,
+    grow:        Cell<Vector2<f32>>,
+    shrink:      Cell<Vector2<f32>>,
+    size:        Cell<Vector2<f32>>,
+    bbox_origin: Cell<Vector2<f32>>,
+}
+
+
+// === Margin and padding ===
+
+impl LayoutModel {
+    pub fn set_margin_all(&self, value: Unit) {
+        let margin = SideSpacing::from(value);
+        self.margin.set(Vector2(margin, margin));
+    }
+
+    pub fn set_margin_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
+        let horizontal = SideSpacing::new(left, right);
+        let vertical = SideSpacing::new(bottom, top);
+        self.margin.set(Vector2(horizontal, vertical));
+    }
+
+    pub fn set_padding_all(&self, value: Unit) {
+        let padding = SideSpacing::from(value);
+        self.padding.set(Vector2(padding, padding));
+    }
+
+    pub fn set_padding_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
+        let horizontal = SideSpacing::new(left, right);
+        let vertical = SideSpacing::new(bottom, top);
+        self.padding.set(Vector2(horizontal, vertical));
+    }
+}
+
+impl Model {
+    fn modify_layout(&self, f: impl FnOnce(&LayoutModel)) {
+        self.dirty.transformation.set();
+        f(&self.layout);
+    }
+}
+
+macro_rules! gen_alignment_setters {
+    ([$([$name:ident $x:tt $y:tt])*]) => {
+        paste! {
+            $(
+                /// Alignment setter.
+                fn [<align_ $name>](&self)  -> &Self {
+                    self.display_object().modify_layout(|l| {
+                        l.alignment.modify(|t| t.[<align_ $name>]());
+                    });
+                    self
+                }
+            )*
+        }
+    }
+}
+
+macro_rules! gen_spacing_props_for_layout_model2 {
+    ([$tp: ident] [ $([$name:ident $axis:ident $loc:ident])* ]) => { paste! { $(
+        /// Spacing setter.
+        fn [<modify_ $tp _ $name>](&self, f: impl FnOnce(&mut Unit)) -> &Self {
+            self.display_object().modify_layout(|layout| {
+                layout.$tp.modify(|t| f(&mut t.$axis.$loc));
+            });
+            self
+        }
+
+        /// Spacing setter.
+        fn [<set_ $tp _ $name>](&self, value: impl Into<Unit>) -> &Self {
+            self.[<modify_ $tp _ $name>](|t| *t = value.into())
+        }
+
+        /// Spacing getter.
+        fn [<update_ $tp _ $name>](&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
+            self.[<modify_ $tp _ $name>](|t| *t = f(*t))
+        }
+    )*}}
+}
+
+
+impl<T: Object + ?Sized> LayoutOps for T {}
+pub trait LayoutOps: Object {
+    crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_alignment_setters);
+    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[margin]);
+    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[padding]);
+    
+    fn resizing(&self) -> Vector2<Resizing> {
+        self.display_object().def.layout.resizing.get()
+    }
+
+    fn modify_resizing(&self, f: impl FnOnce(&mut Vector2<Resizing>)) -> &Self {
+        self.display_object().modify_layout(|l| l.resizing.modify_(f));
+        self
+    }
+
+    fn update_resizing(&self, f: impl FnOnce(Vector2<Resizing>) -> Vector2<Resizing>) -> &Self {
+        self.display_object().modify_layout(|l| l.resizing.update_(f));
+        self
+    }
+
+    fn set_resizing_x(&self, t: impl Into<Resizing>) -> &Self {
+        self.display_object().modify_layout(|l| l.resizing.set_x(t.into()));
+        self
+    }
+
+    fn modify_max_size(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
+        self.display_object().modify_layout(|l| l.max_size.modify_(f));
+        self
+    }
+
+    fn modify_min_size(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
+        self.display_object().modify_layout(|l| l.min_size.modify_(f));
+        self
+    }
+
+    fn bbox_origin(&self) -> Vector2<f32> {
+        self.display_object().def.layout.bbox_origin.get()
+    }
+
+    fn size(&self) -> Vector2<f32> {
+        self.display_object().def.layout.size.get()
+    }
+
+    fn set_max_size_x(&self, x: f32) -> &Self {
+        self.modify_max_size(|t| t.x = x);
+        self
+    }
+
+    fn set_min_size_x(&self, x: f32) -> &Self {
+        self.modify_min_size(|t| t.x = x);
+        self
+    }
+
+    fn set_size(&self, size: impl IntoVector2<f32>) -> &Self {
+        self.set_resizing(size.into_vector2());
+        self
+    }
+
+    fn set_size_x(&self, x: f32) -> &Self {
+        self.modify_resizing(|t| t.x = Resizing::Fixed(x));
+        self
+    }
+
+    fn set_size_x_hug(&self, x: f32) -> &Self {
+        self.set_resizing((x, Resizing::Hug));
+        self
+    }
+
+    fn set_size_x_to_hug(&self) -> &Self {
+        self.modify_resizing(|t| t.x = Resizing::Hug);
+        self
+    }
+
+    fn set_size_y_to_hug(&self) -> &Self {
+        self.modify_resizing(|t| t.y = Resizing::Hug);
+        self
+    }
+
+    fn allow_grow(&self) -> &Self {
+        self.display_object().modify_layout(|l| l.grow.set(Vector2::new(1.0, 1.0)));
+        self
+    }
+
+    fn allow_grow_x(&self) -> &Self {
+        self.display_object().modify_layout(|l| l.grow.set_x(1.0));
+        self
+    }
+
+    fn allow_grow_y(&self) -> &Self {
+        self.display_object().modify_layout(|l| l.grow.set_y(1.0));
+        self
+    }
+
+    fn allow_shrink(&self) -> &Self {
+        self.display_object().modify_layout(|l| l.shrink.set(Vector2::new(1.0, 1.0)));
+        self
+    }
+
+    fn allow_shrink_x(&self) -> &Self {
+        self.display_object().modify_layout(|l| l.shrink.set_x(1.0));
+        self
+    }
+
+    fn allow_shrink_y(&self) -> &Self {
+        self.display_object().modify_layout(|l| l.shrink.set_y(1.0));
+        self
+    }
+
+    fn set_size_hug_y(&self, y: f32) -> &Self {
+        self.set_resizing((Resizing::Hug, y));
+        self
+    }
+
+    fn set_size_hug(&self) -> &Self {
+        self.set_resizing((Resizing::Hug, Resizing::Hug));
+        self
+    }
+
+    fn set_margin_all(&self, value: impl Into<Unit>) -> &Self {
+        self.display_object().modify_layout(|l| l.set_margin_all(value.into()));
+        self
+    }
+    fn set_margin_trbl(
+        &self,
+        top: impl Into<Unit>,
+        right: impl Into<Unit>,
+        bottom: impl Into<Unit>,
+        left: impl Into<Unit>,
+    ) -> &Self {
+        self.display_object().modify_layout(|l| {
+            l.set_margin_trbl(top.into(), right.into(), bottom.into(), left.into())
+        });
+        self
+    }
+
+    fn set_padding_all(&self, value: impl Into<Unit>) -> &Self {
+        self.display_object().modify_layout(|l| l.set_padding_all(value.into()));
+        self
+    }
+    fn set_padding_trbl(
+        &self,
+        top: impl Into<Unit>,
+        right: impl Into<Unit>,
+        bottom: impl Into<Unit>,
+        left: impl Into<Unit>,
+    ) -> &Self {
+        self.display_object().modify_layout(|l| {
+            l.set_padding_trbl(top.into(), right.into(), bottom.into(), left.into())
+        });
+        self
+    }
+}
+
+
+
+impl Model {
+    fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
+        self.dirty.transformation.set();
+        *self.layout.auto_layout.borrow_mut() = layout.into();
+    }
 }
 
 
@@ -1330,7 +1592,7 @@ pub struct AutoLayout {
 
 
 
-// === ColumnAndRowDefinitionsGetter ===
+// === Getters ===
 
 /// A trait used to get columns and rows definitions from the auto layout. The definition consist
 /// of the first column/row and other columns/rows if defined.
@@ -1361,33 +1623,28 @@ impl ColumnAndRowDefinitionsGetter<Y> for AutoLayout {
 
 #[allow(missing_docs)]
 impl Model {
-    fn modify_layout<T>(&self, f: impl FnOnce(&mut AutoLayout) -> T) -> Option<T> {
-        self.modify_opt_layout(|opt_layout| {
-            if let Some(layout) = opt_layout {
-                Some(f(layout))
-            } else {
-                warn!(
-                    "Cannot access auto-layout properties because this display object does not use \
-                    auto-layout. Use `use_auto_layout` to enable it first."
-                );
-                None
-            }
-        })
+    fn modify_auto_layout<T>(&self, f: impl FnOnce(&mut AutoLayout) -> T) -> Option<T> {
+        if let Some(layout) = &mut *self.layout.auto_layout.borrow_mut() {
+            self.dirty.transformation.set();
+            Some(f(layout))
+        } else {
+            warn!(
+                "Cannot access auto-layout properties because this display object does not use \
+                 auto-layout. Use `use_auto_layout` to enable it first."
+            );
+            None
+        }
     }
 
     fn set_children_alignment(&self, value: alignment::Dim2) {
-        self.modify_layout(|l| l.children_alignment = value);
-    }
-
-    fn set_reverse_columns_and_rows(&self, value: Vector2<bool>) {
-        self.modify_layout(|l| l.reversed_columns_and_rows = value);
+        self.modify_auto_layout(|l| l.children_alignment = value);
     }
 }
 
 
 macro_rules! gen_layout_object_builder_alignment {
     ([$([$name:ident $x:ident $y:ident])*]) => { paste! { $(
-        /// Constructor.
+        /// Children alignment setter.
         fn [<align_children_ $name>](&self) {
             self.display_object().def.set_children_alignment(alignment::Dim2::$name())
         }
@@ -1395,103 +1652,110 @@ macro_rules! gen_layout_object_builder_alignment {
 }
 
 impl<T: Object + ?Sized> AutoLayoutOps for T {}
+
+/// Options for controllin auto-layout.
 pub trait AutoLayoutOps: Object {
-    fn set_gap(&self, value: impl IntoVector2<Unit>) -> &Self {
-        self.display_object().def.modify_layout(|l| l.gap = value.into_vector2());
-        self
-    }
-
+    /// Gap setter. Gap is the space between columns and rows.
     fn modify_gap(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
-        self.display_object().def.modify_layout(|l| f(&mut l.gap));
+        self.display_object().modify_auto_layout(|l| f(&mut l.gap));
         self
     }
 
-    fn update_gap(&self, f: impl FnOnce(&Vector2<Unit>) -> Vector2<Unit>) -> &Self {
-        self.display_object().def.modify_layout(|l| l.gap = f(&l.gap));
-        self
+    /// Gap setter. Gap is the space between columns and rows.
+    fn set_gap(&self, value: impl IntoVector2<Unit>) -> &Self {
+        self.modify_gap(|v| *v = value.into_vector2())
     }
 
-    fn set_gap_x(&self, value: impl Into<Unit>) -> &Self {
-        self.display_object().def.modify_layout(|l| l.gap.x = value.into());
-        self
+    /// Gap setter. Gap is the space between columns and rows.
+    fn update_gap(&self, f: impl FnOnce(Vector2<Unit>) -> Vector2<Unit>) -> &Self {
+        self.modify_gap(|v| *v = f(*v))
     }
 
+    /// Gap setter. Gap is the space between columns and rows.
     fn modify_gap_x(&self, f: impl FnOnce(&mut Unit)) -> &Self {
-        self.display_object().def.modify_layout(|l| f(&mut l.gap.x));
+        self.display_object().modify_auto_layout(|l| f(&mut l.gap.x));
         self
     }
 
-    fn update_gap_x(&self, f: impl FnOnce(&Unit) -> Unit) -> &Self {
-        self.display_object().def.modify_layout(|l| l.gap.x = f(&l.gap.x));
-        self
+    /// Gap setter. Gap is the space between columns and rows.
+    fn set_gap_x(&self, value: impl Into<Unit>) -> &Self {
+        self.modify_gap_x(|v| *v = value.into())
     }
 
-    fn set_gap_y(&self, value: impl Into<Unit>) -> &Self {
-        self.display_object().def.modify_layout(|l| l.gap.y = value.into());
-        self
+    /// Gap setter. Gap is the space between columns and rows.
+    fn update_gap_x(&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
+        self.modify_gap_x(|v| *v = f(*v))
     }
 
+    /// Gap setter. Gap is the space between columns and rows.
     fn modify_gap_y(&self, f: impl FnOnce(&mut Unit)) -> &Self {
-        self.display_object().def.modify_layout(|l| f(&mut l.gap.y));
+        self.display_object().modify_auto_layout(|l| f(&mut l.gap.y));
         self
     }
 
-    fn update_gap_y(&self, f: impl FnOnce(&Unit) -> Unit) -> &Self {
-        self.display_object().def.modify_layout(|l| l.gap.y = f(&l.gap.y));
-        self
+    /// Gap setter. Gap is the space between columns and rows.
+    fn set_gap_y(&self, value: impl Into<Unit>) -> &Self {
+        self.modify_gap_y(|v| *v = value.into())
     }
 
-    fn set_max_columns(&self, count: impl Into<Option<usize>>) -> &Self {
-        self.display_object().def.modify_layout(|l| l.max_columns_and_rows.set_x(count.into()));
-        self
+    /// Gap setter. Gap is the space between columns and rows.
+    fn update_gap_y(&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
+        self.modify_gap_y(|v| *v = f(*v))
     }
 
+    /// Max columns setter. Controls how many items will be displayed in a column.
     fn modify_max_columns(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
-        self.display_object().def.modify_layout(|l| f(&mut l.max_columns_and_rows.x));
+        self.display_object().modify_auto_layout(|l| f(&mut l.max_columns_and_rows.x));
         self
     }
 
-    fn update_max_columns(&self, f: impl FnOnce(&Option<usize>) -> Option<usize>) -> &Self {
-        self.display_object()
-            .def
-            .modify_layout(|l| l.max_columns_and_rows.x = f(&l.max_columns_and_rows.x));
-        self
+    /// Max columns setter. Controls how many items will be displayed in a column.
+    fn set_max_columns(&self, count: impl Into<Option<usize>>) -> &Self {
+        self.modify_max_columns(|v| *v = count.into())
     }
 
-    fn set_max_rows(&self, count: impl Into<Option<usize>>) -> &Self {
-        self.display_object().def.modify_layout(|l| l.max_columns_and_rows.set_y(count.into()));
-        self
+    /// Max columns setter. Controls how many items will be displayed in a column.
+    fn update_max_columns(&self, f: impl FnOnce(Option<usize>) -> Option<usize>) -> &Self {
+        self.modify_max_columns(|v| *v = f(*v))
     }
 
+    /// Max rows setter. Controls how many items will be displayed in a row.
     fn modify_max_rows(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
-        self.display_object().def.modify_layout(|l| f(&mut l.max_columns_and_rows.y));
+        self.display_object().modify_auto_layout(|l| f(&mut l.max_columns_and_rows.y));
         self
     }
 
-    fn update_max_rows(&self, f: impl FnOnce(&Option<usize>) -> Option<usize>) -> &Self {
-        self.display_object()
-            .def
-            .modify_layout(|l| l.max_columns_and_rows.y = f(&l.max_columns_and_rows.y));
-        self
+    /// Max rows setter. Controls how many items will be displayed in a row.
+    fn set_max_rows(&self, count: impl Into<Option<usize>>) -> &Self {
+        self.modify_max_rows(|v| *v = count.into())
     }
 
+    /// Max rows setter. Controls how many items will be displayed in a row.
+    fn update_max_rows(&self, f: impl FnOnce(Option<usize>) -> Option<usize>) -> &Self {
+        self.modify_max_rows(|v| *v = f(*v))
+    }
+
+    /// Control whether columns should be displayed in a reversed order.
     fn set_columns_reversed(&self, rev: bool) -> &Self {
-        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.set_x(rev));
+        self.display_object().modify_auto_layout(|l| l.reversed_columns_and_rows.set_x(rev));
         self
     }
 
+    /// Control whether rows should be displayed in a reversed order.
     fn set_rows_reversed(&self, rev: bool) -> &Self {
-        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.set_y(rev));
+        self.display_object().modify_auto_layout(|l| l.reversed_columns_and_rows.set_y(rev));
         self
     }
 
+    /// Reverse the order of columns.
     fn reverse_columns(&self) -> &Self {
-        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.update_x(|t| !t));
+        self.display_object().modify_auto_layout(|l| l.reversed_columns_and_rows.update_x(|t| !t));
         self
     }
 
+    /// Reverse the order of rows.
     fn reverse_rows(&self) -> &Self {
-        self.display_object().def.modify_layout(|l| l.reversed_columns_and_rows.update_y(|t| !t));
+        self.display_object().modify_auto_layout(|l| l.reversed_columns_and_rows.update_y(|t| !t));
         self
     }
 
@@ -1500,261 +1764,11 @@ pub trait AutoLayoutOps: Object {
 
 
 
-// ===================
-// === LayoutModel ===
-// ===================
-
-/// Layout properties of this display object. It can be considered similar to the [`AutoLayout`]
-/// struct, which describes the layout properties of children.
-#[derive(Debug, Derivative)]
-#[derivative(Default)]
-pub struct LayoutModel {
-    auto_layout: RefCell<Option<AutoLayout>>,
-    alignment:   Cell<alignment::OptDim2>,
-    margin:      Cell<Vector2<SideSpacing>>,
-    padding:     Cell<Vector2<SideSpacing>>,
-    min_size:    Cell<Vector2<f32>>,
-    #[derivative(Default(value = "Cell::new(Vector2(f32::INFINITY, f32::INFINITY))"))]
-    max_size:    Cell<Vector2<f32>>,
-    resizing:    Cell<Vector2<Resizing>>,
-    grow:        Cell<Vector2<f32>>,
-    shrink:      Cell<Vector2<f32>>,
-    size:        Cell<Vector2<f32>>,
-    bbox_origin: Cell<Vector2<f32>>,
-}
-
-
-// === Alignment ===
-
-macro_rules! gen_layout_model_align_fns {
-    ([$([$name:ident $x:tt $y:tt])*]) => {
-        paste! {
-            impl LayoutModel {$(
-                /// Alignment setter.
-                pub fn [<align_ $name>](&self) {
-                    self.alignment.modify(|t| t.[<align_ $name>]());
-                }
-            )*}
-        }
-    }
-}
-crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_layout_model_align_fns);
-
-
-// === Margin and padding ===
-
-macro_rules! gen_spacing_props_for_layout_model {
-    ([$tp: ident] [ $([$name:ident $axis:ident $loc:ident])* ]) => { paste! { $(
-        /// SideSpacing setter.
-        pub fn [<set_ $tp _ $name>](&self, value: Unit) {
-            self.$tp.modify(|t| t.$axis.$loc = value);
-        }
-    )*}}
-}
-
-impl LayoutModel {
-    pub fn set_margin_all(&self, value: Unit) {
-        let margin = SideSpacing::from(value);
-        self.margin.set(Vector2(margin, margin));
-    }
-
-    pub fn set_margin_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
-        let horizontal = SideSpacing::new(left, right);
-        let vertical = SideSpacing::new(bottom, top);
-        self.margin.set(Vector2(horizontal, vertical));
-    }
-
-    pub fn set_padding_all(&self, value: Unit) {
-        let padding = SideSpacing::from(value);
-        self.padding.set(Vector2(padding, padding));
-    }
-
-    pub fn set_padding_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
-        let horizontal = SideSpacing::new(left, right);
-        let vertical = SideSpacing::new(bottom, top);
-        self.padding.set(Vector2(horizontal, vertical));
-    }
-
-    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model[margin]);
-    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model[padding]);
-}
-
-
+// =========================
+// === Layout Resolution ===
+// =========================
 
 impl Model {
-    fn resizing(&self) -> Vector2<Resizing> {
-        self.layout.resizing.get()
-    }
-
-    fn set_resizing(&self, resizing: impl IntoResizing) {
-        self.dirty.transformation.set();
-        self.layout.resizing.set(resizing.into_resizing());
-    }
-
-    fn modify_resizing(&self, f: impl FnOnce(&mut Vector2<Resizing>)) {
-        self.dirty.transformation.set();
-        self.layout.resizing.modify(f);
-    }
-
-    fn modify_max_size(&self, f: impl FnOnce(&mut Vector2<f32>)) {
-        self.dirty.transformation.set();
-        self.layout.max_size.modify(f);
-    }
-
-    fn modify_min_size(&self, f: impl FnOnce(&mut Vector2<f32>)) {
-        self.dirty.transformation.set();
-        self.layout.min_size.modify(f);
-    }
-
-    fn bbox_origin(&self) -> Vector2<f32> {
-        self.layout.bbox_origin.get()
-    }
-
-    fn size(&self) -> Vector2<f32> {
-        self.layout.size.get()
-    }
-
-    fn set_max_size_x(&self, x: f32) {
-        self.modify_max_size(|t| t.x = x)
-    }
-
-    fn set_min_size_x(&self, x: f32) {
-        self.modify_min_size(|t| t.x = x)
-    }
-
-    fn set_size(&self, size: impl IntoVector2<f32>) {
-        self.set_resizing(size.into_vector2())
-    }
-
-    fn set_size_x(&self, x: f32) {
-        self.modify_resizing(|t| t.x = Resizing::Fixed(x))
-    }
-
-    fn set_size_x_hug(&self, x: f32) {
-        self.set_resizing((x, Resizing::Hug))
-    }
-
-    fn set_size_x_to_hug(&self) {
-        self.modify_resizing(|t| t.x = Resizing::Hug);
-    }
-
-    fn set_size_y_to_hug(&self) {
-        self.modify_resizing(|t| t.y = Resizing::Hug);
-    }
-
-    fn allow_grow(&self) {
-        self.layout.grow.set(Vector2(1.0, 1.0));
-    }
-
-    fn allow_grow_x(&self) {
-        self.layout.grow.set_x(1.0);
-    }
-
-    fn allow_grow_y(&self) {
-        self.layout.grow.set_y(1.0);
-    }
-
-    fn allow_shrink(&self) {
-        self.layout.shrink.set(Vector2(1.0, 1.0));
-    }
-
-    fn allow_shrink_x(&self) {
-        self.layout.shrink.set_x(1.0);
-    }
-
-    fn allow_shrink_y(&self) {
-        self.layout.shrink.set_y(1.0);
-    }
-
-    fn set_size_hug_y(&self, y: f32) {
-        self.set_resizing((Resizing::Hug, y))
-    }
-
-    fn set_size_hug(&self) {
-        self.set_resizing((Resizing::Hug, Resizing::Hug))
-    }
-}
-
-macro_rules! gen_alignment_setters {
-    ([$([$name:ident $x:ident $y:ident])*]) => {
-        paste! {
-            impl Model {$(
-                /// Alignment setter.
-                pub fn [<align_ $name>](&self) {
-                    self.layout.[<align_ $name>]()
-                }
-            )*}
-        }
-    }
-}
-crate::with_alignment_dim2_named_matrix!(gen_alignment_setters);
-
-
-macro_rules! redirect_margin_properties {
-    ($($path:tt)*) => {
-        crate::with_display_object_side_spacing_matrix!(redirect_side_spacing_properties_internal1[margin $($path)*]);
-    }
-}
-
-macro_rules! redirect_padding_properties {
-    ($($path:tt)*) => {
-        crate::with_display_object_side_spacing_matrix!(redirect_side_spacing_properties_internal1[padding $($path)*]);
-    }
-}
-
-macro_rules! redirect_side_spacing_properties_internal1 {
-    ($path:tt [ $([$name:ident $axis:ident $loc:ident])* ]) => {
-        redirect_side_spacing_properties_internal2!{$path}
-        $(redirect_side_spacing_properties_internal3!{$path $name $axis $loc})*
-    }
-}
-
-macro_rules! redirect_side_spacing_properties_internal2 {
-    ([$tp:ident $($path:tt)*]) => { paste! {
-        fn [<set_ $tp _all>](&self, value: impl Into<Unit>) {
-            self.$($path)*.[<set_ $tp _all>](value.into());
-        }
-
-        fn [<set_ $tp _trbl>](
-            &self,
-            top: impl Into<Unit>,
-            right: impl Into<Unit>,
-            bottom: impl Into<Unit>,
-            left: impl Into<Unit>
-        ) {
-            self.$($path)*.[<set_ $tp _trbl>](top.into(), right.into(), bottom.into(), left.into());
-        }
-    }}
-}
-
-macro_rules! redirect_side_spacing_properties_internal3 {
-    ([$tp:ident $($path:tt)*] $name:ident $axis:ident $loc:ident) => {
-        paste! {
-            /// Setter.
-            fn [<set_ $tp _ $name>](&self, value: impl Into<Unit>) {
-                self.$($path)*.[<set_ $tp _ $name>](value.into())
-            }
-        }
-    }
-}
-
-impl Model {
-    redirect_margin_properties!(layout);
-    redirect_padding_properties!(layout);
-}
-
-
-
-impl Model {
-    fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
-        self.dirty.transformation.set();
-        *self.layout.auto_layout.borrow_mut() = layout.into();
-    }
-
-    fn modify_opt_layout<T>(&self, f: impl FnOnce(&mut Option<AutoLayout>) -> T) -> T {
-        f(&mut *self.layout.auto_layout.borrow_mut())
-    }
-
     fn refresh_layout(&self) {
         self.refresh_self_size(true);
         self.refresh_layout_internal(true);
@@ -1786,28 +1800,7 @@ impl Model {
             }
         }
     }
-}
 
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct ResolvedAxis {
-    resizing: Resizing,
-    min_size: f32,
-    max_size: f32,
-    grow:     f32,
-    shrink:   f32,
-    size:     f32,
-}
-
-#[derive(Debug, Deref)]
-pub struct ResolvedColumn {
-    #[deref]
-    axis:     ResolvedAxis,
-    children: Vec<Instance>,
-}
-
-
-impl Model {
     fn refresh_layout_internal(&self, first_pass: bool) {
         println!("[{}] refresh_layout_internal. first pass? {}", self.name, first_pass);
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
@@ -1888,7 +1881,27 @@ impl Model {
             }
         }
     }
+}
 
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ResolvedAxis {
+    resizing: Resizing,
+    min_size: f32,
+    max_size: f32,
+    grow:     f32,
+    shrink:   f32,
+    size:     f32,
+}
+
+#[derive(Debug, Deref)]
+pub struct ResolvedColumn {
+    #[deref]
+    axis:     ResolvedAxis,
+    children: Vec<Instance>,
+}
+
+impl Model {
     // TODO: wytlumaczyc ze kolejnosc wyliczania szerokosci i wysokosci musi byc inna czasami (jak w
     // przykladzie) dlatego dwa passy.
 
@@ -2394,7 +2407,7 @@ impl<T: Object + ?Sized> ObjectOps for T {}
 /// Implementation of operations available for every struct which implements `display::Object`.
 /// To learn more about the design, please refer to the documentation of [`Instance`].
 #[allow(missing_docs)]
-pub trait ObjectOps: Object + AutoLayoutOps {
+pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
     // === Transformations ===
 
     gen_object_trans!(position);
@@ -2547,95 +2560,6 @@ pub trait ObjectOps: Object + AutoLayoutOps {
 
     // === Layout properties ===
 
-    /// Get the current resizing settings.
-    fn resizing(&self) -> Vector2<Resizing> {
-        self.display_object().def.resizing()
-    }
-
-    /// The current size of the display object. It will be updated after the object is refreshed.
-    fn size(&self) -> Vector2<f32> {
-        self.display_object().def.size()
-    }
-
-    fn bbox_origin(&self) -> Vector2<f32> {
-        self.display_object().def.bbox_origin()
-    }
-
-    /// Set the current resizing mode.
-    fn set_size(&self, size: impl IntoVector2<f32>) -> &Self {
-        self.display_object().def.set_size(size);
-        self
-    }
-
-    fn set_max_size_x(&self, x: f32) -> &Self {
-        self.display_object().def.set_max_size_x(x);
-        self
-    }
-
-    fn set_min_size_x(&self, x: f32) -> &Self {
-        self.display_object().def.set_min_size_x(x);
-        self
-    }
-
-    /// Set the current resizing mode.
-    fn set_size_x_hug(&self, x: f32) -> &Self {
-        self.display_object().def.set_size_x_hug(x);
-        self
-    }
-
-    fn set_size_x_to_hug(&self) -> &Self {
-        self.display_object().def.set_size_x_to_hug();
-        self
-    }
-
-    fn set_size_y_to_hug(&self) -> &Self {
-        self.display_object().def.set_size_y_to_hug();
-        self
-    }
-
-    fn allow_grow(&self) -> &Self {
-        self.display_object().def.allow_grow();
-        self
-    }
-
-    fn allow_grow_x(&self) -> &Self {
-        self.display_object().def.allow_grow_x();
-        self
-    }
-
-    fn allow_grow_y(&self) -> &Self {
-        self.display_object().def.allow_grow_y();
-        self
-    }
-
-    fn allow_shrink(&self) -> &Self {
-        self.display_object().def.allow_shrink();
-        self
-    }
-
-    fn allow_shrink_x(&self) -> &Self {
-        self.display_object().def.allow_shrink_x();
-        self
-    }
-
-    fn allow_shrink_y(&self) -> &Self {
-        self.display_object().def.allow_shrink_y();
-        self
-    }
-
-    /// Set the current resizing mode.
-    fn set_size_hug_y(&self, y: f32) -> &Self {
-        self.display_object().def.set_size_hug_y(y);
-        self
-    }
-
-    /// Set the current resizing mode.
-    fn set_size_hug(&self) {
-        self.display_object().def.set_size_hug()
-    }
-
-    redirect_margin_properties!(display_object().def);
-    redirect_padding_properties!(display_object().def);
 
     // FIXME: move to interal api trait
     fn refresh_layout(&self) {
@@ -2655,12 +2579,12 @@ pub trait GenericLayoutApi: Object {
     }
 
     /// Resizing setter.
-    fn set_resizing(&self, resizing: impl IntoResizing) {
-        self.display_object().def.set_resizing(resizing)
+    fn set_resizing(&self, t: impl IntoResizing) {
+        self.display_object().modify_layout(|l| l.resizing.set(t.into_resizing()));
     }
 }
 
-impl<T: Object> GenericLayoutApi for T {}
+impl<T: Object + ?Sized> GenericLayoutApi for T {}
 
 
 

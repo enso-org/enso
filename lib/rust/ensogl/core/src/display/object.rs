@@ -27,6 +27,7 @@ pub use instance::*;
 pub mod traits {
     // Read the Rust Style Guide to learn more about the used naming.
     pub use super::AutoLayoutOps as TRAIT_AutoLayoutOps;
+    pub use super::LayoutOps as TRAIT_LayoutOps;
     pub use super::Object as TRAIT_Object;
     pub use super::ObjectOps as TRAIT_ObjectOps;
 }
