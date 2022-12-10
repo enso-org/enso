@@ -1634,7 +1634,7 @@ def_layout_options!(
         /// The spacing between children.
         pub gap:            Vector2<Unit>,
         /// Indicates whether the children should be placed in order or in a reversed order.
-        pub reversed:       bool,
+        pub reversed:       Vector2<bool>,
         pub first_axes:     Vector2<UnresolvedAxis>,
         pub other_axes:     (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>),
         pub max_axes_count: Vector2<Option<usize>>,
@@ -1695,13 +1695,18 @@ impl<Layout> AutoLayoutBuilder<Layout> {
         self
     }
 
-    pub fn reversed(mut self, reversed: bool) -> Self {
+    pub fn set_reversed(mut self, reversed: Vector2<bool>) -> Self {
         self.options.reversed = reversed;
         self
     }
 
-    pub fn reverse(mut self) -> Self {
-        self.options.reversed = !self.options.reversed;
+    pub fn reverse_x(mut self) -> Self {
+        self.options.reversed.x = !self.options.reversed.x;
+        self
+    }
+
+    pub fn reverse_y(mut self) -> Self {
+        self.options.reversed.y = !self.options.reversed.y;
         self
     }
 }
@@ -1794,7 +1799,7 @@ impl<Layout> LayoutObjectBuilder<Layout> {
         self
     }
 
-    pub fn reversed(self, reversed: bool) -> Self {
+    pub fn set_reversed(self, reversed: Vector2<bool>) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
                 layout.set_reversed(reversed);
@@ -1803,10 +1808,19 @@ impl<Layout> LayoutObjectBuilder<Layout> {
         self
     }
 
-    pub fn reverse(self) -> Self {
+    pub fn reverse_x(self) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.modify_reversed(|t| *t = !*t);
+                layout.modify_reversed(|t| t.x = !t.x);
+            });
+        });
+        self
+    }
+
+    pub fn reverse_y(self) -> Self {
+        self.instance.def.modify_layout(|opt_layout| {
+            opt_layout.as_mut().map(|layout| {
+                layout.modify_reversed(|t| t.y = !t.y);
             });
         });
         self
@@ -2392,13 +2406,14 @@ impl Model {
         Vector2<Option<alignment::Dim1>>: DimSetter<Dim>,
         Vector2<alignment::Dim1>: DimSetter<Dim>,
         Vector2<SideSpacing>: DimSetter<Dim>,
+        Vector2<bool>: DimSetter<Dim>,
         Vector2<f32>: DimSetter<Dim>,
         Vector2<Unit>: DimSetter<Dim>,
         Vector3<f32>: DimSetter<Dim>,
         Dim: Debug,
         LayoutOptions: AxesGetter<Dim>, {
         println!("[{}] refresh_linear_layout. First pass: {}", self.name, first_pass);
-        let children = if opts.reversed { self.children().reversed() } else { self.children() };
+        let children = self.children();
         if children.is_empty() {
             return;
         }
@@ -2474,6 +2489,9 @@ impl Model {
                 ResolvedColumn { axis, children }
             })
             .collect_vec();
+
+        let resolved_columns =
+            if opts.reversed.get_dim(x) { resolved_columns.reversed() } else { resolved_columns };
 
         println!("resolved_columns: {:#?}", resolved_columns);
 
@@ -4136,6 +4154,68 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(2.0, 0.0)
             .assert_node3_position(0.0, 2.0);
+    }
+
+    /// ```text
+    /// ╭────────────────────────╮
+    /// │ root                   │
+    /// │             ╭───────╮  │
+    /// │             │ node3 │  │
+    /// │             │       │  │
+    /// │             ╰───────╯  │
+    /// │  ╭───────╮  ╭───────╮  │
+    /// │  │ node2 │  │ node1 │  │
+    /// │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  │
+    /// ╰────────────────────────╯
+    /// ```
+    #[test]
+    fn test_simple_grid_layout_reversed_x() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_max_columns(2).reverse_x();
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 2.0));
+        test.run()
+            .assert_root_size(4.0, 4.0)
+            .assert_node1_size(2.0, 2.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(2.0, 2.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(2.0, 0.0)
+            .assert_node2_position(0.0, 0.0)
+            .assert_node3_position(2.0, 2.0);
+    }
+
+    /// ```text
+    /// ╭────────────────────────╮
+    /// │ root                   │
+    /// │  ╭───────╮  ╭───────╮  │
+    /// │  │ node1 │  │ node2 │  │
+    /// │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  │
+    /// │  ╭───────╮             │
+    /// │  │ node3 │             │
+    /// │  │       │             │
+    /// │  ╰───────╯             │
+    /// ╰────────────────────────╯
+    /// ```
+    #[test]
+    fn test_simple_grid_layout_reversed_y() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_max_columns(2).reverse_y();
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 2.0));
+        test.run()
+            .assert_root_size(4.0, 4.0)
+            .assert_node1_size(2.0, 2.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(2.0, 2.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 2.0)
+            .assert_node2_position(2.0, 2.0)
+            .assert_node3_position(0.0, 0.0);
     }
 
     /// ```text
