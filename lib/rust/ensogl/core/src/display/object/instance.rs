@@ -3,8 +3,10 @@
 //! transformation changes and updates only the needed subset of the display object tree on demand.
 
 use crate::data::dirty::traits::*;
+use crate::display::object::layout::*;
 use crate::prelude::*;
 
+use crate::display::layout::alignment;
 use crate::display::object::event;
 use crate::display::object::transformation;
 use crate::display::scene::layer::Layer;
@@ -1276,334 +1278,14 @@ impl Debug for Instance {
 // === Layout and Size =============================================================================
 // =================================================================================================
 
-use unit2::Fraction;
-use unit2::Percent;
-
-// ============
-// === Unit ===
-// ============
-
-#[derive(Clone, Copy, Debug, PartialEq, From)]
-pub enum Unit {
-    Pixels(f32),
-    Fraction(Fraction),
-    Percent(Percent),
-}
-
-impl Unit {
-    pub fn resolve(&self, parent_size: f32, free_space: f32) -> f32 {
-        match self {
-            Unit::Pixels(value) => *value,
-            Unit::Fraction(value) => value.unchecked_raw() * parent_size,
-            Unit::Percent(value) => value.unchecked_raw() * free_space,
-        }
-    }
-
-    pub fn resolve_fixed(&self) -> f32 {
-        match self {
-            Unit::Pixels(value) => *value,
-            Unit::Fraction(_) => 0.0,
-            Unit::Percent(_) => 0.0,
-        }
-    }
-}
-
-impl Default for Unit {
-    fn default() -> Self {
-        Self::Pixels(0.0)
-    }
-}
-
-impl From<i32> for Unit {
-    fn from(value: i32) -> Self {
-        Self::Pixels(value as f32)
-    }
-}
-
-
-// ========================
-// === Alignment Macros ===
-// ========================
-
-#[macro_export]
-macro_rules! with_display_object_alignment_primary {
-    ($f:path $([$($args:tt)*])?) => {
-        $f! { $([$($args)*])? [start center end space_between space_around space_evenly] }
-    };
-}
-
-#[macro_export]
-macro_rules! with_display_object_alignment_secondary {
-    ($f:path $([$($args:tt)*])?) => {
-        $f! { $([$($args)*])? [start center end] }
-    };
-}
-
-#[macro_export]
-macro_rules! with_display_object_alignment_primary_and_secondary {
-    ($f:path $([$($args:tt)*])?) => {
-        $crate::with_display_object_alignment_primary! {
-            with_display_object_alignment_primary_and_secondary [@ [$f] [$([$($args)*])?]]
-        }
-    };
-    ([@ [$f:path] [$([$($args:tt)*])?]] [$($primary:ident)*]) => {
-        $crate::with_display_object_alignment_secondary! {
-            with_display_object_alignment_primary_and_secondary
-            [@ [$f] [$($primary)*] [$([$($args)*])?]]
-        }
-    };
-    ([@ [$f:path] [$($primary:ident)*] [$([$($args:tt)*])?]] [$($secondary:ident)*]) => {
-        $f! {$([$($args)*])? [$($primary)*] [$($secondary)*]}
-    };
-}
-
-#[macro_export]
-macro_rules! with_display_object_alignment_matrix {
-    ($f:path $([$($args:tt)*])?) => {
-        $crate::with_display_object_alignment_primary_and_secondary! {
-            enso_shapely::cartesian [$f $([$($args)*])?]
-        }
-    };
-}
-
-
-/// Runs the provided macro with an alignment anchor matrix annotated with a name for the anchor
-/// pair. The name is created as `$x_$y` with the exception for both anchors being `center` or
-/// `spaced`. Then, the name is simply `center` and `spaced`, respectively. For example, if run
-/// with the arguments `f [args]`, it results in:
-///
-/// ```text
-/// f!{ [args]
-///     [left_bottom left bottom]
-///     [left_center left center]
-///     [left_top left top]
-///     [left_spaced left spaced]
-///     ...
-///     [center_bottom center bottom]
-///     [center center center]
-///     [center_top center top]
-///     ...
-///     [spaced spaced spaced]
-///     ...
-///     [bottom top]
-/// }
-/// ```
-///
-/// The `[args]` argument is optional.
-#[macro_export]
-macro_rules! with_display_object_alignment_named_matrix {
-    ($f:path $([$($args:tt)*])?) => {
-        $crate::with_display_object_alignment_matrix! {
-            $crate::with_display_object_alignment_named_matrix [$f $([$($args)*])?]
-        }
-    };
-    ([$($fs:tt)*] $($ts:tt)*) => {
-        $crate::with_display_object_alignment_named_matrix! {@ [$($fs)*] [] $($ts)*}
-    };
-    (@ $fs:tt [$($out:tt)*] [[start start] $($ts:tt)*]) => {
-        $crate::with_display_object_alignment_named_matrix! {
-            @ $fs [$($out)* [start start start]] [$($ts)*]
-        }
-    };
-    (@ $fs:tt [$($out:tt)*] [[center center] $($ts:tt)*]) => {
-        $crate::with_display_object_alignment_named_matrix! {
-            @ $fs [$($out)* [center center center]] [$($ts)*]
-        }
-    };
-    (@ $fs:tt [$($out:tt)*] [[end end] $($ts:tt)*]) => {
-        $crate::with_display_object_alignment_named_matrix! {
-            @ $fs [$($out)* [end end end]] [$($ts)*]
-        }
-    };
-    (@ $fs:tt [$($out:tt)*] [[$x:ident $y:ident] $($ts:tt)*]) => { paste! {
-        $crate::with_display_object_alignment_named_matrix! {
-            @ $fs [$($out)* [[<$x _ $y>] $x $y]] [$($ts)*]
-        }
-    }};
-    (@ [$f:path $([$($args:tt)*])?] $out:tt []) => {
-        $f! { $([$($args)*])? $out }
-    };
-}
-
-
-
-// =================
-// === Alignment ===
-// =================
-
-use crate::display::layout::alignment;
-
-pub type Alignment = alignment::Dim2;
-
-// macro_rules! gen_alignment_primary {
-//     ([$($name:tt)*]) => { paste! {
-//         #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-//         pub enum AlignmentPrimary {
-//             #[default]
-//             $([<$name:camel>]),*
-//         }
-//     }};
-// }
-// with_display_object_alignment_primary!(gen_alignment_primary);
-
-
-
-// ================
-// === Resizing ===
-// ================
-
-/// The resizing mode. Computing of the size is a complex process with many corner cases. Read the
-/// docs of [`LayoutModel`] to learn more about it.
-#[derive(Clone, Copy, Debug, Default, PartialEq, From)]
-pub enum Resizing {
-    /// In this mode, the display object size will be set to the size of its content. The only
-    /// exception are display objects with no children, which size will not be changed during
-    /// refresh.
-    #[default]
-    Hug,
-    /// In this mode, the display object size is provided explicitly.
-    Fixed(f32),
-}
-
-impl Resizing {
-    /// Checks whether the resizing mode is [`Resizing::Hug`].
-    pub fn is_hug(self) -> bool {
-        self == Resizing::Hug
-    }
-
-    /// Checks whether the resizing mode is [`Resizing::Fixed`].
-    pub fn is_fixed(self) -> bool {
-        match self {
-            Resizing::Fixed(_) => true,
-            _ => false,
-        }
-    }
-}
-
-/// Just like `Into<Vector2<Resizing>>`. It is needed because of Rust limitations regarding
-/// implementing traits for structs not owned by this crate.
-#[allow(missing_docs)]
-pub trait IntoResizing {
-    fn into_resizing(self) -> Vector2<Resizing>;
-}
-
-impl IntoResizing for Vector2<f32> {
-    fn into_resizing(self) -> Vector2<Resizing> {
-        Vector2::new(self.x.into(), self.y.into())
-    }
-}
-
-impl IntoResizing for Vector2<Resizing> {
-    fn into_resizing(self) -> Vector2<Resizing> {
-        self
-    }
-}
-
-macro_rules! impl_tuple_into_resizing {
-    ($(($a:tt, $b:tt)),*) => {$(
-        impl IntoResizing for ($a, $b) {
-            fn into_resizing(self) -> Vector2<Resizing> {
-                Vector2::new(self.0.into(), self.1.into())
-            }
-        }
-    )*};
-}
-
-impl_tuple_into_resizing!((f32, f32), (f32, Resizing), (Resizing, f32), (Resizing, Resizing));
-
-
-
 // ==================
 // === AutoLayout ===
 // ==================
 
-/// A phantom type indicating the horizontal auto layout mode.
+/// The auto-layout grid column or row definition.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Horizontal;
-
-/// A phantom type indicating the vertical auto layout mode.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Vertical;
-
-/// The auto layout mode. It is used to automatically position the children of a display object.
-#[derive(Clone, Debug)]
 #[allow(missing_docs)]
-pub enum AutoLayout {
-    Horizontal(LayoutOptions),
-    Vertical(LayoutOptions),
-}
-
-impl AutoLayout {
-    /// Constructor.
-    pub fn horizontal() -> AutoLayoutBuilder<Horizontal> {
-        default()
-    }
-
-    /// Constructor.
-    pub fn vertical() -> AutoLayoutBuilder<Vertical> {
-        default()
-    }
-
-    // pub fn def_column(&mut self) {
-    //     match self {
-    //         AutoLayout::Horizontal(opts) => opts.def_column(),
-    //         AutoLayout::Vertical(opts) => opts.def_column(),
-    //     }
-    // }
-
-    pub fn set_max_columns(&mut self, count: usize) {
-        match self {
-            AutoLayout::Horizontal(opts) => opts.set_max_columns(count),
-            AutoLayout::Vertical(opts) => opts.set_max_columns(count),
-        }
-    }
-}
-
-/// Defines the struct and also getters and setters for the [`AutoLayout`] struct.
-macro_rules! def_layout_options {
-    (
-        pub struct $name:ident {$(
-            $(#$meta:tt)*
-            pub $field:ident : $ty:ty
-        ),* $(,)?}
-    ) => { paste!{
-        /// Options for the auto layout mode.
-        #[derive(Clone, Debug, Default, PartialEq)]
-        pub struct $name {$(
-            $(#$meta)*
-            pub $field : $ty
-        ),*}
-
-        impl AutoLayout {$(
-            /// Getter.
-            pub fn [<set_ $field>](&mut self, $field: $ty) {
-                match self {
-                    AutoLayout::Horizontal(options) => options.$field = $field,
-                    AutoLayout::Vertical(options) => options.$field = $field,
-                }
-            }
-            //
-            // /// Update the value with the provided function.
-            // pub fn [<update_ $field>](&mut self, f: impl FnOnce($ty) -> $ty) {
-            //     match self {
-            //         AutoLayout::Horizontal(options) => options.$field = f(options.$field),
-            //         AutoLayout::Vertical(options) => options.$field = f(options.$field),
-            //     }
-            // }
-
-            /// Modify the value with the provided function.
-            pub fn [<modify_ $field>](&mut self, f: impl FnOnce(&mut $ty)) {
-                match self {
-                    AutoLayout::Horizontal(options) => f(&mut options.$field),
-                    AutoLayout::Vertical(options) => f(&mut options.$field),
-                }
-            }
-        )*}
-    }};
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct UnresolvedAxis {
+pub struct AxisDefinition {
     resizing: Resizing,
     min_size: Option<f32>,
     max_size: Option<f32>,
@@ -1611,54 +1293,50 @@ pub struct UnresolvedAxis {
     shrink:   Option<f32>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct ResolvedAxis {
-    resizing: Resizing,
-    min_size: f32,
-    max_size: f32,
-    grow:     f32,
-    shrink:   f32,
-    size:     f32,
+/// The auto-layout options. The auto-layout is similar to a mix of CSS flexbox and CSS grid with a
+/// few additions. Read the docs of this module to learn more.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AutoLayout {
+    /// The default item alignment in grid cells. This can be overriden per-item.
+    pub item_alignment: alignment::Dim2,
+    /// The spacing between axes.
+    pub gap:            Vector2<Unit>,
+    /// Indicates whether the axes should be placed in order or in a reversed order.
+    pub reversed:       Vector2<bool>,
+    /// First column and row definition.
+    pub first_axes:     Vector2<AxisDefinition>,
+    /// Other columns and rows definitions.
+    pub other_axes:     (Vec<AxisDefinition>, Vec<AxisDefinition>),
+    /// The number of columns and rows in the grid. If it's set to [`None`], the columns and rows
+    /// will grow on demand.
+    pub max_axes_count: Vector2<Option<usize>>,
 }
 
-#[derive(Debug, Deref)]
-pub struct ResolvedColumn {
-    #[deref]
-    axis:     ResolvedAxis,
-    children: Vec<Instance>,
-}
-
-def_layout_options!(
-    pub struct LayoutOptions {
-        pub alignment:      Alignment,
-        /// The spacing between children.
-        pub gap:            Vector2<Unit>,
-        /// Indicates whether the children should be placed in order or in a reversed order.
-        pub reversed:       Vector2<bool>,
-        pub first_axes:     Vector2<UnresolvedAxis>,
-        pub other_axes:     (Vec<UnresolvedAxis>, Vec<UnresolvedAxis>),
-        pub max_axes_count: Vector2<Option<usize>>,
+impl AutoLayout {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
     }
-);
+}
 
-impl LayoutOptions {
+impl AutoLayout {
     pub fn set_max_columns(&mut self, count: usize) {
         self.max_axes_count.set_x(Some(count))
     }
 }
 
 pub trait AxesGetter<T> {
-    fn axes(&self, dim: T) -> Vec<UnresolvedAxis>;
+    fn axes(&self, dim: T) -> Vec<AxisDefinition>;
 }
 
-impl AxesGetter<X> for LayoutOptions {
-    fn axes(&self, _dim: X) -> Vec<UnresolvedAxis> {
+impl AxesGetter<X> for AutoLayout {
+    fn axes(&self, _dim: X) -> Vec<AxisDefinition> {
         vec![self.first_axes.x].extended(self.other_axes.0.iter().cloned())
     }
 }
 
-impl AxesGetter<Y> for LayoutOptions {
-    fn axes(&self, _dim: Y) -> Vec<UnresolvedAxis> {
+impl AxesGetter<Y> for AutoLayout {
+    fn axes(&self, _dim: Y) -> Vec<AxisDefinition> {
         vec![self.first_axes.y].extended(self.other_axes.1.iter().cloned())
     }
 }
@@ -1669,99 +1347,41 @@ impl AxesGetter<Y> for LayoutOptions {
 // === AutoLayoutBuilder ===
 // =========================
 
-/// An [`AutoLayout`] builder. Layouts have a lot of options and this builder allows setting them
-/// in a convenient way.
-#[derive(Clone, Debug, Default, PartialEq)]
-#[allow(missing_docs)]
-pub struct AutoLayoutBuilder<Layout> {
-    pub options: LayoutOptions,
-    pub tp:      PhantomData<Layout>,
-}
-
-#[allow(missing_docs)]
-impl<Layout> AutoLayoutBuilder<Layout> {
-    // pub fn alignment_primary(mut self, alignment: AlignmentPrimary) -> Self {
-    //     self.options.alignment_primary = alignment;
-    //     self
-    // }
-    //
-    // pub fn alignment_secondary(mut self, alignment: Alignment) -> Self {
-    //     self.options.alignment_secondary = alignment;
-    //     self
-    // }
-
-    pub fn set_gap(mut self, gap: Vector2<Unit>) -> Self {
-        self.options.gap = gap;
-        self
-    }
-
-    pub fn set_reversed(mut self, reversed: Vector2<bool>) -> Self {
-        self.options.reversed = reversed;
-        self
-    }
-
-    pub fn reverse_x(mut self) -> Self {
-        self.options.reversed.x = !self.options.reversed.x;
-        self
-    }
-
-    pub fn reverse_y(mut self) -> Self {
-        self.options.reversed.y = !self.options.reversed.y;
-        self
-    }
-}
-
-impl From<AutoLayoutBuilder<Horizontal>> for Option<AutoLayout> {
-    fn from(builder: AutoLayoutBuilder<Horizontal>) -> Self {
-        Some(AutoLayout::Horizontal(builder.options))
-    }
-}
-
-impl From<AutoLayoutBuilder<Vertical>> for Option<AutoLayout> {
-    fn from(builder: AutoLayoutBuilder<Vertical>) -> Self {
-        Some(AutoLayout::Vertical(builder.options))
-    }
-}
-
-
-
-// ===========================
-// === LayoutObjectBuilder ===
-// ===========================
-
 /// An [`AutoLayout`] builder for any display object instance. Unlike [`AutoLayoutBuilder`], it is
 /// exposed by the standard [`Object`] API.
-#[derive(Debug)]
-pub struct LayoutObjectBuilder<Layout> {
+#[derive(Debug, From)]
+pub struct AutoLayoutBuilder {
     instance: Instance,
-    layout:   PhantomData<Layout>,
 }
 
 #[allow(missing_docs)]
-impl<Layout> LayoutObjectBuilder<Layout> {
-    fn new(instance: &Instance) -> Self {
-        let instance = instance.clone_ref();
-        let layout = default();
-        Self { instance, layout }
-    }
-
-    fn set_alignment(self, alignment: Alignment) -> Self {
+impl AutoLayoutBuilder {
+    fn modify_layout(self, f: impl FnOnce(&mut AutoLayout)) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
-            opt_layout.as_mut().map(|layout| {
-                layout.set_alignment(alignment);
-            });
+            opt_layout.as_mut().map(|layout| f(layout));
         });
         self
     }
-    //
-    // fn def_column(self) -> Self {
-    //     self.instance.def.modify_layout(|opt_layout| {
-    //         opt_layout.as_mut().map(|layout| {
-    //             layout.def_column();
-    //         });
-    //     });
-    //     self
-    // }
+
+    fn set_item_alignment(self, value: alignment::Dim2) -> Self {
+        self.modify_layout(|l| l.item_alignment = value)
+    }
+
+    fn set_reversed(self, value: Vector2<bool>) -> Self {
+        self.modify_layout(|l| l.reversed = value)
+    }
+
+    fn set_gap(self, value: impl IntoVector2<Unit>) -> Self {
+        self.modify_layout(|l| l.gap = value.into_vector2())
+    }
+
+    fn set_gap_x(self, value: impl Into<Unit>) -> Self {
+        self.modify_layout(|l| l.gap.x = value.into())
+    }
+
+    fn set_gap_y(self, value: impl Into<Unit>) -> Self {
+        self.modify_layout(|l| l.gap.y = value.into())
+    }
 
     fn set_max_columns(self, count: usize) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
@@ -1772,46 +1392,10 @@ impl<Layout> LayoutObjectBuilder<Layout> {
         self
     }
 
-    // fn alignment_primary(self, alignment: AlignmentPrimary) -> Self {
-    //     self.instance.def.modify_layout(|opt_layout| {
-    //         opt_layout.as_mut().map(|layout| {
-    //             layout.set_alignment_primary(alignment);
-    //         });
-    //     });
-    //     self
-    // }
-    //
-    // fn alignment_secondary(self, alignment: Alignment) -> Self {
-    //     self.instance.def.modify_layout(|opt_layout| {
-    //         opt_layout.as_mut().map(|layout| {
-    //             layout.set_alignment_secondary(alignment);
-    //         });
-    //     });
-    //     self
-    // }
-
-    pub fn set_gap(self, gap: impl IntoVector2<Unit>) -> Self {
-        self.instance.def.modify_layout(|opt_layout| {
-            opt_layout.as_mut().map(|layout| {
-                layout.set_gap(gap.into_vector2());
-            });
-        });
-        self
-    }
-
-    pub fn set_reversed(self, reversed: Vector2<bool>) -> Self {
-        self.instance.def.modify_layout(|opt_layout| {
-            opt_layout.as_mut().map(|layout| {
-                layout.set_reversed(reversed);
-            });
-        });
-        self
-    }
-
     pub fn reverse_x(self) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.modify_reversed(|t| t.x = !t.x);
+                layout.reversed.update_x(|t| !t);
             });
         });
         self
@@ -1820,7 +1404,7 @@ impl<Layout> LayoutObjectBuilder<Layout> {
     pub fn reverse_y(self) -> Self {
         self.instance.def.modify_layout(|opt_layout| {
             opt_layout.as_mut().map(|layout| {
-                layout.modify_reversed(|t| t.y = !t.y);
+                layout.reversed.update_y(|t| !t);
             });
         });
         self
@@ -1830,10 +1414,10 @@ impl<Layout> LayoutObjectBuilder<Layout> {
 macro_rules! gen_layout_object_builder_alignment {
     ([$([$name:ident $x:ident $y:ident])*]) => {
         paste! {
-            impl<Layout> LayoutObjectBuilder<Layout> {$(
+            impl AutoLayoutBuilder {$(
                 /// Constructor.
                 pub fn [<set_alignment_ $name>](self) -> Self {
-                    self.set_alignment(Alignment::$name())
+                    self.set_item_alignment(alignment::Dim2::$name())
                 }
             )*}
         }
@@ -1848,7 +1432,7 @@ crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
 
 // macro_rules! gen_layout_object_builder_alignment_matrix {
 //     ([$([$f:ident $primary:ident $secondary:ident])*]) => { paste! {
-//         impl<Layout> LayoutObjectBuilder<Layout> {$(
+//         impl<Layout> AutoLayoutBuilder<Layout> {$(
 //             /// Constructor.
 //             pub fn [<alignment_ $f>](self) -> Self {
 //                 self
@@ -1893,7 +1477,7 @@ impl SideSpacing<Unit> {
     }
 
     pub fn resolve_fixed(self) -> SideSpacing<f32> {
-        SideSpacing::new(self.start.resolve_fixed(), self.end.resolve_fixed())
+        SideSpacing::new(self.start.resolve_fixed_only(), self.end.resolve_fixed_only())
     }
 }
 
@@ -2227,7 +1811,28 @@ impl Model {
             }
         }
     }
+}
 
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ResolvedAxis {
+    resizing: Resizing,
+    min_size: f32,
+    max_size: f32,
+    grow:     f32,
+    shrink:   f32,
+    size:     f32,
+}
+
+#[derive(Debug, Deref)]
+pub struct ResolvedColumn {
+    #[deref]
+    axis:     ResolvedAxis,
+    children: Vec<Instance>,
+}
+
+
+impl Model {
     fn refresh_layout_internal(&self, first_pass: bool) {
         println!("[{}] refresh_layout_internal. first pass? {}", self.name, first_pass);
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
@@ -2245,13 +1850,12 @@ impl Model {
                 } else {
                     self.refresh_layout_manual(Y, first_pass);
                 },
-            Some(AutoLayout::Horizontal(opts)) =>
+            Some(layout) =>
                 if first_pass {
-                    self.refresh_linear_layout(X, &opts, first_pass);
+                    self.refresh_linear_layout(X, &layout, first_pass);
                 } else {
-                    self.refresh_linear_layout(Y, &opts, first_pass);
+                    self.refresh_linear_layout(Y, &layout, first_pass);
                 },
-            Some(AutoLayout::Vertical(opts)) => panic!(),
         }
     }
 
@@ -2400,7 +2004,7 @@ impl Model {
     ///
     /// The [`first_pass`] flag indicated whether we are in the first or the second pass.
     #[inline(always)]
-    fn refresh_linear_layout<Dim: Copy>(&self, x: Dim, opts: &LayoutOptions, first_pass: bool)
+    fn refresh_linear_layout<Dim: Copy>(&self, x: Dim, opts: &AutoLayout, first_pass: bool)
     where
         Vector2<Resizing>: DimSetter<Dim>,
         Vector2<Option<alignment::Dim1>>: DimSetter<Dim>,
@@ -2411,7 +2015,7 @@ impl Model {
         Vector2<Unit>: DimSetter<Dim>,
         Vector3<f32>: DimSetter<Dim>,
         Dim: Debug,
-        LayoutOptions: AxesGetter<Dim>, {
+        AutoLayout: AxesGetter<Dim>, {
         println!("[{}] refresh_linear_layout. First pass: {}", self.name, first_pass);
         let children = self.children();
         if children.is_empty() {
@@ -2500,7 +2104,7 @@ impl Model {
         let padding_def = self.layout.padding.get_dim(x);
         let gap_count = (resolved_columns.len() - 1) as f32;
         let fixed_padding = padding_def.resolve_fixed().total();
-        let fixed_gap = gap_count * gap_def.resolve_fixed();
+        let fixed_gap = gap_count * gap_def.resolve_fixed_only();
         let mut space_left_with_pref_sizes =
             self.layout.size.get_dim(x) - fixed_padding - fixed_gap;
         let mut total_grow_coeff = 0.0;
@@ -2567,7 +2171,7 @@ impl Model {
                 }
                 let child_unused_space =
                     f32::max(0.0, column_size_minus_margin - child.layout.size.get_dim(x));
-                let def_alignment = opts.alignment.get_dim(x);
+                let def_alignment = opts.item_alignment.get_dim(x);
                 let alignment = child.layout.alignment.get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
                 let bbox_origin = child.bbox_origin();
@@ -2932,17 +2536,10 @@ pub trait ObjectOps: Object {
     // }
 
     /// Place children in a horizontal layout.
-    fn use_auto_layout(&self) -> LayoutObjectBuilder<Horizontal> {
+    fn use_auto_layout(&self) -> AutoLayoutBuilder {
         let instance = self.display_object();
-        instance.def.set_layout(AutoLayout::horizontal());
-        LayoutObjectBuilder::new(instance)
-    }
-
-    /// Place children in a vertical layout.
-    fn set_layout_vertical(&self) -> LayoutObjectBuilder<Vertical> {
-        let instance = self.display_object();
-        instance.def.set_layout(AutoLayout::vertical());
-        LayoutObjectBuilder::new(instance)
+        instance.def.set_layout(AutoLayout::new());
+        AutoLayoutBuilder::from(instance.clone_ref())
     }
 
     /// Remove the auto-layout from this display object.
