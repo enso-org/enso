@@ -1320,9 +1320,9 @@ pub struct LayoutModel {
     alignment:   Cell<alignment::OptDim2>,
     margin:      Cell<Vector2<SideSpacing>>,
     padding:     Cell<Vector2<SideSpacing>>,
-    min_size:    Cell<Vector2<f32>>,
-    #[derivative(Default(value = "Cell::new(Vector2(f32::INFINITY, f32::INFINITY))"))]
-    max_size:    Cell<Vector2<f32>>,
+    #[derivative(Default(value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector2())"))]
+    max_size:    Cell<Vector2<Unit>>,
+    min_size:    Cell<Vector2<Unit>>,
     resizing:    Cell<Vector2<Resizing>>,
     grow:        Cell<Vector2<f32>>,
     shrink:      Cell<Vector2<f32>>,
@@ -1403,42 +1403,42 @@ macro_rules! gen_spacing_props_for_layout_model2 {
 }
 
 macro_rules! gen_prop_accessors {
-    ($name:ident : Vector2<f32>) => {
+    ($name:ident : Vector2<Unit>) => {
         paste! {
-            fn [<modify_ $name>](&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
+            fn [<modify_ $name>](&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
                 self.display_object().modify_layout(|l| l.$name.modify_(f));
                 self
             }
 
-            fn [<set_ $name>](&self, value: Vector2<f32>) -> &Self {
-                self.[<modify_ $name>](|t| *t = value)
+            fn [<set_ $name>](&self, value: impl IntoVector2<Unit>) -> &Self {
+                self.[<modify_ $name>](|t| *t = value.into_vector2())
             }
 
-            fn [<update_ $name>](&self, f: impl FnOnce(Vector2<f32>) -> Vector2<f32>) -> &Self {
+            fn [<update_ $name>](&self, f: impl FnOnce(Vector2<Unit>) -> Vector2<Unit>) -> &Self {
                 self.[<modify_ $name>](|t| *t = f(*t))
             }
 
-            fn [<modify_ $name _x>](&self, f: impl FnOnce(&mut f32)) -> &Self {
+            fn [<modify_ $name _x>](&self, f: impl FnOnce(&mut Unit)) -> &Self {
                 self.[<modify_ $name>](|t| f(&mut t.x))
             }
 
-            fn [<set_ $name _x>](&self, v: f32) -> &Self {
-                self.[<modify_ $name _x>](|t| *t = v)
+            fn [<set_ $name _x>](&self, v: impl Into<Unit>) -> &Self {
+                self.[<modify_ $name _x>](|t| *t = v.into())
             }
 
-            fn [<update_ $name _x>](&self, f: impl FnOnce(f32) -> f32) -> &Self {
+            fn [<update_ $name _x>](&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
                 self.[<modify_ $name _x>](|t| *t = f(*t))
             }
 
-            fn [<modify_ $name _y>](&self, f: impl FnOnce(&mut f32)) -> &Self {
+            fn [<modify_ $name _y>](&self, f: impl FnOnce(&mut Unit)) -> &Self {
                 self.[<modify_ $name>](|t| f(&mut t.y))
             }
 
-            fn [<set_ $name _y>](&self, v: f32) -> &Self {
-                self.[<modify_ $name _y>](|t| *t = v)
+            fn [<set_ $name _y>](&self, v: impl Into<Unit>) -> &Self {
+                self.[<modify_ $name _y>](|t| *t = v.into())
             }
 
-            fn [<update_ $name _y>](&self, f: impl FnOnce(f32) -> f32) -> &Self {
+            fn [<update_ $name _y>](&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
                 self.[<modify_ $name _y>](|t| *t = f(*t))
             }
         }
@@ -1452,14 +1452,12 @@ pub trait LayoutOps: Object {
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[margin]);
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[padding]);
 
+    gen_prop_accessors!(max_size: Vector2<Unit>);
+    gen_prop_accessors!(min_size: Vector2<Unit>);
+
     fn resizing(&self) -> Vector2<Resizing> {
         self.display_object().def.layout.resizing.get()
     }
-
-    gen_prop_accessors!(max_size: Vector2<f32>);
-    gen_prop_accessors!(min_size: Vector2<f32>);
-
-
 
     fn bbox_origin(&self) -> Vector2<f32> {
         self.display_object().def.layout.bbox_origin.get()
@@ -1469,13 +1467,13 @@ pub trait LayoutOps: Object {
         self.display_object().def.layout.size.get()
     }
 
-    fn set_size(&self, size: impl IntoVector2<f32>) -> &Self {
+    fn set_size(&self, size: impl IntoVector2<Unit>) -> &Self {
         self.set_resizing(size.into_vector2());
         self
     }
 
-    fn set_size_x(&self, x: f32) -> &Self {
-        self.modify_resizing(|t| t.x = Resizing::Fixed(x));
+    fn set_size_x(&self, x: impl Into<Unit>) -> &Self {
+        self.modify_resizing(|t| t.x = Resizing::Fixed(x.into()));
         self
     }
 
@@ -1794,7 +1792,7 @@ impl Model {
             match resizing.x {
                 Resizing::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "x", self.name, v);
-                    self.layout.size.set_x(v);
+                    self.layout.size.set_x(v.resolve_fixed_only());
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "x", self.name);
@@ -1804,7 +1802,7 @@ impl Model {
             match resizing.y {
                 Resizing::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "y", self.name, v);
-                    self.layout.size.set_y(v);
+                    self.layout.size.set_y(v.resolve_fixed_only());
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "y", self.name);
@@ -2004,6 +2002,11 @@ impl Model {
     /// Y-axis.
     ///
     /// The [`first_pass`] flag indicated whether we are in the first or the second pass.
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // FIXME: sizes of elements can be now not pixels - its not working now.
     #[inline(always)]
     fn refresh_linear_layout<Dim: Copy>(&self, x: Dim, opts: &AutoLayout, first_pass: bool)
     where
@@ -2080,8 +2083,11 @@ impl Model {
                     let child_size = child.layout.size.get_dim(x) + child_margin.total();
                     grow += child.layout.grow.get_dim(x);
                     shrink += child.layout.shrink.get_dim(x);
-                    min_size = f32::max(min_size, child.layout.min_size.get_dim(x));
-                    max_size = f32::min(max_size, child.layout.max_size.get_dim(x));
+                    // FIXME: resolve_fixed_only here
+                    min_size =
+                        f32::max(min_size, child.layout.min_size.get_dim(x).resolve_fixed_only());
+                    max_size =
+                        f32::min(max_size, child.layout.max_size.get_dim(x).resolve_fixed_only());
                     size = f32::max(size, child_size);
                 }
                 let child_count = children.len() as f32;
@@ -2159,11 +2165,19 @@ impl Model {
                 let child_can_grow = child.layout.grow.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink.get_dim(x) > 0.0;
                 if child_can_grow && child_size < column_size_minus_margin {
-                    let size = f32::min(column_size_minus_margin, child.layout.max_size.get_dim(x));
+                    // FIXME: resolve_fixed_only here
+                    let size = f32::min(
+                        column_size_minus_margin,
+                        child.layout.max_size.get_dim(x).resolve_fixed_only(),
+                    );
                     child.layout.size.set_dim(x, size);
                 }
                 if child_can_shrink && child_size > column_size_minus_margin {
-                    let size = f32::max(column_size_minus_margin, child.layout.min_size.get_dim(x));
+                    // FIXME: resolve_fixed_only here
+                    let size = f32::max(
+                        column_size_minus_margin,
+                        child.layout.min_size.get_dim(x).resolve_fixed_only(),
+                    );
                     child.layout.size.set_dim(x, size);
                 }
                 if child_size != child.layout.size.get_dim(x) {

@@ -13,7 +13,7 @@ use unit2::Percent;
 
 
 /// Unit for display object layout.
-#[derive(Clone, Copy, Debug, PartialEq, From)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, From)]
 pub enum Unit {
     /// Pixel distance.
     Pixels(f32),
@@ -72,7 +72,7 @@ pub enum Resizing {
     #[default]
     Hug,
     /// In this mode, the display object size is provided explicitly.
-    Fixed(f32),
+    Fixed(Unit),
 }
 
 impl Resizing {
@@ -90,6 +90,30 @@ impl Resizing {
     }
 }
 
+impl From<f32> for Resizing {
+    fn from(value: f32) -> Self {
+        Self::Fixed(Unit::from(value))
+    }
+}
+
+impl From<i32> for Resizing {
+    fn from(value: i32) -> Self {
+        Self::Fixed(Unit::from(value))
+    }
+}
+
+impl From<Fraction> for Resizing {
+    fn from(value: Fraction) -> Self {
+        Self::Fixed(Unit::from(value))
+    }
+}
+
+impl From<Percent> for Resizing {
+    fn from(value: Percent) -> Self {
+        Self::Fixed(Unit::from(value))
+    }
+}
+
 /// Just like `Into<Vector2<Resizing>>`. It is needed because of Rust limitations regarding
 /// implementing traits for structs not owned by this crate.
 #[allow(missing_docs)]
@@ -98,6 +122,12 @@ pub trait IntoResizing {
 }
 
 impl IntoResizing for Vector2<f32> {
+    fn into_resizing(self) -> Vector2<Resizing> {
+        Vector2::new(self.x.into(), self.y.into())
+    }
+}
+
+impl IntoResizing for Vector2<Unit> {
     fn into_resizing(self) -> Vector2<Resizing> {
         Vector2::new(self.x.into(), self.y.into())
     }
