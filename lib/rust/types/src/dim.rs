@@ -385,19 +385,6 @@ gen_dim_impl_for_vector!(Vector3, x, y, z);
 gen_dim_impl_for_vector!(Vector4, x, y, z, w);
 
 
-// impl<T: Scalar + Copy> Dim<X> for (T, T) {
-//     fn get_dim(&self, _dim: X) -> Self::Dim1Type {
-//         self.x()
-//     }
-// }
-// impl<T: Scalar + Copy> DimSetter<X> for Vector2<T> { fn set_dim(&mut self, _dim: X, value:
-// Self::Dim1Type) { self.set_x(value) } } impl<T: Scalar + Copy> Dim<Y> for Vector2<T> {
-//     fn get_dim(&self, _dim: Y) -> Self::Dim1Type {
-//         self.y()
-//     }
-// }
-// impl<T: Scalar + Copy> Dim
-
 
 // =====================================================
 // === Generic Dim traits impls for Cell and RefCell ===

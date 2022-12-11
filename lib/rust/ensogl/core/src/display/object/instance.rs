@@ -1279,35 +1279,6 @@ impl Debug for Instance {
 // === Layout and Size =============================================================================
 // =================================================================================================
 
-// ======================
-// === Column and Row ===
-// ======================
-
-/// The auto-layout grid column or row definition.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-#[allow(missing_docs)]
-pub struct ColumnOrRow {
-    size:     Size,
-    min_size: Option<f32>,
-    max_size: Option<f32>,
-    grow:     Option<f32>,
-    shrink:   Option<f32>,
-}
-
-/// The auto-layout column definition.
-#[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
-pub struct Column {
-    def: ColumnOrRow,
-}
-
-/// The auto-layout row definition.
-#[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
-pub struct Row {
-    def: ColumnOrRow,
-}
-
-
-
 // ===================
 // === LayoutModel ===
 // ===================
@@ -1566,6 +1537,53 @@ pub trait LayoutOps: Object {
 
 
 
+// ======================
+// === Column and Row ===
+// ======================
+
+/// The auto-layout grid column or row definition.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[allow(missing_docs)]
+pub struct ColumnOrRow {
+    size:     Size,
+    min_size: Option<f32>,
+    max_size: Option<f32>,
+    grow:     Option<f32>,
+    shrink:   Option<f32>,
+}
+
+/// The auto-layout column definition.
+#[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
+pub struct Column {
+    def: ColumnOrRow,
+}
+
+/// The auto-layout row definition.
+#[derive(Clone, Copy, Debug, Default, Deref, DerefMut, PartialEq)]
+pub struct Row {
+    def: ColumnOrRow,
+}
+
+
+
+pub type ColumnBuilder = ColumnOrRowBuilder<X>;
+pub type RowBuilder = ColumnOrRowBuilder<Y>;
+
+#[derive(Debug)]
+pub struct ColumnOrRowBuilder<Axis> {
+    instance: Instance,
+    index:    usize,
+    axis:     PhantomData<Axis>,
+}
+
+impl<Axis> ColumnOrRowBuilder<Axis> {
+    pub fn new(instance: Instance, index: usize) -> Self {
+        Self { instance, index, axis: PhantomData }
+    }
+}
+
+
+
 // ==================
 // === AutoLayout ===
 // ==================
@@ -1756,6 +1774,16 @@ pub trait AutoLayoutOps: Object {
     fn reverse_rows(&self) -> &Self {
         self.display_object().modify_auto_layout(|l| l.reversed_columns_and_rows.update_y(|t| !t));
         self
+    }
+
+    fn column_or_row<Dim>(&self, index: usize, dim: Dim) -> Option<ColumnOrRowBuilder<Dim>> {
+        let instance = self.display_object();
+        instance
+            .modify_auto_layout(|l| {
+                (l.other_columns_and_rows.get_dim(dim).len() <= index)
+                    .as_some(ColumnOrRowBuilder::new(instance.clone_ref(), index))
+            })
+            .flatten();
     }
 
     crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
@@ -3909,6 +3937,66 @@ mod layout_tests {
             .assert_node2_position(2.0, 0.0)
             .assert_node3_position(6.0, 0.0);
     }
+
+    /// ```text
+    /// ╭─────────────── ▶ ◀ ───────────────╮
+    /// │ root                              │
+    /// │                        ╭───────╮  │
+    /// │             ╭───────╮  │ node3 │  │
+    /// │  ╭───────╮  │ node2 │  │       │  ▼
+    /// │  │ node1 │  │       │  │       │  ▲
+    /// │  │       │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  ╰───────╯  │
+    /// │     1fr        40%        2fr     │
+    /// ╰───────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_hug_layout_with_fraction_and_percentage_children() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.node1.set_size((1.fr(), 1.0));
+        test.node2.set_size((40.pc(), 2.0));
+        test.node3.set_size((2.fr(), 3.0));
+        test.run()
+            .assert_root_size(0.0, 3.0)
+            .assert_node1_size(0.0, 1.0)
+            .assert_node2_size(0.0, 2.0)
+            .assert_node3_size(0.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 0.0)
+            .assert_node3_position(0.0, 0.0);
+    }
+
+    // /// ```text
+    // /// ╭─────────────┬───  ▶ ◀ ────┬─────────────╮
+    // /// │ root        ┆             ┆             │
+    // /// │             ┆             ┆  ╭───────╮  │
+    // /// │             ┆  ╭───────╮  ┆  │ node3 │  │
+    // /// │  ╭───────╮  ┆  │ node2 │  ┆  │       │  ▼
+    // /// │  │ node1 │  ┆  │       │  ┆  │       │  ▲
+    // /// │  │       │  ┆  │       │  ┆  │       │  │
+    // /// │  ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │
+    // /// ╰─────────────┴─────────────┴─────────────╯
+    // /// ```
+    // #[test]
+    // fn test_fixed_column_layout() {
+    //     let test = TestFlatChildren3::new();
+    //     test.root.use_auto_layout();
+    //     test.root.first_column();
+    //     test.node1.set_size((1.fr(), 1.0));
+    //     test.node2.set_size((40.pc(), 2.0));
+    //     test.node3.set_size((2.fr(), 3.0));
+    //     test.run()
+    //         .assert_root_size(0.0, 3.0)
+    //         .assert_node1_size(0.0, 1.0)
+    //         .assert_node2_size(0.0, 2.0)
+    //         .assert_node3_size(0.0, 3.0)
+    //         .assert_root_position(0.0, 0.0)
+    //         .assert_node1_position(0.0, 0.0)
+    //         .assert_node2_position(0.0, 0.0)
+    //         .assert_node3_position(0.0, 0.0);
+    // }
 
     // /// ```text
     // /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
