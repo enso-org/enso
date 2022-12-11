@@ -2196,7 +2196,7 @@ impl Model {
                 let mut shrink = 0.0;
                 let mut min_size = 0.0;
                 let mut max_size = f32::INFINITY;
-                let mut computed_size = 0.0;
+                let mut max_child_size = 0.0;
                 let mut max_child_fr_size = Fraction::default();
                 for child in &children {
                     let self_size = match self.layout.size.get_dim(x) {
@@ -2230,13 +2230,19 @@ impl Model {
                             .resolve_const_only2()
                             .unwrap_or(f32::INFINITY),
                     );
-                    computed_size = f32::max(computed_size, child_size);
+                    max_child_size = f32::max(max_child_size, child_size);
                 }
                 let child_count = children.len() as f32;
                 let grow = axis.grow.unwrap_or_else(|| grow / child_count);
                 let shrink = axis.shrink.unwrap_or_else(|| shrink / child_count);
                 let min_size = axis.min_size.unwrap_or(min_size);
                 let max_size = axis.max_size.unwrap_or(max_size);
+                let max_child_fr_size = axis.size.as_fraction().unwrap_or(max_child_fr_size);
+
+                let computed_size = match axis.size {
+                    Size::Fixed(unit) => unit.resolve_const_only(),
+                    Size::Hug => max_child_size,
+                };
                 let size = axis.size;
                 let axis = ResolvedAxis {
                     size,
@@ -4084,18 +4090,18 @@ mod layout_tests {
         test.root.first_column().set_size(1.fr());
         test.root.add_column().set_size(2.fr());
         test.root.add_column().set_size(3.fr());
-        test.node1.set_size((2.0, 1.0));
-        test.node2.set_size((2.0, 2.0));
-        test.node3.set_size((2.0, 3.0));
+        test.node1.set_size((1.0, 1.0));
+        test.node2.set_size((1.0, 2.0));
+        test.node3.set_size((1.0, 3.0));
         test.run()
             .assert_root_size(12.0, 3.0)
-            .assert_node1_size(0.0, 1.0)
-            .assert_node2_size(0.0, 2.0)
-            .assert_node3_size(0.0, 3.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(1.0, 2.0)
+            .assert_node3_size(1.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
-            .assert_node2_position(0.0, 0.0)
-            .assert_node3_position(0.0, 0.0);
+            .assert_node2_position(2.0, 0.0)
+            .assert_node3_position(6.0, 0.0);
     }
 
     // /// ```text
