@@ -2125,7 +2125,6 @@ impl Model {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // FIXME: sizes of elements can be now not pixels - its not working now.
     // FIXME: origin points
     // FIXME: testing integration
     // FIXME: demo scene
@@ -4194,22 +4193,25 @@ mod layout_tests {
     }
 
     /// ```text
-    /// ╭─────────────────────┬─────────────────────┬────────────────────╮
-    /// │ ╱╱╱ root        ╱╱╱ ┆ ╱╱╱             ╱╱╱ ┆ ╱╱╱            ╱╱╱ │
-    /// │ ╱╱╱             ╱╱╱ ┆ ╱╱╱             ╱╱╱ ┆ ╱╱╱  ╭───────╮ ╱╱╱ │
-    /// │ ╱╱╱             ╱╱╱ ┆ ╱╱╱  ╭───────╮  ╱╱╱ ┆ ╱╱╱  │ node3 │ ╱╱╱ │
-    /// │ ╱╱╱  ╭───────╮  ╱╱╱ ┆ ╱╱╱  │ node2 │  ╱╱╱ ┆ ╱╱╱  │       │ ╱╱╱ ▼
-    /// │ ╱╱╱  │ node1 │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │ ╱╱╱ ▲
-    /// │ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │ ╱╱╱ │
-    /// │ ╱╱╱  ╰───────╯  ╱╱╱ ┆ ╱╱╱  ╰───────╯  ╱╱╱ ┆ ╱╱╱  ╰───────╯ ╱╱╱ │
-    /// │ 1fr      2      2fr ┆ 3fr      2      4fr ┆ 5fr      2     6fr │
-    /// ╰─────────────────────┴─────────────────────┴────────────────────╯
-    ///  total fr = 21                  27
+    /// ╭─────────────────────┬─────────────────────┬─────────────────────╮
+    /// │ ╱╱╱ root        ╱╱╱ ┆ ╱╱╱             ╱╱╱ ┆ ╱╱╱             ╱╱╱ │
+    /// │ ╱╱╱             ╱╱╱ ┆ ╱╱╱             ╱╱╱ ┆ ╱╱╱  ╭───────╮  ╱╱╱ │
+    /// │ ╱╱╱             ╱╱╱ ┆ ╱╱╱  ╭───────╮  ╱╱╱ ┆ ╱╱╱  │ node3 │  ╱╱╱ │
+    /// │ ╱╱╱  ╭───────╮  ╱╱╱ ┆ ╱╱╱  │ node2 │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ▼
+    /// │ ╱╱╱  │ node1 │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ▲
+    /// │ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ │
+    /// │ ╱╱╱  ╰───────╯  ╱╱╱ ┆ ╱╱╱  ╰───────╯  ╱╱╱ ┆ ╱╱╱  ╰───────╯  ╱╱╱ │
+    /// │ 1fr      2      2fr ┆ 3fr      2      4fr ┆ 5fr      2      6fr │
+    /// ╰─────────────────────┴─────────────────────┴─────────────────────╯
+    ///            5                     9                    13
     /// ```
     #[test]
     fn test_fixed_column_layout_with_fraction_margin() {
         let test = TestFlatChildren3::new();
         test.root.use_auto_layout().set_size_x(27.0);
+        test.root.first_column().set_size(5.0);
+        test.root.add_column().set_size(9.0);
+        test.root.add_column().set_size(13.0);
         test.node1.set_size((2.0, 1.0)).set_margin_left(1.fr()).set_margin_right(2.fr());
         test.node2.set_size((2.0, 2.0)).set_margin_left(3.fr()).set_margin_right(4.fr());
         test.node3.set_size((2.0, 3.0)).set_margin_left(5.fr()).set_margin_right(6.fr());
