@@ -4158,20 +4158,20 @@ mod layout_tests {
 
 
     /// ```text
-    /// ╭─────────────────┬──────────────────┬─────────────────╮
-    /// │ ╱╱ root      ╱╱ ┆ ╱╱            ╱╱ ┆ ╱╱           ╱╱ │
-    /// │ ╱╱           ╱╱ ┆ ╱╱            ╱╱ ┆ ╱╱ ╭───────╮ ╱╱ │
-    /// │ ╱╱           ╱╱ ┆ ╱╱  ╭───────╮ ╱╱ ┆ ╱╱ │ node3 │ ╱╱ │
-    /// │ ╱╱ ╭───────╮ ╱╱ ┆ ╱╱  │ node2 │ ╱╱ ┆ ╱╱ │       │ ╱╱ ▼
-    /// │ ╱╱ │ node1 │ ╱╱ ┆ ╱╱  │       │ ╱╱ ┆ ╱╱ │       │ ╱╱ ▲
-    /// │ ╱╱ │       │ ╱╱ ┆ ╱╱  │       │ ╱╱ ┆ ╱╱ │       │ ╱╱ │
-    /// │ ╱╱ ╰───────╯ ╱╱ ┆ ╱╱  ╰───────╯ ╱╱ ┆ ╱╱ ╰───────╯ ╱╱ │
-    /// │.5fr    2       1fr        2       1fr       2    .5fr│
-    /// ╰─────────────────┴──────────────────┴─────────────────╯
+    /// ╭─────────────────┬─────────────────┬─────────────────╮
+    /// │╱╱ root        ╱╱┆╱╱             ╱╱┆╱╱             ╱╱│
+    /// │╱╱             ╱╱┆╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱│
+    /// │╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱┆╱╱  │ node3 │  ╱╱│
+    /// │╱╱  ╭───────╮  ╱╱┆╱╱  │ node2 │  ╱╱┆╱╱  │       │  ╱╱▼
+    /// │╱╱  │ node1 │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱▲
+    /// │╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱│
+    /// │╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱│
+    /// │.5fr    2       1fr       2       1fr       2    .5fr│
+    /// ╰─────────────────┴─────────────────┴─────────────────╯
     ///                            12
     /// ```
     #[test]
-    fn test_fixed_column_layout_with_spacing() {
+    fn test_fixed_column_layout_with_fraction_gap() {
         let test = TestFlatChildren3::new();
         test.root
             .use_auto_layout()
@@ -4188,6 +4188,37 @@ mod layout_tests {
             .assert_node2_position(5.0, 0.0)
             .assert_node3_position(9.0, 0.0)
             .assert_root_size(12.0, 3.0)
+            .assert_node1_size(2.0, 1.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(2.0, 3.0);
+    }
+
+    /// ```text
+    /// ╭─────────────────────┬─────────────────────┬────────────────────╮
+    /// │ ╱╱╱ root        ╱╱╱ ┆ ╱╱╱             ╱╱╱ ┆ ╱╱╱            ╱╱╱ │
+    /// │ ╱╱╱             ╱╱╱ ┆ ╱╱╱             ╱╱╱ ┆ ╱╱╱  ╭───────╮ ╱╱╱ │
+    /// │ ╱╱╱             ╱╱╱ ┆ ╱╱╱  ╭───────╮  ╱╱╱ ┆ ╱╱╱  │ node3 │ ╱╱╱ │
+    /// │ ╱╱╱  ╭───────╮  ╱╱╱ ┆ ╱╱╱  │ node2 │  ╱╱╱ ┆ ╱╱╱  │       │ ╱╱╱ ▼
+    /// │ ╱╱╱  │ node1 │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │ ╱╱╱ ▲
+    /// │ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │  ╱╱╱ ┆ ╱╱╱  │       │ ╱╱╱ │
+    /// │ ╱╱╱  ╰───────╯  ╱╱╱ ┆ ╱╱╱  ╰───────╯  ╱╱╱ ┆ ╱╱╱  ╰───────╯ ╱╱╱ │
+    /// │ 1fr      2      2fr ┆ 3fr      2      4fr ┆ 5fr      2     6fr │
+    /// ╰─────────────────────┴─────────────────────┴────────────────────╯
+    ///  total fr = 21                  27
+    /// ```
+    #[test]
+    fn test_fixed_column_layout_with_fraction_margin() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_size_x(27.0);
+        test.node1.set_size((2.0, 1.0)).set_margin_left(1.fr()).set_margin_right(2.fr());
+        test.node2.set_size((2.0, 2.0)).set_margin_left(3.fr()).set_margin_right(4.fr());
+        test.node3.set_size((2.0, 3.0)).set_margin_left(5.fr()).set_margin_right(6.fr());
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(1.0, 0.0)
+            .assert_node2_position(8.0, 0.0)
+            .assert_node3_position(19.0, 0.0)
+            .assert_root_size(27.0, 3.0)
             .assert_node1_size(2.0, 1.0)
             .assert_node2_size(2.0, 2.0)
             .assert_node3_size(2.0, 3.0);
