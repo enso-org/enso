@@ -1292,7 +1292,9 @@ pub struct LayoutModel {
     alignment:     Cell<alignment::OptDim2>,
     margin:        Cell<Vector2<SideSpacing>>,
     padding:       Cell<Vector2<SideSpacing>>,
-    #[derivative(Default(value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector2())"))]
+    #[derivative(Default(
+        value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector_trans())"
+    ))]
     max_size:      Cell<Vector2<Unit>>,
     min_size:      Cell<Vector2<Unit>>,
     size:          Cell<Vector2<Size>>,
@@ -1392,8 +1394,8 @@ macro_rules! gen_prop_accessors {
                 self
             }
 
-            fn [<set_ $name>](&self, value: impl IntoVector2<$ty>) -> &Self {
-                self.[<modify_ $name>](|t| *t = value.into_vector2())
+            fn [<set_ $name>](&self, value: impl IntoVectorTrans2<$ty>) -> &Self {
+                self.[<modify_ $name>](|t| *t = value.into_vector_trans())
             }
 
             fn [<update_ $name>](&self, f: impl FnOnce(Vector2<$ty>) -> Vector2<$ty>) -> &Self {
@@ -1762,8 +1764,8 @@ pub trait AutoLayoutOps: Object {
     }
 
     /// Gap setter. Gap is the space between columns and rows.
-    fn set_gap(&self, value: impl IntoVector2<Unit>) -> &Self {
-        self.modify_gap(|v| *v = value.into_vector2())
+    fn set_gap(&self, value: impl IntoVectorTrans2<Unit>) -> &Self {
+        self.modify_gap(|v| *v = value.into_vector_trans())
     }
 
     /// Gap setter. Gap is the space between columns and rows.
@@ -2529,8 +2531,8 @@ macro_rules! gen_object_trans {
                 self.display_object().def.$trans()
             }
 
-            fn [<set_ $trans>](&self, t: Vector3<f32>) {
-                self.display_object().def.[<set_ $trans>](t);
+            fn [<set_ $trans>](&self, t: impl IntoVector3<f32>) {
+                self.display_object().def.[<set_ $trans>](t.into_vector());
             }
 
             fn [<update_ $trans>]<F: FnOnce(Vector3<f32>) -> Vector3<f32>>(&self, f: F) {
@@ -2588,8 +2590,8 @@ macro_rules! gen_setters {
     };
     (@ $tx:tt $( $set_name:tt $mod_name:tt $update_name:tt $name:tt $dim:tt )*) => { paste! {
         $(
-            fn $set_name(&self, value: [<Vector $dim>]<f32>) {
-                self.[<modify_ $tx>](|p| p.[<set_ $name>](value));
+            fn $set_name(&self, value: impl [<IntoVector $dim>]<f32>) {
+                self.[<modify_ $tx>](|p| p.[<set_ $name>](value.into_vector()));
             }
 
             fn $mod_name<F>(&self, f: F)
@@ -3482,8 +3484,8 @@ mod layout_tests {
                 }
 
                 fn reset_positions(&self) {
-                    self.root.set_position(Vector3::zero());
-                    $(self.[<node $num>].set_position(Vector3::zero());)*
+                    self.root.set_position(Vector3(0.0, 0.0, 0.0));
+                    $(self.[<node $num>].set_position(Vector3(0.0, 0.0, 0.0));)*
                 }
 
                 fn run(&self) -> &Self {
@@ -3491,24 +3493,29 @@ mod layout_tests {
                     self
                 }
 
-                fn assert_root_position(&self, x:f32, y:f32) -> &Self {
-                    assert_eq!(self.root.position().xy().as_slice(), &[x,y]);
+                fn assert_root_bbox_origin(&self, x:f32, y:f32) -> &Self {
+                    assert_eq!(self.root.bbox_origin(), Vector2(x,y));
                     self
                 }
 
-                fn assert_root_size(&self, x:f32, y:f32) -> &Self {
-                    assert_eq!(self.root.computed_size().as_slice(), &[x,y]);
+                fn assert_root_position(&self, x:f32, y:f32) -> &Self {
+                    assert_eq!(self.root.position().xy(), Vector2(x,y));
+                    self
+                }
+
+                fn assert_root_computed_size(&self, x:f32, y:f32) -> &Self {
+                    assert_eq!(self.root.computed_size(), Vector2(x,y));
                     self
                 }
 
                 $(
                     fn [<assert_node $num _position>](&self, x:f32, y:f32) -> &Self {
-                        assert_eq!(self.[<node $num>].position().xy().as_slice(), &[x,y]);
+                        assert_eq!(self.[<node $num>].position().xy(), Vector2(x,y));
                         self
                     }
 
-                    fn [<assert_node $num _size>](&self, x:f32, y:f32) -> &Self {
-                        assert_eq!(self.[<node $num>].computed_size().as_slice(), &[x,y]);
+                    fn [<assert_node $num _computed_size>](&self, x:f32, y:f32) -> &Self {
+                        assert_eq!(self.[<node $num>].computed_size(), Vector2(x,y));
                         self
                     }
                 )*
@@ -3625,10 +3632,10 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(1.0, 0.0)
             .assert_node3_position(3.0, 0.0)
-            .assert_root_size(6.0, 3.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(3.0, 3.0);
+            .assert_root_computed_size(6.0, 3.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(3.0, 3.0);
     }
 
     /// ```text
@@ -3660,10 +3667,10 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(0.0, 1.0)
             .assert_node3_position(0.0, 3.0)
-            .assert_root_size(3.0, 6.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(3.0, 3.0);
+            .assert_root_computed_size(3.0, 6.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(3.0, 3.0);
     }
 
     /// ```text
@@ -3686,10 +3693,10 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(0.0, 0.0)
             .assert_node3_position(2.0, 0.0)
-            .assert_root_size(2.0, 2.0)
-            .assert_node1_size(0.0, 1.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(0.0, 0.0);
+            .assert_root_computed_size(2.0, 2.0)
+            .assert_node1_computed_size(0.0, 1.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(0.0, 0.0);
     }
 
     /// ```text
@@ -3710,10 +3717,10 @@ mod layout_tests {
         test.node2.set_size((2.0, 2.0)).allow_grow_x();
         test.node3.set_size((3.0, 3.0));
         test.run()
-            .assert_root_size(10.0, 3.0)
-            .assert_node1_size(0.0, 1.0)
-            .assert_node2_size(7.0, 2.0)
-            .assert_node3_size(3.0, 3.0)
+            .assert_root_computed_size(10.0, 3.0)
+            .assert_node1_computed_size(0.0, 1.0)
+            .assert_node2_computed_size(7.0, 2.0)
+            .assert_node3_computed_size(3.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(0.0, 0.0)
@@ -3738,10 +3745,10 @@ mod layout_tests {
         test.node2.set_size((2.0, 2.0)).allow_grow_x().set_max_size_x(4.0);
         test.node3.set_size((3.0, 3.0));
         test.run()
-            .assert_root_size(10.0, 3.0)
-            .assert_node1_size(0.0, 1.0)
-            .assert_node2_size(4.0, 2.0)
-            .assert_node3_size(3.0, 3.0)
+            .assert_root_computed_size(10.0, 3.0)
+            .assert_node1_computed_size(0.0, 1.0)
+            .assert_node2_computed_size(4.0, 2.0)
+            .assert_node3_computed_size(3.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(0.0, 0.0)
@@ -3766,10 +3773,10 @@ mod layout_tests {
         test.node2.set_size((2.0, 2.0)).allow_shrink_x().set_min_size_x(1.0);
         test.node3.set_size((3.0, 3.0));
         test.run()
-            .assert_root_size(4.0, 3.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(1.0, 2.0)
-            .assert_node3_size(3.0, 3.0)
+            .assert_root_computed_size(4.0, 3.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(1.0, 2.0)
+            .assert_node3_computed_size(3.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(1.0, 0.0)
@@ -3801,10 +3808,10 @@ mod layout_tests {
         node2_1.set_size((1.0, 1.0));
         test.node3.set_size((3.0, 3.0));
         test.run()
-            .assert_root_size(10.0, 3.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(6.0, 3.0)
-            .assert_node3_size(3.0, 3.0)
+            .assert_root_computed_size(10.0, 3.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(6.0, 3.0)
+            .assert_node3_computed_size(3.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(1.0, 0.0)
@@ -3838,10 +3845,10 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(11.0, 0.0)
             .assert_node3_position(14.0, 0.0)
-            .assert_root_size(17.0, 3.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(3.0, 3.0);
+            .assert_root_computed_size(17.0, 3.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(3.0, 3.0);
     }
 
     /// ```text
@@ -3869,10 +3876,10 @@ mod layout_tests {
             .assert_node1_position(10.0, 10.0)
             .assert_node2_position(11.0, 10.0)
             .assert_node3_position(13.0, 10.0)
-            .assert_root_size(26.0, 23.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(3.0, 3.0);
+            .assert_root_computed_size(26.0, 23.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(3.0, 3.0);
     }
 
     /// ```text
@@ -3896,10 +3903,10 @@ mod layout_tests {
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
         test.run()
-            .assert_root_size(4.0, 4.0)
-            .assert_node1_size(2.0, 2.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(2.0, 2.0)
+            .assert_root_computed_size(4.0, 4.0)
+            .assert_node1_computed_size(2.0, 2.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 2.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(2.0, 0.0)
@@ -3927,10 +3934,10 @@ mod layout_tests {
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
         test.run()
-            .assert_root_size(4.0, 4.0)
-            .assert_node1_size(2.0, 2.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(2.0, 2.0)
+            .assert_root_computed_size(4.0, 4.0)
+            .assert_node1_computed_size(2.0, 2.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 2.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(2.0, 0.0)
             .assert_node2_position(0.0, 0.0)
@@ -3958,10 +3965,10 @@ mod layout_tests {
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
         test.run()
-            .assert_root_size(4.0, 4.0)
-            .assert_node1_size(2.0, 2.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(2.0, 2.0)
+            .assert_root_computed_size(4.0, 4.0)
+            .assert_node1_computed_size(2.0, 2.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 2.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 2.0)
             .assert_node2_position(2.0, 2.0)
@@ -3990,10 +3997,10 @@ mod layout_tests {
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
         test.run()
-            .assert_root_size(9.0, 7.0)
-            .assert_node1_size(2.0, 2.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(2.0, 2.0)
+            .assert_root_computed_size(9.0, 7.0)
+            .assert_node1_computed_size(2.0, 2.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 2.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(7.0, 0.0)
@@ -4023,9 +4030,9 @@ mod layout_tests {
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(3.0, 0.0)
-            .assert_root_size(10.0, 2.0)
-            .assert_node1_size(3.0, 1.0)
-            .assert_node2_size(7.0, 2.0);
+            .assert_root_computed_size(10.0, 2.0)
+            .assert_node1_computed_size(3.0, 1.0)
+            .assert_node2_computed_size(7.0, 2.0);
     }
 
     /// ```text
@@ -4049,10 +4056,10 @@ mod layout_tests {
         test.node2.set_size((40.pc(), 2.0));
         test.node3.set_size((2.fr(), 3.0));
         test.run()
-            .assert_root_size(10.0, 3.0)
-            .assert_node1_size(2.0, 1.0)
-            .assert_node2_size(4.0, 2.0)
-            .assert_node3_size(4.0, 3.0)
+            .assert_root_computed_size(10.0, 3.0)
+            .assert_node1_computed_size(2.0, 1.0)
+            .assert_node2_computed_size(4.0, 2.0)
+            .assert_node3_computed_size(4.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(2.0, 0.0)
@@ -4079,10 +4086,10 @@ mod layout_tests {
         test.node2.set_size((40.pc(), 2.0));
         test.node3.set_size((2.fr(), 3.0));
         test.run()
-            .assert_root_size(0.0, 3.0)
-            .assert_node1_size(0.0, 1.0)
-            .assert_node2_size(0.0, 2.0)
-            .assert_node3_size(0.0, 3.0)
+            .assert_root_computed_size(0.0, 3.0)
+            .assert_node1_computed_size(0.0, 1.0)
+            .assert_node2_computed_size(0.0, 2.0)
+            .assert_node3_computed_size(0.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(0.0, 0.0)
@@ -4112,10 +4119,10 @@ mod layout_tests {
         test.node2.set_size((1.0, 2.0));
         test.node3.set_size((1.0, 3.0));
         test.run()
-            .assert_root_size(12.0, 3.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(1.0, 2.0)
-            .assert_node3_size(1.0, 3.0)
+            .assert_root_computed_size(12.0, 3.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(1.0, 2.0)
+            .assert_node3_computed_size(1.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(2.0, 0.0)
@@ -4145,10 +4152,10 @@ mod layout_tests {
         test.node2.set_size((3.0, 2.0));
         test.node3.set_size((4.0, 3.0));
         test.run()
-            .assert_root_size(6.0, 3.0)
-            .assert_node1_size(1.0, 1.0)
-            .assert_node2_size(3.0, 2.0)
-            .assert_node3_size(4.0, 3.0)
+            .assert_root_computed_size(6.0, 3.0)
+            .assert_node1_computed_size(1.0, 1.0)
+            .assert_node2_computed_size(3.0, 2.0)
+            .assert_node3_computed_size(4.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(2.0, 0.0)
@@ -4186,10 +4193,10 @@ mod layout_tests {
             .assert_node1_position(1.0, 0.0)
             .assert_node2_position(5.0, 0.0)
             .assert_node3_position(9.0, 0.0)
-            .assert_root_size(12.0, 3.0)
-            .assert_node1_size(2.0, 1.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(2.0, 3.0);
+            .assert_root_computed_size(12.0, 3.0)
+            .assert_node1_computed_size(2.0, 1.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 3.0);
     }
 
     /// ```text
@@ -4220,371 +4227,73 @@ mod layout_tests {
             .assert_node1_position(1.0, 0.0)
             .assert_node2_position(8.0, 0.0)
             .assert_node3_position(19.0, 0.0)
-            .assert_root_size(27.0, 3.0)
-            .assert_node1_size(2.0, 1.0)
-            .assert_node2_size(2.0, 2.0)
-            .assert_node3_size(2.0, 3.0);
+            .assert_root_computed_size(27.0, 3.0)
+            .assert_node1_computed_size(2.0, 1.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 3.0);
     }
 
-    // /// ```text
-    // /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮
-    // /// │       ⋯5            ⋯5            ⋯5        │
-    // /// │   ╭─ node1 ─╮   ╭─ node2 ─╮   ╭─ node3 ─╮   ▼
-    // /// │ ⋯ │         │ ⋯ │         │ ⋯ │         │ ⋯ │
-    // /// │ 3 ╰─────────╯ 1 ╰─────────╯ 1 ╰─────────╯ 3 ▲
-    // /// │       ⋯5            ⋯5            ⋯5        │
-    // /// ╰─────────────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_hug_size() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().padding_xy(3.0, 5.0).spacing(1.0);
-    //     test.node1.set_size((20.0, 200.0));
-    //     test.node2.set_size((30.0, 300.0));
-    //     test.node3.set_size((50.0, 500.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(3.0, 5.0)
-    //         .assert_node2_position(24.0, 5.0)
-    //         .assert_node3_position(55.0, 5.0)
-    //         .assert_root_size(108.0, 510.0)
-    //         .assert_node1_size(20.0, 200.0)
-    //         .assert_node2_size(30.0, 300.0)
-    //         .assert_node3_size(50.0, 500.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭─ ROOT ─ ▶ ◀ ────╮
-    // /// ▽       ⋯5        │
-    // /// │   ╭─ node3 ─╮   │
-    // /// │ ⋯ │         │ ⋯ │
-    // /// │ 3 ╰─────────╯ 3 │
-    // /// │       ⋯1        │
-    // /// │   ╭─ node2 ─╮   ▼
-    // /// │ ⋯ │         │ ⋯ │
-    // /// │ 3 ╰─────────╯ 3 ▲
-    // /// │       ⋯1        │
-    // /// │   ╭─ node1 ─╮   │
-    // /// │ ⋯ │         │ ⋯ │
-    // /// │ 3 ╰─────────╯ 3 │
-    // /// │       ⋯5        │
-    // /// ╰─────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_vertical_hug_size() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_vertical().padding_xy(3.0, 5.0).spacing(1.0);
-    //     test.node1.set_size((20.0, 200.0));
-    //     test.node2.set_size((30.0, 300.0));
-    //     test.node3.set_size((50.0, 500.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(3.0, 5.0)
-    //         .assert_node2_position(3.0, 206.0)
-    //         .assert_node3_position(3.0, 507.0)
-    //         .assert_root_size(56.0, 1012.0)
-    //         .assert_node1_size(20.0, 200.0)
-    //         .assert_node2_size(30.0, 300.0)
-    //         .assert_node3_size(50.0, 500.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────╮
-    // /// │  ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮  │
-    // /// │  │         ▼  │         ▼  │         ▼  ▼
-    // /// │  │         ▲  │         ▲  │         ▲  ▲
-    // /// │  ╰─────────╯  ╰── ▶ ◀ ──╯  ╰── ◀ ▶ ──╯  │
-    // /// ╰─────────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_nested_hug_size() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout();
-    //     test.node1.set_size_x_hug(200.0);
-    //     test.node2.set_size_hug();
-    //     test.node3.set_size_fill_hug();
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(0.0, 0.0)
-    //         .assert_node2_position(200.0, 0.0)
-    //         .assert_node3_position(200.0, 0.0)
-    //         .assert_root_size(200.0, 0.0)
-    //         .assert_node1_size(200.0, 0.0)
-    //         .assert_node2_size(0.0, 0.0)
-    //         .assert_node3_size(0.0, 0.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭─ ROOT ─ ▶ ◀ ──╮
-    // /// ▽  ╭─ node1 ─╮  │
-    // /// │  │         │  │
-    // /// │  │         │  │
-    // /// │  ╰── ▶ ◀ ──╯  │
-    // /// │  ╭─ node2 ─╮  │
-    // /// │  │         ▼  ▼
-    // /// │  │         ▲  ▲
-    // /// │  ╰── ▶ ◀ ──╯  │
-    // /// │  ╭─ node3 ─╮  │
-    // /// │  │         ▲  │
-    // /// │  │         ▼  │
-    // /// │  ╰── ▶ ◀ ──╯  │
-    // /// ╰───────────────╯
-    // /// ```
-    // #[test]
-    // fn test_vertical_nested_hug_size() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.set_layout_vertical();
-    //     test.node1.set_size_hug_y(200.0);
-    //     test.node2.set_size_hug();
-    //     test.node3.set_size_hug_fill();
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(0.0, 0.0)
-    //         .assert_node2_position(0.0, 200.0)
-    //         .assert_node3_position(0.0, 200.0)
-    //         .assert_root_size(0.0, 200.0)
-    //         .assert_node1_size(0.0, 200.0)
-    //         .assert_node2_size(0.0, 0.0)
-    //         .assert_node3_size(0.0, 0.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭▷ ROOT ──────────────────────────────────────────╮
-    // /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮           │
-    // /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯           │
-    // /// ╰─────────────────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_packed_left_alignment() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().alignment_start_center();
-    //     test.root.set_size((1000.0, 1000.0));
-    //     test.node1.set_size((100.0, 100.0));
-    //     test.node2.set_size((100.0, 100.0));
-    //     test.node3.set_size((100.0, 100.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(0.0, 450.0)
-    //         .assert_node2_position(100.0, 450.0)
-    //         .assert_node3_position(200.0, 450.0)
-    //         .assert_root_size(1000.0, 1000.0)
-    //         .assert_node1_size(100.0, 100.0)
-    //         .assert_node2_size(100.0, 100.0)
-    //         .assert_node3_size(100.0, 100.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭▷ ROOT ──────────────────────────────────────────╮
-    // /// │      ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮      │
-    // /// │      ╰─────────╯  ╰─────────╯  ╰─────────╯      │
-    // /// ╰─────────────────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_packed_center_alignment() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().alignment_center();
-    //     test.root.set_size((1000.0, 1000.0));
-    //     test.node1.set_size((100.0, 100.0));
-    //     test.node2.set_size((100.0, 100.0));
-    //     test.node3.set_size((100.0, 100.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(350.0, 450.0)
-    //         .assert_node2_position(450.0, 450.0)
-    //         .assert_node3_position(550.0, 450.0)
-    //         .assert_root_size(1000.0, 1000.0)
-    //         .assert_node1_size(100.0, 100.0)
-    //         .assert_node2_size(100.0, 100.0)
-    //         .assert_node3_size(100.0, 100.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭▷ ROOT ──────────────────────────────────────────╮
-    // /// │           ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮ │
-    // /// │           ╰─────────╯  ╰─────────╯  ╰─────────╯ │
-    // /// ╰─────────────────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_packed_right_alignment() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().alignment_end_center();
-    //     test.root.set_size((1000.0, 1000.0));
-    //     test.node1.set_size((100.0, 100.0));
-    //     test.node2.set_size((100.0, 100.0));
-    //     test.node3.set_size((100.0, 100.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(700.0, 450.0)
-    //         .assert_node2_position(800.0, 450.0)
-    //         .assert_node3_position(900.0, 450.0)
-    //         .assert_root_size(1000.0, 1000.0)
-    //         .assert_node1_size(100.0, 100.0)
-    //         .assert_node2_size(100.0, 100.0)
-    //         .assert_node3_size(100.0, 100.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭▷ ROOT ────────────╮
-    // /// │ ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
-    // /// │ │         │  │    │    │  │         │
-    // /// │ ╰─────────╯  ╰─────────╯  ╰─────────╯
-    // /// ╰───────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_packed_left_alignment_overflow() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().alignment_start_center();
-    //     test.root.set_size((150.0, 100.0));
-    //     test.node1.set_size((100.0, 100.0));
-    //     test.node2.set_size((100.0, 100.0));
-    //     test.node3.set_size((100.0, 100.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(0.0, 0.0)
-    //         .assert_node2_position(100.0, 0.0)
-    //         .assert_node3_position(200.0, 0.0)
-    //         .assert_root_size(150.0, 100.0)
-    //         .assert_node1_size(100.0, 100.0)
-    //         .assert_node2_size(100.0, 100.0)
-    //         .assert_node3_size(100.0, 100.0);
-    // }
-    //
-    // /// ```text
-    // ///      ╭▷ ROOT ──────────────────╮
-    // /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮
-    // /// │    │    │  │         │  │    │    │
-    // /// ╰─────────╯  ╰─────────╯  ╰─────────╯
-    // ///      ╰─────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_packed_center_alignment_overflow() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().alignment_center();
-    //     test.root.set_size((200.0, 100.0));
-    //     test.node1.set_size((100.0, 100.0));
-    //     test.node2.set_size((100.0, 100.0));
-    //     test.node3.set_size((100.0, 100.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(-50.0, 0.0)
-    //         .assert_node2_position(50.0, 0.0)
-    //         .assert_node3_position(150.0, 0.0)
-    //         .assert_root_size(200.0, 100.0)
-    //         .assert_node1_size(100.0, 100.0)
-    //         .assert_node2_size(100.0, 100.0)
-    //         .assert_node3_size(100.0, 100.0);
-    // }
-    //
-    // /// ```text
-    // ///                   ╭▷ ROOT ────────────╮
-    // /// ╭─ node1 ─╮  ╭─ node2 ─╮  ╭─ node3 ─╮ │
-    // /// │         │  │    │    │  │         │ │
-    // /// ╰─────────╯  ╰─────────╯  ╰─────────╯ │
-    // ///                   ╰───────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_packed_right_alignment_overflow() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().alignment_end_center();
-    //     test.root.set_size((150.0, 100.0));
-    //     test.node1.set_size((100.0, 100.0));
-    //     test.node2.set_size((100.0, 100.0));
-    //     test.node3.set_size((100.0, 100.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(-150.0, 0.0)
-    //         .assert_node2_position(-50.0, 0.0)
-    //         .assert_node3_position(50.0, 0.0)
-    //         .assert_root_size(150.0, 100.0)
-    //         .assert_node1_size(100.0, 100.0)
-    //         .assert_node2_size(100.0, 100.0)
-    //         .assert_node3_size(100.0, 100.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭▷ ROOT ────────────────────────────────────────────╮
-    // /// │ ╭─ node1 ─╮        ╭─ node2 ─╮        ╭─ node3 ─╮ │
-    // /// │ ╰─────────╯        ╰─────────╯        ╰─────────╯ │
-    // /// ╰───────────────────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_horizontal_spaced_alignment() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout().alignment_end_center();
-    //     test.root.set_size((1000.0, 100.0));
-    //     test.node1.set_size((100.0, 100.0));
-    //     test.node2.set_size((100.0, 100.0));
-    //     test.node3.set_size((100.0, 100.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(700.0, 0.0)
-    //         .assert_node2_position(800.0, 0.0)
-    //         .assert_node3_position(900.0, 0.0)
-    //         .assert_root_size(1000.0, 100.0)
-    //         .assert_node1_size(100.0, 100.0)
-    //         .assert_node2_size(100.0, 100.0)
-    //         .assert_node3_size(100.0, 100.0);
-    // }
-    //
-    // /// ```text
-    // ///      ╭─ ROOT ────────────────────────╮
-    // ///      │                   ╭─ node3 ─╮ │
-    // /// ╭─ node1 ─╮              │         │ │
-    // /// │    │    │              │         │ │
-    // /// │    │    │  ╭─ node2 ─╮ ╰─────────╯ │
-    // /// ╰─────────╯  │         │             │
-    // ///      ╰───────│─────────│─────────────╯
-    // ///              ╰─────────╯
-    // /// ```
-    // #[test]
-    // fn test_layout_manual_fixed() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.set_size((40.0, 20.0));
-    //     test.node1.set_size((20.0, 20.0));
-    //     test.node2.set_size((20.0, 20.0));
-    //     test.node3.set_size((20.0, 20.0));
-    //     test.node1.set_xy(Vector2(-10.0, 0.0));
-    //     test.node2.set_xy(Vector2(10.0, -10.0));
-    //     test.node3.set_xy(Vector2(30.0, 10.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(-10.0, 0.0)
-    //         .assert_node2_position(10.0, -10.0)
-    //         .assert_node3_position(30.0, 10.0)
-    //         .assert_root_size(40.0, 20.0)
-    //         .assert_node1_size(20.0, 20.0)
-    //         .assert_node2_size(20.0, 20.0)
-    //         .assert_node3_size(20.0, 20.0);
-    // }
-    //
-    // /// ```text
-    // /// ╭─────┬─ ROOT ─── ▶ ◀ ────────────────╮
-    // /// │     ┆                   ╭─ node3 ─╮ │
-    // /// │╭─ node1 ─╮              │         │ │
-    // /// ││    ┆    │              │         │ ▼
-    // /// ││    ┆    │  ╭─ node2 ─╮ ╰─────────╯ ▲
-    // /// │╰────┼────╯  │         │             │
-    // /// │     ◎┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┈┈┈┈┈┤
-    // /// │             ╰─────────╯             │
-    // /// ╰─────────────────────────────────────╯
-    // /// ```
-    // #[test]
-    // fn test_layout_manual_hug() {
-    //     let test = TestFlatChildren3::new();
-    //     test.node1.set_size((20.0, 20.0));
-    //     test.node2.set_size((20.0, 20.0));
-    //     test.node3.set_size((20.0, 20.0));
-    //     test.node1.set_xy(Vector2(-10.0, 0.0));
-    //     test.node2.set_xy(Vector2(10.0, -10.0));
-    //     test.node3.set_xy(Vector2(30.0, 10.0));
-    //     test.run()
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(-10.0, 0.0)
-    //         .assert_node2_position(10.0, -10.0)
-    //         .assert_node3_position(30.0, 10.0)
-    //         .assert_root_size(60.0, 40.0)
-    //         .assert_node1_size(20.0, 20.0)
-    //         .assert_node2_size(20.0, 20.0)
-    //         .assert_node3_size(20.0, 20.0);
-    // }
+    /// ```text
+    ///    ╭───────────────────────────╮
+    ///    │ root            ╭───────╮ │
+    /// ╭──┼────╮            │ node3 │ │
+    /// │ node1 │            │       │ │
+    /// │  │    │  ╭───────╮ ╰───────╯ │
+    /// ╰──┼────╯  │ node2 │           │
+    ///    ╰───────┼───────┼───────────╯
+    ///            ╰───────╯
+    /// ```
+    #[test]
+    fn test_layout_manual_fixed() {
+        let test = TestFlatChildren3::new();
+        test.root.set_size((4.0, 2.0));
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 2.0));
+        test.node1.set_xy((-1.0, 0.0));
+        test.node2.set_xy((1.0, -1.0));
+        test.node3.set_xy((3.0, 1.0));
+        test.run()
+            .assert_root_computed_size(4.0, 2.0)
+            .assert_node1_computed_size(2.0, 2.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 2.0)
+            .assert_root_bbox_origin(0.0, 0.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(-1.0, 0.0)
+            .assert_node2_position(1.0, -1.0)
+            .assert_node3_position(3.0, 1.0);
+    }
+
+    /// ```text
+    /// ╭────┬───────────────────────────╮
+    /// │    ┆ root            ╭───────╮ │
+    /// │ ╭──┼────╮            │ node3 │ │
+    /// │ │ node1 │            │       │ │
+    /// │ │  ┆    │  ╭───────╮ ╰───────╯ │
+    /// │ ╰──┼────╯  │ node2 │           │
+    /// │    ◎┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┈┈┈┈┤
+    /// │            ╰───────╯           │
+    /// ╰────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_layout_manual_hug() {
+        let test = TestFlatChildren3::new();
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 2.0));
+        test.node1.set_xy((-1.0, 0.0));
+        test.node2.set_xy((1.0, -1.0));
+        test.node3.set_xy((3.0, 1.0));
+        test.run()
+            .assert_root_computed_size(6.0, 4.0)
+            .assert_node1_computed_size(2.0, 2.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 2.0)
+            .assert_root_bbox_origin(-1.0, -1.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(-1.0, 0.0)
+            .assert_node2_position(1.0, -1.0)
+            .assert_node3_position(3.0, 1.0);
+    }
 }
