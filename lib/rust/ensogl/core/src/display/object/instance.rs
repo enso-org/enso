@@ -1566,20 +1566,57 @@ pub struct Row {
 
 
 
-pub type ColumnBuilder = ColumnOrRowBuilder<X>;
-pub type RowBuilder = ColumnOrRowBuilder<Y>;
+pub type ColumnRef = ColumnOrRowRef<X>;
+pub type RowRef = ColumnOrRowRef<Y>;
 
 #[derive(Debug)]
-pub struct ColumnOrRowBuilder<Axis> {
+pub struct ColumnOrRowRef<Dim> {
     instance: Instance,
     index:    usize,
-    axis:     PhantomData<Axis>,
+    axis:     PhantomData<Dim>,
 }
 
-impl<Axis> ColumnOrRowBuilder<Axis> {
-    pub fn new(instance: Instance, index: usize) -> Self {
+impl<Dim> ColumnOrRowRef<Dim> {
+    fn new(instance: Instance, index: usize) -> Self {
         Self { instance, index, axis: PhantomData }
     }
+}
+
+macro_rules! gen_column_or_row_builder_props {
+    ($($name:ident : $ty:ty),*) => { paste! { $(
+            pub fn [<modify_ $name>](&self, f: impl FnOnce(&mut $ty)) {
+                self.modify(|t| f(&mut t.$name))
+            }
+
+            pub fn [<set_ $name>](&self, value: impl Into<$ty>) {
+                self.modify(|t| t.$name = value.into())
+            }
+
+            pub fn [<update_ $name>](&self, f: impl FnOnce($ty) -> $ty) {
+                self.modify(|t| t.$name = f(t.$name))
+            }
+    )*}};
+}
+
+pub trait ModifyBounds = where
+    Self: Default,
+    <(Column, Row) as DimRef<Self>>::Output: DerefMut + Deref<Target = ColumnOrRow>,
+    (Column, Row): DimMut<Self>,
+    (Vec<Column>, Vec<Row>): DimMut<Self, Output = Vec<<(Column, Row) as DimRef<Self>>::Output>>;
+
+impl<Dim: ModifyBounds> ColumnOrRowRef<Dim> {
+    fn modify(&self, f: impl FnOnce(&mut ColumnOrRow)) {
+        self.instance
+            .modify_auto_layout(|l| f(l.unchecked_column_or_row_mut(Dim::default(), self.index)));
+    }
+
+    gen_column_or_row_builder_props!(
+        size: Size,
+        min_size: Option<f32>,
+        max_size: Option<f32>,
+        grow: Option<f32>,
+        shrink: Option<f32>
+    );
 }
 
 
@@ -1607,6 +1644,25 @@ pub struct AutoLayout {
     pub max_columns_and_rows: Vector2<Option<usize>>,
 }
 
+impl AutoLayout {
+    fn unchecked_column_or_row_mut<'a, Dim, T>(
+        &'a mut self,
+        dim: Dim,
+        index: usize,
+    ) -> &mut ColumnOrRow
+    where
+        Dim: Default,
+        T: DerefMut + 'a,
+        T: Deref<Target = ColumnOrRow>,
+        (Column, Row): DimMut<Dim, Output = T>,
+        (Vec<Column>, Vec<Row>): DimMut<Dim, Output = Vec<T>>,
+    {
+        match index {
+            0 => self.first_column_and_row.get_dim_mut(dim).deref_mut(),
+            i => &mut self.other_columns_and_rows.get_dim_mut(dim)[i - 1],
+        }
+    }
+}
 
 
 // === Getters ===
@@ -1655,6 +1711,33 @@ impl Model {
 
     fn set_children_alignment(&self, value: alignment::Dim2) {
         self.modify_auto_layout(|l| l.children_alignment = value);
+    }
+}
+
+impl InstanceDef {
+    fn first_column_or_row<Dim>(&self) -> ColumnOrRowRef<Dim> {
+        ColumnOrRowRef::new(self.clone_ref().into(), 0)
+    }
+
+    fn column_or_row<Dim, T>(&self, dim: Dim, index: usize) -> Option<ColumnOrRowRef<Dim>>
+    where (Vec<Column>, Vec<Row>): DimRef<Dim, Output = Vec<T>> {
+        self.modify_auto_layout(|l| {
+            (l.other_columns_and_rows.get_dim(dim).len() <= index)
+                .as_some(ColumnOrRowRef::new(self.clone_ref().into(), index))
+        })
+        .flatten()
+    }
+
+    fn add_column_or_row<Dim, T>(&self, dim: Dim) -> ColumnOrRowRef<Dim>
+    where
+        Dim: Copy,
+        T: Default,
+        (Vec<Column>, Vec<Row>): DimMut<Dim, Output = Vec<T>>, {
+        let index = self.modify_auto_layout(|l| {
+            l.other_columns_and_rows.get_dim_mut(dim).push(default());
+            l.other_columns_and_rows.get_dim(dim).len()
+        });
+        ColumnOrRowRef::new(self.clone_ref().into(), index.unwrap_or(0))
     }
 }
 
@@ -1776,14 +1859,28 @@ pub trait AutoLayoutOps: Object {
         self
     }
 
-    fn column_or_row<Dim>(&self, index: usize, dim: Dim) -> Option<ColumnOrRowBuilder<Dim>> {
-        let instance = self.display_object();
-        instance
-            .modify_auto_layout(|l| {
-                (l.other_columns_and_rows.get_dim(dim).len() <= index)
-                    .as_some(ColumnOrRowBuilder::new(instance.clone_ref(), index))
-            })
-            .flatten();
+    fn first_column(&self) -> ColumnRef {
+        self.display_object().def.first_column_or_row()
+    }
+
+    fn first_row(&self) -> RowRef {
+        self.display_object().def.first_column_or_row()
+    }
+
+    fn column(&self, index: usize) -> Option<ColumnRef> {
+        self.display_object().def.column_or_row(X, index)
+    }
+
+    fn row(&self, index: usize) -> Option<RowRef> {
+        self.display_object().def.column_or_row(Y, index)
+    }
+
+    fn add_column(&self) -> ColumnRef {
+        self.display_object().def.add_column_or_row(X)
+    }
+
+    fn add_row(&self) -> RowRef {
+        self.display_object().def.add_column_or_row(Y)
     }
 
     crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
@@ -3968,35 +4065,38 @@ mod layout_tests {
             .assert_node3_position(0.0, 0.0);
     }
 
-    // /// ```text
-    // /// ╭─────────────┬───  ▶ ◀ ────┬─────────────╮
-    // /// │ root        ┆             ┆             │
-    // /// │             ┆             ┆  ╭───────╮  │
-    // /// │             ┆  ╭───────╮  ┆  │ node3 │  │
-    // /// │  ╭───────╮  ┆  │ node2 │  ┆  │       │  ▼
-    // /// │  │ node1 │  ┆  │       │  ┆  │       │  ▲
-    // /// │  │       │  ┆  │       │  ┆  │       │  │
-    // /// │  ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │
-    // /// ╰─────────────┴─────────────┴─────────────╯
-    // /// ```
-    // #[test]
-    // fn test_fixed_column_layout() {
-    //     let test = TestFlatChildren3::new();
-    //     test.root.use_auto_layout();
-    //     test.root.first_column();
-    //     test.node1.set_size((1.fr(), 1.0));
-    //     test.node2.set_size((40.pc(), 2.0));
-    //     test.node3.set_size((2.fr(), 3.0));
-    //     test.run()
-    //         .assert_root_size(0.0, 3.0)
-    //         .assert_node1_size(0.0, 1.0)
-    //         .assert_node2_size(0.0, 2.0)
-    //         .assert_node3_size(0.0, 3.0)
-    //         .assert_root_position(0.0, 0.0)
-    //         .assert_node1_position(0.0, 0.0)
-    //         .assert_node2_position(0.0, 0.0)
-    //         .assert_node3_position(0.0, 0.0);
-    // }
+    /// ```text
+    /// ╭─────────────┬──── ▶ ◀ ────┬─────────────╮
+    /// │ root        ┆             ┆             │
+    /// │             ┆             ┆  ╭───────╮  │
+    /// │             ┆  ╭───────╮  ┆  │ node3 │  │
+    /// │  ╭───────╮  ┆  │ node2 │  ┆  │       │  ▼
+    /// │  │ node1 │  ┆  │       │  ┆  │       │  ▲
+    /// │  │       │  ┆  │       │  ┆  │       │  │
+    /// │  ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │
+    /// ╰─────────────┴─────────────┴─────────────╯
+    ///       1fr           2fr           3fr
+    /// ```
+    #[test]
+    fn test_fixed_column_layout() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_size_x(12.0);
+        test.root.first_column().set_size(1.fr());
+        test.root.add_column().set_size(2.fr());
+        test.root.add_column().set_size(3.fr());
+        test.node1.set_size((2.0, 1.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 3.0));
+        test.run()
+            .assert_root_size(12.0, 3.0)
+            .assert_node1_size(0.0, 1.0)
+            .assert_node2_size(0.0, 2.0)
+            .assert_node3_size(0.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 0.0)
+            .assert_node3_position(0.0, 0.0);
+    }
 
     // /// ```text
     // /// ╭▷ ROOT ─────────── ▶ ◀ ──────────────────────╮

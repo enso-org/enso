@@ -58,12 +58,36 @@ macro_rules! gen_dim_x_trait {
                 }
             )*
         }
+
+        #[doc = "Component swizzling getters for "]
+        #[doc = stringify!($dim)]
+        #[doc = "`-dimensional types."]
+        #[allow(missing_docs)]
+        pub trait [<DimRef $dim>] : [<DimRef $prev_dim>] {
+            type [<Dim $dim Type>];
+            $(
+                fn $name(&self) -> &Self::[<Dim $swizzling_dim Type>];
+            )*
+        }
+
+        impl<T: [<DimRef $dim>]> [<DimRef $dim>] for Rc<T> {
+            type [<Dim $dim Type>] = <T as [<DimRef $dim>]>::[<Dim $dim Type>];
+            $(
+                fn $name(&self) -> &Self::[<Dim $swizzling_dim Type>] {
+                    (**self).$name()
+                }
+            )*
+        }
     }};
 }
 
 /// An abstract, 0-dimensional type. It is defined to simplify macro definition.
 pub trait Dim0 {}
 impl<T> Dim0 for T {}
+
+/// An abstract, 0-dimensional type. It is defined to simplify macro definition.
+pub trait DimRef0 {}
+impl<T> DimRef0 for T {}
 
 crate::with_swizzling_for_dim!(1, gen_dim_x_trait, 0);
 crate::with_swizzling_for_dim!(2, gen_dim_x_trait, 1);
@@ -324,6 +348,19 @@ pub trait Dim<D>: Dim1 {
     fn get_dim(&self, dim: D) -> Self::Dim1Type;
 }
 
+/// Component getter for the given dimension.
+#[allow(missing_docs)]
+pub trait DimRef<D> {
+    type Output;
+    fn get_dim(&self, dim: D) -> &Self::Output;
+}
+
+/// Component getter for the given dimension.
+#[allow(missing_docs)]
+pub trait DimMut<D>: DimRef<D> {
+    fn get_dim_mut(&mut self, dim: D) -> &mut Self::Output;
+}
+
 /// Component setter for the given dimension.
 #[allow(missing_docs)]
 pub trait DimSetter<D>: Dim<D> {
@@ -415,3 +452,30 @@ impl<D: Copy, T: Copy + DimSetter<D>> DimSetterInterior<D> for RefCell<T> {
         self.borrow_mut().set_dim(dim, value);
     }
 }
+
+
+// ===========================================
+// === Generic Dim traits impls for tuples ===
+// ===========================================
+
+macro_rules! gen_dim_impl_for_tuple {
+    (($($t:tt),*) $dim:tt $dim_num:tt) => {
+        paste! {
+            impl<$([<T $t>]),*> DimRef<$dim> for ($([<T $t>],)*) {
+                type Output = [<T $dim_num>];
+                fn get_dim(&self, _dim: $dim) -> &Self::Output {
+                    &self.$dim_num
+                }
+            }
+
+            impl<$([<T $t>]),*> DimMut<$dim> for ($([<T $t>],)*) {
+                fn get_dim_mut(&mut self, _dim: $dim) -> &mut Self::Output {
+                    &mut self.$dim_num
+                }
+            }
+        }
+    };
+}
+
+gen_dim_impl_for_tuple!((0, 1) X 0);
+gen_dim_impl_for_tuple!((0, 1) Y 1);
