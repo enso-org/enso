@@ -911,6 +911,12 @@ impl FractionOps for i32 {
     }
 }
 
+impl From<f32> for Fraction {
+    fn from(t: f32) -> Self {
+        Fraction::unchecked_from(t)
+    }
+}
+
 
 // ===============
 // === Percent ===

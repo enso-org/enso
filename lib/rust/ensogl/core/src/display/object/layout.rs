@@ -26,12 +26,19 @@ pub enum Unit {
 }
 
 impl Unit {
+    pub fn as_fraction(self) -> Option<Fraction> {
+        match self {
+            Self::Fraction(f) => Some(f),
+            _ => None,
+        }
+    }
+
     /// Resolve the unit to a pixel value.
     pub fn resolve(&self, parent_size: f32, free_space: f32) -> f32 {
         match self {
             Unit::Pixels(value) => *value,
-            Unit::Fraction(value) => value.unchecked_raw() * parent_size,
-            Unit::Percent(value) => value.unchecked_raw() * free_space,
+            Unit::Percent(value) => value.unchecked_raw() / 100.0 * parent_size,
+            Unit::Fraction(value) => value.unchecked_raw() * free_space,
         }
     }
 
@@ -42,6 +49,21 @@ impl Unit {
             Unit::Pixels(value) => *value,
             Unit::Fraction(_) => 0.0,
             Unit::Percent(_) => 0.0,
+        }
+    }
+
+    pub fn resolve_const_only2(&self) -> Option<f32> {
+        match self {
+            Unit::Pixels(value) => Some(*value),
+            _ => None,
+        }
+    }
+
+    pub fn resolve_const_and_percent(&self, parent_size: f32) -> Option<f32> {
+        match self {
+            Unit::Pixels(value) => Some(*value),
+            Unit::Percent(value) => Some(value.unchecked_raw() / 100.0 * parent_size),
+            _ => None,
         }
     }
 }
@@ -86,6 +108,13 @@ impl Size {
         match self {
             Size::Fixed(_) => true,
             _ => false,
+        }
+    }
+
+    pub fn as_fraction(self) -> Option<Fraction> {
+        match self {
+            Size::Fixed(unit) => unit.as_fraction(),
+            _ => None,
         }
     }
 }

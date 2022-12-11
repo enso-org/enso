@@ -17,6 +17,8 @@ use data::opt_vec::OptVec;
 use nalgebra::Matrix4;
 use nalgebra::Vector3;
 use transformation::CachedTransformation;
+use unit2::Fraction;
+use unit2::Percent;
 
 
 
@@ -1767,18 +1769,20 @@ pub trait AutoLayoutOps: Object {
 
 impl Model {
     fn refresh_layout(&self) {
-        self.refresh_self_size(true);
+        self.refresh_self_size(true, 0.0);
         self.refresh_layout_internal(true);
         self.refresh_layout_internal(false);
     }
 
-    fn refresh_self_size(&self, first_pass: bool) {
+    fn refresh_self_size(&self, first_pass: bool, parent_size: f32) {
         if first_pass {
             let size = self.layout.size.get();
             match size.x {
                 Size::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "x", self.name, v);
-                    self.layout.computed_size.set_x(v.resolve_const_only());
+                    self.layout
+                        .computed_size
+                        .set_x(v.resolve_const_and_percent(parent_size).unwrap_or(0.0));
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "x", self.name);
@@ -1788,7 +1792,9 @@ impl Model {
             match size.y {
                 Size::Fixed(v) => {
                     println!("[X] Setting size.{:?} of {} to {}", "y", self.name, v);
-                    self.layout.computed_size.set_y(v.resolve_const_only());
+                    self.layout
+                        .computed_size
+                        .set_y(v.resolve_const_and_percent(parent_size).unwrap_or(0.0));
                 }
                 _ => {
                     println!("[X2] Setting size.{:?} of {} to 0", "y", self.name);
@@ -1845,7 +1851,7 @@ impl Model {
                 if child.layout.grow_factor.get_dim(x) > 0.0 {
                     children_to_grow.push(child);
                 } else {
-                    child.refresh_self_size(first_pass);
+                    child.refresh_self_size(first_pass, 0.0); // FXME: 0.0
                     child.refresh_layout_internal(first_pass);
                     let child_pos = child.position().get_dim(x);
                     let child_size = child.computed_size().get_dim(x);
@@ -1883,17 +1889,19 @@ impl Model {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ResolvedAxis {
-    size:          Size,
-    min_size:      f32,
-    max_size:      f32,
-    grow:          f32,
-    shrink:        f32,
-    computed_size: f32,
+    size:              Size,
+    min_size:          f32,
+    max_size:          f32,
+    grow:              f32,
+    shrink:            f32,
+    computed_size:     f32,
+    max_child_fr_size: Fraction,
 }
 
-#[derive(Debug, Deref)]
+#[derive(Debug, Deref, DerefMut)]
 pub struct ResolvedColumn {
     #[deref]
+    #[deref_mut]
     axis:     ResolvedAxis,
     children: Vec<Instance>,
 }
@@ -2064,20 +2072,39 @@ impl Model {
                 let mut min_size = 0.0;
                 let mut max_size = f32::INFINITY;
                 let mut computed_size = 0.0;
+                let mut max_child_fr_size = Fraction::default();
                 for child in &children {
-                    child.refresh_self_size(first_pass);
-                    if child.layout.size.get_dim(x).is_hug() {
-                        child.refresh_layout_internal(first_pass);
+                    let self_size = match self.layout.size.get_dim(x) {
+                        Size::Fixed(unit) => unit.resolve_const_only(),
+                        _ => 0.0,
+                    };
+                    child.refresh_self_size(first_pass, self_size);
+                    match child.layout.size.get_dim(x) {
+                        Size::Hug => child.refresh_layout_internal(first_pass),
+                        Size::Fixed(unit) =>
+                            if let Some(fr) = unit.as_fraction() {
+                                if fr > max_child_fr_size {
+                                    max_child_fr_size = fr;
+                                }
+                            },
                     }
                     let child_margin = child.layout.margin.get_dim(x).resolve_fixed();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
                     grow += child.layout.grow_factor.get_dim(x);
                     shrink += child.layout.shrink_factor.get_dim(x);
-                    // FIXME: resolve_const_only here
-                    min_size =
-                        f32::max(min_size, child.layout.min_size.get_dim(x).resolve_const_only());
-                    max_size =
-                        f32::min(max_size, child.layout.max_size.get_dim(x).resolve_const_only());
+                    min_size = f32::max(
+                        min_size,
+                        child.layout.min_size.get_dim(x).resolve_const_only2().unwrap_or(0.0),
+                    );
+                    max_size = f32::min(
+                        max_size,
+                        child
+                            .layout
+                            .max_size
+                            .get_dim(x)
+                            .resolve_const_only2()
+                            .unwrap_or(f32::INFINITY),
+                    );
                     computed_size = f32::max(computed_size, child_size);
                 }
                 let child_count = children.len() as f32;
@@ -2086,12 +2113,20 @@ impl Model {
                 let min_size = axis.min_size.unwrap_or(min_size);
                 let max_size = axis.max_size.unwrap_or(max_size);
                 let size = axis.size;
-                let axis = ResolvedAxis { size, grow, shrink, computed_size, min_size, max_size };
+                let axis = ResolvedAxis {
+                    size,
+                    grow,
+                    shrink,
+                    computed_size,
+                    min_size,
+                    max_size,
+                    max_child_fr_size,
+                };
                 ResolvedColumn { axis, children }
             })
             .collect_vec();
 
-        let resolved_columns = if opts.reversed_columns_and_rows.get_dim(x) {
+        let mut resolved_columns = if opts.reversed_columns_and_rows.get_dim(x) {
             resolved_columns.reversed()
         } else {
             resolved_columns
@@ -2109,10 +2144,12 @@ impl Model {
             self.layout.computed_size.get_dim(x) - fixed_padding - fixed_gap;
         let mut total_grow_coeff = 0.0;
         let mut total_shrink_coeff = 0.0;
+        let mut total_fr = Fraction::default();
         for column in &resolved_columns {
             space_left_with_pref_sizes -= column.computed_size;
             total_grow_coeff += column.grow;
             total_shrink_coeff += column.shrink;
+            total_fr += column.max_child_fr_size;
         }
 
         if self.layout.size.get_dim(x).is_hug() && space_left_with_pref_sizes < 0.0 {
@@ -2136,14 +2173,31 @@ impl Model {
         } else {
             0.0
         };
+
         let mut pos_x = padding.start;
-        for column in &resolved_columns {
+        for column in &mut resolved_columns {
             let grow_size = column.grow * grow_coeff;
             let shrink_size = column.shrink * shrink_coeff;
             let column_size = column.computed_size + grow_size + shrink_size;
             let column_size = f32::max(column.min_size, column_size);
             let column_size = f32::min(column.max_size, column_size);
+            column.computed_size = column_size;
             space_left -= column_size;
+        }
+
+        println!("space_left: {}", space_left);
+        println!("total_fr: {}", total_fr);
+        for column in &resolved_columns {
+            let fr_diff = if total_fr > Fraction::from(0.0) {
+                space_left * column.max_child_fr_size.unchecked_raw() / total_fr.unchecked_raw()
+            } else {
+                0.0
+            };
+            println!("fr_diff: {}", fr_diff);
+            let column_size = column.computed_size + fr_diff;
+            let column_size = f32::max(column.min_size, column_size);
+            let column_size = f32::min(column.max_size, column_size);
+            println!("column: {} {:#?}", column_size, column);
             for child in &column.children {
                 println!(">> child: {:?}", child);
                 let child_size = child.layout.computed_size.get_dim(x);
@@ -2162,6 +2216,16 @@ impl Model {
                     );
                     child.layout.computed_size.set_dim(x, size);
                 }
+                if let Some(fr) = child.layout.size.get_dim(x).as_fraction() {
+                    if fr > Fraction::from(0.0) {
+                        // FIXME: resolve_const_only here
+                        let size = f32::min(
+                            column_size_minus_margin,
+                            child.layout.max_size.get_dim(x).resolve_const_only(),
+                        );
+                        child.layout.computed_size.set_dim(x, size);
+                    }
+                }
                 if child_can_shrink && child_size > column_size_minus_margin {
                     // FIXME: resolve_const_only here
                     let size = f32::max(
@@ -2170,6 +2234,7 @@ impl Model {
                     );
                     child.layout.computed_size.set_dim(x, size);
                 }
+
                 if child_size != child.layout.computed_size.get_dim(x) {
                     // Child size changed. There is one case when this might be a second call to
                     // refresh layout of the same child. If the child size is set to hug, the
@@ -3784,6 +3849,65 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(7.0, 0.0)
             .assert_node3_position(0.0, 5.0);
+    }
+
+    /// ```text
+    /// ╭────────────────────────╮
+    /// │ root                   │
+    /// │                        │
+    /// │             ╭───────╮  │
+    /// │  ╭───────╮  │ node2 │  ▼
+    /// │  │ node1 │  │       │  ▲
+    /// │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  │
+    /// │     30%        70%     │
+    /// ╰────────────────────────╯
+    ///             10
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_percentage_children() {
+        let test = TestFlatChildren2::new();
+        test.root.use_auto_layout().set_size_x(10.0);
+        test.node1.set_size((30.pc(), 1.0));
+        test.node2.set_size((70.pc(), 2.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(3.0, 0.0)
+            .assert_root_size(10.0, 2.0)
+            .assert_node1_size(3.0, 1.0)
+            .assert_node2_size(7.0, 2.0);
+    }
+
+    /// ```text
+    /// ╭───────────────────────────────────╮
+    /// │ root                              │
+    /// │                        ╭───────╮  │
+    /// │             ╭───────╮  │ node3 │  │
+    /// │  ╭───────╮  │ node2 │  │       │  ▼
+    /// │  │ node1 │  │       │  │       │  ▲
+    /// │  │       │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  ╰───────╯  │
+    /// │     1fr        40%        2fr     │
+    /// ╰───────────────────────────────────╯
+    ///                  10
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_fraction_and_percentage_children() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_size_x(10.0);
+        test.node1.set_size((1.fr(), 1.0));
+        test.node2.set_size((40.pc(), 2.0));
+        test.node3.set_size((2.fr(), 3.0));
+        test.run()
+            .assert_root_size(10.0, 3.0)
+            .assert_node1_size(2.0, 1.0)
+            .assert_node2_size(4.0, 2.0)
+            .assert_node3_size(4.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(2.0, 0.0)
+            .assert_node3_position(6.0, 0.0);
     }
 
     // /// ```text
