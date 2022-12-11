@@ -4084,7 +4084,7 @@ mod layout_tests {
     ///       1fr           2fr           3fr
     /// ```
     #[test]
-    fn test_fixed_column_layout() {
+    fn test_fractional_column_layout() {
         let test = TestFlatChildren3::new();
         test.root.use_auto_layout().set_size_x(12.0);
         test.root.first_column().set_size(1.fr());
@@ -4102,6 +4102,76 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(2.0, 0.0)
             .assert_node3_position(6.0, 0.0);
+    }
+
+    /// ```text
+    /// ╭─────────────┬──── ▶ ◀ ────┬─────────────╮
+    /// │ root        ┆             ┆             │
+    /// │             ┆             ┆  ╭──────────┼─────╮
+    /// │             ┆  ╭──────────┼──┼─╮ node3  │     │
+    /// │  ╭───────╮  ┆  │ node2    ┆  │ │        ▼     │
+    /// │  │ node1 │  ┆  │          ┆  │ │        ▲     │
+    /// │  │       │  ┆  │          ┆  │ │        │     │
+    /// │  ╰───────╯  ┆  ╰──────────┼──┴─╯────────┼─────╯
+    /// ╰─────────────┴─────────────┴─────────────╯
+    ///       2.0           2.0           2.0
+    /// ```
+    #[test]
+    fn test_fixed_column_layout() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.root.first_column().set_size(2.0);
+        test.root.add_column().set_size(2.0);
+        test.root.add_column().set_size(2.0);
+        test.node1.set_size((1.0, 1.0));
+        test.node2.set_size((3.0, 2.0));
+        test.node3.set_size((4.0, 3.0));
+        test.run()
+            .assert_root_size(6.0, 3.0)
+            .assert_node1_size(1.0, 1.0)
+            .assert_node2_size(3.0, 2.0)
+            .assert_node3_size(4.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(2.0, 0.0)
+            .assert_node3_position(4.0, 0.0);
+    }
+
+
+    /// ```text
+    /// ╭─────────────────┬──────────────────┬─────────────────╮
+    /// │ ╱╱ root      ╱╱ ┆ ╱╱            ╱╱ ┆ ╱╱           ╱╱ │
+    /// │ ╱╱           ╱╱ ┆ ╱╱            ╱╱ ┆ ╱╱ ╭───────╮ ╱╱ │
+    /// │ ╱╱           ╱╱ ┆ ╱╱  ╭───────╮ ╱╱ ┆ ╱╱ │ node3 │ ╱╱ │
+    /// │ ╱╱ ╭───────╮ ╱╱ ┆ ╱╱  │ node2 │ ╱╱ ┆ ╱╱ │       │ ╱╱ ▼
+    /// │ ╱╱ │ node1 │ ╱╱ ┆ ╱╱  │       │ ╱╱ ┆ ╱╱ │       │ ╱╱ ▲
+    /// │ ╱╱ │       │ ╱╱ ┆ ╱╱  │       │ ╱╱ ┆ ╱╱ │       │ ╱╱ │
+    /// │ ╱╱ ╰───────╯ ╱╱ ┆ ╱╱  ╰───────╯ ╱╱ ┆ ╱╱ ╰───────╯ ╱╱ │
+    /// │.5fr    2       1fr        2       1fr       2    .5fr│
+    /// ╰─────────────────┴──────────────────┴─────────────────╯
+    ///                            12
+    /// ```
+    #[test]
+    fn test_fixed_column_layout_with_spacing() {
+        let test = TestFlatChildren3::new();
+        test.root
+            .use_auto_layout()
+            .set_size_x(12.0)
+            .set_padding_left(0.5.fr())
+            .set_padding_right(0.5.fr())
+            .set_gap_x(1.fr());
+        test.node1.set_size((2.0, 1.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 3.0));
+        test.run()
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(1.0, 0.0)
+            .assert_node2_position(5.0, 0.0)
+            .assert_node3_position(9.0, 0.0)
+            .assert_root_size(12.0, 3.0)
+            .assert_node1_size(2.0, 1.0)
+            .assert_node2_size(2.0, 2.0)
+            .assert_node3_size(2.0, 3.0);
     }
 
     // /// ```text
