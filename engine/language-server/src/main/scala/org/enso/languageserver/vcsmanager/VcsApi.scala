@@ -65,7 +65,7 @@ abstract class VcsApi[F[_, _]] {
 }
 
 object VcsApi {
-  val DefaultRepoDir = ".git"
+  val DefaultRepoDir = ".vcs"
 }
 
 /** `RepoStatus` encapsulates the current state of the project under VCS.
