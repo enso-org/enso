@@ -2282,15 +2282,26 @@ impl Model {
             total_shrink_coeff += column.shrink;
             total_fr += column.max_child_fr_size;
         }
+        if let Some(fr) = padding_def.start.as_fraction() {
+            total_fr += fr;
+        }
+        if let Some(fr) = padding_def.end.as_fraction() {
+            total_fr += fr;
+        }
+        if let Some(fr) = gap_def.as_fraction() {
+            total_fr += fr * gap_count;
+        }
 
         if self.layout.size.get_dim(x).is_hug() && space_left_with_pref_sizes < 0.0 {
             self.layout.computed_size.update_dim(x, |t| t - space_left_with_pref_sizes);
             space_left_with_pref_sizes = 0.0;
         }
 
+        println!("space_left_with_pref_sizes: {}", space_left_with_pref_sizes);
         let self_size = self.layout.computed_size.get_dim(x);
-        let padding = padding_def.resolve(self_size, space_left_with_pref_sizes);
-        let gap = gap_def.resolve(self_size, space_left_with_pref_sizes);
+        let padding = padding_def.resolve(self_size, space_left_with_pref_sizes, total_fr);
+        println!("padding: {:#?}", padding);
+        let gap = gap_def.resolve(self_size, space_left_with_pref_sizes, total_fr);
         let total_gap = gap_count * gap;
         let mut space_left = self_size - padding.total() - total_gap;
 
@@ -2334,7 +2345,15 @@ impl Model {
                 let child_size = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size - child_size);
                 let unresolved_margin = child.layout.margin.get_dim(x);
-                let margin = unresolved_margin.resolve(self_size, child_unused_space);
+                let mut total_margin_fr = Fraction::from(0.0);
+                if let Some(fr) = unresolved_margin.start.as_fraction() {
+                    total_margin_fr += fr;
+                }
+                if let Some(fr) = unresolved_margin.end.as_fraction() {
+                    total_margin_fr += fr;
+                }
+                let margin =
+                    unresolved_margin.resolve(self_size, child_unused_space, total_margin_fr);
                 let column_size_minus_margin = column_size - margin.start - margin.end;
 
                 let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;

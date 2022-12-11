@@ -34,11 +34,12 @@ impl Unit {
     }
 
     /// Resolve the unit to a pixel value.
-    pub fn resolve(&self, parent_size: f32, free_space: f32) -> f32 {
+    pub fn resolve(&self, parent_size: f32, free_space: f32, total_fraction: Fraction) -> f32 {
         match self {
             Unit::Pixels(value) => *value,
             Unit::Percent(value) => value.unchecked_raw() / 100.0 * parent_size,
-            Unit::Fraction(value) => value.unchecked_raw() * free_space,
+            Unit::Fraction(value) =>
+                value.unchecked_raw() / total_fraction.unchecked_raw() * free_space,
         }
     }
 
@@ -171,10 +172,15 @@ impl<T> SideSpacing<T> {
 }
 
 impl SideSpacing<Unit> {
-    pub fn resolve(self, parent_size: f32, free_space: f32) -> SideSpacing<f32> {
+    pub fn resolve(
+        self,
+        parent_size: f32,
+        free_space: f32,
+        total_fraction: Fraction,
+    ) -> SideSpacing<f32> {
         SideSpacing::new(
-            self.start.resolve(parent_size, free_space),
-            self.end.resolve(parent_size, free_space),
+            self.start.resolve(parent_size, free_space, total_fraction),
+            self.end.resolve(parent_size, free_space, total_fraction),
         )
     }
 
