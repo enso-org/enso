@@ -4,6 +4,7 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
@@ -80,6 +81,10 @@ public class AvoidIdTagTest {
             System.err.println("  IdentifiedTag: " + in.hasTag(IdentifiedTag.class));
             System.err.println("  ExpressionTag: " + in.hasTag(StandardTags.ExpressionTag.class));
             System.err.println("  RootNode: " + n.getRootNode());
+            if (n.getRootNode() instanceof ClosureRootNode crn) {
+              System.err.println("  crn.subject to instr: " + crn.isSubjectToInstrumentation());
+              System.err.println("  crn.used in bindings: " + crn.isUsedInBinding());
+            }
           }
         }
       }
