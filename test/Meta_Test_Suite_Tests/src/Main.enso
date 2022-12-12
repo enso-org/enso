@@ -16,7 +16,7 @@ spec setup =
         builder = Process.new_builder setup.command args
         builder.create
 
-    tests = enso_project.data.list . filter f-> f.is_directory
+    tests = enso_project.data.list . filter (f-> f.is_directory) . sort on=(.name)
     tests.each test_dir->
         Test.group test_dir.name <|
             description_path = test_dir / "test_description"

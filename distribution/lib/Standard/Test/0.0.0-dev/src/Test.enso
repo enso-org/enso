@@ -164,7 +164,6 @@ type Test
                         xs.each x->
                             Test.with_clue ("["+x.to_text+"] ") <|
                                 x . should_equal 0
-
     with_clue : Text|(Text -> Text) -> Any -> Any
     with_clue ~clue ~behavior =
         add_clue x = case clue of
@@ -172,11 +171,12 @@ type Test
             _ : Function -> clue x
         prev_clue = State.get Clue
         next_clue = case prev_clue of
-            Clue.Value prev_add_clue -> (x -> add_clue (prev_add_clue x))
+            Clue.Value prev_add_clue -> (x -> prev_add_clue (add_clue x))
             _                        -> add_clue
         State.put Clue (Clue.Value next_clue)
-        behavior
-
+        result = behavior
+        State.put Clue prev_clue
+        result
 
 ## PRIVATE
 
