@@ -1,5 +1,4 @@
 package org.enso.interpreter.test.instrument;
-import com.oracle.truffle.api.debug.Debugger;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import java.io.OutputStream;
@@ -8,16 +7,12 @@ import java.util.Map;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
-import org.enso.interpreter.test.instrument.RuntimeServerTest.TestContext;
 import org.enso.polyglot.RuntimeOptions;
-import org.enso.polyglot.runtime.Runtime$Api$InitializedNotification;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.junit.After;
 import org.junit.Assert;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -78,12 +73,13 @@ public class AvoidIdTagTest {
           continue;
         }
         var st = ss.getCharacters().toString();
-        if (st.contains("noise")) {
+        if (st.contains("noise") && !st.contains("map")) {
           System.err.println("code: " + st + " for node " + n.getClass().getName());
           if (n instanceof InstrumentableNode in) {
             System.err.println("  AvoidIdInstrumentationTag: " + in.hasTag(AvoidIdInstrumentationTag.class));
             System.err.println("  IdentifiedTag: " + in.hasTag(IdentifiedTag.class));
             System.err.println("  ExpressionTag: " + in.hasTag(StandardTags.ExpressionTag.class));
+            System.err.println("  RootNode: " + n.getRootNode());
           }
         }
       }
