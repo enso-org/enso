@@ -134,7 +134,8 @@ impl ensogl_grid_view::Entry for Entry {
             corners_radius <- input.set_params.map(|p| p.corners_radius).on_change();
             selected_text_color <- input.set_params.map(|p| p.selected_text_color).on_change();
 
-
+        }
+        enso_frp::extend! { network
             contour <- all_with(&size, &corners_radius, |&size, &corners_radius| entry::Contour { size, corners_radius });
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
@@ -143,7 +144,8 @@ impl ensogl_grid_view::Entry for Entry {
             data.label.set_property_default <+ current_text_color.ref_into_some();
             data.label.set_font <+ font;
             data.label.set_property_default <+ text_size.ref_into_some();
-
+        }
+        enso_frp::extend! { network
             font_weight <- any(...);
             font_weight <+ selected.on_true().constant(text::Weight::Bold);
             font_weight <+ selected.on_false().constant(text::Weight::Normal);
@@ -153,7 +155,8 @@ impl ensogl_grid_view::Entry for Entry {
             max_width_px <- input.set_size.map(|size| size.x);
             data.label.set_content <+ content;
             data.label.set_view_width <+ max_width_px.some();
-
+        }
+        enso_frp::extend! { network
             out.contour <+ contour;
             out.highlight_contour <+ contour;
             out.selection_highlight_color <+ focus_color;

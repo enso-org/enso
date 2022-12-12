@@ -8,9 +8,9 @@ use ensogl_core::display;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 
-use crate::dropdown::entry::Entry;
-use crate::dropdown::entry::EntryParams;
-use crate::dropdown::DropdownValue;
+use crate::entry::Entry;
+use crate::entry::EntryParams;
+use crate::DropdownValue;
 
 
 // =================
@@ -80,12 +80,21 @@ impl<T> component::Model for Model<T> {
 }
 
 impl<T: DropdownValue> Model<T> {
-    pub fn set_dimensions(&self, num_entries: usize, max_size: Vector2, entry_height: f32) {
-        let grid_inner_height = num_entries as f32 * entry_height;
-        let inner_height = grid_inner_height.min(max_size.y - CLIP_PADDING * 2.0);
+    pub fn set_dimensions(
+        &self,
+        num_entries: usize,
+        max_size: Vector2,
+        entry_height: f32,
+        anim_progress: f32,
+    ) {
+        // Limit animation near almost closed state to avoid slow animation on very thin dropdown.
+        let anim_progress = anim_progress * 1.05 - 0.05;
+        let total_grid_height = num_entries as f32 * entry_height;
+        let limited_grid_height = total_grid_height.min(max_size.y - CLIP_PADDING * 2.0);
         let outer_width = max_size.x;
-        let outer_height = inner_height + CLIP_PADDING * 2.0;
-        let inner_width = outer_width - CLIP_PADDING * 2.0;
+        let outer_height = (limited_grid_height + CLIP_PADDING * 2.0) * anim_progress;
+        let inner_width = (outer_width - CLIP_PADDING * 2.0).max(0.0);
+        let inner_height = (outer_height - CLIP_PADDING * 2.0).max(0.0001);
         let inner_size = Vector2(inner_width, inner_height);
         let outer_size = Vector2(outer_width, outer_height);
 
@@ -97,34 +106,41 @@ impl<T: DropdownValue> Model<T> {
         self.grid.set_xy(Vector2(CLIP_PADDING, -CLIP_PADDING));
         self.grid.scroll_frp().resize(inner_size);
         self.grid.set_entries_size(Vector2(inner_width, entry_height));
-        // self.grid.set_entr(Vector2(inner_width, entry_height));
         self.grid.resize_grid(num_entries, 1);
     }
 
-    pub fn set_selection(&self, selected: &HashSet<T>, max_selected: usize) {
+    pub fn set_selection(&self, selected: &HashSet<T>, allow_multiselect: bool) {
         let mut entries = self.selected_entries.borrow_mut();
         entries.clear();
-        entries.extend(selected.iter().take(max_selected).cloned());
+        if allow_multiselect {
+            entries.extend(selected.iter().cloned());
+        } else {
+            entries.extend(selected.iter().take(1).cloned());
+        }
     }
 
-    pub fn accept_entry_at_index(&self, index: usize, max_selected: usize) {
+    pub fn accept_entry_at_index(&self, index: usize, allow_multiselect: bool, allow_empty: bool) {
         let cache = self.cache.borrow();
         let Some(entry) = cache.get(index) else { return };
         let mut selected = self.selected_entries.borrow_mut();
         if selected.contains(&entry) {
-            selected.remove(&entry);
-        } else if selected.len() < max_selected {
+            if allow_empty || selected.len() > 1 {
+                selected.remove(&entry);
+            }
+        } else if allow_multiselect || selected.len() == 0 {
             selected.insert(entry.clone());
-        } else if max_selected == 1 {
+        } else {
             selected.clear();
             selected.insert(entry.clone());
         }
     }
 
-    pub fn set_max_selection(&self, max_selected: usize) -> bool {
+    /// Prune selection according to changed multiselect mode. Returns true if the selection was
+    /// changed.
+    pub fn set_multiselect(&self, multiselect: bool) -> bool {
         let mut entries = self.selected_entries.borrow_mut();
-        if entries.len() > max_selected {
-            let mut to_drop = entries.len() - max_selected;
+        if !multiselect && entries.len() > 1 {
+            let mut to_drop = entries.len() - 1;
             entries.retain(|_| {
                 let retain = to_drop == 0;
                 to_drop = to_drop.saturating_sub(1);
@@ -142,6 +158,15 @@ impl<T: DropdownValue> Model<T> {
 
     pub fn get_selected_entries(&self) -> HashSet<T> {
         self.selected_entries.borrow().clone()
+    }
+
+    pub fn get_single_selected_entry(&self) -> Option<T> {
+        let entries = self.selected_entries.borrow();
+        if entries.len() == 1 {
+            entries.iter().next().cloned()
+        } else {
+            None
+        }
     }
 
     pub fn set_color(&self, color: Lcha) {

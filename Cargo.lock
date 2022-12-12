@@ -2476,6 +2476,7 @@ name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
  "ensogl-button",
+ "ensogl-drop-down",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
@@ -2538,6 +2539,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "ensogl-drop-down"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
 ]
 
 [[package]]
@@ -2616,10 +2629,9 @@ name = "ensogl-example-drop-down"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-text",
  "ensogl-core",
+ "ensogl-drop-down",
  "ensogl-grid-view",
- "ensogl-gui-component",
  "ensogl-hardcoded-theme",
  "ensogl-text",
  "ensogl-text-msdf",

@@ -229,7 +229,7 @@ impl Frp {
             normalized_size     <- all_with(&frp.set_thumb_size,&frp.set_max,|&size,&max|
                 size / max);
             // Minimum thumb size in normalized units
-            min_visual_size     <- inner_length.map(|&length| MIN_THUMB_SIZE / length);
+            min_visual_size     <- inner_length.map(|&length| MIN_THUMB_SIZE / length.max(MIN_THUMB_SIZE));
             // The size at which we render the thumb on screen, in normalized units. Can differ from
             // the actual thumb size if the thumb is smaller than the min.
             visual_size         <- all_with(&normalized_size,&min_visual_size,|&size,&min|

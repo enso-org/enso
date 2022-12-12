@@ -127,7 +127,7 @@ impl From<node::Expression> for Expression {
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
         let mut shift = 0.byte();
-        let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
+        let mut span_tree: SpanTree = t.input_span_tree.map(|()| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
@@ -309,6 +309,7 @@ impl Model {
                 id_crumbs_map.insert(id, node.crumbs.clone_ref());
             }
 
+
             if DEBUG {
                 let indent = " ".repeat(4 * builder.depth);
                 let skipped = if not_a_port { "(skip)" } else { "" };
@@ -367,6 +368,7 @@ impl Model {
                     let mouse_out      = port_shape.hover.events.mouse_out.clone_ref();
                     let mouse_down_raw = port_shape.hover.events.mouse_down_primary.clone_ref();
 
+                    trace mouse_over_raw;
 
                     // === Body Hover ===
 
@@ -403,6 +405,7 @@ impl Model {
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
                     area_frp.source.on_port_hover <+ hover;
 
+                    trace hovered;
 
                     // === Pointer Style ===
 
@@ -430,6 +433,18 @@ impl Model {
                     pointer_style       <- pointer_styles.fold();
                     area_frp.source.pointer_style <+ pointer_style;
                 }
+
+                let argument_info = port.argument_info();
+                let port_widget = port.payload_mut().init_widget(&self.app, argument_info, node::HEIGHT);
+                if let Some(port_widget) = port_widget {
+                    builder.parent.add_child(&port_widget);
+
+                    frp::extend! { port_network
+                        port_widget.set_focused <+ hovered;
+                    }
+                }
+                
+
                 init_color.emit(());
                 area_frp.set_view_mode.emit(area_frp.view_mode.value());
                 port_shape.display_object().clone_ref()

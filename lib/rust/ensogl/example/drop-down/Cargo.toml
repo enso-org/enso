@@ -14,9 +14,8 @@ ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-grid-view = { path = "../../component/grid-view" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 ensogl-text = { path = "../../component/text" }
-enso-text = { path = "../../../text" }
+ensogl-drop-down = { path = "../../component/drop-down" }
 wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
-ensogl-gui-component = { path = "../../component/gui" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
 [package.metadata.wasm-pack.profile.release]

@@ -1,5 +1,12 @@
-//! A single block component that is used to build up a flame graph.
+//! Dropdown component based on grid-view. Supports displaying static and dynamic list of selectable
+//! entries.
 
+#![recursion_limit = "512"]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
@@ -12,6 +19,7 @@ use ensogl_core::data::color::Lcha;
 use ensogl_core::display::shape::StyleWatchFrp;
 // use ensogl_core::event::FocusIn;
 // use ensogl_core::event::FocusOut;
+use ensogl_core::animation::Animation;
 use ensogl_core::frp;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::ComponentView;
@@ -49,12 +57,6 @@ const DEFAULT_MAX_ENTRIES: usize = 128;
 // === FRP ===
 // ===========
 
-// API - I want to:
-// allow arbitrary max number of selections
-// receive a set of selected entries
-// allow simple "set list of entries"
-// plan for lazy entries - entry can be in loading state
-
 pub trait DropdownValue: Debug + Clone + PartialEq + Eq + Hash + 'static {
     fn label(&self) -> ImString;
 }
@@ -69,11 +71,12 @@ where
     }
 }
 
-
 ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
     Input {
         set_max_size(Vector2),
         set_color(Lcha),
+        /// The dropdown initially is not opened. This event can open or close the dropdown.
+        set_opened(bool),
 
         /// Provide a list of entries to be displayed. The list is assumed to be complete. No
         /// `entries_in_range_needed` event will be emitted after this call.
@@ -87,8 +90,12 @@ ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
         /// be displayed as placeholders. Needs to be set before any entries are provided, otherwise
         /// the provided entries will be discarded. The default value is 0.
         set_number_of_entries(usize),
-        /// Set the maximum number of entries that can be selected at once.
-        set_max_selected(usize),
+        /// Set the ability to select multiple entries at once.
+        set_multiselect(bool),
+        /// Set the ability to deselect all entries. Note that this is only enforced when selection
+        /// was already set. If selection is cleared with `set_selected_entries`, this flag will be
+        /// ignored.
+        allow_deselect_all(bool),
 
         /// Update a list of entries at specified range. Provided entries are not guaranteed to be
         /// always kept in memory. If the entry was unloaded due to memory constraints, it can be
@@ -125,10 +132,12 @@ ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
         currently_visible_range(Range<usize>),
         /// Currently selected entries. Changes each time the user selects or deselects an entry.
         selected_entries(HashSet<T>),
+        /// Currently selected single entry. Is `None` when more than one entry is selected. When
+        /// working with multiselect dropdown, use `selected_entries` instead.
+        single_selected_entry(Option<T>),
+
         /// Currently set internal buffer memory limit.
         max_entry_memory(usize),
-        /// Whether or not the dropdown is currently in focus.
-        is_focused(bool),
     }
 }
 
@@ -137,8 +146,10 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
     fn init_inputs(frp: &Self::Public) {
         frp.set_max_size(DEFAULT_SIZE);
         frp.set_color(DEFAULT_COLOR);
-        frp.set_max_selected(1);
+        frp.set_multiselect(false);
         frp.set_max_cached_entries(DEFAULT_MAX_ENTRIES);
+        frp.set_opened(false);
+        frp.allow_deselect_all(false);
     }
 
     fn init(
@@ -148,18 +159,10 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
         model: &Model<T>,
         _style: &StyleWatchFrp,
     ) {
-        // let focus_in = model.background.on_event::<FocusIn>();
-        // let focus_out = model.background.on_event::<FocusOut>();
-
         let input = &api.input;
         let output = &api.output;
 
-        frp::extend! { network
-            // eval_ model.background.events.mouse_down (model.background.focus());
-            // is_focused <- bool(&focus_out, &focus_in);
-            // output.is_focused <+ is_focused;
-        }
-        output.is_focused.emit(true); // TODO: focus handling
+        let open_anim = Animation::new(network);
 
         // static entries support
         frp::extend! { network
@@ -173,8 +176,10 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
 
 
         frp::extend! { network
-            dimensions <- all(number_of_entries, input.set_max_size);
-            eval dimensions((&(num_entries, max_size)) model.set_dimensions(num_entries, max_size, ENTRY_HEIGHT));
+            open_anim.target <+ input.set_opened.map(|open| if *open { 1.0 } else { 0.0 });
+            dimensions <- all(number_of_entries, input.set_max_size, open_anim.value);
+            eval dimensions((&(num_entries, max_size, anim_progress))
+                model.set_dimensions(num_entries, max_size, ENTRY_HEIGHT, anim_progress));
             eval input.set_color((color) model.set_color(*color));
         }
 
@@ -242,13 +247,17 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
 
         // selection
         frp::extend! { network
-            selection_pruned <- input.set_max_selected.map(f!((max) model.set_max_selection(*max))).on_true();
-            selection_accepted <- model.grid.entry_accepted.map2(&input.set_max_selected,
-                f!(((row, _), max) model.accept_entry_at_index(*row, *max)));
-            selection_set <- input.set_selected_entries.map2(&input.set_max_selected,
+            selection_pruned <- input.set_multiselect.map(f!((multi) model.set_multiselect(*multi))).on_true();
+            selection_accepted <- model.grid.entry_accepted.map3(
+                &input.set_multiselect, &input.allow_deselect_all,
+                f!(((row, _), multi, allow_deselect_all)
+                model.accept_entry_at_index(*row, *multi, *allow_deselect_all)));
+
+            selection_set <- input.set_selected_entries.map2(&input.set_multiselect,
                 f!((values, max) model.set_selection(values, *max)));
             selection_changed <- any3(&selection_accepted, &selection_set, &selection_pruned);
             output.selected_entries <+ selection_changed.map(f!((()) model.get_selected_entries())).on_change();
+            output.single_selected_entry <+ selection_changed.map(f!((()) model.get_single_selected_entry())).on_change();
         }
 
         frp::extend! { network
@@ -269,9 +278,9 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
         use shortcut::ActionType::*;
         [
-            (Press, "is_focused", "down", "focus_next_entry"),
-            (Press, "is_focused", "up", "focus_previous_entry"),
-            (Press, "is_focused", "enter", "toggle_focused_entry"),
+            (Press, "set_opened", "down", "focus_next_entry"),
+            (Press, "set_opened", "up", "focus_previous_entry"),
+            (Press, "set_opened", "enter", "toggle_focused_entry"),
         ]
         .iter()
         .map(|(a, b, c, d)| Dropdown::<T>::self_shortcut_when(*a, *c, *d, *b))
