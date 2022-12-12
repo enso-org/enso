@@ -181,7 +181,7 @@ impl Model {
     fn execution_context_interrupt(&self) {
         let controller = self.graph_controller.clone_ref();
         executor::global::spawn(async move {
-            if let Err(err) = controller.execution_ctx.interrupt().await {
+            if let Err(err) = controller.interrupt().await {
                 error!("Error interrupting execution context: {err}");
             }
         })
@@ -190,7 +190,7 @@ impl Model {
     fn execution_context_restart(&self) {
         let controller = self.graph_controller.clone_ref();
         executor::global::spawn(async move {
-            if let Err(err) = controller.execution_ctx.restart().await {
+            if let Err(err) = controller.restart().await {
                 error!("Error restarting execution context: {err}");
             }
         })
