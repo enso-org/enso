@@ -1288,20 +1288,21 @@ impl Debug for Instance {
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
 pub struct LayoutModel {
-    auto_layout:   RefCell<Option<AutoLayout>>,
-    alignment:     Cell<alignment::OptDim2>,
-    margin:        Cell<Vector2<SideSpacing>>,
-    padding:       Cell<Vector2<SideSpacing>>,
+    auto_layout:      RefCell<Option<AutoLayout>>,
+    alignment:        Cell<alignment::OptDim2>,
+    origin_alignment: Cell<alignment::Dim2>,
+    margin:           Cell<Vector2<SideSpacing>>,
+    padding:          Cell<Vector2<SideSpacing>>,
     #[derivative(Default(
         value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector_trans())"
     ))]
-    max_size:      Cell<Vector2<Unit>>,
-    min_size:      Cell<Vector2<Unit>>,
-    size:          Cell<Vector2<Size>>,
-    grow_factor:   Cell<Vector2<f32>>,
-    shrink_factor: Cell<Vector2<f32>>,
-    computed_size: Cell<Vector2<f32>>,
-    bbox_origin:   Cell<Vector2<f32>>,
+    max_size:         Cell<Vector2<Unit>>,
+    min_size:         Cell<Vector2<Unit>>,
+    size:             Cell<Vector2<Size>>,
+    grow_factor:      Cell<Vector2<f32>>,
+    shrink_factor:    Cell<Vector2<f32>>,
+    computed_size:    Cell<Vector2<f32>>,
+    bbox_origin:      Cell<Vector2<f32>>,
 }
 
 
@@ -1429,10 +1430,26 @@ macro_rules! gen_prop_accessors {
     };
 }
 
+macro_rules! gen_origin_alignment_setters {
+    ([$([$name:ident $x:tt $y:tt])*]) => {
+        paste! {
+            $(
+                /// Alignment setter.
+                fn [<set_origin_alignment_ $name>](&self)  -> &Self {
+                    self.display_object().modify_layout(|l| {
+                        l.origin_alignment.set(alignment::Dim2::$name());
+                    });
+                    self
+                }
+            )*
+        }
+    }
+}
 
 impl<T: Object + ?Sized> LayoutOps for T {}
 pub trait LayoutOps: Object {
     crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_alignment_setters);
+    crate::with_alignment_dim2_named_matrix!(gen_origin_alignment_setters);
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[margin]);
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[padding]);
 
@@ -2399,17 +2416,20 @@ impl Model {
                     // child size, we need to refresh the child layout again.
                     child.refresh_layout_internal(first_pass);
                 }
-                let child_unused_space =
-                    f32::max(0.0, column_size_minus_margin - child.layout.computed_size.get_dim(x));
+                let child_width = child.layout.computed_size.get_dim(x);
+                let child_unused_space = f32::max(0.0, column_size_minus_margin - child_width);
                 let def_alignment = opts.children_alignment.get_dim(x);
                 let alignment = child.layout.alignment.get().get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
                 let bbox_origin = child.bbox_origin();
-                println!("!!! bbox_origin: {:?}", bbox_origin);
-                child.set_position_dim(
-                    x,
-                    pos_x - bbox_origin.get_dim(x) + child_offset + margin.start,
-                );
+                println!("!!! first bbox_origin: {:?}", bbox_origin);
+                let child_left = pos_x - bbox_origin.get_dim(x) + child_offset + margin.start;
+                let origin_shift =
+                    child.layout.origin_alignment.get().get_dim(x).normalized() * child_size;
+                let child_left = child_left + origin_shift;
+                child.set_position_dim(x, child_left);
+                child.layout.bbox_origin.update_dim(x, |t| t + origin_shift);
+                println!("!!! computed bbox_origin: {:?}", child.bbox_origin());
                 println!("<< child: {:?}", child);
             }
             pos_x += column_size + gap;
@@ -3516,6 +3536,11 @@ mod layout_tests {
                 }
 
                 $(
+                    fn [<assert_node $num _bbox_origin>](&self, x:f32, y:f32) -> &Self {
+                        assert_eq!(self.[<node $num>].bbox_origin(), Vector2(x,y));
+                        self
+                    }
+
                     fn [<assert_node $num _position>](&self, x:f32, y:f32) -> &Self {
                         assert_eq!(self.[<node $num>].position().xy(), Vector2(x,y));
                         self
@@ -3530,6 +3555,7 @@ mod layout_tests {
         }};
     }
 
+    gen_test_flat_children!(1 [1]);
     gen_test_flat_children!(2 [1,2]);
     gen_test_flat_children!(3 [1,2,3]);
 
@@ -3983,18 +4009,20 @@ mod layout_tests {
     }
 
     /// ```text
-    /// ╭─────────────────────────────╮
-    /// │ root       ╱╱╱╱╱╱           │
-    /// │  ╭───────╮ ╱╱╱╱╱╱           │
-    /// │  │ node3 │ ╱╱╱╱╱╱           │
-    /// │  │       │ ╱╱╱╱╱╱           │
-    /// │  ╰───────╯ ╱╱╱╱╱╱           │
-    /// │ ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │
-    /// │  ╭───────╮ ╱╱╱╱╱╱ ╭───────╮ │
-    /// │  │ node1 │ ╱╱╱╱╱╱ │ node2 │ │
-    /// │  │       │ ╱╱╱╱╱╱ │       │ │
-    /// │  ╰───────╯ ╱╱╱╱╱╱ ╰───────╯ │
-    /// ╰─────────────────────────────╯
+    /// ╭──────────────┬─────────────╮
+    /// │ root       ╱╱┆╱╱           │
+    /// │  ╭───────╮ ╱╱┆╱╱           │
+    /// │  │ node3 │ ╱╱┆╱╱           │
+    /// │  │       │ ╱╱┆╱╱           │
+    /// │  ╰───────╯ ╱╱┆╱╱           │
+    /// │ ╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱ │
+    /// ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+    /// │ ╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱ │
+    /// │  ╭───────╮ ╱╱┆╱╱ ╭───────╮ │
+    /// │  │ node1 │ ╱╱┆╱╱ │ node2 │ │
+    /// │  │       │ ╱╱┆╱╱ │       │ │
+    /// │  ╰───────╯ ╱╱┆╱╱ ╰───────╯ │
+    /// ╰──────────────┴─────────────╯
     /// ```
     #[test]
     fn test_simple_grid_layout_with_gap() {
@@ -4241,19 +4269,19 @@ mod layout_tests {
     }
 
     /// ```text
-    ///    ╭───────────────────────────╮
-    ///    │ root            ╭───────╮ │
-    /// ╭──┼────╮            │ node3 │ │
-    /// │ node1 │            │       │ │
-    /// │  │    │  ╭───────╮ ╰───────╯ │
-    /// ╰──┼────╯  │ node2 │           │
-    ///    ╰───────┼───────┼───────────╯
-    ///            ╰───────╯
+    ///     ╭───────────────────╮
+    ///     │ root          ╭───┼───╮
+    /// ╭───┼───╮           │ node3 │
+    /// │ node1 │           │   │   │
+    /// │   │   │ ╭───────╮ ╰───┼───╯
+    /// ╰───┼───╯ │ node2 │     │
+    ///     ◎─────┼───────┼─────╯
+    ///           ╰───────╯
     /// ```
     #[test]
     fn test_layout_manual_fixed() {
         let test = TestFlatChildren3::new();
-        test.root.set_size((4.0, 2.0));
+        test.root.set_size((3.0, 2.0));
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
@@ -4261,7 +4289,7 @@ mod layout_tests {
         test.node2.set_xy((1.0, -1.0));
         test.node3.set_xy((3.0, 1.0));
         test.run()
-            .assert_root_computed_size(4.0, 2.0)
+            .assert_root_computed_size(3.0, 2.0)
             .assert_node1_computed_size(2.0, 2.0)
             .assert_node2_computed_size(2.0, 2.0)
             .assert_node3_computed_size(2.0, 2.0)
@@ -4273,15 +4301,15 @@ mod layout_tests {
     }
 
     /// ```text
-    /// ╭────┬───────────────────────────╮
-    /// │    ┆ root            ╭───────╮ │
-    /// │ ╭──┼────╮            │ node3 │ │
-    /// │ │ node1 │            │       │ │
-    /// │ │  ┆    │  ╭───────╮ ╰───────╯ │
-    /// │ ╰──┼────╯  │ node2 │           │
-    /// │    ◎┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┈┈┈┈┤
-    /// │            ╰───────╯           │
-    /// ╰────────────────────────────────╯
+    ///     ╭──────── ▶ ◀ ──────────────────╮
+    ///     │ root            ╭────────╮    │
+    /// ╭───┼────╮            │ node3  │    │
+    /// │ node1  │            │        │    ▼
+    /// │   │    │ ╭────────╮ ╰────────╯    ▲
+    /// ╰───┼────╯ │ node2  │               │
+    ///     ╰──────┼────────┼───────────────╯
+    ///   ╱        │        │           
+    /// ◎          ╰────────╯
     /// ```
     #[test]
     fn test_layout_manual_hug() {
@@ -4304,20 +4332,20 @@ mod layout_tests {
             .assert_node3_position(3.0, 1.0);
     }
 
-
     /// ```text
-    /// ╭────────────────────────────────┬────────────────────────────────╮
-    /// │ root                           ┆                                │
-    /// │  ╭────┬─────────────────────╮  ┆  ╭────┬─────────────────────╮  │
-    /// │  │    ┆ node1               │  ┆  │    ┆ node2               │  │
-    /// │  │ ╭──┼──────╮              │  ┆  │ ╭──┼──────╮              │  │
-    /// │  │ │ node1_1 │              │  ┆  │ │ node2_2 │              │  │
-    /// │  │ │  ┆      │  ╭─────────╮ │  ┆  │ │  ┆      │  ╭─────────╮ │  │
-    /// │  │ ╰──┼──────╯  │ node1_2 │ │  ┆  │ ╰──┼──────╯  │ node2_2 │ │  │
-    /// │  │    ◎┈┈┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┈┈┼┈┤  ┆  │    ◎┈┈┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┈┈┼┈┤  │
-    /// │  │              ╰─────────╯ │  ┆  │              ╰─────────╯ │  │
-    /// │  ╰──────────────────────────╯  ┆  ╰──────────────────────────╯  │
-    /// ╰────────────────────────────────┴────────────────────────────────╯
+    /// 
+    ///        ╭────── ▶ ◀ ────────────────╮    ╭────── ▶ ◀ ───────────────╮
+    ///        │ node1                     │    │ node2                    │
+    /// ╭──────┼─────────────────────────┬─┼────┼────────────────────────╮ │
+    /// │ root │                         ┆ │    │                        │ │
+    /// │  ╭───┼──────╮                  ┆ ▼╭───┼──────╮                 │ ▼
+    /// │  │ node1_1  │                  ┆ ▲│ node2_1  │                 │ ▲
+    /// │  │   │      │  ╭──────────╮    ┆ ││   │      │  ╭─────────╮    │ │
+    /// │  ╰───┼──────╯  │ node1_2  │    ┆ │╰───┼──────╯  │ node2_2 │    │ │
+    /// │      ╰─────────┼──────────┼────┼─╯    ╰─────────┼─────────┼────┼─╯
+    /// │    ╱           │          │    ┆    ╱           │         │    │  
+    /// │  ◎             ╰──────────╯    ┆  ◎             ╰─────────╯    │  
+    /// ╰────────────────────────────────┴───────────────────────────────╯
     /// ```
     #[test]
     fn test_layout_with_children_with_shifted_bbox_origins() {
@@ -4360,5 +4388,68 @@ mod layout_tests {
             .assert_root_computed_size(8.0, 3.0)
             .assert_root_bbox_origin(0.0, 0.0)
             .assert_root_position(0.0, 0.0);
+    }
+
+    /// ```text
+    /// ╭────────────────────────╮
+    /// │ root                   │
+    /// │                        │
+    /// │             ╭───────╮  │
+    /// │             │ node2 │  │
+    /// │  ╭───────╮  │       │  ▼
+    /// │  │ node1 │  │   ◎   │  ▲
+    /// │  │   ◎   │  │       │  │
+    /// │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  │
+    /// │     40%        60%     │
+    /// ╰────────────────────────╯
+    ///             10
+    /// ```
+    #[test]
+    fn test_layout_horizontal_with_children_with_origin_alignment_center() {
+        let test = TestFlatChildren2::new();
+        test.root.use_auto_layout().set_size_x(10.0);
+        test.node1.set_size((40.pc(), 2.0)).set_origin_alignment_center();
+        test.node2.set_size((60.pc(), 4.0)).set_origin_alignment_center();
+        test.run()
+            .assert_root_computed_size(10.0, 4.0)
+            .assert_node1_computed_size(4.0, 2.0)
+            .assert_node2_computed_size(6.0, 4.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(2.0, 1.0)
+            .assert_node2_position(7.0, 2.0)
+            .assert_root_bbox_origin(0.0, 0.0)
+            .assert_node1_bbox_origin(2.0, 1.0)
+            .assert_node2_bbox_origin(3.0, 2.0);
+    }
+
+    /// ```text
+    /// ◎╌╌╌╌╌╌╌┬───────────────╮
+    ///         │ root          │
+    ///         │       △       │
+    /// ╭───────┼───────┼▷      │
+    /// │ node1 │       │       │
+    /// │       │       │       │
+    /// │       ╰───────┼───────┤
+    /// │               │       ┆
+    /// │               │       ┆
+    /// ╰───────────────╯       ◎
+    /// ```
+    #[test]
+    fn test_layout_horizontal_origin_alignment_center() {
+        let test = TestFlatChildren2::new();
+        test.root.use_auto_layout().set_size((10.0, 10.0)).set_origin_alignment_center();
+        test.node1.set_size((40.pc(), 2.0)).set_origin_alignment_center();
+        test.node2.set_size((60.pc(), 4.0)).set_origin_alignment_center();
+        test.run()
+            .assert_root_computed_size(10.0, 4.0)
+            .assert_node1_computed_size(4.0, 2.0)
+            .assert_node2_computed_size(6.0, 4.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(2.0, 1.0)
+            .assert_node2_position(7.0, 2.0)
+            .assert_root_bbox_origin(0.0, 0.0)
+            .assert_node1_bbox_origin(2.0, 1.0)
+            .assert_node2_bbox_origin(3.0, 2.0);
     }
 }
