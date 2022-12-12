@@ -4,6 +4,7 @@ import project.Data.Boolean.Boolean
 import project.Data.Json.Extensions
 import project.Data.Json.Json
 import project.Data.Numbers.Number
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Nothing.Nothing
@@ -39,7 +40,7 @@ type JSON_Object
     to_vector self =
         keys = get_property_names self.js_object
         proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
-        Vector.from_polyglot_array
+        Vector.from_polyglot_array proxy
 
     ## Convert the object to a JSON
     to_json : Json
