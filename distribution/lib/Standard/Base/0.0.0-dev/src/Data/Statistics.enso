@@ -12,6 +12,7 @@ import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Incomparable_Values.Incomparable_Values
 import project.Meta
 import project.Nothing.Nothing
+import project.Runtime.Ref.Ref
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
@@ -202,6 +203,39 @@ type Statistic
                 Statistic.R_Squared s -> calculate_correlation_statistics data s . rSquared
                 _ -> aggr.compute s
 
+    ## Compute a running statistics on a vector like object.
+
+       Arguments:
+       - data: Vector like object which has a `to_array` method.
+       - statistics: Set of statistics to calculate.
+    running : Vector -> Statistic -> Vector Any
+    running data statistic=Statistic.Sum =
+        Statistic.running_bulk data [statistic] . map .first
+
+    ## Compute a set running statistics on a vector like object.
+
+       Arguments:
+       - data: Vector like object which has a `to_array` method.
+       - statistics: Set of statistics to calculate.
+    running_bulk : Vector -> Vector Statistic -> Vector Any
+    running_bulk data statistics=[Statistic.Count, Statistic.Sum] =
+        unsupported s = case s of
+            Statistic.Covariance _ -> True
+            Statistic.Pearson _ -> True
+            Statistic.Spearman _ -> True
+            Statistic.R_Squared _ -> True
+            _ -> False
+        if statistics.any unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter unsupported . to_text) ") for running calculations.")) else
+            aggr = Statistic_Aggregator.for_statistics statistics
+            output = Vector.new_builder data.length
+            fold_step aggr v =
+                next = aggr.append v
+                row = statistics.map s-> aggr.compute s
+                output.append row
+                next
+            data.fold aggr fold_step
+            output.to_vector
+
     ## Calculate a variance-covariance matrix between the input series.
 
        Arguments:
@@ -304,11 +338,27 @@ Vector.compute_bulk : Vector Statistic -> Vector Any
 Vector.compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
     Statistic.compute_bulk self statistics
 
+## Compute a single running statistic on the vector.
+
+   Arguments:
+   - statistic: Statistic to calculate.
+Vector.running : Statistic -> Vector Any
+Vector.running self statistic=Statistic.Count =
+    Statistic.running self statistic
+
+## Compute a single running statistic on the vector.
+
+   Arguments:
+   - statistic: Statistic to calculate.
+Vector.running_bulk : Statistic -> Vector Any
+Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
+    Statistic.running_bulk self statistics
+
 type Statistic_Aggregator
     ## PRIVATE
        Aggregator for computing moments.
        This class is used to compute the moments of a data set.
-    Value order:Integer count:Integer incomparable:Boolean minimum:(Any|Nothing) maximum:(Any|Nothing) sums:(Vector Decimal)
+    Value order:Integer count:Ref incomparable:Ref minimum:Ref maximum:Ref sums:(Vector Ref)
 
     ## ADVANCED
        Gets the required order for a Statistic or Nothing if not a Statistic_Aggregator based one.Statistic
@@ -328,72 +378,102 @@ type Statistic_Aggregator
     ## Create an aggregator for computing moments.
     new : Integer -> Statistic_Aggregator
     new order =
-        Statistic_Aggregator.Value order 0 False Nothing Nothing (Vector.fill order 0)
+        count = Ref.new 0
+        incomparable = Ref.new False
+        minimum = Ref.new Nothing
+        maximum = Ref.new Nothing
+        sums = Vector.new order _->(Ref.new 0)
+        Statistic_Aggregator.Value order count incomparable minimum maximum sums
+
+    ## Create an aggregator for computing moments for a set of statistics.
+    for_statistics : Vector Statistic -> Statistic_Aggregator
+    for_statistics statistics =
+        orders = statistics.map Statistic_Aggregator.get_order . filter v->v.is_nothing.not
+        if orders.length == 0 then Nothing else
+            Statistic_Aggregator.new (orders.fold 0 .max)
 
     ## Add a value to the aggregator.
+       Note: This mutates the aggregator.
     append : Any -> Statistic_Aggregator
     append self value = if value.is_nothing then self else
-        count = self.count + 1
+        self.count.put self.count.get+1
 
-        minimum = if self.incomparable then self.minimum else
-            if self.minimum.is_nothing then value else
-                case safe_compare_to self.minimum value of
-                    Nothing -> Nothing
-                    Ordering.Greater -> value
-                    _ -> self.minimum
+        incomparable = self.incomparable.get
+        case incomparable of
+            True -> Nothing
+            False ->
+                minimum = self.minimum.get
+                new_minimum = if minimum.is_nothing then value else
+                    case safe_compare_to minimum value of
+                        Nothing -> Nothing
+                        Ordering.Greater -> value
+                        _ -> minimum
+                self.minimum.put new_minimum
 
-        maximum = if self.incomparable then self.maximum else
-            if self.maximum.is_nothing then value else
-                case safe_compare_to self.maximum value of
-                    Nothing -> Nothing
-                    Ordering.Less -> value
-                    _ -> self.maximum
+                maximum = self.maximum.get
+                new_maximum = if maximum.is_nothing then value else
+                    case safe_compare_to self.maximum value of
+                        Nothing -> Nothing
+                        Ordering.Less -> value
+                        _ -> maximum
+                self.maximum.put new_maximum
 
-        sums = if self.sums.is_nothing then self.sums else
-            case value of
-                _ : Number -> self.sums.map_with_index i->v-> v + value ^ (i+1)
-                _ -> Nothing
+                self.incomparable.put (new_minimum.is_nothing || new_maximum.is_nothing)
 
-        Statistic_Aggregator.Value self.order count (self.incomparable || minimum.is_nothing || maximum.is_nothing) minimum maximum sums
+        if self.sums.at 0 . get . is_nothing then Nothing else
+            self.sums.map_with_index i->r->
+                new_sum = case value of
+                    _ : Number -> r.get + value ^ (i+1)
+                    _ -> Nothing
+                r.put new_sum
+
+        self
 
     ## Get a Statistic based off the result of the aggregation.
     compute : Statistic -> Any
     compute self statistic=Statistic.Count = case statistic of
-        Statistic.Count -> self.count
-        Statistic.Minimum -> if self.incomparable then Error.throw Incomparable_Values else self.minimum
-        Statistic.Maximum -> if self.incomparable then Error.throw Incomparable_Values else self.maximum
+        Statistic.Count -> self.count.get
+        Statistic.Minimum -> if self.incomparable.get then Error.throw Incomparable_Values else self.minimum.get
+        Statistic.Maximum -> if self.incomparable.get then Error.throw Incomparable_Values else self.maximum.get
         Statistic.Sum -> if self.order == 0 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Sum.") else
-            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Sum on purely numerical data sets.")) else
-                self.sums.at 0
+            sum_0 = self.sums.at 0 . get
+            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Sum on purely numerical data sets.")) else sum_0
         Statistic.Mean -> if self.order == 0 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Mean.") else
-            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Mean on purely numerical data sets.")) else
-                self.sums.at 0 / self.count
+            sum_0 = self.sums.at 0 . get
+            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Mean on purely numerical data sets.")) else
+                sum_0 / self.count.get
         Statistic.Variance p -> if self.order < 2 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Variance.") else
-            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Variance on purely numerical data sets.")) else
+            sum_0 = self.sums.at 0 . get
+            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Variance on purely numerical data sets.")) else
                 min_count = if p then 0 else 1
-                if self.count <= min_count then Number.nan else
-                    (self.sums.at 1 - self.sums.at 0 ^ 2 / self.count) / (self.count - min_count)
+                n = self.count.get
+                if n <= min_count then Number.nan else ((self.sums.at 1 . get) - sum_0 ^ 2 / n) / (n - min_count)
         Statistic.Standard_Deviation p -> if self.order < 2 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Standard_Deviation.") else
-            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Standard_Deviation on purely numerical data sets.")) else
+            sum_0 = self.sums.at 0 . get
+            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Standard_Deviation on purely numerical data sets.")) else
                 min_count = if p then 0 else 1
-                if self.count <= min_count then Number.nan else
-                    (self.sums.at 1 - self.sums.at 0 ^ 2 / self.count) / (self.count - min_count) ^ 0.5
+                n = self.count.get
+                if n <= min_count then Number.nan else
+                    ((self.sums.at 1 . get) - sum_0 ^ 2 / n) / (n - min_count) ^ 0.5
         Statistic.Skew p -> if self.order < 3 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Skew.") else
-            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Skew on purely numerical data sets.")) else
-                if self.count < 3 then Number.nan else
-                    avg = self.sums.at 0 / self.count
+            sum_0 = self.sums.at 0 . get
+            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Skew on purely numerical data sets.")) else
+                n = self.count.get
+                if n < 3 then Number.nan else
+                    avg = sum_0 / n
                     st_dev = self.compute (Statistic.Standard_Deviation p)
-                    scale = 1 / (st_dev ^ 3) / (if p then self.count else (self.count - 1) * (self.count - 2) / self.count)
-                    (self.sums.at 2 - 3 * avg * self.sums.at 1 + 2 * avg * avg * self.sums 0) * scale
+                    scale = 1 / (st_dev ^ 3) / (if p then n else (n - 1) * (n - 2) / n)
+                    ((self.sums.at 2 . get) - 3 * avg * (self.sums.at 1 . get) + 2 * avg * avg * sum_0) * scale
         Statistic.Kurtosis -> if self.order < 4 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Kurtosis.") else
-            if self.sums.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Kurtosis on purely numerical data sets.")) else
-                if self.count < 4 then Number.nan else
-                    n = self.count
-                    avg = self.sums.at 0 / n
+            sum_0 = self.sums.at 0 . get
+            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Kurtosis on purely numerical data sets.")) else
+                n = self.count.get
+                if n < 4 then Number.nan else
+                    avg = sum_0 / n
                     var = self.compute (Statistic.Variance False)
                     scale = n * (n + 1) / ((n - 1) * (n - 2) * (n - 3) * var * var)
                     shift = 3 * (n - 1) * (n - 1) / ((n - 2) * (n - 3))
-                    (self.sums.at 3 - 4 * avg * self.sums.at 2 + 6 * avg * avg * self.sums.at 1 - avg * avg * avg * self.sums.at 0) * scale - shift
+                    ((self.sums.at 3 . get) - 4 * avg * (self.sums.at 2 . get) + 6 * avg * avg * (self.sums.at 1 . get) - avg * avg * avg * sum_0) * scale - shift
         _ -> Error.throw (Illegal_Argument.Error ("Cannot compute " + statistic.to_text + " on a single data set."))
 
 ## PRIVATE
