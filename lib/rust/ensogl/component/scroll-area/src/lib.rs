@@ -199,14 +199,14 @@ struct Model {
 
 impl Model {
     fn resize(&self, size: Vector2) {
-        self.h_scrollbar.set_position_y(-size.y + scrollbar::WIDTH / 2.0);
+        self.h_scrollbar.set_y(-size.y + scrollbar::WIDTH / 2.0);
         let scrollbar_y = size.x - scrollbar::WIDTH / 2.0 + scrollbar::PADDING / 2.0 + 1.0;
-        self.v_scrollbar.set_position_x(scrollbar_y);
-        self.h_scrollbar.set_position_x(size.x / 2.0);
-        self.v_scrollbar.set_position_y(-size.y / 2.0);
+        self.v_scrollbar.set_x(scrollbar_y);
+        self.h_scrollbar.set_x(size.x / 2.0);
+        self.v_scrollbar.set_y(-size.y / 2.0);
         self.mask.size.set(size);
-        self.mask.set_position_x(size.x / 2.0);
-        self.mask.set_position_y(-size.y / 2.0);
+        self.mask.set_x(size.x / 2.0);
+        self.mask.set_y(-size.y / 2.0);
     }
 }
 
@@ -335,8 +335,8 @@ impl ScrollArea {
             frp.source.scroll_position_target_x <+ model.h_scrollbar.thumb_position_target.map(|x| -x);
             frp.source.scroll_position_target_y <+ model.v_scrollbar.thumb_position_target;
 
-            eval frp.scroll_position_x((&pos) model.content.set_position_x(pos));
-            eval frp.scroll_position_y((&pos) model.content.set_position_y(pos));
+            eval frp.scroll_position_x((&pos) model.content.set_x(pos));
+            eval frp.scroll_position_y((&pos) model.content.set_y(pos));
 
             scroll_position <- all(&frp.scroll_position_x, &frp.scroll_position_y);
             scroll_position <- scroll_position.map(|(x,y)| Vector2::new(*x,*y));

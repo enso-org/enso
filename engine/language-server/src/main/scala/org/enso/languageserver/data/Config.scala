@@ -5,8 +5,7 @@ import org.enso.languageserver.filemanager.ContentRootWithFile
 import org.enso.logger.masking.{MaskingUtils, ToLogString}
 
 import java.io.File
-import java.nio.file.Files
-
+import java.nio.file.{Files, Path}
 import scala.concurrent.duration._
 
 /** Configuration of the path watcher.
@@ -52,6 +51,15 @@ object FileManagerConfig {
       timeout     = timeout,
       parallelism = Runtime.getRuntime.availableProcessors()
     )
+}
+
+/** Configuration of the VCS manager.
+  *
+  * @param timeout vcs operation timeout
+  */
+case class VcsManagerConfig(timeout: FiniteDuration) {
+  val dataDirectory: Path =
+    Path.of(ProjectDirectoriesConfig.DataDirectory)
 }
 
 /** Configuration of the execution context.
@@ -129,6 +137,7 @@ object ProjectDirectoriesConfig {
 case class Config(
   projectContentRoot: ContentRootWithFile,
   fileManager: FileManagerConfig,
+  vcsManager: VcsManagerConfig,
   pathWatcher: PathWatcherConfig,
   executionContext: ExecutionContextConfig,
   directories: ProjectDirectoriesConfig,
@@ -146,6 +155,7 @@ case class Config(
     s"Config(" +
     s"projectContentRoot=$maskedRoot, " +
     s"fileManager=$fileManager, " +
+    s"vcsManager=$vcsManager, " +
     s"pathWatcher=$pathWatcher, " +
     s"executionContext=$executionContext, " +
     s"directories=${directories.toLogString(shouldMask)}" +

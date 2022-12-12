@@ -7,6 +7,7 @@ import sbt.addCompilerPlugin
 import sbt.complete.DefaultParsers._
 import sbt.complete.Parser
 import sbt.nio.file.FileTreeView
+import sbt.internal.util.ManagedLogger
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 import src.main.scala.licenses.{
   DistributionDescription,
@@ -20,7 +21,7 @@ import java.io.File
 // ============================================================================
 
 val scalacVersion         = "2.13.8"
-val graalVersion          = "21.3.0"
+val graalVersion          = "22.3.0"
 val javaVersion           = "11"
 val defaultDevEnsoVersion = "0.0.0-dev"
 val ensoVersion = sys.env.getOrElse(
@@ -299,7 +300,8 @@ lazy val enso = (project in file("."))
     `std-database`,
     `std-google-api`,
     `std-image`,
-    `std-table`
+    `std-table`,
+    `simple-httpbin`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -464,6 +466,8 @@ val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
 val guavaVersion            = "31.1-jre"
 val jlineVersion            = "3.21.0"
+val jgitVersion             = "6.3.0.202209071007-r"
+val diffsonVersion          = "4.1.1"
 val kindProjectorVersion    = "0.13.2"
 val mockitoScalaVersion     = "1.17.12"
 val newtypeVersion          = "0.4.4"
@@ -980,6 +984,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         initializeAtRuntime = Seq("scala.util.Random")
       )
       .dependsOn(VerifyReflectionSetup.run)
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .value,
     buildNativeImage := NativeImage
@@ -1047,7 +1052,8 @@ lazy val `json-rpc-server-test` = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-literal" % circeVersion,
       akkaTestkit,
-      "org.scalatest" %% "scalatest" % scalatestVersion
+      "org.scalatest" %% "scalatest"     % scalatestVersion,
+      "org.gnieh"     %% "diffson-circe" % diffsonVersion
     )
   )
   .dependsOn(`json-rpc-server`)
@@ -1168,7 +1174,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "com.typesafe.akka"          %% "akka-http-testkit"    % akkaHTTPVersion   % Test,
       "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
       "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
-      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
+      "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided",
+      "org.eclipse.jgit"            % "org.eclipse.jgit"     % jgitVersion,
     ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
@@ -1298,6 +1305,79 @@ lazy val `runtime-language-epb` =
       instrumentationSettings
     )
 
+/**
+ * Runs gu (GraalVM updater) command with given `args`.
+ * For example `runGu(Seq("install", "js"))`.
+ * @param logger Logger for the `gu` command.
+ * @param args Arguments for the `gu` command.
+ */
+def runGu(logger: ManagedLogger, args: Seq[String]): String = {
+  val javaHome = new File(
+    System.getProperty("java.home")
+  )
+  val os = {
+    if (Platform.isLinux) DistributionPackage.OS.Linux
+    else if (Platform.isMacOS) DistributionPackage.OS.MacOS
+    else if (Platform.isWindows) DistributionPackage.OS.Windows
+    else throw new RuntimeException("Unknown platform")
+  }
+  packageBuilder.gu(
+    logger,
+    os,
+    javaHome,
+    args:_*
+  )
+}
+
+def installedGuComponents(logger: ManagedLogger): Seq[String] = {
+  val componentList = runGu(
+    logger,
+    Seq("list")
+  )
+  val components = componentList
+    .linesIterator
+    .drop(2)
+    .map { line =>
+      line
+        .split(" ")
+        .head
+    }
+    .toList
+  logger.debug(s"Installed GU components = $components")
+  if (!components.contains("graalvm")) {
+    throw new RuntimeException(s"graalvm components is not in $components")
+  }
+  components
+}
+
+lazy val installGraalJs = taskKey[Unit]("Install graaljs GraalVM component")
+ThisBuild / installGraalJs := {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("js")) {
+    logger.info("Installing js GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "js")
+    )
+  }
+}
+
+lazy val installNativeImage = taskKey[Unit]("Install native-image GraalVM component")
+ThisBuild / installNativeImage := {
+  val logger = streams.value.log
+  if (!installedGuComponents(logger).contains("native-image")) {
+    logger.info("Installing native-image GraalVM component")
+    runGu(
+      logger,
+      Seq("install", "native-image")
+    )
+  }
+}
+
+ThisBuild / installNativeImage := {
+  (ThisBuild / installNativeImage).result.value
+}
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -1311,9 +1391,6 @@ lazy val runtime = (project in file("engine/runtime"))
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(
-      Defaults.compilersSetting
-    ), // Compile benchmarks with javac, due to jmh issues
     Benchmark / javacOptions --= Seq(
       "-source",
       frgaalSourceLevel,
@@ -1376,6 +1453,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .settings(
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .dependsOn(installGraalJs)
       .value
   )
   .settings(
@@ -1550,42 +1628,15 @@ lazy val `engine-runner` = project
   .settings(
     assembly := assembly
       .dependsOn(`runtime-with-instruments` / assembly)
-      .value
-  )
-  .dependsOn(`version-output`)
-  .dependsOn(pkg)
-  .dependsOn(cli)
-  .dependsOn(`library-manager`)
-  .dependsOn(`language-server`)
-  .dependsOn(`polyglot-api`)
-  .dependsOn(`logging-service`)
-
-// A workaround for https://github.com/oracle/graal/issues/4200 until we upgrade to GraalVM 22.x.
-// sqlite-jdbc jar is problematic and had to be exluded for the purposes of building a native
-// image of the runner.
-lazy val `engine-runner-native` = project
-  .in(file("engine/runner-native"))
-  .settings(
-    assembly / assemblyExcludedJars := {
-      val cp = (assembly / fullClasspath).value
-      (assembly / assemblyExcludedJars).value ++
-      cp.filter(_.data.getName.startsWith("sqlite-jdbc"))
-    },
-    assembly / mainClass := (`engine-runner` / assembly / mainClass).value,
-    assembly / assemblyMergeStrategy := (`engine-runner` / assembly / assemblyMergeStrategy).value,
-    assembly / assemblyJarName := "runner-native.jar",
-    assembly / assemblyOutputPath := file("runner-native.jar"),
-    assembly := assembly
-      .dependsOn(`engine-runner` / assembly)
       .value,
+
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
-        staticOnLinux = true,
+        staticOnLinux = false,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
-          "--allow-incomplete-classpath",
           "--macro:truffle",
           "--language:js",
           //          "-g",
@@ -1598,12 +1649,14 @@ lazy val `engine-runner-native` = project
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
-          "io.methvin.watchservice.jna.CarbonAPI"
+          "io.methvin.watchservice.jna.CarbonAPI",
+          "org.enso.syntax2.Parser"
         )
       )
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
-      .dependsOn(VerifyReflectionSetup.run)
       .value,
+
     buildNativeImage := NativeImage
       .incrementalNativeImageBuild(
         rebuildNativeImage,
@@ -1611,7 +1664,13 @@ lazy val `engine-runner-native` = project
       )
       .value
   )
-  .dependsOn(`engine-runner`)
+  .dependsOn(`version-output`)
+  .dependsOn(pkg)
+  .dependsOn(cli)
+  .dependsOn(`library-manager`)
+  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
+  .dependsOn(`logging-service`)
 
 lazy val launcher = project
   .in(file("engine/launcher"))
@@ -1641,6 +1700,7 @@ lazy val launcher = project
           "org.enso.loggingservice.WSLoggerManager$"
         )
       )
+      .dependsOn(installNativeImage)
       .dependsOn(assembly)
       .dependsOn(VerifyReflectionSetup.run)
       .value,
@@ -2078,14 +2138,25 @@ val stdBitsProjects =
 val allStdBits: Parser[String] =
   stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
 
+lazy val `simple-httpbin` = project
+  .in(file("tools") / "simple-httpbin")
+  .settings(
+    frgaalJavaCompilerSetting,
+    Compile / javacOptions ++= Seq("-XDignore.symbol.file", "-Xlint:all"),
+    libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-text" % commonsTextVersion
+    )
+  )
+  .configs(Test)
+
 lazy val buildStdLib =
   inputKey[Unit]("Build an individual standard library package")
 buildStdLib := Def.inputTaskDyn {
   val cmd: String = allStdBits.parsed
   val root: File  = engineDistributionRoot.value
   // Ensure that a complete distribution was built at least once.
-  // Becasuse of `if` in the sbt task definition and usage of `streams.value` one has to
-  // delegate to another task defintion (sbt restriction).
+  // Because of `if` in the sbt task definition and usage of `streams.value` one has to
+  // delegate to another task definition (sbt restriction).
   if ((root / "manifest.yaml").exists) {
     pkgStdLibInternal.toTask(cmd)
   } else buildEngineDistribution

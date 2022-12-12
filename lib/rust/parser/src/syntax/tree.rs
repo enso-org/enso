@@ -201,14 +201,13 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// A type definition; introduced by a line consisting of the keyword `type`, an identifier
         /// to be used as the name of the type, and zero or more specifications of type parameters.
         /// The following indented block contains two types of lines:
-        /// - First zero or more type constructors, and their subordinate blocks.
-        /// - Then a block of statements, which may define methods or type methods.
+        /// - Type constructors definitions.
+        /// - Bindings, defining either methods or type methods.
         TypeDef {
-            pub keyword:      token::Ident<'s>,
-            pub name:         token::Ident<'s>,
-            pub params:       Vec<ArgumentDefinition<'s>>,
-            pub constructors: Vec<TypeConstructorLine<'s>>,
-            pub block:        Vec<block::Line<'s>>,
+            pub keyword: token::Ident<'s>,
+            pub name:    token::Ident<'s>,
+            pub params:  Vec<ArgumentDefinition<'s>>,
+            pub body:    Vec<TypeDefLine<'s>>,
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
@@ -403,24 +402,49 @@ impl<'s> span::Builder<'s> for Error {
 
 // === Type Definitions ===
 
-/// A line within a type definition, containing a type constructor definition.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub struct TypeConstructorLine<'s> {
-    /// The token beginning the line.
-    pub newline:    token::Newline<'s>,
-    /// The type constructor definition, unless this is an empty line.
-    pub expression: Option<TypeConstructorDef<'s>>,
+/// A line in a type definition's body block.
+#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub struct TypeDefLine<'s> {
+    /// Token ending the previous line.
+    pub newline:   token::Newline<'s>,
+    /// Type definition body statement, if any.
+    pub statement: Option<TypeDefStatement<'s>>,
 }
 
-impl<'s> span::Builder<'s> for TypeConstructorLine<'s> {
+impl<'s> span::Builder<'s> for TypeDefLine<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.newline).add(&mut self.expression)
+        span.add(&mut self.newline).add(&mut self.statement)
     }
 }
 
-impl<'s> From<token::Newline<'s>> for TypeConstructorLine<'s> {
+impl<'s> From<token::Newline<'s>> for TypeDefLine<'s> {
     fn from(newline: token::Newline<'s>) -> Self {
-        Self { newline, expression: None }
+        Self { newline, statement: None }
+    }
+}
+
+/// A statement in a type-definition body.
+#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
+pub enum TypeDefStatement<'s> {
+    /// A binding in a type-definition body.
+    Binding {
+        /// The binding statement.
+        statement: Tree<'s>,
+    },
+    /// A constructor definition within a type-definition body.
+    #[reflect(inline)]
+    Constructor {
+        /// The constructor.
+        constructor: TypeConstructorDef<'s>,
+    },
+}
+
+impl<'s> span::Builder<'s> for TypeDefStatement<'s> {
+    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
+        match self {
+            TypeDefStatement::Binding { statement } => span.add(statement),
+            TypeDefStatement::Constructor { constructor } => span.add(constructor),
+        }
     }
 }
 
@@ -445,6 +469,9 @@ impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
             .add(&mut self.block)
     }
 }
+
+
+// === Argument blocks ===
 
 /// An argument specification on its own line.
 #[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
@@ -478,6 +505,12 @@ pub enum TextElement<'s> {
         /// The escape sequence.
         token: token::TextEscape<'s>,
     },
+    /// A logical newline.
+    Newline {
+        /// The newline token. The semantics of a logical newline are independent of the specific
+        /// characters in the input, which are generally platform-dependent.
+        newline: token::Newline<'s>,
+    },
     /// An interpolated section within a text literal.
     Splice {
         /// The opening ` character.
@@ -496,6 +529,7 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
             TextElement::Escape { token } => span.add(token),
             TextElement::Splice { open, expression, close } =>
                 span.add(open).add(expression).add(close),
+            TextElement::Newline { newline } => span.add(newline),
         }
     }
 }
@@ -829,6 +863,7 @@ pub fn join_text_literals<'s>(
         Some(TextElement::Section { text }) => text.left_offset += rhs_span.left_offset,
         Some(TextElement::Escape { token }) => token.left_offset += rhs_span.left_offset,
         Some(TextElement::Splice { open, .. }) => open.left_offset += rhs_span.left_offset,
+        Some(TextElement::Newline { newline }) => newline.left_offset += rhs_span.left_offset,
         None => (),
     }
     if let Some(newline) = rhs.newline.take() {
@@ -867,8 +902,7 @@ pub fn apply_operator<'s>(
             },
             (lhs, rhs) => {
                 let invalid = Tree::opr_app(lhs, opr, rhs);
-                let err = Error::new("`:` operator must be applied to two operands.");
-                Tree::invalid(err, invalid)
+                invalid.with_error("`:` operator must be applied to two operands.")
             }
         };
     }
@@ -913,52 +947,56 @@ pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>)
     }
 }
 
-impl<'s> From<Token<'s>> for Tree<'s> {
-    fn from(token: Token<'s>) -> Self {
-        match token.variant {
-            token::Variant::Ident(ident) => token.with_variant(ident).into(),
-            token::Variant::Digits(number) =>
-                Tree::number(None, Some(token.with_variant(number)), None),
-            token::Variant::NumberBase(base) =>
-                Tree::number(Some(token.with_variant(base)), None, None),
-            token::Variant::TextStart(open) =>
-                Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default()),
-            token::Variant::TextSection(section) => {
-                let section = TextElement::Section { text: token.with_variant(section) };
-                Tree::text_literal(default(), default(), vec![section], default(), default())
-            }
-            token::Variant::TextEscape(escape) => {
-                let token = token.with_variant(escape);
-                let section = TextElement::Escape { token };
-                Tree::text_literal(default(), default(), vec![section], default(), default())
-            }
-            token::Variant::TextEnd(_) if token.code.is_empty() =>
-                Tree::text_literal(default(), default(), default(), default(), true),
-            token::Variant::TextEnd(close) =>
-                Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true),
-            token::Variant::TextInitialNewline(_) =>
-                Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default()),
-            token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
-            token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
-            token::Variant::OpenSymbol(s) =>
-                Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
-            token::Variant::CloseSymbol(s) =>
-                Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
-            // These should be unreachable: They are handled when assembling items into blocks,
-            // before parsing proper.
-            token::Variant::Newline(_)
-            | token::Variant::BlockStart(_)
-            | token::Variant::BlockEnd(_)
-            // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
-            // operators.
-            | token::Variant::Operator(_)
-            // Map an error case in the lexer to an error in the AST.
-            | token::Variant::Invalid(_) => {
-                let message = format!("Unexpected token: {token:?}");
-                let ident = token::variant::Ident(false, 0, false, false, false);
-                let value = Tree::ident(token.with_variant(ident));
-                Tree::with_error(value, message)
-            }
+/// Create an AST node for a token.
+pub fn to_ast(token: Token) -> Tree {
+    match token.variant {
+        token::Variant::Ident(ident) => token.with_variant(ident).into(),
+        token::Variant::Digits(number) =>
+            Tree::number(None, Some(token.with_variant(number)), None),
+        token::Variant::NumberBase(base) =>
+            Tree::number(Some(token.with_variant(base)), None, None),
+        token::Variant::TextStart(open) =>
+            Tree::text_literal(Some(token.with_variant(open)), default(), default(), default(), default()),
+        token::Variant::TextSection(section) => {
+            let section = TextElement::Section { text: token.with_variant(section) };
+            Tree::text_literal(default(), default(), vec![section], default(), default())
+        }
+        token::Variant::TextEscape(escape) => {
+            let token = token.with_variant(escape);
+            let section = TextElement::Escape { token };
+            Tree::text_literal(default(), default(), vec![section], default(), default())
+        }
+        token::Variant::TextEnd(_) if token.code.is_empty() =>
+            Tree::text_literal(default(), default(), default(), default(), true),
+        token::Variant::TextEnd(close) =>
+            Tree::text_literal(default(), default(), default(), Some(token.with_variant(close)), true),
+        token::Variant::TextInitialNewline(_) =>
+            Tree::text_literal(default(), Some(token::newline(token.left_offset, token.code)), default(), default(), default()),
+        token::Variant::TextNewline(_) => {
+            let newline = token::newline(token.left_offset, token.code);
+            let newline = TextElement::Newline { newline };
+            Tree::text_literal(default(), default(), vec![newline], default(), default())
+        }
+        token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
+        token::Variant::AutoScope(t) => Tree::auto_scope(token.with_variant(t)),
+        token::Variant::OpenSymbol(s) =>
+            Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
+        token::Variant::CloseSymbol(s) =>
+            Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
+        // These should be unreachable: They are handled when assembling items into blocks,
+        // before parsing proper.
+        token::Variant::Newline(_)
+        | token::Variant::BlockStart(_)
+        | token::Variant::BlockEnd(_)
+        // This should be unreachable: `resolve_operator_precedence` doesn't calls `to_ast` for
+        // operators.
+        | token::Variant::Operator(_)
+        // Map an error case in the lexer to an error in the AST.
+        | token::Variant::Invalid(_) => {
+            let message = format!("Unexpected token: {token:?}");
+            let ident = token::variant::Ident(false, 0, false, false, false);
+            let value = Tree::ident(token.with_variant(ident));
+            Tree::with_error(value, message)
         }
     }
 }
@@ -966,64 +1004,6 @@ impl<'s> From<Token<'s>> for Tree<'s> {
 impl<'s> From<token::Ident<'s>> for Tree<'s> {
     fn from(token: token::Ident<'s>) -> Self {
         Tree::ident(token)
-    }
-}
-
-
-
-// =============================
-// === Traversing operations ===
-// =============================
-
-/// Recurse into the lexical LHS of the tree, applying a function to each node reached, until the
-/// function returns `false`.
-pub fn recurse_left_mut_while<'s>(
-    mut tree: &'_ mut Tree<'s>,
-    mut f: impl FnMut(&'_ mut Tree<'s>) -> bool,
-) {
-    while f(tree) {
-        tree = match &mut *tree.variant {
-            // No LHS.
-            Variant::Invalid(_)
-            | Variant::BodyBlock(_)
-            | Variant::Ident(_)
-            | Variant::Number(_)
-            | Variant::Wildcard(_)
-            | Variant::AutoScope(_)
-            | Variant::TextLiteral(_)
-            | Variant::UnaryOprApp(_)
-            | Variant::MultiSegmentApp(_)
-            | Variant::TypeDef(_)
-            | Variant::Import(_)
-            | Variant::Export(_)
-            | Variant::Group(_)
-            | Variant::CaseOf(_)
-            | Variant::Lambda(_)
-            | Variant::Array(_)
-            | Variant::Annotated(_)
-            | Variant::Documented(_)
-            | Variant::ForeignFunction(_)
-            | Variant::Tuple(_) => break,
-            // Optional LHS.
-            Variant::ArgumentBlockApplication(ArgumentBlockApplication { lhs, .. })
-            | Variant::OperatorBlockApplication(OperatorBlockApplication { lhs, .. })
-            | Variant::OprApp(OprApp { lhs, .. }) =>
-                if let Some(lhs) = lhs {
-                    lhs
-                } else {
-                    break;
-                },
-            // Unconditional LHS.
-            Variant::App(App { func: lhs, .. })
-            | Variant::NamedApp(NamedApp { func: lhs, .. })
-            | Variant::OprSectionBoundary(OprSectionBoundary { ast: lhs, .. })
-            | Variant::TemplateFunction(TemplateFunction { ast: lhs, .. })
-            | Variant::DefaultApp(DefaultApp { func: lhs, .. })
-            | Variant::Assignment(Assignment { pattern: lhs, .. })
-            | Variant::TypeSignature(TypeSignature { variable: lhs, .. })
-            | Variant::Function(Function { name: lhs, .. })
-            | Variant::TypeAnnotated(TypeAnnotated { expression: lhs, .. }) => lhs,
-        }
     }
 }
 

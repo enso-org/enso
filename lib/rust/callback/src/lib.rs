@@ -6,6 +6,7 @@
 #![feature(fn_traits)]
 #![feature(unsize)]
 #![feature(test)]
+#![feature(tuple_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -22,7 +23,6 @@
 
 use enso_prelude::*;
 
-use std::any::TypeId;
 use std::marker::Unsize;
 
 
@@ -128,7 +128,7 @@ impl<F: ?Sized> Registry<F> {
 
     /// Fires all registered callbacks and removes the ones which got dropped. The implementation
     /// is safe - you are allowed to change the registry while a callback is running.
-    fn run_impl<Args: Copy>(&self, args: Args)
+    fn run_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
     where F: FnMut<Args> {
         self.model.run_impl(args)
     }
@@ -152,7 +152,7 @@ impl<F: ?Sized> RegistryModel<F> {
         self.callback_list.borrow().is_empty() && self.callback_list_during_run.borrow().is_empty()
     }
 
-    fn run_impl<Args: Copy>(&self, args: Args)
+    fn run_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
     where F: FnMut<Args> {
         if self.is_running.get() {
             error!("Trying to run callback manager while it's already running, ignoring.");
@@ -367,61 +367,6 @@ pub mod traits {
     gen_runner!(RegistryRunner3, RegistryRunnerRef3, Copy3, Ref3, <T1,T2,T3>);
     gen_runner!(RegistryRunner4, RegistryRunnerRef4, Copy4, Ref4, <T1,T2,T3,T4>);
     gen_runner!(RegistryRunner5, RegistryRunnerRef5, Copy5, Ref5, <T1,T2,T3,T4,T5>);
-}
-
-
-
-// ==========================
-// === DynEventDispatcher ===
-// ==========================
-
-/// A dynamic event wrapper. Dynamic events can be pattern matched by their types. See docs of
-/// `DynEventDispatcher` to learn more.
-#[derive(Debug, Clone)]
-pub struct DynEvent {
-    any: Rc<dyn Any>,
-}
-
-impl DynEvent {
-    /// Constructor.
-    pub fn new<T: 'static>(t: T) -> Self {
-        let any = Rc::new(t);
-        DynEvent { any }
-    }
-}
-
-/// A dynamic event dispatcher. Allows dispatching an event of any type and registering listeners
-/// for a particular type.
-#[derive(Derivative, Default)]
-#[derivative(Debug)]
-pub struct DynEventDispatcher {
-    #[derivative(Debug = "ignore")]
-    #[allow(clippy::type_complexity)]
-    listener_map: HashMap<TypeId, Vec<(Guard, Box<dyn Ref1<DynEvent>>)>>,
-}
-
-impl DynEventDispatcher {
-    /// Registers a new listener for a given type.
-    pub fn add_listener<F: Ref1<T>, T: 'static>(&mut self, mut f: F) -> Handle {
-        let callback = Box::new(move |event: &DynEvent| {
-            event.any.downcast_ref::<T>().iter().for_each(|t| f(t))
-        });
-        let type_id = PhantomData::<T>.type_id();
-        let handle = Handle::default();
-        let guard = handle.guard();
-        let listeners = self.listener_map.entry(type_id).or_insert_with(default);
-        listeners.push((guard, callback));
-        handle
-    }
-
-    /// Dispatch an event to all listeners registered for that particular event type.
-    pub fn dispatch(&mut self, event: &DynEvent) {
-        let type_id = event.any.type_id();
-        self.listener_map.get_mut(&type_id).iter_mut().for_each(|listeners| {
-            listeners.retain(|(guard, _)| !guard.is_expired());
-            listeners.iter_mut().for_each(move |(_, callback)| callback(event));
-        });
-    }
 }
 
 

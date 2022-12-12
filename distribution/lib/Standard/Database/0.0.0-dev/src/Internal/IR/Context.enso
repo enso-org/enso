@@ -11,6 +11,39 @@ import project.Internal.IR.Order_Descriptor.Order_Descriptor
 type Context
     ## PRIVATE
 
+       Creates a query context that just fetches data from a table, without any
+       additional processing.
+
+       Arguments:
+       - table_name: The name of the table for which the context is being created.
+       - alias: An alias name to use for table within the query.
+    for_table : Text -> Text -> Context
+    for_table table_name alias=table_name =
+        Context.Value (From_Spec.Table table_name alias) [] [] [] [] Nothing
+
+    ## PRIVATE
+
+       Creates a query context that runs a raw SQL query.
+
+       Arguments:
+       - raw_sql: The name of the table for which the context is being created.
+       - alias: An alias name to use for table within the query.
+    for_query : Text -> Text -> Context
+    for_query raw_sql alias =
+        Context.Value (From_Spec.Query raw_sql alias) [] [] [] [] Nothing
+
+    ## PRIVATE
+
+       Creates a Context from a Sub_Query.
+
+       Arguments:
+       - subquery: The subquery to lift into a context.
+    for_subquery : From_Spec -> Context
+    for_subquery subquery =
+        Context.Value subquery [] [] [] [] Nothing
+
+    ## PRIVATE
+
        A context associated with an SQL query.
 
        The expressions can only be computed in a context which specifies from where
@@ -32,39 +65,6 @@ type Context
        - limit: an optional maximum number of elements that the equery should
          return.
     Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
-
-    ## PRIVATE
-
-       Creates a query context that just fetches data from a table, without any
-       additional processing.
-
-       Arguments:
-       - table_name: The name of the table for which the context is being created.
-       - alias: An alias name to use for table within the query.
-    for_table : Text -> Text -> Context
-    for_table table_name alias=table_name =
-        Context.Value (From_Spec.From_Table table_name alias) [] [] [] [] Nothing
-
-    ## PRIVATE
-
-       Creates a query context that runs a raw SQL query.
-
-       Arguments:
-       - raw_sql: The name of the table for which the context is being created.
-       - alias: An alias name to use for table within the query.
-    for_query : Text -> Text -> Context
-    for_query raw_sql alias =
-        Context.Value (From_Spec.From_Query raw_sql alias) [] [] [] [] Nothing
-
-    ## PRIVATE
-
-       Creates a Context from a Sub_Query.
-
-       Arguments:
-       - subquery: The subquery to lift into a context.
-    for_subquery : Sub_Query -> Context
-    for_subquery subquery =
-        Context.Value subquery [] [] [] [] Nothing
 
     ## PRIVATE
 

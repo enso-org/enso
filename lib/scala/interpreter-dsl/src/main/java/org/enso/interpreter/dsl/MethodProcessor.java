@@ -23,6 +23,7 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
+
 import org.enso.interpreter.dsl.model.MethodDefinition;
 import org.enso.interpreter.dsl.model.MethodDefinition.ArgumentDefinition;
 import org.openide.util.lookup.ServiceProvider;
@@ -35,7 +36,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = Processor.class)
 public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.MethodMetadataEntry> {
 
-  private final Map<Filer, Map<String, String>> builtinMethods = new HashMap<>();
+  private final Map<Filer, Map<String, String[]>> builtinMethods = new HashMap<>();
 
   /**
    * Processes annotated elements, generating code for each of them. The method also records
@@ -108,10 +109,10 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       return;
     }
     String fullClassName = def.getPackageName() + "." + def.getClassName();
-    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName);
+    registerBuiltinMethod(processingEnv.getFiler(), def.getDeclaredName(), fullClassName, def.isStatic(), def.isAutoRegister());
     if (def.hasAliases()) {
       for (String alias : def.aliases()) {
-        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName);
+        registerBuiltinMethod(processingEnv.getFiler(), alias, fullClassName, def.isStatic(), def.isAutoRegister());
       }
     }
   }
@@ -125,12 +126,12 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
           "com.oracle.truffle.api.profiles.BranchProfile",
           "com.oracle.truffle.api.profiles.ConditionProfile",
           "java.nio.file.OpenOption",
-          "org.enso.interpreter.Language",
+          "org.enso.interpreter.EnsoLanguage",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
-          "org.enso.interpreter.runtime.Context",
+          "org.enso.interpreter.runtime.EnsoContext",
           "org.enso.interpreter.runtime.data.ArrayRope",
           "org.enso.interpreter.runtime.error.PanicException",
           "org.enso.interpreter.runtime.error.Warning",
@@ -155,7 +156,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println("@NodeInfo(");
       out.println("  shortName = \"" + methodDefinition.getDeclaredName() + "\",");
-      out.println("  description = \"" + methodDefinition.getDescription() + "\")");
+      out.println("  description = \"\"\"\n" + methodDefinition.getDescription() + "\"\"\")");
       out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
 
@@ -183,7 +184,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
       }
       out.println("  private final BranchProfile anyWarningsProfile = BranchProfile.create();");
 
-      out.println("  private " + methodDefinition.getClassName() + "(Language language) {");
+      out.println("  private " + methodDefinition.getClassName() + "(EnsoLanguage language) {");
       out.println("    super(language);");
       out.println("    bodyNode = " + methodDefinition.getConstructorExpression() + ";");
       out.println("  }");
@@ -195,7 +196,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
               ? "fromBuiltinRootNodeWithCallerFrameAccess"
               : "fromBuiltinRootNode";
 
-      out.println("  public static Function makeFunction(Language language) {");
+      out.println("  public static Function makeFunction(EnsoLanguage language) {");
       out.println("    return Function." + functionBuilderMethod + "(");
       out.println(
           "        new "
@@ -288,7 +289,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
 
       out.println("  @Override");
       out.println("  protected RootNode cloneUninitialized() {");
-      out.println("    return new " + methodDefinition.getClassName() + "(Language.get(this));");
+      out.println("    return new " + methodDefinition.getClassName() + "(EnsoLanguage.get(this));");
       out.println("  }");
 
       out.println();
@@ -400,7 +401,7 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
         "      " + varName + " = " + castName + "(" + argsArray + "[" + arg.getPosition() + "]);");
     out.println("    } catch (UnexpectedResultException e) {");
     out.println("      com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();");
-    out.println("      var builtins = Context.get(this).getBuiltins();");
+    out.println("      var builtins = EnsoContext.get(this).getBuiltins();");
     out.println(
         "      var expected = builtins.fromTypeSystem(TypesGen.getName(arguments["
             + arg.getPosition()
@@ -463,8 +464,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
    */
   protected void storeMetadata(Writer writer, Map<String, MethodMetadataEntry> pastEntries) throws IOException {
     for (Filer f : builtinMethods.keySet()) {
-      for (Map.Entry<String, String> entry : builtinMethods.get(f).entrySet()) {
-        writer.append(entry.getKey() + ":" + entry.getValue() + "\n");
+      for (Map.Entry<String, String[]> entry : builtinMethods.get(f).entrySet()) {
+        writer.append(entry.getKey() + ":" + String.join(":", Arrays.asList(entry.getValue())) + "\n");
         if (pastEntries.containsKey(entry.getKey())) {
           pastEntries.remove(entry.getKey());
         }
@@ -472,13 +473,13 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     }
   }
 
-  protected void registerBuiltinMethod(Filer f, String name, String clazzName) {
-    Map<String, String> methods = builtinMethods.get(f);
+  protected void registerBuiltinMethod(Filer f, String name, String clazzName, boolean isStatic, boolean isAutoRegister) {
+    Map<String, String[]> methods = builtinMethods.get(f);
     if (methods == null) {
       methods = new HashMap<>();
       builtinMethods.put(f, methods);
     }
-    methods.put(name, clazzName);
+    methods.put(name, new String[] { clazzName, String.valueOf(isStatic), String.valueOf(isAutoRegister) });
   }
 
   @Override
@@ -511,11 +512,11 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
     return SourceVersion.latest();
   }
 
-  public record MethodMetadataEntry(String fullEnsoName, String clazzName) implements MetadataEntry {
+  public record MethodMetadataEntry(String fullEnsoName, String clazzName, boolean isStatic, boolean isAutoRegister) implements MetadataEntry {
 
     @Override
     public String toString() {
-      return fullEnsoName + ":" + clazzName;
+      return fullEnsoName + ":" + clazzName + ":" + isStatic + ":" + isAutoRegister;
     }
 
     @Override
@@ -527,8 +528,8 @@ public class MethodProcessor extends BuiltinsMetadataProcessor<MethodProcessor.M
   @Override
   protected MethodMetadataEntry toMetadataEntry(String line) {
     String[] elements = line.split(":");
-    if (elements.length != 2) throw new RuntimeException("invalid builtin metadata entry: " + line);
-    return new MethodMetadataEntry(elements[0], elements[1]);
+    if (elements.length != 4) throw new RuntimeException("invalid builtin metadata entry: " + line);
+    return new MethodMetadataEntry(elements[0], elements[1], Boolean.valueOf(elements[2]), Boolean.valueOf(elements[3]));
   }
 
   private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";

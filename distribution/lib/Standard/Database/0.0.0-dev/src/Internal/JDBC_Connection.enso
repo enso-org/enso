@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Runtime.Resource
-from Standard.Base.Runtime.Resource import Managed_Resource
+import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
 import Standard.Table.Data.Storage.Storage
 import Standard.Table.Data.Table.Table as Materialized_Table
@@ -12,12 +12,13 @@ import project.Internal.Base_Generator
 
 import project.Data.Table.Table as Database_Table
 
-from project.Errors import SQL_Error, SQL_Error_Data, SQL_Timeout_Error, SQL_Timeout_Error_Data
+from project.Errors import SQL_Error, SQL_Timeout
 
 polyglot java import java.util.Properties
 
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
+polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
 
@@ -71,7 +72,7 @@ type JDBC_Connection
 
         go template holes =
             handle_sql_errors related_query=template <|
-                Resource.bracket (prepare template holes) .close action
+                Managed_Resource.bracket (prepare template holes) .close action
 
         case query of
             _ : Text -> go query []
@@ -106,16 +107,16 @@ type JDBC_Connection
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
             java_connection.setAutoCommit False
-            Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
-                Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
+            Managed_Resource.bracket Nothing (_ -> java_connection.setAutoCommit default_autocommit) _->
+                Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                     num_rows = table.row_count
                     columns = table.columns
                     check_rows updates_array expected_size =
                         updates = Vector.from_polyglot_array updates_array
-                        if updates.length != expected_size then Panic.throw <| Illegal_State_Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
+                        if updates.length != expected_size then Panic.throw <| Illegal_State.Error "The batch update unexpectedly affected "+updates.length.to_text+" rows instead of "+expected_size.to_text+"." else
                             updates.each affected_rows->
                                 if affected_rows != 1 then
-                                    Panic.throw <| Illegal_State_Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
+                                    Panic.throw <| Illegal_State.Error "A single update within the batch unexpectedly affected "+affected_rows.to_text+" rows."
                     0.up_to num_rows . each row_id->
                         values = columns.map col-> col.at row_id
                         holes = values.zip db_types
@@ -161,13 +162,13 @@ close_connection connection =
 
    Arguments:
    - action: The computation to execute. This computation may throw SQL errors.
-handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout_Error)
+handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
 handle_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
         exc = caught_panic.payload.cause
         case Java.is_instance exc SQLTimeoutException of
-            True -> Error.throw (SQL_Timeout_Error_Data exc related_query)
-            False -> Error.throw (SQL_Error_Data exc related_query)
+            True -> Error.throw (SQL_Timeout.Error exc related_query)
+            False -> Error.throw (SQL_Error.Error exc related_query)
 
 ## PRIVATE
    Sets values inside of a prepared statement.
@@ -192,7 +193,7 @@ create_table_statement name table temporary =
 
 ## PRIVATE
    Returns the default database type corresponding to an in-memory storage type.
-default_storage_type : Storage.Type -> SQL_Type
+default_storage_type : Storage -> SQL_Type
 default_storage_type storage_type = case storage_type of
     Storage.Text -> SQL_Type.text
     Storage.Integer -> SQL_Type.integer

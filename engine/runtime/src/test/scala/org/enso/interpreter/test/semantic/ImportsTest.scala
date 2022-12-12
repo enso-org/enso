@@ -68,7 +68,10 @@ class ImportsTest extends PackageTest {
       .filterNot(_.contains("Compiler encountered"))
       .filterNot(_.contains("In module"))
       .head should include("The name `Atom` could not be found.")
+  }
 
+  "Importing everything from the module" should "should not bring module into the scope when resolving names" in {
+    evalTestProject("Test_Import_Case") shouldEqual 0
   }
 
   "Exports system" should "detect cycles" in {
@@ -87,13 +90,65 @@ class ImportsTest extends PackageTest {
     outLines(3) shouldEqual "(Mk_C 10)"
   }
 
+  "Importing module" should "bring extension methods into the scope " in {
+    evalTestProject("Test_Extension_Methods_Success_1") shouldEqual 42
+  }
+
+  "The unqualified import of a module" should "bring extension methods into the scope " in {
+    evalTestProject("Test_Extension_Methods_Success_2") shouldEqual 42
+  }
+
+  "Importing module's types" should "not bring extension methods into the scope " in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Extension_Methods_Failure"
+    ) should have message "Method `foo` of 1 (Integer) could not be found."
+  }
+
   "Compiler" should "detect name conflicts preventing users from importing submodules" in {
-    the[InterpreterException] thrownBy (evalTestProject(
+    the[InterpreterException] thrownBy evalTestProject(
       "TestSubmodulesNameConflict"
-    )) should have message "Method `c_mod_method` of C could not be found."
+    ) should have message "Method `c_mod_method` of C could not be found."
     val outLines = consumeOut
     outLines(2) should include
     "Declaration of type C shadows module local.TestSubmodulesNameConflict.A.B.C making it inaccessible via a qualified name."
+  }
+
+  "Compiler" should "accept exports of the same module" in {
+    evalTestProject("Test_Multiple_Exports") shouldEqual 0
+    val outLines = consumeOut
+    outLines(0) shouldEqual "z"
+    outLines(1) shouldEqual "42"
+  }
+
+  "Compiler" should "reject qualified exports of the same module with conflicting hidden names" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Multiple_Conflicting_Exports_1"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines(
+      1
+    ) shouldEqual "Hidden 'foo' name of the exported module local.Test_Multiple_Conflicting_Exports_1.F1 conflicts with the qualified export"
+  }
+
+  "Compiler" should "reject unqualified exports of the same module with conflicting hidden names" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Multiple_Conflicting_Exports_2"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines(
+      1
+    ) shouldEqual "Hidden 'bar' name of the export module local.Test_Multiple_Conflicting_Exports_2.F1 conflicts with the unqualified export"
+  }
+
+  "Polyglot symbols" should "not be exported" in {
+    the[InterpreterException] thrownBy evalTestProject(
+      "Test_Polyglot_Exports"
+    ) should have message "Compilation aborted due to errors."
+    val outLines = consumeOut
+    outLines should have length 3
+    outLines(
+      2
+    ) shouldEqual "Main.enso[5:16-5:19]: The name `Long` could not be found."
   }
 
   "Constructors" should "be importable" in {

@@ -19,13 +19,14 @@ import org.enso.editions.LibraryName
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
+import org.enso.syntax2.Tree
 
-import java.io.StringReader
+import java.io.{PrintStream, StringReader}
 import java.util.logging.Level
 import scala.jdk.OptionConverters._
 
@@ -36,7 +37,7 @@ import scala.jdk.OptionConverters._
   * @param context the language context
   */
 class Compiler(
-  val context: Context,
+  val context: EnsoContext,
   val builtins: Builtins,
   val packageRepository: PackageRepository,
   config: CompilerConfig
@@ -53,8 +54,24 @@ class Compiler(
   )
   private val serializationManager: SerializationManager =
     new SerializationManager(this)
-  private val logger: TruffleLogger      = context.getLogger(getClass)
-  private val ensoCompiler: EnsoCompiler = new EnsoCompiler();
+  private val logger: TruffleLogger = context.getLogger(getClass)
+  private val output: PrintStream =
+    if (config.outputRedirect.isDefined)
+      new PrintStream(config.outputRedirect.get)
+    else context.getOut
+  private lazy val ensoCompiler: EnsoCompiler = new EnsoCompiler()
+
+  /** Duplicates this compiler with a different config.
+    * @param newConfig Configuration to be used in the duplicated Compiler.
+    */
+  def duplicateWithConfig(newConfig: CompilerConfig): Compiler = {
+    new Compiler(
+      context,
+      builtins,
+      packageRepository,
+      newConfig
+    )
+  }
 
   /** Run the initialization sequence. */
   def initialize(): Unit = {
@@ -105,7 +122,11 @@ class Compiler(
     */
   def runImportsResolution(module: Module): List[Module] = {
     initialize()
-    importResolver.mapImports(module)
+    try {
+      importResolver.mapImports(module)
+    } catch {
+      case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+    }
   }
 
   /** Processes the provided language sources, registering any bindings in the
@@ -368,7 +389,12 @@ class Compiler(
   }
 
   private def runImportsAndExportsResolution(module: Module): List[Module] = {
-    val importedModules = importResolver.mapImports(module)
+    val importedModules =
+      try {
+        importResolver.mapImports(module)
+      } catch {
+        case e: ImportResolver.HiddenNamesConflict => reportExportConflicts(e)
+      }
 
     val requiredModules =
       try { new ExportsResolution().run(importedModules) }
@@ -397,7 +423,7 @@ class Compiler(
         Nil
       case other =>
         throw new CompilerError(
-          s"Unexpected import type after processing: [$other]."
+          s"Unexpected import type after processing ${module.getName}: [$other]."
         )
     }
     importedModules.distinct.map(_.qualifiedName).toArray
@@ -441,17 +467,19 @@ class Compiler(
 
     val src = module.getSource
     def oldParser() = {
+      System.err.println("Using old parser to process " + src.getURI())
       val tree = parse(src)
       generateIR(tree)
     }
-    def newParser() = {
-      System.err.println("Using new parser to process " + src.getURI())
-      val tree = ensoCompiler.parse(src)
-      ensoCompiler.generateIR(tree)
-    }
-    val size = src.getCharacters().length()
-    // change the condition to use old or new parser
-    val expr = if (size >= 0) oldParser() else newParser()
+    val expr =
+      if (
+        !"scala".equals(System.getenv("ENSO_PARSER")) && ensoCompiler.isReady()
+      ) {
+        val tree = ensoCompiler.parse(src)
+        ensoCompiler.generateIR(tree)
+      } else {
+        oldParser()
+      }
 
     val exprWithModuleExports =
       if (module.isSynthetic)
@@ -522,9 +550,9 @@ class Compiler(
         "<interactive_source>"
       )
       .build()
-    val parsed: AST = parse(source)
+    val tree = ensoCompiler.parse(source)
 
-    generateIRInline(parsed).flatMap { ir =>
+    ensoCompiler.generateIRInline(tree).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, newContext)
       runErrorHandlingInline(compilerOutput, source, newContext)
       Some(truffleCodegenInline(compilerOutput, source, newContext))
@@ -574,6 +602,13 @@ class Compiler(
     */
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
+
+  /** Parses the given source with the new Rust parser.
+    *
+    * @param source The inline code to parse
+    * @return A Tree representation of `source`
+    */
+  def parseInline(source: Source): Tree = ensoCompiler.parse(source)
 
   /** Parses the metadata of the provided language sources.
     *
@@ -728,7 +763,7 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): Unit =
-    if (context.isStrictErrors) {
+    if (config.isStrictErrors) {
       val errors = GatherDiagnostics
         .runExpression(ir, inlineContext)
         .unsafeGetMetadata(
@@ -749,7 +784,7 @@ class Compiler(
   def runErrorHandling(
     modules: List[Module]
   ): Unit = {
-    if (context.isStrictErrors) {
+    if (config.isStrictErrors) {
       val diagnostics = modules.flatMap { module =>
         val errors = gatherDiagnostics(module)
         List((module, errors))
@@ -792,24 +827,34 @@ class Compiler(
     }
 
   private def reportCycle(exception: ExportCycleException): Nothing = {
-    if (context.isStrictErrors) {
-      context.getOut.println("Compiler encountered errors:")
-      context.getOut.println("Export statements form a cycle:")
+    if (config.isStrictErrors) {
+      output.println("Compiler encountered errors:")
+      output.println("Export statements form a cycle:")
       exception.modules match {
         case List(mod) =>
-          context.getOut.println(s"    ${mod.getName} exports itself.")
+          output.println(s"    ${mod.getName} exports itself.")
         case first :: second :: rest =>
-          context.getOut.println(
+          output.println(
             s"    ${first.getName} exports ${second.getName}"
           )
           rest.foreach { mod =>
-            context.getOut.println(s"    which exports ${mod.getName}")
+            output.println(s"    which exports ${mod.getName}")
           }
-          context.getOut.println(
+          output.println(
             s"    which exports ${first.getName}, forming a cycle."
           )
         case _ =>
       }
+      throw new CompilationAbortedException
+    } else {
+      throw exception
+    }
+  }
+
+  private def reportExportConflicts(exception: Throwable): Nothing = {
+    if (config.isStrictErrors) {
+      output.println("Compiler encountered errors:")
+      output.println(exception.getMessage)
       throw new CompilationAbortedException
     } else {
       throw exception
@@ -821,11 +866,11 @@ class Compiler(
     * @param err the package repository error
     */
   private def reportPackageError(err: PackageRepository.Error): Unit = {
-    context.getOut.println(
+    output.println(
       s"In package description ${org.enso.pkg.Package.configFileName}:"
     )
-    context.getOut.println("Compiler encountered warnings:")
-    context.getOut.println(err.toString)
+    output.println("Compiler encountered warnings:")
+    output.println(err.toString)
   }
 
   /** Reports diagnostics from multiple modules.
@@ -842,7 +887,7 @@ class Compiler(
     diagnostics
       .foldLeft(false) { case (result, (mod, diags)) =>
         if (diags.nonEmpty) {
-          context.getOut.println(s"In module ${mod.getName}:")
+          output.println(s"In module ${mod.getName}:")
           reportDiagnostics(diags, mod.getSource) || result
         } else {
           result
@@ -865,16 +910,16 @@ class Compiler(
     val warnings = diagnostics.collect { case w: IR.Warning => w }
 
     if (warnings.nonEmpty) {
-      context.getOut.println("Compiler encountered warnings:")
+      output.println("Compiler encountered warnings:")
       warnings.foreach { warning =>
-        context.getOut.println(formatDiagnostic(warning, source))
+        output.println(formatDiagnostic(warning, source))
       }
     }
 
     if (errors.nonEmpty) {
-      context.getOut.println("Compiler encountered errors:")
+      output.println("Compiler encountered errors:")
       errors.foreach { error =>
-        context.getOut.println(formatDiagnostic(error, source))
+        output.println(formatDiagnostic(error, source))
       }
       true
     } else {

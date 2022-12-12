@@ -1,0 +1,12 @@
+[package]
+name = "ensogl-slider"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[dependencies]
+enso-frp = { path = "../../../frp" }
+ensogl-core = { path = "../../core" }
+ensogl-tooltip = { path = "../../component/tooltip/" }
+ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
+ensogl-text = { path = "../text" }

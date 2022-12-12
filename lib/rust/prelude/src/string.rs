@@ -7,13 +7,12 @@ use itertools::*;
 
 use crate::impls;
 
-#[cfg(feature = "serde")]
 use serde::Deserialize;
-#[cfg(feature = "serde")]
 use serde::Serialize;
 use std::borrow::Cow;
 use std::ops::Deref;
 use std::rc::Rc;
+use std::str::pattern;
 
 
 
@@ -23,6 +22,19 @@ use std::rc::Rc;
 
 pub trait StringOps {
     fn is_enclosed(&self, first_char: char, last_char: char) -> bool;
+
+    /// Splits `self` twice. Once at the first occurrence of `start_marker` and once at the first
+    /// occurence of `end_marker`. Returns a triple containing the split `self` as a prefix, middle,
+    /// and suffix. If `self` could not be split twice, returns [`None`].
+    ///
+    /// [`None`]: ::std::option::Option::None
+    fn split_twice<'a, P>(
+        &'a self,
+        start_marker: P,
+        end_marker: P,
+    ) -> Option<(&'a str, &'a str, &'a str)>
+    where
+        P: pattern::Pattern<'a>;
 }
 
 impl<T: AsRef<str>> StringOps for T {
@@ -40,6 +52,20 @@ impl<T: AsRef<str>> StringOps for T {
             let last = chars.last().or(first);
             first == Some(first_char) && last == Some(last_char)
         }
+    }
+
+    fn split_twice<'a, P>(
+        &'a self,
+        start_marker: P,
+        end_marker: P,
+    ) -> Option<(&'a str, &'a str, &'a str)>
+    where
+        P: pattern::Pattern<'a>,
+    {
+        let text = self.as_ref();
+        let (prefix, rest) = text.split_once(start_marker)?;
+        let (mid, suffix) = rest.split_once(end_marker)?;
+        Some((prefix, mid, suffix))
     }
 }
 
@@ -102,7 +128,7 @@ impl AsRef<str> for CowString {
 
 /// Immutable string implementation with a fast clone implementation.
 #[derive(Clone, CloneRef, Default, Eq, Hash, PartialEq, Ord, PartialOrd)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Deserialize, Serialize)]
 pub struct ImString {
     content: Rc<String>,
 }
@@ -202,6 +228,25 @@ impl PartialEq<&str> for ImString {
     }
 }
 
+impl PartialEq<str> for ImString {
+    fn eq(&self, other: &str) -> bool {
+        self.content.as_ref().eq(other)
+    }
+}
+
+impl PartialEq<ImString> for &str {
+    fn eq(&self, other: &ImString) -> bool {
+        self.eq(other.content.as_ref())
+    }
+}
+
+impl PartialEq<ImString> for str {
+    fn eq(&self, other: &ImString) -> bool {
+        self.eq(other.content.as_ref())
+    }
+}
+
+
 impl PartialEq<String> for ImString {
     fn eq(&self, other: &String) -> bool {
         self.content.as_ref().eq(other)
@@ -267,16 +312,6 @@ impl ToImString for &str {
 // === Macros ===
 
 /// Defines a newtype for `ImString`.
-#[cfg(not(feature = "serde"))]
-#[macro_export]
-macro_rules! im_string_newtype {
-    ($($(#$meta:tt)* $name:ident),* $(,)?) => {
-        im_string_newtype_without_serde!{ $($(#$meta)* $name),* }
-    };
-}
-
-/// Defines a newtype for `ImString`.
-#[cfg(feature = "serde")]
 #[macro_export]
 macro_rules! im_string_newtype {
     ($($(#$meta:tt)* $name:ident),* $(,)?) => {
@@ -469,5 +504,8 @@ mod tests {
         // === Edge case of matching single char string ===
         assert!("{".is_enclosed('{', '{'));
         assert!("【".is_enclosed('【', '【'));
+
+        // === Splitting a string twice ===
+        assert!("a.b.c,d,e".split_twice('.', ',').unwrap() == ("a", "b.c", "d,e"));
     }
 }

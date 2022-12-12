@@ -7,6 +7,7 @@ use ensogl::system::web::traits::*;
 use crate::component::visualization;
 
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
@@ -41,16 +42,16 @@ impl RawText {
     /// Definition of this visualization.
     pub fn definition() -> Definition {
         let path = Path::builtin("JSON");
-        Definition::new(Signature::new_for_any_type(path, Format::Json), |scene| {
-            Ok(Self::new(scene.clone_ref()).into())
+        Definition::new(Signature::new_for_any_type(path, Format::Json), |app| {
+            Ok(Self::new(app.clone_ref()).into())
         })
     }
 
     /// Constructor.
-    pub fn new(scene: Scene) -> Self {
+    pub fn new(app: Application) -> Self {
         let network = frp::Network::new("js_visualization_raw_text");
         let frp = visualization::instance::Frp::new(&network);
-        let model = RawTextModel::new(scene);
+        let model = RawTextModel::new(app);
         Self { model, frp, network }.init()
     }
 
@@ -82,7 +83,8 @@ pub struct RawTextModel {
 
 impl RawTextModel {
     /// Constructor.
-    fn new(scene: Scene) -> Self {
+    fn new(app: Application) -> Self {
+        let scene = app.display.default_scene.clone_ref();
         let logger = Logger::new("RawText");
         let div = web::document.create_div_or_panic();
         let dom = DomSymbol::new(&div);

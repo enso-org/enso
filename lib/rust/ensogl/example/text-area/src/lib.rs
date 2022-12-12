@@ -128,22 +128,22 @@ impl Borders {
             eval area.height ([borders](h) {
                 borders.right.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
                 borders.left.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
-                borders.right.set_position_y(-h/2.0);
-                borders.left.set_position_y(-h/2.0);
+                borders.right.set_y(-h/2.0);
+                borders.left.set_y(-h/2.0);
 
                 borders.bottom_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.bottom.color_rgba.set(RED);
-                borders.bottom.set_position_y(-*h);
+                borders.bottom.set_y(-*h);
             });
             eval area.width ([borders](w) {
                 borders.top.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
                 borders.bottom.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
-                borders.top.set_position_x(w/2.0);
-                borders.bottom.set_position_x(w/2.0);
+                borders.top.set_x(w/2.0);
+                borders.bottom.set_x(w/2.0);
 
                 borders.right_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.right.color_rgba.set(RED);
-                borders.right.set_position_x(*w);
+                borders.right.set_x(*w);
             });
         }
         mem::forget(frp);
@@ -178,7 +178,7 @@ fn init(app: Application) {
     area.set_content(content);
     area.set_font("mplus1p");
     area.set_property_default(color::Rgba::black());
-    area.focus();
+    area.deprecated_focus();
     area.hover();
 
     let borders = Borders::default();
@@ -212,8 +212,8 @@ fn init(app: Application) {
     let scene = scene.clone_ref();
     let handler = app.display.on.before_frame.add(move |_time| {
         let shape = scene.dom.shape();
-        div.set_style_or_warn("left", &format!("{}px", shape.width / 2.0));
-        div.set_style_or_warn("top", &format!("{}px", shape.height / 2.0 - 0.5));
+        div.set_style_or_warn("left", format!("{}px", shape.width / 2.0));
+        div.set_style_or_warn("top", format!("{}px", shape.height / 2.0 - 0.5));
     });
 
     mem::forget(handler);

@@ -1,0 +1,22 @@
+[package]
+name = "debug-scene-text-grid-visualization"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-frp = { path = "../../../../../lib/rust/frp" }
+ensogl = { path = "../../../../../lib/rust/ensogl" }
+ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
+ide-view = { path = "../.." }
+js-sys = { version = "0.3.28" }
+nalgebra = { version = "0.26.1" }
+serde_json = { version = "1.0" }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
+ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view" }
+web-sys = "0.3.4"

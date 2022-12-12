@@ -21,12 +21,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
+
 import org.enso.compiler.ModuleCache;
 import org.enso.compiler.context.SimpleUpdate;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.builtin.BuiltinFunction;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -34,7 +36,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
@@ -167,7 +168,7 @@ public final class Module implements TruffleObject {
       Package<TruffleFile> pkg,
       boolean synthetic,
       Rope literalSource,
-      Context context) {
+      EnsoContext context) {
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
@@ -188,7 +189,7 @@ public final class Module implements TruffleObject {
    *     belong to a package.
    * @return the module with empty scope.
    */
-  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, Context context) {
+  public static Module empty(QualifiedName name, Package<TruffleFile> pkg, EnsoContext context) {
     return new Module(name, pkg, false, null, context);
   }
 
@@ -202,7 +203,7 @@ public final class Module implements TruffleObject {
    * @return the synthetic module
    */
   public static Module synthetic(
-      QualifiedName name, Package<TruffleFile> pkg, Rope source, Context context) {
+      QualifiedName name, Package<TruffleFile> pkg, Rope source, EnsoContext context) {
     return new Module(name, pkg, true, source, context);
   }
 
@@ -321,7 +322,7 @@ public final class Module implements TruffleObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope compileScope(Context context) {
+  public ModuleScope compileScope(EnsoContext context) {
     ensureScopeExists(context);
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
@@ -333,7 +334,7 @@ public final class Module implements TruffleObject {
   }
 
   /** Create scope if it does not exist. */
-  public void ensureScopeExists(Context context) {
+  public void ensureScopeExists(EnsoContext context) {
     if (scope == null) {
       scope = new ModuleScope(this, context);
       compilationStage = CompilationStage.INITIAL;
@@ -386,7 +387,7 @@ public final class Module implements TruffleObject {
     return allSources.containsKey(s);
   }
 
-  private void compile(Context context) throws IOException {
+  private void compile(EnsoContext context) throws IOException {
     ensureScopeExists(context);
     Source source = getSource();
     if (source == null) return;
@@ -432,6 +433,20 @@ public final class Module implements TruffleObject {
   /** @return the runtime scope of this module. */
   public ModuleScope getScope() {
     return scope;
+  }
+
+  /**
+   * Returns the runtime scope of this module that filters out only the requested types. If the list
+   * of requested types is empty, returns the unchanged runtime scope.
+   *
+   * @param types a list of types to include in the scope
+   */
+  public ModuleScope getScope(List<String> types) {
+    if (types.isEmpty()) {
+      return scope;
+    } else {
+      return scope.withTypes(types);
+    }
   }
 
   /** @return the qualified name of this module. */
@@ -534,7 +549,7 @@ public final class Module implements TruffleObject {
       return scope.getTypes().get(name);
     }
 
-    private static Module reparse(Module module, Object[] args, Context context)
+    private static Module reparse(Module module, Object[] args, EnsoContext context)
         throws ArityException {
       Types.extractArguments(args);
       module.sources = module.sources.newWith((Rope) null);
@@ -547,14 +562,14 @@ public final class Module implements TruffleObject {
       return module;
     }
 
-    private static Module setSource(Module module, Object[] args, Context context)
+    private static Module setSource(Module module, Object[] args, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       String source = Types.extractArguments(args, String.class);
       module.setLiteralSource(source);
       return module;
     }
 
-    private static Module setSourceFile(Module module, Object[] args, Context context)
+    private static Module setSourceFile(Module module, Object[] args, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       String file = Types.extractArguments(args, String.class);
       module.setSourceFile(context.getTruffleFile(new File(file)));
@@ -567,29 +582,29 @@ public final class Module implements TruffleObject {
     }
 
     private static Object evalExpression(
-        ModuleScope scope, Object[] args, Context context, CallOptimiserNode callOptimiserNode)
+        ModuleScope scope, Object[] args, EnsoContext context, CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException {
       String expr = Types.extractArguments(args, String.class);
       Builtins builtins = context.getBuiltins();
-      Function eval =
+      BuiltinFunction eval =
           builtins
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
       CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
       return callOptimiserNode.executeDispatch(
-          eval,
+          eval.getFunction(),
           callerInfo,
           context.emptyState(),
           new Object[] {builtins.debug(), Text.create(expr)});
     }
 
-    private static Object generateDocs(Module module, Context context) {
+    private static Object generateDocs(Module module, EnsoContext context) {
       return context.getCompiler().generateDocs(module);
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static Object gatherImportStatements(Module module, Context context) {
+    private static Object gatherImportStatements(Module module, EnsoContext context) {
       Object[] imports = context.getCompiler().gatherImportStatements(module);
       return new Array(imports);
     }
@@ -602,7 +617,7 @@ public final class Module implements TruffleObject {
         Object[] arguments,
         @Cached LoopingCallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      Context context = Context.get(null);
+      EnsoContext context = EnsoContext.get(null);
       ModuleScope scope;
       switch (member) {
         case MethodNames.Module.GET_NAME:

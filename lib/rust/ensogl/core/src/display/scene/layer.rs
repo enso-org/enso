@@ -9,7 +9,6 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::ShapeSystemFlavor;
-use crate::display::shape::primitive::system::ShapeSystemFlavorProvider;
 use crate::display::shape::system::Shape;
 use crate::display::shape::system::ShapeInstance;
 use crate::display::shape::system::ShapeSystem;
@@ -154,28 +153,9 @@ use std::any::TypeId;
 /// Please note that the current implementation does not allow for hierarchical masks (masks applied
 /// to already masked area or masks applied to masks). If you try using masks in hierarchical way,
 /// the nested masks will be skipped and a warning will be emitted to the console.
-#[derive(Clone, CloneRef)]
+#[derive(Clone, CloneRef, Deref)]
 pub struct Layer {
     model: Rc<LayerModel>,
-}
-
-impl Deref for Layer {
-    type Target = LayerModel;
-    fn deref(&self) -> &Self::Target {
-        &self.model
-    }
-}
-
-impl AsRef<Layer> for Layer {
-    fn as_ref(&self) -> &Layer {
-        self
-    }
-}
-
-impl Debug for Layer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&*self.model, f)
-    }
 }
 
 impl Layer {
@@ -207,7 +187,7 @@ impl Layer {
 
     /// Remove the display object from a layer it was assigned to, if any.
     pub fn remove(&self, object: impl display::Object) {
-        object.display_object().remove_from_scene_layer(self);
+        object.display_object().remove_from_display_layer(self);
     }
 
     /// Instantiate the provided [`ShapeProxy`].
@@ -258,9 +238,28 @@ impl Layer {
     }
 }
 
+impl AsRef<Layer> for Layer {
+    fn as_ref(&self) -> &Layer {
+        self
+    }
+}
+
+impl Debug for Layer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&*self.model, f)
+    }
+}
+
 impl From<&Layer> for LayerId {
     fn from(t: &Layer) -> Self {
         t.id()
+    }
+}
+
+impl Eq for Layer {}
+impl PartialEq for Layer {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.model, &other.model)
     }
 }
 
@@ -313,6 +312,7 @@ impl PartialEq for WeakLayer {
         self.model.ptr_eq(&other.model)
     }
 }
+
 
 
 // ==================
@@ -1060,6 +1060,7 @@ shared! { ShapeSystemRegistry
 #[derive(Default,Debug)]
 pub struct ShapeSystemRegistryData {
     shape_system_map : HashMap<(TypeId, ShapeSystemFlavor),ShapeSystemRegistryEntry>,
+    shape_system_flavors: HashMap<TypeId, Vec<ShapeSystemFlavor>>,
 }
 
 impl {
@@ -1082,16 +1083,26 @@ impl {
     }
 
     /// Decrement internal register of used [`Symbol`] instances previously instantiated with the
-    /// [`instantiate`] method. In case the counter drops to 0, the caller of this function should
-    /// perform necessary cleanup.
-    pub(crate) fn drop_instance<S>(&mut self, flavor: ShapeSystemFlavor) -> (usize,ShapeSystemId,PhantomData<S>)
-    where S : Shape {
-        let system_id      = ShapeSystem::<S>::id();
-        let instance_count = if let Some(entry) = self.get_mut::<S>(flavor) {
-            *entry.instance_count -= 1;
-            *entry.instance_count
-        } else { 0 };
-        (instance_count,system_id,PhantomData)
+    /// [`instantiate`] method. In case there are no more instances associated with any system of
+    /// type `S`, the caller of this function should perform necessary cleanup.
+    pub(crate) fn drop_instance<S>(
+        &mut self,
+        flavor: ShapeSystemFlavor
+    ) -> (bool, ShapeSystemId, PhantomData<S>)
+    where
+        S : Shape
+    {
+        let system_id = ShapeSystem::<S>::id();
+        let entry_is_empty = self.get_mut::<S>(flavor).map_or(true, |entry| {
+            *entry.instance_count = entry.instance_count.saturating_sub(1);
+            *entry.instance_count == 0
+        });
+
+        // Intentional short-circuit - avoid computing `total_system_instances` when we know there
+        // are still more instances in the currently processed entry.
+        let no_more_instances = entry_is_empty && self.total_system_instances(*system_id) == 0;
+
+        (no_more_instances, system_id, PhantomData)
     }
 }}
 
@@ -1124,13 +1135,20 @@ impl ShapeSystemRegistryData {
         S: Shape,
     {
         let id = TypeId::of::<S>();
-        let flavor = data.flavor();
+        let flavor = S::flavor(data);
         let system = ShapeSystem::<S>::new(scene, data);
         let any = Box::new(system);
         let entry = ShapeSystemRegistryEntry { shape_system: any, instance_count: 0 };
         self.shape_system_map.entry((id, flavor)).insert_entry(entry);
+        self.shape_system_flavors.entry(id).or_default().push(flavor);
         // The following line is safe, as the object was just registered.
         self.get_mut(flavor).unwrap()
+    }
+
+    /// Get total number of shape instances from shape systems of given type and all flavors.
+    fn total_system_instances(&self, system_id: TypeId) -> usize {
+        let Some(flavors) = self.shape_system_flavors.get(&system_id) else { return 0 };
+        flavors.iter().map(|f| self.shape_system_map[&(system_id, *f)].instance_count).sum()
     }
 
     fn with_get_or_register_mut<S, F, Out>(
@@ -1143,7 +1161,7 @@ impl ShapeSystemRegistryData {
         F: FnOnce(ShapeSystemRegistryEntryRefMut<ShapeSystem<S>>) -> Out,
         S: Shape,
     {
-        let flavor = data.flavor();
+        let flavor = S::flavor(data);
         match self.get_mut(flavor) {
             Some(entry) => f(entry),
             None => f(self.register(scene, data)),

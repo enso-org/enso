@@ -13,5 +13,5 @@
          import Standard.Base.System.Process
 
          example_run = case Platform.os of
-             Platform.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
+             Platform.OS.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
              _ -> Process.run "bash" ["-c", "exit 42"]

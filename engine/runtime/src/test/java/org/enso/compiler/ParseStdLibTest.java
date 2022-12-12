@@ -159,8 +159,8 @@ public final class ParseStdLibTest extends TestCase {
         Arrays.asList(
             // Files containing type expressions not supported by old parser.
             "Data/Index_Sub_Range.enso",
-            "Data/Text/Regex/Engine/Default.enso",
-            "Function.enso",
+            "Error/Common.enso",
+            "Data/Text/Regex/Regex_Mode.enso",
             "Internal/Base_Generator.enso",
             "Data/Sort_Column_Selector.enso",
             "Data/Value_Type.enso"));

@@ -1,19 +1,19 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Matching
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
-from Standard.Base.Data.Text.Text_Ordering import Text_Ordering
-from Standard.Base.Error.Problem_Behavior import Report_Warning
+import Standard.Base.Error.Illegal_State.Illegal_State
 
-import project.Data.Position.Position
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
+import project.Data.Position.Position
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
+import project.Data.Table.Table
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns_Data, No_Output_Columns, Too_Many_Column_Names_Provided_Data, Duplicate_Output_Column_Names_Data, Invalid_Output_Column_Names_Data, No_Input_Columns_Selected
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
 
 polyglot java import java.util.HashSet
 
@@ -107,7 +107,7 @@ type Table_Column_Helper
          operation. By default, a warning is issued, but the operation proceeds.
          If set to `Report_Error`, the operation fails with a dataflow error.
          If set to `Ignore`, the operation proceeds without errors or warnings.
-    reorder_columns : Vector | Column_Selector -> Position.Position -> Problem_Behavior -> Vector
+    reorder_columns : Vector | Column_Selector -> Position -> Problem_Behavior -> Vector
     reorder_columns self selector position on_problems =
         problem_builder = Problem_Builder.new
         selection = self.select_columns_helper selector reorder=True problem_builder
@@ -139,7 +139,7 @@ type Table_Column_Helper
        - problem_builder: Encapsulates the aggregation of encountered problems.
     select_columns_helper : Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
     select_columns_helper self selector reorder problem_builder = case selector of
-        _ : Vector.Vector ->
+        _ : Vector ->
             self.select_columns_helper (Column_Selector.By_Name selector) reorder problem_builder
         Column_Selector.By_Name names matcher ->
             valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
@@ -183,7 +183,7 @@ type Table_Column_Helper
                     Nothing -> True
                     1 -> True
                     0 -> False
-                    _ -> Panic.throw (Illegal_State_Error_Data "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
+                    _ -> Panic.throw (Illegal_State.Error "Unexpected result. Perhaps an implementation bug of Column_Selector.Blank_Columns.")
 
     ## PRIVATE
        A helper function which selects a single column from the table. It is aligned
@@ -194,9 +194,9 @@ type Table_Column_Helper
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
             if matched_columns.length == 1 then matched_columns.first else
-                if matched_columns.length != 0 then Panic.throw (Illegal_State_Error_Data "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
+                if matched_columns.length != 0 then Panic.throw (Illegal_State.Error "A single exact match should never match more than one column. Perhaps the table breaks the invariant of unique column names?") else
                     expression = (self.table.evaluate selector).catch Any _->Nothing
-                    if expression != Nothing then expression else
+                    if Nothing != expression then expression else
                         problem_builder.report_missing_input_columns [selector]
                         Nothing
         _ : Integer -> case is_index_valid self.internal_columns.length selector of
@@ -207,7 +207,6 @@ type Table_Column_Helper
         ## A wildcard to match any backend's column.
         _ ->
             self.resolve_column_helper selector.name problem_builder=problem_builder
-
 
 ## PRIVATE
    A helper function encapsulating shared code for `rename_columns`
@@ -243,11 +242,11 @@ rename_columns internal_columns mapping on_problems =
                 Nothing -> Nothing
                 _ ->
                     matched.add index
-                    new_name = case Meta.type_of ms of
-                        Regex_Matcher.Regex_Matcher ->
+                    new_name = case ms of
+                        _ : Regex_Matcher ->
                             pattern = ms.compile ((good_names.at index).at 0)
                             pattern.replace name ((good_names.at index).at 1)
-                        Text_Matcher.Text_Matcher -> (good_names.at index).at 1
+                        _ : Text_Matcher -> (good_names.at index).at 1
                     unique.make_unique new_name
 
         new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
@@ -271,7 +270,7 @@ rename_columns internal_columns mapping on_problems =
         Column_Name_Mapping.By_Position vec ->
             good_names = case vec.length > col_count of
                 True ->
-                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided_Data (vec.drop (First col_count)))
+                    problem_builder.report_other_warning (Too_Many_Column_Names_Provided.Error (vec.drop (First col_count)))
                     vec.take (First col_count)
                 False -> vec
 
@@ -283,9 +282,9 @@ rename_columns internal_columns mapping on_problems =
         n.if_nothing (unique.make_unique (internal_columns.at i).name)
 
     if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names_Data unique.invalid_names)
+        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
     if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names_Data unique.renames)
+        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
 
     problem_builder.attach_problems_before on_problems processed
 
@@ -318,7 +317,7 @@ sort_columns internal_columns direction text_ordering =
    Converts the generic `No_Matches_Found` error to a more specific
    `Missing_Input_Columns`. Any other errors are returned as-is.
 promote_no_matches_to_missing_columns error = case error of
-    Matching.No_Matches_Found_Data criteria -> Maybe.Some <| Missing_Input_Columns_Data criteria
+    Matching.No_Matches_Found.Error criteria -> Maybe.Some <| Missing_Input_Columns.Error criteria
     _ -> Nothing
 
 ## PRIVATE
@@ -407,10 +406,13 @@ type Column_Transform_Element
     Value column associated_selector
 
 ## PRIVATE
-prepare_order_by : Vector -> Vector Text | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
+prepare_order_by : Vector -> Text | Vector Text | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
-        _ : Vector.Vector ->
+        _ : Text ->
+            unified_name_selectors = [Sort_Column.Name column_selectors]
+            select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
+        _ : Vector ->
             unified_name_selectors = column_selectors.map (Sort_Column.Name _)
             select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Name name_selectors matcher ->
@@ -546,7 +548,7 @@ select_columns_by_name internal_columns name_selectors matcher problem_builder n
             associated_selector_index = matching_selector_indices.first
             associated_selector = name_selectors.at associated_selector_index
             element = Column_Transform_Element.Value column associated_selector
-            results.append (Pair_Data element [associated_selector_index, i])
+            results.append (Pair.new element [associated_selector_index, i])
     # We sort the results by the associated selector index, breaking ties by the column index.
     sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
     sorted.map .first
@@ -612,3 +614,12 @@ filter_blank_rows table when_any treat_nans_as_blank =
             non_missing_mask = missing_mask.not
             table.filter non_missing_mask
         False -> table
+
+## PRIVATE
+   Checks if the given object implements a Table interface.
+
+   Currently, it relies on a hack - it checks if the object has a method
+   `is_table` and if it returns `True`.
+is_table obj =
+    known_types = ["Standard.Table.Data.Table.Table", "Standard.Database.Data.Table.Table"]
+    known_types.contains (Meta.get_qualified_type_name obj)

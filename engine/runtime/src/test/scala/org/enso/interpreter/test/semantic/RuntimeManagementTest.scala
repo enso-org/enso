@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.polyglot.{LanguageInfo, MethodNames}
 
@@ -18,11 +18,11 @@ class RuntimeManagementTest extends InterpreterTest {
       val langCtx = interpreterContext.ctx
         .getBindings(LanguageInfo.ID)
         .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-        .asHostObject[Context]()
+        .asHostObject[EnsoContext]()
 
       val code =
         """import Standard.Base.Runtime.Thread
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |foo x =
@@ -74,11 +74,25 @@ class RuntimeManagementTest extends InterpreterTest {
       }
     }
 
+    def consumeWithGC(expect: Int): List[String] = {
+      forceGC()
+      var round                  = 0
+      var totalOut: List[String] = Nil
+      totalOut = consumeOut
+      while (totalOut.length < expect && round < 500) {
+        round = round + 1
+        if (round % 10 == 0) forceGC();
+        Thread.sleep(100)
+        totalOut ++= consumeOut
+      }
+      totalOut
+    }
+
     "Automatically free managed resources" in {
       val code =
         """
           |from Standard.Base.Runtime.Resource import Managed_Resource
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |
           |type Mock_File
           |    Value i
@@ -98,15 +112,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |    create_resource 4
           |""".stripMargin
       eval(code)
-      var totalOut: List[String] = Nil
-
-      forceGC()
-
-      totalOut = consumeOut
-      while (totalOut.length < 10) {
-        Thread.sleep(100)
-        totalOut ++= consumeOut
-      }
+      val totalOut = consumeWithGC(10)
 
       def mkAccessStr(i: Int): String = s"Accessing: (Mock_File.Value $i)"
       def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File.Value $i)"
@@ -118,7 +124,7 @@ class RuntimeManagementTest extends InterpreterTest {
       val code =
         """
           |from Standard.Base.Runtime.Resource import Managed_Resource
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |type Mock_File
@@ -140,15 +146,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |    create_resource 4
           |""".stripMargin
       eval(code)
-      var totalOut: List[String] = Nil
-
-      forceGC()
-
-      totalOut = consumeOut
-      while (totalOut.length < 10) {
-        Thread.sleep(100)
-        totalOut ++= consumeOut
-      }
+      val totalOut = consumeWithGC(10)
 
       def mkAccessStr(i: Int): String = s"Accessing: (Mock_File.Value $i)"
       def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File.Value $i)"
@@ -160,7 +158,7 @@ class RuntimeManagementTest extends InterpreterTest {
       val code =
         """
           |from Standard.Base.Runtime.Resource import Managed_Resource
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |type Mock_File
@@ -182,15 +180,7 @@ class RuntimeManagementTest extends InterpreterTest {
           |    create_resource 4
           |""".stripMargin
       eval(code)
-      var totalOut: List[String] = Nil
-
-      forceGC()
-
-      totalOut = consumeOut
-      while (totalOut.length < 7) {
-        Thread.sleep(100)
-        totalOut ++= consumeOut
-      }
+      val totalOut = consumeWithGC(7)
 
       def mkAccessStr(i: Int): String = s"Accessing: (Mock_File.Value $i)"
       def mkFreeStr(i: Int): String   = s"Freeing: (Mock_File.Value $i)"

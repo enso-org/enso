@@ -1,0 +1,35 @@
+from Standard.Base import all
+from Standard.Table import Table
+import Standard.Table.Data.Table_Conversions
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+import project.Util
+
+spec = Test.group 'JSON conversion' <|
+    clothes = enso_project.data/'clothes.csv' . read
+    simple_empty = enso_project.data/'simple_empty.csv' . read
+
+    Test.specify 'should convert tables to a format compatible with Json.Array.to_table' <|
+        clothes_json = clothes.to_json
+        clothes_json.to_table ['Id', 'Name', 'Quantity', 'Rating', 'Price'] . should_equal clothes
+
+    Test.specify 'should write JSON tables to disk' <|
+        out = enso_project.data / 'out.json'
+        out.delete_if_exists
+        simple_empty.write_json out
+        (Json.parse out.read_text).to_table ['a', 'b', 'c'] . should_equal simple_empty
+        out.delete_if_exists
+
+    Test.specify "should allow converting a JSON array into a table" <|
+        r_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+        r_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
+        r_3 = Json.from_pairs [['baz', False], ['foo', 13]]
+        t = [r_1, r_2, r_3].to_json.to_table ['foo', 'bar', 'baz']
+        t.columns.map .name . should_equal ['foo', 'bar', 'baz']
+        t.at 'foo' . to_vector . should_equal [20, Nothing, 13]
+        t.at 'bar' . to_vector . should_equal ['baz', 'xyz', Nothing]
+        t.at 'baz' . to_vector . should_equal [False, True, False]
+
+main = Test_Suite.run_main spec

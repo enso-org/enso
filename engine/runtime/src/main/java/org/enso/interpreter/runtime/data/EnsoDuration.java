@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.data;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -16,7 +15,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -37,13 +36,14 @@ public final class EnsoDuration implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().duration();
+    return EnsoContext.get(thisLib).getBuiltins().duration();
   }
 
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds")
+          "Constructs a new Duration from hours, minutes, seconds, milliseconds and nanoseconds",
+      autoRegister = false)
   @TruffleBoundary
   public static EnsoDuration create(
       long hours, long minutes, long seconds, long milliseconds, long nanoseconds) {
@@ -59,7 +59,8 @@ public final class EnsoDuration implements TruffleObject {
   @Builtin.Method(
       name = "between_builtin",
       description =
-          "Construct a new Duration that is between the given start date inclusive, and end date exclusive")
+          "Construct a new Duration that is between the given start date inclusive, and end date exclusive",
+      autoRegister = false)
   @Builtin.Specialize
   @TruffleBoundary
   public static EnsoDuration between(
@@ -88,7 +89,7 @@ public final class EnsoDuration implements TruffleObject {
   private static PanicException createNotDateTimePanic(
       String varName, Object object, InteropLibrary interop) {
     return new PanicException(
-        Context.get(interop).getBuiltins().error().makeTypeError("Date_Time", object, varName),
+        EnsoContext.get(interop).getBuiltins().error().makeTypeError("Date_Time", object, varName),
         interop);
   }
 

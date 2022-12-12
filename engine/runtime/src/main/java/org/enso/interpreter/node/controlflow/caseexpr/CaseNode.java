@@ -3,12 +3,13 @@ package org.enso.interpreter.node.controlflow.caseexpr;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.*;
@@ -70,11 +71,16 @@ public abstract class CaseNode extends ExpressionNode {
     throw sentinel;
   }
 
-  @Specialization
-  Object doWarning(VirtualFrame frame, WithWarnings object) {
-    ArrayRope<Warning> warnings = object.getReassignedWarnings(this);
-    Object result = doMatch(frame, object.getValue());
-    return WithWarnings.appendTo(result, warnings);
+  @Specialization(guards = {"object != null", "warnings.hasWarnings(object)"})
+  Object doWarning(
+      VirtualFrame frame, Object object, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    try {
+      Warning[] ws = warnings.getWarnings(object, this);
+      Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
+      return new WithWarnings(result, ws);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   /**
@@ -85,9 +91,14 @@ public abstract class CaseNode extends ExpressionNode {
    * @return the result of executing the case expression on {@code object}
    */
   @Specialization(
-      guards = {"!isDataflowError(object)", "!isPanicSentinel(object)", "!isWarning(object)"})
+      guards = {
+        "!isDataflowError(object)",
+        "!isPanicSentinel(object)",
+        "!warnings.hasWarnings(object)"
+      })
   @ExplodeLoop
-  public Object doMatch(VirtualFrame frame, Object object) {
+  public Object doMatch(
+      VirtualFrame frame, Object object, @CachedLibrary(limit = "3") WarningsLibrary warnings) {
     State state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
       for (BranchNode branchNode : cases) {
@@ -95,7 +106,7 @@ public abstract class CaseNode extends ExpressionNode {
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          Context.get(this).getBuiltins().error().makeInexhaustivePatternMatchError(object), this);
+          EnsoContext.get(this).getBuiltins().error().makeInexhaustivePatternMatch(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
       return e.getResult();
@@ -108,10 +119,6 @@ public abstract class CaseNode extends ExpressionNode {
 
   boolean isPanicSentinel(Object sentinel) {
     return TypesGen.isPanicSentinel(sentinel);
-  }
-
-  boolean isWarning(Object warning) {
-    return warning instanceof WithWarnings;
   }
 
   /* Note [Branch Selection Control Flow]

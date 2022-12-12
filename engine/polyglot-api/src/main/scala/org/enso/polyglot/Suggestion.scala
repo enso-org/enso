@@ -91,6 +91,21 @@ object Suggestion {
     case object Local extends Kind
   }
 
+  /** Arguments extractor. */
+  object Arguments {
+
+    def apply(suggestion: Suggestion): Seq[Argument] =
+      suggestion match {
+        case _: Module                => Seq()
+        case tpe: Type                => tpe.params
+        case constructor: Constructor => constructor.arguments
+        case method: Method           => method.arguments
+        case conversion: Conversion   => conversion.arguments
+        case function: Function       => function.arguments
+        case _: Local                 => Seq()
+      }
+  }
+
   /** Self type extractor. */
   object SelfType {
 
@@ -127,6 +142,7 @@ object Suggestion {
     * @param isSuspended is the argument lazy
     * @param hasDefault does the argument have a default
     * @param defaultValue optional default value
+    * @param tagValues optional list of possible values
     */
   case class Argument(
     name: String,
@@ -145,6 +161,8 @@ object Suggestion {
       s"isSuspended=$isSuspended," +
       s"hasDefault=$hasDefault,defaultValue=" +
       (if (shouldMask) defaultValue.map(_ => STUB) else defaultValue) +
+      s",tagValues=" +
+      (if (shouldMask) tagValues.map(_ => STUB) else tagValues) +
       ")"
   }
 

@@ -24,6 +24,7 @@ wasm-pack.log
 generated/
 /target
 /build/rust/target/
+/rust-analyzer-target
 
 ###########
 ## Scala ##
@@ -66,6 +67,8 @@ package-lock.json
 .projections.json
 .nvmrc
 *.iml
+.enso-sources*
+.metals
 
 ############################
 ## Rendered Documentation ##
@@ -124,7 +127,7 @@ build-cache/
 ######################
 ## Enso-Development ##
 ######################
-/dist
+dist/
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
 distribution/editions

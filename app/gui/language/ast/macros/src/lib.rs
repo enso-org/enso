@@ -14,16 +14,15 @@ extern crate proc_macro;
 
 mod token;
 
-use crate::prelude::*;
 use crate::token::TokenDescription;
 
 use enso_macro_utils::gather_all_type_reprs;
 use enso_macro_utils::repr;
-use enso_prelude as prelude;
 use proc_macro2::Ident;
 use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::collections::HashSet;
 
 
 
@@ -110,7 +109,7 @@ fn mk_product_type(
     let ident_nested = format!("{}{}", decl.ident, variant.ident);
     let ident_nested = Ident::new(&ident_nested, Span::call_site());
     let ident = if is_flat { ident_flat } else { ident_nested };
-    let generics = syn::Generics { params, ..default() };
+    let generics = syn::Generics { params, ..Default::default() };
     let mut fields = variant.fields.clone();
     let semi_token = None;
     fields.iter_mut().for_each(|f| f.vis = vis.clone());

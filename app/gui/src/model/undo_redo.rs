@@ -35,7 +35,7 @@ pub struct NoFrameToPop(Stack);
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Eq, Fail, PartialEq)]
 #[fail(display = "The module {} is not accessible.", _0)]
-pub struct MissingModuleHandle(model::module::Id);
+pub struct MissingModuleHandle(String);
 
 
 
@@ -446,7 +446,7 @@ impl Manager {
                 .snapshots
                 .iter()
                 .map(|(id, content)| -> FallibleResult<_> {
-                    let err = || MissingModuleHandle(id.clone());
+                    let err = || MissingModuleHandle(id.to_string());
                     let module = modules.get(id).cloned().ok_or_else(err)?;
                     Ok((module, content.clone()))
                 })
@@ -542,7 +542,7 @@ main =
             assert_eq!(sum_node.expression().to_string(), "2 + 2");
             assert_eq!(product_node.expression().to_string(), "5 * 5");
 
-            let sum_tree = SpanTree::<()>::new(sum_node.expression(), graph).unwrap();
+            let sum_tree = SpanTree::<()>::new(&sum_node.expression(), graph).unwrap();
             let sum_input =
                 sum_tree.root_ref().leaf_iter().find(|n| n.is_argument()).unwrap().crumbs;
             let connection = controller::graph::Connection {

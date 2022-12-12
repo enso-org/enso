@@ -50,12 +50,12 @@ pub fn parameters_from_style_path(style: &StyleWatch, path: impl Into<style::Pat
     let path: style::Path = path.into();
     Parameters {
         base_color: style.get_color(&path).into(),
-        fading:     style.get_color(&path.sub("fading")).into(),
-        size:       style.get_number(&path.sub("size")).into(),
-        spread:     style.get_number(&path.sub("spread")).into(),
-        exponent:   style.get_number(&path.sub("exponent")).into(),
-        offset_x:   style.get_number(&path.sub("offset_x")).into(),
-        offset_y:   style.get_number(&path.sub("offset_y")).into(),
+        fading:     style.get_color(path.sub("fading")).into(),
+        size:       style.get_number(path.sub("size")).into(),
+        spread:     style.get_number(path.sub("spread")).into(),
+        exponent:   style.get_number(path.sub("exponent")).into(),
+        offset_x:   style.get_number(path.sub("offset_x")).into(),
+        offset_y:   style.get_number(path.sub("offset_y")).into(),
     }
 }
 
@@ -147,11 +147,11 @@ pub fn frp_from_style(style: &StyleWatchFrp, path: impl Into<style::Path>) -> Pa
     let path: style::Path = path.into();
     ParametersFrp {
         base_color: style.get_color(&path),
-        fading:     style.get_color(&path.sub("fading")),
-        size:       style.get_number(&path.sub("size")),
-        spread:     style.get_number(&path.sub("spread")),
-        exponent:   style.get_number(&path.sub("exponent")),
-        offset_x:   style.get_number(&path.sub("offset_x")),
-        offset_y:   style.get_number(&path.sub("offset_y")),
+        fading:     style.get_color(path.sub("fading")),
+        size:       style.get_number(path.sub("size")),
+        spread:     style.get_number(path.sub("spread")),
+        exponent:   style.get_number(path.sub("exponent")),
+        offset_x:   style.get_number(path.sub("offset_x")),
+        offset_y:   style.get_number(path.sub("offset_y")),
     }
 }

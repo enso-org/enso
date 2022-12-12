@@ -1,9 +1,9 @@
 from Standard.Base import all
-import Standard.Base.System
 
 from Standard.Table import Table, Column
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 Table.should_equal self expected =
     self_cols = self.columns

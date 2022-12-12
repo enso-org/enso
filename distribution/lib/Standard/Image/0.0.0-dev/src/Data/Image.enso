@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
 
 import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
@@ -13,18 +14,6 @@ polyglot java import org.opencv.core.Scalar
 
 ## UNSTABLE
 type Image
-    ## UNSTABLE
-
-       The image data type.
-
-       Arguments:
-       - opencv_mat: The underlying matrix that stores the image data.
-
-       The image is represented with a matrix of rows x columns. Each
-       pixel is represented with a vector of 1 to 4 values (channels).
-       Pixel values are normalized in a range [0.0 .. 1.0].
-    Value opencv_mat
-
     ## UNSTABLE
 
        Create an image from the array of values.
@@ -70,18 +59,18 @@ type Image
        > Example
          Read the image and convert it to grayscale.
              Image.read "image.png" Read_Flag.Grayscale
-    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.IO_Error
+    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File_Error
     read location flags=[] =
         path = case location of
-            _ : File.File -> location.path
+            _ : File -> location.path
             _ -> location
         read_flags = case flags of
-            _ : Vector.Vector ->
+            _ : Vector ->
                 if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                     flags.map .to_integer . reduce (_.bit_or _)
             _ -> flags.to_integer
         Panic.catch_java Any (Image.Value (Java_Codecs.read path read_flags)) _->
-            Error.throw (File.IO_Error (File.new path) 'Failed to read the file')
+            Error.throw (File_Error.IO_Error (File.new path) 'Failed to read the file')
 
     ## UNSTABLE
 
@@ -102,17 +91,29 @@ type Image
        > Example
          Write the image with applying several flags.
              image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
-    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.IO_Error
+    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File_Error
     write self location flags=[] =
         path = case location of
-            _ : File.File -> location.path
+            _ : File -> location.path
             _ -> location
         write_flags = case flags of
-            _ : Vector.Vector -> flags
+            _ : Vector -> flags
             _ -> [flags]
         int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
         Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
-            Error.throw (File.IO_Error (File.new path) 'Failed to write to the file')
+            Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
+
+    ## UNSTABLE
+
+       The image data type.
+
+       Arguments:
+       - opencv_mat: The underlying matrix that stores the image data.
+
+       The image is represented with a matrix of rows x columns. Each
+       pixel is represented with a vector of 1 to 4 values (channels).
+       Pixel values are normalized in a range [0.0 .. 1.0].
+    Value opencv_mat
 
     ## UNSTABLE
 
@@ -169,8 +170,8 @@ type Image
              example_get = Examples.image.get 10 10
     get : Integer -> Integer -> Vector ! Matrix_Error
     get self row column =
-        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns row) else
-            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns column) else
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns column) else
                 arr = Java_Image.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
@@ -475,7 +476,7 @@ core_op : Mat -> Any -> (Mat -> Scalar -> Mat -> Nothing) -> Nothing
 core_op mat value function =
     result = Mat.new
     scalar = case value of
-        _ : Vector.Vector ->
+        _ : Vector ->
             Scalar.new value.to_array
         Matrix.Value m ->
             if ((m.rows == mat.rows) && (m.cols == mat.cols) && (m.channels == mat.channels)) then m else Panic.throw Matrix_Error.Dimensions_Not_Equal

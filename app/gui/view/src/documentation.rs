@@ -7,6 +7,7 @@ use ensogl::system::web::traits::*;
 use crate::graph_editor::component::visualization;
 
 use enso_frp as frp;
+use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
@@ -267,22 +268,25 @@ impl View {
         let path = visualization::Path::builtin("Documentation View");
         visualization::Definition::new(
             visualization::Signature::new_for_any_type(path, visualization::Format::Json),
-            |scene| Ok(Self::new(scene).into()),
+            |app| Ok(Self::new(app).into()),
         )
     }
 
     /// Constructor.
-    pub fn new(scene: &Scene) -> Self {
+    pub fn new(app: &Application) -> Self {
+        let scene = &app.display.default_scene;
         let frp = Frp::new();
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
         let model = Model::new(scene);
         model.load_waiting_screen();
-        Self { model, visualization_frp, frp }.init(scene)
+        Self { model, visualization_frp, frp }.init(app)
     }
 
-    fn init(self, scene: &Scene) -> Self {
+    fn init(self, app: &Application) -> Self {
         let network = &self.frp.network;
         let model = &self.model;
+        let scene = &app.display.default_scene;
+        let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
         frp::extend! { network
@@ -318,6 +322,12 @@ impl View {
                 (new != old).as_some(new)
             });
             frp.source.is_selected <+ is_selected_changed;
+
+
+            // === Mouse Cursor ===
+
+            app.frp.show_system_cursor <+ overlay.events.mouse_over;
+            app.frp.hide_system_cursor <+ overlay.events.mouse_out;
         }
         visualization.pass_events_to_dom_if_active(scene, network);
         self

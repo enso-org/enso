@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.function;
 
+import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
@@ -8,6 +9,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.EnsoContext;
 
 /**
  * This node defines the body of a function for execution, as well as the protocol for executing the
@@ -53,16 +55,38 @@ public class BlockNode extends ExpressionNode {
     return returnExpr.executeGeneric(frame);
   }
 
+  /**
+   * Wrap all the statements inside this block node in {@link StatementNode}. Care is taken not for
+   * wrapping expression twice.
+   *
+   * @return This BlockNode with all the statements wrapped.
+   */
   @Override
   public InstrumentableNode materializeInstrumentableNodes(
       Set<Class<? extends Tag>> materializedTags) {
     if (materializedTags.contains(StandardTags.StatementTag.class)) {
-      for (int i = 0; i < statements.length; i++) {
-        statements[i] = insert(StatementNode.wrap(statements[i]));
+      var ctx = EnsoContext.get(this);
+      if (ctx != null) {
+        Assumption chromeInspectorNotAttached = ctx.getChromeInspectorNotAttached();
+        if (chromeInspectorNotAttached.isValid()
+            && ctx.getEnvironment().getInstruments().containsKey("inspect")) {
+          chromeInspectorNotAttached.invalidate("Chrome inspector attached");
+        }
       }
-      this.returnExpr = insert(StatementNode.wrap(returnExpr));
+      for (int i = 0; i < statements.length; i++) {
+        if (!isNodeWrapped(statements[i])) {
+          statements[i] = insert(StatementNode.wrap(statements[i]));
+        }
+      }
+      if (!isNodeWrapped(returnExpr)) {
+        returnExpr = insert(StatementNode.wrap(returnExpr));
+      }
     }
     return this;
+  }
+
+  private static boolean isNodeWrapped(ExpressionNode node) {
+    return node instanceof StatementNode || ExpressionNode.isWrapper(node);
   }
 
   @Override

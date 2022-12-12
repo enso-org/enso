@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
-import org.enso.interpreter.runtime.{Context => EnsoContext}
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -88,7 +88,7 @@ class RuntimeServerTest
       languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
-    );
+    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -286,7 +286,7 @@ class RuntimeServerTest
           |    y = foo x
           |    z = bar y
           |    z
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       )
 
       object Update {
@@ -632,7 +632,7 @@ class RuntimeServerTest
         |    foo self = 11
         |
         |bar = 19
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     val aFile = context.writeInSrcDir("A", aCode)
 
     // create context
@@ -683,7 +683,7 @@ class RuntimeServerTest
         ConstantsGen.INTEGER,
         Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "bar")
       ),
-      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.AT.A"),
+      TestMessages.update(contextId, idMainM, "Enso_Test.Test.A.AT"),
       TestMessages.update(
         contextId,
         idMainP,
@@ -839,7 +839,7 @@ class RuntimeServerTest
         |main = IO.println (State.run Number 42 bar)
         |
         |bar = State.get Number
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -904,7 +904,7 @@ class RuntimeServerTest
         |bar =
         |    State.put Number 10
         |    State.get Number
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
@@ -1269,7 +1269,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47, "aaaaa")
+    val idMain     = context.Main.metadata.addItem(54, 46, "aaaaa")
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
 
@@ -1442,7 +1442,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(77, 35, "aaaa")
+    val idMain   = metadata.addItem(77, 34, "aaaa")
     val idMainA  = metadata.addItem(86, 8, "aabb")
     val idMainP  = metadata.addItem(99, 12, "aacc")
     // pie id
@@ -1726,7 +1726,7 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(122, 88, "aaaa")
+    val idMain   = metadata.addItem(122, 87, "aaaa")
     val id1      = metadata.addItem(131, 15, "aad1")
     val id2      = metadata.addItem(151, 18, "aad2")
     val id3      = metadata.addItem(174, 15, "aad3")
@@ -1745,7 +1745,7 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.Text.overloaded arg = arg + 1
+        |Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -2009,6 +2009,59 @@ class RuntimeServerTest
     )
   }
 
+  it should "send updates for constructor type" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+
+    val idMain = metadata.addItem(39, 27)
+
+    val code =
+      """type My_Type
+        |    My_Constructor
+        |
+        |main =
+        |    My_Type.My_Constructor
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      3
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idMain, s"$moduleName.My_Type"),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "support file modification operations without attached ids" in {
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
@@ -2023,7 +2076,7 @@ class RuntimeServerTest
       """import Standard.Base.IO
         |
         |main = IO.println "I'm a file!"
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
 
     // Create a new file
     val mainFile = context.writeMain(code)
@@ -2147,7 +2200,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
-    val idMain     = context.Main.metadata.addItem(54, 47, "aaaa")
+    val idMain     = context.Main.metadata.addItem(54, 46, "aaaa")
 
     val mainFile = context.writeMain(context.Main.code)
 
@@ -2262,7 +2315,7 @@ class RuntimeServerTest
         |import Standard.Base.IO
         |
         |main = IO.println "I'm a file!"
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
 
     // Create a new file
     val mainFile = context.writeMain(code)
@@ -2303,7 +2356,7 @@ class RuntimeServerTest
         |Number.lucky = 42
         |
         |main = IO.println "I'm a modified!"
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
      */
     context.send(
       Api.Request(
@@ -3299,8 +3352,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
-      "(Syntax_Error_Data 'Unrecognized token.')"
+      "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
+      "(Syntax_Error.Error 'Unrecognized token.')"
     )
   }
 
@@ -3312,8 +3365,8 @@ class RuntimeServerTest
 
     val code =
       """import Standard.Base.IO
-        |from Standard.Base.Error.Common import all
-        |from Standard.Base.Data.Any import all
+        |import Standard.Base.Panic.Panic
+        |import Standard.Base.Any.Any
         |
         |main =
         |    x = Panic.catch_primitive () .convert_to_dataflow_error

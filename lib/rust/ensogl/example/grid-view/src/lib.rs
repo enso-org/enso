@@ -102,7 +102,7 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
     };
     view.set_entries_params(params);
     view.reset_entries(1000, 1000);
-    view.frp().focus();
+    view.frp().deprecated_focus();
     network
 }
 
@@ -189,10 +189,10 @@ fn init(app: &Application) {
     let mut positions = itertools::iproduct!([-450.0, 50.0], [350.0, -50.0]).map(pair_to_vec2);
 
     grids_layer.add(&plain_grid_view);
-    plain_grid_view.set_position_xy(positions.next().unwrap());
+    plain_grid_view.set_xy(positions.next().unwrap());
     for (view, position) in grid_views_with_headers.iter().zip(positions) {
         grids_layer.add(view);
-        view.set_position_xy(position);
+        view.set_xy(position);
     }
 
     let view = &grid_views_with_headers[0];

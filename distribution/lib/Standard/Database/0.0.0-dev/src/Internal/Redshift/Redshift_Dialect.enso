@@ -7,6 +7,7 @@ import project.Data.SQL_Type.SQL_Type
 import project.Internal.Base_Generator
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
 
 

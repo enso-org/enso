@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 
 @NodeInfo(shortName = "PolyglotMatch", description = "Allows matching on polyglot objects.")
@@ -47,6 +47,6 @@ public abstract class PolyglotBranchNode extends BranchNode {
   void doFallback(VirtualFrame frame, Object state, Object target) {}
 
   boolean isPolyglotObject(Object o) {
-    return Context.get(this).getEnvironment().isHostObject(o);
+    return EnsoContext.get(this).getEnvironment().isHostObject(o);
   }
 }

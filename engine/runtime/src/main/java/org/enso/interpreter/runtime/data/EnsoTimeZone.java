@@ -8,14 +8,13 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.time.zone.ZoneRulesException;
 
 @ExportLibrary(InteropLibrary.class)
@@ -34,7 +33,10 @@ public final class EnsoTimeZone implements TruffleObject {
     return Text.create(this.zone.getId());
   }
 
-  @Builtin.Method(name = "parse_builtin", description = "Parse the ID producing a Time_Zone.")
+  @Builtin.Method(
+      name = "parse_builtin",
+      description = "Parse the ID producing a Time_Zone.",
+      autoRegister = false)
   @Builtin.Specialize
   @Builtin.WrapException(from = ZoneRulesException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
@@ -45,7 +47,8 @@ public final class EnsoTimeZone implements TruffleObject {
   @Builtin.Method(
       name = "new_builtin",
       description =
-          "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from the UTC zone.")
+          "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from the UTC zone.",
+      autoRegister = false)
   @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone create(long hours, long minutes, long seconds) {
@@ -54,7 +57,10 @@ public final class EnsoTimeZone implements TruffleObject {
             Math.toIntExact(hours), Math.toIntExact(minutes), Math.toIntExact(seconds)));
   }
 
-  @Builtin.Method(name = "system", description = "The system default timezone.")
+  @Builtin.Method(
+      name = "system",
+      description = "The system default timezone.",
+      autoRegister = false)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone system() {
     return new EnsoTimeZone(ZoneId.systemDefault());
@@ -83,6 +89,6 @@ public final class EnsoTimeZone implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().timeZone();
+    return EnsoContext.get(thisLib).getBuiltins().timeZone();
   }
 }

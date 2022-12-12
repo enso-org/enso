@@ -24,7 +24,7 @@ class MethodsTest extends InterpreterTest {
 
     "execute `self` argument once" in {
       val code =
-        """from Standard.Base.IO import all
+        """import Standard.Base.IO
           |import Standard.Base.Nothing
           |
           |Nothing.Nothing.foo = 0
@@ -88,9 +88,9 @@ class MethodsTest extends InterpreterTest {
 
     "be definable as blocks without arguments" in {
       val code =
-        """from Standard.Base.Data.Any import all
+        """import Standard.Base.Any.Any
           |
-          |Any.Any.method self =
+          |Any.method self =
           |    x = self * self
           |    y = x * 2
           |    y + 1
@@ -112,7 +112,7 @@ class MethodsTest extends InterpreterTest {
 
     "be callable for any type when defined on Any" in {
       val code =
-        """from Standard.Base.Data.Any import all
+        """import Standard.Base.Any.Any
           |import Standard.Base.IO
           |import Standard.Base.Nothing
           |
@@ -120,7 +120,7 @@ class MethodsTest extends InterpreterTest {
           |type Bar
           |type Baz
           |
-          |Any.Any.method self = case self of
+          |Any.method self = case self of
           |    Foo -> 1
           |    Bar -> 2
           |    Baz -> 3
@@ -141,7 +141,7 @@ class MethodsTest extends InterpreterTest {
     "be callable for any type when defined on Any (resolved as a type name)" in {
       import annotation.unused
       @unused val code =
-        """from Standard.Base.Data.Any import all
+        """import Standard.Base.Any.Any
           |
           |Any.method self = 1
           |
@@ -167,7 +167,7 @@ class MethodsTest extends InterpreterTest {
 
     "be callable on types when non-static, with additional self arg" in {
       val code =
-        """from Standard.Base.IO import all
+        """import Standard.Base.IO
           |
           |type Foo
           |    Mk_Foo a

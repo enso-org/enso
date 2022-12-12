@@ -1,11 +1,27 @@
-from Standard.Base import all
+import project.Any.Any
+import project.Data.Filter_Condition.Filter_Condition
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Function.Function
+import project.Nothing.Nothing
+import project.Error.Illegal_State.Illegal_State
 
-# TODO Dubious constructor export
-from project.Data.Range.Range import all
-from project.Data.Range.Range export all
+from project.Data.Boolean import Boolean, True, False
 
 ## Represents a right-exclusive range of integer values.
 type Range
+    ## Create a representation of a right-exclusive range of integer values.
+
+       Arguments:
+       - start: The left boundary of the range. Its value is included.
+       - end: The right boundary of the range. Its value is excluded.
+       - step: The step between values. Must be a positive value.
+    new : Integer -> Integer -> Integer -> Range
+    new start=0 end=100 step=1 =
+        Range.Between start end (if start > end then -1 else 1) . with_step step
 
     ## UNSTABLE
        A representation of a right-exclusive range of integer values.
@@ -15,7 +31,7 @@ type Range
        - end: The right boundary of the range. Its value is excluded.
        - step: The step between consecutive elements of the range. It must be
          non-zero. Defaults to 1.
-    Range_Data (start : Integer) (end : Integer) (step : Integer = 1)
+    Between (start : Integer) (end : Integer) (step : Integer = 1)
 
     ## Creates a copy of this range with a changed step.
 
@@ -32,10 +48,10 @@ type Range
     with_step self new_step = case new_step of
         _ : Integer ->
             if new_step == 0 then throw_zero_step_error else
-                if new_step < 0 then Error.throw (Illegal_Argument_Error_Data "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
-                    Range_Data self.start self.end self.step.signum*new_step
+                if new_step < 0 then Error.throw (Illegal_Argument.Error "The step should be positive. A decreasing sequence will remain decreasing after updating it with positive step, as this operation only sets the magnitude without changing the sign.") else
+                    Range.Between self.start self.end self.step.signum*new_step
         _ ->
-            Error.throw (Illegal_Argument_Error_Data "Range step should be an integer.")
+            Error.throw (Illegal_Argument.Error "Range step should be an integer.")
 
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
@@ -127,13 +143,13 @@ type Range
              1.up_to 11 . each IO.println
     each : (Number -> Any) -> Nothing
     each self function =
-        go end_condition current =
-            if end_condition current self.end then Nothing else
-                function current
-                @Tail_Call go end_condition current+self.step
-        if self.step > 0 then go (>=) self.start else
-            if self.step < 0 then go (<=) self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go current =
+                if end_condition current self.end then Nothing else
+                    function current
+                    @Tail_Call go current+self.step
+            go self.start
 
     ## PRIVATE
        Applies a function to each element of the range.
@@ -151,13 +167,13 @@ type Range
              (10.up_to 13).each_with_index ix-> elem-> IO.println (Pair ix elem) # Will print Pair 0 10, Pair 1 11, Pair 2 12
     each_with_index : (Integer -> Any -> Any) -> Nothing
     each_with_index self function =
-        go end_condition ix current =
-            if end_condition current self.end then Nothing else
-                function ix current
-                @Tail_Call go end_condition ix+1 current+self.step
-        if self.step > 0 then go (>=) 0 self.start else
-            if self.step < 0 then go (<=) 0 self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go ix current =
+                if end_condition current self.end then Nothing else
+                    function ix current
+                    @Tail_Call go ix+1 current+self.step
+            go 0 self.start
 
     ## Combines all the elements of the range, by iteratively applying the
        passed function with next elements of the range.
@@ -179,13 +195,14 @@ type Range
              0.up_to 100 . with_step 2 . fold 0 (+)
     fold : Any -> (Any -> Number -> Any) -> Any
     fold self init function =
-        go end_condition acc current =
-            if end_condition current self.end then acc else
-                new_acc = function acc current
-                @Tail_Call go end_condition new_acc current+self.step
-        if self.step > 0 then go (>=) init self.start else
-            if self.step < 0 then go (<=) init self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go acc current =
+                if end_condition current self.end then acc else
+                    new_acc = function acc current
+                    @Tail_Call go new_acc current+self.step
+            go init self.start
+
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 
@@ -243,13 +260,13 @@ type Range
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
     find : (Integer -> Boolean) -> Integer | Nothing
     find self predicate =
-        go end_condition current =
-            if end_condition current self.end then Nothing else
-                if predicate current then current else
-                    @Tail_Call go end_condition current+self.step
-        if self.step > 0 then go (>=) self.start else
-            if self.step < 0 then go (<=) self.start else
-                throw_zero_step_error
+        if self.step == 0 then throw_zero_step_error else
+            end_condition = if self.step > 0 then (>=) else (<=)
+            go current =
+                if end_condition current self.end then Nothing else
+                    if predicate current then current else
+                        @Tail_Call go current+self.step
+            go self.start
 
     ## Converts the range to a vector containing the numbers in the range.
 
@@ -257,7 +274,7 @@ type Range
          Getting a vector of the numbers 1 to 5.
 
              1.up_to 6 . to_vector
-    to_vector : Vector.Vector
+    to_vector : Vector
     to_vector self = self.map x->x
 
     ## Checks if the range contains the specified value.
@@ -278,39 +295,7 @@ type Range
            `Range 0 10 . contains 3.0 == False` and get a type error for
            decimals instead.
         _ ->
-            Error.throw (Illegal_Argument_Error_Data "`Range.contains` only accepts Integers.")
-
-## ALIAS Range
-
-   Creates an increasing right-exclusive range of integers from `self` to `n`.
-
-   Arguments:
-   - n: The end of the range.
-
-   > Example
-     Create a range containing the numbers 0, 1, 2, 3, 4.
-
-         0.up_to 5
-Integer.up_to : Integer -> Range
-Integer.up_to self n = case n of
-    _ : Integer -> Range_Data self n
-    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
-
-## ALIAS Range
-
-   Creates a decreasing right-exclusive range of integers from `self` to `n`.
-
-   Arguments:
-   - n: The end of the range.
-
-   > Example
-     Create a range containing the numbers 5, 4, 3, 2, 1.
-
-         5.down_to 0
-Integer.down_to : Integer -> Range
-Integer.down_to self n = case n of
-    _ : Integer -> Range_Data self n -1
-    _ -> Error.throw (Illegal_Argument_Error_Data "Expected range end to be an Integer.")
+            Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
 
 ## PRIVATE
-throw_zero_step_error = Error.throw (Illegal_State_Error_Data "A range with step = 0 is ill-formed.")
+throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")

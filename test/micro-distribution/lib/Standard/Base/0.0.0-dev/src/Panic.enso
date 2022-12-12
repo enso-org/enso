@@ -1,0 +1,4 @@
+@Builtin_Type
+type Panic
+    throw payload = @Builtin_Method "Panic.throw"
+    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"

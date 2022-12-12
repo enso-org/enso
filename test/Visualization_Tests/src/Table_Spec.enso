@@ -8,7 +8,11 @@ import Standard.Database.Data.Table.Table as Database_Table
 
 import Standard.Visualization.Table.Visualization
 
+import Standard.Visualization.Helpers
+import Standard.Visualization.Id.Id
+
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 polyglot java import java.util.UUID
 
@@ -72,7 +76,6 @@ visualization_spec connection =
             vis = Visualization.prepare_visualization (t2.at "A") 2
             json = make_json header=["A"] data=[[1, 2]] all_rows=3 ixes_header=[""] ixes=[[0, 1]]
             vis . should_equal json
-
 
         Test.specify "should handle Vectors" <|
             vis = Visualization.prepare_visualization [1, 2, 3] 2

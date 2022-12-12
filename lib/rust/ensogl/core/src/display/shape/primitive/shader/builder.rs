@@ -4,6 +4,7 @@
 use crate::prelude::*;
 
 use crate::display::shape::primitive::def::primitive;
+use crate::display::shape::primitive::glsl::codes;
 use crate::display::shape::primitive::shader::overload;
 use crate::display::symbol::shader::builder::CodeTemplate;
 
@@ -18,15 +19,13 @@ use super::canvas::Canvas;
 
 // === GLSL Sources ===
 
+/// Common GLSL functions for all sprite types.
+pub const GLSL_PRELUDE: &str = include_str!("../glsl/prelude.glsl");
 const MATH: &str = include_str!("../glsl/math.glsl");
 const COLOR: &str = include_str!("../glsl/color.glsl");
 const DEBUG: &str = include_str!("../glsl/debug.glsl");
 const SHAPE: &str = include_str!("../glsl/shape.glsl");
 const FRAGMENT_RUNNER: &str = include_str!("../glsl/fragment_runner.glsl");
-const ERROR_CODES: &[(&str, &str)] = &[(
-    "ID_ENCODING_OVERFLOW_ERROR_CODE",
-    include_str!("../glsl/error_codes/id_encoding_overflow.txt"),
-)];
 
 
 // === Definition ===
@@ -47,7 +46,7 @@ impl Builder {
         canvas.add_current_function_code_line(iformat!("return {shape_ref.getter()};"));
         canvas.submit_shape_constructor("run");
         let shape_def = overload::allow_overloading(&canvas.to_glsl());
-        let code = [GLSL_PRELUDE.as_str(), "", &shape_header, &shape_def].join("\n\n");
+        let code = [GLSL_BOILERPLATE.as_str(), "", &shape_header, &shape_def].join("\n\n");
         let main = format!(
             "bool pointer_events_enabled = {};\n{}",
             pointer_events_enabled, FRAGMENT_RUNNER
@@ -68,26 +67,49 @@ fn header(label: &str) -> String {
 }
 
 
-// == GLSL_PRELUDE ==
+// == GLSL Boilerplate ==
 
 lazy_static! {
     /// A common preamble used to start every shader program.
-    static ref GLSL_PRELUDE: String = make_glsl_prelude();
+    static ref GLSL_BOILERPLATE: String = gen_glsl_boilerplate();
 }
 
-fn make_error_codes() -> String {
-    let codes = ERROR_CODES.iter();
-    codes.map(|(name, code)| format!("const float {} = {}.0;", name, code.trim())).join("\n")
+fn glsl_codes() -> String {
+    let codes = codes::DisplayModes::all();
+    let header = header("Codes");
+    let display_modes = codes
+        .iter()
+        .map(|code| format!("const int {} = {};", code.name().to_uppercase(), code.value()))
+        .join("\n");
+    let error_codes =
+        format!("const int ID_ENCODING_OVERFLOW_ERROR = {};", codes::ID_ENCODING_OVERFLOW_ERROR);
+    format!("{}\n\n{}\n{}", header, display_modes, error_codes)
 }
 
-fn make_glsl_prelude() -> String {
+/// The GLSL common code and debug codes.
+pub fn glsl_prelude_and_codes() -> String {
+    let codes = glsl_codes();
+    format!("{}\n\n{}", GLSL_PRELUDE, codes)
+}
+
+fn gen_glsl_boilerplate() -> String {
     let redirections = overload::builtin_redirections();
     let math = overload::allow_overloading(MATH);
     let color = overload::allow_overloading(COLOR);
     let debug = overload::allow_overloading(DEBUG);
     let shape = overload::allow_overloading(SHAPE);
-    let err_codes = make_error_codes();
+    let codes_and_prelude = glsl_prelude_and_codes();
     let defs_header = header("SDF Primitives");
     let sdf_defs = overload::allow_overloading(&primitive::all_shapes_glsl_definitions());
-    [redirections, err_codes, math, color, debug, shape, defs_header, sdf_defs].join("\n\n")
+    [
+        redirections.as_str(),
+        codes_and_prelude.as_str(),
+        math.as_str(),
+        color.as_str(),
+        debug.as_str(),
+        shape.as_str(),
+        defs_header.as_str(),
+        sdf_defs.as_str(),
+    ]
+    .join("\n\n")
 }

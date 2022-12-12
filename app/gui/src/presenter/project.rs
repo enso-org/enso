@@ -168,6 +168,15 @@ impl Model {
             error!("Redo failed: {e}");
         }
     }
+
+    fn save_project_snapshot(&self) {
+        let controller = self.controller.clone_ref();
+        executor::global::spawn(async move {
+            if let Err(err) = controller.save_project_snapshot().await {
+                error!("Error while saving module: {err}");
+            }
+        })
+    }
 }
 
 
@@ -235,6 +244,8 @@ impl Project {
             values_computed_first_time <- values_computed.constant(true).on_change().constant(());
             view.show_prompt <+ values_computed_first_time;
             view.values_updated <+ values_computed;
+
+            eval_ view.save_project_snapshot(model.save_project_snapshot());
         }
 
         let graph_controller = self.model.graph_controller.clone_ref();

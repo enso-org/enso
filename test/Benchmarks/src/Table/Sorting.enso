@@ -1,6 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Data.Index_Sub_Range import Sample
-import Standard.Base.Data.Time.Duration
 
 from Standard.Table import Table, Sort_Column_Selector
 from Standard.Table.Data.Aggregate_Column import all
@@ -18,8 +16,8 @@ iter_size = 20
 num_iterations = 10
 
 # The Benchmarks ==============================================================
-main =
-    ints = (0.up_to vector_size).to_vector.take (Sample vector_size 42)
+bench =
+    ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
     start = Date_Time.new 1990 1 1
     dates = ints.map x->
         start + (Duration.new seconds=x)
@@ -37,3 +35,5 @@ main =
 
     Bench.measure (objects_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by objects" iter_size num_iterations
     Bench.measure (objects.sort) "Vector.sort objects" iter_size num_iterations
+
+main = bench

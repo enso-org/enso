@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -8,7 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -82,6 +83,7 @@ public class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
+  @TruffleBoundary
   public String toDisplayString(
       boolean allowSideEffects,
       @CachedLibrary(limit = "3") InteropLibrary displays,
@@ -105,6 +107,6 @@ public class DataflowError extends AbstractTruffleException {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().dataflowError();
+    return EnsoContext.get(thisLib).getBuiltins().dataflowError();
   }
 }

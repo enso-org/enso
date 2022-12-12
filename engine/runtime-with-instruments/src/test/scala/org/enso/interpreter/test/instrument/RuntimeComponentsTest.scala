@@ -120,7 +120,7 @@ class RuntimeComponentsTest
     val languageContext = executionContext.context
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-      .asHostObject[runtime.Context]
+      .asHostObject[runtime.EnsoContext]
 
     def toPackagesPath(paths: String*): String =
       paths.mkString(File.pathSeparator)

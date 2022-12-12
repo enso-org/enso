@@ -104,7 +104,7 @@ public @interface Builtin {
    * <p>Overloaded methods, representing different specializations of a single Builtin method have
    * to be additionally annotated with {@link Builtin.Specialize}, or a compile error will be
    * reported about generating duplicate classes. Similarly, methods that use parameter of type
-   * {@link org.enso.interpreter.runtime.Context} or parameters with one of Truffle's {@link
+   * {@link org.enso.interpreter.runtime.EnsoContext} or parameters with one of Truffle's {@link
    * com.oracle.truffle.api.dsl DSL} or Enso's {@link org.enso.interpreter.dsl DSL} must also be
    * marked with {@link Builtin.Specialize}.
    */
@@ -153,6 +153,13 @@ public @interface Builtin {
      * @return number of desired expansions for vararg parameter.
      */
     int expandVarargs() default 0;
+
+    /**
+     * `autoRegister` property indicates whether the builtin method should be automatically
+     * registered with the underlying type. By default every builtin method is registered with a
+     * type. Auto-registered methods do not have to be declared explicitly.
+     */
+    boolean autoRegister() default true;
   }
 
   /**
@@ -189,7 +196,7 @@ public @interface Builtin {
    *     try {
    *       return self.get(index);
    *     } catch (java.lang.IndexOutOfBoundsException e) {
-   *       Builtins builtins = Context.get(this).getBuiltins();
+   *       Builtins builtins = EnsoContext.get(this).getBuiltins();
    *       throw new PanicException(builtins.error().makeInvalidArrayIndexError(self, index), this);
    *     }
    *   }
@@ -219,7 +226,7 @@ public @interface Builtin {
    *     try {
    *       return self.create(path)
    *     } catch (java.io.IOException e) {
-   *       Builtins builtins = Context.get(this).getBuiltins();
+   *       Builtins builtins = EnsoContext.get(this).getBuiltins();
    *       throw new PanicException(builtins.error().makePolyglotError(e), this);
    *     }
    *   }
@@ -333,7 +340,7 @@ public @interface Builtin {
    *
    *   {@link Specialization @Specialization}
    *   Foo doString(Object path, @Cached("build()") ExpectStringNode expectStringNode) {
-   *     Context context = Context.get(this);
+   *     EnsoContext context = EnsoContext.get(this);
    *     java.lang.String pathCached = expectStringNode.execute(path);
    *     return Foo.create(context, pathCached);
    *   }
@@ -346,7 +353,7 @@ public @interface Builtin {
    *   <li>omits invalid parameters from the original signature
    *   <li>includes parameters in the signature of the specialized method that will be accepted by
    *       Truffle's DSL
-   *   <li>injects {@link org.enso.interpreter.runtime.Context} value
+   *   <li>injects {@link org.enso.interpreter.runtime.EnsoContext} value
    * </ul>
    *
    * <p><b>Overloaded method scenario</b> For overloaded, specialized, methods the processor infers

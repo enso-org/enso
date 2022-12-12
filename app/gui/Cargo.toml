@@ -58,7 +58,7 @@ wasm-bindgen = { version = "=0.2.78" }
 wasm-bindgen-futures = "0.4"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-websocket = "0.23.0"
+websocket = "0.26.5"
 
 [dev-dependencies]
 regex = { version = "1.3.6" }

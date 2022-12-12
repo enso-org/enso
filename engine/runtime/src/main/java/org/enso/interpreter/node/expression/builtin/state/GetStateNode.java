@@ -8,14 +8,15 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "State",
     name = "get",
-    description = "Returns the current value of monadic state.")
+    description = "Returns the current value of monadic state.",
+    autoRegister = false)
 @ReportPolymorphism
 public abstract class GetStateNode extends Node {
   static GetStateNode build() {
@@ -36,6 +37,6 @@ public abstract class GetStateNode extends Node {
   @Fallback
   Object doMissing(State state, Object key) {
     throw new PanicException(
-        Context.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
+        EnsoContext.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
 }

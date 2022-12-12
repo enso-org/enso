@@ -13,13 +13,17 @@ import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@BuiltinMethod(type = "IO", name = "println", description = "Prints its argument to standard out.")
+@BuiltinMethod(
+    type = "IO",
+    name = "println",
+    description = "Prints its argument to standard out.",
+    autoRegister = false)
 public abstract class PrintlnNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode =
       InvokeCallableNode.build(
@@ -35,7 +39,7 @@ public abstract class PrintlnNode extends Node {
       State state,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     try {
       print(ctx.getOut(), strings.asString(message));
     } catch (UnsupportedMessageException e) {
@@ -54,7 +58,7 @@ public abstract class PrintlnNode extends Node {
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached ExpectStringNode expectStringNode) {
     var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     print(ctx.getOut(), expectStringNode.execute(str));
     return ctx.getNothing();
   }
@@ -69,7 +73,7 @@ public abstract class PrintlnNode extends Node {
   }
 
   UnresolvedSymbol buildSymbol() {
-    return UnresolvedSymbol.build("to_text", Context.get(this).getBuiltins().getScope());
+    return UnresolvedSymbol.build("to_text", EnsoContext.get(this).getBuiltins().getScope());
   }
 
   InvokeCallableNode buildInvokeCallableNode() {

@@ -16,6 +16,7 @@ use ide_ci::actions::artifacts;
 use ide_ci::cache;
 use ide_ci::cache::Cache;
 use ide_ci::ok_ready_boxed;
+use ide_ci::programs::git;
 use octocrab::models::repos::Asset;
 
 
@@ -80,8 +81,8 @@ impl<T> PlainArtifact<T> {
 pub struct Context {
     /// GitHub API client.
     ///
-    /// If authorized, it will count API rate limits against our identity and allow operations like
-    /// managing releases or downloading CI run artifacts.
+    /// If authenticated, it will count API rate limits against our identity and allow operations
+    /// like managing releases or downloading CI run artifacts.
     #[derivative(Debug = "ignore")]
     pub octocrab: Octocrab,
 
@@ -97,6 +98,14 @@ pub struct Context {
     /// as well.
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub repo_root: crate::paths::generated::RepoRoot,
+}
+
+impl Context {
+    /// Get a `git` program handle for the repository.
+    pub fn git(&self) -> impl Future<Output = Result<git::Context>> + 'static {
+        let root = self.repo_root.to_path_buf();
+        git::new(root)
+    }
 }
 
 /// Build targets, like GUI or Project Manager.

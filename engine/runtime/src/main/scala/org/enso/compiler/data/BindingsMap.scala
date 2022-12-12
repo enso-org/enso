@@ -145,7 +145,9 @@ case class BindingsMap(
   private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
     imp.importDef.onlyNames
       .map(_ => imp.importDef.rename.exists(_.name == name))
-      .getOrElse(imp.importDef.getSimpleName.name == name)
+      .getOrElse(
+        !imp.importDef.isAll && imp.importDef.getSimpleName.name == name
+      )
   }
 
   private def findExportedCandidatesInImports(
@@ -255,46 +257,48 @@ case class BindingsMap(
     *         as and any further symbol restrictions.
     */
   def getDirectlyExportedModules: List[ExportedModule] =
-    resolvedImports.collect { case ResolvedImport(_, Some(exp), mod) =>
-      val hidingEnsoProject =
-        SymbolRestriction.Hiding(Set(Generated.ensoProjectMethodName))
-      val restriction = if (exp.isAll) {
-        val definedRestriction = if (exp.onlyNames.isDefined) {
-          SymbolRestriction.Only(
-            exp.onlyNames.get
-              .map(name =>
-                SymbolRestriction
-                  .AllowedResolution(name.name.toLowerCase, None)
-              )
-              .toSet
-          )
-        } else if (exp.hiddenNames.isDefined) {
-          SymbolRestriction.Hiding(
-            exp.hiddenNames.get.map(_.name.toLowerCase).toSet
+    resolvedImports.collect { case ResolvedImport(_, exports, mod) =>
+      exports.map { exp =>
+        val hidingEnsoProject =
+          SymbolRestriction.Hiding(Set(Generated.ensoProjectMethodName))
+        val restriction = if (exp.isAll) {
+          val definedRestriction = if (exp.onlyNames.isDefined) {
+            SymbolRestriction.Only(
+              exp.onlyNames.get
+                .map(name =>
+                  SymbolRestriction
+                    .AllowedResolution(name.name.toLowerCase, None)
+                )
+                .toSet
+            )
+          } else if (exp.hiddenNames.isDefined) {
+            SymbolRestriction.Hiding(
+              exp.hiddenNames.get.map(_.name.toLowerCase).toSet
+            )
+          } else {
+            SymbolRestriction.All
+          }
+          SymbolRestriction.Intersect(
+            List(hidingEnsoProject, definedRestriction)
           )
         } else {
-          SymbolRestriction.All
-        }
-        SymbolRestriction.Intersect(
-          List(hidingEnsoProject, definedRestriction)
-        )
-      } else {
-        SymbolRestriction.Only(
-          Set(
-            SymbolRestriction.AllowedResolution(
-              exp.getSimpleName.name.toLowerCase,
-              Some(mod)
+          SymbolRestriction.Only(
+            Set(
+              SymbolRestriction.AllowedResolution(
+                exp.getSimpleName.name.toLowerCase,
+                Some(mod)
+              )
             )
           )
-        )
+        }
+        val rename = if (!exp.isAll) {
+          Some(exp.getSimpleName.name)
+        } else {
+          None
+        }
+        ExportedModule(mod, rename, restriction)
       }
-      val rename = if (!exp.isAll) {
-        Some(exp.getSimpleName.name)
-      } else {
-        None
-      }
-      ExportedModule(mod, rename, restriction)
-    }
+    }.flatten
 }
 
 object BindingsMap {
@@ -675,7 +679,7 @@ object BindingsMap {
     */
   case class ResolvedImport(
     importDef: IR.Module.Scope.Import.Module,
-    exports: Option[IR.Module.Scope.Export.Module],
+    exports: List[IR.Module.Scope.Export.Module],
     target: ImportTarget
   ) {
 
@@ -715,6 +719,8 @@ object BindingsMap {
     def resolvedIn(module: Module): ResolvedName = resolvedIn(
       ModuleReference.Concrete(module)
     )
+    // Determines if this entity can be exported during export resolution pass
+    def canExport: Boolean
   }
 
   /** A representation of a constructor.
@@ -735,19 +741,25 @@ object BindingsMap {
     override val name: String,
     members: Seq[Cons],
     builtinType: Boolean
-  ) extends DefinedEntity
+  ) extends DefinedEntity {
+    override def canExport: Boolean = true
+  }
 
   /** A representation of an imported polyglot symbol.
     *
     * @param name the name of the symbol.
     */
-  case class PolyglotSymbol(override val name: String) extends DefinedEntity
+  case class PolyglotSymbol(override val name: String) extends DefinedEntity {
+    override def canExport: Boolean = false
+  }
 
   /** A representation of a method defined on the current module.
     *
     * @param name the name of the method.
     */
-  case class ModuleMethod(override val name: String) extends DefinedEntity
+  case class ModuleMethod(override val name: String) extends DefinedEntity {
+    override def canExport: Boolean = true
+  }
 
   /** A name resolved to a sum type.
     *

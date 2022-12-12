@@ -22,8 +22,10 @@ pub trait PathExt: AsRef<Path> {
 
     /// Appends a new extension to the file.
     ///
-    /// Does not try to replace previous extension, unlike `set_extension`.
+    /// Does not try to replace previous extension, unlike [`PathBuf::set_extension`].
     /// Does nothing when given extension string is empty.
+    ///
+    /// # Examples
     ///
     /// ```
     /// use enso_build_base::extensions::path::PathExt;
@@ -141,7 +143,20 @@ pub trait PathExt: AsRef<Path> {
 
 impl<T: AsRef<Path>> PathExt for T {}
 
-/// A method that displays a value using `Display` trait.
+/// A method that outputs a path to a formatter using [`Path::display`].
+///
+/// This is useful in combination with macros like `Derivative`, as demonstrated in the example
+/// below.
+///
+/// # Example
+/// ```ignore
+/// #[derive(Derivative)]
+/// #[derivative(Debug)]
+/// pub struct Foo {
+///    #[derivative(Debug(format_with = "display_fmt"))]
+///    path: PathBuf,
+/// }
+/// ```
 pub fn display_fmt(path: &Path, f: &mut Formatter) -> std::fmt::Result {
     std::fmt::Display::fmt(&path.display(), f)
 }

@@ -73,6 +73,7 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
+- [Added project snapshot saving on shortcut][3923]
 
 #### EnsoGL (rendering engine)
 
@@ -92,6 +93,22 @@
 - [Text rendering quality improvements][3855]. Glyphs are now hinted in a better
   way. Also, additional fine-tuning is performed per font and per host operating
   system.
+- [Display objects can now emit and receive events in the same style as
+  JavaScript DOM events][3863]. The events system implements very similar
+  behavior to the one described here:
+  https://javascript.info/bubbling-and-capturing.
+- [Added a new component: Slider][3852]. It allows adjusting a numeric value
+  with the mouse. The precision of these adjustments can be increased or
+  decreased.
+- [Slider component functionality improvements][3885]. The slider component now
+  supports multiple ways to handle out-of-range values. The slider's value can
+  be edited as text, and a new vertical slider layout is available.
+- [Added ProjectsGrid view for Cloud Dashboard][3857]. It provides the first
+  steps towards migrating the Cloud Dashboard from the existing React (web-only)
+  implementation towards a shared structure that can be used in both the Desktop
+  and Web versions of the IDE.
+
+[3857]: https://github.com/enso-org/enso/pull/3857
 
 #### Enso Standard Library
 
@@ -235,6 +252,10 @@
 - [Implemented `Period` type][3818]
 - [Implemented new functions on Column and added expression syntax support to
   create derived Columns.][3782]
+- [Added support for milli and micro seconds, new short form for rename_columns
+  and fixed issue with compare_to versus Nothing][3874]
+- [Aligned `Text.match`/`Text.locate` API][3841]
+- [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -375,6 +396,13 @@
 [3855]: https://github.com/enso-org/enso/pull/3855
 [3836]: https://github.com/enso-org/enso/pull/3836
 [3782]: https://github.com/enso-org/enso/pull/3782
+[3863]: https://github.com/enso-org/enso/pull/3863
+[3874]: https://github.com/enso-org/enso/pull/3874
+[3852]: https://github.com/enso-org/enso/pull/3852
+[3841]: https://github.com/enso-org/enso/pull/3841
+[3885]: https://github.com/enso-org/enso/pull/3885
+[3919]: https://github.com/enso-org/enso/pull/3919
+[3923]: https://github.com/enso-org/enso/pull/3923
 
 #### Enso Compiler
 
@@ -407,6 +435,7 @@
 - [Explicit `self`][3569]
 - [Added benchmarking tool for the language server][3578]
 - [Support module imports using a qualified name][3608]
+- [Using parser written in Rust.][3611]
 - [Enable caching in visualisation functions][3618]
 - [Update Scala compiler and libraries][3631]
 - [Support importing module methods][3633]
@@ -425,13 +454,26 @@
 - [Distinguish static and instance methods][3740]
 - [By-type pattern matching][3742]
 - [Fix performance of method calls on polyglot arrays][3781]
+- [Improved support for static and non-static builtins][3791]
 - [Missing foreign language generates proper Enso error][3798]
+- [Connecting IGV 4 Enso with Engine sources][3810]
 - [Made Vector performance to be on par with Array][3811]
 - [Introduced IO Permission Contexts][3828]
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
-- [Add the `Self` keyword referring to current type][3844]
 - [Split Atom suggestion entry to Type and Constructor][3835]
+- [Any number can be converted to double][3865]
+- [Update to GraalVM 22.3.0][3663]
+- [Connecting IGV 4 Enso with Engine sources][3810]
+- [Add the `Self` keyword referring to current type][3844]
+- [Support VCS for projects in Language Server][3851]
+- [Support multiple exports of the same module][3897]
+- [Import modules' extension methods only with unqualified imports][3906]
+- [Support expression evaluation in chromeinspector console][3941]
+- [Don't export polyglot symbols][3915]
+- [From/all import must not include module in name resolution][3931]
+- [Vector returns warnings of individual elements][3938]
+- [Add executionContext/interrupt API command][3952]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -467,6 +509,7 @@
 [3538]: https://github.com/enso-org/enso/pull/3538
 [3569]: https://github.com/enso-org/enso/pull/3569
 [3578]: https://github.com/enso-org/enso/pull/3578
+[3611]: https://github.com/enso-org/enso/pull/3611
 [3618]: https://github.com/enso-org/enso/pull/3618
 [3608]: https://github.com/enso-org/enso/pull/3608
 [3608]: https://github.com/enso-org/enso/pull/3608
@@ -485,13 +528,26 @@
 [3764]: https://github.com/enso-org/enso/pull/3764
 [3742]: https://github.com/enso-org/enso/pull/3742
 [3781]: https://github.com/enso-org/enso/pull/3781
+[3791]: https://github.com/enso-org/enso/pull/3791
 [3798]: https://github.com/enso-org/enso/pull/3798
+[3810]: https://github.com/enso-org/enso/pull/3810
 [3811]: https://github.com/enso-org/enso/pull/3811
-[3828]: https://github.com/enso-org/enso/pull/3828
 [3817]: https://github.com/enso-org/enso/pull/3817
 [3821]: https://github.com/enso-org/enso/pull/3821
-[3844]: https://github.com/enso-org/enso/pull/3844
+[3828]: https://github.com/enso-org/enso/pull/3828
 [3835]: https://github.com/enso-org/enso/pull/3835
+[3865]: https://github.com/enso-org/enso/pull/3865
+[3663]: https://github.com/enso-org/enso/pull/3663
+[3810]: https://github.com/enso-org/enso/pull/3810
+[3844]: https://github.com/enso-org/enso/pull/3844
+[3851]: https://github.com/enso-org/enso/pull/3851
+[3897]: https://github.com/enso-org/enso/pull/3897
+[3906]: https://github.com/enso-org/enso/pull/3906
+[3941]: https://github.com/enso-org/enso/pull/3941
+[3915]: https://github.com/enso-org/enso/pull/3915
+[3931]: https://github.com/enso-org/enso/pull/3931
+[3938]: https://github.com/enso-org/enso/pull/3938
+[3952]: https://github.com/enso-org/enso/pull/3952
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

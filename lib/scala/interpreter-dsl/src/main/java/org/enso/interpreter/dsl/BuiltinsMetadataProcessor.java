@@ -97,7 +97,7 @@ public abstract class BuiltinsMetadataProcessor<T extends BuiltinsMetadataProces
 
   /**
    * The method called at the end of the round of annotation processing. It allows to write any
-   * collected metadata to a related resoource (see {@link
+   * collected metadata to a related resources (see {@link
    * BuiltinsMetadataProcessor#metadataPath()}).
    *
    * @param writer a writer to the metadata resource

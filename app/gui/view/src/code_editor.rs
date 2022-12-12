@@ -74,7 +74,7 @@ impl View {
         let model = app.new_view::<text::Text>();
         let height_fraction = DEPRECATED_Animation::<f32>::new(network);
 
-        model.set_position_x(PADDING_LEFT);
+        model.set_x(PADDING_LEFT);
         scene.layers.main.remove(&model);
         model.add_to_scene_layer(&scene.layers.panel_text);
         // TODO[ao]: To have code editor usable we treat it as constantly mouse-hovered, but this
@@ -90,11 +90,11 @@ impl View {
             hide              <- any(frp.input.hide,hide_after_toggle);
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
-            eval_ show (model.focus());
+            eval_ show (model.deprecated_focus());
             eval_ hide (height_fraction.set_target_value(0.0));
             eval_ hide ([model] {
                 model.remove_all_cursors();
-                model.defocus();
+                model.deprecated_defocus();
             });
 
             frp.source.is_visible <+ bool(&frp.input.hide,&frp.input.show);
@@ -108,7 +108,7 @@ impl View {
                 let y      = -scene_size.height / 2.0 + height;
                 Vector2(x,y)
             });
-            eval position ((pos) model.set_position_xy(*pos));
+            eval position ((pos) model.set_xy(*pos));
 
             let color = styles.get_color(ensogl_hardcoded_theme::code::syntax::base);
             eval color ((color) model.set_property_default(color));

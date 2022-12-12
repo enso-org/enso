@@ -1,0 +1,16 @@
+[package]
+name = "ensogl-example-focus-management"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ensogl-core = { path = "../../core" }
+wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+
+# Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

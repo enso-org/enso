@@ -1,0 +1,136 @@
+import project.Any.Any
+import project.Data.Array.Array
+import project.Data.Json.Json
+import project.Data.Locale.Locale
+import project.Data.Map.Map
+import project.Data.Numbers.Number
+import project.Data.Range.Extensions
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Meta
+import project.Nothing.Nothing
+
+from project.Data.Boolean import Boolean, True, False
+
+## ALIAS To JSON
+
+   Generically converts an atom into a JSON object.
+
+   The input atom is converted into a JSON object, with a `"type"` field set to
+   the atom's type name and all other fields serialized with their name as
+   object key and the value as the object value.
+
+   > Example
+     Convert a vector to JSON.
+         [1, 2, 3, 4].to_json
+Any.to_json : Json
+Any.to_json self =
+    m = Meta.meta self
+    case m of
+        _ : Meta.Atom ->
+            cons = m.constructor
+            fs = m.fields
+            fnames = cons.fields
+            json_fs = 0.up_to fnames.length . fold Map.empty m-> i->
+                m.insert (fnames.at i) (fs.at i . to_json)
+            with_tp = json_fs . insert "type" (Json.String cons.name)
+            Json.Object with_tp
+        _ : Meta.Constructor ->
+            Json.Object (Map.empty . insert "type" (Json.String m.name))
+
+        ## The following two cases cannot be handled generically and should
+           instead define their own `to_json` implementations.
+        _ : Meta.Polyglot -> Json.Null
+        _ : Meta.Primitive -> Json.Null
+
+## UNSTABLE
+
+   Returns a JSON representation of the dataflow error.
+
+   > Example
+     Converting a dataflow error to JSON.
+
+         import Standard.Examples
+
+         example_to_json = Examples.throw_error.to_json
+Error.to_json : Json
+Error.to_json self =
+    error_type = ["type", "Error"]
+    caught = self.catch
+    error_content = ["content", caught.to_json]
+    error_message = ["message", caught.to_display_text]
+    Json.from_pairs [error_type, error_content, error_message]
+
+## Text to JSON conversion.
+
+   > Example
+     Convert the text "Hello World!" to JSON.
+
+         "Hello World!".to_json
+   > Example
+     Convert the text "cześć" to JSON.
+
+         "cześć".to_json
+Text.to_json : Json
+Text.to_json self = Json.String self
+
+## Method used by object builders to convert a value into a valid JSON key.
+
+   > Example
+     Ensure that the text "foo" is a JSON key.
+         "foo".to_json_key
+Text.to_json_key : Text
+Text.to_json_key self = self
+
+## Convert a boolean to JSON.
+
+   > Example
+     Convert `True` to JSON.
+         True.to_json
+Boolean.to_json : Json
+Boolean.to_json self = Json.Boolean self
+
+## Convert `Nothing` to JSON.
+
+   > Example
+     Convert `Nothing` to JSON.
+         Nothing.to_json
+Nothing.to_json : Json
+Nothing.to_json self = Json.Null
+
+
+## Number to JSON conversion.
+
+   > Example
+     Convert the number 8 to JSON.
+
+         8.to_json
+Number.to_json : Json
+Number.to_json self = Json.Number self
+
+## Vector to JSON conversion.
+
+   > Example
+     Convert a vector of numbers to JSON.
+
+         [1, 2, 3].to_json
+Vector.to_json : Json
+Vector.to_json self = Json.Array (self.map .to_json)
+
+## A Locale to Json conversion
+
+   > Example
+     Convert the default locale to JSON.
+
+         import Standard.Base.Data.Locale.Locale
+
+         example_to_json = Locale.default.to_json
+Locale.to_json : Json
+Locale.to_json self =
+    b = Vector.new_builder
+    b.append ["type", "Locale"]
+    if self.language.is_nothing.not then b.append ["language", self.language]
+    if self.country.is_nothing.not then b.append ["country", self.country]
+    if self.variant.is_nothing.not then b.append ["variant", self.variant]
+    Json.from_pairs b.to_vector

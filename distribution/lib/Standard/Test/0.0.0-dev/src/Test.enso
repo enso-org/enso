@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Runtime.State
-import Standard.Base.Data.Time.Duration
 
 import project.Test_Reporter
 import project.Test_Result.Test_Result
@@ -30,11 +29,11 @@ type Test
         if config.should_run_group name then
             case pending of
                 Nothing ->
-                    r = State.run Spec (Spec.Value name  Nil) <|
+                    r = State.run Spec (Spec.Value name List.Nil) <|
                         behaviors
                         State.get Spec
                     Test_Reporter.print_report r config suite.builder
-                    new_suite = Test_Suite.Value suite.config (Cons r suite.specs) suite.builder
+                    new_suite = Test_Suite.Value suite.config (List.Cons r suite.specs) suite.builder
                     State.put Test_Suite new_suite
                 reason ->
                     Test_Reporter.report_pending_group name reason config suite.builder
@@ -73,7 +72,7 @@ type Test
         result = pair.second
         time_taken = pair.first
         spec = State.get Spec
-        new_spec = Spec.Value spec.name (Cons (Behavior.Value label result time_taken) spec.behaviors)
+        new_spec = Spec.Value spec.name (List.Cons (Behavior.Value label result time_taken) spec.behaviors)
         State.put Spec new_spec
 
     ## Expect a function to fail with the provided panic.
@@ -226,6 +225,19 @@ type Spec
     is_fail : Boolean
     is_fail self = self.behaviors.any .is_fail
 
+    tests_succeeded : Integer
+    tests_succeeded self = self.behaviors.filter (x-> x.is_success) . length
+
+    tests_failed : Integer
+    tests_failed self = self.behaviors.filter (x-> x.is_fail) . length
+
+    tests_pending : Integer
+    tests_pending self = self.behaviors.filter (x-> x.is_pending) . length
+
+    ## Counts how many tests have been executed, not including pending tests.
+    tests_executed : Integer
+    tests_executed self = self.behaviors.filter (b-> b.is_pending.not) . length
+
 ## PRIVATE
 
    A description of a behaviors in a test.
@@ -237,11 +249,25 @@ type Spec
 type Behavior
     Value name result time_taken
 
+
+    ## PRIVATE
+
+      Checks if the behavior is pending.
+    is_pending : Boolean
+    is_pending self = self.result.is_pending
+
     ## PRIVATE
 
        Checks if the behavior is a failure.
     is_fail : Boolean
     is_fail self = self.result.is_fail
+
+    ## PRIVATE
+
+ 
+      Checks if the behavior is a success.
+    is_success : Boolean
+    is_success self = self.result.is_success
 
 ## PRIVATE
 

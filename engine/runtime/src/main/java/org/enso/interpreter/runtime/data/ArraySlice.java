@@ -9,9 +9,14 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.error.WithWarnings;
 
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(WarningsLibrary.class)
 public final class ArraySlice implements TruffleObject {
   private final Object storage;
   private final long start;
@@ -63,6 +68,7 @@ public final class ArraySlice implements TruffleObject {
   public Object readArrayElement(
       long index,
       @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached HostValueToEnsoNode toEnso)
       throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index < 0 || index >= getArraySize(interop)) {
@@ -70,6 +76,13 @@ public final class ArraySlice implements TruffleObject {
     }
 
     var v = interop.readArrayElement(storage, start + index);
+    if (this.hasWarnings(warnings)) {
+      Warning[] extracted = this.getWarnings(null, warnings);
+      if (warnings.hasWarnings(v)) {
+        v = warnings.removeWarnings(v);
+      }
+      return new WithWarnings(toEnso.execute(v), extracted);
+    }
     return toEnso.execute(v);
   }
 
@@ -113,4 +126,21 @@ public final class ArraySlice implements TruffleObject {
   final void removeArrayElement(long index) throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
   }
+
+  @ExportMessage
+  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    return warnings.hasWarnings(this.storage);
+  }
+
+  @ExportMessage
+  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+    return warnings.getWarnings(this.storage, location);
+  }
+
+  @ExportMessage
+  Object removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) throws UnsupportedMessageException {
+    Object newStorage = warnings.removeWarnings(this.storage);
+    return new ArraySlice(newStorage, start, end);
+  }
+
 }

@@ -6,7 +6,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -14,7 +14,8 @@ import org.enso.interpreter.runtime.error.PanicException;
 @BuiltinMethod(
     type = "Polyglot",
     name = "get_executable_name",
-    description = "Returns the executable name of a polyglot object.")
+    description = "Returns the executable name of a polyglot object.",
+    autoRegister = false)
 public class GetExecutableNameNode extends Node {
   private @Child InteropLibrary functionsLibrary =
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
@@ -27,7 +28,7 @@ public class GetExecutableNameNode extends Node {
       return Text.create(stringsLibrary.asString(functionsLibrary.getExecutableName(function)));
     } catch (UnsupportedMessageException e) {
       err.enter();
-      Builtins builtins = Context.get(this).getBuiltins();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(
           builtins.error().makeTypeError(builtins.function(), function, "function"), this);
     }

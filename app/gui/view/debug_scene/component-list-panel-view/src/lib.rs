@@ -40,6 +40,8 @@ use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
+use ensogl_core::display;
+use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
 use ensogl_hardcoded_theme as theme;
@@ -56,12 +58,17 @@ use ide_view_component_list_panel::grid::entry::icon;
 const PREPARED_ITEMS: &[(&str, icon::Id)] = &[
     // ("long sample entry with text overflowing the width", icon::Id::Star),
     ("convert", icon::Id::Convert),
-    ("table input", icon::Id::DataInput),
-    ("text input", icon::Id::TextInput),
-    ("number input", icon::Id::NumberInput),
-    ("table output", icon::Id::TableEdit),
-    ("dataframe clean", icon::Id::DataframeClean),
     ("data input", icon::Id::DataInput),
+    ("data output", icon::Id::DataOutput),
+    ("table input", icon::Id::TableEdit),
+    ("number input", icon::Id::NumberInput),
+    ("text input", icon::Id::TextInput),
+    ("add column", icon::Id::AddColumn),
+    ("select column", icon::Id::SelectColumn),
+    ("clean", icon::Id::DataframeClean),
+    ("add row", icon::Id::AddRow),
+    ("map row", icon::Id::DataframeMapRow),
+    ("map column", icon::Id::DataframeMapColumn),
 ];
 
 const fn make_group(section: grid::SectionId, index: usize, size: usize) -> grid::content::Group {
@@ -73,6 +80,18 @@ const fn make_group(section: grid::SectionId, index: usize, size: usize) -> grid
         color:           None,
     }
 }
+
+/// Use this groups setup to compare to Figma design.
+#[allow(dead_code)]
+const GROUPS_AS_IN_DESIGN: &[grid::content::Group] = &[
+    make_group(grid::SectionId::Popular, 0, 7),
+    make_group(grid::SectionId::Popular, 1, 7),
+    make_group(grid::SectionId::Popular, 2, 5),
+    make_group(grid::SectionId::SubModules, 3, 10),
+    make_group(grid::SectionId::SubModules, 4, 3),
+    make_group(grid::SectionId::SubModules, 5, 10),
+    make_group(grid::SectionId::SubModules, 6, 10),
+];
 
 const GROUPS: &[grid::content::Group] = &[
     make_group(grid::SectionId::Popular, 1, 3),
@@ -109,16 +128,24 @@ const LOCAL_SCOPE_GROUP_SIZE: usize = 1024;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
-        groups:                  GROUPS.into(),
+        groups:                  GROUPS_AS_IN_DESIGN.into(),
         local_scope_entry_count: LOCAL_SCOPE_GROUP_SIZE,
     }
 }
 
+const GROUP_NAMES: &[&str] = &[
+    "Input / Output",
+    "Preparation",
+    "Join",
+    "Text",
+    "Date and Time",
+    "Transform",
+    "Machine Learning",
+];
+
 fn get_header_model(group: grid::GroupId) -> Option<(grid::GroupId, grid::HeaderModel)> {
-    let model = grid::HeaderModel {
-        caption:        format!("Group {}", group.index).into(),
-        can_be_entered: false,
-    };
+    let caption = GROUP_NAMES.get(group.index % GROUP_NAMES.len()).copied().unwrap_or("");
+    let model = grid::HeaderModel { caption: caption.into(), can_be_entered: false };
     Some((group, model))
 }
 
@@ -138,6 +165,17 @@ fn get_entry_model(entry: grid::GroupEntryId) -> Option<(grid::GroupEntryId, gri
     Some((entry, model))
 }
 
+fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> Vector2 {
+    let device_size = scene_shape.device_pixels();
+    let origin_left_top_pos = Vector2(device_size.width, device_size.height) / 2.0;
+    let origin_snapped = Vector2(origin_left_top_pos.x.floor(), origin_left_top_pos.y.floor());
+    let origin_offset = origin_snapped - origin_left_top_pos;
+    let panel_left_top_pos = (size * scene_shape.pixel_ratio) / 2.0;
+    let panel_snapped = Vector2(panel_left_top_pos.x.floor(), panel_left_top_pos.y.floor());
+    let panel_offset = panel_snapped - panel_left_top_pos;
+    origin_offset - panel_offset
+}
+
 
 
 // ===================
@@ -153,17 +191,26 @@ pub fn main() {
         theme::builtin::light::register(&app);
         theme::builtin::light::enable(&app);
 
+
         let world = &app.display;
         let scene = &world.default_scene;
+        let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
         let panel = app.new_view::<ide_view_component_list_panel::View>();
+        scene.layers.node_searcher.add(&panel);
+        panel.model().set_navigator(Some(navigator.clone_ref()));
         panel.show();
         let network = frp::Network::new("new_component_list_panel_view");
         //TODO[ao] should be done by panel itself.
         let grid = &panel.model().grid;
         frp::extend! { network
+            init <- source_();
             grid.model_for_header <+ grid.model_for_header_needed.filter_map(|&id| get_header_model(id));
             grid.model_for_entry <+ grid.model_for_entry_needed.filter_map(|&id| get_entry_model(id));
+            size <- all_with(&init, &panel.size, |(), panel_size| *panel_size);
+            snap <- all_with(&size, &scene.frp.shape, |sz, sh| snap_to_pixel_offset(*sz, sh));
+            eval snap((snap) panel.set_xy(*snap));
         }
+        init.emit(());
 
         grid.reset(content_info());
         scene.add_child(&panel);
@@ -171,5 +218,6 @@ pub fn main() {
         mem::forget(app);
         mem::forget(panel);
         mem::forget(network);
+        mem::forget(navigator);
     })
 }

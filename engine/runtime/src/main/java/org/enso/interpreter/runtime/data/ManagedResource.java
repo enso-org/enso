@@ -5,7 +5,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -51,7 +51,7 @@ public final class ManagedResource implements TruffleObject {
       description =
           "Makes an object into a managed resource, automatically finalized when the returned object is garbage collected.")
   @Builtin.Specialize
-  public static ManagedResource register(Context context, Object resource, Function function) {
+  public static ManagedResource register(EnsoContext context, Object resource, Function function) {
     return context.getResourceManager().register(resource, function);
   }
 
@@ -60,7 +60,7 @@ public final class ManagedResource implements TruffleObject {
           "Takes the value held by the managed resource and removes the finalization callbacks,"
               + " effectively making the underlying resource unmanaged again.")
   @Builtin.Specialize
-  public Object take(Context context) {
+  public Object take(EnsoContext context) {
     context.getResourceManager().take(this);
     return this.getResource();
   }
@@ -69,7 +69,7 @@ public final class ManagedResource implements TruffleObject {
       name = "finalize",
       description = "Finalizes a managed resource, even if it is still reachable.")
   @Builtin.Specialize
-  public void close(Context context) {
+  public void close(EnsoContext context) {
     context.getResourceManager().close(this);
   }
 
@@ -80,6 +80,6 @@ public final class ManagedResource implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().managedResource();
+    return EnsoContext.get(thisLib).getBuiltins().managedResource();
   }
 }

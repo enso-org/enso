@@ -67,7 +67,7 @@ pub mod overlay {
             let radius        = 1.px() * &radius;
             let corner_radius = &radius * &roundness;
             let color_overlay = color::Rgba::new(1.0,0.0,0.0,0.000_000_1);
-            let overlay       = Rect((&width,&height)).corners_radius(&corner_radius);
+            let overlay       = Rect((&width,&height)).corners_radius(corner_radius);
             let overlay       = overlay.fill(color_overlay);
             let out           = overlay;
             out.into()
@@ -101,12 +101,12 @@ pub mod background {
             let sel_width   = &width  - 1.px() + &sel_offset.px() * 2.0 * &selection;
             let sel_height  = &height - 1.px() + &sel_offset.px() * 2.0 * &selection;
             let sel_radius  = &corner_radius + &sel_offset.px();
-            let select      = Rect((&sel_width,&sel_height)).corners_radius(&sel_radius);
+            let select      = Rect((&sel_width,&sel_height)).corners_radius(sel_radius);
 
             let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
             let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
             let sel2_radius = &corner_radius + &sel_offset.px() + &sel_size.px() * &selection;
-            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(&sel2_radius);
+            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(sel2_radius);
 
             let select = select2 - select;
             let select = select.fill(sel_color);
@@ -414,7 +414,7 @@ impl ContainerModel {
             self.action_bar.frp.set_size.emit(action_bar_size);
         }
 
-        self.action_bar.set_position_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
+        self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {
             viz.set_size.emit(size);
@@ -536,10 +536,10 @@ impl Container {
             new_vis_definition <- any(frp.set_visualization,vis_after_cycling);
             let preprocessor   =  &frp.source.preprocessor;
             frp.source.visualisation <+ new_vis_definition.map(f!(
-                [model,action_bar,scene,logger,preprocessor](vis_definition) {
+                [model,action_bar,app,logger,preprocessor](vis_definition) {
 
                 if let Some(definition) = vis_definition {
-                    match definition.new_instance(&scene) {
+                    match definition.new_instance(&app) {
                         Ok(vis)  => {
                             model.set_visualization(vis,&preprocessor);
                             let path = Some(definition.signature.path.clone());
@@ -626,8 +626,8 @@ impl Container {
             selected_definition  <- action_bar.visualisation_selection.map(f!([registry](path)
                 path.as_ref().and_then(|path| registry.definition_from_path(path))
             ));
-            eval selected_definition([scene,model,logger,preprocessor](definition)  {
-                let vis = definition.as_ref().map(|d| d.new_instance(&scene));
+            eval selected_definition([app,model,logger,preprocessor](definition)  {
+                let vis = definition.as_ref().map(|d| d.new_instance(&app));
                 match vis {
                     Some(Ok(vis))  => model.set_visualization(vis,&preprocessor),
                     Some(Err(err)) => {
@@ -649,9 +649,9 @@ impl Container {
         // ===  Action bar actions ===
 
         frp::extend! { network
-            eval_ action_bar.on_container_reset_position(model.drag_root.set_position_xy(Vector2::zero()));
+            eval_ action_bar.on_container_reset_position(model.drag_root.set_xy(Vector2::zero()));
             drag_action <- app.cursor.frp.scene_position_delta.gate(&action_bar.container_drag_state);
-            eval drag_action ((mouse) model.drag_root.mod_position_xy(|pos| pos - mouse.xy()));
+            eval drag_action ((mouse) model.drag_root.mod_xy(|pos| pos - mouse.xy()));
         }
 
         // FIXME[mm]: If we set the size right here, we will see spurious shapes in some

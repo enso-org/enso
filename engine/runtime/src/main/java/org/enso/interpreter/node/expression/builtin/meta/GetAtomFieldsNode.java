@@ -8,7 +8,8 @@ import org.enso.interpreter.runtime.data.Array;
 @BuiltinMethod(
     type = "Meta",
     name = "get_atom_fields",
-    description = "Gets the fields of an unresolved atom.")
+    description = "Gets the fields of an unresolved atom.",
+    autoRegister = false)
 public class GetAtomFieldsNode extends Node {
   Array execute(Atom atom) {
     return new Array(atom.getFields());

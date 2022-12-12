@@ -18,6 +18,7 @@ use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::Alignment;
 use ensogl_core::display::scene::Scene;
+use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::material::Material;
 use ensogl_core::display::symbol::shader::builder::CodeTemplate;
 use ensogl_core::frp;
@@ -149,7 +150,7 @@ pub struct ShapeData {
     pub font: FontWithAtlas,
 }
 
-impl display::shape::system::ShapeSystemFlavorProvider for ShapeData {
+impl ShapeData {
     fn flavor(&self) -> display::shape::system::ShapeSystemFlavor {
         let mut hasher = DefaultHasher::new();
         std::hash::Hash::hash(&self.font.name(), &mut hasher);
@@ -162,6 +163,7 @@ mod glyph_shape {
     ensogl_core::shape! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
+        flavor = ShapeData::flavor;
         (
             style: Style,
             font_size: f32,
@@ -189,6 +191,7 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
         let symbol = sprite_system.symbol();
 
         *data.model.material.borrow_mut() = Self::material();
+        *data.model.geometry_material.borrow_mut() = SpriteSystem::default_geometry_material();
         data.model.do_not_use_shape_definition.set(true);
 
         sprite_system.set_alignment(Alignment::bottom_left());

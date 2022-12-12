@@ -333,6 +333,8 @@ impl IsWatchable for Wasm {
             }
             if let Some(wasm_size_limit) = wasm_size_limit {
                 watch_cmd.args(["--wasm-size-limit", wasm_size_limit.to_string().as_str()]);
+            } else {
+                watch_cmd.args(["--wasm-size-limit", "0"]);
             }
 
             // === cargo-watch options ===

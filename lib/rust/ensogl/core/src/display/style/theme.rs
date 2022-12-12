@@ -269,7 +269,7 @@ impl Manager {
         let name = name.into();
         let theme = self.data.borrow().combined.deep_clone();
         self.register_internal(name.clone(), theme);
-        self.set_enabled(&[name]);
+        self.set_enabled([name]);
     }
 
     fn register_internal(&self, name: String, theme: Theme) {
@@ -359,6 +359,6 @@ pub fn test() {
     theme_manager.register("theme1", theme1);
     theme_manager.register("theme2", theme2);
 
-    theme_manager.set_enabled(&["theme1".to_string()]);
+    theme_manager.set_enabled(["theme1".to_string()]);
     theme_manager.set_enabled(["theme1", "theme2"]);
 }

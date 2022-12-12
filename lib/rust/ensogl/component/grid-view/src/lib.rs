@@ -169,7 +169,8 @@ ensogl_core::define_endpoints_2! {
         set_column_width((Col, f32)),
         /// Set the entries parameters.
         set_entries_params(EntryParams),
-        /// Set the entries size. All entries have the same size.
+        /// Set the entry size. All entries have the same height, but the width can be changed
+        /// using [`set_column_width`] input or [`EntryFrp::override_column_width`] output.
         set_entries_size(Vector2),
         /// Set the layer for any texts rendered by entries. The layer will be passed to entries'
         /// constructors. **Performance note**: This will re-instantiate all entries.
@@ -232,7 +233,7 @@ impl<Entry, EntryParams> Model<Entry, EntryParams> {
     }
 }
 
-impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
+impl<Entry: entry::Entry, EntryParams> Model<Entry, EntryParams> {
     fn update_entries_visibility(&self, properties: Properties) -> Vec<(Row, Col)> {
         let Properties { viewport, entries_size, row_count: rows, col_count: cols } = properties;
         let widths = &self.column_widths;
@@ -258,7 +259,7 @@ impl<Entry: display::Object, EntryParams> Model<Entry, EntryParams> {
         for ((row, col), visible_entry) in &*self.visible_entries.borrow() {
             let size = properties.entries_size;
             let widths = &self.column_widths;
-            entry::visible::set_position(visible_entry, *row, *col, size, widths);
+            entry::visible::set_position(&visible_entry.entry, *row, *col, size, widths);
         }
         to_model_request
     }
@@ -323,7 +324,7 @@ impl<E: Entry> Model<E, E::Params> {
                         .map(|entry| (entry, None))
                         .unwrap_or_else(create_new_entry);
                     entry::visible::set_position(
-                        &new_entry,
+                        &new_entry.entry,
                         row,
                         col,
                         entry_size,
@@ -363,7 +364,13 @@ impl<E: Entry> Model<E, E::Params> {
             let borrowed = self.visible_entries.borrow();
             let should_update_pos = borrowed.iter().filter(|((_, col), _)| *col >= resized_column);
             for ((row, col), entry) in should_update_pos {
-                entry::visible::set_position(entry, *row, *col, entries_size, &self.column_widths);
+                entry::visible::set_position(
+                    &entry.entry,
+                    *row,
+                    *col,
+                    entries_size,
+                    &self.column_widths,
+                );
             }
             let should_update_size = borrowed.iter().filter(|((_, col), _)| *col == resized_column);
             let entries_and_sizes = should_update_size.map(|((_, col), entry)| {
@@ -574,6 +581,7 @@ impl<Entry, EntryModel, EntryParams> GridViewTemplate<Entry, EntryModel, EntryPa
 where
     EntryModel: frp::node::Data,
     EntryParams: frp::node::Data,
+    Entry: Debug,
 {
     /// Get the entry instance for given row and column, or `None` if no entry is instantiated at
     /// given location.

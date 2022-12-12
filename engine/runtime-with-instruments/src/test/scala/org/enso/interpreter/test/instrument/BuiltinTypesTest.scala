@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.ConstantsGen
-import org.enso.interpreter.runtime.{Context => EnsoContext}
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -304,7 +304,7 @@ class BuiltinTypesTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Foo.Bar"),
+      TestMessages.update(contextId, idMain, "Enso_Test.Test.Main.Foo"),
       context.executionComplete(contextId)
     )
   }
@@ -344,10 +344,10 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(37, 19)
+    val idMain   = metadata.addItem(45, 19)
 
     val code =
-      """from Standard.Base import all
+      """import Standard.Base.Data.Array.Array
         |
         |main =
         |    Array.new_1 42
@@ -370,10 +370,11 @@ class BuiltinTypesTest
     val requestId = UUID.randomUUID()
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(37, 34)
+    val idMain   = metadata.addItem(75, 34)
 
     val code =
       """from Standard.Base import all
+        |import Standard.Base.Data.Array.Array
         |
         |main =
         |    Vector.from_array Array.empty

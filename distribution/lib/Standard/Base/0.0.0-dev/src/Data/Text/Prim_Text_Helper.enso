@@ -1,5 +1,7 @@
 ## Internal text utilities for inspecting text primitives.
 
+import project.Data.Text.Text
+
 ## PRIVATE
 
    Forces flattening of a text value.
