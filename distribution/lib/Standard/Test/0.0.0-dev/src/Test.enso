@@ -130,7 +130,7 @@ type Test
     fail message details=Nothing =
         clue_data = State.get Clue
         message_with_clue = case clue_data of
-            Clue_Data add_clue -> add_clue message
+            Clue.Value add_clue -> add_clue message
             _                  -> message
         failure = Test_Result.Failure message_with_clue details
         Panic.throw failure
@@ -166,12 +166,14 @@ type Test
 
     with_clue : Text|(Text -> Text) -> Any -> Any
     with_clue ~clue ~behavior =
-        add_clue = if clue.is_a Text then (x -> clue + x) else clue
+        add_clue = case clue of
+            _ : Text -> (x -> clue + x)
+            _ : Function -> clue
         prev_clue = State.get Clue
         next_clue = case prev_clue of
-            Clue.Clue_Data prev_add_clue -> (x -> add_clue (prev_add_clue x))
+            Clue.Value prev_add_clue -> (x -> add_clue (prev_add_clue x))
             _                  -> clue
-        State.put Clue (Clue.Clue_Data next_clue)
+        State.put Clue (Clue.Value next_clue)
         behavior
 
 
@@ -264,7 +266,6 @@ type Behavior
 
     ## PRIVATE
 
- 
       Checks if the behavior is a success.
     is_success : Boolean
     is_success self = self.result.is_success
@@ -278,4 +279,4 @@ type Clue
 
        Arguments:
        - add_clue: either Nothing or a function which modifies a failure message
-    Clue_Data add_clue
+    Value add_clue
