@@ -3,12 +3,18 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::LabelPosition;
+use crate::SliderOrientation;
+use crate::ValueIndicator;
+
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_hardcoded_theme as theme;
+use ensogl_core::Animation;
+use ensogl_hardcoded_theme::component::slider as theme;
 use ensogl_text as text;
 use ensogl_text::formatting::ResolvedProperty;
+use ensogl_tooltip::Tooltip;
 
 
 
@@ -22,6 +28,8 @@ const COMPONENT_MARGIN: f32 = 4.0;
 const COMPONENT_WIDTH_DEFAULT: f32 = 200.0;
 /// Default component height on initialization.
 const COMPONENT_HEIGHT_DEFAULT: f32 = 50.0;
+/// Overflow marker size as fraction of the text height.
+const OVERFLOW_MARKER_SIZE: f32 = 0.75;
 
 
 
@@ -68,12 +76,61 @@ mod track {
     ensogl_core::shape! {
         above = [background];
         pointer_events = false;
-        (style:Style, slider_fraction_filled:f32, color:Vector4) {
+        (style:Style, slider_fraction_horizontal:f32, slider_fraction_vertical:f32, color:Vector4) {
             let Background{width,height,shape: background} = Background::new();
-            let track = Rect((&width * &slider_fraction_filled,&height));
-            let track = track.translate_x(&width * (&slider_fraction_filled - 1.0) * 0.5);
+            let track = Rect((
+                &width * &slider_fraction_horizontal,
+                &height * &slider_fraction_vertical,
+            ));
+            let track = track.translate_x(&width * (&slider_fraction_horizontal - 1.0) * 0.5);
+            let track = track.translate_y(&height * (&slider_fraction_vertical - 1.0) * 0.5);
             let track = track.intersection(background).fill(color);
             track.into()
+        }
+    }
+}
+
+/// Thumb shape that moves along the slider proportional to the slider value.
+mod thumb {
+    use super::*;
+
+    ensogl_core::shape! {
+        above = [background];
+        pointer_events = false;
+        (style:Style, slider_fraction:f32, thumb_width:f32, thumb_height:f32, color:Vector4) {
+            let Background{width,height,shape: background} = Background::new();
+            let thumb_width = &width * &thumb_width;
+            let thumb_height = &height * &thumb_height;
+            let thumb = Rect((&thumb_width, &thumb_height));
+            let thumb = thumb.corners_radius(&thumb_height / 2.0);
+            let range_x = &width - &thumb_width;
+            let range_y = &height - &thumb_height;
+            let thumb = thumb.translate_x(-&range_x * 0.5 + &range_x * &slider_fraction);
+            let thumb = thumb.translate_y(-&range_y * 0.5 + &range_y * &slider_fraction);
+            let thumb = thumb.intersection(background).fill(color);
+            thumb.into()
+        }
+    }
+}
+
+/// Triangle shape used as an overflow indicator on either side of the range.
+mod overflow {
+    use super::*;
+
+    ensogl_core::shape! {
+        above = [background, track, thumb];
+        pointer_events = false;
+        (style:Style, color:Vector4) {
+            let width: Var<Pixels> = "input_size.x".into();
+            let height: Var<Pixels> = "input_size.y".into();
+            let width = width - COMPONENT_MARGIN.px() * 2.0;
+            let height = height - COMPONENT_MARGIN.px() * 2.0;
+
+            let color = style.get_color(theme::overflow::color);
+            let triangle = Triangle(width, height);
+            let triangle = triangle.fill(color);
+
+            triangle.into()
         }
     }
 }
@@ -91,6 +148,12 @@ pub struct Model {
     pub background:       background::View,
     /// Slider track element that fills the slider proportional to the slider value.
     pub track:            track::View,
+    /// Slider thumb element that moves across the slider proportional to the slider value.
+    pub thumb:            thumb::View,
+    /// Indicator for overflow when the value is below the lower limit.
+    pub overflow_lower:   overflow::View,
+    /// Indicator for overflow when the value is above the upper limit.
+    pub overflow_upper:   overflow::View,
     /// Slider label that is shown next to the slider.
     pub label:            text::Text,
     /// Textual representation of the slider value, only part left of the decimal point.
@@ -99,20 +162,32 @@ pub struct Model {
     pub value_text_dot:   text::Text,
     /// Textual representation of the slider value, only part right of the decimal point.
     pub value_text_right: text::Text,
+    /// Textual representation of the slider value used when editing the value as text input.
+    pub value_text_edit:  text::Text,
+    /// Tooltip component showing either a tooltip message or slider precision changes.
+    pub tooltip:          Tooltip,
+    /// Animation component that smoothly adjusts the slider value on large jumps.
+    pub value_animation:  Animation<f32>,
     /// Root of the display object.
     pub root:             display::object::Instance,
 }
 
 impl Model {
     /// Create a new slider model.
-    pub fn new(app: &Application) -> Self {
+    pub fn new(app: &Application, frp_network: &frp::Network) -> Self {
         let root = display::object::Instance::new();
         let label = app.new_view::<text::Text>();
         let value_text_left = app.new_view::<text::Text>();
         let value_text_dot = app.new_view::<text::Text>();
         let value_text_right = app.new_view::<text::Text>();
+        let value_text_edit = app.new_view::<text::Text>();
+        let tooltip = Tooltip::new(app);
+        let value_animation = Animation::new_non_init(frp_network);
         let background = background::View::new();
         let track = track::View::new();
+        let thumb = thumb::View::new();
+        let overflow_lower = overflow::View::new();
+        let overflow_upper = overflow::View::new();
         let scene = &app.display.default_scene;
         let style = StyleWatch::new(&app.display.default_scene.style_sheet);
 
@@ -122,19 +197,27 @@ impl Model {
         root.add_child(&value_text_left);
         root.add_child(&value_text_dot);
         root.add_child(&value_text_right);
+        app.display.default_scene.add_child(&tooltip);
 
         value_text_left.add_to_scene_layer(&scene.layers.label);
         value_text_dot.add_to_scene_layer(&scene.layers.label);
         value_text_right.add_to_scene_layer(&scene.layers.label);
+        value_text_edit.add_to_scene_layer(&scene.layers.label);
         label.add_to_scene_layer(&scene.layers.label);
 
         let model = Self {
             background,
             track,
+            thumb,
+            overflow_lower,
+            overflow_upper,
             label,
             value_text_left,
             value_text_dot,
             value_text_right,
+            value_text_edit,
+            tooltip,
+            value_animation,
             root,
         };
         model.init(style)
@@ -142,10 +225,16 @@ impl Model {
 
     /// Initialise slider model.
     pub fn init(self, style: StyleWatch) -> Self {
-        let background_color = style.get_color(theme::component::slider::background::color);
-        let track_color = style.get_color(theme::component::slider::track::color);
+        let background_color = style.get_color(theme::background::color);
+        let track_color = style.get_color(theme::track::color);
+        self.value_text_left.set_font(text::font::DEFAULT_FONT);
+        self.value_text_dot.set_font(text::font::DEFAULT_FONT);
+        self.value_text_right.set_font(text::font::DEFAULT_FONT);
+        self.value_text_edit.set_font(text::font::DEFAULT_FONT);
+        self.label.set_font(text::font::DEFAULT_FONT);
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
+        self.thumb.color.set(track_color.into());
         self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
         self
@@ -156,16 +245,155 @@ impl Model {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
         self.background.size.set(size + margin);
         self.track.size.set(size + margin);
+        self.thumb.size.set(size + margin);
     }
 
-    /// Set the color of the slider track.
-    pub fn set_track_color(&self, color: &color::Lcha) {
+    /// Set the color of the slider track or thumb.
+    pub fn set_indicator_color(&self, color: &color::Lcha) {
         self.track.color.set(color::Rgba::from(color).into());
+        self.thumb.color.set(color::Rgba::from(color).into());
     }
 
     /// Set the color of the slider background.
     pub fn set_background_color(&self, color: &color::Lcha) {
         self.background.color.set(color::Rgba::from(color).into());
+    }
+
+    /// Set whether the lower overfow marker is visible.
+    pub fn set_value_indicator(&self, indicator: &ValueIndicator) {
+        match indicator {
+            ValueIndicator::Track => {
+                self.root.add_child(&self.track);
+                self.root.remove_child(&self.thumb);
+            }
+            ValueIndicator::Thumb => {
+                self.root.add_child(&self.thumb);
+                self.root.remove_child(&self.track);
+            }
+        }
+    }
+
+    /// Set the position of the value indicator.
+    pub fn set_indicator_position(
+        &self,
+        (fraction, size, orientation): &(f32, f32, SliderOrientation),
+    ) {
+        self.thumb.slider_fraction.set(*fraction);
+        match orientation {
+            SliderOrientation::Horizontal => {
+                self.track.slider_fraction_horizontal.set(fraction.clamp(0.0, 1.0));
+                self.track.slider_fraction_vertical.set(1.0);
+                self.thumb.thumb_width.set(*size);
+                self.thumb.thumb_height.set(1.0);
+            }
+            SliderOrientation::Vertical => {
+                self.track.slider_fraction_horizontal.set(1.0);
+                self.track.slider_fraction_vertical.set(fraction.clamp(0.0, 1.0));
+                self.thumb.thumb_width.set(1.0);
+                self.thumb.thumb_height.set(*size);
+            }
+        }
+    }
+
+    /// Set the size and orientation of the overflow markers.
+    pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, SliderOrientation)) {
+        let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
+        let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE + margin;
+        self.overflow_lower.size.set(size);
+        self.overflow_upper.size.set(size);
+        match orientation {
+            SliderOrientation::Horizontal => {
+                self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);
+                self.overflow_upper.set_rotation_z(-std::f32::consts::FRAC_PI_2);
+            }
+            SliderOrientation::Vertical => {
+                self.overflow_lower.set_rotation_z(std::f32::consts::PI);
+                self.overflow_upper.set_rotation_z(0.0);
+            }
+        }
+    }
+
+    /// Set the position of the overflow markers.
+    pub fn set_overflow_marker_position(
+        &self,
+        (comp_width, comp_height, orientation): &(f32, f32, SliderOrientation),
+    ) {
+        match orientation {
+            SliderOrientation::Horizontal => {
+                let pos_x = comp_width / 2.0 - comp_height / 4.0;
+                self.overflow_lower.set_x(-pos_x);
+                self.overflow_lower.set_y(0.0);
+                self.overflow_upper.set_x(pos_x);
+                self.overflow_upper.set_y(0.0);
+            }
+            SliderOrientation::Vertical => {
+                let pos_y = comp_height / 2.0 - comp_width / 4.0;
+                self.overflow_lower.set_x(0.0);
+                self.overflow_lower.set_y(-pos_y);
+                self.overflow_upper.set_x(0.0);
+                self.overflow_upper.set_y(pos_y);
+            }
+        }
+    }
+
+    /// Set whether the lower overfow marker is visible.
+    pub fn set_overflow_lower_visible(&self, visible: bool) {
+        if visible {
+            self.root.add_child(&self.overflow_lower);
+        } else {
+            self.root.remove_child(&self.overflow_lower);
+        }
+    }
+
+    /// Set whether the upper overfow marker is visible.
+    pub fn set_overflow_upper_visible(&self, visible: bool) {
+        if visible {
+            self.root.add_child(&self.overflow_upper);
+        } else {
+            self.root.remove_child(&self.overflow_upper);
+        }
+    }
+
+    /// Set the position of the slider's label.
+    pub fn set_label_position(
+        &self,
+        (comp_width, comp_height, lab_width, lab_height, position, orientation): &(
+            f32,
+            f32,
+            f32,
+            f32,
+            LabelPosition,
+            SliderOrientation,
+        ),
+    ) {
+        let label_position_x = match orientation {
+            SliderOrientation::Horizontal => match position {
+                LabelPosition::Inside => -comp_width / 2.0 + comp_height / 2.0,
+                LabelPosition::Outside => -comp_width / 2.0 - comp_height / 2.0 - lab_width,
+            },
+            SliderOrientation::Vertical => -lab_width / 2.0,
+        };
+        let label_position_y = match orientation {
+            SliderOrientation::Horizontal => lab_height / 2.0,
+            SliderOrientation::Vertical => match position {
+                LabelPosition::Inside => comp_height / 2.0 - comp_width / 2.0,
+                LabelPosition::Outside => comp_height / 2.0 + comp_width / 2.0 + lab_height,
+            },
+        };
+        self.label.set_xy(Vector2(label_position_x, label_position_y));
+    }
+
+    /// Set whether the slider value text is hidden.
+    pub fn set_value_text_hidden(&self, hidden: bool) {
+        if hidden {
+            self.root.remove_child(&self.value_text_left);
+            self.root.remove_child(&self.value_text_dot);
+            self.root.remove_child(&self.value_text_right);
+        } else {
+            self.root.add_child(&self.value_text_left);
+            self.root.add_child(&self.value_text_dot);
+            self.root.add_child(&self.value_text_right);
+        }
     }
 
     /// Set whether the slider label is hidden.
@@ -174,6 +402,29 @@ impl Model {
             self.root.remove_child(&self.label);
         } else {
             self.root.add_child(&self.label);
+        }
+    }
+
+    /// Set whether the value is being edited. This hides the value display and shows a text editor
+    /// field to enter a new value.
+    pub fn set_edit_mode(&self, (editing, precision): &(bool, f32)) {
+        if *editing {
+            self.root.remove_child(&self.value_text_left);
+            self.root.remove_child(&self.value_text_dot);
+            self.root.remove_child(&self.value_text_right);
+            self.root.add_child(&self.value_text_edit);
+            self.value_text_edit.deprecated_focus();
+            self.value_text_edit.add_cursor_at_front();
+            self.value_text_edit.cursor_select_to_text_end();
+        } else {
+            self.root.add_child(&self.value_text_left);
+            if *precision < 1.0 {
+                self.root.add_child(&self.value_text_dot);
+                self.root.add_child(&self.value_text_right);
+            }
+            self.root.remove_child(&self.value_text_edit);
+            self.value_text_edit.deprecated_defocus();
+            self.value_text_edit.remove_all_cursors();
         }
     }
 

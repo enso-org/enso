@@ -100,6 +100,9 @@
 - [Added a new component: Slider][3852]. It allows adjusting a numeric value
   with the mouse. The precision of these adjustments can be increased or
   decreased.
+- [Slider component functionality improvements][3885]. The slider component now
+  supports multiple ways to handle out-of-range values. The slider's value can
+  be edited as text, and a new vertical slider layout is available.
 - [Added ProjectsGrid view for Cloud Dashboard][3857]. It provides the first
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
@@ -397,6 +400,7 @@
 [3874]: https://github.com/enso-org/enso/pull/3874
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
+[3885]: https://github.com/enso-org/enso/pull/3885
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
 

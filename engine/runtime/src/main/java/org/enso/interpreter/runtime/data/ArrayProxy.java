@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -10,6 +12,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -24,6 +27,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Data.Array_Proxy.Array_Proxy")
+@ImportStatic(BranchProfile.class)
 public final class ArrayProxy implements TruffleObject {
   private final long length;
   private final Object at;
@@ -59,13 +63,16 @@ public final class ArrayProxy implements TruffleObject {
   }
 
   @ExportMessage
-  public Object readArrayElement(long index, @CachedLibrary(limit = "3") InteropLibrary interop)
+  public Object readArrayElement(
+      long index,
+      @Cached("create()") BranchProfile arrayIndexHasHappened,
+      @CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException, InvalidArrayIndexException {
-    if (index >= length || index < 0) {
-      throw InvalidArrayIndexException.create(index);
-    }
-
     try {
+      if (index >= length || index < 0) {
+        arrayIndexHasHappened.enter();
+        throw InvalidArrayIndexException.create(index);
+      }
       return interop.execute(at, index);
     } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException e) {
       throw UnsupportedMessageException.create(e);

@@ -20,6 +20,7 @@ import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import org.enso.interpreter.instrument.HostObjectDebugWrapper;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -223,7 +224,12 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @OutgoingConverter
   public Object wrapHostObjects(Object retValue) {
-    return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached());
+    // Wrap only if chrome inspector is attached.
+    if (EnsoContext.get(this).getChromeInspectorNotAttached().isValid()) {
+      return retValue;
+    } else {
+      return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached());
+    }
   }
 
   @ExportMessage
