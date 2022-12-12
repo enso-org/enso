@@ -19,7 +19,7 @@ import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
   AuthorName,
-  MasterRef,
+  HeadRef,
   RepoExists
 }
 
@@ -226,7 +226,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       val changedPaths = changed.map(name => Path.of(name)).toSet
       val logCmd       = jgit.log()
       val last =
-        Option(repo.resolve(MasterRef)) flatMap (_ => {
+        Option(repo.resolve(HeadRef)) flatMap (_ => {
           val logs = logCmd.setMaxCount(1).call().iterator()
           if (logs.hasNext()) {
             val log = logs.next()
@@ -301,7 +301,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 }
 
 object Git {
-  private val MasterRef   = "refs/heads/master"
+  private val HeadRef     = "HEAD"
   private val AuthorName  = "Enso VCS"
   private val AuthorEmail = "vcs@enso.io"
 
