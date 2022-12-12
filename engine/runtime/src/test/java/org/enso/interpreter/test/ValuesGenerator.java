@@ -73,6 +73,48 @@ class ValuesGenerator {
     """, "Text");
   }
 
+  public Value typeDate() {
+    return v("typeDate", """
+    import Standard.Base.Data.Time.Date
+    """, "Date");
+  }
+
+  public Value typeDatePeriod() {
+    return v("typeDate_Period", """
+    import Standard.Base.Data.Time.Date_Period
+    """, "Date_Period");
+  }
+
+  public Value typeDateTime() {
+    return v("typeDate_Time", """
+    import Standard.Base.Data.Time.Date_Time
+    """, "Date_Time");
+  }
+
+  public Value typeDuration() {
+    return v("typeDuration", """
+    import Standard.Base.Data.Time.Duration
+    """, "Duration");
+  }
+
+  public Value typePeriod() {
+    return v("typePeriod", """
+    import Standard.Base.Data.Time.Period
+    """, "Period");
+  }
+
+  public Value typeTimePeriod() {
+    return v("typeTimePeriod", """
+    import Standard.Base.Data.Time.Time_Period
+    """, "Time_Period");
+  }
+
+  public Value typeTimeZone() {
+    return v("typeTimeZone", """
+    import Standard.Base.Data.Time.Time_Zone
+    """, "Time_Zone");
+  }
+
   public List<Value> numbers() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {

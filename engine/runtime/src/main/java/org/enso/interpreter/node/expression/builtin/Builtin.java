@@ -76,7 +76,7 @@ public abstract class Builtin {
   }
 
   protected boolean isInstanceOfItself() {
-    return getDeclaredConstructors().size() == 0 &&getSuperType() == Any.class;
+    return getDeclaredConstructors().size() == 0 && getSuperType() == Any.class;
   }
 
   protected void postInitialize() {}
