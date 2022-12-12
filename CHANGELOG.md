@@ -74,6 +74,7 @@
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
 - [Added project snapshot saving on shortcut][3923]
+- [Added shortcut to interrupt the program][3967]
 
 #### EnsoGL (rendering engine)
 
@@ -399,6 +400,7 @@
 [3841]: https://github.com/enso-org/enso/pull/3841
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
+[3967]: https://github.com/enso-org/enso/pull/3967
 
 #### Enso Compiler
 
