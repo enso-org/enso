@@ -68,7 +68,7 @@ type Test
     specify label ~behavior pending=Nothing =
         pair = case pending of
             Nothing -> Duration.time_execution (State.run Clue Nothing (run_spec behavior))
-            reason -> Pair_Data Duration.zero (Test_Result.Pending reason)
+            reason -> Pair.new Duration.zero (Test_Result.Pending reason)
         result = pair.second
         time_taken = pair.first
         spec = State.get Spec
@@ -161,7 +161,7 @@ type Test
                     Test.specify "some property" <|
                         xs = Vector.new 100 (n -> n)
                         xs.each x->
-                            Test.with_clue ("[" x.to_text "] ") <|
+                            Test.with_clue ("["+x.to_text+"] ") <|
                                     x . should_equal 0
 
     with_clue : Text|(Text -> Text) -> Any -> Any
@@ -278,4 +278,4 @@ type Clue
 
        Arguments:
        - add_clue: either Nothing or a function which modifies a failure message
-    Clue_Data ~add_clue
+    Clue_Data add_clue
