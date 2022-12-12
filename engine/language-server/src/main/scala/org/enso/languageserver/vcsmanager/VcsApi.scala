@@ -72,12 +72,12 @@ object VcsApi {
   *
   * @param isDirty `true`, if there are any unsaved changes to the project, `false` otherwise
   * @param changed list of modified, new or deleted files that have not yet been recorded permanently in VCS
-  * @param lastCommit metadata of the last commit recorder for the project
+  * @param lastCommit optional metadata of the last commit recorder for the project
   */
 case class RepoStatus(
   isDirty: Boolean,
   changed: Set[Path],
-  lastCommit: RepoCommit
+  lastCommit: Option[RepoCommit]
 )
 
 /** Encapsulates metadata of a single commit of the project.

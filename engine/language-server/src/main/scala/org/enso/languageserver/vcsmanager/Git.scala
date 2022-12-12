@@ -232,7 +232,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
             val log = logs.next()
             Option(RepoCommit(log.getName, log.getShortMessage()))
           } else None
-        }) getOrElse null
+        })
       RepoStatus(changed.nonEmpty, changedPaths, last)
     }.mapError(errorHandling)
   }
