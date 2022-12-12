@@ -212,8 +212,7 @@ pub fn main() {
 
             // === Disable navigator on hover ===
 
-            navigator.frp.disable <+ panel.is_hovered.on_true();
-            navigator.frp.enable <+ panel.is_hovered.on_false();
+            navigator.frp.set_enabled <+ panel.is_hovered.not();
         }
         init.emit(());
 

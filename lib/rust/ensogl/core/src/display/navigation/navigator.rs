@@ -245,8 +245,7 @@ impl NavigatorModel {
 
 define_endpoints_2! {
     Input {
-        enable(),
-        disable(),
+        set_enabled(bool),
     }
     Output {
         enabled(bool),
@@ -275,10 +274,11 @@ impl Navigator {
 
         let network = frp.network();
         frp::extend! { network
-            eval_ frp.enable(model.enable());
-            eval_ frp.disable(model.disable());
-            out.enabled <+ frp.enable.constant(true);
-            out.enabled <+ frp.disable.constant(false);
+            enable <- frp.set_enabled.on_true();
+            disable <- frp.set_enabled.on_false();
+            eval_ enable(model.enable());
+            eval_ disable(model.disable());
+            out.enabled <+ frp.set_enabled;
         }
 
         Navigator { model, frp }
