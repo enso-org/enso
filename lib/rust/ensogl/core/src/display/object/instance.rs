@@ -1938,6 +1938,7 @@ impl Model {
         }
         if first_pass {
             if self.layout.auto_layout.borrow().is_some() {
+                println!("Resetting bbox_origin");
                 self.layout.bbox_origin.set(default());
             }
         }
@@ -1963,11 +1964,14 @@ impl Model {
         Vector2<f32>: DimSetter<Dim>,
         Vector3<f32>: DimSetter<Dim>,
         Dim: Debug, {
+        println!("[{}] refresh_layout_manual. first pass? {}", self.name, first_pass);
+
         let children = self.children();
         if children.is_empty() {
             if self.layout.size.get_dim(x).is_hug() {
                 println!("[M] Setting size.{:?} of {} to {}", x, self.name, 0.0);
                 self.layout.computed_size.set_dim(x, 0.0);
+                println!("[M] bbox_origin.{:?} = 0.0", x);
                 self.layout.bbox_origin.set_dim(x, 0.0);
             }
         } else {
@@ -1994,8 +1998,10 @@ impl Model {
             if self.layout.size.get_dim(x).is_hug() {
                 println!("[M] Setting size.{:?} of {} to {}", x, self.name, new_size);
                 self.layout.computed_size.set_dim(x, new_size);
+                println!("[M] bbox_origin.{:?} = {}", x, new_bbox_origin);
                 self.layout.bbox_origin.set_dim(x, new_bbox_origin);
             } else {
+                println!("[M] bbox_origin.{:?} = 0.0", x);
                 self.layout.bbox_origin.set_dim(x, 0.0);
             }
 
@@ -2399,6 +2405,7 @@ impl Model {
                 let alignment = child.layout.alignment.get().get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
                 let bbox_origin = child.bbox_origin();
+                println!("!!! bbox_origin: {:?}", bbox_origin);
                 child.set_position_dim(
                     x,
                     pos_x - bbox_origin.get_dim(x) + child_offset + margin.start,
@@ -4295,5 +4302,63 @@ mod layout_tests {
             .assert_node1_position(-1.0, 0.0)
             .assert_node2_position(1.0, -1.0)
             .assert_node3_position(3.0, 1.0);
+    }
+
+
+    /// ```text
+    /// ╭────────────────────────────────┬────────────────────────────────╮
+    /// │ root                           ┆                                │
+    /// │  ╭────┬─────────────────────╮  ┆  ╭────┬─────────────────────╮  │
+    /// │  │    ┆ node1               │  ┆  │    ┆ node2               │  │
+    /// │  │ ╭──┼──────╮              │  ┆  │ ╭──┼──────╮              │  │
+    /// │  │ │ node1_1 │              │  ┆  │ │ node2_2 │              │  │
+    /// │  │ │  ┆      │  ╭─────────╮ │  ┆  │ │  ┆      │  ╭─────────╮ │  │
+    /// │  │ ╰──┼──────╯  │ node1_2 │ │  ┆  │ ╰──┼──────╯  │ node2_2 │ │  │
+    /// │  │    ◎┈┈┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┈┈┼┈┤  ┆  │    ◎┈┈┈┈┈┈┈┈┈┼┈┈┈┈┈┈┈┈┈┼┈┤  │
+    /// │  │              ╰─────────╯ │  ┆  │              ╰─────────╯ │  │
+    /// │  ╰──────────────────────────╯  ┆  ╰──────────────────────────╯  │
+    /// ╰────────────────────────────────┴────────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_layout_with_children_with_shifted_bbox_origins() {
+        let test = TestFlatChildren2::new();
+
+        test.root.use_auto_layout();
+
+        let node1_1 = test.node1.new_child_named("node1_1");
+        let node1_2 = test.node1.new_child_named("node1_2");
+        node1_1.set_size((2.0, 2.0));
+        node1_2.set_size((2.0, 2.0));
+        node1_1.set_xy((-1.0, 0.0));
+        node1_2.set_xy((1.0, -1.0));
+
+        let node2_1 = test.node2.new_child_named("node2_1");
+        let node2_2 = test.node2.new_child_named("node2_2");
+        node2_1.set_size((2.0, 2.0));
+        node2_2.set_size((2.0, 2.0));
+        node2_1.set_xy((-1.0, 0.0));
+        node2_2.set_xy((1.0, -1.0));
+
+        test.run();
+
+        assert_eq!(node1_1.position().xy(), Vector2(-1.0, 0.0));
+        assert_eq!(node1_2.position().xy(), Vector2(1.0, -1.0));
+        assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(node1_2.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(test.node1.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node1.computed_size(), Vector2(4.0, 3.0));
+
+        assert_eq!(node2_1.position().xy(), Vector2(-1.0, 0.0));
+        assert_eq!(node2_2.position().xy(), Vector2(1.0, -1.0));
+        assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(node2_2.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(test.node2.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node2.computed_size(), Vector2(4.0, 3.0));
+
+        test.assert_node1_position(1.0, 1.0)
+            .assert_node2_position(5.0, 1.0)
+            .assert_root_computed_size(8.0, 3.0)
+            .assert_root_bbox_origin(0.0, 0.0)
+            .assert_root_position(0.0, 0.0);
     }
 }
