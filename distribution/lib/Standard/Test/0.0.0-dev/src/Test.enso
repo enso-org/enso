@@ -126,7 +126,7 @@ type Test
              from Standard.Test import Test
 
              example_fail = Test.fail "Something went wrong."
-    fail : Text -> Test_Result
+    fail : Text -> Nothing|Text -> Test_Result
     fail message details=Nothing =
         clue_data = State.get Clue
         message_with_clue = case clue_data of
