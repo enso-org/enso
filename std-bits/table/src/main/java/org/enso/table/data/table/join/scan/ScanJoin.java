@@ -29,27 +29,16 @@ public class ScanJoin implements JoinStrategy {
     int rs = right.rowCount();
 
     MatcherFactory factory = new MatcherFactory(objectComparator, equalityFallback);
-    List<Matcher> matchers = conditions.stream().map(factory::create).collect(Collectors.toList());
+    Matcher compoundMatcher = factory.create(conditions);
 
     for (int l = 0; l < ls; ++l) {
       for (int r = 0; r < rs; ++r) {
-        boolean match = true;
-        checkMatch: for (Matcher matcher : matchers) {
-          if (!matcher.matches(l, r)) {
-            match = false;
-            break checkMatch;
-          }
-        }
-
-        if (match) {
+        if (compoundMatcher.matches(l, r)) {
           matches.add(Pair.create(l, r));
         }
       }
     }
 
-    AggregatedProblems problems =
-        AggregatedProblems.merge(
-            matchers.stream().map(Matcher::getProblems).toArray(AggregatedProblems[]::new));
-    return new JoinResult(matches, problems);
+    return new JoinResult(matches, compoundMatcher.getProblems());
   }
 }

@@ -13,7 +13,9 @@ import org.enso.table.data.table.problems.FloatingPointGrouping;
 
 import java.util.Comparator;
 import java.util.Locale;
+import java.util.List;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public class MatcherFactory {
   private final Comparator<Object> objectComparator;
@@ -31,6 +33,37 @@ public class MatcherFactory {
       case Between between -> new BetweenMatcher(between, objectComparator);
       default -> throw new UnsupportedOperationException("Unsupported join condition: " + condition);
     };
+  }
+
+  public Matcher create(List<JoinCondition> condition) {
+    List<Matcher> matchers = condition.stream().map(this::create).collect(Collectors.toList());
+    return new CompoundMatcher(matchers);
+  }
+
+  static final class CompoundMatcher implements Matcher {
+    private final List<Matcher> matchers;
+
+    CompoundMatcher(List<Matcher> matchers) {
+      this.matchers = matchers;
+    }
+
+    @Override
+    public boolean matches(int left, int right) {
+      boolean match = true;
+      for (Matcher matcher : matchers) {
+        if (!matcher.matches(left, right)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    @Override
+    public AggregatedProblems getProblems() {
+      return AggregatedProblems.merge(
+          matchers.stream().map(Matcher::getProblems).toArray(AggregatedProblems[]::new));
+    }
   }
 
   static final class EqualsMatcher implements Matcher {

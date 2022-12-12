@@ -294,9 +294,7 @@ public class Table {
     JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
     if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
-      // TODO We'll want a mixed strategy doing Index for supported conditions and then scanning on subgroups. For now Index works only for the simple happy path.
-      boolean allCanUseIndex = conditions.stream().allMatch(IndexJoin::isSupported);
-      JoinStrategy strategy = allCanUseIndex ? new IndexJoin(objectComparator) : new ScanJoin(objectComparator, equalityFallback);
+      JoinStrategy strategy = new IndexJoin(objectComparator, equalityFallback);
       joinResult = strategy.join(this, right, conditions);
     }
 

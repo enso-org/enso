@@ -449,7 +449,7 @@ spec setup =
         Test.specify "should efficiently compute case-insensitive equality joins" <|
             unique_text_for_number prefix i =
                 suffix = Text.from_utf_8 [97 + i%20]
-                "a" + i.to_text + "-" + suffix
+                prefix + i.to_text + "-" + suffix
             lowers = 0.up_to n . map (unique_text_for_number "a")
             uppers = 0.up_to n . map (unique_text_for_number "A")
             t1 = table_builder [["X", lowers], ["Y", 0.up_to n . map i-> if i%2 == 0 then "a" else "b"], ["A", Vector.fill n 44], ["B", Vector.fill n 9], ["N", 0.up_to n . to_vector]]
@@ -504,3 +504,6 @@ spec setup =
             if runtime_ms > expected_max_time_ms then
                 Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
 
+        # TODO
+        Test.specify "should efficiently compute mixed joins where all kinds of conditions have big intersection sizes" <|
+            Nothing
