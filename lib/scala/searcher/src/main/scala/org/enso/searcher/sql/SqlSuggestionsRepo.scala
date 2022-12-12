@@ -1048,7 +1048,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           kind             = SuggestionKind.CONSTRUCTOR,
           module           = module,
           name             = name,
-          selfType         = SelfTypeColumn.EMPTY,
+          selfType         = returnType,
           returnType       = returnType,
           parentType       = None,
           isStatic         = false,
