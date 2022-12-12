@@ -1,15 +1,12 @@
     package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -51,6 +48,7 @@ public class VectorBenchmarks {
       .allowAllAccess(true)
       .build();
 
+    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
     var code = """
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
@@ -81,7 +79,8 @@ public class VectorBenchmarks {
         create_array_proxy vec =
           Array_Proxy.from_proxy_object vec
         """;
-    var module = ctx.eval("enso", code);
+
+    var module = ctx.eval(SrcUtil.source(benchmarkName, code));
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
@@ -89,7 +88,7 @@ public class VectorBenchmarks {
     var length = 1000;
     Value vec = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
 
-    switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
+    switch (benchmarkName) {
       case "averageOverVector": {
         this.arrayOfFibNumbers = vec;
         break;
