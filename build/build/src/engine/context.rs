@@ -392,7 +392,6 @@ impl RunContext {
 
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
-            enso.run_meta_tests(&sbt).await?;
         }
 
         if self.config.build_engine_package() {
