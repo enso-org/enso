@@ -181,7 +181,9 @@ impl Model {
         })
     }
 
-    /// This is called on any module change. It should be followed by a call to `check_project_changed` to verify that there is indeed a project change compared to the last saved VCS snapshot.
+    /// This is called on any module change. It should be followed by a call to
+    /// `check_project_changed` to verify that there is indeed a project change compared to the last
+    /// saved VCS snapshot.
     fn assume_project_changed(&self) {
         self.view.graph().model.breadcrumbs.set_project_changed(true);
     }
@@ -194,7 +196,7 @@ impl Model {
                 Err(err) => {
                     breadcrumbs.set_project_changed(true);
                     error!("Error while checking project snapshot status: {err}")
-                },
+                }
                 Ok(dirty) => breadcrumbs.set_project_changed(dirty),
             }
         })
@@ -342,9 +344,9 @@ impl Project {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifications, move |notification, model| {
             match notification.kind {
-                model::module::NotificationKind::Invalidate |
-                model::module::NotificationKind::CodeChanged{..} |
-                model::module::NotificationKind::MetadataChanged =>
+                model::module::NotificationKind::Invalidate
+                | model::module::NotificationKind::CodeChanged { .. }
+                | model::module::NotificationKind::MetadataChanged =>
                     model.assume_project_changed(),
             }
             futures::future::ready(())

@@ -256,7 +256,8 @@ impl ProjectName {
         let saved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
         let saved_selected_color = styles.get_color(breadcrumbs_theme::selected);
         let unsaved_hover_color = styles.get_color(breadcrumbs_theme::unsaved::hover);
-        let unsaved_deselected_color = styles.get_color(breadcrumbs_theme::unsaved::deselected::left);
+        let unsaved_deselected_color =
+            styles.get_color(breadcrumbs_theme::unsaved::deselected::left);
         let unsaved_selected_color = styles.get_color(breadcrumbs_theme::unsaved::selected);
         let animations = Animations::new(network);
 
