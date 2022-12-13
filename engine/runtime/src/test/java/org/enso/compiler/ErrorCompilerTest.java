@@ -75,6 +75,16 @@ public class ErrorCompilerTest {
   }
 
   @Test
+  public void badCase4() throws Exception {
+    var ir = parseTest("""
+    main =
+        case value of
+        -1 ->"minus one"
+    """);
+    assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 32, 45);
+  }
+
+  @Test
   public void malformedSequence1() throws Exception {
     var ir = parseTest("(1, )");
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 0, 5);

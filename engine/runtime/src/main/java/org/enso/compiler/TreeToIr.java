@@ -636,6 +636,9 @@ final class TreeToIr {
           case "->" -> {
             // Old-style lambdas; this syntax will be eliminated after the parser transition is complete.
             var arg = app.getLhs();
+            if (arg == null) {
+              yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+            }
             var isSuspended = new boolean[1];
             if (arg instanceof Tree.UnaryOprApp susApp && "~".equals(susApp.getOpr().codeRepr())) {
                 arg = susApp.getRhs();
@@ -1213,6 +1216,18 @@ final class TreeToIr {
         new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
       case Tree.Number num ->
         new IR$Pattern$Literal((IR.Literal) translateNumber(num), getIdentifiedLocation(num), meta(), diag());
+      case Tree.UnaryOprApp num when num.getOpr().codeRepr().equals("-") -> {
+        var n = (IR$Literal$Number) translateExpression(num.getRhs());
+        var t = n.copy(
+          n.copy$default$1(),
+          "-" + n.copy$default$2(),
+          n.copy$default$3(),
+          n.copy$default$4(),
+          n.copy$default$5(),
+          n.copy$default$6()
+        );
+        yield new IR$Pattern$Literal(t, getIdentifiedLocation(num), meta(), diag());
+      }
       case Tree.TypeAnnotated anno -> {
         var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));
         var expr = buildNameOrQualifiedName(maybeManyParensed(anno.getExpression()));
