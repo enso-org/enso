@@ -145,7 +145,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val r = modifiedResultEither1.getOrElse(null)
       r shouldBe an[RepoStatus]
       repoStatusIgnoreSha(r) should equal(
-        RepoStatus(false, Set(), RepoCommit(null, "Initial commit"))
+        RepoStatus(false, Set(), Some(RepoCommit(null, "Initial commit")))
       )
 
       createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
@@ -162,7 +162,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val r = modifiedResultEither1.getOrElse(null)
       r shouldBe an[RepoStatus]
       repoStatusIgnoreSha(r) should equal(
-        RepoStatus(false, Set(), RepoCommit(null, "Initial commit"))
+        RepoStatus(false, Set(), Some(RepoCommit(null, "Initial commit")))
       )
 
       createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
@@ -177,7 +177,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       repoStatusIgnoreSha(r2) shouldBe RepoStatus(
         false,
         Set(),
-        RepoCommit(null, "New files")
+        Some(RepoCommit(null, "New files"))
       )
     }
 
@@ -200,7 +200,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       repoStatusIgnoreSha(r) shouldBe RepoStatus(
         true,
         Set(fooFile.getFileName),
-        RepoCommit(null, "New files")
+        Some(RepoCommit(null, "New files"))
       )
 
     }
@@ -391,7 +391,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
     }
 
     def repoStatusIgnoreSha(r: RepoStatus) = {
-      r.copy(lastCommit = r.lastCommit.copy(commitId = null))
+      r.copy(lastCommit = r.lastCommit.map(_.copy(commitId = null)))
     }
   }
 

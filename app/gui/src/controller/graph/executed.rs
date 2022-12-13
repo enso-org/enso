@@ -279,6 +279,18 @@ impl Handle {
         Ok(())
     }
 
+    /// Interrupt the program execution.
+    pub async fn interrupt(&self) -> FallibleResult {
+        self.execution_ctx.interrupt().await?;
+        Ok(())
+    }
+
+    /// Restart the program execution.
+    pub async fn restart(&self) -> FallibleResult {
+        self.execution_ctx.restart().await?;
+        Ok(())
+    }
+
     /// Get the current call stack frames.
     pub fn call_stack(&self) -> Vec<LocalCall> {
         self.execution_ctx.stack_items().collect()
