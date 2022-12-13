@@ -121,7 +121,6 @@ mod js_color {
     }
 }
 
-// Make it as if module `js_color` members were defined here.
 pub use js_color::*;
 
 impl From<color::Rgba> for JsColor {
