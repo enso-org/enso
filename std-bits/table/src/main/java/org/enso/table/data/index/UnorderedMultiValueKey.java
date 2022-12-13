@@ -3,6 +3,8 @@ package org.enso.table.data.index;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import org.enso.base.polyglot.NumericConverter;
@@ -20,14 +22,10 @@ import org.enso.table.data.column.storage.Storage;
  */
 public class UnorderedMultiValueKey extends MultiValueKeyBase {
   private final int hashCodeValue;
-  private final TextFoldingStrategy textFoldingStrategy;
-
-  public UnorderedMultiValueKey(Storage<?>[] storages, int rowIndex) {
-    this(storages, rowIndex, TextFoldingStrategy.unicodeNormalizedFold);
-  }
+  private final List<TextFoldingStrategy> textFoldingStrategy;
 
   public UnorderedMultiValueKey(
-      Storage<?>[] storages, int rowIndex, TextFoldingStrategy textFoldingStrategy) {
+      Storage<?>[] storages, int rowIndex, List<TextFoldingStrategy> textFoldingStrategy) {
     super(storages, rowIndex);
     this.textFoldingStrategy = textFoldingStrategy;
 
@@ -36,11 +34,10 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     for (int i = 0; i < storages.length; i++) {
       h = 31 * h;
 
-      Object value = this.get(i);
-      if (value != null) {
-        hasFloatValues = hasFloatValues || NumericConverter.isDecimalLike(value);
-        Object folded = foldObject(value);
-        h += folded.hashCode();
+      Object foldedValue = getObjectFolded(i);
+      if (foldedValue != null) {
+        hasFloatValues = hasFloatValues || NumericConverter.isDecimalLike(foldedValue);
+        h += foldedValue.hashCode();
       }
     }
 
@@ -48,12 +45,16 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     floatsComputed = true;
   }
 
+  protected Object getObjectFolded(int index) {
+    return foldObject(this.get(index), textFoldingStrategy.get(index));
+  }
+
   /**
    * Folds the value to ensure consistency with Enso's equality.
    *
    * <p>Case-sensitivity of text folding is controlled by {@code textFoldingStrategy}.
    */
-  protected Object foldObject(Object value) {
+  protected static Object foldObject(Object value, TextFoldingStrategy textFoldingStrategy) {
     if (value == null) {
       return null;
     }
@@ -88,7 +89,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
    *
    * Returns {@code null} if the value was not a numeric value.
    */
-  protected Object foldNumeric(Object value) {
+  protected static Object foldNumeric(Object value) {
     if (value instanceof Long) {
       return value;
     } else if (value instanceof Integer i) {
@@ -115,8 +116,8 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     if (storages.length != that.storages.length) return false;
     if (hashCodeValue != that.hashCodeValue) return false;
     for (int i = 0; i < storages.length; i++) {
-      Object thisFolded = foldObject(this.get(i));
-      Object thatFolded = foldObject(that.get(i));
+      Object thisFolded = getObjectFolded(i);
+      Object thatFolded = getObjectFolded(i);
       if (!Objects.equals(thisFolded, thatFolded)) {
         return false;
       }
