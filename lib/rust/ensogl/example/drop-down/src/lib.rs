@@ -75,7 +75,7 @@ fn init(app: &Application) {
         SelectConfigEntry("Single select".into(), false),
         SelectConfigEntry("Multi select".into(), true),
     ]);
-    multi_config_dropdown.set_opened(true);
+    multi_config_dropdown.set_open(true);
 
 
     let open_dropdown = app.new_view::<Dropdown<SelectConfigEntry<_>>>();
@@ -86,12 +86,12 @@ fn init(app: &Application) {
         SelectConfigEntry("Opened".into(), true),
         SelectConfigEntry("Closed".into(), false),
     ]);
-    open_dropdown.set_opened(true);
+    open_dropdown.set_open(true);
 
     let secondary_dropdown = app.new_view::<Dropdown<EntryData>>();
     world.add_child(&secondary_dropdown);
     secondary_dropdown.set_xy(Vector2(100.0, 0.0));
-    secondary_dropdown.set_opened(true);
+    secondary_dropdown.set_open(true);
 
 
     let static_entries =
@@ -99,26 +99,24 @@ fn init(app: &Application) {
     let dropdown_static1 = app.new_view::<Dropdown<&str>>();
     dropdown_static1.set_xy(Vector2(300.0, 0.0));
     dropdown_static1.set_all_entries(static_entries.clone());
-    dropdown_static1.set_opened(true);
+    dropdown_static1.set_open(true);
 
     let dropdown_static2 = app.new_view::<Dropdown<&str>>();
     dropdown_static2.set_xy(Vector2(400.0, 0.0));
     dropdown_static2.set_all_entries(static_entries.clone());
-    dropdown_static2.set_opened(true);
+    dropdown_static2.set_open(true);
     world.add_child(&dropdown_static1);
     world.add_child(&dropdown_static2);
 
 
     frp::new_network! { network
-        trace multi_config_dropdown.single_selected_entry;
-        trace multi_config_dropdown.selected_entries;
         main_dropdown.set_multiselect <+ multi_config_dropdown.single_selected_entry.unwrap().map(SelectConfigEntry::item);
-        main_dropdown.set_opened <+ open_dropdown.single_selected_entry.unwrap().map(SelectConfigEntry::item);
+        main_dropdown.set_open <+ open_dropdown.single_selected_entry.unwrap().map(SelectConfigEntry::item);
 
         dropdown_static1.set_selected_entries <+ dropdown_static2.selected_entries;
         dropdown_static2.set_selected_entries <+ dropdown_static1.selected_entries;
 
-        secondary_dropdown.set_all_entries <+ main_dropdown.single_selected_entry.map(|entries| {
+        secondary_dropdown.set_all_entries <+ main_dropdown.selected_entries.map(|entries| {
             entries.iter().cloned().collect()
         });
     }
@@ -140,13 +138,13 @@ fn init(app: &Application) {
 
 
 fn entry_for_row(row: usize) -> EntryData {
-    EntryData(row as i32 * 3 / 2 - 7)
+    EntryData(row as i32 * 3 / 2 - 70)
 }
 
 fn setup_dropdown(app: &Application) -> Dropdown<EntryData> {
     let dropdown = app.new_view::<Dropdown<EntryData>>();
     dropdown.set_xy(Vector2(0.0, 0.0));
-    dropdown.set_number_of_entries(20);
+    dropdown.set_number_of_entries(2000);
 
     frp::new_network! { network
         entries <- dropdown.entries_in_range_needed.map(|range| (range.clone(), range.clone().map(entry_for_row).collect()));

@@ -338,6 +338,8 @@ impl Model {
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
                 let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
+                let argument_info = port.argument_info();
+                let port_widget = port.payload_mut().init_widget(&self.app, argument_info, node::HEIGHT);
 
                 port_shape.set_x(unit * index as f32);
                 if DEBUG {
@@ -368,7 +370,6 @@ impl Model {
                     let mouse_out      = port_shape.hover.events.mouse_out.clone_ref();
                     let mouse_down_raw = port_shape.hover.events.mouse_down_primary.clone_ref();
 
-                    trace mouse_over_raw;
 
                     // === Body Hover ===
 
@@ -405,8 +406,6 @@ impl Model {
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
                     area_frp.source.on_port_hover <+ hover;
 
-                    trace hovered;
-
                     // === Pointer Style ===
 
                     let port_shape_hover = port_shape.hover.clone_ref();
@@ -434,14 +433,18 @@ impl Model {
                     area_frp.source.pointer_style <+ pointer_style;
                 }
 
-                let argument_info = port.argument_info();
-                let port_widget = port.payload_mut().init_widget(&self.app, argument_info, node::HEIGHT);
                 if let Some(port_widget) = port_widget {
+                    port_widget.set_x(unit * index as f32);
                     builder.parent.add_child(&port_widget);
-
-                    frp::extend! { port_network
-                        port_widget.set_focused <+ hovered;
-                    }
+                    port_widget.set_focused(true);
+                    let code = &expression.viz_code[port.payload.range()];
+                    port_widget.set_current_value(Some(code.into()));
+                    // frp::extend! { port_network
+                        // toggle_opened <- bg_down.toggle();
+                            // raw_hovered <- bool(&mouse_out,&mouse_over_raw);
+                        // trace bg_down;
+                        // port_widget.set_focused <+ toggle_opened;
+                    // }
                 }
                 
 

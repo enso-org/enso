@@ -186,6 +186,7 @@ impl Model {
         self.shape.as_ref().unwrap().clone_ref()
     }
 
+    /// Widget initialization. Same rules apply as for the shape initialization.
     pub fn init_widget(
         &mut self,
         app: &Application,
@@ -193,7 +194,8 @@ impl Model {
         node_height: f32,
     ) -> Option<NodeWidget> {
         let Some(argument_info) = argument_info else { return None };
-        NodeWidget::new(app, argument_info, node_height)
+        self.widget = NodeWidget::new(app, argument_info, node_height);
+        self.widget.clone_ref()
     }
 
     /// The range of this port.

@@ -20,7 +20,7 @@ ensogl::define_endpoints_2! {
 }
 
 /// Possible widgets for a node input.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, CloneRef)]
 pub enum NodeWidget {
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoice),
@@ -34,6 +34,7 @@ impl NodeWidget {
         argument_info: span_tree::ArgumentInfo,
         node_height: f32,
     ) -> Option<Self> {
+        warn!("NodeWidget::new TAG_VALUES: {:?}", argument_info.tag_values);
         // TODO: support more widgets, use engine provided widget type
         if !argument_info.tag_values.is_empty() {
             Some(Self::SingleChoice(SingleChoice::new(app, argument_info, node_height)))
@@ -60,6 +61,7 @@ impl display::Object for NodeWidget {
     fn display_object(&self) -> &display::object::Instance {
         match self {
             Self::SingleChoice(s) => &s.display_object,
+            // Self::SingleChoice(s) => &s.dropdown.display_object(),
         }
     }
 }
@@ -70,7 +72,7 @@ impl display::Object for NodeWidget {
 
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, CloneRef)]
 pub struct SingleChoice {
     display_object: display::object::Instance,
     frp:            Frp,
@@ -88,9 +90,12 @@ impl SingleChoice {
         let input = &frp.input;
         let output = &frp.private.output;
         dropdown.set_y(-node_height);
+        dropdown.set_max_size(Vector2(120.0, 200.0));
 
         if !argument_info.tag_values.is_empty() {
-            dropdown.set_all_entries(argument_info.tag_values.clone());
+            let entries = argument_info.tag_values.clone();
+            warn!("Dropdown created with entries: {entries:?}");
+            dropdown.set_all_entries(entries);
         } else {
             // TODO: support dynamic entries
             unimplemented!();
@@ -100,7 +105,9 @@ impl SingleChoice {
             dropdown.set_selected_entries <+ input.set_current_value.map(|s| s.iter().cloned().collect());
             first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().cloned().next());
             output.value_changed <+ first_selected_entry.on_change();
-            dropdown.set_opened <+ input.set_focused;
+            trace input.set_focused;
+            dropdown.set_open <+ input.set_focused;
+            trace dropdown.set_open;
         }
 
         Self { display_object, frp, dropdown }

@@ -9,6 +9,7 @@ use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 
 use crate::entry::Entry;
+use crate::entry::EntryModel;
 use crate::entry::EntryParams;
 use crate::DropdownValue;
 
@@ -119,6 +120,35 @@ impl<T: DropdownValue> Model<T> {
         }
     }
 
+    pub fn get_ready_and_request_ranges(
+        &self,
+        requested_indices: &[usize],
+    ) -> (Vec<Range<usize>>, Vec<Range<usize>>) {
+        let cache = self.cache.borrow();
+
+        let mut request_ranges: Vec<Range<usize>> = Vec::new();
+        let mut ready_ranges: Vec<Range<usize>> = Vec::new();
+        for &index in requested_indices {
+            let modify_ranges = match cache.contains_key(index) {
+                true => &mut ready_ranges,
+                false => &mut request_ranges,
+            };
+
+            let mut new_range = Range { start: index, end: index + 1 };
+            modify_ranges.retain(|range| {
+                let ranges_overlap = new_range.start <= range.end && range.start <= new_range.end;
+                if ranges_overlap {
+                    new_range.start = range.start.min(new_range.start);
+                    new_range.end = range.end.max(new_range.end);
+                }
+                !ranges_overlap
+            });
+            modify_ranges.push(new_range);
+        }
+
+        (ready_ranges, request_ranges)
+    }
+
     pub fn accept_entry_at_index(&self, index: usize, allow_multiselect: bool, allow_empty: bool) {
         let cache = self.cache.borrow();
         let Some(entry) = cache.get(index) else { return };
@@ -135,17 +165,51 @@ impl<T: DropdownValue> Model<T> {
         }
     }
 
+    /// Returns an iterator over entry models in given range. Only iterates over models for entries
+    /// that are currently in cache.
+    ///
+    /// Note: The iterator borrows cache and selection. Make sure to drop it before calling any
+    /// methods that need to borrow them mutably.
+    pub fn entry_models_for_range(
+        &self,
+        range: Range<usize>,
+    ) -> impl Iterator<Item = (usize, EntryModel)> + '_ {
+        let cache = self.cache.borrow();
+        let selection = self.selected_entries.borrow();
+        range.filter_map(move |index| {
+            let entry = cache.get(index)?;
+            let selected = Immutable(selection.contains(entry));
+            let text = entry.label();
+            Some((index, EntryModel { text, selected }))
+        })
+    }
+
+    pub fn insert_entries_in_range(
+        &self,
+        updated_range: Range<usize>,
+        updated_entries: &[T],
+        visible_range: Range<usize>,
+        max_cache_size: usize,
+        num_entries: usize,
+    ) -> Range<usize> {
+        let update_start = updated_range.start.min(num_entries);
+        let update_end = updated_range.end.min(num_entries);
+        let truncated_range = update_start..update_end;
+        let truncated_entries = &updated_entries[0..(update_end - update_start)];
+
+        let mut cache = self.cache.borrow_mut();
+        cache.insert(truncated_range.clone(), truncated_entries, visible_range, max_cache_size);
+        truncated_range
+    }
+
     /// Prune selection according to changed multiselect mode. Returns true if the selection was
     /// changed.
     pub fn set_multiselect(&self, multiselect: bool) -> bool {
         let mut entries = self.selected_entries.borrow_mut();
         if !multiselect && entries.len() > 1 {
-            let mut to_drop = entries.len() - 1;
-            entries.retain(|_| {
-                let retain = to_drop == 0;
-                to_drop = to_drop.saturating_sub(1);
-                retain
-            });
+            let first = entries.drain().next();
+            let first = first.expect("Set should not be empty after checking size");
+            entries.insert(first);
             true
         } else {
             false
@@ -231,5 +295,9 @@ impl<T> EntryCache<T> {
     pub fn get(&self, position: usize) -> Option<&T>
     where T: Clone {
         self.position_to_entry.get(&position)
+    }
+
+    pub fn contains_key(&self, position: usize) -> bool {
+        self.position_to_entry.contains_key(&position)
     }
 }
