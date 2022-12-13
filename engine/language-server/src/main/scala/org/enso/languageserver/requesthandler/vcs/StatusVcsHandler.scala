@@ -49,7 +49,11 @@ class StatusVcsHandler(
       replyTo ! ResponseResult(
         StatusVcs,
         id,
-        StatusVcs.Result(isModified, changed, StatusVcs.Save(last._1, last._2))
+        StatusVcs.Result(
+          isModified,
+          changed,
+          last.map(commit => StatusVcs.Save(commit._1, commit._2))
+        )
       )
       cancellable.cancel()
       context.stop(self)
