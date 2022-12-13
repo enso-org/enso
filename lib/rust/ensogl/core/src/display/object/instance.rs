@@ -1290,7 +1290,6 @@ impl Debug for Instance {
 pub struct LayoutModel {
     auto_layout:             RefCell<Option<AutoLayout>>,
     alignment:               Cell<alignment::OptDim2>,
-    forced_origin_alignment: Cell<alignment::Dim2>,
     margin:                  Cell<Vector2<SideSpacing>>,
     padding:                 Cell<Vector2<SideSpacing>>,
     #[derivative(Default(
@@ -1302,40 +1301,33 @@ pub struct LayoutModel {
     grow_factor:             Cell<Vector2<f32>>,
     shrink_factor:           Cell<Vector2<f32>>,
     computed_size:           Cell<Vector2<f32>>,
-    bbox_origin:             Cell<Vector2<f32>>,
+    /// In case the children overflow the parent, this is set to the min x and y values of the
+    /// children.
+    content_origin:          Cell<Vector2<f32>>,
+    /// Force the alignment of origin. This will assume the origin to be placed differently than
+    /// computed. It is used by sprite system, as sprites handle their alignment by themselves.
+    forced_origin_alignment: Cell<alignment::Dim2>,
 }
 
 
 // === Margin and padding ===
 
-impl LayoutModel {
-    pub fn set_margin_all(&self, value: Unit) {
-        let margin = SideSpacing::from(value);
-        self.margin.set(Vector2(margin, margin));
-    }
-
-    pub fn set_margin_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
-        let horizontal = SideSpacing::new(left, right);
-        let vertical = SideSpacing::new(bottom, top);
-        self.margin.set(Vector2(horizontal, vertical));
-    }
-
-    pub fn set_padding_all(&self, value: Unit) {
-        let padding = SideSpacing::from(value);
-        self.padding.set(Vector2(padding, padding));
-    }
-
-    pub fn set_padding_trbl(&self, top: Unit, right: Unit, bottom: Unit, left: Unit) {
-        let horizontal = SideSpacing::new(left, right);
-        let vertical = SideSpacing::new(bottom, top);
-        self.padding.set(Vector2(horizontal, vertical));
-    }
-}
-
 impl Model {
     fn modify_layout(&self, f: impl FnOnce(&LayoutModel)) {
         self.dirty.transformation.set();
         f(&self.layout);
+    }
+
+    fn modify_alignment(&self, f: impl FnOnce(&mut alignment::OptDim2)) {
+        self.modify_layout(|layout| {
+            layout.alignment.modify(f);
+        });
+    }
+
+    fn modify_forced_origin_alignment(&self, f: impl FnOnce(&mut alignment::Dim2)) {
+        self.modify_layout(|layout| {
+            layout.forced_origin_alignment.modify(f);
+        });
     }
 
     fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
@@ -1346,22 +1338,25 @@ impl Model {
 }
 
 macro_rules! gen_alignment_setters {
-    ([$([$name:ident $x:tt $y:tt])*]) => {
-        paste! {
-            $(
-                /// Alignment setter.
-                fn [<align_ $name>](&self)  -> &Self {
-                    self.display_object().modify_layout(|l| {
-                        l.alignment.modify(|t| t.[<align_ $name>]());
-                    });
-                    self
-                }
-            )*
-        }
-    }
+    ([$([$name:ident $x:tt $y:tt])*]) => { paste! { $(
+        /// Alignment setter.
+        fn [<align_ $name>](&self)  -> &Self {
+            self.display_object().modify_alignment(|t| t.[<align_ $name>]());
+            self
+    })*}}
 }
 
-macro_rules! gen_spacing_props_for_layout_model2 {
+macro_rules! gen_origin_alignment_setters {
+    ([$([$name:ident $x:tt $y:tt])*]) => { paste! { $(
+        /// Alignment setter.
+        fn [<set_forced_origin_alignment_ $name>](&self)  -> &Self {
+            self.display_object().modify_forced_origin_alignment(|t| t.[<align_ $name>]());
+            self
+        }
+    )*}}
+}
+
+macro_rules! gen_spacing_props_for_layout_model {
     ([$tp: ident] [ $([$name:ident $axis:ident $loc:ident])* ]) => { paste! { $(
         /// Spacing setter.
         fn [<modify_ $tp _ $name>](&self, f: impl FnOnce(&mut Unit)) -> &Self {
@@ -1430,28 +1425,14 @@ macro_rules! gen_prop_accessors {
     };
 }
 
-macro_rules! gen_origin_alignment_setters {
-    ([$([$name:ident $x:tt $y:tt])*]) => {
-        paste! {
-            $(
-                /// Alignment setter.
-                fn [<set_forced_origin_alignment_ $name>](&self)  -> &Self {
-                    self.display_object().modify_layout(|l| {
-                        l.forced_origin_alignment.set(alignment::Dim2::$name());
-                    });
-                    self
-                }
-            )*
-        }
-    }
-}
+
 
 impl<T: Object + ?Sized> LayoutOps for T {}
 pub trait LayoutOps: Object {
     crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_alignment_setters);
     crate::with_alignment_dim2_named_matrix!(gen_origin_alignment_setters);
-    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[margin]);
-    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[padding]);
+    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model[margin]);
+    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model[padding]);
 
     fn set_forced_origin_alignment(&self, alignment: alignment::Dim2) -> &Self {
         self.display_object().modify_layout(|l| {
@@ -1466,8 +1447,8 @@ pub trait LayoutOps: Object {
     gen_prop_accessors!(grow_factor: Vector2<f32>);
     gen_prop_accessors!(shrink_factor: Vector2<f32>);
 
-    fn bbox_origin(&self) -> Vector2<f32> {
-        self.display_object().def.layout.bbox_origin.get()
+    fn content_origin(&self) -> Vector2<f32> {
+        self.display_object().def.layout.content_origin.get()
     }
 
     fn computed_size(&self) -> Vector2<f32> {
@@ -1524,9 +1505,9 @@ pub trait LayoutOps: Object {
         self
     }
 
-    fn set_margin_all(&self, value: impl Into<Unit>) -> &Self {
-        self.display_object().modify_layout(|l| l.set_margin_all(value.into()));
-        self
+    fn set_margin_all(&self, value: impl Into<Unit>) {
+        let margin = SideSpacing::from(value.into());
+        self.display_object().layout.margin.set(Vector2(margin, margin));
     }
 
     fn set_margin_trbl(
@@ -1535,16 +1516,15 @@ pub trait LayoutOps: Object {
         right: impl Into<Unit>,
         bottom: impl Into<Unit>,
         left: impl Into<Unit>,
-    ) -> &Self {
-        self.display_object().modify_layout(|l| {
-            l.set_margin_trbl(top.into(), right.into(), bottom.into(), left.into())
-        });
-        self
+    ) {
+        let horizontal = SideSpacing::new(left.into(), right.into());
+        let vertical = SideSpacing::new(bottom.into(), top.into());
+        self.display_object().layout.margin.set(Vector2(horizontal, vertical));
     }
 
-    fn set_padding_all(&self, value: impl Into<Unit>) -> &Self {
-        self.display_object().modify_layout(|l| l.set_padding_all(value.into()));
-        self
+    fn set_padding_all(&self, value: impl Into<Unit>) {
+        let padding = SideSpacing::from(value.into());
+        self.display_object().layout.padding.set(Vector2(padding, padding));
     }
 
     fn set_padding_trbl(
@@ -1553,11 +1533,10 @@ pub trait LayoutOps: Object {
         right: impl Into<Unit>,
         bottom: impl Into<Unit>,
         left: impl Into<Unit>,
-    ) -> &Self {
-        self.display_object().modify_layout(|l| {
-            l.set_padding_trbl(top.into(), right.into(), bottom.into(), left.into())
-        });
-        self
+    ) {
+        let horizontal = SideSpacing::new(left.into(), right.into());
+        let vertical = SideSpacing::new(bottom.into(), top.into());
+        self.display_object().layout.padding.set(Vector2(horizontal, vertical));
     }
 }
 
@@ -1962,8 +1941,8 @@ impl Model {
         }
         if first_pass {
             if self.layout.auto_layout.borrow().is_some() {
-                println!("Resetting bbox_origin");
-                self.layout.bbox_origin.set(default());
+                println!("Resetting content_origin");
+                self.layout.content_origin.set(default());
             }
         }
         match &*self.layout.auto_layout.borrow() {
@@ -1996,8 +1975,8 @@ impl Model {
             if hug_children && self.layout.size.get_dim(x).is_hug() {
                 println!("[M1 {}] Setting size.{:?} to {}", self.name, x, 0.0);
                 self.layout.computed_size.set_dim(x, 0.0);
-                println!("[M1] bbox_origin.{:?} = 0.0", x);
-                self.layout.bbox_origin.set_dim(x, 0.0);
+                println!("[M1] content_origin.{:?} = 0.0", x);
+                self.layout.content_origin.set_dim(x, 0.0);
             }
         } else {
             let mut min_x: f32 = f32::MAX;
@@ -2011,7 +1990,7 @@ impl Model {
                     child.refresh_layout_internal(first_pass, true);
                     let child_pos = child.position().get_dim(x);
                     let child_size = child.computed_size().get_dim(x);
-                    let child_bbox_origin = child.bbox_origin().get_dim(x);
+                    let child_bbox_origin = child.content_origin().get_dim(x);
                     let child_min_x = child_pos + child_bbox_origin;
                     let child_max_x = child_min_x + child_size;
                     min_x = min_x.min(child_min_x);
@@ -2025,8 +2004,8 @@ impl Model {
                     self.layout.computed_size.set_dim(x, new_size);
                 }
             } else {
-                println!("[M2] bbox_origin.{:?} = 0.0", x);
-                self.layout.bbox_origin.set_dim(x, 0.0);
+                println!("[M2] content_origin.{:?} = 0.0", x);
+                self.layout.content_origin.set_dim(x, 0.0);
             }
 
             for child in children_to_grow {
@@ -2040,17 +2019,17 @@ impl Model {
                 child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
                 child.refresh_layout_internal(first_pass, false);
                 let child_pos = child.position().get_dim(x);
-                let child_bbox_origin = child.bbox_origin().get_dim(x);
+                let child_bbox_origin = child.content_origin().get_dim(x);
                 let child_min_x = child_pos + child_bbox_origin;
                 min_x = min_x.min(child_min_x);
             }
-            println!("[M2] bbox_origin.{:?} = {}", x, min_x);
-            self.layout.bbox_origin.set_dim(x, min_x);
+            println!("[M2] content_origin.{:?} = {}", x, min_x);
+            self.layout.content_origin.set_dim(x, min_x);
         }
         let self_size = self.layout.computed_size.get_dim(x);
         let origin_shift =
             self.layout.forced_origin_alignment.get().get_dim(x).normalized() * self_size;
-        self.layout.bbox_origin.update_dim(x, |t| t - origin_shift);
+        self.layout.content_origin.update_dim(x, |t| t - origin_shift);
     }
 }
 
@@ -2168,7 +2147,6 @@ impl Model {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // FIXME: origin points
     // FIXME: testing integration
     // FIXME: demo scene
     // FIXME: docs
@@ -2448,11 +2426,11 @@ impl Model {
                 let def_alignment = opts.children_alignment.get_dim(x);
                 let alignment = child.layout.alignment.get().get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
-                let bbox_origin = child.bbox_origin();
+                let content_origin = child.content_origin();
                 let child_size = child.layout.computed_size.get_dim(x);
                 println!("!!! child_size: {:?}", child_size);
-                println!("!!! first bbox_origin: {:?}", bbox_origin);
-                let child_left = pos_x - bbox_origin.get_dim(x) + child_offset + margin.start;
+                println!("!!! first content_origin: {:?}", content_origin);
+                let child_left = pos_x - content_origin.get_dim(x) + child_offset + margin.start;
                 // let origin_shift =
                 //     child.layout.forced_origin_alignment.get().get_dim(x).normalized() *
                 // child_size; println!(
@@ -2463,11 +2441,11 @@ impl Model {
                 //
                 // let child_left = child_left + origin_shift;
                 child.set_position_dim(x, child_left);
-                // println!("??  child.layout.bbox_origin: {:?}",
-                // child.layout.bbox_origin.get_dim(x)); child.layout.bbox_origin.
+                // println!("??  child.layout.content_origin: {:?}",
+                // child.layout.content_origin.get_dim(x)); child.layout.content_origin.
                 // update_dim(x, |t| t - origin_shift); println!("??
-                // child.layout.bbox_origin: {:?}", child.layout.bbox_origin.get_dim(x));
-                // println!("!!! computed bbox_origin: {:?}", child.bbox_origin());
+                // child.layout.content_origin: {:?}", child.layout.content_origin.get_dim(x));
+                // println!("!!! computed content_origin: {:?}", child.content_origin());
                 println!("<< child: {:?}", child);
             }
             pos_x += column_size + gap;
@@ -3559,7 +3537,7 @@ mod layout_tests {
                 }
 
                 fn assert_root_bbox_origin(&self, x:f32, y:f32) -> &Self {
-                    assert_eq!(self.root.bbox_origin(), Vector2(x,y));
+                    assert_eq!(self.root.content_origin(), Vector2(x,y));
                     self
                 }
 
@@ -3575,7 +3553,7 @@ mod layout_tests {
 
                 $(
                     fn [<assert_node $num _bbox_origin>](&self, x:f32, y:f32) -> &Self {
-                        assert_eq!(self.[<node $num>].bbox_origin(), Vector2(x,y));
+                        assert_eq!(self.[<node $num>].content_origin(), Vector2(x,y));
                         self
                     }
 
@@ -4413,14 +4391,14 @@ mod layout_tests {
         assert_eq!(node1_2.position().xy(), Vector2(1.0, -1.0));
         assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
         assert_eq!(node1_2.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(test.node1.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
         assert_eq!(test.node1.computed_size(), Vector2(4.0, 3.0));
 
         assert_eq!(node2_1.position().xy(), Vector2(-1.0, 0.0));
         assert_eq!(node2_2.position().xy(), Vector2(1.0, -1.0));
         assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
         assert_eq!(node2_2.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(test.node2.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
         assert_eq!(test.node2.computed_size(), Vector2(4.0, 3.0));
 
         test.assert_node1_position(1.0, 1.0)
@@ -4528,10 +4506,10 @@ mod layout_tests {
         assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
         assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
         assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
-        assert_eq!(node1_1.bbox_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(node2_1.bbox_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(test.node1.bbox_origin(), Vector2(-1.0, -1.0));
-        assert_eq!(test.node2.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(node1_1.content_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(node2_1.content_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node1.content_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node2.content_origin(), Vector2(-1.0, -1.0));
         assert_eq!(test.node1.computed_size(), Vector2(2.0, 2.0));
         assert_eq!(test.node2.computed_size(), Vector2(2.0, 2.0));
         assert_eq!(test.node1.position().xy(), Vector2(1.0, 1.0));

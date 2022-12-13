@@ -316,14 +316,18 @@ macro_rules! with_alignment_opt_dim2_named_matrix {
 // ============================================
 
 macro_rules! gen_dim2_cons {
-    ([$([$f:ident $x:ident $y:ident])*]) => {
+    ([$([$f:ident $x:ident $y:ident])*]) => { paste! {
         impl Dim2 {$(
             /// Constructor.
             pub fn $f() -> Self {
                 Self::new(Dim1::$x(), Dim1::$y())
             }
+
+            pub fn [<align_ $f>](&mut self) {
+                *self = Self::$f();
+            }
         )*}
-    }
+    }}
 }
 
 with_alignment_dim2_named_matrix!(gen_dim2_cons);
