@@ -181,7 +181,12 @@ impl Model {
         })
     }
 
-    fn check_project_snapshot(&self) {
+    /// This is called on any module change. It should be followed by a call to `check_project_changed` to verify that there is indeed a project change compared to the last saved VCS snapshot.
+    fn assume_project_changed(&self) {
+        self.view.graph().model.breadcrumbs.set_project_changed(true);
+    }
+
+    fn check_project_changed(&self) {
         let controller = self.controller.clone_ref();
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
         executor::global::spawn(async move {
@@ -327,10 +332,22 @@ impl Project {
                     model.status_bar.add_event(message);
                 }
                 model::project::Notification::TextAutoSave => {
-                    model.check_project_snapshot();
+                    model.check_project_changed();
                 }
             };
             std::future::ready(())
+        });
+
+        let notifications = self.model.module_model.subscribe();
+        let weak = Rc::downgrade(&self.model);
+        spawn_stream_handler(weak, notifications, move |notification, model| {
+            match notification.kind {
+                model::module::NotificationKind::Invalidate |
+                model::module::NotificationKind::CodeChanged{..} |
+                model::module::NotificationKind::MetadataChanged =>
+                    model.assume_project_changed(),
+            }
+            futures::future::ready(())
         });
         self
     }
