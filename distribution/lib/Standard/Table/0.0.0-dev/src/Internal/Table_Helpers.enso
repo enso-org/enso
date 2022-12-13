@@ -614,3 +614,12 @@ filter_blank_rows table when_any treat_nans_as_blank =
             non_missing_mask = missing_mask.not
             table.filter non_missing_mask
         False -> table
+
+## PRIVATE
+   Checks if the given object implements a Table interface.
+
+   Currently, it relies on a hack - it checks if the object has a method
+   `is_table` and if it returns `True`.
+is_table obj =
+    known_types = ["Standard.Table.Data.Table.Table", "Standard.Database.Data.Table.Table"]
+    known_types.contains (Meta.get_qualified_type_name obj)

@@ -2755,7 +2755,7 @@ project includes:
 - `dirtty` flag, indicating if any of the project files has been modified, added
   or deleted
 - list of paths to the modified files, if any
-- the metadata of a last save
+- the metadata of a last save, if any
 
 #### Parameters
 

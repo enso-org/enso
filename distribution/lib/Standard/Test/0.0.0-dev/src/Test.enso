@@ -190,6 +190,19 @@ type Spec
     is_fail : Boolean
     is_fail self = self.behaviors.any .is_fail
 
+    tests_succeeded : Integer
+    tests_succeeded self = self.behaviors.filter (x-> x.is_success) . length
+
+    tests_failed : Integer
+    tests_failed self = self.behaviors.filter (x-> x.is_fail) . length
+
+    tests_pending : Integer
+    tests_pending self = self.behaviors.filter (x-> x.is_pending) . length
+
+    ## Counts how many tests have been executed, not including pending tests.
+    tests_executed : Integer
+    tests_executed self = self.behaviors.filter (b-> b.is_pending.not) . length
+
 ## PRIVATE
 
    A description of a behaviors in a test.
@@ -213,3 +226,9 @@ type Behavior
        Checks if the behavior is a failure.
     is_fail : Boolean
     is_fail self = self.result.is_fail
+
+    ## PRIVATE
+
+       Checks if the behavior is a success.
+    is_success : Boolean
+    is_success self = self.result.is_success

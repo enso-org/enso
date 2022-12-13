@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
@@ -11,6 +12,8 @@ import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Grouping, Invalid_Value_Type
 
 import Standard.Visualization
+
+from Standard.Database import Database, SQLite, In_Memory
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -796,14 +799,14 @@ spec =
             action1 = t1.distinct on_problems=_
             tester1 table =
                 table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping.Error "Distinct" [0, 1, 2, 3, 4]]
+            problems1 = [Floating_Point_Grouping.Error "Distinct"]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
             action2 = t2.distinct on_problems=_
             tester2 table =
                 table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
-            problems2 = [Floating_Point_Grouping.Error "Distinct" [0, 1, 2, 3, 4, 5]]
+            problems2 = [Floating_Point_Grouping.Error "Distinct"]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should report a warning and report the whole table if no columns were selected" <|
@@ -1077,6 +1080,18 @@ spec =
             t1.at "Count" . to_vector . should_equal [9]
 
             # ToDo: Verify the warnings and error handling within cross_tab.
+
+    Test.group "[In-Memory] Table.join" <|
+        Test.specify "should correctly report unsupported cross-backend joins" <|
+            t = Table.new [["X", [1, 2, 3]]]
+            t.join 42 . should_fail_with Type_Error.Error
+
+            db = Database.connect (SQLite In_Memory)
+            db_table = db.upload_table "test" (Table.new [["Y", [4, 5, 6]]])
+
+            r = t.join db_table
+            r.should_fail_with Illegal_Argument.Error
+            r.catch.message . contains "cross-backend" . should_be_true
 
 run_common_spec spec =
     selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True
