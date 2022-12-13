@@ -985,6 +985,15 @@ spec =
             t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
             t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
 
+        Test.specify "should allow single id field" <|
+            t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
+            t1 = t.transpose "Key"
+            t1.row_count . should_equal 9
+            t1.column_count . should_equal 3
+            t1.at "Key" . to_vector . should_equal ["x", "x", "x", "y", "y", "y", "z", "z", "z"]
+            t1.at "Name" . to_vector . should_equal ["Value", "Another", "Yet Another", "Value", "Another", "Yet Another", "Value", "Another", "Yet Another"]
+            t1.at "Value" . to_vector . should_equal [1, 10, Nothing, 2, Nothing, "Hello", 3, 20, "World"]
+
         Test.specify "should allow all id fields with warning or error" <|
             t = Table.new [["Key", ["x", "y", "z"]], ["Value", [1, 2, 3]], ["Another", [10, Nothing, 20]], ["Yet Another", [Nothing, "Hello", "World"]]]
             t1 = t.transpose t.column_names
@@ -1038,6 +1047,16 @@ spec =
         Test.specify "should allow a grouping" <|
             t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
             t1 = t.cross_tab ["Group"] "Key"
+            t1.row_count . should_equal 2
+            t1.column_count . should_equal 4
+            t1.at "Group" . to_vector . should_equal ["A", "B"]
+            t1.at "x" . to_vector . should_equal [2, 2]
+            t1.at "y" . to_vector . should_equal [2, 1]
+            t1.at "z" . to_vector . should_equal [1, 1]
+
+        Test.specify "should allow a grouping by text" <|
+            t = Table.new [["Group", ["A","B","A","B","A","B","A","B","A"]], ["Key", ["x", "x", "x", "x", "y", "y", "y", "z", "z"]], ["Value", [1, 2, 3, 4, 5, 6, 7, 8, 9]]]
+            t1 = t.cross_tab "Group" "Key"
             t1.row_count . should_equal 2
             t1.column_count . should_equal 4
             t1.at "Group" . to_vector . should_equal ["A", "B"]
