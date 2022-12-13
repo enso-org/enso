@@ -242,9 +242,9 @@ macro_rules! with_alignment_opt_dim2_matrix {
 
 #[macro_export]
 macro_rules! with_alignment_opt_dim2_named_matrix_sparse {
-    ($f:path $([$($args:tt)*])?) => {
+    ($(#$meta:tt)* $f:path $([$($args:tt)*])?) => {
         $crate::with_alignment_opt_dim2_matrix! {
-            $crate::with_alignment_opt_dim2_named_matrix_sparse [$f $([$($args)*])?]
+            $crate::with_alignment_opt_dim2_named_matrix_sparse [$(#$meta)* $f $([$($args)*])?]
         }
     };
     ([$($fs:tt)*] $($ts:tt)*) => {
@@ -280,8 +280,8 @@ macro_rules! with_alignment_opt_dim2_named_matrix_sparse {
     (@ $fs:tt [$($out:tt)*] [[[] []] $($ts:tt)*]) => { paste! {
         $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)*] [$($ts)*]}
     }};
-    (@ [$f:path $([$($args:tt)*])?] $out:tt []) => {
-        $f! { $([$($args)*])? $out }
+    (@ [$(#$meta:tt)* $f:path $([$($args:tt)*])?] $out:tt []) => {
+        $f! { $(#$meta)* $([$($args)*])? $out }
     };
 }
 

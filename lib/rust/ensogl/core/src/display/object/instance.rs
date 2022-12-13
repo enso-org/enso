@@ -1284,7 +1284,7 @@ impl Debug for Instance {
 // ===================
 
 /// Layout properties of this display object. It can be considered similar to the [`AutoLayout`]
-/// struct, which describes the layout properties of children.
+/// struct, which describes the layout properties of the object's children.
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
 pub struct LayoutModel {
@@ -1301,16 +1301,11 @@ pub struct LayoutModel {
     grow_factor:             Cell<Vector2<f32>>,
     shrink_factor:           Cell<Vector2<f32>>,
     computed_size:           Cell<Vector2<f32>>,
-    /// In case the children overflow the parent, this is set to the min x and y values of the
-    /// children.
     content_origin:          Cell<Vector2<f32>>,
     /// Force the alignment of origin. This will assume the origin to be placed differently than
     /// computed. It is used by sprite system, as sprites handle their alignment by themselves.
     forced_origin_alignment: Cell<alignment::Dim2>,
 }
-
-
-// === Margin and padding ===
 
 impl Model {
     fn modify_layout(&self, f: impl FnOnce(&LayoutModel)) {
@@ -1321,6 +1316,18 @@ impl Model {
     fn modify_alignment(&self, f: impl FnOnce(&mut alignment::OptDim2)) {
         self.modify_layout(|layout| {
             layout.alignment.modify(f);
+        });
+    }
+
+    fn modify_margin(&self, f: impl FnOnce(&mut Vector2<SideSpacing>)) {
+        self.modify_layout(|layout| {
+            layout.margin.modify(f);
+        });
+    }
+
+    fn modify_padding(&self, f: impl FnOnce(&mut Vector2<SideSpacing>)) {
+        self.modify_layout(|layout| {
+            layout.padding.modify(f);
         });
     }
 
@@ -1339,177 +1346,208 @@ impl Model {
 
 macro_rules! gen_alignment_setters {
     ([$([$name:ident $x:tt $y:tt])*]) => { paste! { $(
-        /// Alignment setter.
-        fn [<align_ $name>](&self)  -> &Self {
+        /// Set the alignment of this object. Alignment positions the object within the free space
+        /// around them. For example, if objects are placed in a column, the right alignment will
+        /// move them to the right border of the column.
+        fn [<set_alignment _ $name>](&self)  -> &Self {
             self.display_object().modify_alignment(|t| t.[<align_ $name>]());
             self
     })*}}
 }
 
-macro_rules! gen_origin_alignment_setters {
-    ([$([$name:ident $x:tt $y:tt])*]) => { paste! { $(
-        /// Alignment setter.
-        fn [<set_forced_origin_alignment_ $name>](&self)  -> &Self {
-            self.display_object().modify_forced_origin_alignment(|t| t.[<align_ $name>]());
-            self
-        }
-    )*}}
-}
-
-macro_rules! gen_spacing_props_for_layout_model {
+macro_rules! gen_margin_or_padding_props {
     ([$tp: ident] [ $([$name:ident $axis:ident $loc:ident])* ]) => { paste! { $(
-        /// Spacing setter.
+        /// Modify the margin/padding of the object. Margin is the free space around this object,
+        /// while padding is the space inside the object, close to its borders.
+        #[enso_shapely::gen(update, set)]
         fn [<modify_ $tp _ $name>](&self, f: impl FnOnce(&mut Unit)) -> &Self {
-            self.display_object().modify_layout(|layout| {
-                layout.$tp.modify(|t| f(&mut t.$axis.$loc));
-            });
+            self.display_object().[<modify_ $tp>](|t| f(&mut t.$axis.$loc));
             self
-        }
-
-        /// Spacing setter.
-        fn [<set_ $tp _ $name>](&self, value: impl Into<Unit>) -> &Self {
-            self.[<modify_ $tp _ $name>](|t| *t = value.into())
-        }
-
-        /// Spacing getter.
-        fn [<update_ $tp _ $name>](&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
-            self.[<modify_ $tp _ $name>](|t| *t = f(*t))
         }
     )*}}
 }
-
-macro_rules! gen_prop_accessors {
-    ($name:ident : Vector2<$ty:ty>) => {
-        paste! {
-            fn $name(&self) -> Vector2<$ty> {
-                self.display_object().layout.$name.get()
-            }
-
-            fn [<modify_ $name>](&self, f: impl FnOnce(&mut Vector2<$ty>)) -> &Self {
-                self.display_object().modify_layout(|l| l.$name.modify_(f));
-                self
-            }
-
-            fn [<set_ $name>](&self, value: impl IntoVectorTrans2<$ty>) -> &Self {
-                self.[<modify_ $name>](|t| *t = value.into_vector_trans())
-            }
-
-            fn [<update_ $name>](&self, f: impl FnOnce(Vector2<$ty>) -> Vector2<$ty>) -> &Self {
-                self.[<modify_ $name>](|t| *t = f(*t))
-            }
-
-            fn [<modify_ $name _x>](&self, f: impl FnOnce(&mut $ty)) -> &Self {
-                self.[<modify_ $name>](|t| f(&mut t.x))
-            }
-
-            fn [<set_ $name _x>](&self, v: impl Into<$ty>) -> &Self {
-                self.[<modify_ $name _x>](|t| *t = v.into())
-            }
-
-            fn [<update_ $name _x>](&self, f: impl FnOnce($ty) -> $ty) -> &Self {
-                self.[<modify_ $name _x>](|t| *t = f(*t))
-            }
-
-            fn [<modify_ $name _y>](&self, f: impl FnOnce(&mut $ty)) -> &Self {
-                self.[<modify_ $name>](|t| f(&mut t.y))
-            }
-
-            fn [<set_ $name _y>](&self, v: impl Into<$ty>) -> &Self {
-                self.[<modify_ $name _y>](|t| *t = v.into())
-            }
-
-            fn [<update_ $name _y>](&self, f: impl FnOnce($ty) -> $ty) -> &Self {
-                self.[<modify_ $name _y>](|t| *t = f(*t))
-            }
-        }
-    };
-}
-
-
 
 impl<T: Object + ?Sized> LayoutOps for T {}
 pub trait LayoutOps: Object {
     crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_alignment_setters);
-    crate::with_alignment_dim2_named_matrix!(gen_origin_alignment_setters);
-    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model[margin]);
-    crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model[padding]);
+    crate::with_display_object_side_spacing_matrix!(gen_margin_or_padding_props[margin]);
+    crate::with_display_object_side_spacing_matrix!(gen_margin_or_padding_props[padding]);
 
-    fn set_forced_origin_alignment(&self, alignment: alignment::Dim2) -> &Self {
-        self.display_object().modify_layout(|l| {
-            l.forced_origin_alignment.set(alignment);
-        });
-        self
-    }
-
-    gen_prop_accessors!(max_size: Vector2<Unit>);
-    gen_prop_accessors!(min_size: Vector2<Unit>);
-    gen_prop_accessors!(size: Vector2<Size>);
-    gen_prop_accessors!(grow_factor: Vector2<f32>);
-    gen_prop_accessors!(shrink_factor: Vector2<f32>);
-
-    fn content_origin(&self) -> Vector2<f32> {
-        self.display_object().def.layout.content_origin.get()
-    }
-
+    /// The computed size of the object, in pixels. This value will be updated during display object
+    /// refresh cycle, which happens once per frame.
     fn computed_size(&self) -> Vector2<f32> {
         self.display_object().def.layout.computed_size.get()
     }
 
+    /// Get the size of the object. Please note that this is user-set size, not the computed one. If
+    /// you want to know the computed size, use the [`computed_size`] method instead.
+    fn size(&self) -> Vector2<Size> {
+        self.display_object().def.layout.size.get()
+    }
 
-    fn set_size_x_hug(&self, x: f32) -> &Self {
+    /// Modify the size of the object. By default, the size is set to hug the children. You can set
+    /// the size either to a fixed pixel value, a percentage parent container size, or to a fraction
+    /// of the free space left after layouting siblings with fixed sizes.
+    #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
+    fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
+        self.display_object().modify_layout(|l| l.size.modify_(f));
+        self
+    }
+
+    /// Set the X-axis size of the object. Set the Y-axis size to hug the children.
+    fn set_size_x_hug(&self, x: impl Into<Size>) -> &Self {
         self.set_size((x, Size::Hug));
         self
     }
 
+    /// Set the X-axis size to hug the children. Set the Y-axis size of the object.
+    fn set_size_hug_y(&self, y: impl Into<Size>) -> &Self {
+        self.set_size((Size::Hug, y));
+        self
+    }
+
+    /// Set the X-axis size to hug the children.
     fn set_size_x_to_hug(&self) -> &Self {
         self.modify_size(|t| t.x = Size::Hug);
         self
     }
 
+    /// Set the Y-axis size to hug the children.
     fn set_size_y_to_hug(&self) -> &Self {
         self.modify_size(|t| t.y = Size::Hug);
         self
     }
 
-    fn allow_grow(&self) -> &Self {
-        self.set_grow_factor((1.0, 1.0))
-    }
-
-    fn allow_grow_x(&self) -> &Self {
-        self.set_grow_factor_x(1.0)
-    }
-
-    fn allow_grow_y(&self) -> &Self {
-        self.set_grow_factor_y(1.0)
-    }
-
-    fn allow_shrink(&self) -> &Self {
-        self.set_shrink_factor((1.0, 1.0))
-    }
-
-    fn allow_shrink_x(&self) -> &Self {
-        self.set_shrink_factor_x(1.0)
-    }
-
-    fn allow_shrink_y(&self) -> &Self {
-        self.set_shrink_factor_y(1.0)
-    }
-
-    fn set_size_hug_y(&self, y: f32) -> &Self {
-        self.set_size((Size::Hug, y));
-        self
-    }
-
+    /// Set both the X-axis and Y-axis size to hug the children.
     fn set_size_hug(&self) -> &Self {
         self.set_size((Size::Hug, Size::Hug));
         self
     }
 
+    /// The left bottom corner of the content. In case the children overflow the parent, this is set
+    /// to the min x and y values of the children. Otherwise, it is set to (0.0, 0.0). This value
+    /// will be updated during display object refresh cycle, which happens once per frame.
+    fn content_origin(&self) -> Vector2<f32> {
+        self.display_object().def.layout.content_origin.get()
+    }
+
+    /// The maximum size of the object. During auto layout, if the object [`grow_factor`] is
+    /// non-zero, the object will grow to maximum this size.
+    fn max_size(&self) -> Vector2<Unit> {
+        self.display_object().layout.max_size.get()
+    }
+
+    /// Modify the maximum size of the object. During auto layout, if the object [`grow_factor`] is
+    /// non-zero, the object will grow to maximum this size.
+    #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Unit>", fn = "into_vector_trans()"))]
+    fn modify_max_size(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
+        self.display_object().modify_layout(|l| l.max_size.modify_(f));
+        self
+    }
+
+    /// Do not limit the max size of this object. During auto layout, if the object [`grow_factor`]
+    /// is non-zero, the object will grow as much as possible.
+    fn unset_max_size(&self) -> &Self {
+        self.set_max_size(Vector2(f32::INFINITY, f32::INFINITY))
+    }
+
+    /// Do not limit the maximum size of this object in the X-axis direction. During auto layout, if
+    /// the object [`grow_factor`] is non-zero, the object will grow as much as possible.
+    fn unset_max_size_x(&self) -> &Self {
+        self.set_max_size_x(f32::INFINITY)
+    }
+
+    /// Do not limit the maximum size of this object in the Y-axis direction. During auto layout, if
+    /// the object [`grow_factor`] is non-zero, the object will grow as much as possible.
+    fn unset_max_size_y(&self) -> &Self {
+        self.set_max_size_y(f32::INFINITY)
+    }
+
+    /// The minimum size of the object. During auto layout, if the object [`shrink_factor`] is
+    /// non-zero, the object will shrink to minimum this size.
+    fn min_size(&self) -> Vector2<Unit> {
+        self.display_object().layout.min_size.get()
+    }
+
+    /// Modify the minimum size of the object. During auto layout, if the object [`shrink_factor`]
+    /// is non-zero, the object will shrink to minimum this size.
+    #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Unit>", fn = "into_vector_trans()"))]
+    fn modify_min_size(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
+        self.display_object().modify_layout(|l| l.min_size.modify_(f));
+        self
+    }
+
+    /// Do not limit the minumum size of this object in the X-axis direction. During auto layout, if
+    /// the object [`shrink_factor`] is non-zero, the object will shrink as much as possible.
+    fn unset_min_size_x(&self) -> &Self {
+        self.set_min_size_x(0.0)
+    }
+
+    /// Do not limit the max size of this object in the Y-axis direction. During auto layout, if the
+    /// object [`shrink_factor`] is non-zero, the object will shrink as much as possible.
+    fn unset_min_size_y(&self) -> &Self {
+        self.set_min_size_y(0.0)
+    }
+
+    /// Modify the grow factor of the object. During auto layout, if the object [`grow_factor`]
+    /// is non-zero, the object will grow to a maximum size of [`max_size`].
+    #[enso_shapely::gen(update, set(trait = "IntoVector2<f32>", fn = "into_vector()"))]
+    fn modify_grow_factor(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
+        self.display_object().modify_layout(|l| l.grow_factor.modify_(f));
+        self
+    }
+
+    /// Modify the shrink factor of the object. During auto layout, if the object [`shrink_factor`]
+    /// is non-zero, the object will shrink to a minimum size of [`min_size`].
+    #[enso_shapely::gen(update, set(trait = "IntoVector2<f32>", fn = "into_vector()"))]
+    fn modify_shrink_factor(&self, f: impl FnOnce(&mut Vector2<f32>)) -> &Self {
+        self.display_object().modify_layout(|l| l.shrink_factor.modify_(f));
+        self
+    }
+
+    /// Allow the object to grow in both X-axis and Y-axis directions. This has the same effect as
+    /// [`set_grow_factor((1.0, 1.0))`].
+    fn allow_grow(&self) -> &Self {
+        self.set_grow_factor((1.0, 1.0))
+    }
+
+    /// Allow the object to grow in the X-axis directions. This has the same effect as
+    /// [`set_grow_factor_x(1.0)`].
+    fn allow_grow_x(&self) -> &Self {
+        self.set_grow_factor_x(1.0)
+    }
+
+    /// Allow the object to grow in the Y-axis directions. This has the same effect as
+    /// [`set_grow_factor_y(1.0)`].
+    fn allow_grow_y(&self) -> &Self {
+        self.set_grow_factor_y(1.0)
+    }
+
+    /// Allow the object to shrink in both X-axis and Y-axis directions. This has the same effect as
+    /// [`set_shrink_factor((1.0, 1.0))`].
+    fn allow_shrink(&self) -> &Self {
+        self.set_shrink_factor((1.0, 1.0))
+    }
+
+    /// Allow the object to shrink in the X-axis directions. This has the same effect as
+    /// [`set_shrink_factor_x(1.0)`].
+    fn allow_shrink_x(&self) -> &Self {
+        self.set_shrink_factor_x(1.0)
+    }
+
+    /// Allow the object to shrink in the Y-axis directions. This has the same effect as
+    /// [`set_shrink_factor_y(1.0)`].
+    fn allow_shrink_y(&self) -> &Self {
+        self.set_shrink_factor_y(1.0)
+    }
+
+    /// Set margin of all sides of the object. Margin is the free space around the object.
     fn set_margin_all(&self, value: impl Into<Unit>) {
         let margin = SideSpacing::from(value.into());
         self.display_object().layout.margin.set(Vector2(margin, margin));
     }
 
+    /// Set margin of all sides of the object. Margin is the free space around the object.
     fn set_margin_trbl(
         &self,
         top: impl Into<Unit>,
@@ -1522,11 +1560,13 @@ pub trait LayoutOps: Object {
         self.display_object().layout.margin.set(Vector2(horizontal, vertical));
     }
 
+    /// Set padding of all sides of the object. Padding is the free space inside the object.
     fn set_padding_all(&self, value: impl Into<Unit>) {
         let padding = SideSpacing::from(value.into());
         self.display_object().layout.padding.set(Vector2(padding, padding));
     }
 
+    /// Set padding of all sides of the object. Padding is the free space inside the object.
     fn set_padding_trbl(
         &self,
         top: impl Into<Unit>,
@@ -1538,6 +1578,16 @@ pub trait LayoutOps: Object {
         let vertical = SideSpacing::new(bottom.into(), top.into());
         self.display_object().layout.padding.set(Vector2(horizontal, vertical));
     }
+
+    /// Set the forced origin alignment of this object. You should not use this function. It
+    /// tells the object to assume where is the alignment origin and ignore the real value. It
+    /// is used by sprite system, as sprites handle their alignment by themselves.
+    fn unsafe_set_forced_origin_alignment(&self, alignment: alignment::Dim2) -> &Self {
+        self.display_object().modify_layout(|l| {
+            l.forced_origin_alignment.set(alignment);
+        });
+        self
+    }
 }
 
 
@@ -1546,7 +1596,7 @@ pub trait LayoutOps: Object {
 // === Column and Row ===
 // ======================
 
-/// The auto-layout grid column or row definition.
+/// The auto-layout grid column/row definition.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct ColumnOrRow {
@@ -1569,17 +1619,19 @@ pub struct Row {
     def: ColumnOrRow,
 }
 
-
-
-pub type ColumnRef = ColumnOrRowRef<X>;
-pub type RowRef = ColumnOrRowRef<Y>;
-
+/// The auto-layout column/row reference.
 #[derive(Debug)]
 pub struct ColumnOrRowRef<Dim> {
     instance: Instance,
     index:    usize,
     axis:     PhantomData<Dim>,
 }
+
+/// The auto-layout column reference.
+pub type ColumnRef = ColumnOrRowRef<X>;
+
+/// The auto-layout row reference.
+pub type RowRef = ColumnOrRowRef<Y>;
 
 impl<Dim> ColumnOrRowRef<Dim> {
     fn new(instance: Instance, index: usize) -> Self {
@@ -1589,27 +1641,21 @@ impl<Dim> ColumnOrRowRef<Dim> {
 
 macro_rules! gen_column_or_row_builder_props {
     ($($name:ident : $ty:ty),*) => { paste! { $(
-            pub fn [<modify_ $name>](&self, f: impl FnOnce(&mut $ty)) {
-                self.modify(|t| f(&mut t.$name))
-            }
-
-            pub fn [<set_ $name>](&self, value: impl Into<$ty>) {
-                self.modify(|t| t.$name = value.into())
-            }
-
-            pub fn [<update_ $name>](&self, f: impl FnOnce($ty) -> $ty) {
-                self.modify(|t| t.$name = f(t.$name))
-            }
+        /// Modify the property of the column/row.
+        #[enso_shapely::gen(update, set)]
+        pub fn [<modify_ $name>](&self, f: impl FnOnce(&mut $ty)) {
+            self.modify(|t| f(&mut t.$name))
+        }
     )*}};
 }
 
-pub trait ModifyBounds = where
-    Self: Default,
-    <(Column, Row) as DimRef<Self>>::Output: DerefMut + Deref<Target = ColumnOrRow>,
-    (Column, Row): DimMut<Self>,
-    (Vec<Column>, Vec<Row>): DimMut<Self, Output = Vec<<(Column, Row) as DimRef<Self>>::Output>>;
-
-impl<Dim: ModifyBounds> ColumnOrRowRef<Dim> {
+impl<Dim> ColumnOrRowRef<Dim>
+where
+    Dim: Default,
+    <(Column, Row) as DimRef<Dim>>::Output: DerefMut + Deref<Target = ColumnOrRow>,
+    (Column, Row): DimMut<Dim>,
+    (Vec<Column>, Vec<Row>): DimMut<Dim, Output = Vec<<(Column, Row) as DimRef<Dim>>::Output>>,
+{
     fn modify(&self, f: impl FnOnce(&mut ColumnOrRow)) {
         self.instance
             .modify_auto_layout(|l| f(l.unchecked_column_or_row_mut(Dim::default(), self.index)));
@@ -3631,8 +3677,7 @@ mod layout_tests {
         root.use_auto_layout();
         root.set_size((10.0, 10.0));
 
-        l.align_center();
-        l.use_auto_layout();
+        l.use_auto_layout().set_alignment_center();
         l.set_size_y_to_hug().allow_grow_x();
         l1.set_size((0.0, 4.0)).allow_grow_x();
 
@@ -4436,7 +4481,9 @@ mod layout_tests {
     fn test_layout_horizontal_origin_alignment_center() {
         let test = TestFlatChildren1::new();
         test.root.use_auto_layout().set_size((10.0, 10.0)).set_padding_all(1.fr());
-        test.node1.set_size((2.0, 2.0)).set_forced_origin_alignment_center();
+        test.node1
+            .set_size((2.0, 2.0))
+            .unsafe_set_forced_origin_alignment(alignment::Dim2::center());
         test.run()
             .assert_root_computed_size(10.0, 10.0)
             .assert_node1_computed_size(2.0, 2.0)
@@ -4462,7 +4509,7 @@ mod layout_tests {
     fn test_manual_layout_with_child_with_origin_alignment_center() {
         let test = TestFlatChildren1::new();
         test.root.set_size((10.0, 10.0));
-        test.node1.allow_grow().set_forced_origin_alignment_center();
+        test.node1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
         test.run()
             .assert_root_computed_size(10.0, 10.0)
             .assert_node1_computed_size(10.0, 10.0)
@@ -4497,8 +4544,8 @@ mod layout_tests {
 
         let node1_1 = test.node1.new_child_named("node1_1");
         let node2_1 = test.node2.new_child_named("node2_1");
-        node1_1.allow_grow().set_forced_origin_alignment_center();
-        node2_1.allow_grow().set_forced_origin_alignment_center();
+        node1_1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
+        node2_1.allow_grow().unsafe_set_forced_origin_alignment(alignment::Dim2::center());
 
         test.run();
 

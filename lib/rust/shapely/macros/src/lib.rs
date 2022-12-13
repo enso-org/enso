@@ -27,6 +27,7 @@ mod derive_entry_point;
 mod derive_for_each_variant;
 mod derive_iterator;
 mod derive_no_clone;
+mod gen;
 mod overlappable;
 mod tagged_enum;
 
@@ -178,4 +179,12 @@ pub fn tagged_enum(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     tagged_enum::run(attr, input)
+}
+
+#[proc_macro_attribute]
+pub fn gen(
+    attr: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    gen::run(attr, input)
 }
