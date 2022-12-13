@@ -51,7 +51,7 @@ type Pair
          of the pair, i.e. -1 will correspond to the last element.
     at : Integer -> Any
     at self index =
-        used = if index < 0 then self.at 2 + index else index
+        used = if index < 0 then 2 + index else index
         case used of
             0 -> self.first
             1 -> self.second
