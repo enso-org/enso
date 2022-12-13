@@ -199,7 +199,7 @@ impl InstanceModel {
 
     #[cfg(target_arch = "wasm32")]
     fn set_size(&self, size: Vector2) {
-        let data_json = JsValue::from_serde(&size).unwrap();
+        let data_json = serde_wasm_bindgen::to_value(&size).unwrap();
         let _ = self.try_call1(&self.set_size, &data_json);
         self.root_node.set_size(size);
     }
@@ -214,7 +214,7 @@ impl InstanceModel {
             _ => return Err(DataError::BinaryNotSupported),
         };
         let data_json: &serde_json::Value = data_json.deref();
-        let data_js = match JsValue::from_serde(data_json) {
+        let data_js = match serde_wasm_bindgen::to_value(data_json) {
             Ok(value) => value,
             Err(_) => return Err(DataError::InvalidDataType),
         };
