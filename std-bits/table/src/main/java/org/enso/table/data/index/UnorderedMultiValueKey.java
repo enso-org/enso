@@ -6,6 +6,9 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
@@ -34,10 +37,11 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     for (int i = 0; i < storages.length; i++) {
       h = 31 * h;
 
-      Object foldedValue = getObjectFolded(i);
-      if (foldedValue != null) {
-        hasFloatValues = hasFloatValues || NumericConverter.isDecimalLike(foldedValue);
-        h += foldedValue.hashCode();
+      Object value = this.get(i);
+      if (value != null) {
+        hasFloatValues = hasFloatValues || NumericConverter.isDecimalLike(value);
+        Object folded = foldObject(value, textFoldingStrategy.get(i));
+        h += folded.hashCode();
       }
     }
 
@@ -116,8 +120,8 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
     if (storages.length != that.storages.length) return false;
     if (hashCodeValue != that.hashCodeValue) return false;
     for (int i = 0; i < storages.length; i++) {
-      Object thisFolded = getObjectFolded(i);
-      Object thatFolded = getObjectFolded(i);
+      Object thisFolded = this.getObjectFolded(i);
+      Object thatFolded = that.getObjectFolded(i);
       if (!Objects.equals(thisFolded, thatFolded)) {
         return false;
       }
@@ -129,5 +133,15 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
   @Override
   public int hashCode() {
     return this.hashCodeValue;
+  }
+
+  @Override
+  public String toString() {
+    return "UnorderedMultiValueKey{"
+        + "hashCode="
+        + hashCodeValue
+        + ", values="
+        + IntStream.range(0, storages.length).mapToObj(i -> String.valueOf(this.get(i))).collect(Collectors.joining(", "))
+        + '}';
   }
 }

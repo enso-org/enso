@@ -75,7 +75,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     final int length = columns.length;
     final int size = locs.size();
 
-    boolean emptyScenario = size == 0 & keyColumnsLength == 0;
+    boolean emptyScenario = size == 0 && keyColumnsLength == 0;
     Builder[] storage =
         Arrays.stream(columns)
             .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size))

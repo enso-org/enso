@@ -32,8 +32,8 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
-    for (Storage<?> value : storages) {
-      if (!value.isNa(rowIndex)) {
+    for (Storage<?> storage : storages) {
+      if (!storage.isNa(rowIndex)) {
         return false;
       }
     }
