@@ -3,6 +3,7 @@ import project.Data.Json.Internal
 import project.Data.Map.Map
 import project.Data.Map.No_Value_For_Key
 import project.Data.Range.Extensions
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -173,7 +174,7 @@ type Json
     get self field = case self of
         Json.Object fields -> fields.get_or_else field (Error.throw (No_Such_Field.Error field))
         Json.Null -> Error.throw (No_Such_Field.Error field)
-        _ -> Error.throw (Illegal_Argument.Error "Json.get: self must be an Object")
+        _ -> Error.throw (Illegal_Argument.Error "Json.get: self must be an Object.")
 
     ## Gets the value associated with the given key in this object.
 
@@ -184,19 +185,18 @@ type Json
     get_or_else self field ~other=Json.Null = case self of
         Json.Object fields -> fields.get_or_else field other
         Json.Null -> other
-        _ -> Error.throw (Illegal_Argument.Error "Json.get_or_else: self must be an Object")
+        _ -> Error.throw (Illegal_Argument.Error "Json.get_or_else: self must be an Object.")
 
-    ## Gets the value associated with the given key in this object.
+    ## Gets the value associated with the given index in this object.
 
        Arguments:
-       - index: The name of the field or index position  from which to get the value.
-    at : Text | Integer -> Json ! No_Such_Field | Out_Of_Bounds
+       - index: The index position  from which to get the value.
+    at : Integer -> Json ! No_Such_Field | Out_Of_Bounds
     at self index = case self of
         Json.Array array -> array.at index
-        Json.Object map -> map.get index
-        Json.String text -> text.at index
+        Json.String text -> Json.String (text.at index)
         Json.Null -> Json.Null
-        _ -> Error.throw (Illegal_Argument.Error "Json.at: self must be an String, Array or Object")
+        _ -> Error.throw (Illegal_Argument.Error "Json.at: self must be a String or an Array.")
 
     ## Gets the set of field names if an object or an empty Vector otherwise.
     field_names : Vector
@@ -208,7 +208,7 @@ type Json
     length : Integer | Nothing
     length self = case self of
         Json.Array array -> array.length
-        Json.Object map -> map.length
+        Json.Object map -> map.size
         Json.String text -> text.length
         _ -> Nothing
 

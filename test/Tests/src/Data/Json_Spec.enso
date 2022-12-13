@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 from Standard.Base.Data.Json import Json_Parse_Error, No_Such_Field
 
 from Standard.Test import Test, Test_Suite
@@ -130,16 +131,39 @@ spec =
             object.get "foo" . should_equal (Json.String "bar")
             object.get_or_else "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with No_Such_Field.Error
-            object.get_or_else "bar" . should_equal Nothing
+            object.get_or_else "bar" . should_equal Json.Null
             object.get_or_else "bar" 1 . should_equal 1
             Json.Null.get "foo" . should_fail_with No_Such_Field.Error
-            Json.Null.get_or_else "foo" . should_equal Nothing
+            Json.Null.get_or_else "foo" . should_equal Json.Null
             Json.Null.get_or_else "foo" 1 . should_equal 1
+
+        Test.specify "should be able to get field_names" <|
+            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["foo", "baz"]
+            Json.parse '{}' . field_names . should_equal []
+            Json.parse 'null' . field_names . should_equal []
+            Json.parse '[1,2,3]' . field_names . should_equal []
+
+        Test.specify "should be able to get a value by index" <|
+            Json.parse "[1, 2, 3, 4, 5]" . at 2 . should_equal (Json.Number 3)
+            Json.parse "[1, 2, 3, 4, 5]" . at -2 . should_equal (Json.Number 4)
+            Json.parse "[1, 2, 3, 4, 5]" . at 5 . should_fail_with Index_Out_Of_Bounds.Error
+            Json.parse '"foo"' . at 0 . should_equal (Json.String "f")
+            Json.parse '"foo"' . at -1 . should_equal (Json.String "o")
+            Json.parse '"foo"' . at 3 . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should be able to make empty objects and array" <|
             Json.empty_object.should_equal (Json.Object Map.empty)
             Json.empty_object.to_text.should_equal "{}"
             Json.empty_array.should_equal (Json.Array [])
             Json.empty_array.to_text.should_equal "[]"
+
+        Test.specify "should be able to get length" <|
+            Json.empty_object.length.should_equal 0
+            Json.empty_array.length.should_equal 0
+            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . length . should_equal 2
+            Json.parse '[1, 2, 3, 4, 5]' . length . should_equal 5
+            Json.parse '"foo"' . length . should_equal 3
+            Json.parse '""' . length . should_equal 0
+            Json.Null.length.should_equal Nothing
 
 main = Test_Suite.run_main spec
