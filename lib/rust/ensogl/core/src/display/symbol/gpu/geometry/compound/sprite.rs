@@ -276,12 +276,13 @@ impl display::Object for Sprite {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct SpriteSystem {
-    pub symbol: Symbol,
-    transform:  Buffer<Matrix4<f32>>,
-    uv:         Buffer<Vector2<f32>>,
-    size:       Buffer<Vector2<f32>>,
-    alignment:  Uniform<Vector2<f32>>,
-    stats:      Stats,
+    pub symbol:      Symbol,
+    transform:       Buffer<Matrix4<f32>>,
+    uv:              Buffer<Vector2<f32>>,
+    size:            Buffer<Vector2<f32>>,
+    alignment:       Uniform<Vector2<f32>>,
+    alignment_value: Rc<Cell<alignment::Dim2>>,
+    stats:           Stats,
 }
 
 impl SpriteSystem {
@@ -297,12 +298,13 @@ impl SpriteSystem {
         let uv = point_scope.add_buffer("uv");
         let transform = instance_scope.add_buffer("transform");
         let size = instance_scope.add_buffer("size");
-        let initial_alignment = alignment::Dim2::center().normalized();
+        let alignment_value = Rc::new(Cell::new(alignment::Dim2::center()));
+        let initial_alignment = alignment_value.get().normalized();
         let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
 
         stats.inc_sprite_system_count();
 
-        let this = Self { symbol, transform, uv, size, alignment, stats };
+        let this = Self { symbol, transform, uv, size, alignment, alignment_value, stats };
         this.init_attributes();
         this.init_shader();
         this
@@ -314,6 +316,7 @@ impl SpriteSystem {
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
         let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);
+        sprite.set_forced_origin_alignment(self.alignment_value.get());
         self.add_child(&sprite);
         sprite
     }
@@ -334,7 +337,13 @@ impl SpriteSystem {
     }
 
     /// Set alignment of sprites.
-    pub fn set_alignment(&self, alignment: alignment::Dim2) {
+    ///
+    /// # Safety
+    /// It is advised not to use this function. Use display object auto-layout instead. This
+    /// function can be called only before creating sprites, as its changes will not be
+    /// propagated to sprite instances.
+    pub fn unsafe_set_alignment(&self, alignment: alignment::Dim2) {
+        self.alignment_value.set(alignment);
         self.alignment.set(alignment.normalized());
     }
 

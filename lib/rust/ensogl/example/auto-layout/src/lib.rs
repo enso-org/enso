@@ -36,7 +36,7 @@ mod rectangle {
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
             let rect = Rect((&width, &height)).corners_radius(10.0.px());
-            let shape = rect.fill(color::Rgba(0.0,0.0,0.0,0.2));
+            let shape = rect.fill(color::Rgba(1.0,0.0,0.0,0.7));
             shape.into()
         }
     }

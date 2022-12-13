@@ -1261,7 +1261,7 @@ impl Debug for InstanceDef {
             // .field("is_dirty", &self.dirty.check_all())
             // .field("dirty", &self.dirty)
             .field("position", &self.position().xy().as_slice())
-            .field("size", &self.layout.computed_size.get().as_slice())
+            .field("computed_size", &self.layout.computed_size.get().as_slice())
             // .field("layout", &self.layout)
             .finish()
     }
@@ -1288,21 +1288,21 @@ impl Debug for Instance {
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
 pub struct LayoutModel {
-    auto_layout:      RefCell<Option<AutoLayout>>,
-    alignment:        Cell<alignment::OptDim2>,
-    origin_alignment: Cell<alignment::Dim2>,
-    margin:           Cell<Vector2<SideSpacing>>,
-    padding:          Cell<Vector2<SideSpacing>>,
+    auto_layout:             RefCell<Option<AutoLayout>>,
+    alignment:               Cell<alignment::OptDim2>,
+    forced_origin_alignment: Cell<alignment::Dim2>,
+    margin:                  Cell<Vector2<SideSpacing>>,
+    padding:                 Cell<Vector2<SideSpacing>>,
     #[derivative(Default(
         value = "Cell::new((f32::INFINITY, f32::INFINITY).into_vector_trans())"
     ))]
-    max_size:         Cell<Vector2<Unit>>,
-    min_size:         Cell<Vector2<Unit>>,
-    size:             Cell<Vector2<Size>>,
-    grow_factor:      Cell<Vector2<f32>>,
-    shrink_factor:    Cell<Vector2<f32>>,
-    computed_size:    Cell<Vector2<f32>>,
-    bbox_origin:      Cell<Vector2<f32>>,
+    max_size:                Cell<Vector2<Unit>>,
+    min_size:                Cell<Vector2<Unit>>,
+    size:                    Cell<Vector2<Size>>,
+    grow_factor:             Cell<Vector2<f32>>,
+    shrink_factor:           Cell<Vector2<f32>>,
+    computed_size:           Cell<Vector2<f32>>,
+    bbox_origin:             Cell<Vector2<f32>>,
 }
 
 
@@ -1435,9 +1435,9 @@ macro_rules! gen_origin_alignment_setters {
         paste! {
             $(
                 /// Alignment setter.
-                fn [<set_origin_alignment_ $name>](&self)  -> &Self {
+                fn [<set_forced_origin_alignment_ $name>](&self)  -> &Self {
                     self.display_object().modify_layout(|l| {
-                        l.origin_alignment.set(alignment::Dim2::$name());
+                        l.forced_origin_alignment.set(alignment::Dim2::$name());
                     });
                     self
                 }
@@ -1452,6 +1452,13 @@ pub trait LayoutOps: Object {
     crate::with_alignment_dim2_named_matrix!(gen_origin_alignment_setters);
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[margin]);
     crate::with_display_object_side_spacing_matrix!(gen_spacing_props_for_layout_model2[padding]);
+
+    fn set_forced_origin_alignment(&self, alignment: alignment::Dim2) -> &Self {
+        self.display_object().modify_layout(|l| {
+            l.forced_origin_alignment.set(alignment);
+        });
+        self
+    }
 
     gen_prop_accessors!(max_size: Vector2<Unit>);
     gen_prop_accessors!(min_size: Vector2<Unit>);
@@ -1914,8 +1921,8 @@ pub trait AutoLayoutOps: Object {
 impl Model {
     fn refresh_layout(&self) {
         self.refresh_self_size(true, 0.0);
-        self.refresh_layout_internal(true);
-        self.refresh_layout_internal(false);
+        self.refresh_layout_internal(true, true);
+        self.refresh_layout_internal(false, true);
     }
 
     fn refresh_self_size(&self, first_pass: bool, parent_size: f32) {
@@ -1948,7 +1955,7 @@ impl Model {
         }
     }
 
-    fn refresh_layout_internal(&self, first_pass: bool) {
+    fn refresh_layout_internal(&self, first_pass: bool, hug_children: bool) {
         println!("[{}] refresh_layout_internal. first pass? {}", self.name, first_pass);
         if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
             return;
@@ -1962,9 +1969,9 @@ impl Model {
         match &*self.layout.auto_layout.borrow() {
             None =>
                 if first_pass {
-                    self.refresh_layout_manual(X, first_pass);
+                    self.refresh_layout_manual(X, first_pass, hug_children);
                 } else {
-                    self.refresh_layout_manual(Y, first_pass);
+                    self.refresh_layout_manual(Y, first_pass, hug_children);
                 },
             Some(layout) =>
                 if first_pass {
@@ -1975,20 +1982,21 @@ impl Model {
         }
     }
 
-    fn refresh_layout_manual<Dim: Copy>(&self, x: Dim, first_pass: bool)
+    fn refresh_layout_manual<Dim: Copy>(&self, x: Dim, first_pass: bool, hug_children: bool)
     where
         Vector2<Size>: DimSetter<Dim>,
         Vector2<f32>: DimSetter<Dim>,
+        Vector2<alignment::Dim1>: DimSetter<Dim>,
         Vector3<f32>: DimSetter<Dim>,
         Dim: Debug, {
         println!("[{}] refresh_layout_manual. first pass? {}", self.name, first_pass);
 
         let children = self.children();
         if children.is_empty() {
-            if self.layout.size.get_dim(x).is_hug() {
-                println!("[M] Setting size.{:?} of {} to {}", x, self.name, 0.0);
+            if hug_children && self.layout.size.get_dim(x).is_hug() {
+                println!("[M1 {}] Setting size.{:?} to {}", self.name, x, 0.0);
                 self.layout.computed_size.set_dim(x, 0.0);
-                println!("[M] bbox_origin.{:?} = 0.0", x);
+                println!("[M1] bbox_origin.{:?} = 0.0", x);
                 self.layout.bbox_origin.set_dim(x, 0.0);
             }
         } else {
@@ -2000,7 +2008,7 @@ impl Model {
                     children_to_grow.push(child);
                 } else {
                     child.refresh_self_size(first_pass, 0.0); // FXME: 0.0
-                    child.refresh_layout_internal(first_pass);
+                    child.refresh_layout_internal(first_pass, true);
                     let child_pos = child.position().get_dim(x);
                     let child_size = child.computed_size().get_dim(x);
                     let child_bbox_origin = child.bbox_origin().get_dim(x);
@@ -2011,28 +2019,38 @@ impl Model {
                 }
             }
             let new_size = max_x - min_x;
-            let new_bbox_origin = min_x;
             if self.layout.size.get_dim(x).is_hug() {
-                println!("[M] Setting size.{:?} of {} to {}", x, self.name, new_size);
-                self.layout.computed_size.set_dim(x, new_size);
-                println!("[M] bbox_origin.{:?} = {}", x, new_bbox_origin);
-                self.layout.bbox_origin.set_dim(x, new_bbox_origin);
+                if hug_children {
+                    println!("[M2 {}] Setting size.{:?} to {}", self.name, x, new_size);
+                    self.layout.computed_size.set_dim(x, new_size);
+                }
             } else {
-                println!("[M] bbox_origin.{:?} = 0.0", x);
+                println!("[M2] bbox_origin.{:?} = 0.0", x);
                 self.layout.bbox_origin.set_dim(x, 0.0);
             }
 
             for child in children_to_grow {
                 println!(
-                    "[M] Setting size.{:?} of {} to {}",
+                    "[M3 {}] Setting size.{:?} of {} to {}",
+                    self.name,
                     x,
                     child.name,
                     self.layout.computed_size.get_dim(x)
                 );
                 child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
-                child.refresh_layout_internal(first_pass);
+                child.refresh_layout_internal(first_pass, false);
+                let child_pos = child.position().get_dim(x);
+                let child_bbox_origin = child.bbox_origin().get_dim(x);
+                let child_min_x = child_pos + child_bbox_origin;
+                min_x = min_x.min(child_min_x);
             }
+            println!("[M2] bbox_origin.{:?} = {}", x, min_x);
+            self.layout.bbox_origin.set_dim(x, min_x);
         }
+        let self_size = self.layout.computed_size.get_dim(x);
+        let origin_shift =
+            self.layout.forced_origin_alignment.get().get_dim(x).normalized() * self_size;
+        self.layout.bbox_origin.update_dim(x, |t| t - origin_shift);
     }
 }
 
@@ -2229,7 +2247,7 @@ impl Model {
                     };
                     child.refresh_self_size(first_pass, self_size);
                     match child.layout.size.get_dim(x) {
-                        Size::Hug => child.refresh_layout_internal(first_pass),
+                        Size::Hug => child.refresh_layout_internal(first_pass, true),
                         Size::Fixed(unit) =>
                             if let Some(fr) = unit.as_fraction() {
                                 if fr > max_child_fr_size {
@@ -2382,12 +2400,17 @@ impl Model {
 
                 let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
+                println!("child_can_grow: {}", child_can_grow);
+                println!("child_size: {}", child_size);
+                println!("column_size_minus_margin: {}", column_size_minus_margin);
                 if child_can_grow && child_size < column_size_minus_margin {
                     // FIXME: resolve_const_only here
                     let size = f32::min(
                         column_size_minus_margin,
                         child.layout.max_size.get_dim(x).resolve_const_only(),
                     );
+                    println!(">> child max size: {}", child.layout.max_size.get_dim(x));
+                    println!(">> child size 1: {}", size);
                     child.layout.computed_size.set_dim(x, size);
                 }
                 if let Some(fr) = child.layout.size.get_dim(x).as_fraction() {
@@ -2397,6 +2420,7 @@ impl Model {
                             column_size_minus_margin,
                             child.layout.max_size.get_dim(x).resolve_const_only(),
                         );
+                        println!(">> child size 2: {}", size);
                         child.layout.computed_size.set_dim(x, size);
                     }
                 }
@@ -2406,15 +2430,18 @@ impl Model {
                         column_size_minus_margin,
                         child.layout.min_size.get_dim(x).resolve_const_only(),
                     );
+                    println!(">> child size 3: {}", size);
                     child.layout.computed_size.set_dim(x, size);
                 }
 
-                if child_size != child.layout.computed_size.get_dim(x) {
+                let child_size_changed = child_size != child.layout.computed_size.get_dim(x);
+                let child_not_computed = child.layout.size.get_dim(x).is_fixed();
+                if child_size_changed || child_not_computed {
                     // Child size changed. There is one case when this might be a second call to
                     // refresh layout of the same child. If the child size is set to hug, the
                     // child can grow, and the column size is greater than earlier computed hugged
                     // child size, we need to refresh the child layout again.
-                    child.refresh_layout_internal(first_pass);
+                    child.refresh_layout_internal(first_pass, false);
                 }
                 let child_width = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size_minus_margin - child_width);
@@ -2422,14 +2449,25 @@ impl Model {
                 let alignment = child.layout.alignment.get().get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
                 let bbox_origin = child.bbox_origin();
+                let child_size = child.layout.computed_size.get_dim(x);
+                println!("!!! child_size: {:?}", child_size);
                 println!("!!! first bbox_origin: {:?}", bbox_origin);
                 let child_left = pos_x - bbox_origin.get_dim(x) + child_offset + margin.start;
-                let origin_shift =
-                    child.layout.origin_alignment.get().get_dim(x).normalized() * child_size;
-                let child_left = child_left + origin_shift;
+                // let origin_shift =
+                //     child.layout.forced_origin_alignment.get().get_dim(x).normalized() *
+                // child_size; println!(
+                //     "!!! first child.layout.forced_origin_alignment.get(): {:?}",
+                //     child.layout.forced_origin_alignment.get()
+                // );
+                // println!("!!! first origin_shift: {:?}", origin_shift);
+                //
+                // let child_left = child_left + origin_shift;
                 child.set_position_dim(x, child_left);
-                child.layout.bbox_origin.update_dim(x, |t| t + origin_shift);
-                println!("!!! computed bbox_origin: {:?}", child.bbox_origin());
+                // println!("??  child.layout.bbox_origin: {:?}",
+                // child.layout.bbox_origin.get_dim(x)); child.layout.bbox_origin.
+                // update_dim(x, |t| t - origin_shift); println!("??
+                // child.layout.bbox_origin: {:?}", child.layout.bbox_origin.get_dim(x));
+                // println!("!!! computed bbox_origin: {:?}", child.bbox_origin());
                 println!("<< child: {:?}", child);
             }
             pos_x += column_size + gap;
@@ -3555,7 +3593,7 @@ mod layout_tests {
         }};
     }
 
-    gen_test_flat_children!(1 [1]);
+    gen_test_flat_children!(1[1]);
     gen_test_flat_children!(2 [1,2]);
     gen_test_flat_children!(3 [1,2,3]);
 
@@ -4269,14 +4307,15 @@ mod layout_tests {
     }
 
     /// ```text
-    ///     ╭───────────────────╮
-    ///     │ root          ╭───┼───╮
-    /// ╭───┼───╮           │ node3 │
-    /// │ node1 │           │   │   │
-    /// │   │   │ ╭───────╮ ╰───┼───╯
-    /// ╰───┼───╯ │ node2 │     │
-    ///     ◎─────┼───────┼─────╯
-    ///           ╰───────╯
+    ///     ╭─────────────────────╮
+    ///     │ root            ╭───┼────╮
+    /// ╭───┼────╮            │ node3  │
+    /// │ node1  │            │   │    │
+    /// │   │    │ ╭────────╮ ╰───┼────╯
+    /// ╰───┼────╯ │ node2  │     │
+    ///     ╰──────┼────────┼─────╯
+    ///   ╱        │        │           
+    /// ◎          ╰────────╯
     /// ```
     #[test]
     fn test_layout_manual_fixed() {
@@ -4293,7 +4332,7 @@ mod layout_tests {
             .assert_node1_computed_size(2.0, 2.0)
             .assert_node2_computed_size(2.0, 2.0)
             .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_bbox_origin(0.0, 0.0)
+            .assert_root_bbox_origin(-1.0, -1.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(-1.0, 0.0)
             .assert_node2_position(1.0, -1.0)
@@ -4302,7 +4341,8 @@ mod layout_tests {
 
     /// ```text
     ///     ╭──────── ▶ ◀ ──────────────────╮
-    ///     │ root            ╭────────╮    │
+    ///     │ root                          │
+    ///     │                 ╭────────╮    │
     /// ╭───┼────╮            │ node3  │    │
     /// │ node1  │            │        │    ▼
     /// │   │    │ ╭────────╮ ╰────────╯    ▲
@@ -4391,36 +4431,41 @@ mod layout_tests {
     }
 
     /// ```text
-    /// ╭────────────────────────╮
-    /// │ root                   │
-    /// │                        │
-    /// │             ╭───────╮  │
-    /// │             │ node2 │  │
-    /// │  ╭───────╮  │       │  ▼
-    /// │  │ node1 │  │   ◎   │  ▲
-    /// │  │   ◎   │  │       │  │
-    /// │  │       │  │       │  │
-    /// │  ╰───────╯  ╰───────╯  │
-    /// │     40%        60%     │
-    /// ╰────────────────────────╯
-    ///             10
+    /// ◎╌╌╌╌╌╌╌┬───────────────╮
+    ///         │ root          │
+    ///         │       △       │
+    /// ╭───────┼───────┼▷      │
+    /// │ node1 │       │       │
+    /// │       │       │       │
+    /// │       ╰───────┼───────┤
+    /// │               │       ┆
+    /// │               │       ┆
+    /// ╰───────────────╯       ◎
+    /// ```
+
+    /// ```text
+    /// ╭───────────────────╮
+    /// │ root              │
+    /// │    ╭─────────╮    ▼
+    /// │    │ node1   │    ▲
+    /// │    │    ◎    │    │
+    /// │    │         │    │
+    /// │    ╰─────────╯    │
+    /// │                   │
+    /// ╰───────────────────╯
     /// ```
     #[test]
-    fn test_layout_horizontal_with_children_with_origin_alignment_center() {
-        let test = TestFlatChildren2::new();
-        test.root.use_auto_layout().set_size_x(10.0);
-        test.node1.set_size((40.pc(), 2.0)).set_origin_alignment_center();
-        test.node2.set_size((60.pc(), 4.0)).set_origin_alignment_center();
+    fn test_layout_horizontal_origin_alignment_center() {
+        let test = TestFlatChildren1::new();
+        test.root.use_auto_layout().set_size((10.0, 10.0)).set_padding_all(1.fr());
+        test.node1.set_size((2.0, 2.0)).set_forced_origin_alignment_center();
         test.run()
-            .assert_root_computed_size(10.0, 4.0)
-            .assert_node1_computed_size(4.0, 2.0)
-            .assert_node2_computed_size(6.0, 4.0)
+            .assert_root_computed_size(10.0, 10.0)
+            .assert_node1_computed_size(2.0, 2.0)
             .assert_root_position(0.0, 0.0)
-            .assert_node1_position(2.0, 1.0)
-            .assert_node2_position(7.0, 2.0)
+            .assert_node1_position(5.0, 5.0)
             .assert_root_bbox_origin(0.0, 0.0)
-            .assert_node1_bbox_origin(2.0, 1.0)
-            .assert_node2_bbox_origin(3.0, 2.0);
+            .assert_node1_bbox_origin(-1.0, -1.0);
     }
 
     /// ```text
@@ -4436,20 +4481,62 @@ mod layout_tests {
     /// ╰───────────────╯       ◎
     /// ```
     #[test]
-    fn test_layout_horizontal_origin_alignment_center() {
-        let test = TestFlatChildren2::new();
-        test.root.use_auto_layout().set_size((10.0, 10.0)).set_origin_alignment_center();
-        test.node1.set_size((40.pc(), 2.0)).set_origin_alignment_center();
-        test.node2.set_size((60.pc(), 4.0)).set_origin_alignment_center();
+    fn test_manual_layout_with_child_with_origin_alignment_center() {
+        let test = TestFlatChildren1::new();
+        test.root.set_size((10.0, 10.0));
+        test.node1.allow_grow().set_forced_origin_alignment_center();
         test.run()
-            .assert_root_computed_size(10.0, 4.0)
-            .assert_node1_computed_size(4.0, 2.0)
-            .assert_node2_computed_size(6.0, 4.0)
+            .assert_root_computed_size(10.0, 10.0)
+            .assert_node1_computed_size(10.0, 10.0)
             .assert_root_position(0.0, 0.0)
-            .assert_node1_position(2.0, 1.0)
-            .assert_node2_position(7.0, 2.0)
-            .assert_root_bbox_origin(0.0, 0.0)
-            .assert_node1_bbox_origin(2.0, 1.0)
-            .assert_node2_bbox_origin(3.0, 2.0);
+            .assert_node1_position(0.0, 0.0)
+            .assert_node1_bbox_origin(-5.0, -5.0)
+            .assert_root_bbox_origin(-5.0, -5.0);
+    }
+
+    /// ```text
+    /// 
+    ///        ╭────── ▶ ◀ ────────────────╮    ╭────── ▶ ◀ ───────────────╮
+    ///        │ node1                     │    │ node2                    │
+    /// ╭──────┼─────────────────────────┬─┼────┼────────────────────────╮ │
+    /// │ root │                         ┆ │    │                        │ │
+    /// │  ╭───┼──────╮                  ┆ ▼╭───┼──────╮                 │ ▼
+    /// │  │ node1_1  │                  ┆ ▲│ node2_1  │                 │ ▲
+    /// │  │   │      │  ╭──────────╮    ┆ ││   │      │  ╭─────────╮    │ │
+    /// │  ╰───┼──────╯  │ node1_2  │    ┆ │╰───┼──────╯  │ node2_2 │    │ │
+    /// │      ╰─────────┼──────────┼────┼─╯    ╰─────────┼─────────┼────┼─╯
+    /// │    ╱           │          │    ┆    ╱           │         │    │  
+    /// │  ◎             ╰──────────╯    ┆  ◎             ╰─────────╯    │  
+    /// ╰────────────────────────────────┴───────────────────────────────╯
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_children_with_forced_origins() {
+        let test = TestFlatChildren2::new();
+
+        test.root.use_auto_layout();
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+
+        let node1_1 = test.node1.new_child_named("node1_1");
+        let node2_1 = test.node2.new_child_named("node2_1");
+        node1_1.allow_grow().set_forced_origin_alignment_center();
+        node2_1.allow_grow().set_forced_origin_alignment_center();
+
+        test.run();
+
+        assert_eq!(node1_1.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(node2_1.position().xy(), Vector2(0.0, 0.0));
+        assert_eq!(node1_1.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(node2_1.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(node1_1.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(node2_1.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node1.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node2.bbox_origin(), Vector2(-1.0, -1.0));
+        assert_eq!(test.node1.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(test.node2.computed_size(), Vector2(2.0, 2.0));
+        assert_eq!(test.node1.position().xy(), Vector2(1.0, 1.0));
+        assert_eq!(test.node2.position().xy(), Vector2(3.0, 1.0));
+
+        test.assert_root_position(0.0, 0.0);
     }
 }
