@@ -206,7 +206,7 @@ type Vector a
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector. After each step the
-       value is added resulting in a new Vector of the same size as self.
+       value is stored resulting in a new Vector of the same size as self.
 
        Arguments:
        - init: The initial value for the fold.

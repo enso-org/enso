@@ -125,6 +125,10 @@ spec = Test.group "Range" <|
         vec_mut_2.to_vector . should_equal [Pair.new 0 5, Pair.new 1 7, Pair.new 2 9]
     Test.specify "should be able to be folded" <|
         1.up_to 6 . fold 0 (+) . should_equal 15
+        1.up_to 1 . fold 123 (+) . should_equal 123
+    Test.specify "should be able to perform a running fold" <|
+        1.up_to 6 . running_fold 0 (+) . should_equal [1, 3, 6, 10, 15]
+        1.up_to 1 . running_fold 123 (+) . should_equal []
     Test.specify "should check all" <|
         1.up_to 10 . all (> 0) . should_be_true
         1.up_to 10 . all (< 0) . should_be_false
