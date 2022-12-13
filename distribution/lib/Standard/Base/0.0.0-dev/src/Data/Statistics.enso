@@ -430,7 +430,7 @@ type Statistic_Aggregator
         self
 
     ## Get a Statistic based off the result of the aggregation.
-    compute : Statistic -> Any
+    compute : Statistic -> Boolean -> Any
     compute self statistic=Statistic.Count = case statistic of
         Statistic.Count -> self.count.get
         Statistic.Minimum -> if self.incomparable.get then Error.throw Incomparable_Values else self.minimum.get
