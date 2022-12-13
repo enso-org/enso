@@ -16,6 +16,7 @@ use double_representation::name::QualifiedName;
 // === Constants ===
 // =================
 
+/// Default type of the argument.
 pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 
 
@@ -321,6 +322,94 @@ macro_rules! mock_suggestion_database {
     }
 }
 
+/// A helper macro for mocking entry's documentation.
+///
+/// ### [`DocSection::Paragrah`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!("Some text.");
+/// ```
+///
+/// ### [`DocSection::Tag`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!(@ "Tag name", "Tag body.");
+/// ```
+///
+/// ### [`DocSection::Keyed`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!("Key" => "Value")
+/// ```
+///
+/// ### [`DocSection::Marked`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!(! "Marked as important");
+/// doc_section!(! "Optional header", "Marked as important");
+/// doc_section!(? "Marked as info");
+/// doc_section!(? "Optional header", "Marked as info");
+/// doc_section!(> "Marked as example");
+/// doc_section!(> "Optional header", "Marked as example");
+/// ```
+#[macro_export]
+macro_rules! doc_section {
+    ($paragraph:expr) => {
+        engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
+    };
+    (@ $tag:expr, $body:expr) => {
+        engine_protocol::language_server::DocSection::Tag { name: $tag.into(), body: $body.into() }
+    };
+    ($key:expr => $body:expr) => {
+        engine_protocol::language_server::DocSection::Keyed {
+            key:  $name.into(),
+            body: $body.into(),
+        }
+    };
+    (! $body:expr) => {
+        engine_protocol::language_server::DocSection::Marked {
+            mark:   engine_protocol::language_server::Mark::Important,
+            header: None,
+            body:   $body.into(),
+        }
+    };
+    (! $header:expr, $body:expr) => {
+        engine_protocol::language_server::DocSection::Marked {
+            mark:   engine_protocol::language_server::Mark::Important,
+            header: Some($header.into()),
+            body:   $body.into(),
+        }
+    };
+    (> $body:expr) => {
+        engine_protocol::language_server::DocSection::Marked {
+            mark:   engine_protocol::language_server::Mark::Example,
+            header: None,
+            body:   $body.into(),
+        }
+    };
+    (> $header:expr, $body:expr) => {
+        engine_protocol::language_server::DocSection::Marked {
+            mark:   engine_protocol::language_server::Mark::Example,
+            header: Some($header.into()),
+            body:   $body.into(),
+        }
+    };
+    (? $header:expr, $body:expr) => {
+        engine_protocol::language_server::DocSection::Marked {
+            mark:   engine_protocol::language_server::Mark::Info,
+            header: Some($header.into()),
+            body:   $body.into(),
+        }
+    };
+    (? $body:expr) => {
+        engine_protocol::language_server::DocSection::Marked {
+            mark:   engine_protocol::language_server::Mark::Info,
+            header: None,
+            body:   $body.into(),
+        }
+    };
+}
+
 
 
 // ========================
@@ -361,6 +450,7 @@ pub fn standard_db_mock() -> SuggestionDatabase {
 // === Tests ===
 // =============
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
