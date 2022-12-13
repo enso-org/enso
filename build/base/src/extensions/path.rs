@@ -83,9 +83,9 @@ pub trait PathExt: AsRef<Path> {
     /// # Safety
     /// This will panic if the path contains invalid UTF-8 characters. Non-UTF-8 paths are not
     /// something that we want to spend time on supporting right now.
-    fn as_str<'a>(&'a self) -> &'a str
-    where Self: AsRef<std::ffi::OsStr> {
-        <Self as AsRef<std::ffi::OsStr>>::as_ref(self).as_str()
+    fn as_str(&self) -> &str {
+        let os_str: &OsStr = self.as_ref().as_ref();
+        os_str.as_str()
     }
 
     /// Split path to components and collect them into a new PathBuf.

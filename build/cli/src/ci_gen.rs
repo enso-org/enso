@@ -490,7 +490,7 @@ pub fn benchmark() -> Result<Workflow> {
     );
 
     let benchmark_job =
-        plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime");
+        plain_job(&BenchmarkRunner, "Benchmark Engine", "backend benchmark runtime enso");
     workflow.add_job(benchmark_job);
     Ok(workflow)
 }

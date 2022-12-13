@@ -27,6 +27,7 @@ pub mod sbt;
 pub use context::RunContext;
 
 
+
 /// Version of `flatc` (the FlatBuffers compiler) that we require.
 const FLATC_VERSION: Version = Version::new(1, 12, 0);
 

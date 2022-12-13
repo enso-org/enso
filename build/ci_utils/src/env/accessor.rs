@@ -214,7 +214,7 @@ impl PathLike {
         let value = value.into();
         trace!("Prepending {} to {}.", value.display(), self.name());
         let mut paths = self.get()?;
-        paths.insert(0, value.into());
+        paths.insert(0, value);
         self.set(&paths)
     }
 }

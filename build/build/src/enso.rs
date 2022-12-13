@@ -1,6 +1,8 @@
 use crate::prelude::*;
 
 use crate::paths::Paths;
+use crate::paths::ENSO_META_TEST_ARGS;
+use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
@@ -88,6 +90,11 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
     ) -> Result {
         let paths = &self.paths;
+        // Environment for meta-tests. See:
+        // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
+        ENSO_META_TEST_COMMAND.set(&self.lookup()?.executable_path)?;
+        ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
             let google_api_test_data_dir =

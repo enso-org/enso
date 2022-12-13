@@ -23,7 +23,7 @@ ide_ci::define_env_var! {
 
     /// Path to the engine runner executable.
     /// See: <https://github.com/diab0l/enso/blob/feature/test_with_clue/test/Meta_Test_Suite_Tests/README.md>
-    ENSO_META_TEST_COMMAND, String;
+    ENSO_META_TEST_COMMAND, PathBuf;
 
     /// Arguments to the engine runner.
     /// See: <https://github.com/diab0l/enso/blob/feature/test_with_clue/test/Meta_Test_Suite_Tests/README.md>
