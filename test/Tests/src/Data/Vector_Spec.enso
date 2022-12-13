@@ -187,6 +187,8 @@ spec = Test.group "Vectors" <|
         txtvec = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"]
         txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
+        txtvec.filter (Filter_Condition.Not_Contains "a") . should_equal ["bbb", "cccc", "ś"]
+        txtvec.filter (Filter_Condition.Not_Contains 's\u0301') . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"]
         txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"]
         txtvec.filter (Filter_Condition.Less than="a") . should_equal []
@@ -216,6 +218,7 @@ spec = Test.group "Vectors" <|
         txt3 = ['śnieg', 's\u0301nieg', 'X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Starts_With 'ś') . should_equal ['śnieg', 's\u0301nieg']
         txt3.filter (Filter_Condition.Contains 'ś') . should_equal ['śnieg', 's\u0301nieg']
+        txt3.filter (Filter_Condition.Not_Contains 'ś') . should_equal ['X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Ends_With 'ś') . should_equal []
         txt3.filter (Filter_Condition.Ends_With 'ć') . should_equal ['połać', 'połac\u0301']
         ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
