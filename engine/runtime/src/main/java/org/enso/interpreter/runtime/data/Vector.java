@@ -103,12 +103,12 @@ public final class Vector implements TruffleObject {
    * @return {@code true}
    */
   @ExportMessage
-  public boolean hasArrayElements() {
+  boolean hasArrayElements() {
     return true;
   }
 
   @ExportMessage
-  public long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
+  long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException {
     return interop.getArraySize(storage);
   }
@@ -133,7 +133,6 @@ public final class Vector implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      ;
       return new WithWarnings(toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);

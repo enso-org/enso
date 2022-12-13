@@ -78,7 +78,7 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that = self.equals_builtin self that
+    == self that = self.equals_builtin that
 
     old_equals : Any -> Boolean
     old_equals self that = if Meta.is_same_object self that then True else
