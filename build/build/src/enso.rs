@@ -44,7 +44,8 @@ pub struct BuiltEnso {
 
 impl BuiltEnso {
     pub fn wrapper_script_path(&self) -> PathBuf {
-        self.paths.engine.dir.join("bin").join("enso")
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
+        self.paths.engine.dir.join_iter(["bin", &filename])
     }
 
     pub async fn run_benchmarks(&self) -> Result {
@@ -92,7 +93,7 @@ impl BuiltEnso {
         let paths = &self.paths;
         // Environment for meta-tests. See:
         // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
-        ENSO_META_TEST_COMMAND.set(&self.lookup()?.executable_path)?;
+        ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
         ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
 
         // Prepare Engine Test Environment
