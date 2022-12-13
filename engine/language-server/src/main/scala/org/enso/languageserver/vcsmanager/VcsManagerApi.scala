@@ -33,7 +33,11 @@ object VcsManagerApi {
 
   case object StatusVcs extends Method("vcs/status") {
     case class Params(root: Path)
-    case class Result(dirty: Boolean, changed: List[Path], lastSave: Save)
+    case class Result(
+      dirty: Boolean,
+      changed: List[Path],
+      lastSave: Option[Save]
+    )
     case class Save(commitId: String, message: String)
 
     implicit val hasParams = new HasParams[this.type] {

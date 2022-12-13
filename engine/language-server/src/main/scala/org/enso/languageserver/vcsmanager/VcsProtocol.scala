@@ -31,8 +31,8 @@ object VcsProtocol {
   case class StatusRepo(clientId: ClientId, root: Path)
 
   case class StatusRepoResponse(
-    result: Either[VcsFailure, (Boolean, List[Path], (String, String))]
-  ) extends VCSResponse[(Boolean, List[Path], (String, String))]
+    result: Either[VcsFailure, (Boolean, List[Path], Option[(String, String)])]
+  ) extends VCSResponse[(Boolean, List[Path], Option[(String, String)])]
 
   case class ListRepo(clientId: ClientId, root: Path, limit: Option[Int])
 
