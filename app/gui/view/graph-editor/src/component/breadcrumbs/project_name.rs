@@ -323,13 +323,7 @@ impl ProjectName {
 
             // === Selection ===
 
-            selected_color <- all2(&frp.input.set_project_changed, &frp.select);
-            selected_color <- selected_color.map(move |(changed, _)|
-                if *changed {unsaved_selected_color} else {saved_selected_color}
-            );
-            eval selected_color((&color) animations.color.set_target_value(color) );
             frp.output.source.selected <+ frp.select.to_true();
-
             set_inactive <- any(&frp.deselect,&on_commit);
             eval_ set_inactive ([text] {
                 text.deprecated_set_focus(false);
