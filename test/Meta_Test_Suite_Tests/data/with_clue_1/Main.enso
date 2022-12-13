@@ -1,0 +1,15 @@
+from Standard.Base import all
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec = Test.group "Tests" <|
+    Test.specify "some property" <|
+        xs = [2, 3, 4, 5]
+        xs.each x->
+            Test.with_clue ("{x = "+x.to_text+", x > 0}: ") <|
+                (x > 0).should_be_true
+            Test.with_clue ("{x = "+x.to_text+", x*x == 4}: ") <|
+                x*x . should_equal 4
+
+main = Test_Suite.run_main spec
