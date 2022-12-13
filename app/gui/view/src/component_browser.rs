@@ -141,6 +141,7 @@ impl component::Frp<Model> for Frp {
             );
 
             out.is_hovered <+ list_panel.is_hovered || documentation.frp.is_hovered;
+            out.is_hovered <+ input.hide.constant(false);
         }
         init.emit(());
     }
