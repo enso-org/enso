@@ -1619,6 +1619,13 @@ pub struct Row {
     def: ColumnOrRow,
 }
 
+
+
+// ==========================
+// === Column and Row Ref ===
+// ==========================
+// Utilities to modify columns and rows.
+
 /// The auto-layout column/row reference.
 #[derive(Debug)]
 pub struct ColumnOrRowRef<Dim> {
@@ -1680,11 +1687,11 @@ where
 /// few additions. Read the docs of this module to learn more.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AutoLayout {
-    /// The default item alignment in grid cells. This can be overriden per-item.
+    /// The default item alignment in grid cells. This can be overriden per-child.
     pub children_alignment: alignment::Dim2,
-    /// The spacing between axes.
+    /// The spacing between columns/rows.
     pub gap: Vector2<Unit>,
-    /// Indicates whether the axes should be placed in order or in a reversed order.
+    /// Indicates whether the columns/rows should be placed in order or in a reversed order.
     pub reversed_columns_and_rows: Vector2<bool>,
     /// First column and row definition.
     pub first_column_and_row: (Column, Row),
