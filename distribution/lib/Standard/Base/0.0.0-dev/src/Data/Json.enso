@@ -172,7 +172,7 @@ type Json
     get : Text -> Json ! No_Such_Field
     get self field = case self of
         Json.Object fields -> fields.get_or_else field (Error.throw (No_Such_Field.Error field))
-        Json.Null -> Json.Null
+        Json.Null -> Error.throw (No_Such_Field.Error field)
         _ -> Error.throw (Illegal_Argument.Error "Json.get: self must be an Object")
 
     ## Gets the value associated with the given key in this object.
@@ -183,7 +183,7 @@ type Json
     get_or_else : Text -> Any -> Json
     get_or_else self field ~other=Json.Null = case self of
         Json.Object fields -> fields.get_or_else field other
-        Json.Null -> Json.Null
+        Json.Null -> other
         _ -> Error.throw (Illegal_Argument.Error "Json.get_or_else: self must be an Object")
 
     ## Gets the value associated with the given key in this object.

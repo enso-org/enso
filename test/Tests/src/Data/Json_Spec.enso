@@ -34,7 +34,6 @@ Text.should_render_itself self =
 
 spec =
     Test.group "JSON Deserialization" <|
-
         Test.specify "should parse JSON structures" <|
             "0    ".should_parse_as 0
             " 123    ".should_parse_as 123
@@ -129,6 +128,18 @@ spec =
                   "y": {"z": null, "w": null} }
 
             object.get "foo" . should_equal (Json.String "bar")
+            object.get_or_else "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with No_Such_Field.Error
+            object.get_or_else "bar" . should_equal Nothing
+            object.get_or_else "bar" 1 . should_equal 1
+            Json.Null.get "foo" . should_fail_with No_Such_Field.Error
+            Json.Null.get_or_else "foo" . should_equal Nothing
+            Json.Null.get_or_else "foo" 1 . should_equal 1
+
+        Test.specify "should be able to make empty objects and array" <|
+            Json.empty_object.should_equal (Json.Object Map.empty)
+            Json.empty_object.to_text.should_equal "{}"
+            Json.empty_array.should_equal (Json.Array [])
+            Json.empty_array.to_text.should_equal "[]"
 
 main = Test_Suite.run_main spec
