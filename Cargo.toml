@@ -65,10 +65,11 @@ opt-level = 2
 inherits = "dev"
 opt-level = 1
 lto = false
-debug = true
+debug = 1
 debug-assertions = true
 
 [workspace.dependencies]
-tokio = { version = "=1.20.1", features = ["full", "tracing"] }
-console-subscriber = "=0.1.7"
-nix = "=0.24.1" # DO NOT BUMP UNTIL NIGHTLY IS UPDATED. Otherwise, it brings too new libc.
+tokio = { version = "1.23.0", features = ["full", "tracing"] }
+tokio-util = { version = "0.7.4", features = ["full"] }
+console-subscriber = "0.1.8"
+nix = "0.26.1"

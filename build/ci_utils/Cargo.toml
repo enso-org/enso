@@ -75,7 +75,7 @@ sysinfo = "0.26.2"
 tar = "0.4.37"
 tempfile = "3.2.0"
 tokio = { workspace = true }
-tokio-util = { version = "0.7.2", features = ["full"] }
+tokio-util = { workspace = true }
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }
 unicase = "2.6.0"

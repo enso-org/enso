@@ -45,8 +45,15 @@ impl BuiltEnso {
         self.paths.engine.dir.join("bin").join("enso")
     }
 
+    pub async fn run_benchmarks(&self) -> Result {
+        self.cmd()?
+            .with_args(["--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .run_ok()
+            .await
+    }
+
     pub fn run_test(&self, test: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
-        let test_path = self.paths.stdlib_test(test);
+        let test_path = self.paths.repo_root.test.join(test);
         let mut command = self.cmd()?;
         command
             .arg(ir_caches)
@@ -99,7 +106,7 @@ impl BuiltEnso {
                 // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in
                 // the container name.
                 let container_name =
-                    iformat!("postgres-for-{runner_context_string}").replace(' ', "_");
+                    format!("postgres-for-{runner_context_string}").replace(' ', "_");
                 let config = postgres::Configuration {
                     postgres_container: ContainerId(container_name),
                     database_name:      "enso_test_db".to_string(),

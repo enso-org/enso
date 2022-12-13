@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::extensions::os_str::OsStrExt;
+
 use serde::de::DeserializeOwned;
 
 
@@ -16,7 +18,8 @@ pub trait PathExt: AsRef<Path> {
     }
 
     /// Strips the leading `\\?\` prefix from Windows paths if present.
-    fn without_verbatim_prefix(&self) -> &Path {
+    fn without_verbatim_prefix(&self) -> &Path
+    where Self: AsRef<std::ffi::OsStr> {
         self.as_str().strip_prefix(r"\\?\").map_or(self.as_ref(), Path::new)
     }
 
@@ -80,10 +83,9 @@ pub trait PathExt: AsRef<Path> {
     /// # Safety
     /// This will panic if the path contains invalid UTF-8 characters. Non-UTF-8 paths are not
     /// something that we want to spend time on supporting right now.
-    fn as_str(&self) -> &str {
-        self.as_ref()
-            .to_str()
-            .unwrap_or_else(|| panic!("Path is not valid UTF-8: {:?}", self.as_ref()))
+    fn as_str<'a>(&'a self) -> &'a str
+    where Self: AsRef<std::ffi::OsStr> {
+        <Self as AsRef<std::ffi::OsStr>>::as_ref(self).as_str()
     }
 
     /// Split path to components and collect them into a new PathBuf.

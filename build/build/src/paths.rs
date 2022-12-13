@@ -20,12 +20,27 @@ ide_ci::define_env_var! {
     /// Used to overwrite the default location of data directory. See:
     /// <https://enso.org/docs/developer/enso/distribution/distribution.html#installed-enso-distribution-layout>.
     ENSO_DATA_DIRECTORY, PathBuf;
+
+    /// Path to the engine runner executable.
+    /// See: <https://github.com/diab0l/enso/blob/feature/test_with_clue/test/Meta_Test_Suite_Tests/README.md>
+    ENSO_META_TEST_COMMAND, String;
+
+    /// Arguments to the engine runner.
+    /// See: <https://github.com/diab0l/enso/blob/feature/test_with_clue/test/Meta_Test_Suite_Tests/README.md>
+    ENSO_META_TEST_ARGS, String;
 }
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
 
-pub const LIBRARIES_TO_TEST: [&str; 6] =
-    ["Tests", "Table_Tests", "Geo_Tests", "Visualization_Tests", "Image_Tests", "Examples_Tests"];
+pub const LIBRARIES_TO_TEST: [&str; 6] = [
+    "Examples_Tests",
+    "Geo_Tests",
+    "Image_Tests",
+    // "Meta_Test_Suite_Tests",
+    "Table_Tests",
+    "Tests",
+    "Visualization_Tests",
+];
 
 pub const ARCHIVE_EXTENSION: &str = match TARGET_OS {
     OS::Windows => "zip",

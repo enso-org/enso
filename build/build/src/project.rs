@@ -229,7 +229,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         let Context { octocrab, cache, upload_artifacts: _, repo_root: _ } = context;
         let CiRunSource { run_id, artifact_name, repository } = ci_run;
         let repository = repository.handle(&octocrab);
-        let span = info_span!("Downloading CI Artifact.", %artifact_name, %repository, target = output_path.as_str());
+        let span = info_span!("Downloading CI Artifact.", %artifact_name, %repository, target = output_path.as_ref().as_str());
         let this = self.clone();
         async move {
             let artifact = repository.find_artifact_by_name(run_id, &artifact_name).await?;
