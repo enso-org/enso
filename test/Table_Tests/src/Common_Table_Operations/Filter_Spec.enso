@@ -79,17 +79,17 @@ spec setup =
             t.filter "X" (Filter_Condition.Between (t.at "Y") "bzzzz") . at "X" . to_vector . should_equal ["abb", "baca", "b"]
 
         Test.specify "by text search (contains, starts_with, ends_with, like)" <|
-            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "banana", Nothing, "nana"]], ["Y", ["a", "b", "b", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", ["abb", "baca", "banana", Nothing, "nana"]], ["Y", ["a", "b", "d", "c", "a"]], ["Z", ["aaaaa", "bbbbb", "[ab]", "[ab]aaaa", "[ab]ccc"]]]
 
             t.filter "X" (Filter_Condition.Starts_With "ba") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana"]
             t.filter "X" (Filter_Condition.Ends_With "na") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
             t.filter "X" (Filter_Condition.Contains "ac") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca"]
-            t.filter "X" (Filter_Condition.Not_Contains "ac") on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "banana", Nothing, "nana"]
+            t.filter "X" (Filter_Condition.Not_Contains "ac") on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "banana", "nana"]
 
-            t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca", "banana"]
+            t.filter "X" (Filter_Condition.Starts_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca"]
             t.filter "X" (Filter_Condition.Ends_With (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["nana"]
-            t.filter "X" (Filter_Condition.Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca", "banana", "nana"]
-            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["baca"]
+            t.filter "X" (Filter_Condition.Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["abb", "baca", "nana"]
+            t.filter "X" (Filter_Condition.Not_Contains (t.at "Y")) on_problems=Report_Error . at "X" . to_vector . should_equal ["banana"]
 
             t.filter "X" (Filter_Condition.Like "%an%") on_problems=Report_Error . at "X" . to_vector . should_equal ["banana", "nana"]
             t.filter "X" (Filter_Condition.Like "_a%") on_problems=Report_Error . at "X" . to_vector . should_equal ["baca", "banana", "nana"]
@@ -120,7 +120,7 @@ spec setup =
                 t.filter "X" (Filter_Condition.Contains 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg', 's\u0301nieg']
                 t.filter "X" (Filter_Condition.Ends_With 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal []
                 t.filter "X" (Filter_Condition.Ends_With 'ć') on_problems=Report_Error . at "X" . to_vector . should_equal ['połać', 'połac\u0301']
-                t.filter "X" (Filter_Condition.Not_Contains 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal ['X', Nothing, 'połać', 'połac\u0301']
+                t.filter "X" (Filter_Condition.Not_Contains 'ś') on_problems=Report_Error . at "X" . to_vector . should_equal ['X', 'połać', 'połac\u0301']
 
                 # This should be replaced with the disabled test below, once the related bug is fixed.
                 t.filter "X" (Filter_Condition.Like 'ś%') on_problems=Report_Error . at "X" . to_vector . should_equal ['śnieg']
@@ -272,4 +272,3 @@ spec setup =
                 table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
             problems = [Index_Out_Of_Bounds.Error 4 1]
             Problems.test_problem_handling action problems tester
-
