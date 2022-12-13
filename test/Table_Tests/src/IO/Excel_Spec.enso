@@ -1,8 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Column_Selector
 
-from Standard.Table.Errors import Invalid_Output_Column_Names_Data, Duplicate_Output_Column_Names_Data, Invalid_Location_Data, Range_Exceeded_Data, Existing_Data_Data, Column_Count_Mismatch_Data, Column_Name_Mismatch_Data
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -142,25 +144,25 @@ spec_write suffix test_sheet_name =
         Test.specify 'should result in Invalid_Location error if trying to write in a bad location' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location_Data
-            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location_Data
-            sub_clothes.write out (Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location_Data
+            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1")) . should_fail_with Invalid_Location.Error
+            sub_clothes.write out (Excel (Cell_Range "DoesNotExist!A1:B2")) . should_fail_with Invalid_Location.Error
+            sub_clothes.write out (Excel (Cell_Range "SillyRangeName")) . should_fail_with Invalid_Location.Error
             out.delete_if_exists
 
         Test.specify 'should result in Range_Exceeded error if trying to write in too small a range' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
-            sub_clothes.write out (Excel (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded_Data
+            sub_clothes.write out (Excel (Cell_Range "Another!A1:B2")) . should_fail_with Range_Exceeded.Error
             out.delete_if_exists
 
         Test.specify 'should result in Existing_Data error if in Error mode and trying to replace' <|
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
-            sub_clothes.write out (Excel (Worksheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
-            sub_clothes.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
-            sub_clothes.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
-            sub_clothes.write out (Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data_Data
+            sub_clothes.write out (Excel (Worksheet 1)) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
+            sub_clothes.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
+            sub_clothes.write out (Excel (Cell_Range "Another!A1")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
+            sub_clothes.write out (Excel (Cell_Range "Sheet1!A9")) on_existing_file=Existing_File_Behavior.Error . should_fail_with Existing_Data.Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -303,7 +305,7 @@ spec_write suffix test_sheet_name =
             out.delete_if_exists
             (enso_project.data / test_sheet_name) . copy_to out
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch_Data
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch.Error
             out.delete_if_exists
 
         Test.specify 'should fail to append to a sheet by name if extra columns' <|
@@ -311,7 +313,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch_Data
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Column_Name_Mismatch.Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -330,7 +332,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch_Data
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch.Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -339,7 +341,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['CC',[True, False]], ['BB',[4, 5]], ['AA', ['d', 'e']], ['DD', ['2022-01-20', '2022-01-21']], ['EE', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch_Data
+            extra_another.write out (Excel (Worksheet "Another")) on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position . should_fail_with Column_Count_Mismatch.Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -348,7 +350,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded_Data
+            extra_another.write out (Excel (Cell_Range "Another!A1:D5")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Range_Exceeded.Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -357,7 +359,7 @@ spec_write suffix test_sheet_name =
             (enso_project.data / test_sheet_name) . copy_to out
             lmd = out.last_modified_time
             extra_another = Table.new [['AA', ['d', 'e']], ['BB',[4, 5]], ['CC',[True, False]], ['DD', ['2022-01-20', '2022-01-21']]]
-            extra_another.write out (Excel (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data_Data
+            extra_another.write out (Excel (Cell_Range "Random!B3")) on_existing_file=Existing_File_Behavior.Append . should_fail_with Existing_Data.Error
             out.last_modified_time.should_equal lmd
             out.delete_if_exists
 
@@ -615,13 +617,13 @@ spec =
         Test.specify "Should handle invalid headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!D1")) on_problems=_
             tester = check_table _ ["A", "B", "Column_1"] [[1,2,4], [4,4,Nothing], [6,Nothing,6]]
-            problems = [Invalid_Output_Column_Names_Data [""]]
+            problems = [Invalid_Output_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "Should handle duplicate headers with warnings" <|
             action = file.read (Excel (Cell_Range "Sheet1!S1")) on_problems=_
             tester = check_table _ ["DD", "DD_1"] [[1,3], [2,4]]
-            problems = [Duplicate_Output_Column_Names_Data ["DD"]]
+            problems = [Duplicate_Output_Column_Names.Error ["DD"]]
             Problems.test_problem_handling action problems tester
 
     spec_write "xlsx" 'TestSheet.xlsx'

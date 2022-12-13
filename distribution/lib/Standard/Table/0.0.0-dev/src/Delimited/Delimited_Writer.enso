@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.System.File.Output_Stream
 
 import project.Data.Table.Table
@@ -10,7 +12,7 @@ import project.Delimited.Quote_Style.Quote_Style
 import project.Delimited.Delimited_Reader
 import project.Delimited.Delimited_Reader.Detected_Headers
 
-from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Parser_Error, Additional_Invalid_Rows, Column_Count_Mismatch, Column_Name_Mismatch
+from project.Errors import Mismatched_Quote, Column_Count_Mismatch, Column_Name_Mismatch
 
 polyglot java import org.enso.table.write.DelimitedWriter
 polyglot java import org.enso.table.write.WriteQuoteBehavior
@@ -76,7 +78,7 @@ append_to_file table format file match_columns on_problems =
                     Error.throw (Illegal_Argument.Error "Cannot append by name when headers are not present in the existing data.")
                 Match_Columns.By_Position ->
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
-        reordered_table = Table.Table_Data reordered_java_table
+        reordered_table = Table.Value reordered_java_table
         writing_new_file = preexisting_headers == Nothing
         amended_format = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers

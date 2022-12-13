@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Common.Type_Error
 
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import all
@@ -133,7 +135,7 @@ spec setup =
             check_column_type_error_handling action =
                 tester = check_empty ["ix", "X"]
                 check_problem problem =
-                    problem.should_be_a Invalid_Value_Type.Invalid_Value_Type_Data
+                    problem.should_be_a Invalid_Value_Type.Error
                     problem.expected . should_equal Value_Type.Char
                 warnings_tester warnings =
                     (warnings.length >= 1).should_be_true
@@ -157,7 +159,7 @@ spec setup =
 
             check_scalar_type_error_handling name action =
                 tester = check_empty ["ix", "X"]
-                problems = [Type_Error_Data Text Integer name]
+                problems = [Type_Error.Error Text Integer name]
                 Problems.test_problem_handling action problems tester
             check_scalar_type_error_handling "prefix" (t.filter "X" (Filter_Condition.Starts_With 42) on_problems=_)
             check_scalar_type_error_handling "suffix" (t.filter "X" (Filter_Condition.Ends_With 42) on_problems=_)
@@ -235,7 +237,7 @@ spec setup =
             t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
             tester = check_empty ["ix", "b"]
             check_problem problem =
-                problem.should_be_a Invalid_Value_Type.Invalid_Value_Type_Data
+                problem.should_be_a Invalid_Value_Type.Error
                 problem.expected . should_equal Value_Type.Boolean
             warnings_tester warnings =
                 (warnings.length >= 1).should_be_true
@@ -253,7 +255,7 @@ spec setup =
             action = t.filter "unknown column" on_problems=_
             tester table =
                 table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
-            problems = [No_Such_Column_Error_Data "unknown column"]
+            problems = [No_Such_Column.Error "unknown column"]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should handle selection errors: out of bounds index" <|
@@ -261,6 +263,6 @@ spec setup =
             action = t.filter 4 on_problems=_
             tester table =
                 table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
-            problems = [Index_Out_Of_Bounds_Error_Data 4 1]
+            problems = [Index_Out_Of_Bounds.Error 4 1]
             Problems.test_problem_handling action problems tester
 

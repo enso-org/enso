@@ -32,7 +32,7 @@ public class ArrayAtNode extends Node {
     } catch (InvalidArrayIndexException e) {
       EnsoContext ctx = EnsoContext.get(this);
       return DataflowError.withoutTrace(
-          ctx.getBuiltins().error().makeIndexOutOfBoundsError(index, iop.getArraySize(self)), this);
+          ctx.getBuiltins().error().makeIndexOutOfBounds(index, iop.getArraySize(self)), this);
     }
   }
 }

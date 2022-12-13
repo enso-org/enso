@@ -31,7 +31,7 @@ public abstract class ConversionResolverNode extends Node {
           EnsoContext.get(this)
               .getBuiltins()
               .error()
-              .makeNoSuchConversionError(target, self, conversion),
+              .makeNoSuchConversion(target, self, conversion),
           this);
     }
     return result;

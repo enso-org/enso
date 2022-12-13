@@ -10,13 +10,14 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Period.Period
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
+import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Time_Error, Type_Error_Data
 
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
@@ -373,7 +374,7 @@ type Time_Of_Day
         _ : Time_Of_Day ->
             sign = Time_Utils.compare_to_localtime self that
             Ordering.from_sign sign
-        _ -> Error.throw (Type_Error_Data Time_Of_Day that "that")
+        _ -> Error.throw (Type_Error.Error Time_Of_Day that "that")
 
     ## Compares two Time_Of_Day for equality.
     == : Date -> Boolean

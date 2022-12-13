@@ -3352,8 +3352,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
-      "(Syntax_Error_Data 'Unrecognized token.')"
+      "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
+      "(Syntax_Error.Error 'Unrecognized token.')"
     )
   }
 

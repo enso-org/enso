@@ -7,7 +7,7 @@ from Standard.Test import Test
 import Standard.Test.Extensions
 
 Definitions.Foo.my_method self = case self of
-    Definitions.Foo_Data x y z -> x * y * z
+    Definitions.Foo.Value x y z -> x * y * z
 
 get_foo module = module.Foo
 
@@ -18,15 +18,14 @@ add_one (x = 0) = x + 1
 spec =
     Test.group "Qualified Names" <|
         Test.specify "should allow to call constructors in a qualified manner" <|
-            Definitions.Foo_Data 1 2 3 . sum . should_equal 6
-            Definitions . Foo_Data 1 2 3 . sum . should_equal 6
+            Definitions.Foo.Value 1 2 3 . sum . should_equal 6
         Test.specify "should allow pattern matching in a qualified manner" <|
-            v = Definitions.Foo_Data 1 2 3
+            v = Definitions.Foo.Value 1 2 3
             res = case v of
-                Definitions.Foo_Data a b c -> a + b + c
+                Definitions.Foo.Value a b c -> a + b + c
             res.should_equal 6
         Test.specify "should allow defining methods on qualified names" <|
-            v = Definitions.Foo_Data 2 3 5
+            v = Definitions.Foo.Value 2 3 5
             v.my_method.should_equal 30
     Test.group "Lowercase Methods" <|
         Test.specify "should allow calling methods without a target" <|
@@ -46,8 +45,8 @@ spec =
             method_with_local_vars 1 . should_equal 13
     Test.group "Methods" <|
         Test.specify "should be correctly resolved on instances" <|
-            b = Bar_Data 1
+            b = Bar.Value 1
             b.meh 2 . should_equal 3
         Test.specify "should be allowed to be called statically" pending="Needs changes to method dispatch logic" <|
-            b = Bar_Data 1
+            b = Bar.Value 1
             Bar.meh b 2 . should_equal 3

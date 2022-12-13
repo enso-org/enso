@@ -1,4 +1,7 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Polyglot_Error
+import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -315,12 +318,12 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1<time_2 . should_be_false
 
             tod = Time_Of_Day.new 4 0 10
-            time_1.compare_to tod . should_fail_with Type_Error_Data
-            time_1<tod . should_fail_with Type_Error_Data
+            time_1.compare_to tod . should_fail_with Type_Error.Error
+            time_1<tod . should_fail_with Type_Error.Error
             time_1==tod . should_be_false
 
             date = Date.new 2021 1 1
-            time_1.compare_to date . should_fail_with Type_Error_Data
+            time_1.compare_to date . should_fail_with Type_Error.Error
             time_1==date . should_be_false
 
         Test.specify "simple computations before Enso epoch should produce a warning" <|
@@ -638,7 +641,7 @@ maybe_parse_java_zoned text pattern=Nothing =
         ZonedDateTime.parse text pattern
 
 parse_java_local original_error text pattern=Nothing =
-    Panic.catch Polyglot_Error.Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error.Error original_error.payload.cause.getMessage)) <|
+    Panic.catch Polyglot_Error.Error handler=(_ -> Error.throw (Time_Error.Error original_error.payload.cause.getMessage)) <|
         if pattern.is_nothing then LocalDateTime.parse text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDateTime.parse text (formatter.withLocale Locale.default.java_locale)
@@ -646,8 +649,8 @@ parse_java_local original_error text pattern=Nothing =
 java_parse date_text_raw pattern=Nothing =
   utc_replaced = date_text_raw.replace "[UTC]" "Z"
   date_text = if utc_replaced.ends_with "ZZ" then date_text_raw else utc_replaced
-  if pattern == Nothing then Panic.catch Polyglot_Error.Polyglot_Error_Data (maybe_parse_java_zoned date_text) (err -> parse_java_local err date_text pattern) else
+  if pattern == Nothing then Panic.catch Polyglot_Error.Error (maybe_parse_java_zoned date_text) (err -> parse_java_local err date_text pattern) else
       formatter = DateTimeFormatter.ofPattern(pattern)
-      Panic.catch Polyglot_Error.Polyglot_Error_Data (maybe_parse_java_zoned date_text formatter) (err -> parse_java_local err date_text pattern)
+      Panic.catch Polyglot_Error.Error (maybe_parse_java_zoned date_text formatter) (err -> parse_java_local err date_text pattern)
 
 main = Test_Suite.run_main spec

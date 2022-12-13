@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 import Standard.Base.Data.Ordering.Comparator
 
@@ -21,7 +22,7 @@ type No_Ord
 # Tests
 
 spec = Test.group "Object Comparator" <|
-    handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values_Error)
+    handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values)
     default_comparator a b = handle_classcast <| Comparator.new.compare a b
     case_insensitive a b = handle_classcast <| Comparator.for_text_ordering Text_Ordering.Case_Insensitive . compare a b
 
@@ -59,7 +60,7 @@ spec = Test.group "Object Comparator" <|
         ((default_comparator (Ord.Value 1) (Ord.Value 1)) == 0) . should_equal True
 
     Test.specify "should fail gracefully for incomparable items" <|
-        (default_comparator 1 True).should_fail_with Incomparable_Values_Error
-        (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values_Error
+        (default_comparator 1 True).should_fail_with Incomparable_Values
+        (default_comparator (No_Ord.Value 1) (No_Ord.Value 2)).should_fail_with Incomparable_Values
 
 main = Test_Suite.run_main spec

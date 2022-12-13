@@ -1,48 +1,27 @@
-# TODO Dubious constructor export
-from project.Error.Common.Syntax_Error import all
-from project.Error.Common.Syntax_Error export all
 @Builtin_Type
 type Syntax_Error
-    Syntax_Error_Data message
+    Error message
 
-# TODO Dubious constructor export
-from project.Error.Common.Polyglot_Error import all
-from project.Error.Common.Polyglot_Error export all
 @Builtin_Type
 type Polyglot_Error
-    Polyglot_Error_Data cause
+    Error cause
 
-# TODO Dubious constructor export
-from project.Error.Common.Arithmetic_Error import all
-from project.Error.Common.Arithmetic_Error export all
 @Builtin_Type
 type Arithmetic_Error
-    Arithmetic_Error_Data message
+    Error message
 
-# TODO Dubious constructor export
-from project.Error.Common.Type_Error import all
-from project.Error.Common.Type_Error export all
 @Builtin_Type
 type Type_Error
-    Type_Error_Data expected actual name
+    Error expected actual name
 
-# TODO Dubious constructor export
-from project.Error.Common.Compile_Error import all
-from project.Error.Common.Compile_Error export all
 @Builtin_Type
 type Compile_Error
-    Compile_Error_Data message
+    Error message
 
-# TODO Dubious constructor export
-from project.Error.Common.Inexhaustive_Pattern_Match_Error import all
-from project.Error.Common.Inexhaustive_Pattern_Match_Error export all
 @Builtin_Type
-type Inexhaustive_Pattern_Match_Error
-    Inexhaustive_Pattern_Match_Error_Data scrutinee
+type Inexhaustive_Pattern_Match
+    Error scrutinee
 
-# TODO Dubious constructor export
-from project.Error.Common.Arity_Error import all
-from project.Error.Common.Arity_Error export all
 @Builtin_Type
 type Arity_Error
-    Arity_Error_Data expected_min expected_max actual
+    Error expected_min expected_max actual

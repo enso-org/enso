@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+from Standard.Table import Table
+import Standard.Table.Errors.Invalid_JSON_Format
+
 ## PRIVATE
 
    A type of GeoJSON object.
@@ -69,3 +72,35 @@ Json.get_point_row self =
         Json.Array coordinates ->
             Map.from_vector (fields.zip coordinates)
         _ -> Map.empty
+
+Json.geo_json_to_table : Vector -> Table
+Json.geo_json_to_table self fields=Nothing = case self of
+    Json.Array items ->
+        rows = items.map item->
+            case item of
+                Json.Object _ ->
+                    if item.get_type != Object_Type.Feature.to_text then Vector.fill fields.length Nothing else
+                        row = item.get_feature_row
+                        fields.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
+                _ -> Vector.fill fields.length Nothing
+        cols = fields.map_with_index i-> n->
+            [n, rows.map (_.at i)]
+        Table.new cols
+    Json.Object _ ->
+        if self.get_type != Object_Type.Feature_Collection.to_text then Error.throw (Invalid_JSON_Format.Error self "not being a feature collection") else
+            case self.get "features" of
+                Json.Array items ->
+                    feature_rows = items.map .get_feature_row
+                    column_names = case fields of
+                        Nothing ->
+                            column_names_row = feature_rows.fold Map.empty acc-> row->
+                                row.fold_with_key acc a-> k-> _->
+                                    a.insert k 0
+                            column_names_row.keys
+                        _ -> fields
+                    rows = feature_rows.map row->
+                        column_names.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
+                    cols = column_names.map_with_index i-> n->
+                        [n, rows.map (_.at i)]
+                    Table.new cols
+                _ -> Error.throw (Invalid_JSON_Format.Error self "not having the 'features' key.")

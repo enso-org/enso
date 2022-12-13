@@ -11,11 +11,13 @@ import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$UnexpectedExpression$;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
+import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.syntax.text.Location;
 
 import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.collection.immutable.List;
@@ -337,6 +339,20 @@ public class ErrorCompilerTest {
         IO.println z
     """);
     assertSingleSyntaxError(ir, IR$Error$Syntax$UnexpectedExpression$.MODULE$, "Unexpected expression.", 60, 62);
+  }
+
+  @Test
+  public void testNPE183863754() throws Exception {
+    var ir = parseTest("""
+    main =
+    #    meh
+         42
+    """);
+    var errors = ir.preorder().filter(IR$Error$Syntax.class::isInstance).map(IR$Error$Syntax.class::cast);
+    assertEquals("Two errors", 2, errors.size());
+    assertTrue(errors.head().reason() instanceof IR$Error$Syntax$UnsupportedSyntax);
+    assertEquals(errors.head().location().get().start(), 0);
+    assertEquals(errors.head().location().get().length(), 6);
   }
 
   private void assertSingleSyntaxError(

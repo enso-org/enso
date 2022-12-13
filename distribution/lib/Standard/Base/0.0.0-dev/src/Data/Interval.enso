@@ -44,7 +44,7 @@ type Interval
 
              example_exclusive = Interval.exclusive 0.1 0.5
     exclusive : Number -> Number -> Interval
-    exclusive start end = Interval.Value (Bound.Exclusive start) (Bound.Exclusive end)
+    exclusive start end = Interval.Between (Bound.Exclusive start) (Bound.Exclusive end)
 
     ## Creates an interval that excludes its lower bound.
 
@@ -55,7 +55,7 @@ type Interval
 
              example_start_exclusive = Interval.start_exclusive 1 5
     start_exclusive : Number -> Number -> Interval
-    start_exclusive start end = Interval.Value (Bound.Exclusive start) (Bound.Inclusive end)
+    start_exclusive start end = Interval.Between (Bound.Exclusive start) (Bound.Inclusive end)
 
     ## Creates an interval that excludes its upper bound.
 
@@ -66,7 +66,7 @@ type Interval
 
              example_end_exclusive = Interval.end_exclusive 1 5
     end_exclusive : Number -> Number -> Interval
-    end_exclusive start end = Interval.Value (Bound.Inclusive start) (Bound.Exclusive end)
+    end_exclusive start end = Interval.Between (Bound.Inclusive start) (Bound.Exclusive end)
 
     ## Creates an interval that includes both of its bounds.
 
@@ -77,7 +77,7 @@ type Interval
 
              example_inclusive = Interval.inclusive 0 0
     inclusive : Number -> Number -> Interval
-    inclusive start end = Interval.Value (Bound.Inclusive start) (Bound.Inclusive end)
+    inclusive start end = Interval.Between (Bound.Inclusive start) (Bound.Inclusive end)
 
     ## PRIVATE
 
@@ -86,7 +86,7 @@ type Interval
        Arguments:
        - start: The start of the interval.
        - end: The end of the interval.
-    Value (start : Bound.Bound) (end : Bound.Bound)
+    Between (start : Bound.Bound) (end : Bound.Bound)
 
     ## Checks if the interval contains `that`.
 

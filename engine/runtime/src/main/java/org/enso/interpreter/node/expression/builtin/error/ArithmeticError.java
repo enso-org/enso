@@ -8,6 +8,11 @@ import java.util.List;
 @BuiltinType
 public class ArithmeticError extends UniquelyConstructibleBuiltin {
   @Override
+  protected String getConstructorName() {
+    return "Error";
+  }
+
+  @Override
   protected List<String> getConstructorParamNames() {
     return List.of("message");
   }

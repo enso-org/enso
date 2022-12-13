@@ -36,7 +36,7 @@ type Regex_Matcher
            not preceded by an unescaped backslash, all characters from the
            leftmost such `#` to the end of the line are ignored. That is to say;
            they act as 'comments' in the regex.
-    Regex_Matcher_Data (case_sensitivity : Case_Sensitivity = Case_Sensitivity.Sensitive) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
+    Value (case_sensitivity : Case_Sensitivity = Case_Sensitivity.Sensitive) (multiline : Boolean = False) (match_ascii : Boolean = False) (dot_matches_newline : Boolean = False) (comments : Boolean = False)
 
     ## UNSTABLE
        Compiles a provided pattern according to the rules defined in this
@@ -63,7 +63,7 @@ type Regex_Matcher
        > Example
          Check if the provided name matches a regular expression.
 
-             (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive) . match_single_criterion "Foobar" "f.*" == True
+             (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . match_single_criterion "Foobar" "f.*" == True
     match_single_criterion : Text -> Text -> Boolean
     match_single_criterion self name criterion =
         self.compile criterion . matches name
@@ -99,7 +99,7 @@ type Regex_Matcher
        > Example
          Selects objects matching one of the provided patterns, preserving the input order.
 
-             Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
+             Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive . match_criteria ["foo", "foobar", "quux", "baz", "Foo"] [".*ba.*", "f.*"] == ["foo", "foobar", "baz"]
 
        > Example
          Selects pairs matching their first element with the provided criteria and

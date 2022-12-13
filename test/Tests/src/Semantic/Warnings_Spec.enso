@@ -52,6 +52,10 @@ odd_warning_mapper payload = case payload of
     _ : Integer -> if payload % 2 == 0 then Nothing else Maybe.Some (payload + 10)
     _ -> Nothing
 
+odd_warning_filter payload = case payload of
+    _ : Integer -> if payload % 2 == 0 then False else True
+    _ -> False
+
 map_odd_warnings value =
     Warning.map_attached_warnings odd_warning_mapper value
 
@@ -91,6 +95,20 @@ spec = Test.group "Dataflow Warnings" <|
         r = Long.sum x y
         r.should_equal 3
         Warning.get_all r . map .value . should_equal ['warn!', 'warn!!']
+
+    Test.specify "should be passed correctly when combined with warnings added in branches" <|
+        one = Warning.attach "first" "1"
+
+        b = case one of
+            _ : Text -> Warning.attach "a" True
+            _        -> Warning.attach "b" False
+
+        v = case b of
+            True -> 0
+            False -> 1
+
+        v . should_equal 0
+        Warning.get_all v . map .value . should_equal ["a", "first"]
 
     Test.specify "should thread warnings through case expressions" <|
         z = Warning.attach (My_Warning.Value "warn!!!") 3
@@ -153,9 +171,55 @@ spec = Test.group "Dataflow Warnings" <|
         mapped_3.stack_trace.second.name . should_equal "Warnings_Spec.throw_a_bar"
         Warning.get_all mapped_3 . catch . should_equal "bar"
 
+    Test.specify "should allow to detach warnings, selectively" <|
+        warned = attach_four_warnings "foo"
+        detached_pair = Warning.detach_selected_warnings warned odd_warning_filter
+        detached_pair . first . should_equal "foo"
+        Warning.get_all (detached_pair . first) . map .value . should_equal [2,4]
+        detached_pair.second . map .value . should_equal [1,3]
+
     Test.specify "should allow to map the warnings, selectively" <|
         x = Warning.attach "foo" 1
         result = x.is_static_nothing x
         result . should_equal False
+
+    Test.specify "should be allowed in Vector" <|
+        a = Warning.attach "a" 1
+        b = Warning.attach "b" 2
+        c = [a, b]
+        d = Warning.attach "d" c
+        c . should_equal [1, 2]
+        Warning.get_all c . map .value . should_equal ["b", "a"]
+        Warning.get_all d . map .value . should_equal ["d", "b", "a"]
+
+    Test.specify "should be preserved after operations on Vector" <|
+        even x = (Warning.attach x x) % 2
+        res = [1,2,3,4].map even
+
+        res . should_equal [1, 0, 1, 0]
+        Warning.get_all res . map .value . should_equal [4, 3, 2, 1]
+        res.at 0 . should_equal 1
+        Warning.get_all (res.at 0) . map .value . should_equal [4, 3, 2, 1]
+
+        slice = res.slice 1 4
+        Warning.get_all slice . map .value . should_equal [4, 3, 2, 1]
+
+        zero = even 0
+        Warning.get_all zero . map .value . should_equal [0]
+
+        v = 0.up_to 10 . to_vector
+        r = v.map x->(if x % 2 == 0 then 10*x else Warning.attach 100*x x)
+        r.should_equal [0, 1, 20, 3, 40, 5, 60, 7, 80, 9]
+        Warning.get_all r . map .value . should_contain_the_same_elements_as [100, 300, 500, 700, 900]
+
+    Test.specify "should be preserved after operations on multi-dimensional Vector" <|
+        even x = (Warning.attach x x) % 2
+        nested_range_even x =
+            (0.up_to x).to_vector.map even
+        res = [1, 2, 3, 4].map nested_range_even
+
+        res . should_equal [[0], [0, 1], [0, 1, 0], [0, 1, 0, 1]]
+        Warning.get_all res . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
+        Warning.get_all (res.at 2) . map .value . should_equal [3, 2, 1, 0, 2, 1, 0, 1, 0, 0]
 
 main = Test_Suite.run_main spec

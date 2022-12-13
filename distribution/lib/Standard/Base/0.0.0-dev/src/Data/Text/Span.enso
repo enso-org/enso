@@ -14,11 +14,13 @@ import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Text
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Illegal_State.Illegal_State
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, Illegal_State, Illegal_Argument
 
 polyglot java import org.enso.base.Text_Utils
 polyglot java import com.ibm.icu.text.BreakIterator
@@ -87,7 +89,7 @@ type Span
          Find the span of code units corresponding to the span of extended grapheme clusters.
 
          text = 'ae\u{301}fz'
-         (Span.Value (Range 1 3) text).to_utf_16_span == (Utf_16_Span_Data (Range 1 4) text)
+         (Span.Value (Range 1 3) text).to_utf_16_span == (Utf_16_Span.Value (Range 1 4) text)
     to_utf_16_span : Utf_16_Span
     to_utf_16_span self =
         Utf_16_Span.Value (range_to_char_indices self.parent self.range) self.parent
@@ -107,7 +109,7 @@ type Utf_16_Span
 
              example_span =
                  text = 'a\u{301}bc'
-                 Span.Utf_16_Span_Data (Range 0 3) text
+                 Span.Utf_16_Span.Value (Range 0 3) text
     Value (range : Range) (parent : Text)
 
     ## The index of the first code unit included in the span.
@@ -140,10 +142,10 @@ type Utf_16_Span
          Convert a codepoint span to graphemes and back.
 
          text = 'a\u{301}e\u{302}o\u{303}'
-         span = Utf_16_Span_Data (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o].
+         span = Utf_16_Span.Value (Range 1 5) text # The span contains the units [\u{301}, e, \u{302}, o].
          extended = span.to_grapheme_span
          extended == Span.Value (Range 0 3) text # The span is extended to the whole string since it contained code units from every grapheme cluster.
-         extended.to_utf_16_span == Utf_16_Span_Data (Range 0 6) text
+         extended.to_utf_16_span == Utf_16_Span.Value (Range 0 6) text
     to_grapheme_span : Span
     to_grapheme_span self = if (self.start < 0) || (self.end > Text_Utils.char_length self.parent) then Error.throw (Illegal_State.Error "Utf_16_Span indices are out of range of the associated text.") else
         if self.end < self.start then Error.throw (Illegal_State.Error "Utf_16_Span invariant violation: start <= end") else
@@ -165,7 +167,7 @@ type Utf_16_Span
 ## PRIVATE
    Utility function taking a range pointing at grapheme clusters and converting
    to a range on the underlying code units.
-range_to_char_indices : Text -> Range -> Range ! (Index_Out_Of_Bounds_Error | Illegal_Argument)
+range_to_char_indices : Text -> Range -> Range ! (Index_Out_Of_Bounds | Illegal_Argument)
 range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_Argument.Error "Text indexing only supports ranges with step equal to 1.") else
     len = text.length
     start = if range.start < 0 then range.start + len else range.start
@@ -173,8 +175,8 @@ range_to_char_indices text range = if range.step != 1 then Error.throw (Illegal_
     is_valid = (0.up_to len+1).contains
 
     case Pair.new (is_valid start) (is_valid end) of
-        Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds_Error_Data range.start len)
-        Pair.Value True False -> Error.throw (Index_Out_Of_Bounds_Error_Data range.end len)
+        Pair.Value False _ -> Error.throw (Index_Out_Of_Bounds.Error range.start len)
+        Pair.Value True False -> Error.throw (Index_Out_Of_Bounds.Error range.end len)
         Pair.Value True True ->
             if start>=end then (0.up_to 0) else
                 iterator = BreakIterator.getCharacterInstance

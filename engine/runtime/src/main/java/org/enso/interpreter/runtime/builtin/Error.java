@@ -3,7 +3,7 @@ package org.enso.interpreter.runtime.builtin;
 import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.expression.builtin.error.*;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchFieldError;
-import org.enso.interpreter.node.expression.builtin.error.NoSuchMethodError;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -20,20 +20,20 @@ public class Error {
   private final SyntaxError syntaxError;
   private final TypeError typeError;
   private final CompileError compileError;
-  private final IndexOutOfBoundsError indexOutOfBoundsError;
-  private final InexhaustivePatternMatchError inexhaustivePatternMatchError;
+  private final IndexOutOfBounds indexOutOfBounds;
+  private final InexhaustivePatternMatch inexhaustivePatternMatch;
   private final UninitializedState uninitializedState;
-  private final NoSuchMethodError noSuchMethodError;
-  private final NoSuchConversionError noSuchConversionError;
+  private final NoSuchMethod noSuchMethod;
+  private final NoSuchConversion noSuchConversion;
   private final PolyglotError polyglotError;
   private final ModuleNotInPackageError moduleNotInPackageError;
   private final ArithmeticError arithmeticError;
-  private final InvalidArrayIndexError invalidArrayIndexError;
+  private final InvalidArrayIndex invalidArrayIndex;
   private final ArityError arityError;
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
-  private final NotInvokableError notInvokableError;
-  private final InvalidConversionTargetError invalidConversionTargetError;
+  private final NotInvokable notInvokable;
+  private final InvalidConversionTarget invalidConversionTarget;
   private final NoSuchFieldError noSuchFieldError;
   private final NumberParseError numberParseError;
   private final Panic panic;
@@ -53,20 +53,20 @@ public class Error {
     syntaxError = builtins.getBuiltinType(SyntaxError.class);
     typeError = builtins.getBuiltinType(TypeError.class);
     compileError = builtins.getBuiltinType(CompileError.class);
-    indexOutOfBoundsError = builtins.getBuiltinType(IndexOutOfBoundsError.class);
-    inexhaustivePatternMatchError = builtins.getBuiltinType(InexhaustivePatternMatchError.class);
+    indexOutOfBounds = builtins.getBuiltinType(IndexOutOfBounds.class);
+    inexhaustivePatternMatch = builtins.getBuiltinType(InexhaustivePatternMatch.class);
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
-    noSuchMethodError = builtins.getBuiltinType(NoSuchMethodError.class);
-    noSuchConversionError = builtins.getBuiltinType(NoSuchConversionError.class);
+    noSuchMethod = builtins.getBuiltinType(NoSuchMethod.class);
+    noSuchConversion = builtins.getBuiltinType(NoSuchConversion.class);
     polyglotError = builtins.getBuiltinType(PolyglotError.class);
     moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
-    invalidArrayIndexError = builtins.getBuiltinType(InvalidArrayIndexError.class);
+    invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
     arityError = builtins.getBuiltinType(ArityError.class);
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
-    notInvokableError = builtins.getBuiltinType(NotInvokableError.class);
-    invalidConversionTargetError = builtins.getBuiltinType(InvalidConversionTargetError.class);
+    notInvokable = builtins.getBuiltinType(NotInvokable.class);
+    invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
     noSuchFieldError = builtins.getBuiltinType(NoSuchFieldError.class);
     numberParseError = builtins.getBuiltinType(NumberParseError.class);
     panic = builtins.getBuiltinType(Panic.class);
@@ -82,12 +82,12 @@ public class Error {
     return compileError.newInstance(message);
   }
 
-  public Atom makeIndexOutOfBoundsError(long index, long length) {
-    return indexOutOfBoundsError.newInstance(index, length);
+  public Atom makeIndexOutOfBounds(long index, long length) {
+    return indexOutOfBounds.newInstance(index, length);
   }
 
-  public Atom makeInexhaustivePatternMatchError(Object message) {
-    return inexhaustivePatternMatchError.newInstance(message);
+  public Atom makeInexhaustivePatternMatch(Object message) {
+    return inexhaustivePatternMatch.newInstance(message);
   }
 
   public Atom makeUninitializedStateError(Object key) {
@@ -113,21 +113,20 @@ public class Error {
    * @param symbol the method being called
    * @return a runtime representation of the error
    */
-  public Atom makeNoSuchMethodError(Object target, UnresolvedSymbol symbol) {
-    return noSuchMethodError.newInstance(target, symbol);
+  public Atom makeNoSuchMethod(Object target, UnresolvedSymbol symbol) {
+    return noSuchMethod.newInstance(target, symbol);
   }
 
   public NoSuchFieldError getNoSuchFieldError() {
     return noSuchFieldError;
   }
 
-  public Atom makeNoSuchConversionError(
-      Object target, Object that, UnresolvedConversion conversion) {
-    return noSuchConversionError.newInstance(target, that, conversion);
+  public Atom makeNoSuchConversion(Object target, Object that, UnresolvedConversion conversion) {
+    return noSuchConversion.newInstance(target, that, conversion);
   }
 
-  public Atom makeInvalidConversionTargetError(Object target) {
-    return invalidConversionTargetError.newInstance(target);
+  public Atom makeInvalidConversionTarget(Object target) {
+    return invalidConversionTarget.newInstance(target);
   }
 
   /**
@@ -179,12 +178,12 @@ public class Error {
    * @param index the index
    * @return An error representing that the {@code index} is not valid in {@code array}
    */
-  public Atom makeInvalidArrayIndexError(Object array, Object index) {
-    return invalidArrayIndexError.newInstance(array, index);
+  public Atom makeInvalidArrayIndex(Object array, Object index) {
+    return invalidArrayIndex.newInstance(array, index);
   }
 
-  public InvalidArrayIndexError getInvalidArrayIndexError() {
-    return invalidArrayIndexError;
+  public InvalidArrayIndex getInvalidArrayIndex() {
+    return invalidArrayIndex;
   }
 
   /**
@@ -219,8 +218,8 @@ public class Error {
    * @param target the target attempted to be invoked
    * @return a not invokable error
    */
-  public Atom makeNotInvokableError(Object target) {
-    return notInvokableError.newInstance(target);
+  public Atom makeNotInvokable(Object target) {
+    return notInvokable.newInstance(target);
   }
 
   public ForbiddenOperation getForbiddenOperation() {
