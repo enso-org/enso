@@ -341,6 +341,7 @@ impl Project {
         });
 
         let notifications = self.model.module_model.subscribe();
+        let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifications, move |notification, model| {
             match notification.kind {
                 model::module::NotificationKind::Invalidate
