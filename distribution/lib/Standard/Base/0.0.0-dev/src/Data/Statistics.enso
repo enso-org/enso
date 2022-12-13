@@ -126,6 +126,17 @@ type Statistic
        - predicted: the series to compute the r_squared with.
     R_Squared (predicted:Vector)
 
+    ## Gets the order needed to compute a statistic for a moment based statistic
+    order : Integer | Nothing
+    order self = case self of
+        Statistic.Sum -> 1
+        Statistic.Mean -> 1
+        Statistic.Variance _ -> 2
+        Statistic.Standard_Deviation _ -> 2
+        Statistic.Skew _ -> 3
+        Statistic.Kurtosis -> 4
+        _ -> Nothing
+
     ## Compute a single statistic on a vector like object.
 
        Arguments:
@@ -142,66 +153,30 @@ type Statistic
        - statistics: Set of statistics to calculate.
     compute_bulk : Vector -> Vector Statistic -> Vector Any
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
-        count_min_max = statistics.any s->
-            case s of
-                Statistic.Count -> True
-                Statistic.Minimum -> True
-                Statistic.Maximum -> True
-                _ -> False
+        counter = CountMinMax.new
 
-        java_stats = statistics.map to_moment_statistic
-        skip_java_stats = java_stats.all s->s.is_nothing
+        java_stats = statistics.map .order
+        skip_moments = java_stats.all s->s.is_nothing
+        moments = if skip_moments then Nothing else Moments.new (java_stats.filter v->v!=Nothing . fold 0 .max)
 
-        report_invalid _ =
-            statistics.map_with_index i->v->
-                if java_stats.at i . is_nothing then Nothing else
-                    Error.throw (Illegal_Argument.Error ("Can only compute " + v.to_text + " on numerical data sets."))
-        handle_unsupported = Panic.catch Unsupported_Argument_Types.Error handler=report_invalid
+        result = data.fold [counter, moments] compute_fold
 
-        empty_map s = if (s == Statistic.Count) || (s == Statistic.Sum) then 0 else
-            if (s == Statistic.Minimum) || (s == Statistic.Maximum) then Error.throw Empty_Error else
-                Number.nan
+        report_error stats =
+            first = 0.up_to stats.length . find i-> (java_stats.at i . is_nothing . not)
+            stat = stats.at first
+            Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
-        if data.length == 0 then statistics.map empty_map else
-            count_min_max_values = if count_min_max then CountMinMax.new (CountMinMax.toObjectStream data.to_array) Comparator.new else Nothing
-            stats_array = if skip_java_stats then Nothing else
-                handle_unsupported <| Moments.compute data.to_array java_stats.to_array
-
-            statistics.map_with_index i->s->case s of
-                Statistic.Count -> count_min_max_values.count
-                Statistic.Minimum ->
-                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values) else
-                        count_min_max_values.minimum
-                Statistic.Maximum ->
-                    if count_min_max_values.comparatorError then (Error.throw Incomparable_Values) else
-                        count_min_max_values.maximum
-                Statistic.Covariance s -> calculate_correlation_statistics data s . covariance
-                Statistic.Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
-                Statistic.Spearman s -> calculate_spearman_rank data s
-                Statistic.R_Squared s -> calculate_correlation_statistics data s . rSquared
-                _ -> stats_array.at i
-
-    ## Compute a set of statistics on a vector like object.
-
-       Arguments:
-       - data: Vector like object which has a `to_array` method.
-       - statistics: Set of statistics to calculate.
-    compute_bulk_enso : Vector -> Vector Statistic -> Vector Any
-    compute_bulk_enso data statistics=[Statistic.Count, Statistic.Sum] =
-        empty_map s = if (s == Statistic.Count) || (s == Statistic.Sum) then 0 else
-            if (s == Statistic.Minimum) || (s == Statistic.Maximum) then Error.throw Empty_Error else
-                Number.nan
-
-        if data.length == 0 then statistics.map empty_map else
-            orders = statistics.map Statistic_Aggregator.get_order
-            order = orders.fold Nothing c->v-> if c.is_nothing then v else if v.is_nothing then c else c.max v
-            aggr = if order.is_nothing then Nothing else data.fold (Statistic_Aggregator.new order) c->v-> c.append v
-            statistics.map s->case s of
-                Statistic.Covariance s -> calculate_correlation_statistics data s . covariance
-                Statistic.Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
-                Statistic.Spearman s -> calculate_spearman_rank data s
-                Statistic.R_Squared s -> calculate_correlation_statistics data s . rSquared
-                _ -> aggr.compute s
+        if counter.count == 0 then statistics.map empty_value else
+            if skip_moments.not && result.second.is_nothing then report_error statistics else
+                statistics.map s-> case s of
+                    Statistic.Count -> counter.count
+                    Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
+                    Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
+                    Statistic.Covariance s -> calculate_correlation_statistics data s . covariance
+                    Statistic.Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
+                    Statistic.Spearman s -> calculate_spearman_rank data s
+                    Statistic.R_Squared s -> calculate_correlation_statistics data s . rSquared
+                    _ -> moments.compute (to_moment_statistic s)
 
     ## Compute a running statistics on a vector like object.
 
@@ -226,15 +201,22 @@ type Statistic
             Statistic.R_Squared _ -> True
             _ -> False
         if statistics.any unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter unsupported . to_text) ") for running calculations.")) else
-            aggr = Statistic_Aggregator.for_statistics statistics
-            output = Vector.new_builder data.length
-            fold_step aggr v =
-                next = aggr.append v
-                row = statistics.map s-> aggr.compute s
-                output.append row
-                next
-            data.fold aggr fold_step
-            output.to_vector
+            counter = CountMinMax.new
+
+            java_stats = statistics.map .order
+            skip_moments = java_stats.all s->s.is_nothing
+            moments = if skip_moments then Nothing else Moments.new (java_stats.filter v->v!=Nothing . fold 0 .max)
+            ref_moment = Ref.new moments
+
+            data.running_fold Nothing _->v->
+                result = compute_fold [counter, ref_moment.get] v
+                ref_moment.put result.second
+
+                statistics.map s-> case s of
+                    Statistic.Count -> counter.count
+                    Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
+                    Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
+                    _ -> if result.second.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.second.compute (to_moment_statistic s)
 
     ## Calculate a variance-covariance matrix between the input series.
 
@@ -346,138 +328,37 @@ Vector.running : Statistic -> Vector Any
 Vector.running self statistic=Statistic.Count =
     Statistic.running self statistic
 
-## Compute a single running statistic on the vector.
+## PRIVATE
+compute_fold c v =
+    if is_valid v . not then c else
+         c.first.increment
 
-   Arguments:
-   - statistic: Statistic to calculate.
-Vector.running_bulk : Statistic -> Vector Any
-Vector.running_bulk self statistics=[Statistic.Count, Statistic.Sum] =
-    Statistic.running_bulk self statistics
+         if c.first.comparatorError.not then
+             if c.first.minimum.is_nothing then c.first.setMinimum v else
+                 ordering = Incomparable_Values.handle_errors <| v.compare_to c.first.minimum
+                 if ordering.is_error then c.first.failComparator else
+                     if ordering == Ordering.Less then c.first.setMinimum v
+             if c.first.maximum.is_nothing then c.first.setMaximum v else
+                 ordering = Incomparable_Values.handle_errors <| v.compare_to c.first.maximum
+                 if ordering.is_error then c.first.failComparator else
+                     if ordering == Ordering.Greater then c.first.setMaximum v
 
-type Statistic_Aggregator
-    ## PRIVATE
-       Aggregator for computing moments.
-       This class is used to compute the moments of a data set.
-    Value order:Integer count:Ref incomparable:Ref minimum:Ref maximum:Ref sums:(Vector Ref)
+         new_moments = if c.second.is_nothing then Nothing else case v of
+             _ : Number -> c.second.add v
+             _ -> Nothing
 
-    ## ADVANCED
-       Gets the required order for a Statistic or Nothing if not a Statistic_Aggregator based one.Statistic
-    get_order : Statistic -> (Integer|Nothing)
-    get_order statistic = case statistic of
-        Statistic.Count -> 0
-        Statistic.Minimum -> 0
-        Statistic.Maximum -> 0
-        Statistic.Sum -> 1
-        Statistic.Mean -> 1
-        Statistic.Variance _ -> 2
-        Statistic.Standard_Deviation _ -> 2
-        Statistic.Skew _ -> 3
-        Statistic.Kurtosis -> 4
-        _ -> Nothing
-
-    ## Create an aggregator for computing moments.
-    new : Integer -> Statistic_Aggregator
-    new order =
-        count = Ref.new 0
-        incomparable = Ref.new False
-        minimum = Ref.new Nothing
-        maximum = Ref.new Nothing
-        sums = Vector.new order _->(Ref.new 0)
-        Statistic_Aggregator.Value order count incomparable minimum maximum sums
-
-    ## Create an aggregator for computing moments for a set of statistics.
-    for_statistics : Vector Statistic -> Statistic_Aggregator
-    for_statistics statistics =
-        orders = statistics.map Statistic_Aggregator.get_order . filter v->v.is_nothing.not
-        if orders.length == 0 then Nothing else
-            Statistic_Aggregator.new (orders.fold 0 .max)
-
-    ## Add a value to the aggregator.
-       Note: This mutates the aggregator.
-    append : Any -> Statistic_Aggregator
-    append self value = if value.is_nothing then self else
-        self.count.put self.count.get+1
-
-        incomparable = self.incomparable.get
-        case incomparable of
-            True -> Nothing
-            False ->
-                minimum = self.minimum.get
-                new_minimum = if minimum.is_nothing then value else
-                    case safe_compare_to minimum value of
-                        Nothing -> Nothing
-                        Ordering.Greater -> value
-                        _ -> minimum
-                self.minimum.put new_minimum
-
-                maximum = self.maximum.get
-                new_maximum = if maximum.is_nothing then value else
-                    case safe_compare_to self.maximum value of
-                        Nothing -> Nothing
-                        Ordering.Less -> value
-                        _ -> maximum
-                self.maximum.put new_maximum
-
-                self.incomparable.put (new_minimum.is_nothing || new_maximum.is_nothing)
-
-        if self.sums.at 0 . get . is_nothing then Nothing else
-            self.sums.map_with_index i->r->
-                new_sum = case value of
-                    _ : Number -> r.get + value ^ (i+1)
-                    _ -> Nothing
-                r.put new_sum
-
-        self
-
-    ## Get a Statistic based off the result of the aggregation.
-    compute : Statistic -> Boolean -> Any
-    compute self statistic=Statistic.Count = case statistic of
-        Statistic.Count -> self.count.get
-        Statistic.Minimum -> if self.incomparable.get then Error.throw Incomparable_Values else self.minimum.get
-        Statistic.Maximum -> if self.incomparable.get then Error.throw Incomparable_Values else self.maximum.get
-        Statistic.Sum -> if self.order == 0 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Sum.") else
-            sum_0 = self.sums.at 0 . get
-            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Sum on purely numerical data sets.")) else sum_0
-        Statistic.Mean -> if self.order == 0 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Mean.") else
-            sum_0 = self.sums.at 0 . get
-            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Mean on purely numerical data sets.")) else
-                sum_0 / self.count.get
-        Statistic.Variance p -> if self.order < 2 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Variance.") else
-            sum_0 = self.sums.at 0 . get
-            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Variance on purely numerical data sets.")) else
-                min_count = if p then 0 else 1
-                n = self.count.get
-                if n <= min_count then Number.nan else ((self.sums.at 1 . get) - sum_0 ^ 2 / n) / (n - min_count)
-        Statistic.Standard_Deviation p -> if self.order < 2 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Standard_Deviation.") else
-            sum_0 = self.sums.at 0 . get
-            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Standard_Deviation on purely numerical data sets.")) else
-                min_count = if p then 0 else 1
-                n = self.count.get
-                if n <= min_count then Number.nan else
-                    ((self.sums.at 1 . get) - sum_0 ^ 2 / n) / (n - min_count) ^ 0.5
-        Statistic.Skew p -> if self.order < 3 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Skew.") else
-            sum_0 = self.sums.at 0 . get
-            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Skew on purely numerical data sets.")) else
-                n = self.count.get
-                if n < 3 then Number.nan else
-                    avg = sum_0 / n
-                    st_dev = self.compute (Statistic.Standard_Deviation p)
-                    scale = 1 / (st_dev ^ 3) / (if p then n else (n - 1) * (n - 2) / n)
-                    ((self.sums.at 2 . get) - 3 * avg * (self.sums.at 1 . get) + 2 * avg * avg * sum_0) * scale
-        Statistic.Kurtosis -> if self.order < 4 then Error.throw (Illegal_Argument.Error "Insufficient order computed for Kurtosis.") else
-            sum_0 = self.sums.at 0 . get
-            if sum_0.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute Kurtosis on purely numerical data sets.")) else
-                n = self.count.get
-                if n < 4 then Number.nan else
-                    avg = sum_0 / n
-                    var = self.compute (Statistic.Variance False)
-                    scale = n * (n + 1) / ((n - 1) * (n - 2) * (n - 3) * var * var)
-                    shift = 3 * (n - 1) * (n - 1) / ((n - 2) * (n - 3))
-                    ((self.sums.at 3 . get) - 4 * avg * (self.sums.at 2 . get) + 6 * avg * avg * (self.sums.at 1 . get) - avg * avg * avg * sum_0) * scale - shift
-        _ -> Error.throw (Illegal_Argument.Error ("Cannot compute " + statistic.to_text + " on a single data set."))
+         [c.first, new_moments]
 
 ## PRIVATE
-safe_compare_to : Any -> Any -> Ordering | Nothing
-safe_compare_to a b =
-    result = Incomparable_Values.handle_errors <| a.compare_to b
-    result.catch Incomparable_Values _->Nothing
+empty_value s = case s of
+    Statistic.Count -> 0
+    Statistic.Sum -> 0
+    Statistic.Minimum -> Error.throw Empty_Error
+    Statistic.Maximum -> Error.throw Empty_Error
+    _ -> Number.nan
+
+## PRIVATE
+is_valid v = case v of
+    Nothing -> False
+    _ : Number -> v.is_nan.not
+    _ -> True
