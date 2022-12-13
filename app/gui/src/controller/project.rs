@@ -275,7 +275,7 @@ impl Project {
             })) = status
             {
                 if error_code == code::FILE_NOT_FOUND {
-                    // No VCS found, thus current project state is not stored in a VCS snapshot.
+                    // No VCS found, thus current project state is saved in a snapshot.
                     return Ok(true);
                 }
             }

@@ -75,8 +75,8 @@ ensogl::define_endpoints! {
        /// Indicates the IDE is in edit mode. This means a click on some editable text should
        /// start editing it.
        ide_text_edit_mode (bool),
-        /// Set whether the project was changed since the last snapshot save.
-        set_project_changed(bool),
+       /// Set whether the project was changed since the last snapshot save.
+       set_project_changed(bool),
     }
 
     Output {
