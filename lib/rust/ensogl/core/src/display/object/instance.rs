@@ -1657,11 +1657,7 @@ macro_rules! gen_column_or_row_builder_props {
 }
 
 impl<Dim> ColumnOrRowRef<Dim>
-where
-    Dim: Default,
-    <(Column, Row) as DimRef<Dim>>::Output: DerefMut + Deref<Target = ColumnOrRow>,
-    (Column, Row): DimMut<Dim>,
-    (Vec<Column>, Vec<Row>): DimMut<Dim, Output = Vec<<(Column, Row) as DimRef<Dim>>::Output>>,
+where Dim: ColumnOrRowAccessor
 {
     fn modify(&self, f: impl FnOnce(&mut ColumnOrRow)) {
         self.instance
@@ -1687,83 +1683,54 @@ where
 /// few additions. Read the docs of this module to learn more.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AutoLayout {
+    /// Indicates whether the auto-layout is be enabled. This struct is kept in an `Option` to make
+    /// the initialization faster. Auto layout is not used often. If someone sets auto layout
+    /// options (e.g. the `gap`), but the auto-layout was not enabled, this field is set to false.
+    pub enabled: bool,
     /// The default item alignment in grid cells. This can be overriden per-child.
     pub children_alignment: alignment::Dim2,
     /// The spacing between columns/rows.
     pub gap: Vector2<Unit>,
     /// Indicates whether the columns/rows should be placed in order or in a reversed order.
     pub reversed_columns_and_rows: Vector2<bool>,
-    /// First column and row definition.
-    pub first_column_and_row: (Column, Row),
     /// Other columns and rows definitions.
-    pub other_columns_and_rows: (Vec<Column>, Vec<Row>),
+    pub columns_and_rows: (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>),
     /// The number of columns and rows in the grid. If it's set to [`None`], the columns and rows
     /// will grow on demand.
-    pub max_columns_and_rows: Vector2<Option<usize>>,
+    pub columns_and_rows_count: Vector2<Option<usize>>,
 }
+
+/// A trait alias for accessing columns and rows.
+pub trait ColumnOrRowAccessor = Copy + Default
+where (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>):
+        DimMut<Self, Output = NonEmptyVec<ColumnOrRow>>;
 
 impl AutoLayout {
-    fn unchecked_column_or_row_mut<'a, Dim, T>(
-        &'a mut self,
-        dim: Dim,
-        index: usize,
-    ) -> &mut ColumnOrRow
-    where
-        Dim: Default,
-        T: DerefMut + 'a,
-        T: Deref<Target = ColumnOrRow>,
-        (Column, Row): DimMut<Dim, Output = T>,
-        (Vec<Column>, Vec<Row>): DimMut<Dim, Output = Vec<T>>,
-    {
-        match index {
-            0 => self.first_column_and_row.get_dim_mut(dim).deref_mut(),
-            i => &mut self.other_columns_and_rows.get_dim_mut(dim)[i - 1],
-        }
+    fn enable(mut self) -> Self {
+        self.enabled = true;
+        self
+    }
+
+    fn unchecked_column_or_row_mut<Dim>(&mut self, dim: Dim, index: usize) -> &mut ColumnOrRow
+    where Dim: ColumnOrRowAccessor {
+        &mut self.columns_and_rows.get_dim_mut(dim)[index]
     }
 }
-
-
-// === Getters ===
-
-/// A trait used to get columns and rows definitions from the auto layout. The definition consist
-/// of the first column/row and other columns/rows if defined.
-#[allow(missing_docs)]
-pub trait ColumnAndRowDefinitionsGetter<T> {
-    fn columns_or_rows(&self, dim: T) -> Vec<ColumnOrRow>;
-}
-
-impl ColumnAndRowDefinitionsGetter<X> for AutoLayout {
-    fn columns_or_rows(&self, _dim: X) -> Vec<ColumnOrRow> {
-        vec![*self.first_column_and_row.0]
-            .extended(self.other_columns_and_rows.0.iter().map(|t| **t))
-    }
-}
-
-impl ColumnAndRowDefinitionsGetter<Y> for AutoLayout {
-    fn columns_or_rows(&self, _dim: Y) -> Vec<ColumnOrRow> {
-        vec![*self.first_column_and_row.1]
-            .extended(self.other_columns_and_rows.1.iter().map(|t| **t))
-    }
-}
-
-
-
-// ================================
-// === AutoLayout modifications ===
-// ================================
 
 #[allow(missing_docs)]
 impl Model {
-    fn modify_auto_layout<T>(&self, f: impl FnOnce(&mut AutoLayout) -> T) -> Option<T> {
+    /// Modify the auto layout. It set's the dirty flag, so it should be used as the main function
+    /// for any user-facing API.
+    fn modify_auto_layout<T>(&self, f: impl FnOnce(&mut AutoLayout) -> T) -> T {
         if let Some(layout) = &mut *self.layout.auto_layout.borrow_mut() {
             self.dirty.transformation.set();
-            Some(f(layout))
+            f(layout)
         } else {
-            warn!(
-                "Cannot access auto-layout properties because this display object does not use \
-                 auto-layout. Use `use_auto_layout` to enable it first."
-            );
-            None
+            // Creating a new auto-layout, but not enabling it.
+            let mut layout = default();
+            let out = f(&mut layout);
+            *self.layout.auto_layout.borrow_mut() = Some(layout);
+            out
         }
     }
 
@@ -1777,32 +1744,27 @@ impl InstanceDef {
         ColumnOrRowRef::new(self.clone_ref().into(), 0)
     }
 
-    fn column_or_row<Dim, T>(&self, dim: Dim, index: usize) -> Option<ColumnOrRowRef<Dim>>
-    where (Vec<Column>, Vec<Row>): DimRef<Dim, Output = Vec<T>> {
+    fn column_or_row<Dim>(&self, dim: Dim, index: usize) -> Option<ColumnOrRowRef<Dim>>
+    where Dim: ColumnOrRowAccessor {
         self.modify_auto_layout(|l| {
-            (l.other_columns_and_rows.get_dim(dim).len() <= index)
+            (l.columns_and_rows.get_dim(dim).len() < index)
                 .as_some(ColumnOrRowRef::new(self.clone_ref().into(), index))
         })
-        .flatten()
     }
 
-    fn add_column_or_row<Dim, T>(&self, dim: Dim) -> ColumnOrRowRef<Dim>
-    where
-        Dim: Copy,
-        T: Default,
-        (Vec<Column>, Vec<Row>): DimMut<Dim, Output = Vec<T>>, {
+    fn add_column_or_row<Dim>(&self, dim: Dim) -> ColumnOrRowRef<Dim>
+    where Dim: ColumnOrRowAccessor {
         let index = self.modify_auto_layout(|l| {
-            l.other_columns_and_rows.get_dim_mut(dim).push(default());
-            l.other_columns_and_rows.get_dim(dim).len()
+            l.columns_and_rows.get_dim_mut(dim).push(default());
+            l.columns_and_rows.get_dim(dim).len() - 1
         });
-        ColumnOrRowRef::new(self.clone_ref().into(), index.unwrap_or(0))
+        ColumnOrRowRef::new(self.clone_ref().into(), index)
     }
 }
 
-
 macro_rules! gen_layout_object_builder_alignment {
     ([$([$name:ident $x:ident $y:ident])*]) => { paste! { $(
-        /// Children alignment setter.
+        /// Set the default alignment of the children of this display object.
         fn [<align_children_ $name>](&self) {
             self.display_object().def.set_children_alignment(alignment::Dim2::$name())
         }
@@ -1813,84 +1775,27 @@ impl<T: Object + ?Sized> AutoLayoutOps for T {}
 
 /// Options for controllin auto-layout.
 pub trait AutoLayoutOps: Object {
-    /// Gap setter. Gap is the space between columns and rows.
+    crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
+
+    /// Set the size of the space between columns and rows.
+    #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Unit>", fn = "into_vector_trans()"))]
     fn modify_gap(&self, f: impl FnOnce(&mut Vector2<Unit>)) -> &Self {
         self.display_object().modify_auto_layout(|l| f(&mut l.gap));
         self
     }
 
-    /// Gap setter. Gap is the space between columns and rows.
-    fn set_gap(&self, value: impl IntoVectorTrans2<Unit>) -> &Self {
-        self.modify_gap(|v| *v = value.into_vector_trans())
-    }
-
-    /// Gap setter. Gap is the space between columns and rows.
-    fn update_gap(&self, f: impl FnOnce(Vector2<Unit>) -> Vector2<Unit>) -> &Self {
-        self.modify_gap(|v| *v = f(*v))
-    }
-
-    /// Gap setter. Gap is the space between columns and rows.
-    fn modify_gap_x(&self, f: impl FnOnce(&mut Unit)) -> &Self {
-        self.display_object().modify_auto_layout(|l| f(&mut l.gap.x));
+    /// Set the number of columns used by the layout.
+    #[enso_shapely::gen(update, set)]
+    fn modify_column_count(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
+        self.display_object().modify_auto_layout(|l| f(&mut l.columns_and_rows_count.x));
         self
     }
 
-    /// Gap setter. Gap is the space between columns and rows.
-    fn set_gap_x(&self, value: impl Into<Unit>) -> &Self {
-        self.modify_gap_x(|v| *v = value.into())
-    }
-
-    /// Gap setter. Gap is the space between columns and rows.
-    fn update_gap_x(&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
-        self.modify_gap_x(|v| *v = f(*v))
-    }
-
-    /// Gap setter. Gap is the space between columns and rows.
-    fn modify_gap_y(&self, f: impl FnOnce(&mut Unit)) -> &Self {
-        self.display_object().modify_auto_layout(|l| f(&mut l.gap.y));
+    /// Set the number of rows used by the layout.
+    #[enso_shapely::gen(update, set)]
+    fn modify_row_count(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
+        self.display_object().modify_auto_layout(|l| f(&mut l.columns_and_rows_count.y));
         self
-    }
-
-    /// Gap setter. Gap is the space between columns and rows.
-    fn set_gap_y(&self, value: impl Into<Unit>) -> &Self {
-        self.modify_gap_y(|v| *v = value.into())
-    }
-
-    /// Gap setter. Gap is the space between columns and rows.
-    fn update_gap_y(&self, f: impl FnOnce(Unit) -> Unit) -> &Self {
-        self.modify_gap_y(|v| *v = f(*v))
-    }
-
-    /// Max columns setter. Controls how many items will be displayed in a column.
-    fn modify_max_columns(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
-        self.display_object().modify_auto_layout(|l| f(&mut l.max_columns_and_rows.x));
-        self
-    }
-
-    /// Max columns setter. Controls how many items will be displayed in a column.
-    fn set_max_columns(&self, count: impl Into<Option<usize>>) -> &Self {
-        self.modify_max_columns(|v| *v = count.into())
-    }
-
-    /// Max columns setter. Controls how many items will be displayed in a column.
-    fn update_max_columns(&self, f: impl FnOnce(Option<usize>) -> Option<usize>) -> &Self {
-        self.modify_max_columns(|v| *v = f(*v))
-    }
-
-    /// Max rows setter. Controls how many items will be displayed in a row.
-    fn modify_max_rows(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
-        self.display_object().modify_auto_layout(|l| f(&mut l.max_columns_and_rows.y));
-        self
-    }
-
-    /// Max rows setter. Controls how many items will be displayed in a row.
-    fn set_max_rows(&self, count: impl Into<Option<usize>>) -> &Self {
-        self.modify_max_rows(|v| *v = count.into())
-    }
-
-    /// Max rows setter. Controls how many items will be displayed in a row.
-    fn update_max_rows(&self, f: impl FnOnce(Option<usize>) -> Option<usize>) -> &Self {
-        self.modify_max_rows(|v| *v = f(*v))
     }
 
     /// Control whether columns should be displayed in a reversed order.
@@ -1917,31 +1822,38 @@ pub trait AutoLayoutOps: Object {
         self
     }
 
+    /// First column accessor. It allows to modify the column. First column and row always exists,
+    /// and thus this function always succeeds.
     fn first_column(&self) -> ColumnRef {
         self.display_object().def.first_column_or_row()
     }
 
+    /// First row accessor. It allows to modify the row. First column and row always exists,
+    /// and thus this function always succeeds.
     fn first_row(&self) -> RowRef {
         self.display_object().def.first_column_or_row()
     }
 
+    /// Column accessor. It allows to modify the column. Returns [`None`] if the column does not
+    /// exist.
     fn column(&self, index: usize) -> Option<ColumnRef> {
         self.display_object().def.column_or_row(X, index)
     }
 
+    /// Row accessor. It allows to modify the row. Returns [`None`] if the column does not exist.
     fn row(&self, index: usize) -> Option<RowRef> {
         self.display_object().def.column_or_row(Y, index)
     }
 
+    /// Add a new column. The returned ref allows to modify it after creation.
     fn add_column(&self) -> ColumnRef {
         self.display_object().def.add_column_or_row(X)
     }
 
+    /// Add a new row. The returned ref allows to modify it after creation.
     fn add_row(&self) -> RowRef {
         self.display_object().def.add_column_or_row(Y)
     }
-
-    crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
 }
 
 
@@ -1950,138 +1862,111 @@ pub trait AutoLayoutOps: Object {
 // === Layout Resolution ===
 // =========================
 
+/// The layout is resolved in two passes, one for the X-axis, one for the Y-axis. See the docs of
+/// this module to learn more.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LayoutResolutionPass {
+    First,
+    Second,
+}
+
+/// Pass configuration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PassConfig {
+    Default,
+    DoNotHugDirectChildren,
+}
+
+trait ResolutionDim = Copy + Debug
+where
+    Vector2<Size>: DimSetter<Self>,
+    Vector2<alignment::OptDim1>: DimSetter<Self>,
+    Vector2<alignment::Dim1>: DimSetter<Self>,
+    Vector2<SideSpacing>: DimSetter<Self>,
+    Vector2<bool>: DimSetter<Self>,
+    Vector2<f32>: DimSetter<Self>,
+    Vector2<Unit>: DimSetter<Self>,
+    Vector3<f32>: DimSetter<Self>,
+    (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>):
+        DimRef<Self, Output = NonEmptyVec<ColumnOrRow>>;
+
 impl Model {
     fn refresh_layout(&self) {
-        self.refresh_self_size(true, 0.0);
-        self.refresh_layout_internal(true, true);
-        self.refresh_layout_internal(false, true);
+        self.refresh_self_size(X, 0.0);
+        self.refresh_layout_internal(LayoutResolutionPass::First, PassConfig::Default);
+        self.refresh_self_size(Y, 0.0);
+        self.refresh_layout_internal(LayoutResolutionPass::Second, PassConfig::Default);
     }
 
-    fn refresh_self_size(&self, first_pass: bool, parent_size: f32) {
-        if first_pass {
-            let size = self.layout.size.get();
-            match size.x {
-                Size::Fixed(v) => {
-                    println!("[X] Setting size.{:?} of {} to {}", "x", self.name, v);
-                    self.layout
-                        .computed_size
-                        .set_x(v.resolve_const_and_percent(parent_size).unwrap_or(0.0));
-                }
-                _ => {
-                    println!("[X2] Setting size.{:?} of {} to 0", "x", self.name);
-                    self.layout.computed_size.set_x(0.0);
-                }
-            }
-            match size.y {
-                Size::Fixed(v) => {
-                    println!("[X] Setting size.{:?} of {} to {}", "y", self.name, v);
-                    self.layout
-                        .computed_size
-                        .set_y(v.resolve_const_and_percent(parent_size).unwrap_or(0.0));
-                }
-                _ => {
-                    println!("[X2] Setting size.{:?} of {} to 0", "y", self.name);
-                    self.layout.computed_size.set_y(0.0);
-                }
-            }
-        }
+    fn refresh_self_size<Dim>(&self, x: Dim, parent_size: f32)
+    where Dim: ResolutionDim {
+        let size = match self.layout.size.get_dim(x) {
+            Size::Hug => 0.0,
+            Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
+        };
+        self.layout.computed_size.set_dim(x, size);
     }
 
-    fn refresh_layout_internal(&self, first_pass: bool, hug_children: bool) {
-        println!("[{}] refresh_layout_internal. first pass? {}", self.name, first_pass);
-        if !self.dirty.transformation.check() && !self.dirty.modified_children.check_all() {
-            return;
-        }
-        if first_pass {
-            if self.layout.auto_layout.borrow().is_some() {
-                println!("Resetting content_origin");
-                self.layout.content_origin.set(default());
-            }
-        }
-        match &*self.layout.auto_layout.borrow() {
-            None =>
-                if first_pass {
-                    self.refresh_layout_manual(X, first_pass, hug_children);
-                } else {
-                    self.refresh_layout_manual(Y, first_pass, hug_children);
-                },
-            Some(layout) =>
-                if first_pass {
-                    self.refresh_linear_layout(X, &layout, first_pass);
-                } else {
-                    self.refresh_linear_layout(Y, &layout, first_pass);
-                },
-        }
-    }
-
-    fn refresh_layout_manual<Dim: Copy>(&self, x: Dim, first_pass: bool, hug_children: bool)
-    where
-        Vector2<Size>: DimSetter<Dim>,
-        Vector2<f32>: DimSetter<Dim>,
-        Vector2<alignment::Dim1>: DimSetter<Dim>,
-        Vector3<f32>: DimSetter<Dim>,
-        Dim: Debug, {
-        println!("[{}] refresh_layout_manual. first pass? {}", self.name, first_pass);
-
-        let children = self.children();
-        if children.is_empty() {
-            if hug_children && self.layout.size.get_dim(x).is_hug() {
-                println!("[M1 {}] Setting size.{:?} to {}", self.name, x, 0.0);
-                self.layout.computed_size.set_dim(x, 0.0);
-                println!("[M1] content_origin.{:?} = 0.0", x);
-                self.layout.content_origin.set_dim(x, 0.0);
-            }
-        } else {
-            let mut min_x: f32 = f32::MAX;
-            let mut max_x: f32 = f32::MIN;
-            let mut children_to_grow = vec![];
-            for child in &children {
-                if child.layout.grow_factor.get_dim(x) > 0.0 {
-                    children_to_grow.push(child);
-                } else {
-                    child.refresh_self_size(first_pass, 0.0); // FXME: 0.0
-                    child.refresh_layout_internal(first_pass, true);
-                    let child_pos = child.position().get_dim(x);
-                    let child_size = child.computed_size().get_dim(x);
-                    let child_bbox_origin = child.content_origin().get_dim(x);
-                    let child_min_x = child_pos + child_bbox_origin;
-                    let child_max_x = child_min_x + child_size;
-                    min_x = min_x.min(child_min_x);
-                    max_x = max_x.max(child_max_x);
+    fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
+        if self.dirty.transformation.check() || self.dirty.modified_children.check_all() {
+            if pass == LayoutResolutionPass::First {
+                if self.layout.auto_layout.borrow().is_some() {
+                    self.layout.content_origin.set(default());
                 }
             }
-            let new_size = max_x - min_x;
-            if self.layout.size.get_dim(x).is_hug() {
-                if hug_children {
-                    println!("[M2 {}] Setting size.{:?} to {}", self.name, x, new_size);
-                    self.layout.computed_size.set_dim(x, new_size);
+            if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
+                match pass {
+                    LayoutResolutionPass::First => self.refresh_grid_layout(X, &layout, pass),
+                    LayoutResolutionPass::Second => self.refresh_grid_layout(Y, &layout, pass),
                 }
             } else {
-                println!("[M2] content_origin.{:?} = 0.0", x);
-                self.layout.content_origin.set_dim(x, 0.0);
+                match pass {
+                    LayoutResolutionPass::First => self.refresh_manual_layout(X, pass, pass_cfg),
+                    LayoutResolutionPass::Second => self.refresh_manual_layout(Y, pass, pass_cfg),
+                }
             }
-
-            for child in children_to_grow {
-                println!(
-                    "[M3 {}] Setting size.{:?} of {} to {}",
-                    self.name,
-                    x,
-                    child.name,
-                    self.layout.computed_size.get_dim(x)
-                );
-                child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
-                child.refresh_layout_internal(first_pass, false);
-                let child_pos = child.position().get_dim(x);
-                let child_bbox_origin = child.content_origin().get_dim(x);
-                let child_min_x = child_pos + child_bbox_origin;
-                min_x = min_x.min(child_min_x);
-            }
-            println!("[M2] content_origin.{:?} = {}", x, min_x);
-            self.layout.content_origin.set_dim(x, min_x);
         }
+    }
+
+    fn refresh_manual_layout<Dim>(&self, x: Dim, pass: LayoutResolutionPass, pass_cfg: PassConfig)
+    where Dim: ResolutionDim {
+        let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
+        let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
+        let children = self.children();
+
+        let mut min_x = if children.is_empty() { 0.0 } else { f32::MAX };
+        let mut max_x = if children.is_empty() { 0.0 } else { f32::MIN };
+        let mut children_to_grow = vec![];
+        for child in &children {
+            if child.layout.grow_factor.get_dim(x) > 0.0 {
+                children_to_grow.push(child);
+            } else {
+                child.refresh_self_size(x, self.layout.computed_size.get_dim(x));
+                child.refresh_layout_internal(pass, PassConfig::Default);
+                let child_pos = child.position().get_dim(x);
+                let child_size = child.computed_size().get_dim(x);
+                let child_content_origin = child.content_origin().get_dim(x);
+                let child_min_x = child_pos + child_content_origin;
+                let child_max_x = child_min_x + child_size;
+                min_x = min_x.min(child_min_x);
+                max_x = max_x.max(child_max_x);
+            }
+        }
+        if hug_children {
+            self.layout.computed_size.set_dim(x, max_x - min_x);
+        }
+        for child in children_to_grow {
+            child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
+            child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
+            let child_pos = child.position().get_dim(x);
+            let child_content_origin = child.content_origin().get_dim(x);
+            min_x = min_x.min(child_pos + child_content_origin);
+        }
+        self.layout.content_origin.set_dim(x, min_x);
+
         let self_size = self.layout.computed_size.get_dim(x);
-        let origin_shift =
-            self.layout.forced_origin_alignment.get().get_dim(x).normalized() * self_size;
+        let forced_origin_alignment = self.layout.forced_origin_alignment.get().get_dim(x);
+        let origin_shift = forced_origin_alignment.normalized() * self_size;
         self.layout.content_origin.update_dim(x, |t| t - origin_shift);
     }
 }
@@ -2195,7 +2080,7 @@ impl Model {
     /// interested in the width of `R1` and `R2`, which in the local coordinate system was the
     /// Y-axis.
     ///
-    /// The [`first_pass`] flag indicated whether we are in the first or the second pass.
+    /// The [`pass`] flag indicated whether we are in the first or the second pass.
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2204,8 +2089,12 @@ impl Model {
     // FIXME: demo scene
     // FIXME: docs
     #[inline(always)]
-    fn refresh_linear_layout<Dim: Copy>(&self, x: Dim, opts: &AutoLayout, first_pass: bool)
-    where
+    fn refresh_grid_layout<Dim: Copy>(
+        &self,
+        x: Dim,
+        opts: &AutoLayout,
+        pass: LayoutResolutionPass,
+    ) where
         Vector2<Size>: DimSetter<Dim>,
         Vector2<alignment::OptDim1>: DimSetter<Dim>,
         Vector2<alignment::Dim1>: DimSetter<Dim>,
@@ -2214,9 +2103,11 @@ impl Model {
         Vector2<f32>: DimSetter<Dim>,
         Vector2<Unit>: DimSetter<Dim>,
         Vector3<f32>: DimSetter<Dim>,
+        (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>):
+            DimRef<Dim, Output = NonEmptyVec<ColumnOrRow>>,
         Dim: Debug,
-        AutoLayout: ColumnAndRowDefinitionsGetter<Dim>, {
-        println!("[{}] refresh_linear_layout. First pass: {}", self.name, first_pass);
+    {
+        println!("[{}] refresh_grid_layout. First pass: {:?}", self.name, pass);
         let children = self.children();
         if children.is_empty() {
             return;
@@ -2224,11 +2115,11 @@ impl Model {
         let size = self.layout.size.get_dim(x);
         // === Recomputing X-axis elements size of the X-axis horizontal layout ===
 
-        let defined_axes = opts.columns_or_rows(x);
+        let defined_axes = opts.columns_and_rows.get_dim(x);
         // FIXME: get_dim(X) here:
         let prim_axis_column_count =
-            opts.max_columns_and_rows.get_dim(X).unwrap_or_else(|| children.len());
-        let unresolved_columns = if first_pass {
+            opts.columns_and_rows_count.get_dim(X).unwrap_or_else(|| children.len());
+        let unresolved_columns = if pass == LayoutResolutionPass::First {
             let column_axes = defined_axes.iter().cycle().enumerate().take(prim_axis_column_count);
             println!("prim_axis_column_count: {}", prim_axis_column_count);
             column_axes
@@ -2276,9 +2167,9 @@ impl Model {
                         Size::Fixed(unit) => unit.resolve_const_only(),
                         _ => 0.0,
                     };
-                    child.refresh_self_size(first_pass, self_size);
+                    child.refresh_self_size(x, self_size);
                     match child.layout.size.get_dim(x) {
-                        Size::Hug => child.refresh_layout_internal(first_pass, true),
+                        Size::Hug => child.refresh_layout_internal(pass, PassConfig::Default),
                         Size::Fixed(unit) =>
                             if let Some(fr) = unit.as_fraction() {
                                 if fr > max_child_fr_size {
@@ -2472,7 +2363,7 @@ impl Model {
                     // refresh layout of the same child. If the child size is set to hug, the
                     // child can grow, and the column size is greater than earlier computed hugged
                     // child size, we need to refresh the child layout again.
-                    child.refresh_layout_internal(first_pass, false);
+                    child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
                 }
                 let child_width = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size_minus_margin - child_width);
@@ -2877,7 +2768,7 @@ pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
     /// Layout children using an auto-layout algorithm.
     fn use_auto_layout(&self) -> &Self {
         let instance = self.display_object();
-        instance.def.set_layout(AutoLayout::default());
+        instance.def.set_layout(AutoLayout::default().enable());
         self
     }
 
@@ -3589,7 +3480,7 @@ mod layout_tests {
                     self
                 }
 
-                fn assert_root_bbox_origin(&self, x:f32, y:f32) -> &Self {
+                fn assert_root_content_origin(&self, x:f32, y:f32) -> &Self {
                     assert_eq!(self.root.content_origin(), Vector2(x,y));
                     self
                 }
@@ -3605,7 +3496,7 @@ mod layout_tests {
                 }
 
                 $(
-                    fn [<assert_node $num _bbox_origin>](&self, x:f32, y:f32) -> &Self {
+                    fn [<assert_node $num _content_origin>](&self, x:f32, y:f32) -> &Self {
                         assert_eq!(self.[<node $num>].content_origin(), Vector2(x,y));
                         self
                     }
@@ -3688,7 +3579,7 @@ mod layout_tests {
         l.set_size_y_to_hug().allow_grow_x();
         l1.set_size((0.0, 4.0)).allow_grow_x();
 
-        r.use_auto_layout().set_max_columns(1);
+        r.use_auto_layout().set_column_count(1);
         r.set_size_x_to_hug().allow_grow_y();
         r1.set_size((2.0, 0.0)).allow_grow_y();
         r2.set_size((3.0, 0.0)).allow_grow_y();
@@ -3759,7 +3650,7 @@ mod layout_tests {
     #[test]
     fn test_vertical_layout_with_fixed_children() {
         let test = TestFlatChildren3::new();
-        test.root.use_auto_layout().set_max_columns(1);
+        test.root.use_auto_layout().set_column_count(1);
         test.node1.set_size((1.0, 1.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((3.0, 3.0));
@@ -3999,7 +3890,7 @@ mod layout_tests {
     #[test]
     fn test_simple_grid_layout() {
         let test = TestFlatChildren3::new();
-        test.root.use_auto_layout().set_max_columns(2);
+        test.root.use_auto_layout().set_column_count(2);
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
@@ -4030,7 +3921,7 @@ mod layout_tests {
     #[test]
     fn test_simple_grid_layout_reversed_x() {
         let test = TestFlatChildren3::new();
-        test.root.use_auto_layout().set_max_columns(2).reverse_columns();
+        test.root.use_auto_layout().set_column_count(2).reverse_columns();
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
@@ -4061,7 +3952,7 @@ mod layout_tests {
     #[test]
     fn test_simple_grid_layout_reversed_y() {
         let test = TestFlatChildren3::new();
-        test.root.use_auto_layout().set_max_columns(2).reverse_rows();
+        test.root.use_auto_layout().set_column_count(2).reverse_rows();
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
@@ -4095,7 +3986,7 @@ mod layout_tests {
     #[test]
     fn test_simple_grid_layout_with_gap() {
         let test = TestFlatChildren3::new();
-        test.root.use_auto_layout().set_max_columns(2).set_gap((5.0, 3.0));
+        test.root.use_auto_layout().set_column_count(2).set_gap((5.0, 3.0));
         test.node1.set_size((2.0, 2.0));
         test.node2.set_size((2.0, 2.0));
         test.node3.set_size((2.0, 2.0));
@@ -4362,7 +4253,7 @@ mod layout_tests {
             .assert_node1_computed_size(2.0, 2.0)
             .assert_node2_computed_size(2.0, 2.0)
             .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_bbox_origin(-1.0, -1.0)
+            .assert_root_content_origin(-1.0, -1.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(-1.0, 0.0)
             .assert_node2_position(1.0, -1.0)
@@ -4395,7 +4286,7 @@ mod layout_tests {
             .assert_node1_computed_size(2.0, 2.0)
             .assert_node2_computed_size(2.0, 2.0)
             .assert_node3_computed_size(2.0, 2.0)
-            .assert_root_bbox_origin(-1.0, -1.0)
+            .assert_root_content_origin(-1.0, -1.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(-1.0, 0.0)
             .assert_node2_position(1.0, -1.0)
@@ -4418,7 +4309,7 @@ mod layout_tests {
     /// ╰────────────────────────────────┴───────────────────────────────╯
     /// ```
     #[test]
-    fn test_layout_with_children_with_shifted_bbox_origins() {
+    fn test_layout_with_children_with_shifted_content_origins() {
         let test = TestFlatChildren2::new();
 
         test.root.use_auto_layout();
@@ -4456,7 +4347,7 @@ mod layout_tests {
         test.assert_node1_position(1.0, 1.0)
             .assert_node2_position(5.0, 1.0)
             .assert_root_computed_size(8.0, 3.0)
-            .assert_root_bbox_origin(0.0, 0.0)
+            .assert_root_content_origin(0.0, 0.0)
             .assert_root_position(0.0, 0.0);
     }
 
@@ -4496,8 +4387,8 @@ mod layout_tests {
             .assert_node1_computed_size(2.0, 2.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(5.0, 5.0)
-            .assert_root_bbox_origin(0.0, 0.0)
-            .assert_node1_bbox_origin(-1.0, -1.0);
+            .assert_root_content_origin(0.0, 0.0)
+            .assert_node1_content_origin(-1.0, -1.0);
     }
 
     /// ```text
@@ -4522,8 +4413,8 @@ mod layout_tests {
             .assert_node1_computed_size(10.0, 10.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
-            .assert_node1_bbox_origin(-5.0, -5.0)
-            .assert_root_bbox_origin(-5.0, -5.0);
+            .assert_node1_content_origin(-5.0, -5.0)
+            .assert_root_content_origin(-5.0, -5.0);
     }
 
     /// ```text
