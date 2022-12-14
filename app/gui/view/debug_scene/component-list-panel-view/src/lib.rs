@@ -197,7 +197,6 @@ pub fn main() {
         let navigator = Navigator::new(scene, &scene.layers.node_searcher.camera());
         let panel = app.new_view::<ide_view_component_list_panel::View>();
         scene.layers.node_searcher.add(&panel);
-        panel.model().set_navigator(Some(navigator.clone_ref()));
         panel.show();
         let network = frp::Network::new("new_component_list_panel_view");
         //TODO[ao] should be done by panel itself.
@@ -209,6 +208,11 @@ pub fn main() {
             size <- all_with(&init, &panel.size, |(), panel_size| *panel_size);
             snap <- all_with(&size, &scene.frp.shape, |sz, sh| snap_to_pixel_offset(*sz, sh));
             eval snap((snap) panel.set_xy(*snap));
+
+
+            // === Disable navigator on hover ===
+
+            navigator.frp.set_enabled <+ panel.is_hovered.not();
         }
         init.emit(());
 
