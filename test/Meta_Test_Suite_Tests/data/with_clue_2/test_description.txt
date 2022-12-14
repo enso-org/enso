@@ -1,0 +1,1 @@
+with_clue should correctly stack clues

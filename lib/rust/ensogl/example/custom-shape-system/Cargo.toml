@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 enso-frp = { path = "../../../frp" }
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+wasm-bindgen = { workspace = true }
 enso-profiler = { path = "../../../profiler" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
