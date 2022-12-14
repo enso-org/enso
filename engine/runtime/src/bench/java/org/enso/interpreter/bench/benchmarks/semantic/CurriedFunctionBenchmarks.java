@@ -91,17 +91,17 @@ public class CurriedFunctionBenchmarks {
     performBenchmark(matter);
   }
 
-  private void performBenchmark(Blackhole matter) throws AssertionError {
-    var average = avg.execute(fn, 10000);
+  private void performBenchmark(Blackhole hole) throws AssertionError {
+    var average = avg.execute(fn, 1000);
     if (!average.fitsInDouble()) {
       throw new AssertionError("Shall be a double: " + average);
     }
     var result = (long) average.asDouble();
-    boolean isResultCorrect = result == 14998;
+    boolean isResultCorrect = result == 1498;
     if (!isResultCorrect) {
       throw new AssertionError("Expecting reasonable average but was " + result + "\n" + fn);
     }
-    matter.consume(result);
+    hole.consume(result);
   }
 }
 

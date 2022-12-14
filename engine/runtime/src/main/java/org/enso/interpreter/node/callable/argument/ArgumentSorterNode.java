@@ -3,6 +3,7 @@ package org.enso.interpreter.node.callable.argument;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -19,6 +20,7 @@ import java.util.concurrent.locks.Lock;
  */
 @NodeInfo(description = "Reorders the arguments and executes them, according to a provided mapping")
 public class ArgumentSorterNode extends BaseNode {
+  private final ValueProfile profileFunction = ValueProfile.createIdentityProfile();
   private final FunctionSchema preApplicationSchema;
   private final FunctionSchema postApplicationSchema;
   private final ArgumentMapping mapping;
@@ -95,13 +97,14 @@ public class ArgumentSorterNode extends BaseNode {
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
   public MappedArguments execute(Function function, State state, Object[] arguments) {
+    var fn = profileFunction.profile(function);
     if (argumentsExecutionMode.shouldExecute()) {
       executeArguments(arguments, state);
     }
-    Object[] mappedAppliedArguments = prepareArguments(function, arguments);
+    Object[] mappedAppliedArguments = prepareArguments(fn, arguments);
     Object[] oversaturatedArguments = null;
     if (postApplicationSchema.hasOversaturatedArgs()) {
-      oversaturatedArguments = generateOversaturatedArguments(function, arguments);
+      oversaturatedArguments = generateOversaturatedArguments(fn, arguments);
     }
     return new MappedArguments(mappedAppliedArguments, oversaturatedArguments);
   }
