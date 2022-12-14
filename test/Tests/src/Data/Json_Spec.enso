@@ -138,7 +138,7 @@ spec =
             Json.Null.get_or_else "foo" 1 . should_equal 1
 
         Test.specify "should be able to get field_names" <|
-            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["foo", "baz"]
+            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["baz", "foo"]
             Json.parse '{}' . field_names . should_equal []
             Json.parse 'null' . field_names . should_equal []
             Json.parse '[1,2,3]' . field_names . should_equal []
