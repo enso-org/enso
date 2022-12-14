@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 
+from project.Errors import Invalid_Value_Type
 import project.Data.Join_Condition.Join_Condition
+import project.Data.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 
 import project.Errors.No_Such_Column
@@ -19,7 +21,7 @@ type Join_Condition_Resolver
        `Nothing` will be returned as the conditions indicating that state.
        Besides, a list of redundant columns from equality joins is aggregated
        which can be used to deduplicate them.
-    resolve : Join_Condition | Vector Join_Condition -> Problem_Behavior -> Join_Condition_Resolution
+    resolve : Join_Condition | Text | Vector (Join_Condition | Text) -> Problem_Behavior -> Join_Condition_Resolution
     resolve self conditions on_problems =
         redundant_names = Vector.new_builder
         problem_builder = Problem_Builder.new
@@ -38,19 +40,27 @@ type Join_Condition_Resolver
         conditions_vector = case conditions of
             _ : Vector -> conditions
             single_condition : Join_Condition -> [single_condition]
+        handle_equals left_selector right_selector =
+            left = resolve_left left_selector
+            right = resolve_right right_selector
+            if left.is_nothing || right.is_nothing then Nothing else
+                if left.name == right.name then
+                    redundant_names.append right.name
+                self.make_equals left right
         converted = conditions_vector.map condition-> case condition of
             Join_Condition.Equals left_selector right_selector ->
+                handle_equals left_selector right_selector
+            column_name : Text -> handle_equals column_name column_name
+            Join_Condition.Equals_Ignore_Case left_selector right_selector locale ->
                 left = resolve_left left_selector
                 right = resolve_right right_selector
                 if left.is_nothing || right.is_nothing then Nothing else
-                    if left.name == right.name then
-                        redundant_names.append right.name
-                    self.make_equals left right
-            Join_Condition.Equals_Ignore_Case left_selector right_selector ->
-                left = resolve_left left_selector
-                right = resolve_right right_selector
-                if left.is_nothing || right.is_nothing then Nothing else
-                    self.make_equals_ignore_case left right
+                    result = Value_Type.expect_text left.value_type <|
+                        Value_Type.expect_text right.value_type <|
+                            self.make_equals_ignore_case left right locale
+                    result.catch Invalid_Value_Type.Error error->
+                        problem_builder.report_other_warning error
+                        Nothing
             Join_Condition.Between left_selector right_lower_selector right_upper_selector ->
                 left = resolve_left left_selector
                 right_lower = resolve_right right_lower_selector

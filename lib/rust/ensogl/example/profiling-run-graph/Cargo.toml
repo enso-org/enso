@@ -24,7 +24,7 @@ ensogl-text = { path = "../../component/text" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 futures = "0.3"
 serde = "1"
-wasm-bindgen = { version = "0.2.58", features = ["nightly"] }
+wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = "0.4"
 url = "2.2.2"
 qstring = "0.7.2"
