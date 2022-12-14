@@ -5,7 +5,6 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -34,18 +33,15 @@ public class StringBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) {
-    Engine eng = Engine.newBuilder()
+    var ctx = Context.newBuilder()
       .allowExperimentalOptions(true)
+      .allowIO(true)
+      .allowAllAccess(true)
       .logHandler(new ByteArrayOutputStream())
       .option(
         "enso.languageHomeOverride",
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
-    var ctx = Context.newBuilder()
-      .engine(eng)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .build();
     var module = ctx.eval("enso", """
         from Standard.Base import all
 
