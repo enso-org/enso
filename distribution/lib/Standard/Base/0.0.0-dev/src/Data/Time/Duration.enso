@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Json.Json
+import project.Data.Json.JSON_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
@@ -308,10 +309,11 @@ type Duration
              import Standard.Base.Data.Time.Duration
 
              example_to_json = (Duration.new seconds=10).to_json
-    to_json : Json
+    to_json : JSON_Object
     to_json self =
-        b = Vector.new_builder
-        b.append ["type", "Duration"]
+        b = Vector.new_builder 7
+        b.append ["type", "Standard.Base.Data.Time.Duration.Duration"]
+        b.append ["constructor", "new"]
         if self.hours==0 . not then b.append ["hours", self.hours]
         if self.minutes==0 . not then b.append ["minutes", self.minutes]
         if self.seconds==0 . not then b.append ["seconds", self.seconds]

@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Json.Json
+import project.Data.Json.JSON_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
@@ -250,8 +251,9 @@ type File
              import Standard.Examples
 
              example_to_json = Examples.csv.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "File"], ["path", self.path]]
+    to_json : JSON_Object
+    to_json self =
+        Json.from_pairs [["type", "Standard.Base.System.File.File"], ["constructor", "new"], ["path", self.path]]
 
     ## Checks whether the file exists.
 

@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Json.Json
+import project.Data.Json.JSON_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
@@ -545,8 +546,9 @@ type Date
          Convert the current date to JSON.
 
              example_to_json = Date.now.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
+    to_json : JSON_Object
+    to_json self =
+        Json.from_pairs [["type", "Standard.Base.Data.Time.Date.Date"], ["constructor", "new"], ["day", self.day], ["month", self.month], ["year", self.year]]
 
     ## Format this date using the provided format specifier.
 

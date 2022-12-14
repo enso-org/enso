@@ -1,8 +1,11 @@
 import project.Any.Any
-import project.Data.Json.Internal
+import project.Data.Array.Array
+import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Map.Map
 import project.Data.Map.No_Value_For_Key
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
+import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Extensions
 import project.Data.Text.Text
@@ -19,198 +22,28 @@ polyglot java import java.lang.Exception as JException
 
 ## Represents a JSON structure.
 type Json
-    ## A smart constructor, building an object representation based on a vector
-       of key-value pairs.
+    ## Parse a Text value into JSON_Object or Enso Native
+    parse : Text -> JSON_Object | Boolean | Number | Nothing | Text | Vector
+    parse json =
+        parsed = json_parse json
+        make_enso parsed
 
-       Arguments:
-       - contents: A vector of key-value pairs.
+    ## Serialize an Object to JSON
+    stringify : Text
+    stringify object =
+        json_stringify object.to_json
 
-       All values used as keys must define a `to_json_key : Text` method.
-
-       > Example
-         The following code returns a JSON object, that after serialization becomes
-         { "foo": 533, "bar": false }
-
-             import Standard.Base.Data.Json.Json
-
-             example_from_pairs = Json.from_pairs [["foo", 533], ["bar", False]]
-    from_pairs : Vector -> Json
-    from_pairs contents =
-        fs = contents.fold Map.empty map-> kv_pair->
-            key = kv_pair . at 0 . to_json_key
-            val = kv_pair . at 1 . to_json
-            map.insert key val
-        Json.Object fs
-
-    ## Parses an RFC-8259 compliant JSON text into a `Json` structure.
-
-       Arguments:
-       - json_text: The RFC-8259-compliant JSON text.
-
-       > Example
-         Convert some text representing a JSON object into JSON.
-
-             import Standard.Base.Data.Json.Json
-
-             example_parse = Json.parse '{ "a": 1 }'
-    parse : Text -> Json ! Json_Parse_Error
-    parse json_text =
-        Panic.catch JException (Internal.parse_helper json_text) cause->
-            Error.throw (Json_Parse_Error.Error cause.payload.getMessage)
-
-    ## A representation of a JSON object.
-
-       Arguments:
-       - fields: The fields of the JSON object.
-    Object fields
-
-    ## A representation of a JSON array.
-
-       Arguments:
-       - items: The items in the JSON array.
-    Array items
-
-    ## A representation of a JSON string.
-
-       Arguments:
-       - value: The text contained in the JSON string.
-    String value
-
-    ## A representation of a JSON number.
-
-       Arguments:
-       - value: The number contained in the JSON number.
-    Number value
-
-    ## A representation of a JSON boolean.
-
-       Arguments:
-       - value: The boolean contained in a JSON boolean.
-    Boolean value
-
-    ## A representation of a JSON null.
-    Null
-
-    ## Marshals this JSON into an arbitrary value described by
-       `type_descriptor`.
-
-       Arguments:
-       - type_descriptor: The type descriptor is a fully-applied type,
-         describing all required sub-types. It can either be an Atom or one of
-         the primitive types (`Number`, `Text`, `Boolean`, `Vector`).
-
-       > Example
-         The following shows an example of reading a nested JSON into a desired
-         type. It will return a vector of `Book` objects containing data from
-         `json_string`.
-
-             import Standard.Examples
-
-             type Book title author
-             type Author name year_of_birth
-
-             example_into =
-                 json = Examples.json
-                 format = (Vector.fill 1 (Book title=Text (Author name=Text year_of_birth=Number)))
-                 json.into format
-    into : Any -> Any ! Marshalling_Error
-    into self type_descriptor =
-        Panic.recover Any (Internal.into_helper type_descriptor self)
-
-    ## Returns an empty JSON object.
-    empty_object : Json
-    empty_object = Json.Object Map.empty
-
-    ## Returns an empty JSON array.
-    empty_array : Json
-    empty_array = Json.Array []
-
-    ## Returns this Json object.
-
-       This is a no-op on a JSON object, but is included to implement the
-       `to_json` interface.
-    to_json : Json
-    to_json self = self
-
-    ## Renders this JSON into an RFC-8259 compliant text.
-
-       > Example
-         Convert some JSON to text.
-
-             import Standard.Examples
-
-             example_to_text = Examples.json.to_text
-    to_text : Text
-    to_text self = Internal.render_helper "" self
-
-    ## Recursively unwraps the JSON value into primitive values.
-
-       > Example
-         Unwrap the JSON number 3 to the primitive number 3.
-
-             import Standard.Base.Data.Json.Json
-
-             example_unwrap = Json.Number 3 . unwrap
-    unwrap : Any
-    unwrap self = case self of
-        Json.Array its -> its.map .unwrap
-        Json.Boolean b -> b
-        Json.Number n -> n
-        Json.String t -> t
-        Json.Null -> Nothing
-        Json.Object f -> f.map .unwrap
-
-    ## Gets the value associated with the given key in this object.
-
-       Throws `No_Such_Field` if the associated key is not defined.
-
-       Arguments:
-       - field: The name of the field from which to get the value.
-
-       > Example
-         Get the "title" field from this JSON representing a book.
-
-             import Standard.Examples
-
-             example_get = Examples.json_object.get "title"
-    get : Text -> Json ! No_Such_Field
-    get self field = self.get_or_else field (Error.throw (No_Such_Field.Error field))
-
-    ## Gets the value associated with the given key in this object.
-
-       Arguments:
-       - field: The name of the field from which to get the value.
-       - other: The value to return if not present. Defaults to `Json.Null`.
-    get_or_else : Text -> Any -> Json
-    get_or_else self field ~other=Json.Null = case self of
-        Json.Object fields -> fields.get_or_else field other
-        Json.Null -> other
-        _ -> Error.throw (Illegal_Argument.Error "Json.get_or_else: self must be an Object.")
-
-    ## Gets the value associated with the given index in this object.
-
-       Arguments:
-       - index: The index position from which to get the value.
-    at : Integer -> Json ! Illegal_Argument | Out_Of_Bounds
-    at self index = case self of
-        Json.Array array -> array.at index
-        Json.String text -> Json.String (text.at index)
-        Json.Null -> Json.Null
-        _ -> Error.throw (Illegal_Argument.Error "Json.at: self must be a String or an Array.")
-
-    ## Gets the set of field names for an object.
-    field_names : Vector ! Illegal_Argument
-    field_names self = case self of
-        Json.Object map -> map.keys
-        _ -> Error.throw (Illegal_Argument.Error "Json.field_name: self must be an Object.")
-
-    ## Returns the number of items in this array or object or length of string.
-    length : Integer ! Illegal_Argument
-    length self = case self of
-        Json.Array array -> array.length
-        Json.Object map -> map.size
-        Json.String text -> text.length
-        _ -> Error.throw (Illegal_Argument.Error "Json.length: self must be a String, an Object, or an Array.")
+    ## Creates a JSON_Object from a list of key-value pairs.
+       Keys must be `Text` values.
+    from_pairs : Vector -> JSON_Object
+    from_pairs pairs =
+        js_object = pairs.fold new_object current->pair->
+            case pair.at 0 of
+                _ : Text ->
+                    set_value current (pair.at 0) (pair.at 1).to_json
+                    current
+                _ -> Error.throw (Illegal_Argument.Error "JSON_Object.from_pairs: key must be a Text value")
+        JSON_Object.Value js_object
 
 ## UNSTABLE
 
@@ -226,19 +59,6 @@ type Json_Parse_Error
     to_display_text : Text
     to_display_text self =
         "Parse error in parsing JSON: " + self.message.to_text + "."
-
-## UNSTABLE
-
-   An error indicating that there is no such field in the JSON object.
-type No_Such_Field
-    Error field_name
-
-    ## PRIVATE
-
-       Pretty prints the no such field error.
-    to_display_text : Text
-    to_display_text self =
-        "The field " + self.field_name.to_text + " is not present in this object."
 
 ## UNSTABLE
 
@@ -283,3 +103,71 @@ type Marshalling_Error
             "Type mismatch error: the json with type `" + json_text + "` did not match the format `" + format_text + "`."
         Marshalling_Error.Missing_Field _ field _ ->
             "Missing field in Json: the field `" + field.to_text "` was missing in the json."
+
+type JSON_Object
+    ## PRIVATE
+    Value js_object
+
+    ## Get a property from a JSON_Object
+    get : Text -> Any -> JSON_Object | Boolean | Number | Nothing | Text | Vector
+    get self ~other=Nothing key =
+        if (has_property self.js_object key) . not then other else
+            value = get_value self.js_object key
+            make_enso value
+
+    ## Get the keys of the object
+    field_names : Vector
+    field_names self =
+        Vector.from_polyglot_array (get_property_names self.js_object)
+
+    ## Gets the number of keys in the object
+    length : Number
+    length self =
+        get_property_names self.js_object . length
+
+    ## Convert the object to a Vector of Pairs
+    to_vector : Vector
+    to_vector self =
+        keys = get_property_names self.js_object
+        proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
+        Vector.from_polyglot_array proxy
+
+    ## Convert the object to a JSON
+    to_json : JSON_Object
+    to_json self = self
+
+    ## Convert to string
+    to_text : Text
+    to_text self = json_stringify self.js_object
+
+make_enso js_object =
+    case js_object of
+        Nothing -> Nothing
+        _ : Text -> js_object
+        _ : Boolean -> js_object
+        _ : Number -> js_object
+        _ : Array ->
+            proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
+            Vector.from_polyglot_array proxy
+        _ -> JSON_Object.Value js_object
+
+foreign js new_object = """
+    return {}
+
+foreign js json_parse text = """
+    return JSON.parse(text)
+
+foreign js json_stringify js_object = """
+    return JSON.stringify(js_object)
+
+foreign js has_property js_object key = """
+    return js_object.hasOwnProperty(key)
+
+foreign js get_value object key = """
+    return object[key]
+
+foreign js set_value object key value = """
+    object[key] = value
+
+foreign js get_property_names object = """
+    return Object.getOwnPropertyNames(object)
