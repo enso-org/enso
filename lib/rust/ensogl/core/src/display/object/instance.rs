@@ -3,8 +3,7 @@
 //! transformation changes and updates only the needed subset of the display object tree on demand.
 //!
 //!
-//! # Auto Layout
-//!
+//! # The Grid Layout
 //! Display objects have built-in two-dimensional grid-based layout system, also called the Grid. It
 //! aims at providing an efficient way to lay out, align and distribute space among items in a
 //! container, even when their size is unknown and/or dynamic.
@@ -28,60 +27,125 @@
 //! terms involved here are all kinda conceptually similar, it’s easy to confuse them with one
 //! another if you don’t first memorize their meanings defined by the Grid specification.
 //!
-//! - **Grid container.** The display object with enabled auto-layout. It is the element that
+//! - **Grid container:** the display object with enabled auto-layout. It is the element that
 //!   contains all the grid items (children of the display object).
 //!
-//! - **Grid item.** The child (i.e. direct descendants) of the grid container. A grid item can be
+//! - **Grid item:** the child (i.e. direct descendants) of the grid container. A grid item can be
 //!   any display object.
 //!
-//! - **Grid line.** The dividing lines that make up the structure of the grid. They can be either
+//! - **Grid line:** the dividing lines that make up the structure of the grid. They can be either
 //!   vertical (“column grid lines”) or horizontal (“row grid lines”) and reside on either side of a
 //!   row or column.
 //!
-//! - **Grid cell.** The space between two adjacent row and two adjacent column grid lines. It’s a
+//! - **Grid cell:** the space between two adjacent row and two adjacent column grid lines. It’s a
 //!   single “unit” of the grid.
 //!
-//! - **Grid track.** The space between two adjacent grid lines. You can think of them as the
+//! - **Grid track:** the space between two adjacent grid lines. You can think of them as the
 //!   columns or rows of the grid.
 //!
-//! - **Grid area.** The total space surrounded by four grid lines. A grid area may be composed of
+//! - **Grid area:** the total space surrounded by four grid lines. A grid area may be composed of
 //!   any number of grid cells.
 //!
 //!
-//! ## Automatic creation of columns and rows
-//! Each Grid is divided into columns and rows. Every Grid has at leas one column and one row. To
-//! enable the Grid layout, use the [`use_auto_layout`] method. Here is an example of a display
-//! object with an empty Grid definition:
+//!
+//! ## Setting elements sizes.
+//! Each display object can be assigned with a horizontal and vertical size. By default the size is
+//! set to 'hug', which means that it will be computed based on the content's size. Alternatively,
+//! the size can be set to a fixed value expressed in one of the units: pixels, percent of the
+//! parent container size, or the fraction of the leftover space in the container. The units will be
+//! covered in the following chapters. For now, let's focus on the 'hug' and fixed pixel sizes.
+//!
+//! You can set the object size by using the [`set_size`] function family. Here is an example of a
+//! display object with width of 10 pixels and height set to 'hug' it's children (the default
+//! value). In case of display objects that do not contain any children, the hug size will be
+//! resolved to 0. The hug resizing is indicated by the `▶` and `◀` symbols in the following
+//! illustrations.
 //!
 //! ```text
-//! ╭─ ▶ ◀ ─╮
+//! ╭───────╮
 //! │ root  ▼
 //! │       ▲
 //! ╰───────╯
 //!
 //! let root = display::object::Instance::new();
+//! root.set_size_x(10.0);
+//! ```
+//!
+//!
+//! ## Growing and shrinking objects.
+//! Beside a size, each display object can be assigned with a growth/shrink factor and a
+//! maximum/minimum size. These properties describe how the object should be stretched by the parent
+//! container if there is either a free space left or there is not enough space. You can use the
+//! following methods to control these properties: [`set_grow_factor`], [`set_shrink_factor`],
+//! [`set_max_size`], and [`set_min_size`].
+//!
+//! If there are several objects that can grow, their sizes will be computed as follows:
+//! `min(max_item_size, item_size + item_grow_factor / sum_of_all_grow_factors * leftover_space)`.
+//! Of course, the `leftover_space` value will be adjusted take into consideration max sizes of
+//! sibling objects.
+//!
+//! Analogously, if there are several objects that can shrink, their sizes will be computed as
+//! follows: `min(max_item_size, item_size - item_shrink_factor / sum_of_all_shrink_factors *
+//! missing_space)`.
+//!
+//! For convinience, there are also shortcut methods defined, the [`allow_grow`] and
+//! [`allow_shrink`], which set the grow/shrink factor to 1.0, respectively. The following code
+//! snippet shows a display object with a fixed size of 10 pixels with the the height shrink factor
+//! set to 1, width grow factor set to 1, and maximum width set to 15 pixels:
+//!
+//! ```text
+//! ╭─────────┬───▷┤
+//! │ root    │
+//! │         │ 10
+//! │         △
+//! ╰─────────╯
+//!     10
+//!
+//! let root = display::object::Instance::new();
+//! root.set_size((10.0, 10.0));
+//! root.allow_shrink_y();
+//! root.allow_grow_x();
+//! root.set_max_size_x(15.0);
+//! ```
+//!
+//!
+//!
+//! ## Automatic creation of columns and rows.
+//! Each display object can be asked to automatically place its children by using a Grid layout. The
+//! layout is divided into columns and rows. Every Grid has at leas one column and one row. To
+//! enable the Grid layout, use the [`use_auto_layout`] method. Here is an example of a display
+//! object with an empty Grid layout:
+//!
+//! ```text
+//! ╔═══ ▶ ◀ ═══╗
+//! ║ ╭─ ▶ ◀ ─╮ ║
+//! ║ │ root  ▼ ▼
+//! ║ │       ▲ ▲
+//! ║ ╰───────╯ ║
+//! ╚═══════════╝
+//!
+//! let root = display::object::Instance::new();
 //! root.use_auto_layout();
 //! ```
 //!
-//! By default, the Grid column and row size is set to 'hug', which means that they will be computed
-//! based on the content's size. It is indicated by the `▶` and `◀` symbols in the example above. In
-//! fact, all of the width of the container, the height of the container, the width of the column
-//! and the height of the row are set to 'hug'.
+//! The above illustration contains visualization of both the Grid container and grid cells. The
+//! container is drawn with bold, double lines, while the cells use thin, single lines. All the Grid
+//! dimensions are set to 'hug' by default, including the width and height of the container, widths
+//! of columns and heights of rows. As earlier, an empty Grid layout with hug resizing will be
+// //! resolved to a zero-sized object.
 //!
 //! You do not need to add columns explicitly. They will be added automatically for you, one for
 //! every child. Columns with the 'hug' width will inherit some properties of their children, which
-//! will be described in the further sections. The following code defines a new Grid layout with two
-//! children. The children sizes are set explicitly, while the Grid, columns, and rows sizes are set
-//! to 'hug' (default):
+//! will be covered in detils in the further sections. The following code defines a new Grid layout
+//! with two children. The children sizes are set explicitly, while the Grid, columns, and rows
+//! sizes are set to 'hug' (default):
 //!
 //! ```text
 //! ╔═════════════ ▶ ◀ ═════════════╗
 //! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
-//! ║ │ root        ┆             │ ║
-//! ║ │             ┆  ╭───────╮  │ ║
+//! ║ │ root        ┆  ╭───────╮  │ ║
 //! ║ │  ╭───────╮  ┆  │ node2 │  ▼ ▼
 //! ║ │  │ node1 │  ┆  │       │  ▲ ▲
-//! ║ │  │       │  ┆  │       │  │ ║
 //! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
 //! ║ ╰─────────────┴─────────────╯ ║
 //! ╚═══════════════════════════════╝
@@ -94,18 +158,15 @@
 //! node2.set_size((10.0, 15.0));
 //! ```
 //!
-//! The above picture contains visualization of both the Grid container and grid columns. The
-//! container is drawn with bold, double lines. Please note that setting the Grid container size
-//! does not influence the children placement if the columns are set to 'hug':
+//! Please note that setting the Grid container size does not influence the children placement if
+//! the columns are set to 'hug':
 //!
 //! ```text
 //! ╔═════════════ ▶ ◀ ══════════════════════════╗
 //! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮              ║
-//! ║ │ root        ┆             │              ║
-//! ║ │             ┆  ╭───────╮  │              ║
+//! ║ │ root        ┆  ╭───────╮  │              ║
 //! ║ │  ╭───────╮  ┆  │ node2 │  ▼              ▼
 //! ║ │  │ node1 │  ┆  │       │  ▲              ▲
-//! ║ │  │       │  ┆  │       │  │              ║
 //! ║ │  ╰───────╯  ┆  ╰───────╯  │              ║
 //! ║ ╰─────────────┴─────────────╯              ║
 //! ╚════════════════════════════════════════════╝
@@ -119,7 +180,11 @@
 //! node2.set_size((10.0, 15.0));
 //! ```
 //!
-//! You can limit how many columns should be displayed by using the [`st_column_count`] method:
+//! By default, the Grid layout will create as many columns as there are children. You can limit the
+//! maximum number of used columns with the [`set_column_count`] method. You can also prevent the
+//! container from creating new columns and define their properties manually, which will be covered
+//! in the upcoming sections. The following code defines a new Grid layout with a maximum number of
+//! 2 columns:
 //!
 //! ```text
 //! ╔═════════════ ▶ ◀ ═════════════╗
@@ -153,32 +218,32 @@
 //! flexibility and allows for more complex layout definitions. You can add a new column/row with
 //! the [`add_column`] and [`add_row`] methods. You can access a column/row by index with the
 //! [`column`] and [`row`] methods, respectively. Also, as the first column and row always exist,
-//! there are [`first_column`] and [`first_row`] methods defined.
+//! there are [`first_column`] and [`first_row`] methods provided.
 //!
 //! All these functions return a column/row reference allowing changing its properties:
 //!
-//! - **Size.** The width of the column and height of the row. The size can be set to either 'hug'
+//! - **Size:** the width of the column and height of the row. The size can be set to either 'hug'
 //!   or a fixed value. The value can be expressed in pixels, percentage of the parent container
 //!   size, or by using fractional units. All of these options will be described later.
 //!
-//! - **Minimum size.** The minimum size of the column/row. If the column/row size does not fit the
+//! - **Minimum size:** the minimum size of the column/row. If the column/row size does not fit the
 //!   parent container, the Grid layout system will try to shrink it, but will not shrink it more
 //!   than expressed by this value.
 //!
-//! - **Maximum size.** The maximum size of the column/row. If the column/row grow factor was set a
+//! - **Maximum size:** the maximum size of the column/row. If the column/row grow factor was set a
 //!   positive value, the object will grow, but not more than expressed by this value.
 //!
-//! - **Grow factor.** A number describing how much the column/row should grow if there is extra
+//! - **Grow factor:** a number describing how much the column/row should grow if there is extra
 //!   space after first layouting step. The space will be distributed among all elements that can
 //!   grow by using the grow factors as the distribution weights.
 //!
-//! - **Shrink factor.** A number describing how much the column/row should shrink if there is not
+//! - **Shrink factor:** a number describing how much the column/row should shrink if there is not
 //!   enough space after first layouting step. All elements that can shrink will be resized by using
 //!   the shrink factors as the resizing weights.
 //!
 //! ```text
 //! ╔═════════════ ▶ ◀ ══════════════════════════╗
-//! ║ ╭──── ▶ ◀ ─────────────── ▶ ◀ ──────────┬▷ ║
+//! ║ ╭──── ▶ ◀ ────┬────────── ▶ ◀ ──────────┬▷ ║
 //! ║ │ root        ┆                         │  ║
 //! ║ │             ┆  ╭───────╮              │  ║
 //! ║ │  ╭───────╮  ┆  │ node2 │              ▼  ▼
@@ -199,6 +264,187 @@
 //! ```
 //!
 //!
+//! ## Cycling columns/rows definitions.
+//! In case there are more columns/rows needed than defined, the defined columns/rows will be used
+//! in a loop. For example, you can define a layout where every second column is bigger:
+//!
+//! ```text
+//! ╔══════════════════════════════════ ▶ ◀ ══════════════════════════════════╗
+//! ║ ╭─────────────┬────────────────────┬─────────────┬────────────────────╮ ║
+//! ║ │ root        ┆                    ┆             ┆                    │ ║
+//! ║ │             ┆  ╭──────────────┬▷ ┆             ┆  ╭──────────────┬▷ │ ║
+//! ║ │  ╭───────┬▷ ┆  │ node2        │  ┆  ╭───────┬▷ ┆  │ node2        │  ▼ ▼
+//! ║ │  │ node1 │  ┆  │              │  ┆  │ node1 │  ┆  │              │  ▲ ▲
+//! ║ │  │       │  ┆  │              │  ┆  │       │  ┆  │              │  │ ║
+//! ║ │  ╰───────╯  ┆  ╰──────────────╯  ┆  ╰───────╯  ┆  ╰──────────────╯  │ ║
+//! ║ ╰─────────────┴────────────────────┴─────────────┴────────────────────╯ ║
+//! ║        2                4                 2                4            ║
+//! ╚═════════════════════════════════════════════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child().set_size_y(2.0).allow_grow_x();
+//! let node2 = root.new_child().set_size_y(3.0).allow_grow_x();
+//! let node3 = root.new_child().set_size_y(2.0).allow_grow_x();
+//! let node4 = root.new_child().set_size_y(3.0).allow_grow_x();
+//! root.use_auto_layout();
+//! root.first_column().set_size_x(2.0);
+//! root.add_column().set_size_x(4.0);
+//! ```
+//!
+//!
+//! ## Item alignment.
+//! The item alignment settings allow aligning grid items along both the column and row axis. You
+//! can set the default alignment of all children by using the [`set_children_alignment`] on the
+//! container, or override it per child using the [`set_alignment`] method.
+//!
+//! ```text
+//! ╔═════════════════ ▶ ◀ ═════════════════╗
+//! ║ ╭─────────────────┬─────────────────╮ ║
+//! ║ │ root            ┆                 │ ║
+//! ║ │  ╭───────╮      ┆                 ▼ ║
+//! ║ │  │ node3 │      ┆                 ▲ ║
+//! ║ │  │       │      ┆                 │ ║
+//! ║ │  ╰───────╯      ┆                 │ ▼
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! ║ │      ╭───────╮  ┆      ╭───────╮  │ ║
+//! ║ │      │ node1 │  ┆      │ node2 │  ▼ ║
+//! ║ │      │       │  ┆      │       │  ▲ ║
+//! ║ │      ╰───────╯  ┆      ╰───────╯  │ ║
+//! ║ ╰─────────────────┴─────────────────╯ ║
+//! ║         10                 10         ║
+//! ╚═══════════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! root
+//!     .use_auto_layout()
+//!     .set_column_count(2)
+//!     .set_children_alignment_right();
+//! root.first_column().set_size_x(10.0);
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 2.0));
+//! node3.set_alignment_left();
+//! ```
+//!
+//! Please note, that alignment works only if there is a space left in a column. So, in case of
+//! columns that simply hug the children and the children in the given column have the same sizes,
+//! the alignment would not make any effect even if the container size is larger than columns:
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ════════════════════════════╗
+//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮                ║
+//! ║ │ root        ┆             │                ║
+//! ║ │  ╭───────╮  ┆             ▼                ║
+//! ║ │  │ node3 │  ┆             ▲                ║
+//! ║ │  │       │  ┆             │                ║
+//! ║ │  ╰───────╯  ┆             │                ▼
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤                ▲
+//! ║ │  ╭───────╮  ┆  ╭───────╮  │                ║
+//! ║ │  │ node1 │  ┆  │ node2 │  ▼                ║
+//! ║ │  │       │  ┆  │       │  ▲                ║
+//! ║ │  ╰───────╯  ┆  ╰───────╯  │                ║
+//! ║ ╰─────────────┴─────────────╯                ║
+//! ╚══════════════════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new().set_size_x(20.0);
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! root
+//!     .use_auto_layout()
+//!     .set_column_count(2)
+//!     .set_children_alignment_right();
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 2.0));
+//! node3.set_alignment_left();
+//! ```
+//!
+//!
+//! ## Reversing the column/row item order.
+//! It is possible to place items in a reversed order. You can use the [`reverse_columns`] and
+//! [`reverse_rows`] functions for that purpose. By default items are placed along the axes, from
+//! left to right and from bottom to top. The following example places the items from right to left:
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ═════════════╗
+//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! ║ │ root        ┆             │ ║
+//! ║ │             ┆  ╭───────╮  ▼ ║
+//! ║ │             ┆  │ node3 │  ▲ ║
+//! ║ │             ┆  │       │  │ ║
+//! ║ │             ┆  ╰───────╯  │ ▼
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
+//! ║ │  │ node2 │  ┆  │ node1 │  ▼ ║
+//! ║ │  │       │  ┆  │       │  ▲ ║
+//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! ║ ╰─────────────┴─────────────╯ ║
+//! ╚═══════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! root
+//!     .use_auto_layout()
+//!     .set_column_count(2)
+//!     .reverse_columns();
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 2.0));
+//! ```
+//!
+//!
+//! ## Grid flow.
+//! The grid flow defines how the grid items are placed in the grid. The default flow is 'row',
+//! which means that all items are placed in a row as long as there is space before moving to the
+//! next row. There are other flow modes available:
+//!
+//! - **Row:** The default flow. Items are placed in a row as long as there is space before moving
+//!   to the next row.
+//! - **Column:** Items are placed in a column as long as there is space before moving to the next
+//!   column.
+//! - **Dens:** (not implemented yet): tells the auto-placement algorithm to attempt to fill in
+//!   holes earlier in the grid if smaller items come up later. See the CSS grid spec for more
+//!   info of how this mode will work: https://css-tricks.com/snippets/css/complete-guide-grid.
+//!
+//! For example, the following code will place items in a column and then move to the next column
+//! if the column count was limited:
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ═════════════╗
+//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! ║ │ root        ┆             │ ║
+//! ║ │  ╭───────╮  ┆             ▼ ║
+//! ║ │  │ node3 │  ┆             ▲ ║
+//! ║ │  │       │  ┆             │ ║
+//! ║ │  ╰───────╯  ┆             │ ║
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ║
+//! ║ │  ╭───────╮  ┆             │ ║
+//! ║ │  │ node2 │  ┆             ▼ ▼
+//! ║ │  │       │  ┆             ▲ ▲
+//! ║ │  ╰───────╯  ┆             │ ║
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ║
+//! ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
+//! ║ │  │ node1 │  ┆  │ node4 │  ▼ ║
+//! ║ │  │       │  ┆  │       │  ▲ ║
+//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! ║ ╰─────────────┴─────────────╯ ║
+//! ╚═══════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child().set_size((2.0, 2.0));
+//! let node2 = root.new_child().set_size((2.0, 2.0));
+//! let node3 = root.new_child().set_size((2.0, 2.0));
+//! let node4 = root.new_child().set_size((2.0, 2.0));
+//! root.use_auto_layout().set_row_count(3).set_column_flow();
+//! ```
+//!
+//!
 //! ## The column/row gap.
 //! The gap between columns/rows specifies the size of the grid lines. You can think of it like
 //! setting the width of the gutters between the columns/rows. The gutters are only created between
@@ -206,7 +452,7 @@
 //! pixels between elements:
 //!
 //! ```text
-//! ╔═════════════ ▶ ◀ ═════════════════╗
+//! ╔═══════════════ ▶ ◀ ═══════════════╗
 //! ║ ╭───── ▶ ◀ ─────┬───── ▶ ◀ ─────╮ ║
 //! ║ │ root        ╱╱┆╱╱             │ ║
 //! ║ │  ╭───────╮  ╱╱┆╱╱             ▼ ║
@@ -237,6 +483,210 @@
 //! node2.set_size((2.0, 2.0));
 //! node3.set_size((2.0, 2.0));
 //! ```
+//!
+//!
+//! ## Grid padding.
+//! The padding specifies the size inside of the container that should be left empty. You can set
+//! the padding by using the [`set_padding`] method. The following code displays three objects
+//! within the padded container:
+//!
+//! ```text
+//! ╔═════════════════════ ▶ ◀ ═════════════════════╗
+//! ║ ╭───── ▶ ◀ ─────┬─── ▶ ◀ ───┬───── ▶ ◀ ─────╮ ║
+//! ║ │ root ╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │ ║
+//! ║ │ ╱╱╱           ┆           ┆ ╭───────╮ ╱╱╱ │ ║
+//! ║ │ ╱╱╱           ┆ ╭───────╮ ┆ │ node3 │ ╱╱╱ │ ║
+//! ║ │ ╱╱╱ ╭───────╮ ┆ │ node2 │ ┆ │       │ ╱╱╱ ▼ ▼
+//! ║ │ ╱╱╱ │ node1 │ ┆ │       │ ┆ │       │ ╱╱╱ ▲ ▲
+//! ║ │ ╱╱╱ │       │ ┆ │       │ ┆ │       │ ╱╱╱ │ ║
+//! ║ │ ╱╱╱ ╰───────╯ ┆ ╰───────╯ ┆ ╰───────╯ ╱╱╱ │ ║
+//! ║ │ ╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │ ║
+//! ║ ╰───────────────┴───────────┴───────────────╯ ║
+//! ╚═══════════════════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child().set_size((2.0, 2.0));
+//! let node2 = root.new_child().set_size((2.0, 3.0));
+//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! root.use_auto_layout().set_padding_all(10.0);
+//! ```
+//!
+//!
+//! ## Item's margin.
+//! The margin specifies the size outside of an item that should be left empty. You can set
+//! the margin by using the [`set_margin`] method. The following code displays three objects
+//! where the second object uses padding:
+//!
+//! ```text
+//! ╔═══════════════════════ ▶ ◀ ══════════════════════╗
+//! ║ ╭──── ▶ ◀ ───┬──────── ▶ ◀ ────────┬─── ▶ ◀ ───╮ ║
+//! ║ │ root       ┆ ╱╱╱╱╱╱           ╱╱ ┆ ╭───────╮ │ ║
+//! ║ │            ┆ ╱╱╱╱╱╱ ╭───────╮ ╱╱ ┆ │ node3 │ │ ║
+//! ║ │  ╭───────╮ ┆ ╱╱╱╱╱╱ │ node2 │ ╱╱ ┆ │       │ ▼ ▼
+//! ║ │  │ node1 │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ ▲ ▲
+//! ║ │  │       │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ │ ║
+//! ║ │  ╰───────╯ ┆ ╱╱╱╱╱╱ ╰───────╯ ╱╱ ┆ ╰───────╯ │ ║
+//! ║ ╰────────────┴─────────────────────┴───────────╯ ║
+//! ╚══════════════════════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child().set_size((2.0, 2.0));
+//! let node2 = root.new_child().set_size((2.0, 3.0));
+//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! node2.set_margin_left(2.0);
+//! node2.set_margin_right(1.0);
+//! root.use_auto_layout();
+//! ```
+//!
+//!
+//! ## Percentage size units.
+//! Sizes of all dimensions (element sizes, margins, paddings, column widths, row heights, etc.) can
+//! be expressed as a percentage value of the size of the parent container. Floating point numbers
+//! have a method `.pc()` which converts them to a percentage value. For example, the following code
+//! creates a container with two children. The first grows as much as possible, while the second
+//! occupies 30% of the parent container. The width of the first child will be set to 7, while the
+//! second will be set to 3:
+//!
+//! ```text
+//! ╔════════════════════════════════════╗
+//! ║ ╭─────── ▶ ◀ ────────┬─── ▶ ◀ ───╮ ║
+//! ║ │ root               ┆ ╭───────╮ │ ║
+//! ║ │  ╭──────────────┬▷ ┆ │ node2 │ ▼ ▼
+//! ║ │  │ node1        │  ┆ │       │ ▲ ▲
+//! ║ │  │              │  ┆ │       │ │ ║
+//! ║ │  ╰──────────────╯  ┆ ╰───────╯ │ ║
+//! ║ │         0          ┆    30%    │ ║
+//! ║ ╰────────────────────┴───────────╯ ║
+//! ╚════════════════════════════════════╝
+//!                  10
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child().set_size((0.0, 2.0));
+//! let node2 = root.new_child().set_size((30.pc(), 3.0));
+//! root.use_auto_layout();
+//! ```
+//!
+//!
+//! ## Fractional size units (flexible length).
+//! Sizes of all dimensions (element sizes, margins, paddings, column widths, row heights, etc.) can
+//! be expressed as a fraction of the leftover space in the parent container. Floating point numbers
+//! have a method `.fr()` which converts them to a fractional value.
+//!
+//! A flexible length or is a dimension with the `fr` unit, which represents a fraction of the
+//! leftover space in the grid container. Tracks sized with `fr` units are called flexible tracks as
+//! they flex in response to leftover space.
+//!
+//! The distribution of leftover space occurs after all non-flexible track sizing functions have
+//! reached their maximum. The total size of such rows or columns is subtracted from the available
+//! space, yielding the leftover space, which is then divided among the flex-sized rows and columns
+//! in proportion to their flex factor.
+//!
+//! Each column or row’s share of the leftover space can be computed as the column or row’s
+//! `<flex> * <leftover space> / <sum of all flex factors>`.
+//!
+//! The following code creates a container with three children. The second child will occupy 10% of
+//! the parent container, while the first child will be 2 times wider than the third one. Given the
+//! parent container with of 20 pixels, the second child size will be computed as `10% *  20px =
+//! 2px`. The leftover space is `20px - 2px = 18px`. The sum of all factors is 3. The first child
+//! size will be `2fr/3fr * 18px = 12px`, while the last child size will be `1fr/3fr * 18px = 6px`.
+//!
+//! ```text
+//! ╔═══════════════════════════════════════════════════════════════╗
+//! ║ ╭───────────── ▶ ◀ ────────────┬─── ▶ ◀ ───┬────── ▶ ◀ ─────╮ ║
+//! ║ │ root                         ┆ ╭───────╮ ┆ ╭────────────╮ │ ║
+//! ║ │  ╭────────────────────────╮  ┆ │ node2 │ ┆ │ node3      │ ▼ ▼
+//! ║ │  │ node1                  │  ┆ │       │ ┆ │            │ ▲ ▲
+//! ║ │  │                        │  ┆ │       │ ┆ │            │ │ ║
+//! ║ │  ╰────────────────────────╯  ┆ ╰───────╯ ┆ ╰────────────╯ │ ║
+//! ║ │             2fr              ┆    10%    ┆      1fr       │ ║
+//! ║ ╰──────────────────────────────┴───────────┴────────────────╯ ║
+//! ╚═══════════════════════════════════════════════════════════════╝
+//!                                20
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child().set_size((2.fr(), 2.0));
+//! let node2 = root.new_child().set_size((10.pc(), 3.0));
+//! let node3 = root.new_child().set_size((1.fr(), 3.0));
+//! root.use_auto_layout();
+//! ```
+//!
+//!
+//! ## Item justification.
+//! Fractional units allow expressing elements spacing easily. For example, the following code
+//! places its children with the same spacing between them and half of the spacing around them. This
+//! is commonly referred to as "content justification":
+//!
+//!
+//! ```text
+//! ╭─────────────────┬─────────────────┬─────────────────╮
+//! │╱╱ root        ╱╱┆╱╱             ╱╱┆╱╱             ╱╱│
+//! │╱╱             ╱╱┆╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱│
+//! │╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱┆╱╱  │ node3 │  ╱╱│
+//! │╱╱  ╭───────╮  ╱╱┆╱╱  │ node2 │  ╱╱┆╱╱  │       │  ╱╱▼
+//! │╱╱  │ node1 │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱▲
+//! │╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱│
+//! │╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱│
+//! │.5fr    2       1fr       2       1fr       2    .5fr│
+//! ╰─────────────────┴─────────────────┴─────────────────╯
+//!                            12
+//!
+//! let root = display::object::Instance::new()
+//!     .use_auto_layout()
+//!     .set_size_x(12.0)
+//!     .set_padding_left(0.5.fr())
+//!     .set_padding_right(0.5.fr())
+//!     .set_gap_x(1.fr());
+//! let node1 = root.new_child().set_size((2.0, 2.0));
+//! let node2 = root.new_child().set_size((2.0, 3.0));
+//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! ```
+//!
+//! For convenience, there are shortcut functions defined. To get the same result, you can use the
+//! [`justify_content_x_space_around`] function instead. There are also other helper functions
+//! defined:
+//!
+//! ```text
+//! ╭────────────┬─────────────┬─────────────╮
+//! │ root       ┆             ┆             │
+//! │ ╭───────╮  ┆  ╭───────╮  ┆  ╭───────╮  ▼
+//! │ │ node1 │  ┆  │ node2 │  ┆  │ node3 │  ▲
+//! │ ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │
+//! │0fr        0fr           0fr         0fr│ - TODO: dorysowac ramki grida !!!!!!!!!!!!!!!
+//! ╰────────────┴─────────────┴─────────────╯
+//! let root = display::object::Instance::new();
+//! root.use_auto_layout().justify_content_x_start();
+//! let node1 = root.new_child().set_size((2.0, 2.0));
+//! let node2 = root.new_child().set_size((2.0, 3.0));
+//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! ```
+//!
+//! ```text
+//! ╭─────────────────┬─────────────────┬─────────────────╮
+//! │╱╱ root        ╱╱┆╱╱             ╱╱┆╱╱             ╱╱│
+//! │╱╱  ╭───────╮  ╱╱┆╱╱  ╭───────╮  ╱╱┆╱╱  ╭───────╮  ╱╱▼
+//! │╱╱  │ node1 │  ╱╱┆╱╱  │ node2 │  ╱╱┆╱╱  │ node3 │  ╱╱▲
+//! │╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱│
+//! │.5fr            1fr               1fr            .5fr│
+//! ╰─────────────────┴─────────────────┴─────────────────╯
+//! let root = display::object::Instance::new();
+//! root.use_auto_layout().justify_content_x_space_around();
+//! let node1 = root.new_child().set_size((2.0, 2.0));
+//! let node2 = root.new_child().set_size((2.0, 3.0));
+//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! ```
+//!
+//!
+//! ## Properties inheritance.
+//!
+//!
+//!
+//!
+//! # Future Grid layout extensions.
+//!
+//! ## Placing items across multiple rows/columns.
+//! The CSS Grid allows placing items across multiple rows/columns. This mode is not supported by
+//! the Grid layout yet. See the `grid-template-areas` property to learn more about it:
+//! https://css-tricks.com/snippets/css/complete-guide-grid/#aa-grid-template-areas.
 
 use crate::data::dirty::traits::*;
 use crate::display::object::layout::*;
