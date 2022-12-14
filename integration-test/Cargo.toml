@@ -12,5 +12,5 @@ enso-prelude = { path = "../lib/rust/prelude" }
 enso-gui = { path = "../app/gui" }
 enso-shortcuts = { path = "../lib/rust/shortcuts" }
 enso-web = { path = "../lib/rust/web" }
-wasm-bindgen = { version = "0.2.78" }
+wasm-bindgen = { workspace = true }
 wasm-bindgen-test = "0.3.8"

@@ -20,7 +20,7 @@ percent-encoding = { version = "2.1.0" }
 unicode-segmentation = { version = "1.6.0" }
 # We require exact version of wasm-bindgen because we do patching final js in our build process,
 # and this is vulnerable to any wasm-bindgen version change.
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+wasm-bindgen = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"
