@@ -27,6 +27,7 @@ use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::system::web::JsValue;
+use serde::Serialize;
 use std::fmt::Formatter;
 
 
@@ -214,7 +215,7 @@ impl InstanceModel {
             _ => return Err(DataError::BinaryNotSupported),
         };
         let data_json: &serde_json::Value = data_json.deref();
-        let data_js = match serde_wasm_bindgen::to_value(data_json) {
+        let data_js = match json_to_value(data_json) {
             Ok(value) => value,
             Err(_) => return Err(DataError::InvalidDataType),
         };
@@ -352,4 +353,16 @@ fn get_method(
     _property: &str,
 ) -> Result<web::Function> {
     Ok(default())
+}
+
+/// Convert the given JSON value to a `JsValue`.
+///
+/// Note that we need to use special serializer, as `serde_wasm_bindgen` defaults to outputting
+/// some special `Map` type that is not supported by the visualization API (rather than proper
+/// objects).
+pub fn json_to_value(
+    json: &serde_json::Value,
+) -> std::result::Result<JsValue, serde_wasm_bindgen::Error> {
+    let serializer = serde_wasm_bindgen::Serializer::json_compatible();
+    json.serialize(&serializer)
 }
