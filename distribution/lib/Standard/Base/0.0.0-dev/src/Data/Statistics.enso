@@ -211,16 +211,16 @@ type Statistic
 
             Panic.handle_wrapped_dataflow_error <|
                 output = Vector.new_builder data.length
+
                 data.each value->
                     result = compute_fold counter ref_moment.get value
                     ref_moment.put result
 
-                    row = statistics.map s-> case s of
+                    row = Panic.throw_wrapped_if_error <| statistics.map s-> case s of
                         Statistic.Count -> counter.count
                         Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
                         Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
                         _ -> if result.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.compute (to_moment_statistic s)
-                    Panic.throw_wrapped_if_error row
                     output.append row
 
                 output.to_vector
