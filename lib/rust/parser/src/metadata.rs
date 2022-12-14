@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 use uuid::Uuid;
 
+const MARKER: &str = "#### METADATA ####\n";
+
 
 
 // ================
@@ -46,7 +48,7 @@ impl From<MetadataFormat> for Metadata {
 /// Given source code, if a metadata section is found: Attempt to parse it; return the result, and
 /// the non-metadata portion of the input.
 pub fn parse(input: &str) -> Option<(Result, &str)> {
-    let (code, metadata) = input.rsplit_once("#### METADATA ####\n")?;
+    let (code, metadata) = input.rsplit_once(MARKER)?;
     Some((metadata.parse().map(|data: MetadataFormat| data.into()), code))
 }
 
@@ -57,7 +59,8 @@ impl FromStr for MetadataFormat {
     type Err = String;
     fn from_str(s: &str) -> Result<MetadataFormat> {
         let mut lines = s.lines();
-        let id_map = serde_json::from_str(lines.next().unwrap()).unwrap();
+        let line0 = lines.next().ok_or("Expected a value.")?;
+        let id_map = serde_json::from_str(line0).map_err(|e| e.to_string())?;
         Ok(MetadataFormat { id_map })
     }
 }
@@ -77,4 +80,20 @@ struct Location {
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 struct Number {
     value: usize,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn bad_metadata() {
+        MetadataFormat::from_str(MARKER).expect_err("Empty metadata is error.");
+        MetadataFormat::from_str("[ , ]").expect_err("Invalid JSON is error.");
+    }
+
+    #[test]
+    fn empty_metadata() {
+        MetadataFormat::from_str("[]").expect("Empty sequence is valid.");
+    }
 }
