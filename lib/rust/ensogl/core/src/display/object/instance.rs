@@ -1,6 +1,242 @@
 //! Implementation of display objects, elements that have visual representation and can form
 //! hierarchical layouts. The implementation is very careful about performance, it tracks the
 //! transformation changes and updates only the needed subset of the display object tree on demand.
+//!
+//!
+//! # Auto Layout
+//!
+//! Display objects have built-in two-dimensional grid-based layout system, also called the Grid. It
+//! aims at providing an efficient way to lay out, align and distribute space among items in a
+//! container, even when their size is unknown and/or dynamic.
+//!
+//! The main idea behind the Grid layout system is to give the container the ability to alter its
+//! items’ width/height (and order) to best fill the available space (mostly to accommodate to all
+//! kind of display devices and screen sizes). A flex container expands items to fill available free
+//! space or shrinks them to prevent overflow.
+//!
+//! Most importantly, the layout system is direction-agnostic as opposed to common HTML layouts
+//! (block which is vertically-based and inline which is horizontally-based). While those work well
+//! for pages, they lack flexibility to support large or complex applications (especially when it
+//! comes to orientation changing, resizing, stretching, shrinking, etc.). The layout system
+//! described in this chapter can remind of CSS Flexbox and CSS Grid. In fact, it is heavily
+//! inspired by these systems, but it was extended in order to provide functionality of both of them
+//! in a single layout algorithm.
+//!
+//!
+//! ## Terminology and Concepts
+//! Before diving into the concepts of Grid it’s important to understand the terminology. Since the
+//! terms involved here are all kinda conceptually similar, it’s easy to confuse them with one
+//! another if you don’t first memorize their meanings defined by the Grid specification.
+//!
+//! - **Grid container.** The display object with enabled auto-layout. It is the element that
+//!   contains all the grid items (children of the display object).
+//!
+//! - **Grid item.** The child (i.e. direct descendants) of the grid container. A grid item can be
+//!   any display object.
+//!
+//! - **Grid line.** The dividing lines that make up the structure of the grid. They can be either
+//!   vertical (“column grid lines”) or horizontal (“row grid lines”) and reside on either side of a
+//!   row or column.
+//!
+//! - **Grid cell.** The space between two adjacent row and two adjacent column grid lines. It’s a
+//!   single “unit” of the grid.
+//!
+//! - **Grid track.** The space between two adjacent grid lines. You can think of them as the
+//!   columns or rows of the grid.
+//!
+//! - **Grid area.** The total space surrounded by four grid lines. A grid area may be composed of
+//!   any number of grid cells.
+//!
+//!
+//! ## Automatic creation of columns and rows
+//! Each Grid is divided into columns and rows. Every Grid has at leas one column and one row. To
+//! enable the Grid layout, use the [`use_auto_layout`] method. Here is an example of a display
+//! object with an empty Grid definition:
+//!
+//! ```text
+//! ╭─ ▶ ◀ ─╮
+//! │ root  ▼
+//! │       ▲
+//! ╰───────╯
+//!
+//! let root = display::object::Instance::new();
+//! root.use_auto_layout();
+//! ```
+//!
+//! By default, the Grid column and row size is set to 'hug', which means that they will be computed
+//! based on the content's size. It is indicated by the `▶` and `◀` symbols in the example above. In
+//! fact, all of the width of the container, the height of the container, the width of the column
+//! and the height of the row are set to 'hug'.
+//!
+//! You do not need to add columns explicitly. They will be added automatically for you, one for
+//! every child. Columns with the 'hug' width will inherit some properties of their children, which
+//! will be described in the further sections. The following code defines a new Grid layout with two
+//! children. The children sizes are set explicitly, while the Grid, columns, and rows sizes are set
+//! to 'hug' (default):
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ═════════════╗
+//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! ║ │ root        ┆             │ ║
+//! ║ │             ┆  ╭───────╮  │ ║
+//! ║ │  ╭───────╮  ┆  │ node2 │  ▼ ▼
+//! ║ │  │ node1 │  ┆  │       │  ▲ ▲
+//! ║ │  │       │  ┆  │       │  │ ║
+//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! ║ ╰─────────────┴─────────────╯ ║
+//! ╚═══════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.use_auto_layout();
+//! node1.set_size((10.0, 10.0));
+//! node2.set_size((10.0, 15.0));
+//! ```
+//!
+//! The above picture contains visualization of both the Grid container and grid columns. The
+//! container is drawn with bold, double lines. Please note that setting the Grid container size
+//! does not influence the children placement if the columns are set to 'hug':
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ══════════════════════════╗
+//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮              ║
+//! ║ │ root        ┆             │              ║
+//! ║ │             ┆  ╭───────╮  │              ║
+//! ║ │  ╭───────╮  ┆  │ node2 │  ▼              ▼
+//! ║ │  │ node1 │  ┆  │       │  ▲              ▲
+//! ║ │  │       │  ┆  │       │  │              ║
+//! ║ │  ╰───────╯  ┆  ╰───────╯  │              ║
+//! ║ ╰─────────────┴─────────────╯              ║
+//! ╚════════════════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.use_auto_layout();
+//! root.set_size_x(30.0);
+//! node1.set_size((10.0, 10.0));
+//! node2.set_size((10.0, 15.0));
+//! ```
+//!
+//! You can limit how many columns should be displayed by using the [`st_column_count`] method:
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ═════════════╗
+//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! ║ │ root        ┆             │ ║
+//! ║ │  ╭───────╮  ┆             ▼ ║
+//! ║ │  │ node3 │  ┆             ▲ ║
+//! ║ │  │       │  ┆             │ ║
+//! ║ │  ╰───────╯  ┆             │ ▼
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
+//! ║ │  │ node1 │  ┆  │ node2 │  ▼ ║
+//! ║ │  │       │  ┆  │       │  ▲ ║
+//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! ║ ╰─────────────┴─────────────╯ ║
+//! ╚═══════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! root.use_auto_layout().set_column_count(2);
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 2.0));
+//! ```
+//!
+//!
+//! ## Manual creation of columns and rows.
+//! While automatic creation of columns and rows is convenient, manual creation provides much more
+//! flexibility and allows for more complex layout definitions. You can add a new column/row with
+//! the [`add_column`] and [`add_row`] methods. You can access a column/row by index with the
+//! [`column`] and [`row`] methods, respectively. Also, as the first column and row always exist,
+//! there are [`first_column`] and [`first_row`] methods defined.
+//!
+//! All these functions return a column/row reference allowing changing its properties:
+//!
+//! - **Size.** The width of the column and height of the row. The size can be set to either 'hug'
+//!   or a fixed value. The value can be expressed in pixels, percentage of the parent container
+//!   size, or by using fractional units. All of these options will be described later.
+//!
+//! - **Minimum size.** The minimum size of the column/row. If the column/row size does not fit the
+//!   parent container, the Grid layout system will try to shrink it, but will not shrink it more
+//!   than expressed by this value.
+//!
+//! - **Maximum size.** The maximum size of the column/row. If the column/row grow factor was set a
+//!   positive value, the object will grow, but not more than expressed by this value.
+//!
+//! - **Grow factor.** A number describing how much the column/row should grow if there is extra
+//!   space after first layouting step. The space will be distributed among all elements that can
+//!   grow by using the grow factors as the distribution weights.
+//!
+//! - **Shrink factor.** A number describing how much the column/row should shrink if there is not
+//!   enough space after first layouting step. All elements that can shrink will be resized by using
+//!   the shrink factors as the resizing weights.
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ══════════════════════════╗
+//! ║ ╭──── ▶ ◀ ─────────────── ▶ ◀ ──────────┬▷ ║
+//! ║ │ root        ┆                         │  ║
+//! ║ │             ┆  ╭───────╮              │  ║
+//! ║ │  ╭───────╮  ┆  │ node2 │              ▼  ▼
+//! ║ │  │ node1 │  ┆  │       │              ▲  ▲
+//! ║ │  │       │  ┆  │       │              │  ║
+//! ║ │  ╰───────╯  ┆  ╰───────╯              │  ║
+//! ║ ╰─────────────┴─────────────────────────╯  ║
+//! ╚════════════════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.use_auto_layout();
+//! root.add_column().allow_grow_x();
+//! root.set_size_x(30.0);
+//! node1.set_size((10.0, 10.0));
+//! node2.set_size((10.0, 15.0));
+//! ```
+//!
+//!
+//! ## The column/row gap.
+//! The gap between columns/rows specifies the size of the grid lines. You can think of it like
+//! setting the width of the gutters between the columns/rows. The gutters are only created between
+//! the columns/rows, not on the outer edges. For example, the following code sets the gap of 2
+//! pixels between elements:
+//!
+//! ```text
+//! ╔═════════════ ▶ ◀ ═════════════════╗
+//! ║ ╭───── ▶ ◀ ─────┬───── ▶ ◀ ─────╮ ║
+//! ║ │ root        ╱╱┆╱╱             │ ║
+//! ║ │  ╭───────╮  ╱╱┆╱╱             ▼ ║
+//! ║ │  │ node3 │  ╱╱┆╱╱             ▲ ║
+//! ║ │  │       │  ╱╱┆╱╱             │ ║
+//! ║ │  ╰───────╯  ╱╱┆╱╱             │ ║
+//! ║ │             ╱╱┆╱╱             │ ║
+//! ║ │╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱│ ▼
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! ║ │╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱│ ║
+//! ║ │             ╱╱┆╱╱             │ ║
+//! ║ │  ╭───────╮  ╱╱┆╱╱  ╭───────╮  │ ║
+//! ║ │  │ node1 │  ╱╱┆╱╱  │ node2 │  ▼ ║
+//! ║ │  │       │  ╱╱┆╱╱  │       │  ▲ ║
+//! ║ │  ╰───────╯  ╱╱┆╱╱  ╰───────╯  │ ║
+//! ║ ╰───────────────┴───────────────╯ ║
+//! ╚═══════════════════════════════════╝
+//!
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! root
+//!     .use_auto_layout()
+//!     .set_column_count(2)
+//!     .set_gap((2.0, 2.0));
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 2.0));
+//! ```
 
 use crate::data::dirty::traits::*;
 use crate::display::object::layout::*;
@@ -1599,11 +1835,11 @@ pub trait LayoutOps: Object {
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 #[allow(missing_docs)]
 pub struct ColumnOrRow {
-    size:     Size,
-    min_size: Option<f32>,
-    max_size: Option<f32>,
-    grow:     Option<f32>,
-    shrink:   Option<f32>,
+    size:          Size,
+    min_size:      Option<f32>,
+    max_size:      Option<f32>,
+    grow_factor:   Option<f32>,
+    shrink_factor: Option<f32>,
 }
 
 /// The auto-layout column definition.
@@ -1667,8 +1903,8 @@ where Dim: ColumnOrRowAccessor
         size: Size,
         min_size: Option<f32>,
         max_size: Option<f32>,
-        grow: Option<f32>,
-        shrink: Option<f32>
+        grow_factor: Option<f32>,
+        shrink_factor: Option<f32>
     );
 }
 
@@ -1895,95 +2131,89 @@ pub trait AutoLayoutOps: Object {
 // =========================
 
 impl Model {
-    // TODO: wytlumaczyc ze kolejnosc wyliczania szerokosci i wysokosci musi byc inna czasami (jak w
-    // przykladzie) dlatego dwa passy.
-
     /// Updates a linear (horizontal or vertical) layout.
     ///
     ///
-    /// # The two-pass update algorithm
+    /// # Overview of the two-pass layout update algorithm
+    ///
     /// The layout update is a two pass algorithm. First, the sizes and positions of elements is
     /// updated in the horizontal direction, then in the vertical direction. To better illustrate
     /// the need of such a solution, consider the following example:
     ///
     /// ```text
-    /// ╭▷ ROOT ──────────────────────────╮
-    /// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │   Auto-layout Legend:         
-    /// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │   ┄── ▷ ──┄ : Horizontal auto-layout.
-    /// │   │ │ L1  │  │   │ │ R1 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
-    /// │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
-    /// │   │ │     │  ▼   │ ╰────╯   ▲   ▼
-    /// │   │ │     │  ▲   │ ╭────╮   ▼   ▲   Size Legend:             
-    /// │   │ │     │  │   │ │ R2 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill size.
-    /// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug size.  
-    /// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed size.
-    /// │   ╰──────────╯   ╰──────────╯   │
-    /// ╰─────────────────────────────────╯
+    /// ╭────────────────────┬────────────────╮
+    /// │╱╱╱╱╱ root          ┆             △  │    Auto-layout Legend:                
+    /// │╱╱╱╱╱  ╭── ▶ ◀ ──┬▷ ┆  ╭── ▶ ◀ ───┤  │    
+    /// │╱╱╱╱╱  │ L       │  ┆  │ R    △   │  │    ┄── ▷ ──┄ : Element can grow horizontally
+    /// │╱╱╱╱╱  │ ╭────┬▷ │  ┆  │ ╭────┤   │  │    ┄── ▽ ──┄ : Element can grow vertically.  
+    /// │╱╱╱╱╱  │ │ L1 │  │  ┆  │ │ R2 │   │  │    ┄─ ▶ ◀ ─┄ : Hug size.                                       
+    /// │╱╱╱╱╱  │ │    │  ▼  ┆  │ ╰────╯   │  ▼    ┄───────┄ : Fixed size.                                
+    /// │╱╱╱╱╱  │ │    │  │  ┆  │   30     │  │      ╱╱╱╱╱   : Padding (a free space).
+    /// │╱╱╱╱╱  │ │    │  ▲  ┆  │      △   │  ▲           
+    /// │╱╱╱╱╱  │ │    │  │  ┆  │ ╭────┤   │  │    Units Legend:
+    /// │╱╱╱╱╱  │ │    │  │  ┆  │ │ R1 │   │  │     10       : 10 pixels, set by the user.
+    /// │╱╱╱╱╱  │ ╰────╯  │  ┆  │ ╰────╯   │  │     1fr      : 1 fraction of the free space.
+    /// │╱╱╱╱╱  │   10    │  ┆  │   20     │  │
+    /// │ 1fr   ╰─────────╯  │  ╰──────────╯  │
+    /// ╰────────────────────┴────────────────╯
+    ///                   100
     /// ```
     ///
-    /// 1. In the first pass, we are updating the horizontal layout.
-    ///    a) First, we are visiting the `L` object. It's X-axis size is set to `Fill`, so we
-    ///       can't determine its width yet. Neither we can update the X-axis layout of its child,
-    ///       as it may depend on the `L` object width.
-    ///    b) Then, we are visiting the `R` object. It's X-axis size is set to `Hug`, so we need
-    ///       to visit its children to find the widest one. It's layout is set to vertical. Unlike
-    ///       in the case of the `L` and `R` objects, we are computing the size in the orthogonal
-    ///       direction than the layout the children are placed in.
-    ///    c) As the `ROOT` object's width size is set to `Fixed`, after finding the `R` object
-    ///       width, we can compute the `L` object width.
-    ///    d) Finally, we can update the `L` object children layout.
+    /// Please note, that computing sizes could not be realized in a single pass. In order to
+    /// compute L object width, we need to compute R object width first, as L will occupy the
+    /// leftover space. Analogously, We can't compute R object height without first computing the L
+    /// object height, as the parent container height is set to hug and it depends on the L object
+    /// height.
     ///
-    /// 2. In the second pass, we are updating the vertical layout.
-    ///    a) First, we are visiting the `L` object. It's Y-axis size is set to `Hug`, so we
-    ///       need to visit its children to find the tallest one.
-    ///    b) The `L1` object's Y-axis size is set to `Fixed`, so we can simply update its
-    ///       height.
-    ///    c) Next, we are visiting the `R` object. It's Y-axis size is set to `Fill`, so we can
-    ///       compute it, as the `ROOT` object height is fixed.
-    ///    d) Finally, we can update the `R` object children layout. Both children Y-axis size
-    ///       is set to `Fill`, so they are equally using the available space.
+    /// From a high perspective, each algorithm pass, both for X-axis and Y-axis, works as follows
+    /// (only X-axis analysis is presented here):
     ///
-    /// Please note, that this algorithm could not be realized in a single pass, as we can't compute
-    /// `L` object width without first computing the `R` object width, and we can't compute the
-    /// `R` object height without first computing the `L` object height.
     ///
-    /// The result of the algorithm is presented below. Please note that only the dimensions written
-    /// in parentheses were set manually.
+    /// 1. We need to compute static sizes of all elements. A static size is a size that does not
+    /// depend on siblings nor on free space left after static size resolution.
     ///
-    /// ```text
-    /// ╭▷ ROOT ─────────────────────────────────────────╮
-    /// │                          ╭R─ ▶ ◀ ──────╮       │
-    /// │                          ▽ ╭────╮      │       │
-    /// │                          │ │ R2 ▲ 50   │       │
-    /// │  ╭▷ L ◀ ▶ ────────╮      │ │    ▼      │       │
-    /// │  │ ╭ ◀ ▶ ╮        │      │ ╰────╯      │       │
-    /// │  │ │ L1  │        ▼      │  (30)       │       │
-    /// │  │ │     │ (50)   ▲ 50   │             ▲ 100   │
-    /// │  │ ╰─────╯        │      │ ╭────╮      ▼       │ (100)
-    /// │  │   70           │      │ │ R1 ▲ 50   │       │
-    /// │  ╰────────────────╯      │ │    ▼      │       │
-    /// │         70               │ ╰────╯      │       │
-    /// │                          │  (20)       │       │
-    /// │                          ╰─────────────╯       │
-    /// │                               30               │
-    /// ╰────────────────────────────────────────────────╯
-    ///                      (100)   
-    /// ```
+    /// 1.a. We are visiting the L object, which X-axis size is set to hug. Then we are visiting the
+    /// L1 object, which X-axis size is set to 10, however, both L1 and it's parent are allowed to
+    /// grow in the X-axis direction. For now, we assume that the width of both L and L1 is 10.
+    ///
+    /// 1.b. We are visiting the R object, which X-axis size is set to hug. Then we are visiting the
+    /// R1 and R2 objects. Their width is set to 20 and 30 respectively and they can't grow in the
+    /// X-axis direction. Thus, the size of R is set to 30, the bigger value.
+    ///
+    /// 1.c. We computed the static size of all elements. The static sizes of L and R are 10 and 30,
+    /// respectivelly.
+    ///
+    ///
+    /// 2. We need to compute the correct size of all elements taking into consideration the lefover
+    /// space. In this case, the leftover space is 100 - 10 - 30 = 60. It needs to be first
+    /// distributed among objects that can grow.
+    ///
+    /// 2.a. The L object can grow in the X-axis direction. The ability to grow is resolved before
+    /// fractional units, so the object is resized to ocupy all the free space, and thus, it's new
+    /// X-axis size is 70.
+    ///
+    /// 2.b. As the L object was updated, we need to re-visit it's child to update it's size. The L1
+    /// X-axis size is changed to 70 as well, as it is allowed to grow in the X-axis direction.
+    ///
+    ///
+    /// 3. Now, we can compute the fractional units. As there is no free space left, the left
+    /// padding is set to 0. If the L object was disallowed to grow, or the first column width
+    /// was not set to hug, the left padding will be non-zero and will be used to "push L and R"
+    /// objects to the right.
+    ///
+    ///
+    /// 4. In reality, the algorithm is much more complex. For example, columns that are set to hug
+    /// automatically inherit some of the childrens values. To learn more about it, see the docs of
+    /// this module.
+    ///
+    ///
     ///
     /// # Meaning of the function parameters.
-    /// In order to make the code easy to understand, all variables were named as if the code was
-    /// updating horizontal layout only. In reality, the variables [`x`] and [`y`] can be flipped to
-    /// update vertical layout instead.
     ///
-    /// The [`update_x`] flag indicates whether we are updating the X- or the Y- local axis. For
-    /// example, in the example described above, during the horizontal layout update, the `R` object
-    /// children were traversed. During the traversal, the [`x`] variable was set to the Y-axis, and
-    /// the [`y`] variable was set to the X-axis, so the `R1` and `R2` objects can be considered as
-    /// placed in an horizontal layout. The [`update_x`] flag was set to `false`, as we were
-    /// interested in the width of `R1` and `R2`, which in the local coordinate system was the
-    /// Y-axis.
-    ///
-    /// The [`pass`] flag indicated whether we are in the first or the second pass.
+    /// In order to make the code easy to understand, all variables in layouting functions were
+    /// named as if the code was updating horizontal layout only. In reality, the variables
+    /// [`x`] can be set to either [`X`] or [`Y`] to update horizontal and vertical axis,
+    /// respectively.
     fn refresh_layout(&self) {
         self.reset_size_to_static_values(X, 0.0);
         self.refresh_layout_internal(LayoutResolutionPass::First, PassConfig::Default);
@@ -2094,15 +2324,13 @@ impl Model {
 }
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct ResolvedAxis {
-    size:              Size,
-    min_size:          f32,
-    max_size:          f32,
-    grow:              f32,
-    shrink:            f32,
-    computed_size:     f32,
-    max_child_fr_size: Fraction,
+
+#[derive(Debug, Deref, DerefMut)]
+pub struct UnresolvedColumn {
+    #[deref]
+    #[deref_mut]
+    axis:     ColumnOrRow,
+    children: Vec<Instance>,
 }
 
 #[derive(Debug, Deref, DerefMut)]
@@ -2113,16 +2341,28 @@ pub struct ResolvedColumn {
     children: Vec<Instance>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ResolvedAxis {
+    size:              Size,
+    min_size:          f32,
+    max_size:          f32,
+    grow_factor:       f32,
+    shrink_factor:     f32,
+    computed_size:     f32,
+    max_child_fr_size: Fraction,
+}
+
 impl Model {
-    fn refresh_grid_layout<Dim>(&self, x: Dim, opts: &AutoLayout, pass: LayoutResolutionPass)
-    where Dim: ResolutionDim {
-        let children = self.children();
-        if children.is_empty() {
-            return;
-        }
-
-        // === Recomputing X-axis elements size of the X-axis horizontal layout ===
-
+    fn divide_children_to_columns<Dim>(
+        &self,
+        x: Dim,
+        opts: &AutoLayout,
+        pass: LayoutResolutionPass,
+        children: &[Instance],
+    ) -> Vec<UnresolvedColumn>
+    where
+        Dim: ResolutionDim,
+    {
         let first_pass = pass == LayoutResolutionPass::First;
         let columns_defs = opts.columns_and_rows.get_dim(x);
         let prim_axis_item_count = match opts.flow {
@@ -2131,64 +2371,67 @@ impl Model {
         };
         let prim_axis_item_count = prim_axis_item_count.unwrap_or_else(|| children.len());
         let use_x_axis = first_pass == (opts.flow == AutoLayoutFlow::Row);
-        let unresolved_columns = if use_x_axis {
+        if use_x_axis {
             let column_defs = columns_defs.iter().cycle().enumerate().take(prim_axis_item_count);
             column_defs
-                .map(|(i, t)| {
+                .map(|(i, axis)| {
                     let children_iter = children.iter().skip(i).step_by(prim_axis_item_count);
-                    (*t, children_iter.cloned().collect_vec())
+                    let children = children_iter.cloned().collect_vec();
+                    let axis = *axis;
+                    UnresolvedColumn { axis, children }
                 })
                 .collect_vec()
         } else {
             let column_count = children.len().div_ceil(prim_axis_item_count);
             let column_axes = columns_defs.iter().cycle().enumerate().take(column_count);
             column_axes
-                .map(|(i, t)| {
+                .map(|(i, axis)| {
                     let skip_count = i * prim_axis_item_count;
                     let children_iter = children.iter().skip(skip_count).take(prim_axis_item_count);
-                    (*t, children_iter.cloned().collect_vec())
+                    let children = children_iter.cloned().collect_vec();
+                    let axis = *axis;
+                    UnresolvedColumn { axis, children }
                 })
                 .collect_vec()
-        };
+        }
+    }
 
+    fn resolve_columns<Dim>(
+        &self,
+        x: Dim,
+        opts: &AutoLayout,
+        pass: LayoutResolutionPass,
+        unresolved_columns: Vec<UnresolvedColumn>,
+    ) -> Vec<ResolvedColumn>
+    where
+        Dim: ResolutionDim,
+    {
         let resolved_columns = unresolved_columns
             .into_iter()
-            .map(|(axis, children)| {
+            .map(|column| {
+                let children = column.children;
                 let mut avg_child_grow = 0.0;
                 let mut avg_child_shrink = 0.0;
                 let mut max_child_min_size = 0.0;
                 let mut min_child_max_size = f32::INFINITY;
                 let mut max_child_size = 0.0;
-                let mut max_child_fr_size = Fraction::default();
+                let mut max_child_fr = Fraction::default();
                 for child in &children {
-                    let self_size = self.layout.size.get_dim(x).resolve_const_only();
-                    child.reset_size_to_static_values(x, self_size);
+                    let self_const_size = self.layout.size.get_dim(x).resolve_const_only();
+                    child.reset_size_to_static_values(x, self_const_size);
                     match child.layout.size.get_dim(x) {
                         Size::Hug => child.refresh_layout_internal(pass, PassConfig::Default),
-                        Size::Fixed(unit) =>
-                            if let Some(fr) = unit.as_fraction() {
-                                if fr > max_child_fr_size {
-                                    max_child_fr_size = fr;
-                                }
-                            },
+                        Size::Fixed(unit) => max_child_fr = max(max_child_fr, unit.to_fraction()),
                     }
                     let child_margin = child.layout.margin.get_dim(x).resolve_fixed();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
+                    let child_min_size = child.layout.min_size.get_dim(x).resolve_const_only();
+                    let child_max_size = child.layout.max_size.get_dim(x).try_resolve_const_only();
+                    let child_max_size = child_max_size.unwrap_or(f32::INFINITY);
                     avg_child_grow += child.layout.grow_factor.get_dim(x);
                     avg_child_shrink += child.layout.shrink_factor.get_dim(x);
-                    max_child_min_size = f32::max(
-                        max_child_min_size,
-                        child.layout.min_size.get_dim(x).resolve_const_only2().unwrap_or(0.0),
-                    );
-                    min_child_max_size = f32::min(
-                        min_child_max_size,
-                        child
-                            .layout
-                            .max_size
-                            .get_dim(x)
-                            .resolve_const_only2()
-                            .unwrap_or(f32::INFINITY),
-                    );
+                    max_child_min_size = f32::max(max_child_min_size, child_min_size);
+                    min_child_max_size = f32::min(min_child_max_size, child_max_size);
                     max_child_size = f32::max(max_child_size, child_size);
                 }
 
@@ -2196,21 +2439,21 @@ impl Model {
                 let avg_child_grow = avg_child_grow / child_count;
                 let avg_child_shrink = avg_child_shrink / child_count;
 
-                let grow = axis.grow.unwrap_or(avg_child_grow);
-                let shrink = axis.shrink.unwrap_or(avg_child_shrink);
-                let min_size = axis.min_size.unwrap_or(max_child_min_size);
-                let max_size = axis.max_size.unwrap_or(min_child_max_size);
-                let max_child_fr_size = axis.size.as_fraction().unwrap_or(max_child_fr_size);
+                let grow_factor = column.axis.grow_factor.unwrap_or(avg_child_grow);
+                let shrink_factor = column.axis.shrink_factor.unwrap_or(avg_child_shrink);
+                let min_size = column.axis.min_size.unwrap_or(max_child_min_size);
+                let max_size = column.axis.max_size.unwrap_or(min_child_max_size);
+                let max_child_fr_size = column.axis.size.as_fraction().unwrap_or(max_child_fr);
 
-                let computed_size = match axis.size {
+                let computed_size = match column.axis.size {
                     Size::Fixed(unit) => unit.resolve_const_only(),
                     Size::Hug => max_child_size,
                 };
-                let size = axis.size;
+                let size = column.axis.size;
                 let axis = ResolvedAxis {
                     size,
-                    grow,
-                    shrink,
+                    grow_factor,
+                    shrink_factor,
                     computed_size,
                     min_size,
                     max_size,
@@ -2220,69 +2463,75 @@ impl Model {
             })
             .collect_vec();
 
-        let mut resolved_columns = if opts.reversed_columns_and_rows.get_dim(x) {
+        if opts.reversed_columns_and_rows.get_dim(x) {
             resolved_columns.reversed()
         } else {
             resolved_columns
-        };
+        }
+    }
+
+    fn refresh_grid_layout<Dim>(&self, x: Dim, opts: &AutoLayout, pass: LayoutResolutionPass)
+    where Dim: ResolutionDim {
+        let children = self.children();
+        if children.is_empty() {
+            return;
+        }
+
+        let unresolved_columns = self.divide_children_to_columns(x, opts, pass, &children);
+        let mut resolved_columns = self.resolve_columns(x, opts, pass, unresolved_columns);
 
         println!("resolved_columns: {:#?}", resolved_columns);
 
+        // === Compute the static size (no grow, shrink, nor fraction yet) ===
 
         let gap_def = opts.gap.get_dim(x);
         let padding_def = self.layout.padding.get_dim(x);
         let gap_count = (resolved_columns.len() - 1) as f32;
-        let fixed_padding = padding_def.resolve_fixed().total();
-        let fixed_gap = gap_count * gap_def.resolve_const_only();
-        let mut space_left_with_pref_sizes =
-            self.layout.computed_size.get_dim(x) - fixed_padding - fixed_gap;
-        let mut total_grow_coeff = 0.0;
-        let mut total_shrink_coeff = 0.0;
+        let static_padding = padding_def.resolve_fixed().total();
+        let static_gap = gap_count * gap_def.resolve_const_only();
+        let self_size = self.layout.computed_size.get_dim(x);
+        let mut space_left_with_static_sizes = self_size - static_padding - static_gap;
+        let mut total_grow_factor = 0.0;
+        let mut total_shrink_factor = 0.0;
         let mut total_fr = Fraction::default();
         for column in &resolved_columns {
-            space_left_with_pref_sizes -= column.computed_size;
-            total_grow_coeff += column.grow;
-            total_shrink_coeff += column.shrink;
+            space_left_with_static_sizes -= column.computed_size;
+            total_grow_factor += column.grow_factor;
+            total_shrink_factor += column.shrink_factor;
             total_fr += column.max_child_fr_size;
         }
-        if let Some(fr) = padding_def.start.as_fraction() {
-            total_fr += fr;
-        }
-        if let Some(fr) = padding_def.end.as_fraction() {
-            total_fr += fr;
-        }
-        if let Some(fr) = gap_def.as_fraction() {
-            total_fr += fr * gap_count;
+        total_fr += padding_def.start.to_fraction();
+        total_fr += padding_def.end.to_fraction();
+        total_fr += gap_def.to_fraction() * gap_count;
+        if self.layout.size.get_dim(x).is_hug() && space_left_with_static_sizes < 0.0 {
+            self.layout.computed_size.update_dim(x, |t| t - space_left_with_static_sizes);
+            space_left_with_static_sizes = 0.0;
         }
 
-        if self.layout.size.get_dim(x).is_hug() && space_left_with_pref_sizes < 0.0 {
-            self.layout.computed_size.update_dim(x, |t| t - space_left_with_pref_sizes);
-            space_left_with_pref_sizes = 0.0;
-        }
 
-        println!("space_left_with_pref_sizes: {}", space_left_with_pref_sizes);
+        // === Resolve grow and shrink ===
+
+        // FIXME: here we are computing fraction paddings before children grow. See the commented
+        // test.
         let self_size = self.layout.computed_size.get_dim(x);
-        let padding = padding_def.resolve(self_size, space_left_with_pref_sizes, total_fr);
-        println!("padding: {:#?}", padding);
-        let gap = gap_def.resolve(self_size, space_left_with_pref_sizes, total_fr);
+        let padding = padding_def.resolve(self_size, space_left_with_static_sizes, total_fr);
+        let gap = gap_def.resolve(self_size, space_left_with_static_sizes, total_fr);
         let total_gap = gap_count * gap;
         let mut space_left = self_size - padding.total() - total_gap;
-
-        let grow_coeff = if total_grow_coeff > 0.0 {
-            f32::max(0.0, space_left_with_pref_sizes / total_grow_coeff)
+        let grow_coeff = if total_grow_factor > 0.0 {
+            f32::max(0.0, space_left_with_static_sizes / total_grow_factor)
         } else {
             0.0
         };
-        let shrink_coeff = if total_shrink_coeff > 0.0 {
-            f32::min(0.0, space_left_with_pref_sizes / total_shrink_coeff)
+        let shrink_coeff = if total_shrink_factor > 0.0 {
+            f32::min(0.0, space_left_with_static_sizes / total_shrink_factor)
         } else {
             0.0
         };
-
         let mut pos_x = padding.start;
         for column in &mut resolved_columns {
-            let grow_size = column.grow * grow_coeff;
-            let shrink_size = column.shrink * shrink_coeff;
+            let grow_size = column.grow_factor * grow_coeff;
+            let shrink_size = column.shrink_factor * shrink_coeff;
             let column_size = column.computed_size + grow_size + shrink_size;
             let column_size = f32::max(column.min_size, column_size);
             let column_size = f32::min(column.max_size, column_size);
@@ -2290,48 +2539,34 @@ impl Model {
             space_left -= column_size;
         }
 
-        println!("space_left: {}", space_left);
-        println!("total_fr: {}", total_fr);
+
+        // === Resolve fraction units and position the children ===
+
         for column in &resolved_columns {
             let fr_diff = if total_fr > Fraction::from(0.0) {
                 space_left * column.max_child_fr_size.unchecked_raw() / total_fr.unchecked_raw()
             } else {
                 0.0
             };
-            println!("fr_diff: {}", fr_diff);
             let column_size = column.computed_size + fr_diff;
             let column_size = f32::max(column.min_size, column_size);
             let column_size = f32::min(column.max_size, column_size);
-            println!("column: {} {:#?}", column_size, column);
             for child in &column.children {
-                println!(">> child: {:?}", child);
                 let child_size = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size - child_size);
                 let unresolved_margin = child.layout.margin.get_dim(x);
-                let mut total_margin_fr = Fraction::from(0.0);
-                if let Some(fr) = unresolved_margin.start.as_fraction() {
-                    total_margin_fr += fr;
-                }
-                if let Some(fr) = unresolved_margin.end.as_fraction() {
-                    total_margin_fr += fr;
-                }
-                let margin =
-                    unresolved_margin.resolve(self_size, child_unused_space, total_margin_fr);
+                let margin_fr = unresolved_margin.to_fraction().total();
+                let margin = unresolved_margin.resolve(self_size, child_unused_space, margin_fr);
                 let column_size_minus_margin = column_size - margin.start - margin.end;
 
                 let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
-                println!("child_can_grow: {}", child_can_grow);
-                println!("child_size: {}", child_size);
-                println!("column_size_minus_margin: {}", column_size_minus_margin);
                 if child_can_grow && child_size < column_size_minus_margin {
                     // FIXME: resolve_const_only here
                     let size = f32::min(
                         column_size_minus_margin,
                         child.layout.max_size.get_dim(x).resolve_const_only(),
                     );
-                    println!(">> child max size: {}", child.layout.max_size.get_dim(x));
-                    println!(">> child size 1: {}", size);
                     child.layout.computed_size.set_dim(x, size);
                 }
                 if let Some(fr) = child.layout.size.get_dim(x).as_fraction() {
@@ -2341,7 +2576,6 @@ impl Model {
                             column_size_minus_margin,
                             child.layout.max_size.get_dim(x).resolve_const_only(),
                         );
-                        println!(">> child size 2: {}", size);
                         child.layout.computed_size.set_dim(x, size);
                     }
                 }
@@ -2351,7 +2585,6 @@ impl Model {
                         column_size_minus_margin,
                         child.layout.min_size.get_dim(x).resolve_const_only(),
                     );
-                    println!(">> child size 3: {}", size);
                     child.layout.computed_size.set_dim(x, size);
                 }
 
@@ -2371,25 +2604,8 @@ impl Model {
                 let child_offset = child_unused_space * alignment.normalized();
                 let content_origin = child.content_origin();
                 let child_size = child.layout.computed_size.get_dim(x);
-                println!("!!! child_size: {:?}", child_size);
-                println!("!!! first content_origin: {:?}", content_origin);
                 let child_left = pos_x - content_origin.get_dim(x) + child_offset + margin.start;
-                // let origin_shift =
-                //     child.layout.forced_origin_alignment.get().get_dim(x).normalized() *
-                // child_size; println!(
-                //     "!!! first child.layout.forced_origin_alignment.get(): {:?}",
-                //     child.layout.forced_origin_alignment.get()
-                // );
-                // println!("!!! first origin_shift: {:?}", origin_shift);
-                //
-                // let child_left = child_left + origin_shift;
                 child.set_position_dim(x, child_left);
-                // println!("??  child.layout.content_origin: {:?}",
-                // child.layout.content_origin.get_dim(x)); child.layout.content_origin.
-                // update_dim(x, |t| t - origin_shift); println!("??
-                // child.layout.content_origin: {:?}", child.layout.content_origin.get_dim(x));
-                // println!("!!! computed content_origin: {:?}", child.content_origin());
-                println!("<< child: {:?}", child);
             }
             pos_x += column_size + gap;
         }
@@ -2517,15 +2733,8 @@ macro_rules! gen_object_trans {
                 self.display_object().def.$trans()
             }
 
-            fn [<set_ $trans>](&self, t: impl IntoVector3<f32>) {
-                self.display_object().def.[<set_ $trans>](t.into_vector());
-            }
-
-            fn [<update_ $trans>]<F: FnOnce(Vector3<f32>) -> Vector3<f32>>(&self, f: F) {
-                self.display_object().def.[<update_ $trans>](f)
-            }
-
-            fn [<modify_ $trans>]<F: FnOnce(&mut Vector3<f32>)>(&self, f: F) {
+            #[enso_shapely::gen(update, set(trait = "IntoVector3<f32>", fn = "into_vector()"))]
+            fn [<modify_ $trans>](&self, f: impl FnOnce(&mut Vector3<f32>)) {
                 self.display_object().def.[<modify_ $trans>](f)
             }
 
@@ -2755,18 +2964,13 @@ pub trait ObjectOps: Object + AutoLayoutOps + LayoutOps {
     fn set_layout_manual(&self) {
         self.display_object().def.set_layout(None);
     }
-
-
-    // === Layout properties ===
-
-
-    // FIXME: move to interal api trait
-    fn refresh_layout(&self) {
-        self.display_object().def.refresh_layout()
-    }
 }
 
 
+
+// ========================
+// === GenericLayoutApi ===
+// ========================
 
 /// Trait exposing the generic API for working with layouts. Until you are creating layouts shared
 /// by multiple display objects and you need to store their configurations, you'd not need to use
@@ -2775,6 +2979,12 @@ pub trait GenericLayoutApi: Object {
     /// Layout setter.
     fn set_layout(&self, layout: impl Into<Option<AutoLayout>>) {
         self.display_object().def.set_layout(layout)
+    }
+
+    /// Force layout refresh. You should not need to use it directly. IT can be helpful for testing
+    /// and debugging though.
+    fn refresh_layout(&self) {
+        self.display_object().def.refresh_layout()
     }
 }
 
@@ -4222,6 +4432,42 @@ mod layout_tests {
             .assert_node2_computed_size(2.0, 2.0)
             .assert_node3_computed_size(2.0, 3.0);
     }
+
+    // /// ```text
+    // /// ╭─────────────────┬─────────────────┬─────────────────╮
+    // /// │╱╱ root        ╱╱┆╱╱             ╱╱┆╱╱             ╱╱│
+    // /// │╱╱             ╱╱┆╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱│
+    // /// │╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱┆╱╱  │ node3 │  ╱╱│
+    // /// │╱╱  ╭───────╮  ╱╱┆╱╱  │ node2 │  ╱╱┆╱╱  │       │  ╱╱▼
+    // /// │╱╱  │ node1 │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱▲
+    // /// │╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱│
+    // /// │╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱│
+    // /// │.5fr    2       1fr       2       1fr       2    .5fr│
+    // /// ╰─────────────────┴─────────────────┴─────────────────╯
+    // ///                            12
+    // /// ```
+    // #[test]
+    // fn test_fixed_column_layout_with_fraction_gap_and_children_tat_grow() {
+    //     let test = TestFlatChildren3::new();
+    //     test.root
+    //         .use_auto_layout()
+    //         .set_size_x(12.0)
+    //         .set_padding_left(0.5.fr())
+    //         .set_padding_right(0.5.fr())
+    //         .set_gap_x(1.fr());
+    //     test.node1.set_size((0.0, 1.0)).allow_grow_x();
+    //     test.node2.set_size((0.0, 2.0)).allow_grow_x();
+    //     test.node3.set_size((0.0, 3.0)).allow_grow_x();
+    //     test.run()
+    //         .assert_root_position(0.0, 0.0)
+    //         .assert_node1_position(1.0, 0.0)
+    //         .assert_node2_position(5.0, 0.0)
+    //         .assert_node3_position(9.0, 0.0)
+    //         .assert_root_computed_size(12.0, 3.0)
+    //         .assert_node1_computed_size(2.0, 1.0)
+    //         .assert_node2_computed_size(2.0, 2.0)
+    //         .assert_node3_computed_size(2.0, 3.0);
+    // }
 
     /// ```text
     /// ╭─────────────────────┬─────────────────────┬─────────────────────╮

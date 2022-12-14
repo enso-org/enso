@@ -33,6 +33,13 @@ impl Unit {
         }
     }
 
+    pub fn to_fraction(self) -> Fraction {
+        match self {
+            Self::Fraction(f) => f,
+            _ => default(),
+        }
+    }
+
     /// Resolve the unit to a pixel value.
     pub fn resolve(&self, parent_size: f32, free_space: f32, total_fraction: Fraction) -> f32 {
         match self {
@@ -53,7 +60,7 @@ impl Unit {
         }
     }
 
-    pub fn resolve_const_only2(&self) -> Option<f32> {
+    pub fn try_resolve_const_only(&self) -> Option<f32> {
         match self {
             Unit::Pixels(value) => Some(*value),
             _ => None,
@@ -193,6 +200,10 @@ impl SideSpacing<Unit> {
 
     pub fn resolve_fixed(self) -> SideSpacing<f32> {
         SideSpacing::new(self.start.resolve_const_only(), self.end.resolve_const_only())
+    }
+
+    pub fn to_fraction(self) -> SideSpacing<Fraction> {
+        SideSpacing::new(self.start.to_fraction(), self.end.to_fraction())
     }
 }
 
