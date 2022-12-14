@@ -230,8 +230,8 @@ handle_parsing_exception =
     Panic.catch TextParsingException handler=translate_parsing_exception
 
 ## PRIVATE
-handle_io_exception related_file ~action = Panic.catch_java IOException action java_exception->
-    Error.throw (File_Error.wrap_io_exception related_file java_exception)
+handle_io_exception related_file ~action = Panic.catch IOException action cause->
+    Error.throw (File_Error.wrap_io_exception related_file cause.payload)
 
 ## PRIVATE
 default_max_columns = 4096

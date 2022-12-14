@@ -53,8 +53,8 @@ type Json
              example_parse = Json.parse '{ "a": 1 }'
     parse : Text -> Json ! Json_Parse_Error
     parse json_text =
-        Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
-            Error.throw (Json_Parse_Error.Error java_exception.getMessage)
+        Panic.catch Any (Internal.parse_helper json_text) cause->
+            Error.throw (Json_Parse_Error.Error cause.payload.getMessage)
 
     ## A representation of a JSON object.
 

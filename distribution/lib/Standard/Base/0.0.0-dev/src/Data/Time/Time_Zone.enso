@@ -141,7 +141,7 @@ type Time_Zone
              example_parse = Time_Zone.parse "+03:02:01"
     parse : Text -> Time_Zone ! Time_Error
     parse text =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error.Error java_exception.getMessage)) <|
+        Panic.catch Any handler=(catch -> Error.throw (Time_Error.Error catch.payload.getMessage)) <|
             parse_builtin text
 
     ## Get the unique timezone ID.

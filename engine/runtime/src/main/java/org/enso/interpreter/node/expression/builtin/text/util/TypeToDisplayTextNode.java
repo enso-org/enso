@@ -31,6 +31,7 @@ public abstract class TypeToDisplayTextNode extends Node {
       Object value,
       @CachedLibrary(limit = "5") InteropLibrary objects,
       @CachedLibrary(limit = "5") InteropLibrary displays,
+      @CachedLibrary(limit = "5") InteropLibrary exceptions,
       @CachedLibrary(limit = "5") InteropLibrary strings) {
     if (value == null) {
       // TODO [RW] This is a temporary workaround to make it possible to display errors related to
@@ -70,6 +71,12 @@ public abstract class TypeToDisplayTextNode extends Node {
         return strings.asString(displays.toDisplayString(objects.getMetaObject(value)));
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
+      }
+    } else if (exceptions.hasExceptionMessage(value)) {
+      try {
+        return strings.asString(exceptions.getExceptionMessage(value));
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
       }
     } else {
       // In case we forgot to handle some of the builtin types, the following

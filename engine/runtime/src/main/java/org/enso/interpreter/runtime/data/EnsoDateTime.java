@@ -18,7 +18,6 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -68,7 +67,7 @@ public final class EnsoDateTime implements TruffleObject {
       description = "Constructs a new DateTime from text with optional pattern",
       autoRegister = false)
   @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeParseException.class, to = PanicException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime parse(String text) {
     TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
@@ -84,7 +83,7 @@ public final class EnsoDateTime implements TruffleObject {
       name = "new_builtin",
       description = "Constructs a new Date from a year, month, and day",
       autoRegister = false)
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeException.class, to = PanicException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime create(
       long year,

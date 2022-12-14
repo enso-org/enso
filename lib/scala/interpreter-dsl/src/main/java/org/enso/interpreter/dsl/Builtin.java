@@ -209,7 +209,7 @@ public @interface Builtin {
    * <pre>
    * class Foo {
    * {@link Builtin.Method @Builtin.Method}
-   * {@link Builtin.WrapException @Builtin.WrapException}(from=IOException.class, to=PolyglotError.class, propagate=true)
+   * {@link Builtin.WrapException @Builtin.WrapException}(from=IOException.class, to=PanicException.class, propagate=true)
    *   public Object create(Object path) throws java.io.IOException {
    *       // ...
    *   }
@@ -227,7 +227,7 @@ public @interface Builtin {
    *       return self.create(path)
    *     } catch (java.io.IOException e) {
    *       Builtins builtins = EnsoContext.get(this).getBuiltins();
-   *       throw new PanicException(builtins.error().makePolyglotError(e), this);
+   *       throw new PanicException(builtins.error().makePanicException(e), this);
    *     }
    *   }
    * }
@@ -246,8 +246,8 @@ public @interface Builtin {
    * Instead, use multiple {@link WrapException}:
    *
    * <pre>
-   *     {@link Builtin.WrapException @Builtin.WrapException}(from=FooException.class, to=PolyglotError.class, propagate=true)
-   *     {@link Builtin.WrapException @Builtin.WrapException}(from=BarException.class, to=PolyglotError.class, propagate=true)
+   *     {@link Builtin.WrapException @Builtin.WrapException}(from=FooException.class, to=PanicException.class, propagate=true)
+   *     {@link Builtin.WrapException @Builtin.WrapException}(from=BarException.class, to=PanicException.class, propagate=true)
    *     Object foo(Object item) {
    *         // ...
    *     }

@@ -14,7 +14,6 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -35,7 +34,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
       description = "Constructs a new DateTime from text with optional pattern",
       autoRegister = false)
   @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeParseException.class, to = PanicException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay parse(String text) {
     return new EnsoTimeOfDay(LocalTime.parse(text));
@@ -45,7 +44,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
       name = "new_builtin",
       description = "Constructs a new Time_OF_Day from an hour",
       autoRegister = false)
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeException.class, to = PanicException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay create(long hour, long minute, long second, long nanosecond) {
     return new EnsoTimeOfDay(
