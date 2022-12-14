@@ -1,7 +1,5 @@
 package org.enso.base.statistics;
 
-import java.util.Arrays;
-
 /** Set of descriptive statistics for numerical data sets */
 public class Moments {
 
@@ -32,38 +30,31 @@ public class Moments {
   /** Statistic to compute the sample kurtosis of the values. */
   public static final MomentStatistic KURTOSIS = new Kurtosis();
 
+  private long count;
+  private double[] totals;
+
   /**
-   * Compute a set of statistics on a data set.
+   * Create a new instance.
    *
-   * @param data set of values.
-   * @param statistics set of statistics to compute.
-   * @return computed statistics.
+   * @param order the maximum order of moments to compute.
    */
-  public static double[] compute(Double[] data, MomentStatistic[] statistics) {
-    if (statistics.length == 0) {
-      return new double[0];
+  public Moments(int order) {
+    this.count = 0;
+    this.totals = new double[order];
+  }
+
+  public Moments add(double value) {
+    count++;
+    double v = value;
+    for (int i = 0; i < totals.length; i++) {
+      totals[i] += v;
+      v *= value;
     }
 
-    int order = Arrays.stream(statistics).mapToInt(s -> s == null ? 0 : s.order()).max().getAsInt();
+    return this;
+  }
 
-    long count = 0;
-    double[] totals = new double[order];
-    for (Double value : data) {
-      if (value == null || Double.isNaN(value)) {
-        continue;
-      }
-
-      count++;
-      double v = value;
-      for (int i = 0; i < order; i++) {
-        totals[i] += v;
-        v *= value;
-      }
-    }
-
-    final long _count = count;
-    return Arrays.stream(statistics)
-        .mapToDouble(s -> s == null ? Double.NaN : s.evaluate(_count, totals))
-        .toArray();
+  public double compute(MomentStatistic s) {
+    return s.evaluate(count, totals);
   }
 }

@@ -119,6 +119,14 @@ spec =
             values = number_set.compute_bulk stats
             vector_compare values expected
 
+        Test.specify "should allow running computation" <|
+            number_set.running . should_equal [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+            expected_counts = [1, 2, 3, 4, 4, 5, 6, 7, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15, 16, 16]
+            expected_sums = [0.4, -18.16, -35.15, -51.58, -51.58, -38.14, -44.99, -35.31, -43.86, -43.86, -33.48, 0.37, -40.65, -38.78, -38.78, -52.65, -91.71, -65.79, -81.8, -81.8]
+            missing_set.running . should_equal expected_counts
+            values = missing_set.running Statistic.Sum
+            vector_compare values expected_sums
+
     Test.group "Statistics - empty Vector " <|
         Test.specify "should be able to count and sum on empty Vector" <|
             [].compute . should_equal 0
@@ -145,6 +153,7 @@ spec =
             text_set.compute Statistic.Variance . should_fail_with Illegal_Argument.Error
             text_set.compute Statistic.Skew . should_fail_with Illegal_Argument.Error
             text_set.compute Statistic.Kurtosis . should_fail_with Illegal_Argument.Error
+            text_set.running Statistic.Sum . should_fail_with Illegal_Argument.Error
 
         Test.specify "should be able to do Count, Minimum and Maximum on custom type with compare_to" <|
             ord_set.compute . should_equal 3

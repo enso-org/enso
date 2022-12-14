@@ -113,6 +113,11 @@ spec = Test.group "Vectors" <|
 
     Test.specify "should allow folding an operator over its elements" <|
         [1,2,3].fold 0 (+) . should_equal 6
+        [].fold 123 (+) . should_equal 123
+
+    Test.specify "should allow a running fold operator over its elements" <|
+        [1,2,3].running_fold 0 (+) . should_equal [1, 3, 6]
+        [].running_fold 123 (+) . should_equal []
 
     Test.specify "should allow to reduce elements if it is non-empty" <|
         [1,2,3].reduce (+) . should_equal 6
@@ -187,6 +192,8 @@ spec = Test.group "Vectors" <|
         txtvec = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"]
         txtvec.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"]
         txtvec.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"]
+        txtvec.filter (Filter_Condition.Not_Contains "a") . should_equal ["bbb", "cccc", "ś"]
+        txtvec.filter (Filter_Condition.Not_Contains 's\u0301') . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"]
         txtvec.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"]
         txtvec.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"]
         txtvec.filter (Filter_Condition.Less than="a") . should_equal []
@@ -216,6 +223,7 @@ spec = Test.group "Vectors" <|
         txt3 = ['śnieg', 's\u0301nieg', 'X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Starts_With 'ś') . should_equal ['śnieg', 's\u0301nieg']
         txt3.filter (Filter_Condition.Contains 'ś') . should_equal ['śnieg', 's\u0301nieg']
+        txt3.filter (Filter_Condition.Not_Contains 'ś') . should_equal ['X', 'połać', 'połac\u0301']
         txt3.filter (Filter_Condition.Ends_With 'ś') . should_equal []
         txt3.filter (Filter_Condition.Ends_With 'ć') . should_equal ['połać', 'połac\u0301']
         ## There is a bug with Java Regex in Unicode normalized mode (CANON_EQ) with quoting.
