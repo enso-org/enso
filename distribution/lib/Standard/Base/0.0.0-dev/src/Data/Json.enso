@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Json.Internal
 import project.Data.Map.Map
 import project.Data.Map.No_Value_For_Key
+import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Text.Extensions
 import project.Data.Text.Text
