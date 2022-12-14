@@ -127,7 +127,7 @@ impl From<node::Expression> for Expression {
     fn from(t: node::Expression) -> Self {
         // The length difference between `code` and `viz_code` so far.
         let mut shift = 0.byte();
-        let mut span_tree: SpanTree = t.input_span_tree.map(|()| port::Model::default());
+        let mut span_tree = t.input_span_tree.map(|_| port::Model::default());
         let mut viz_code = String::new();
         let code = t.code;
         span_tree.root_ref_mut().dfs_with_layer_data(ExprConversion::default(), |node, info| {
@@ -309,7 +309,6 @@ impl Model {
                 id_crumbs_map.insert(id, node.crumbs.clone_ref());
             }
 
-
             if DEBUG {
                 let indent = " ".repeat(4 * builder.depth);
                 let skipped = if not_a_port { "(skip)" } else { "" };
@@ -338,12 +337,10 @@ impl Model {
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
                 let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
-                let argument_info = port.argument_info();
-                let port_widget = port.payload_mut().init_widget(&self.app, argument_info, node::HEIGHT);
 
-                port_shape.set_x(unit * index as f32);
+                port_shape.mod_position(|t| t.x = unit * index as f32);
                 if DEBUG {
-                    port_shape.set_y(DEBUG_PORT_OFFSET)
+                    port_shape.mod_position(|t| t.y = DEBUG_PORT_OFFSET)
                 }
 
                 if is_header {
@@ -406,6 +403,7 @@ impl Model {
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
                     area_frp.source.on_port_hover <+ hover;
 
+
                     // === Pointer Style ===
 
                     let port_shape_hover = port_shape.hover.clone_ref();
@@ -432,22 +430,6 @@ impl Model {
                     pointer_style       <- pointer_styles.fold();
                     area_frp.source.pointer_style <+ pointer_style;
                 }
-
-                if let Some(port_widget) = port_widget {
-                    port_widget.set_x(unit * index as f32);
-                    builder.parent.add_child(&port_widget);
-                    port_widget.set_focused(true);
-                    let code = &expression.viz_code[port.payload.range()];
-                    port_widget.set_current_value(Some(code.into()));
-                    // frp::extend! { port_network
-                        // toggle_opened <- bg_down.toggle();
-                            // raw_hovered <- bool(&mouse_out,&mouse_over_raw);
-                        // trace bg_down;
-                        // port_widget.set_focused <+ toggle_opened;
-                    // }
-                }
-                
-
                 init_color.emit(());
                 area_frp.set_view_mode.emit(area_frp.view_mode.value());
                 port_shape.display_object().clone_ref()

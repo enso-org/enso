@@ -327,11 +327,8 @@ pub fn expression_mock() -> Expression {
     let pattern = Some("var1".to_string());
     let code = "[1,2,3]".to_string();
     let parser = Parser::new_or_panic();
-    let this_param = span_tree::ArgumentInfo {
-        name: Some("self".to_owned()),
-        tp: Some("Text".to_owned()),
-        ..default()
-    };
+    let this_param =
+        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Text".to_owned()) };
     let parameters = vec![this_param];
     let ast = parser.parse_line_ast(&code).unwrap();
     let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
@@ -389,30 +386,21 @@ pub fn expression_mock3() -> Expression {
     // let code       = "image.blur ((foo   bar) baz)".to_string();
     let code = "Vector x y z".to_string();
     let parser = Parser::new_or_panic();
-    let this_param = span_tree::ArgumentInfo {
-        name: Some("self".to_owned()),
-        tp: Some("Image".to_owned()),
-        ..default()
-    };
+    let this_param =
+        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Image".to_owned()) };
     let param0 = span_tree::ArgumentInfo {
         name: Some("radius".to_owned()),
-        tp: Some("Number".to_owned()),
-        ..default()
+        tp:   Some("Number".to_owned()),
     };
-    let param1 = span_tree::ArgumentInfo {
-        name: Some("name".to_owned()),
-        tp: Some("Text".to_owned()),
-        ..default()
-    };
+    let param1 =
+        span_tree::ArgumentInfo { name: Some("name".to_owned()), tp: Some("Text".to_owned()) };
     let param2 = span_tree::ArgumentInfo {
         name: Some("area".to_owned()),
-        tp: Some("Vector Int".to_owned()),
-        ..default()
+        tp:   Some("Vector Int".to_owned()),
     };
     let param3 = span_tree::ArgumentInfo {
         name: Some("matrix".to_owned()),
-        tp: Some("Vector String".to_owned()),
-        ..default()
+        tp:   Some("Vector String".to_owned()),
     };
     let parameters = vec![this_param, param0, param1, param2, param3];
     let ast = parser.parse_line_ast(&code).unwrap();

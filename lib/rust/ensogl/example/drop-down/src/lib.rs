@@ -1,13 +1,6 @@
 //! A debug scene which shows the Dynamic drop-down component.
 
 #![recursion_limit = "1024"]
-// === Features ===
-// #![feature(associated_type_defaults)]
-// #![feature(drain_filter)]
-// #![feature(fn_traits)]
-// #![feature(trait_alias)]
-// #![feature(type_alias_impl_trait)]
-// #![feature(unboxed_closures)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
