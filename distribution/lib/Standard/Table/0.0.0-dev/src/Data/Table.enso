@@ -73,7 +73,11 @@ type Table
             case c of
                 _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
                 Column.Value java_col -> java_col
-        Table.Value (Java_Table.new cols.to_array)
+        # TODO enable this once we stop returning tables without columns
+        # if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
+        if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
+            if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
+                Table.Value (Java_Table.new cols.to_array)
 
     ## Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
@@ -514,7 +518,7 @@ type Table
 
         on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
             java_key_columns = validated.key_columns.map .java_column
-            index = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
+            index = self.java_table.indexFromColumns java_key_columns.to_array
 
             new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
 
@@ -1293,7 +1297,7 @@ type Table
 
         on_problems.attach_problems_before (problem_builder.build_problemset) <| Illegal_Argument.handle_java_exception <|
             java_key_columns = grouping.map .java_column
-            index  = self.java_table.indexFromColumns java_key_columns.to_array Comparator.new
+            index  = self.java_table.indexFromColumns java_key_columns.to_array
 
             name_mapper = if matched_name.is_empty then Aggregate_Column_Helper.default_aggregate_column_name else
                 if validated_values.length == 1 then (_ -> "") else

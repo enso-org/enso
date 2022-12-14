@@ -2,15 +2,15 @@ from Standard.Base import all
 
 type Join_Condition
     ## Specifies a join condition that correlates rows from the two tables if
-       the element from the `left_column` of the left table is equal to the
-       element from the `right_column` of the right table.
+       the element from the `left` of the left table is equal to the element
+       from the `right` of the right table.
 
        Missing values are treated as equal to each other.
 
        Arguments:
-        - left_column: A name or index of a column in the left table.
-        - right_column: A name or index of a column in the right table.
-    Equals (left_column : Text | Integer) (right_column : Text | Integer)
+        - left: A name or index of a column in the left table.
+        - right: A name or index of a column in the right table.
+    Equals (left : Text | Integer) (right : Text | Integer = left)
 
     ## Specifies a join condition that correlates rows from the two tables if
        the element from the `left` column of the left table is equal to the
