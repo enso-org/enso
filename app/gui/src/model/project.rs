@@ -168,7 +168,7 @@ pub type Synchronized = synchronized::Project;
 pub enum Notification {
     /// One of the backend connections has been lost.
     ConnectionLost(BackendConnection),
-    /// The project has been modified since the last VCS snapshot.
+    /// Indicate whether the project has been changed compared the most recent VCS snapshot.
     VcsStatusChanged(bool),
 }
 
