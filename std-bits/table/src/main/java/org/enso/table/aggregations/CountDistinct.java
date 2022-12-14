@@ -32,7 +32,8 @@ public class CountDistinct extends Aggregator {
     super(name, Storage.Type.LONG);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreAllNull = ignoreAllNull;
-    textFoldingStrategy = ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, storage.length);
+    textFoldingStrategy =
+        ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, storage.length);
   }
 
   @Override

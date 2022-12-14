@@ -3,13 +3,10 @@ package org.enso.table.data.index;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
@@ -76,11 +73,15 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
       return value;
     }
 
-    if (value instanceof LocalDate || value instanceof LocalTime || value instanceof ZonedDateTime) {
+    if (value instanceof LocalDate
+        || value instanceof LocalTime
+        || value instanceof ZonedDateTime) {
       return value;
     }
 
-    throw new IllegalArgumentException("Custom objects in UnorderedMultiValueKey are currently not supported due to lack of hashing support.");
+    throw new IllegalArgumentException(
+        "Custom objects in UnorderedMultiValueKey are currently not supported due to lack of"
+            + " hashing support.");
   }
 
   /**
@@ -91,7 +92,7 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
    * Double} unless they represent a whole integer in which case they are also coerced to {@code
    * Long}, to ensure the Enso property that {@code 2 == 2.0}.
    *
-   * Returns {@code null} if the value was not a numeric value.
+   * <p>Returns {@code null} if the value was not a numeric value.
    */
   protected static Object foldNumeric(Object value) {
     if (value instanceof Long) {
@@ -141,7 +142,9 @@ public class UnorderedMultiValueKey extends MultiValueKeyBase {
         + "hashCode="
         + hashCodeValue
         + ", values="
-        + IntStream.range(0, storages.length).mapToObj(i -> String.valueOf(this.get(i))).collect(Collectors.joining(", "))
+        + IntStream.range(0, storages.length)
+            .mapToObj(i -> String.valueOf(this.get(i)))
+            .collect(Collectors.joining(", "))
         + '}';
   }
 }

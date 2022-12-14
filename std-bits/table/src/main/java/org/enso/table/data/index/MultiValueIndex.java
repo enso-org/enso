@@ -20,29 +20,38 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final Map<KeyType, List<Integer>> locs;
   private final AggregatedProblems problems;
 
-  public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
+  public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
+      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
     TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
-    final Storage<?>[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    final Storage<?>[] storage =
+        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<OrderedMultiValueKey> keyFactory =
-      i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator);
+        i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
   }
 
-  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(Column[] keyColumns, int tableSize, List<TextFoldingStrategy> textFoldingStrategies) {
+  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
+      Column[] keyColumns, int tableSize, List<TextFoldingStrategy> textFoldingStrategies) {
     HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
-    final Storage<?>[] storage = Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    final Storage<?>[] storage =
+        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
     IntFunction<UnorderedMultiValueKey> keyFactory =
-      i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
+        i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
     return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
   }
 
-  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(Column[] keyColumns, int tableSize, TextFoldingStrategy commonTextFoldingStrategy) {
-    List<TextFoldingStrategy> strategies = ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
+  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
+      Column[] keyColumns, int tableSize, TextFoldingStrategy commonTextFoldingStrategy) {
+    List<TextFoldingStrategy> strategies =
+        ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
     return makeUnorderedIndex(keyColumns, tableSize, strategies);
   }
 
   private MultiValueIndex(
-      Column[] keyColumns, int tableSize, Map<KeyType, List<Integer>> initialLocs, IntFunction<KeyType> keyFactory) {
+      Column[] keyColumns,
+      int tableSize,
+      Map<KeyType, List<Integer>> initialLocs,
+      IntFunction<KeyType> keyFactory) {
     this.keyColumnsLength = keyColumns.length;
     this.problems = new AggregatedProblems();
     this.locs = initialLocs;
@@ -114,7 +123,10 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
     final int size = locs.size();
 
     var nameIndex =
-        MultiValueIndex.makeUnorderedIndex(new Column[] {nameColumn}, nameColumn.getSize(), TextFoldingStrategy.unicodeNormalizedFold);
+        MultiValueIndex.makeUnorderedIndex(
+            new Column[] {nameColumn},
+            nameColumn.getSize(),
+            TextFoldingStrategy.unicodeNormalizedFold);
     final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
 
     // Create the storage

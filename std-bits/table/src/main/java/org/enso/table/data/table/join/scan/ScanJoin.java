@@ -1,15 +1,12 @@
 package org.enso.table.data.table.join.scan;
 
-import org.enso.table.data.table.Table;
-import org.enso.table.data.table.join.*;
-import org.enso.table.data.table.problems.AggregatedProblems;
-import org.graalvm.collections.Pair;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
+import org.enso.table.data.table.Table;
+import org.enso.table.data.table.join.*;
+import org.graalvm.collections.Pair;
 
 public class ScanJoin implements JoinStrategy {
 

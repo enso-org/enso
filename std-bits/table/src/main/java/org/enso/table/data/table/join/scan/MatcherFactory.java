@@ -1,5 +1,10 @@
 package org.enso.table.data.table.join.scan;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import org.enso.base.Text_Utils;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
@@ -11,17 +16,12 @@ import org.enso.table.data.table.join.JoinCondition;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 
-import java.util.Comparator;
-import java.util.Locale;
-import java.util.List;
-import java.util.function.BiFunction;
-import java.util.stream.Collectors;
-
 public class MatcherFactory {
   private final Comparator<Object> objectComparator;
   private final BiFunction<Object, Object, Boolean> equalityFallback;
 
-  public MatcherFactory(Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
+  public MatcherFactory(
+      Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
     this.objectComparator = objectComparator;
     this.equalityFallback = equalityFallback;
   }
@@ -31,7 +31,8 @@ public class MatcherFactory {
       case Equals eq -> new EqualsMatcher(eq, equalityFallback);
       case EqualsIgnoreCase eq -> new EqualsIgnoreCaseMatcher(eq);
       case Between between -> new BetweenMatcher(between, objectComparator);
-      default -> throw new UnsupportedOperationException("Unsupported join condition: " + condition);
+      default -> throw new UnsupportedOperationException(
+          "Unsupported join condition: " + condition);
     };
   }
 
@@ -98,7 +99,8 @@ public class MatcherFactory {
         problems.add(new FloatingPointGrouping(rightColumnName, right));
       }
 
-      // We could do a fast-path for some known primitive types, but it doesn't matter as it will be replaced with hashing soon anyway.
+      // We could do a fast-path for some known primitive types, but it doesn't matter as it will be
+      // replaced with hashing soon anyway.
       return equalityFallback.apply(leftValue, rightValue);
     }
 
@@ -113,6 +115,7 @@ public class MatcherFactory {
     private final StringStorage rightStorage;
 
     private final Locale locale;
+
     public EqualsIgnoreCaseMatcher(EqualsIgnoreCase eq) {
       if (eq.left().getStorage() instanceof StringStorage leftStrings) {
         leftStorage = leftStrings;
@@ -152,6 +155,7 @@ public class MatcherFactory {
     private final Storage<?> leftStorage;
     private final Storage<?> rightLowerStorage;
     private final Storage<?> rightUpperStorage;
+
     public BetweenMatcher(Between between, Comparator<Object> objectComparator) {
       this.objectComparator = objectComparator;
       leftStorage = between.left().getStorage();
@@ -165,13 +169,16 @@ public class MatcherFactory {
       Object rightLowerValue = rightLowerStorage.getItemBoxed(right);
       Object rightUpperValue = rightUpperStorage.getItemBoxed(right);
 
-      // If any value is missing, such a pair of rows is never correlated with Between as we assume the ordering is not well-defined for missing values.
+      // If any value is missing, such a pair of rows is never correlated with Between as we assume
+      // the ordering is not well-defined for missing values.
       if (leftValue == null || rightLowerValue == null || rightUpperValue == null) {
         return false;
       }
 
-      // We could do a fast-path for some known primitive types, but it doesn't matter as it should be replaced with sorting optimization soon(ish).
-      return objectComparator.compare(leftValue, rightLowerValue) >= 0 && objectComparator.compare(leftValue, rightUpperValue) <= 0;
+      // We could do a fast-path for some known primitive types, but it doesn't matter as it should
+      // be replaced with sorting optimization soon(ish).
+      return objectComparator.compare(leftValue, rightLowerValue) >= 0
+          && objectComparator.compare(leftValue, rightUpperValue) <= 0;
     }
   }
 }
