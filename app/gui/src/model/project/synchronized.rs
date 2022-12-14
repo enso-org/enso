@@ -448,6 +448,8 @@ impl Project {
         //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
         //  See: https://github.com/enso-org/ide/issues/587
         let publisher = self.notifications.clone_ref();
+        let project_root_id = self.project_content_root_id();
+        let language_server = self.json_rpc().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let execution_update_handler = self.execution_update_handler();
@@ -466,8 +468,9 @@ impl Project {
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
                 Event::Notification(Notification::TextAutoSave(_)) => {
-                    let notification = model::project::Notification::TextAutoSave;
-                    publisher.notify(notification);
+                    let publisher = publisher.clone_ref();
+                    let language_server = language_server.clone_ref();
+                    Self::check_vcs_status(publisher, project_root_id, language_server);
                 }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
@@ -551,6 +554,29 @@ impl Project {
             urm.module_opened(module.clone());
             Ok(module)
         }
+    }
+
+    /// Check whether the current state of the project differs from the last snapshot in the VCS.
+    #[profile(Detail)]
+    fn check_vcs_status(
+        publisher: notification::Publisher<model::project::Notification>,
+        project_root_id: Uuid,
+        language_server: Rc<engine_protocol::language_server::Connection>,
+    ) {
+        let path_segments: [&str; 0] = [];
+        let root_path = language_server::Path::new(project_root_id, &path_segments);
+        executor::global::spawn(async move {
+            let status = language_server.vcs_status(&root_path).await;
+            match status {
+                Err(err) => {
+                    publisher.notify(model::project::Notification::VcsStatusChanged(true));
+                    error!("Error while checking project snapshot status: {err}");
+                }
+                Ok(status) => {
+                    publisher.notify(model::project::Notification::VcsStatusChanged(status.dirty));
+                }
+            }
+        });
     }
 }
 

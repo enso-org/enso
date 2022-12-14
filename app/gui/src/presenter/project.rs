@@ -181,25 +181,8 @@ impl Model {
         })
     }
 
-    /// This is called on any module change. It should be followed by a call to
-    /// `check_project_changed` to verify that there is indeed a project change compared to the last
-    /// saved VCS snapshot.
-    fn assume_project_changed(&self) {
-        self.view.graph().model.breadcrumbs.set_project_changed(true);
-    }
-
-    fn check_project_changed(&self) {
-        let controller = self.controller.clone_ref();
-        let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
-        executor::global::spawn(async move {
-            match controller.check_project_vcs_is_outdated().await {
-                Err(err) => {
-                    breadcrumbs.set_project_changed(true);
-                    error!("Error while checking project snapshot status: {err}")
-                }
-                Ok(dirty) => breadcrumbs.set_project_changed(dirty),
-            }
-        })
+    fn set_project_changed(&self, changed: bool) {
+        self.view.graph().model.breadcrumbs.set_project_changed(changed);
     }
 
     fn execution_context_interrupt(&self) {
@@ -333,8 +316,8 @@ impl Project {
                     let message = view::status_bar::event::Label::from(message);
                     model.status_bar.add_event(message);
                 }
-                model::project::Notification::TextAutoSave => {
-                    model.check_project_changed();
+                model::project::Notification::VcsStatusChanged(changed) => {
+                    model.set_project_changed(changed);
                 }
             };
             std::future::ready(())
@@ -347,7 +330,7 @@ impl Project {
                 model::module::NotificationKind::Invalidate
                 | model::module::NotificationKind::CodeChanged { .. }
                 | model::module::NotificationKind::MetadataChanged =>
-                    model.assume_project_changed(),
+                    model.set_project_changed(true),
             }
             futures::future::ready(())
         });

@@ -260,29 +260,6 @@ impl Project {
             Ok(())
         }
     }
-
-    /// Check whether the current state of the project differs from the last snapshot in the VCS.
-    #[profile(Detail)]
-    pub fn check_project_vcs_is_outdated(&self) -> impl Future<Output = FallibleResult<bool>> {
-        let project_root_id = self.model.project_content_root_id();
-        let path_segments: [&str; 0] = [];
-        let root_path = Path::new(project_root_id, &path_segments);
-        let language_server = self.model.json_rpc();
-        async move {
-            let status = language_server.vcs_status(&root_path).await;
-            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
-                code: error_code, ..
-            })) = status
-            {
-                if error_code == code::FILE_NOT_FOUND {
-                    // No VCS found, thus current project state is saved in a snapshot.
-                    return Ok(true);
-                }
-            }
-            let status = status?;
-            Ok(status.dirty)
-        }
-    }
 }
 
 
