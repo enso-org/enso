@@ -39,11 +39,8 @@ pub mod model;
 // === Constants ===
 // =================
 
-/// Size of single entry in pixels.
-const ENTRY_HEIGHT: f32 = 24.0;
 /// Default maximum external size of the whole dropdown.
-const DEFAULT_SIZE: Vector2 = Vector2(80.0, 300.0);
-// const DEFAULT_COLOR: Lcha = Lcha::new(0.44682, 0.30307, 0.96682, 0.7);
+const DEFAULT_SIZE: Vector2 = Vector2(160.0, 300.0);
 
 // BASE COLOR
 // const DEFAULT_COLOR: Lcha = Lcha::new(0.49112, 0.27123, 0.72659, 1.0);
@@ -73,11 +70,13 @@ where
 
 ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
     Input {
-        set_max_size(Vector2),
+        /// Set background color of the dropdown.
         set_color(Lcha),
         /// The dropdown initially is not open. This event can open or close the dropdown.
         set_open(bool),
-
+        /// Set maximum width and height of the dropdown. If the content is larger, it will be
+        /// scrollable and/or ellipsis will be applied to labels.
+        set_max_size(Vector2),
         /// Provide a list of entries to be displayed. The list is assumed to be complete. No
         /// `entries_in_range_needed` event will be emitted after this call.
         ///
@@ -177,9 +176,17 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             // === Layout and animation ===
             open_anim.target <+ input.set_open.map(|open| if *open { 1.0 } else { 0.0 });
             output.is_open <+ input.set_open;
-            dimensions <- all(number_of_entries, input.set_max_size, open_anim.value);
-            eval dimensions((&(num_entries, max_size, anim_progress))
-                model.set_dimensions(num_entries, max_size, ENTRY_HEIGHT, anim_progress));
+
+            grid_width <- model.grid.content_size.map(|s| s.x).on_change();
+            max_height <- input.set_max_size.map(|s| s.y);
+            max_width <- input.set_max_size.map(|s| s.x).on_change();
+            eval max_width((width) model.set_max_outer_width(*width));
+
+
+
+            dimensions <- all(number_of_entries, max_height, grid_width, open_anim.value);
+            eval dimensions((&(num_entries, max_height, grid_width, anim_progress))
+                model.set_dimensions(num_entries, max_height, grid_width, anim_progress));
             eval input.set_color((color) model.set_color(*color));
 
 
@@ -213,13 +220,6 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             })).iter();
 
 
-            // === Keyboard navigation ===
-            model.grid.accept_selected_entry <+ input.toggle_focused_entry;
-            model.grid.move_selection_up <+ input.focus_previous_entry;
-            model.grid.move_selection_down <+ input.focus_next_entry;
-            model.grid.select_entry <+ model.grid.entry_hovered;
-
-
             // === Selection ===
             selection_pruned <- input.set_multiselect.map(f!((multi) model.set_multiselect(*multi))).on_true();
             selection_accepted <- model.grid.entry_accepted.map3(
@@ -234,8 +234,14 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             output.single_selected_entry <+ selection_changed.map(f!((()) model.get_single_selected_entry())).on_change();
 
 
-            // === Initialization ===
+            // === Keyboard navigation ===
+            model.grid.accept_selected_entry <+ input.toggle_focused_entry;
+            model.grid.move_selection_up <+ input.focus_previous_entry;
+            model.grid.move_selection_down <+ input.focus_next_entry;
+            model.grid.select_entry <+ model.grid.entry_hovered;
 
+
+            // === Initialization ===
             // request initial batch of entries after creating the dropdown
             once_after_animations <- after_animations.constant(true).on_change().constant(());
             model.grid.request_model_for_visible_entries <+ once_after_animations;

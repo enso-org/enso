@@ -31,6 +31,8 @@ pub struct EntryParams {
     pub text_color:          color::Lcha,
     pub selected_text_color: color::Lcha,
     pub corners_radius:      f32,
+    pub min_width:           f32,
+    pub max_width:           f32,
 }
 
 impl Default for EntryParams {
@@ -43,6 +45,8 @@ impl Default for EntryParams {
             text_color:          color::Lcha::from(color::Rgba(1.0, 1.0, 1.0, 0.7)),
             selected_text_color: color::Lcha::from(color::Rgba(1.0, 1.0, 1.0, 1.0)),
             corners_radius:      0.0,
+            min_width:           80.0,
+            max_width:           160.0,
         }
     }
 }
@@ -134,8 +138,6 @@ impl ensogl_grid_view::Entry for Entry {
             corners_radius <- input.set_params.map(|p| p.corners_radius).on_change();
             selected_text_color <- input.set_params.map(|p| p.selected_text_color).on_change();
 
-        }
-        enso_frp::extend! { network
             contour <- all_with(&size, &corners_radius, |&size, &corners_radius| entry::Contour { size, corners_radius });
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
@@ -144,19 +146,22 @@ impl ensogl_grid_view::Entry for Entry {
             data.label.set_property_default <+ current_text_color.ref_into_some();
             data.label.set_font <+ font;
             data.label.set_property_default <+ text_size.ref_into_some();
-        }
-        enso_frp::extend! { network
+
             font_weight <- any(...);
             font_weight <+ selected.on_true().constant(text::Weight::Bold);
             font_weight <+ selected.on_false().constant(text::Weight::Normal);
             data.label.set_property_default <+ font_weight.ref_into_some();
 
-            content <- input.set_model.map(|m| m.text.clone_ref());
-            max_width_px <- input.set_size.map(|size| size.x);
-            data.label.set_content <+ content;
-            data.label.set_view_width <+ max_width_px.some();
-        }
-        enso_frp::extend! { network
+            natural_entry_width <- data.label.width.map2(&text_offset, |w, offset| w + offset);
+            limited_entry_width <- natural_entry_width.map2(&input.set_params, |width, params| {
+                width.max(params.min_width).min(params.max_width)
+            });
+            width_too_small <- limited_entry_width.map2(&size, |w, s| *w > s.x);
+            out.override_column_width <+ limited_entry_width.gate(&width_too_small);
+            data.label.set_view_width <+ limited_entry_width.some();
+
+            data.label.set_content <+ input.set_model.map(|m| m.text.clone_ref());
+
             out.contour <+ contour;
             out.highlight_contour <+ contour;
             out.selection_highlight_color <+ focus_color;

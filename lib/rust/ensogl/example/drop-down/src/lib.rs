@@ -54,53 +54,34 @@ fn init(app: &Application) {
     navigator.disable_wheel_panning();
 
     app.views.register::<Dropdown<EntryData>>();
-    let main_dropdown = setup_dropdown(app);
-    world.add_child(&main_dropdown);
+    let main_dropdown = setup_main_dropdown(app);
 
-    let output_text = setup_output_text(app, &main_dropdown);
+    let multi_config_dropdown =
+        setup_static_dropdown(app, Vector2(-200.0, 0.0), Some(Vector2(150.0, 200.0)), vec![
+            SelectConfigEntry("Single select".into(), false),
+            SelectConfigEntry("Multi select".into(), true),
+        ]);
 
+    let open_dropdown =
+        setup_static_dropdown(app, Vector2(-200.0, -100.0), Some(Vector2(150.0, 200.0)), vec![
+            SelectConfigEntry("Opened".into(), true),
+            SelectConfigEntry("Closed".into(), false),
+        ]);
 
-    let multi_config_dropdown = app.new_view::<Dropdown<SelectConfigEntry<_>>>();
-    world.add_child(&multi_config_dropdown);
-    multi_config_dropdown.set_xy(Vector2(-200.0, 0.0));
-    multi_config_dropdown.set_max_size(Vector2(150.0, 200.0));
-    multi_config_dropdown.set_all_entries(vec![
-        SelectConfigEntry("Single select".into(), false),
-        SelectConfigEntry("Multi select".into(), true),
-    ]);
-    multi_config_dropdown.set_open(true);
-
-
-    let open_dropdown = app.new_view::<Dropdown<SelectConfigEntry<_>>>();
-    world.add_child(&open_dropdown);
-    open_dropdown.set_xy(Vector2(-200.0, -100.0));
-    open_dropdown.set_max_size(Vector2(150.0, 200.0));
-    open_dropdown.set_all_entries(vec![
-        SelectConfigEntry("Opened".into(), true),
-        SelectConfigEntry("Closed".into(), false),
-    ]);
-    open_dropdown.set_open(true);
-
-    let secondary_dropdown = app.new_view::<Dropdown<EntryData>>();
-    world.add_child(&secondary_dropdown);
-    secondary_dropdown.set_xy(Vector2(100.0, 0.0));
-    secondary_dropdown.set_open(true);
-
+    let secondary_dropdown = setup_static_dropdown(app, Vector2(100.0, 0.0), None, vec![]);
 
     let static_entries =
         vec!["Hello", "World", "This", "Is", "A", "Test", "Dropdown", "With", "Static", "Strings"];
-    let dropdown_static1 = app.new_view::<Dropdown<&str>>();
-    dropdown_static1.set_xy(Vector2(300.0, 0.0));
-    dropdown_static1.set_all_entries(static_entries.clone());
-    dropdown_static1.set_open(true);
 
-    let dropdown_static2 = app.new_view::<Dropdown<&str>>();
-    dropdown_static2.set_xy(Vector2(400.0, 0.0));
-    dropdown_static2.set_all_entries(static_entries.clone());
-    dropdown_static2.set_open(true);
-    world.add_child(&dropdown_static1);
-    world.add_child(&dropdown_static2);
+    let dropdown_static1 =
+        setup_static_dropdown(app, Vector2(300.0, 0.0), None, static_entries.clone());
 
+    let dropdown_static2 = setup_static_dropdown(
+        app,
+        Vector2(400.0, 0.0),
+        Some(Vector2(50.0, 200.0)),
+        static_entries.clone(),
+    );
 
     frp::new_network! { network
         main_dropdown.set_multiselect <+ multi_config_dropdown.single_selected_entry.unwrap().map(SelectConfigEntry::item);
@@ -109,12 +90,16 @@ fn init(app: &Application) {
         dropdown_static1.set_selected_entries <+ dropdown_static2.selected_entries;
         dropdown_static2.set_selected_entries <+ dropdown_static1.selected_entries;
 
-        secondary_dropdown.set_all_entries <+ main_dropdown.selected_entries.map(|entries| {
-            entries.iter().cloned().collect()
-        });
+        selected_vec <- main_dropdown.selected_entries.map(|map| map.iter().cloned().collect());
+        secondary_dropdown.set_all_entries <+ selected_vec;
     }
 
-
+    world.add_child(&main_dropdown);
+    world.add_child(&multi_config_dropdown);
+    world.add_child(&open_dropdown);
+    world.add_child(&secondary_dropdown);
+    world.add_child(&dropdown_static1);
+    world.add_child(&dropdown_static2);
 
     std::mem::forget((
         main_dropdown,
@@ -124,48 +109,42 @@ fn init(app: &Application) {
         dropdown_static1,
         dropdown_static2,
         navigator,
-        output_text,
         network,
     ));
 }
 
-
-fn entry_for_row(row: usize) -> EntryData {
-    EntryData(row as i32 * 3 / 2 - 70)
-}
-
-fn setup_dropdown(app: &Application) -> Dropdown<EntryData> {
+fn setup_main_dropdown(app: &Application) -> Dropdown<EntryData> {
     let dropdown = app.new_view::<Dropdown<EntryData>>();
     dropdown.set_xy(Vector2(0.0, 0.0));
     dropdown.set_number_of_entries(2000);
 
-    frp::new_network! { network
+    fn entry_for_row(row: usize) -> EntryData {
+        EntryData(row as i32 * 3 / 2 - 70)
+    }
+
+    let network = dropdown.network();
+    frp::extend! { network
         entries <- dropdown.entries_in_range_needed.map(|range| (range.clone(), range.clone().map(entry_for_row).collect()));
         dropdown.provide_entries_at_range <+ entries;
     }
 
-    std::mem::forget(network);
     dropdown
 }
 
-fn setup_output_text(app: &Application, dropdown: &Dropdown<EntryData>) -> text::Text {
-    let text = app.new_view::<text::Text>();
-    app.display.add_child(&text);
-    text.set_xy(Vector2(-200.0, -200.0));
-
-    frp::new_network! { network
-        text.set_content <+ dropdown.selected_entries.map(|entries| {
-            use std::fmt::Write;
-            let mut buf = String::new();
-            for EntryData(val) in entries {
-                write!(&mut buf, "{val} ").unwrap();
-            }
-            ImString::from(buf)
-        });
+fn setup_static_dropdown<T: DropdownValue>(
+    app: &Application,
+    pos: Vector2,
+    max_size: Option<Vector2>,
+    values: Vec<T>,
+) -> Dropdown<T> {
+    let dropdown = app.new_view::<Dropdown<T>>();
+    dropdown.set_xy(pos);
+    if let Some(max_size) = max_size {
+        dropdown.set_max_size(max_size);
     }
-
-    std::mem::forget(network);
-    text
+    dropdown.set_all_entries(values);
+    dropdown.set_open(true);
+    dropdown
 }
 
 

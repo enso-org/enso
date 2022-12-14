@@ -22,6 +22,8 @@ use crate::DropdownValue;
 const CORNER_RADIUS: f32 = 8.0;
 /// Dropdown padding.
 const CLIP_PADDING: f32 = 3.0;
+/// Size of single entry in pixels.
+pub(crate) const ENTRY_HEIGHT: f32 = 24.0;
 
 
 
@@ -73,28 +75,45 @@ impl<T> component::Model for Model<T> {
         display_object.add_child(&grid);
 
         let inner_corners_radius = CORNER_RADIUS - CLIP_PADDING;
-        grid.set_entries_params(EntryParams { corners_radius: inner_corners_radius, ..default() });
+        let entries_params = EntryParams { corners_radius: inner_corners_radius, ..default() };
+        let min_width = entries_params.min_width;
+        grid.set_entries_params(entries_params);
         grid.scroll_frp().set_corner_radius(inner_corners_radius);
+        grid.set_entries_size(Vector2(min_width, ENTRY_HEIGHT));
 
         Model { background, grid, display_object, selected_entries: default(), cache: default() }
     }
 }
 
 impl<T: DropdownValue> Model<T> {
+    /// Set the maximum allowed inner width of an entry.
+    pub fn set_max_outer_width(&self, max_outer_width: f32) {
+        let inner_corners_radius = CORNER_RADIUS - CLIP_PADDING;
+        let max_width = max_outer_width - CLIP_PADDING * 2.0;
+
+        let mut params = EntryParams { corners_radius: inner_corners_radius, ..default() };
+        params.max_width = max_width;
+        params.min_width = params.min_width.min(max_width);
+        let min_width = params.min_width;
+        self.grid.set_entries_params(params);
+        self.grid.set_entries_size(Vector2(min_width, ENTRY_HEIGHT));
+    }
+
+    /// Set the dimensions of all ui elements of the dropdown.
     pub fn set_dimensions(
         &self,
         num_entries: usize,
-        max_size: Vector2,
-        entry_height: f32,
+        max_height: f32,
+        grid_width: f32,
         anim_progress: f32,
     ) {
         // Limit animation near almost closed state to avoid slow animation on very thin dropdown.
-        let anim_progress = anim_progress * 1.05 - 0.05;
-        let total_grid_height = num_entries as f32 * entry_height;
-        let limited_grid_height = total_grid_height.min(max_size.y - CLIP_PADDING * 2.0);
-        let outer_width = max_size.x;
+        let anim_progress = (anim_progress * 1.05 - 0.0499).clamp(0.0, 1.0);
+        let total_grid_height = num_entries as f32 * ENTRY_HEIGHT;
+        let limited_grid_height = total_grid_height.min(max_height - CLIP_PADDING * 2.0);
         let outer_height = (limited_grid_height + CLIP_PADDING * 2.0) * anim_progress;
-        let inner_width = (outer_width - CLIP_PADDING * 2.0).max(0.0);
+        let inner_width = grid_width;
+        let outer_width = inner_width + CLIP_PADDING * 2.0;
         let inner_height = (outer_height - CLIP_PADDING * 2.0).max(0.0001);
         let inner_size = Vector2(inner_width, inner_height);
         let outer_size = Vector2(outer_width, outer_height);
@@ -106,7 +125,6 @@ impl<T: DropdownValue> Model<T> {
 
         self.grid.set_xy(Vector2(CLIP_PADDING, -CLIP_PADDING));
         self.grid.scroll_frp().resize(inner_size);
-        self.grid.set_entries_size(Vector2(inner_width, entry_height));
         self.grid.resize_grid(num_entries, 1);
     }
 
