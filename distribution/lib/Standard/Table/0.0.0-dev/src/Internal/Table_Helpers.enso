@@ -434,7 +434,7 @@ prepare_order_by internal_columns column_selectors problem_builder =
             unified_index_selectors = index_selectors.map selector-> case selector of
                 _ : Integer -> Sort_Column.Index selector
                 Sort_Column.Index _ _ -> selector
-                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Index are allowed for Sort_Column_Selector.By_Index.")
+                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Integer and Sort_Column.Index are allowed for Sort_Column_Selector.By_Index.")
             select_columns_by_index internal_columns unified_index_selectors problem_builder index_extractor=(_.index)
         Sort_Column_Selector.By_Column column_selectors ->
             unified_column_selectors = column_selectors.map selector-> case selector of

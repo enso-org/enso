@@ -12,12 +12,12 @@ spec = Test.group "Pair" <|
         Pair.new 1 2 . map x->x+1 . should_equal (Pair.Value 2 3)
 
     Test.specify "should act as a length 2 Vector" <|
-        Pair.new 1 2 . length . should_equal 2
-        Pair.new 1 2 . at 0 . should_equal 1
-        Pair.new 1 2 . at -2 . should_equal 1
-        Pair.new 1 2 . at 1 . should_equal 2
-        Pair.new 1 2 . at -1 . should_equal 2
-        Pair.new 1 2 . at 2 . should_fail_with Index_Out_Of_Bounds.Error
-        Pair.new 1 2 . to_vector . should_equal [1, 2]
+        Pair.new "A" "B" . length . should_equal 2
+        Pair.new "A" "B" . at 0 . should_equal "A"
+        Pair.new "A" "B" . at -2 . should_equal "A"
+        Pair.new "A" "B" . at 1 . should_equal "B"
+        Pair.new "A" "B" . at -1 . should_equal "B"
+        Pair.new "A" "B" . at 2 . should_fail_with Index_Out_Of_Bounds.Error
+        Pair.new "A" "B" . to_vector . should_equal ["A", "B"]
 
 main = Test_Suite.run_main spec
