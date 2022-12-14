@@ -611,6 +611,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should return a vector containing only unique elements" <|
         [1, 3, 1, 2, 2, 1].distinct . should_equal [1, 3, 2]
         ["a", "a", "a"].distinct . should_equal ["a"]
+        ['ś', 's', 's\u0301'].distinct . should_equal ['ś', 's']
         [1, 1.0, 2, 2.0].distinct . should_equal [1, 2]
         [].distinct . should_equal []
 

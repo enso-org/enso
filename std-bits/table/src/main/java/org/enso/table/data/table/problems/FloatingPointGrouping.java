@@ -12,12 +12,8 @@ public class FloatingPointGrouping extends ColumnAggregatedProblems {
 
   @Override
   public boolean merge(ColumnAggregatedProblems another) {
-    if (another instanceof FloatingPointGrouping
-        && this.getColumnName().equals(another.getColumnName())) {
-      this.rows.addAll(another.rows);
-      return true;
-    }
-
-    return false;
+    // We purposefully ignore merging `rows` because we do not use these on the result anyway.
+    return another instanceof FloatingPointGrouping
+        && this.getColumnName().equals(another.getColumnName());
   }
 }

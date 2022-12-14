@@ -40,6 +40,7 @@ type Join_Condition_Resolver
         conditions_vector = case conditions of
             _ : Vector -> conditions
             single_condition : Join_Condition -> [single_condition]
+            single_condition : Text -> [single_condition]
         handle_equals left_selector right_selector =
             left = resolve_left left_selector
             right = resolve_right right_selector

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
@@ -18,7 +19,6 @@ from Standard.Database import Database, SQLite, In_Memory
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
 
-import project.Common_Table_Operations
 from project.Util import all
 
 type My
@@ -34,8 +34,6 @@ type My
         My.Data x1 y1 -> My.Data y1 x1
 
 spec =
-    run_common_spec Common_Table_Operations.Main.spec
-
     make_varied_type_table =
         strs = ["strs", ["a", "b", "c", Nothing]]
         ints = ["ints", [Nothing, 1, 2, 4]]
@@ -52,14 +50,41 @@ spec =
         Table.new [strs, ints, doubles, doubles_and_ints, custom_objects, dates, times, datetimes, mixed, mixed_dates, just_nulls]
     varied_type_table = make_varied_type_table
 
-    Test.group 'Construction' <|
-        Test.specify 'should allow creating a table from rows' <|
+    Test.group "Construction" <|
+        Test.specify "should allow creating a table from rows" <|
             header = ['foo', 'bar']
             rows = [[1, False], [2, True], [3, False]]
             r = Table.from_rows header rows
+            r.row_count.should_equal 3
+            r.at "foo" . to_vector . should_equal [1, 2, 3]
+            r.at "bar" . to_vector . should_equal [False, True, False]
 
-            r.at 'foo' . to_vector . should_equal [1, 2, 3]
-            r.at 'bar' . to_vector . should_equal [False, True, False]
+            r2 = Table.from_rows header []
+            r2.row_count . should_equal 0
+            r2.at "foo" . to_vector . should_equal []
+            r2.at "bar" . to_vector . should_equal []
+
+        Test.specify "should allow creating a table from columns" <|
+            r = Table.new [["foo", [1, 2, 3]], ["bar", [False, True, False]]]
+            r.row_count.should_equal 3
+            r.at "foo" . to_vector . should_equal [1, 2, 3]
+            r.at "bar" . to_vector . should_equal [False, True, False]
+
+            r2 = Table.new [["foo", []], ["bar", []]]
+            r2.row_count . should_equal 0
+            r2.at "foo" . to_vector . should_equal []
+            r2.at "bar" . to_vector . should_equal []
+
+        Test.specify "should handle error scenarios gracefully" <|
+            Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument.Error
+            Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument.Error
+
+            Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument.Error
+            Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds.Error
+
+        Test.specify "should handle error scenarios gracefully (merge with above once enabled)" pending="To be enabled after errors refactor where instead of returning a table with no columns we throw an error." <|
+            Table.new [] . should_fail_with Illegal_Argument.Error
+            Table.from_rows [] [] . should_fail_with Illegal_Argument.Error
 
         Test.specify "should correctly infer storage types" <|
             varied_type_table.at "strs" . storage_type . should_equal Storage.Text
@@ -651,7 +676,7 @@ spec =
             Problems.assume_no_problems actual
 
         Test.specify "should support regex replacement" <|
-            bools = ["bools", [False, False, True, True, False]]
+            bools = ["bools", [False, False, True, True]]
             texts = ["texts", ["foo", "bar", "baz", "spam"]]
             table = Table.new [bools, texts]
             actual = table.replace_text "texts" "(a|o)" "$1e" matcher=Regex_Matcher.Value
@@ -1084,17 +1109,6 @@ spec =
             r = t.join db_table
             r.should_fail_with Illegal_Argument.Error
             r.catch.message . contains "cross-backend" . should_be_true
-
-run_common_spec spec =
-    selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=True order_by=True natural_ordering=True case_insensitive_ordering=True order_by_unicode_normalization_by_default=True supports_unicode_normalization=True
-    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config
-
-    table = (enso_project.data / "data.csv") . read
-    empty_table = Table.new <| table.columns.map c->[c.name, []]
-    materialize = x->x
-
-    setup = Common_Table_Operations.Main.Test_Setup.Config "[In-Memory] " table empty_table Table.new materialize is_database=False test_selection=selection aggregate_test_selection=aggregate_selection
-    spec setup
 
 main = Test_Suite.run_main spec
 
