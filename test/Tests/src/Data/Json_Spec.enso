@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Json import Json_Parse_Error, No_Such_Field
 
 from Standard.Test import Test, Test_Suite
@@ -116,8 +117,8 @@ spec =
                 fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
                 Json.Object fields
 
-        Test.specify "should render NaN and Infinity to text values" <|
-            Number.nan.to_json.to_text . should_equal '"NaN"'
+        Test.specify "should render NaN and Infinity to null" <|
+            Number.nan.to_json.to_text . should_equal "null"
             Number.positive_infinity.to_json.to_text . should_equal "null"
             Number.negative_infinity.to_json.to_text . should_equal "null"
 
@@ -150,7 +151,7 @@ spec =
             Json.parse '"foo"' . at 0 . should_equal (Json.String "f")
             Json.parse '"foo"' . at -1 . should_equal (Json.String "o")
             Json.parse '"foo"' . at 3 . should_fail_with Index_Out_Of_Bounds.Error
-            Json.parse '{}. at 1 . should_fail_with Illegal_Argument.Error
+            Json.parse '{}' . at 1 . should_fail_with Illegal_Argument.Error
 
         Test.specify "should be able to make empty objects and array" <|
             Json.empty_object.should_equal (Json.Object Map.empty)

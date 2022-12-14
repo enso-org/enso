@@ -159,7 +159,7 @@ type Statistic
         skip_moments = moment_order.all s->s.is_nothing
         moments = if skip_moments then Nothing else Moments.new (moment_order.filter v->v!=Nothing . fold 0 .max)
 
-        result = data.fold [counter, moments] compute_fold
+        result = data.fold moments current-> value-> compute_fold counter current value
 
         report_error stats =
             first = 0.up_to stats.length . find i-> (moment_order.at i . is_nothing . not)
@@ -167,16 +167,16 @@ type Statistic
             Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
         if counter.count == 0 then statistics.map empty_value else
-            if skip_moments.not && result.second.is_nothing then report_error statistics else
-                statistics.map s-> case s of
+            if skip_moments.not && result.is_nothing then report_error statistics else
+                statistics.map statistic-> case statistic of
                     Statistic.Count -> counter.count
                     Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
                     Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
-                    Statistic.Covariance s -> calculate_correlation_statistics data s . covariance
-                    Statistic.Pearson s -> calculate_correlation_statistics data s . pearsonCorrelation
-                    Statistic.Spearman s -> calculate_spearman_rank data s
-                    Statistic.R_Squared s -> calculate_correlation_statistics data s . rSquared
-                    _ -> moments.compute (to_moment_statistic s)
+                    Statistic.Covariance series -> calculate_correlation_statistics data series . covariance
+                    Statistic.Pearson series -> calculate_correlation_statistics data series . pearsonCorrelation
+                    Statistic.Spearman series -> calculate_spearman_rank data series
+                    Statistic.R_Squared series -> calculate_correlation_statistics data series . rSquared
+                    _ -> moments.compute (to_moment_statistic statistic)
 
     ## Compute a running statistics on a vector like object.
 
@@ -200,6 +200,7 @@ type Statistic
             Statistic.Spearman _ -> True
             Statistic.R_Squared _ -> True
             _ -> False
+
         if statistics.any unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter unsupported . to_text) ") for running calculations.")) else
             counter = CountMinMax.new
 
@@ -208,15 +209,20 @@ type Statistic
             moments = if skip_moments then Nothing else Moments.new (moment_order.filter v->v!=Nothing . fold 0 .max)
             ref_moment = Ref.new moments
 
-            data.running_fold Nothing _->v->
-                result = compute_fold [counter, ref_moment.get] v
-                ref_moment.put result.second
+            Panic.catch Illegal_Argument.Error handler=Error.throw <|
+                output = Vector.new_builder data.length
+                data.each value->
+                    result = compute_fold counter ref_moment.get value
+                    ref_moment.put result
 
-                statistics.map s-> case s of
-                    Statistic.Count -> counter.count
-                    Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
-                    Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
-                    _ -> if result.second.is_nothing then Error.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.second.compute (to_moment_statistic s)
+                    row = statistics.map s-> case s of
+                        Statistic.Count -> counter.count
+                        Statistic.Minimum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.minimum
+                        Statistic.Maximum -> if counter.comparatorError then (Error.throw Incomparable_Values) else counter.maximum
+                        _ -> if result.is_nothing then Panic.throw (Illegal_Argument.Error ("Can only compute " + s.to_text + " on numerical data sets.")) else result.compute (to_moment_statistic s)
+                    output.append row
+
+                output.to_vector
 
     ## Calculate a variance-covariance matrix between the input series.
 
@@ -329,28 +335,26 @@ Vector.running self statistic=Statistic.Count =
     Statistic.running self statistic
 
 ## PRIVATE
-compute_fold c v =
-    if is_valid v . not then c else
-         c.first.increment
+compute_fold counter current value =
+    if is_valid value . not then current else
+        counter.increment
 
-         if c.first.comparatorError.not then
-             if c.first.minimum.is_nothing then c.first.setMinimum v else
-                 ordering = Incomparable_Values.handle_errors <| v.compare_to c.first.minimum
-                 if ordering.is_error then c.first.failComparator else
-                     if ordering == Ordering.Less then c.first.setMinimum v
-             if c.first.maximum.is_nothing then c.first.setMaximum v else
-                 ordering = Incomparable_Values.handle_errors <| v.compare_to c.first.maximum
-                 if ordering.is_error then c.first.failComparator else
-                     if ordering == Ordering.Greater then c.first.setMaximum v
+        if counter.comparatorError.not then
+            if counter.minimum.is_nothing then counter.setMinimum value else
+                ordering = Incomparable_Values.handle_errors <| value.compare_to counter.minimum
+                if ordering.is_error then counter.failComparator else
+                    if ordering == Ordering.Less then counter.setMinimum value
+            if counter.maximum.is_nothing then counter.setMaximum value else
+                ordering = Incomparable_Values.handle_errors <| value.compare_to counter.maximum
+                if ordering.is_error then counter.failComparator else
+                    if ordering == Ordering.Greater then counter.setMaximum value
 
-         new_moments = if c.second.is_nothing then Nothing else case v of
-             _ : Number -> c.second.add v
-             _ -> Nothing
-
-         [c.first, new_moments]
+        if current.is_nothing then Nothing else case value of
+            _ : Number -> current.add value
+            _ -> Nothing
 
 ## PRIVATE
-empty_value s = case s of
+empty_value statistic = case statistic of
     Statistic.Count -> 0
     Statistic.Sum -> 0
     Statistic.Minimum -> Error.throw Empty_Error
