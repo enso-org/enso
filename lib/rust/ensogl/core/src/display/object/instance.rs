@@ -18,7 +18,6 @@ use nalgebra::Matrix4;
 use nalgebra::Vector3;
 use transformation::CachedTransformation;
 use unit2::Fraction;
-use unit2::Percent;
 
 
 
@@ -1675,6 +1674,23 @@ where Dim: ColumnOrRowAccessor
 
 
 
+// ======================
+// === AutoLayoutFlow ===
+// ======================
+
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub enum AutoLayoutFlow {
+    /// Tells the auto-placement algorithm to fill in each row in turn, adding new rows as
+    /// necessary.
+    #[default]
+    Row,
+    /// Tells the auto-placement algorithm to fill in each column in turn, adding new columns as
+    /// necessary.
+    Column,
+}
+
+
+
 // ==================
 // === AutoLayout ===
 // ==================
@@ -1687,6 +1703,8 @@ pub struct AutoLayout {
     /// the initialization faster. Auto layout is not used often. If someone sets auto layout
     /// options (e.g. the `gap`), but the auto-layout was not enabled, this field is set to false.
     pub enabled: bool,
+    /// Controls in which direction and order the items are placed in the grid.
+    pub flow: AutoLayoutFlow,
     /// The default item alignment in grid cells. This can be overriden per-child.
     pub children_alignment: alignment::Dim2,
     /// The spacing between columns/rows.
@@ -1854,6 +1872,20 @@ pub trait AutoLayoutOps: Object {
     fn add_row(&self) -> RowRef {
         self.display_object().def.add_column_or_row(Y)
     }
+
+    /// Sets the auto layout flow to 'row'. Items will first fill a row before moving to the next
+    /// one.
+    fn set_row_flow(&self) -> &Self {
+        self.display_object().modify_auto_layout(|l| l.flow = AutoLayoutFlow::Row);
+        self
+    }
+
+    /// Sets the auto layout flow to 'column'. Items will first fill a column before moving to the
+    /// next one.
+    fn set_column_flow(&self) -> &Self {
+        self.display_object().modify_auto_layout(|l| l.flow = AutoLayoutFlow::Column);
+        self
+    }
 }
 
 
@@ -1861,135 +1893,6 @@ pub trait AutoLayoutOps: Object {
 // =========================
 // === Layout Resolution ===
 // =========================
-
-/// The layout is resolved in two passes, one for the X-axis, one for the Y-axis. See the docs of
-/// this module to learn more.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum LayoutResolutionPass {
-    First,
-    Second,
-}
-
-/// Pass configuration.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum PassConfig {
-    Default,
-    DoNotHugDirectChildren,
-}
-
-trait ResolutionDim = Copy + Debug
-where
-    Vector2<Size>: DimSetter<Self>,
-    Vector2<alignment::OptDim1>: DimSetter<Self>,
-    Vector2<alignment::Dim1>: DimSetter<Self>,
-    Vector2<SideSpacing>: DimSetter<Self>,
-    Vector2<bool>: DimSetter<Self>,
-    Vector2<f32>: DimSetter<Self>,
-    Vector2<Unit>: DimSetter<Self>,
-    Vector3<f32>: DimSetter<Self>,
-    (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>):
-        DimRef<Self, Output = NonEmptyVec<ColumnOrRow>>;
-
-impl Model {
-    fn refresh_layout(&self) {
-        self.refresh_self_size(X, 0.0);
-        self.refresh_layout_internal(LayoutResolutionPass::First, PassConfig::Default);
-        self.refresh_self_size(Y, 0.0);
-        self.refresh_layout_internal(LayoutResolutionPass::Second, PassConfig::Default);
-    }
-
-    fn refresh_self_size<Dim>(&self, x: Dim, parent_size: f32)
-    where Dim: ResolutionDim {
-        let size = match self.layout.size.get_dim(x) {
-            Size::Hug => 0.0,
-            Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
-        };
-        self.layout.computed_size.set_dim(x, size);
-    }
-
-    fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
-        if self.dirty.transformation.check() || self.dirty.modified_children.check_all() {
-            if pass == LayoutResolutionPass::First {
-                if self.layout.auto_layout.borrow().is_some() {
-                    self.layout.content_origin.set(default());
-                }
-            }
-            if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
-                match pass {
-                    LayoutResolutionPass::First => self.refresh_grid_layout(X, &layout, pass),
-                    LayoutResolutionPass::Second => self.refresh_grid_layout(Y, &layout, pass),
-                }
-            } else {
-                match pass {
-                    LayoutResolutionPass::First => self.refresh_manual_layout(X, pass, pass_cfg),
-                    LayoutResolutionPass::Second => self.refresh_manual_layout(Y, pass, pass_cfg),
-                }
-            }
-        }
-    }
-
-    fn refresh_manual_layout<Dim>(&self, x: Dim, pass: LayoutResolutionPass, pass_cfg: PassConfig)
-    where Dim: ResolutionDim {
-        let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
-        let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
-        let children = self.children();
-
-        let mut min_x = if children.is_empty() { 0.0 } else { f32::MAX };
-        let mut max_x = if children.is_empty() { 0.0 } else { f32::MIN };
-        let mut children_to_grow = vec![];
-        for child in &children {
-            if child.layout.grow_factor.get_dim(x) > 0.0 {
-                children_to_grow.push(child);
-            } else {
-                child.refresh_self_size(x, self.layout.computed_size.get_dim(x));
-                child.refresh_layout_internal(pass, PassConfig::Default);
-                let child_pos = child.position().get_dim(x);
-                let child_size = child.computed_size().get_dim(x);
-                let child_content_origin = child.content_origin().get_dim(x);
-                let child_min_x = child_pos + child_content_origin;
-                let child_max_x = child_min_x + child_size;
-                min_x = min_x.min(child_min_x);
-                max_x = max_x.max(child_max_x);
-            }
-        }
-        if hug_children {
-            self.layout.computed_size.set_dim(x, max_x - min_x);
-        }
-        for child in children_to_grow {
-            child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
-            child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
-            let child_pos = child.position().get_dim(x);
-            let child_content_origin = child.content_origin().get_dim(x);
-            min_x = min_x.min(child_pos + child_content_origin);
-        }
-        self.layout.content_origin.set_dim(x, min_x);
-
-        let self_size = self.layout.computed_size.get_dim(x);
-        let forced_origin_alignment = self.layout.forced_origin_alignment.get().get_dim(x);
-        let origin_shift = forced_origin_alignment.normalized() * self_size;
-        self.layout.content_origin.update_dim(x, |t| t - origin_shift);
-    }
-}
-
-
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct ResolvedAxis {
-    size:              Size,
-    min_size:          f32,
-    max_size:          f32,
-    grow:              f32,
-    shrink:            f32,
-    computed_size:     f32,
-    max_child_fr_size: Fraction,
-}
-
-#[derive(Debug, Deref, DerefMut)]
-pub struct ResolvedColumn {
-    #[deref]
-    #[deref_mut]
-    axis:     ResolvedAxis,
-    children: Vec<Instance>,
-}
 
 impl Model {
     // TODO: wytlumaczyc ze kolejnosc wyliczania szerokosci i wysokosci musi byc inna czasami (jak w
@@ -2081,93 +1984,185 @@ impl Model {
     /// Y-axis.
     ///
     /// The [`pass`] flag indicated whether we are in the first or the second pass.
+    fn refresh_layout(&self) {
+        self.reset_size_to_static_values(X, 0.0);
+        self.refresh_layout_internal(LayoutResolutionPass::First, PassConfig::Default);
+        self.reset_size_to_static_values(Y, 0.0);
+        self.refresh_layout_internal(LayoutResolutionPass::Second, PassConfig::Default);
+    }
+}
 
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // FIXME: testing integration
-    // FIXME: demo scene
-    // FIXME: docs
-    #[inline(always)]
-    fn refresh_grid_layout<Dim: Copy>(
-        &self,
-        x: Dim,
-        opts: &AutoLayout,
-        pass: LayoutResolutionPass,
-    ) where
-        Vector2<Size>: DimSetter<Dim>,
-        Vector2<alignment::OptDim1>: DimSetter<Dim>,
-        Vector2<alignment::Dim1>: DimSetter<Dim>,
-        Vector2<SideSpacing>: DimSetter<Dim>,
-        Vector2<bool>: DimSetter<Dim>,
-        Vector2<f32>: DimSetter<Dim>,
-        Vector2<Unit>: DimSetter<Dim>,
-        Vector3<f32>: DimSetter<Dim>,
-        (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>):
-            DimRef<Dim, Output = NonEmptyVec<ColumnOrRow>>,
-        Dim: Debug,
-    {
-        println!("[{}] refresh_grid_layout. First pass: {:?}", self.name, pass);
+/// The layout is resolved in two passes, one for the X-axis, one for the Y-axis. See the docs of
+/// this module to learn more.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LayoutResolutionPass {
+    First,
+    Second,
+}
+
+/// Pass configuration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PassConfig {
+    Default,
+    DoNotHugDirectChildren,
+}
+
+trait ResolutionDim = Copy + Debug
+where
+    Vector2<Size>: DimSetter<Self>,
+    Vector2<alignment::OptDim1>: DimSetter<Self>,
+    Vector2<alignment::Dim1>: DimSetter<Self>,
+    Vector2<SideSpacing>: DimSetter<Self>,
+    Vector2<bool>: DimSetter<Self>,
+    Vector2<f32>: DimSetter<Self>,
+    Vector2<Unit>: DimSetter<Self>,
+    Vector3<f32>: DimSetter<Self>,
+    (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>):
+        DimRef<Self, Output = NonEmptyVec<ColumnOrRow>>;
+
+
+impl Model {
+    /// Reset size of this display object to values that can be computed statically. This is, use
+    /// the size property if it is set to pixels or to percent of the parent size. Otherwise, set
+    /// the size to zero.
+    fn reset_size_to_static_values<Dim>(&self, x: Dim, parent_size: f32)
+    where Dim: ResolutionDim {
+        let size = match self.layout.size.get_dim(x) {
+            Size::Fixed(unit) => unit.resolve_const_and_percent(parent_size).unwrap_or(0.0),
+            Size::Hug => 0.0,
+        };
+        self.layout.computed_size.set_dim(x, size);
+    }
+
+    fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
+        if self.dirty.transformation.check() || self.dirty.modified_children.check_all() {
+            if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
+                match pass {
+                    LayoutResolutionPass::First => self.refresh_grid_layout(X, &layout, pass),
+                    LayoutResolutionPass::Second => self.refresh_grid_layout(Y, &layout, pass),
+                }
+            } else {
+                match pass {
+                    LayoutResolutionPass::First => self.refresh_manual_layout(X, pass, pass_cfg),
+                    LayoutResolutionPass::Second => self.refresh_manual_layout(Y, pass, pass_cfg),
+                }
+            }
+        }
+    }
+
+    fn refresh_manual_layout<Dim>(&self, x: Dim, pass: LayoutResolutionPass, pass_cfg: PassConfig)
+    where Dim: ResolutionDim {
+        let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
+        let hug_children = hug_children && self.layout.size.get_dim(x).is_hug();
+        let children = self.children();
+
+        let mut min_x = if children.is_empty() { 0.0 } else { f32::MAX };
+        let mut max_x = if children.is_empty() { 0.0 } else { f32::MIN };
+        let mut children_to_grow = vec![];
+        for child in &children {
+            if child.layout.grow_factor.get_dim(x) > 0.0 {
+                children_to_grow.push(child);
+            } else {
+                child.reset_size_to_static_values(x, self.layout.computed_size.get_dim(x));
+                child.refresh_layout_internal(pass, PassConfig::Default);
+                let child_pos = child.position().get_dim(x);
+                let child_size = child.computed_size().get_dim(x);
+                let child_content_origin = child.content_origin().get_dim(x);
+                let child_min_x = child_pos + child_content_origin;
+                let child_max_x = child_min_x + child_size;
+                min_x = min_x.min(child_min_x);
+                max_x = max_x.max(child_max_x);
+            }
+        }
+        if hug_children {
+            self.layout.computed_size.set_dim(x, max_x - min_x);
+        }
+        for child in children_to_grow {
+            child.layout.computed_size.set_dim(x, self.layout.computed_size.get_dim(x));
+            child.refresh_layout_internal(pass, PassConfig::DoNotHugDirectChildren);
+            let child_pos = child.position().get_dim(x);
+            let child_content_origin = child.content_origin().get_dim(x);
+            min_x = min_x.min(child_pos + child_content_origin);
+        }
+        self.layout.content_origin.set_dim(x, min_x);
+
+        let self_size = self.layout.computed_size.get_dim(x);
+        let forced_origin_alignment = self.layout.forced_origin_alignment.get().get_dim(x);
+        let origin_shift = forced_origin_alignment.normalized() * self_size;
+        self.layout.content_origin.update_dim(x, |t| t - origin_shift);
+    }
+}
+
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct ResolvedAxis {
+    size:              Size,
+    min_size:          f32,
+    max_size:          f32,
+    grow:              f32,
+    shrink:            f32,
+    computed_size:     f32,
+    max_child_fr_size: Fraction,
+}
+
+#[derive(Debug, Deref, DerefMut)]
+pub struct ResolvedColumn {
+    #[deref]
+    #[deref_mut]
+    axis:     ResolvedAxis,
+    children: Vec<Instance>,
+}
+
+impl Model {
+    fn refresh_grid_layout<Dim>(&self, x: Dim, opts: &AutoLayout, pass: LayoutResolutionPass)
+    where Dim: ResolutionDim {
         let children = self.children();
         if children.is_empty() {
             return;
         }
-        let size = self.layout.size.get_dim(x);
+
         // === Recomputing X-axis elements size of the X-axis horizontal layout ===
 
-        let defined_axes = opts.columns_and_rows.get_dim(x);
-        // FIXME: get_dim(X) here:
-        let prim_axis_column_count =
-            opts.columns_and_rows_count.get_dim(X).unwrap_or_else(|| children.len());
-        let unresolved_columns = if pass == LayoutResolutionPass::First {
-            let column_axes = defined_axes.iter().cycle().enumerate().take(prim_axis_column_count);
-            println!("prim_axis_column_count: {}", prim_axis_column_count);
-            column_axes
+        let first_pass = pass == LayoutResolutionPass::First;
+        let columns_defs = opts.columns_and_rows.get_dim(x);
+        let prim_axis_item_count = match opts.flow {
+            AutoLayoutFlow::Row => opts.columns_and_rows_count.get_dim(X),
+            AutoLayoutFlow::Column => opts.columns_and_rows_count.get_dim(Y),
+        };
+        let prim_axis_item_count = prim_axis_item_count.unwrap_or_else(|| children.len());
+        let use_x_axis = first_pass == (opts.flow == AutoLayoutFlow::Row);
+        let unresolved_columns = if use_x_axis {
+            let column_defs = columns_defs.iter().cycle().enumerate().take(prim_axis_item_count);
+            column_defs
                 .map(|(i, t)| {
-                    (
-                        *t,
-                        children
-                            .iter()
-                            .skip(i)
-                            .step_by(prim_axis_column_count)
-                            .cloned()
-                            .collect_vec(),
-                    )
+                    let children_iter = children.iter().skip(i).step_by(prim_axis_item_count);
+                    (*t, children_iter.cloned().collect_vec())
                 })
                 .collect_vec()
         } else {
-            let column_count = children.len().div_ceil(prim_axis_column_count);
-            let column_axes = defined_axes.iter().cycle().enumerate().take(column_count);
+            let column_count = children.len().div_ceil(prim_axis_item_count);
+            let column_axes = columns_defs.iter().cycle().enumerate().take(column_count);
             column_axes
                 .map(|(i, t)| {
-                    (
-                        *t,
-                        children
-                            .iter()
-                            .skip(i * prim_axis_column_count)
-                            .take(prim_axis_column_count)
-                            .cloned()
-                            .collect_vec(),
-                    )
+                    let skip_count = i * prim_axis_item_count;
+                    let children_iter = children.iter().skip(skip_count).take(prim_axis_item_count);
+                    (*t, children_iter.cloned().collect_vec())
                 })
                 .collect_vec()
         };
-        // println!("unresolved_columns: {:#?}", unresolved_columns);
+
         let resolved_columns = unresolved_columns
             .into_iter()
             .map(|(axis, children)| {
-                let mut grow = 0.0;
-                let mut shrink = 0.0;
-                let mut min_size = 0.0;
-                let mut max_size = f32::INFINITY;
+                let mut avg_child_grow = 0.0;
+                let mut avg_child_shrink = 0.0;
+                let mut max_child_min_size = 0.0;
+                let mut min_child_max_size = f32::INFINITY;
                 let mut max_child_size = 0.0;
                 let mut max_child_fr_size = Fraction::default();
                 for child in &children {
-                    let self_size = match self.layout.size.get_dim(x) {
-                        Size::Fixed(unit) => unit.resolve_const_only(),
-                        _ => 0.0,
-                    };
-                    child.refresh_self_size(x, self_size);
+                    let self_size = self.layout.size.get_dim(x).resolve_const_only();
+                    child.reset_size_to_static_values(x, self_size);
                     match child.layout.size.get_dim(x) {
                         Size::Hug => child.refresh_layout_internal(pass, PassConfig::Default),
                         Size::Fixed(unit) =>
@@ -2179,14 +2174,14 @@ impl Model {
                     }
                     let child_margin = child.layout.margin.get_dim(x).resolve_fixed();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
-                    grow += child.layout.grow_factor.get_dim(x);
-                    shrink += child.layout.shrink_factor.get_dim(x);
-                    min_size = f32::max(
-                        min_size,
+                    avg_child_grow += child.layout.grow_factor.get_dim(x);
+                    avg_child_shrink += child.layout.shrink_factor.get_dim(x);
+                    max_child_min_size = f32::max(
+                        max_child_min_size,
                         child.layout.min_size.get_dim(x).resolve_const_only2().unwrap_or(0.0),
                     );
-                    max_size = f32::min(
-                        max_size,
+                    min_child_max_size = f32::min(
+                        min_child_max_size,
                         child
                             .layout
                             .max_size
@@ -2196,11 +2191,15 @@ impl Model {
                     );
                     max_child_size = f32::max(max_child_size, child_size);
                 }
+
                 let child_count = children.len() as f32;
-                let grow = axis.grow.unwrap_or_else(|| grow / child_count);
-                let shrink = axis.shrink.unwrap_or_else(|| shrink / child_count);
-                let min_size = axis.min_size.unwrap_or(min_size);
-                let max_size = axis.max_size.unwrap_or(max_size);
+                let avg_child_grow = avg_child_grow / child_count;
+                let avg_child_shrink = avg_child_shrink / child_count;
+
+                let grow = axis.grow.unwrap_or(avg_child_grow);
+                let shrink = axis.shrink.unwrap_or(avg_child_shrink);
+                let min_size = axis.min_size.unwrap_or(max_child_min_size);
+                let max_size = axis.max_size.unwrap_or(min_child_max_size);
                 let max_child_fr_size = axis.size.as_fraction().unwrap_or(max_child_fr_size);
 
                 let computed_size = match axis.size {
@@ -2594,26 +2593,6 @@ macro_rules! gen_setters {
             }
         )*
     }};
-}
-
-
-
-// =================================
-// === Children Alignment Macros ===
-// =================================
-
-macro_rules! gen_children_alignment_for_object {
-    ([$([$name:ident $x:ident $y:ident])*]) => {
-        paste! {
-            $(
-                /// Children alignment setter.
-                fn [<align_children_ $name>](&self) -> &Self {
-                    self.display_object().def.[<align_children_ $name>]();
-                    self
-                }
-            )*
-        }
-    }
 }
 
 
@@ -3522,6 +3501,26 @@ mod layout_tests {
 
     // === Tests ===
 
+    /// ```text
+    /// ╭─ ▶ ◀ ─╮
+    /// │ root  ▼
+    /// │       ▲
+    /// ╰───────╯
+    /// ```
+    #[test]
+    fn test_empty_auto_layout() {
+        let world = World::new();
+        let root = Instance::new_named("Root");
+
+        root.set_size((10.0, 10.0));
+        root.update(&world.default_scene);
+        assert_eq!(root.computed_size(), Vector2(10.0, 10.0));
+
+        root.set_size_hug();
+        root.update(&world.default_scene);
+        assert_eq!(root.computed_size(), Vector2(0.0, 0.0));
+    }
+
     /// Input:
     ///
     /// ```text
@@ -3903,6 +3902,37 @@ mod layout_tests {
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(2.0, 0.0)
             .assert_node3_position(0.0, 2.0);
+    }
+
+    /// ```text
+    /// ╭────────────────────────╮
+    /// │ root                   │
+    /// │  ╭───────╮             │
+    /// │  │ node2 │             │
+    /// │  │       │             │
+    /// │  ╰───────╯             │
+    /// │  ╭───────╮  ╭───────╮  │
+    /// │  │ node1 │  │ node3 │  │
+    /// │  │       │  │       │  │
+    /// │  ╰───────╯  ╰───────╯  │
+    /// ╰────────────────────────╯
+    /// ```
+    #[test]
+    fn test_simple_grid_layout_with_column_flow() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout().set_row_count(2).set_column_flow();
+        test.node1.set_size((2.0, 2.0));
+        test.node2.set_size((2.0, 2.0));
+        test.node3.set_size((2.0, 2.0));
+        test.run()
+            .assert_root_computed_size(4.0, 4.0)
+            .assert_node1_computed_size(2.0, 2.0)
+            .assert_node2_computed_size(2.0, 2.0)
+            .assert_node3_computed_size(2.0, 2.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 2.0)
+            .assert_node3_position(2.0, 0.0);
     }
 
     /// ```text

@@ -1,12 +1,5 @@
 use crate::prelude::*;
 
-use inflector::cases::snakecase::to_snake_case;
-use syn::parse::Parse;
-use syn::AttrStyle;
-use syn::Attribute;
-use syn::Data;
-use syn::DeriveInput;
-use syn::Fields;
 
 const MODIFY_NAME_PREFIX: &str = "modify_";
 const UPDATE_NAME_PREFIX: &str = "update_";
@@ -77,7 +70,7 @@ pub fn run(
             _ => panic!("Unrecognized argument."),
         }
     }
-    let mut modify_fn = syn::parse_macro_input!(input as syn::ImplItemMethod);
+    let modify_fn = syn::parse_macro_input!(input as syn::ImplItemMethod);
     let modify_fn_name = &modify_fn.sig.ident;
     let modify_fn_name_str = modify_fn_name.to_string();
     if !modify_fn_name_str.starts_with(MODIFY_NAME_PREFIX) {
@@ -86,7 +79,6 @@ pub fn run(
 
     let core_fn_name = &modify_fn_name_str[MODIFY_NAME_PREFIX.len()..];
 
-    let attrs = &modify_fn.attrs;
     let fn_inputs = &modify_fn.sig.inputs;
     let arg = match &fn_inputs[1] {
         syn::FnArg::Typed(pat_type) => match &*pat_type.ty {

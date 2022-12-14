@@ -108,14 +108,21 @@ impl Size {
     pub fn is_fixed(self) -> bool {
         match self {
             Size::Fixed(_) => true,
-            _ => false,
+            Size::Hug => false,
         }
     }
 
     pub fn as_fraction(self) -> Option<Fraction> {
         match self {
             Size::Fixed(unit) => unit.as_fraction(),
-            _ => None,
+            Size::Hug => None,
+        }
+    }
+
+    pub fn resolve_const_only(&self) -> f32 {
+        match self {
+            Size::Fixed(unit) => unit.resolve_const_only(),
+            Size::Hug => 0.0,
         }
     }
 }
