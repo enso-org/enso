@@ -126,7 +126,7 @@ type Statistic
        - predicted: the series to compute the r_squared with.
     R_Squared (predicted:Vector)
 
-    ## Gets the order needed to compute a statistic for a moment based statistic
+    ## Gets the order needed to compute a statistic for a moment based statistic.
     order : Integer | Nothing
     order self = case self of
         Statistic.Sum -> 1
@@ -155,14 +155,14 @@ type Statistic
     compute_bulk data statistics=[Statistic.Count, Statistic.Sum] =
         counter = CountMinMax.new
 
-        java_stats = statistics.map .order
-        skip_moments = java_stats.all s->s.is_nothing
-        moments = if skip_moments then Nothing else Moments.new (java_stats.filter v->v!=Nothing . fold 0 .max)
+        moment_order = statistics.map .order
+        skip_moments = moment_order.all s->s.is_nothing
+        moments = if skip_moments then Nothing else Moments.new (moment_order.filter v->v!=Nothing . fold 0 .max)
 
         result = data.fold [counter, moments] compute_fold
 
         report_error stats =
-            first = 0.up_to stats.length . find i-> (java_stats.at i . is_nothing . not)
+            first = 0.up_to stats.length . find i-> (moment_order.at i . is_nothing . not)
             stat = stats.at first
             Error.throw (Illegal_Argument.Error ("Can only compute " + stat.to_text + " on numerical data sets."))
 
@@ -203,9 +203,9 @@ type Statistic
         if statistics.any unsupported then Error.throw (Illegal_Argument.Error ("Unsupported Statistics ( " + (statistics.filter unsupported . to_text) ") for running calculations.")) else
             counter = CountMinMax.new
 
-            java_stats = statistics.map .order
-            skip_moments = java_stats.all s->s.is_nothing
-            moments = if skip_moments then Nothing else Moments.new (java_stats.filter v->v!=Nothing . fold 0 .max)
+            moment_order = statistics.map .order
+            skip_moments = moment_order.all s->s.is_nothing
+            moments = if skip_moments then Nothing else Moments.new (moment_order.filter v->v!=Nothing . fold 0 .max)
             ref_moment = Ref.new moments
 
             data.running_fold Nothing _->v->

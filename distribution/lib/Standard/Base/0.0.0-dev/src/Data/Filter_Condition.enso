@@ -49,7 +49,7 @@ type Filter_Condition
          values from the source column and the provided column are checked.
     Ends_With (suffix:Text)
 
-    ## Does the value contain the needle (Text only)?
+    ## Does the value contain the substring (Text only)?
 
        ? Table Operations
          It accepts a Text value to check if the value contains it. In case of
@@ -57,7 +57,7 @@ type Filter_Condition
          values from the source column and the provided column are checked.
     Contains (substring:Text)
 
-    ## Is the needle not present in the value (Text only)?
+    ## Is the substring not present in the value (Text only)?
 
        ? Table Operations
          It accepts a Text value to check if the value contains it. In case of

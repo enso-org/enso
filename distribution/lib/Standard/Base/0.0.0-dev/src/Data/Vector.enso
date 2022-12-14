@@ -205,7 +205,7 @@ type Vector a
         0.up_to self.length . fold init f
 
     ## Combines all the elements of the vector, by iteratively applying the
-       passed function with next elements of the vector. After each step the
+       passed function with the next element of the vector. After each step the
        value is stored resulting in a new Vector of the same size as self.
 
        Arguments:

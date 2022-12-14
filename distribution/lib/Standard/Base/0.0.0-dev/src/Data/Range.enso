@@ -204,7 +204,7 @@ type Range
             go init self.start
 
     ## Combines all the elements of the range, by iteratively applying the
-       passed function with next elements of the range. After each step the
+       passed function with the next element of the range. After each step the
        value is stored resulting in a new Vector of the same size as self.
 
        Arguments:
