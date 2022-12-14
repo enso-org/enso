@@ -613,7 +613,7 @@ type Table
                  table = Examples.inventory_table
                  table.order_by (Sort_Column_Selector.By_Name ["total_stock", Sort_Column.Name "sold_stock" Sort_Direction.Descending])
 
-    order_by : Text | Vector Text | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values
+    order_by : Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Text_Ordering -> Problem_Behavior -> Table ! Incomparable_Values
     order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
@@ -1221,7 +1221,7 @@ type Table
            `Input_Indices_Already_Matched`, with the column included the first
            time it is matched.
          - If there are no columns to transpose, a `No_Input_Columns`.
-    transpose : Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
+    transpose : Text | Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
     transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (on_problems = Report_Warning) =
         columns_helper = self.columns_helper
         unique = Unique_Name_Strategy.new
@@ -1271,7 +1271,7 @@ type Table
          - If an aggregation fails, an `Invalid_Aggregation`.
          - If when concatenating values there is an quoted delimited, an `Unquoted_Delimiter`
          - If there are more than 10 issues with a single column, an `Additional_Warnings`.
-    cross_tab : Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
+    cross_tab : Text | Vector Text | Column_Selector -> (Text | Integer | Column) -> Vector Aggregate_Column -> Problem_Behavior -> Table
     cross_tab self group_by=[] name_column=self.column_names.first values=Aggregate_Column.Count (on_problems=Report_Warning) =
         columns_helper = self.columns_helper
         problem_builder = Problem_Builder.new

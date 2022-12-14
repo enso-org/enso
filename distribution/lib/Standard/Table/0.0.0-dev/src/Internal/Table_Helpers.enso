@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Matching
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
@@ -137,8 +138,10 @@ type Table_Column_Helper
          criterion on the list. If a single criterion's group has more than one
          element, their relative order is the same as in the input.
        - problem_builder: Encapsulates the aggregation of encountered problems.
-    select_columns_helper : Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
+    select_columns_helper : Text | Vector | Column_Selector -> Boolean -> Problem_Builder -> Vector
     select_columns_helper self selector reorder problem_builder = case selector of
+        _ : Text ->
+            self.select_columns_helper (Column_Selector.By_Name [selector]) reorder problem_builder
         _ : Vector ->
             self.select_columns_helper (Column_Selector.By_Name selector) reorder problem_builder
         Column_Selector.By_Name names matcher ->
@@ -406,24 +409,32 @@ type Column_Transform_Element
     Value column associated_selector
 
 ## PRIVATE
-prepare_order_by : Vector -> Text | Vector Text | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
+prepare_order_by : Vector -> Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Problem_Builder -> Vector Column_Transform_Element
 prepare_order_by internal_columns column_selectors problem_builder =
     selected_elements = case column_selectors of
         _ : Text ->
             unified_name_selectors = [Sort_Column.Name column_selectors]
             select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
+        Sort_Column.Name _ _ -> select_columns_by_name internal_columns [column_selectors] Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
+        Sort_Column.Index _ _ -> select_columns_by_index internal_columns [column_selectors] problem_builder index_extractor=(_.index)
+        Sort_Column.Column _ _ -> select_columns_by_column_reference internal_columns [column_selectors] problem_builder column_extractor=(_.column)
         _ : Vector ->
-            unified_name_selectors = column_selectors.map (Sort_Column.Name _)
+            unified_name_selectors = column_selectors.map selector-> case selector of
+                _ : Text -> Sort_Column.Name selector
+                Sort_Column.Name _ _ -> selector
+                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed as a Vector.")
             select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Name name_selectors matcher ->
             unified_name_selectors = name_selectors.map selector-> case selector of
                 _ : Text -> Sort_Column.Name selector
                 Sort_Column.Name _ _ -> selector
+                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed for Sort_Column_Selector.By_Name.")
             select_columns_by_name internal_columns unified_name_selectors matcher problem_builder name_extractor=(_.name)
         Sort_Column_Selector.By_Index index_selectors ->
             unified_index_selectors = index_selectors.map selector-> case selector of
                 _ : Integer -> Sort_Column.Index selector
                 Sort_Column.Index _ _ -> selector
+                _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Integer and Sort_Column.Index are allowed for Sort_Column_Selector.By_Index.")
             select_columns_by_index internal_columns unified_index_selectors problem_builder index_extractor=(_.index)
         Sort_Column_Selector.By_Column column_selectors ->
             unified_column_selectors = column_selectors.map selector-> case selector of
