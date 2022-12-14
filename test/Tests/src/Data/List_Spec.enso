@@ -69,6 +69,8 @@ spec = Test.group "List" <|
         txt = ["aaa", "bbb", "abab", "cccc", "baaa", "ś"].to_list
         txt.filter (Filter_Condition.Contains "a") . should_equal ["aaa", "abab", "baaa"].to_list
         txt.filter (Filter_Condition.Contains 's\u0301') . should_equal ["ś"].to_list
+        txt.filter (Filter_Condition.Not_Contains "a") . should_equal ["bbb", "cccc", "ś"].to_list
+        txt.filter (Filter_Condition.Not_Contains 's\u0301') . should_equal ["aaa", "bbb", "abab", "cccc", "baaa"].to_list
         txt.filter (Filter_Condition.Starts_With "a") . should_equal ["aaa", "abab"].to_list
         txt.filter (Filter_Condition.Ends_With "a") . should_equal ["aaa", "baaa"].to_list
         txt.filter (Filter_Condition.Less than="a") . should_equal List.Nil

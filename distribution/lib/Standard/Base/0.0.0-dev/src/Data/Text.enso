@@ -66,10 +66,11 @@ type Text
 
              "a".compare_to "b"
     compare_to : Text -> Ordering
-    compare_to self that =
-        if that.is_nothing then Error.throw (Type_Error.Error Text that "that") else
+    compare_to self that = case that of
+        _ : Text ->
             comparison_result = Text_Utils.compare_normalized self that
             Ordering.from_sign comparison_result
+        _ -> Error.throw (Type_Error.Error Text that "that")
 
     ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
 

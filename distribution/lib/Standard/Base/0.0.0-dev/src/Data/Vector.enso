@@ -204,6 +204,26 @@ type Vector a
         f = acc -> ix -> function acc ix (self.at ix)
         0.up_to self.length . fold init f
 
+    ## Combines all the elements of the vector, by iteratively applying the
+       passed function with the next element of the vector. After each step the
+       value is stored resulting in a new Vector of the same size as self.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking two elements and combining them.
+
+       > Example
+         Compute the running sum of all of the elements in a vector
+
+            [1, 2, 3].running_fold 0 (+)
+    running_fold : Any -> (Any -> Any -> Any) -> Vector Any
+    running_fold self init function =
+        wrapped builder value =
+            current = if builder.length == 0 then init else builder.last
+            builder.append (function current value)
+        built = self.fold (Vector.new_builder self.length) wrapped
+        built.to_vector
+
     ## Combines all the elements of a non-empty vector using a binary operation.
 
        Arguments:
@@ -1057,6 +1077,26 @@ type Builder
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
+
+    ## Get the first element from the vector, or an `Empty_Error` if the vector
+       is empty.
+
+       > Example
+         The following code returns 1.
+
+             [1, 2, 3, 4].first
+    first : Vector ! Index_Out_Of_Bounds
+    first self = self.at 0
+
+    ## Get the last element of the vector, or an `Empty_Error` if the vector is
+       empty.
+
+       > Example
+         The following code returns 4.
+
+             [1, 2, 3, 4].last
+    last : Vector ! Index_Out_Of_Bounds
+    last self = self.at -1
 
     ## Checks whether a predicate holds for at least one element of this builder.
 
