@@ -101,7 +101,7 @@ pub struct Model<T> {
     // provide though the `mask::View` is not free in terms of performance (they add a draw call
     // cost) and we don't need it here because we need to clip DOM elements anyway.
     text_grid:             GridView<grid_view_entry::Entry>,
-    dom_entry_root:        DomSymbol,
+    dom_entry_root:        web::HtmlDivElement,
     clipping_div:          DomSymbol,
     scroll_bar_horizontal: Scrollbar,
     scroll_bar_vertical:   Scrollbar,
@@ -116,19 +116,17 @@ impl<T: 'static> Model<T> {
         let clipping_div = web::document.create_div_or_panic();
         let clipping_div = DomSymbol::new(&clipping_div);
         let dom_entry_root = web::document.create_div_or_panic();
-        let dom_entry_root = DomSymbol::new(&dom_entry_root);
         let size = default();
         let text_provider = default();
 
         clipping_div.set_style_or_warn("overflow", "hidden");
-        clipping_div.set_style_or_warn("class", "dom_root");
+        dom_entry_root.set_style_or_warn("position", "absolute");
         scene.dom.layers.front.manage(&clipping_div);
-        scene.dom.layers.front.manage(&dom_entry_root);
         root.add_child(&clipping_div);
         clipping_div.append_or_warn(&dom_entry_root);
 
         let text_grid: GridView<grid_view_entry::Entry> = GridView::new(&app);
-        dom_entry_root.add_child(&text_grid);
+        root.add_child(&text_grid);
 
         let scroll_bar_horizontal = Scrollbar::new(&app);
         root.add_child(&scroll_bar_horizontal);
@@ -387,7 +385,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
 impl<T> From<TextGrid<T>> for visualization::Instance {
     fn from(t: TextGrid<T>) -> Self {
-        Self::new(&t, &t.frp, &t.network, Some(t.model.dom_entry_root.clone_ref()))
+        Self::new(&t, &t.frp, &t.network, Some(t.model.clipping_div.clone_ref()))
     }
 }
 
