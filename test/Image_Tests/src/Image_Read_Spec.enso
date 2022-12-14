@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
 
 from Standard.Image import Image, Read_Flag, Write_Flag
 

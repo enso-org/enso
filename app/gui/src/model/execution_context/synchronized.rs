@@ -289,6 +289,22 @@ impl model::execution_context::API for ExecutionContext {
         debug!("Dispatching visualization update through the context {}", self.id());
         self.model.dispatch_visualization_update(visualization_id, data)
     }
+
+    fn interrupt(&self) -> BoxFuture<FallibleResult> {
+        async move {
+            self.language_server.client.interrupt(&self.id).await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
+
+    fn restart(&self) -> BoxFuture<FallibleResult> {
+        async move {
+            self.language_server.client.recompute(&self.id).await?;
+            Ok(())
+        }
+        .boxed_local()
+    }
 }
 
 impl Drop for ExecutionContext {

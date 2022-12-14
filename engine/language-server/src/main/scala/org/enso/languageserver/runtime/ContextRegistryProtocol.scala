@@ -111,6 +111,22 @@ object ContextRegistryProtocol {
     */
   case class RecomputeContextResponse(contextId: ContextId)
 
+  /** A request to the context registry to interrupt an execution context.
+    *
+    * @param rpcSession reference to the client
+    * @param contextId execution context identifier
+    */
+  case class InterruptContextRequest(
+    rpcSession: JsonSession,
+    contextId: ContextId
+  )
+
+  /** A response about interrupting the context.
+    *
+    * @param contextId execution context identifier
+    */
+  case class InterruptContextResponse(contextId: ContextId)
+
   /** A request to the context registry to get the loaded component groups.
     *
     * @param clientId the internal id of the client

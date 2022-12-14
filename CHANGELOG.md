@@ -77,6 +77,7 @@
   backend][3910]. This means that the visualisation cannot be overwhelmed by
   large amounts of data.
 - [Added project snapshot saving on shortcut][3923]
+- [Added shortcut to interrupt the program][3967]
 
 #### EnsoGL (rendering engine)
 
@@ -103,6 +104,9 @@
 - [Added a new component: Slider][3852]. It allows adjusting a numeric value
   with the mouse. The precision of these adjustments can be increased or
   decreased.
+- [Slider component functionality improvements][3885]. The slider component now
+  supports multiple ways to handle out-of-range values. The slider's value can
+  be edited as text, and a new vertical slider layout is available.
 - [Added ProjectsGrid view for Cloud Dashboard][3857]. It provides the first
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
@@ -402,9 +406,11 @@
 [3874]: https://github.com/enso-org/enso/pull/3874
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
+[3885]: https://github.com/enso-org/enso/pull/3885
 [3910]: https://github.com/enso-org/enso/pull/3910
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
+[3967]: https://github.com/enso-org/enso/pull/3967
 
 #### Enso Compiler
 
@@ -471,8 +477,11 @@
 - [Support VCS for projects in Language Server][3851]
 - [Support multiple exports of the same module][3897]
 - [Import modules' extension methods only with unqualified imports][3906]
+- [Support expression evaluation in chromeinspector console][3941]
 - [Don't export polyglot symbols][3915]
 - [From/all import must not include module in name resolution][3931]
+- [Vector returns warnings of individual elements][3938]
+- [Add executionContext/interrupt API command][3952]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -542,8 +551,11 @@
 [3851]: https://github.com/enso-org/enso/pull/3851
 [3897]: https://github.com/enso-org/enso/pull/3897
 [3906]: https://github.com/enso-org/enso/pull/3906
+[3941]: https://github.com/enso-org/enso/pull/3941
 [3915]: https://github.com/enso-org/enso/pull/3915
 [3931]: https://github.com/enso-org/enso/pull/3931
+[3938]: https://github.com/enso-org/enso/pull/3938
+[3952]: https://github.com/enso-org/enso/pull/3952
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

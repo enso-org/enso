@@ -1,8 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Table import Sort_Column, Sort_Column_Selector, Column_Selector
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
-from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns_Data, No_Such_Column_Error_Data
+from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
 from Standard.Database import all
 import Standard.Database.Data.Dialect
@@ -52,7 +53,7 @@ spec =
             t3.to_sql.prepare . should_equal ['SELECT "T1"."C" AS "C", "T1"."B" AS "B", "T1"."A" AS "bar" FROM "T1" AS "T1"', []]
 
         Test.specify "should fail if at is called for a non-existent column" <|
-            t1.at "undefined" . should_fail_with No_Such_Column_Error_Data
+            t1.at "undefined" . should_fail_with No_Such_Column.Error
 
         Test.specify "should allow to limit the amount of returned results" <|
             t2 = t1.limit 5
@@ -191,7 +192,7 @@ spec =
             action = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
             tester table =
                 table.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            problems = [Missing_Input_Columns_Data [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
+            problems = [Missing_Input_Columns.Error [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
             Problems.test_problem_handling action problems tester
 
     Test.group "Helpers" <|

@@ -4,11 +4,16 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.util.Arrays;
@@ -17,16 +22,21 @@ import org.enso.interpreter.runtime.error.WithWarnings;
 /** A primitive boxed array type for use in the runtime. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
+@ExportLibrary(WarningsLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Data.Array.Array")
 public final class Array implements TruffleObject {
   private final Object[] items;
+  private @CompilerDirectives.CompilationFinal Boolean withWarnings;
 
   /**
    * Creates a new array
    *
    * @param items the element values
    */
-  @Builtin.Method(expandVarargs = 4, description = "Creates an array with given elements.", autoRegister = false)
+  @Builtin.Method(
+      expandVarargs = 4,
+      description = "Creates an array with given elements.",
+      autoRegister = false)
   public Array(Object... items) {
     this.items = items;
   }
@@ -36,7 +46,9 @@ public final class Array implements TruffleObject {
    *
    * @param size the size of the created array.
    */
-  @Builtin.Method(description = "Creates an uninitialized array of a given size.", autoRegister = false)
+  @Builtin.Method(
+      description = "Creates an uninitialized array of a given size.",
+      autoRegister = false)
   public Array(long size) {
     this.items = new Object[(int) size];
   }
@@ -64,15 +76,21 @@ public final class Array implements TruffleObject {
    * @throws InvalidArrayIndexException when the index is out of bounds.
    */
   @ExportMessage
-  public Object readArrayElement(long index) throws InvalidArrayIndexException {
+  public Object readArrayElement(long index, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws InvalidArrayIndexException, UnsupportedMessageException {
     if (index >= items.length || index < 0) {
       throw InvalidArrayIndexException.create(index);
     }
-    var e = items[(int) index];
-    if (e instanceof WithWarnings w) {
-      return w.getValue();
+
+    var v = items[(int) index];
+    if (this.hasWarnings(warnings)) {
+      Warning[] extracted = this.getWarnings(null, warnings);
+      if (warnings.hasWarnings(v)) {
+        v = warnings.removeWarnings(v);
+      }
+      return new WithWarnings(v, extracted);
     }
-    return e;
+    return v;
   }
 
   public long length() {
@@ -126,6 +144,49 @@ public final class Array implements TruffleObject {
   @ExportMessage
   boolean hasType() {
     return true;
+  }
+
+  private boolean hasWarningElements(Object[] items, WarningsLibrary warnings) {
+    for (int i = 0; i < items.length; i++) {
+      if (warnings.hasWarnings(items[i])) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @ExportMessage
+  boolean hasWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    if (withWarnings == null) {
+      withWarnings = hasWarningElements(items, warnings);
+    }
+    return withWarnings;
+  }
+
+  @ExportMessage
+  Warning[] getWarnings(Node location, @CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    ArrayRope<Warning> ropeOfWarnings = new ArrayRope<>();
+    for (int i = 0; i < items.length; i++) {
+      if (warnings.hasWarnings(items[i])) {
+        ropeOfWarnings = ropeOfWarnings.prepend(warnings.getWarnings(items[i], location));
+      }
+    }
+    return ropeOfWarnings.toArray(Warning[]::new);
+  }
+
+  @ExportMessage
+  Array removeWarnings(@CachedLibrary(limit = "3") WarningsLibrary warnings)
+      throws UnsupportedMessageException {
+    Object[] items = new Object[this.items.length];
+    for (int i = 0; i < this.items.length; i++) {
+      if (warnings.hasWarnings(this.items[i])) {
+        items[i] = warnings.removeWarnings(this.items[i]);
+      } else {
+        items[i] = this.items[i];
+      }
+    }
+    return new Array(items);
   }
 
   @ExportMessage

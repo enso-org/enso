@@ -115,7 +115,7 @@ type Warning
         result = warnings.partition w-> predicate w.value
         matched = result.first
         remaining = result.second
-        Pair.new (Warning.set remaining value) matched
+        Pair.new (Warning.set value remaining) matched
 
     ## UNSTABLE
        A helper function which gathers warnings matching some predicate and passes

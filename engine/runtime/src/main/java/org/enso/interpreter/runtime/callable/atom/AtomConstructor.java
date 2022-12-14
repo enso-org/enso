@@ -171,6 +171,16 @@ public final class AtomConstructor implements TruffleObject {
   }
 
   /**
+   * Gets the display name of the constructor. If the name is Value or Error will include the type
+   * name as well.
+   *
+   * @return the name to display of the Atom constructor
+   */
+  public String getDisplayName() {
+    return name.equals("Value") || name.equals("Error") ? type.getName() + "." + name : name;
+  }
+
+  /**
    * Gets the scope in which this constructor was defined.
    *
    * @return the scope in which this constructor was defined

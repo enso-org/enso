@@ -28,6 +28,8 @@ pub struct Node {
     pub view_id:       Option<ViewNodeId>,
     pub position:      Vector2,
     pub expression:    node_view::Expression,
+    pub is_skipped:    bool,
+    pub is_frozen:     bool,
     pub error:         Option<node_view::Error>,
     pub visualization: Option<visualization_view::Path>,
 
@@ -42,6 +44,8 @@ impl Default for Node {
             view_id:                None,
             position:               Vector2::default(),
             expression:             node_view::Expression::default(),
+            is_skipped:             false,
+            is_frozen:              false,
             error:                  None,
             visualization:          None,
             expression_auto_update: true,
@@ -467,6 +471,36 @@ impl<'a> ControllerChange<'a> {
         }
     }
 
+    /// Check if `SKIP` macro is present in the expression and return the updated state (whether the
+    /// macro is present). Returns `None` if no changes to the state are needed.
+    pub fn set_node_skip(&self, node: &controller::graph::Node) -> Option<bool> {
+        let ast_id = node.main_line.id();
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(ast_id);
+        let skip = node.info.main_line.macros_info().skip;
+        if displayed.is_skipped != skip {
+            displayed.is_skipped = skip;
+            Some(skip)
+        } else {
+            None
+        }
+    }
+
+    /// Check if `FREEZE` macro is present in the expression and return the updated state (whether
+    /// the macro is present). Returns `None` if no changes to the state are needed.
+    pub fn set_node_freeze(&self, node: &controller::graph::Node) -> Option<bool> {
+        let ast_id = node.main_line.id();
+        let mut nodes = self.nodes.borrow_mut();
+        let displayed = nodes.get_mut_or_create(ast_id);
+        let freeze = node.info.main_line.macros_info().freeze;
+        if displayed.is_frozen != freeze {
+            displayed.is_frozen = freeze;
+            Some(freeze)
+        } else {
+            None
+        }
+    }
+
     /// Set the node error basing of the given expression's payload. If the error is actually
     /// changed, the to-be-updated node view is returned with the proper error description. If the
     /// expression is not a whole expression of any node, nothing is updated and `None` is returned.
@@ -658,6 +692,34 @@ impl<'a> ViewChange<'a> {
         let displayed = nodes.get_mut(ast_id)?;
         if displayed.visualization != new_path {
             displayed.visualization = new_path;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Mark the node as skipped and return its AST id. Returns `None` if no changes to the
+    /// expression are needed.
+    pub fn set_node_skip(&self, id: ViewNodeId, skip: bool) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.is_skipped != skip {
+            displayed.is_skipped = skip;
+            Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Mark the node as frozen and return its AST id. Returns `None` if no changes to the
+    /// expression are needed.
+    pub fn set_node_freeze(&self, id: ViewNodeId, freeze: bool) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        if displayed.is_frozen != freeze {
+            displayed.is_frozen = freeze;
             Some(ast_id)
         } else {
             None

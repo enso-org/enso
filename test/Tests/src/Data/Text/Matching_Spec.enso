@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Text.Matching
+import Standard.Base.Error.Common.No_Such_Method
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -19,17 +20,17 @@ spec = Test.group 'Matching Helper' <|
         Text_Matcher.Case_Sensitive.match_single_criterion 'é' 'ę' . should_be_false
 
     Test.specify 'should match a single name with a single regex criterion' <|
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "foo" . should_be_true
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foobar" "foo" . should_be_false
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "f.*" . should_be_true
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "foo.*" . should_be_true
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "F.*" . should_be_false
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "foo" . should_be_true
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foobar" "foo" . should_be_false
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "f.*" . should_be_true
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "foo.*" . should_be_true
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_single_criterion "foo" "F.*" . should_be_false
 
     Test.specify 'should support case-insensitive matching' <|
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive).match_single_criterion "foo" "F.*" . should_be_true
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive).match_single_criterion "foo" "F.*" . should_be_true
         Text_Matcher.Case_Insensitive.match_single_criterion "foO" "FOo" . should_be_true
 
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Insensitive).match_single_criterion "foo" "fF.*" . should_be_false
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive).match_single_criterion "foo" "fF.*" . should_be_false
         Text_Matcher.Case_Insensitive.match_single_criterion "foo" "Foos" . should_be_false
 
         # Small beta is equal to capital 'beta' which looks the same as capital 'b' but is a different symbol.
@@ -41,12 +42,12 @@ spec = Test.group 'Matching Helper' <|
         Text_Matcher.Case_Sensitive.match_criteria ["foo", "bar", "baz"] ["baz", "foo"] reorder=False . should_equal ["foo", "baz"]
 
     Test.specify 'should allow multiple matches to a single criterion (Regex)' <|
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "quux"] ["b.*"] reorder=True . should_equal ["bar", "baz"]
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "quux"] ["b.*", "foo"] reorder=False . should_equal ["foo", "bar", "baz"]
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "quux"] ["b.*"] reorder=True . should_equal ["bar", "baz"]
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "quux"] ["b.*", "foo"] reorder=False . should_equal ["foo", "bar", "baz"]
 
     Test.specify 'should include the object only with the first criterion that matched it, avoiding duplication' <|
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=True . should_equal ["baz", "zap", "bar"]
-        (Regex_Matcher.Regex_Matcher_Data case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False . should_equal ["bar", "baz", "zap"]
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=True . should_equal ["baz", "zap", "bar"]
+        (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive).match_criteria ["foo", "bar", "baz", "zap"] [".*z.*", "b.*"] reorder=False . should_equal ["bar", "baz", "zap"]
 
     Test.specify 'should correctly handle criteria which did not match anything' <|
         action = Text_Matcher.Case_Sensitive.match_criteria ["foo", "bar", "baz"] ["baz", "unknown_column"] reorder=True on_problems=_
@@ -71,7 +72,7 @@ spec = Test.group 'Matching Helper' <|
         (Error.throw Foo_Error).match_criteria [] [] . should_fail_with Foo_Error
         Text_Matcher.Case_Sensitive.match_criteria [1, 2, 3] ["2"] name_mapper=(x-> if x == 3 then Error.throw Foo_Error else x.to_text) . should_fail_with Foo_Error
 
-        Test.expect_panic_with matcher=No_Such_Method_Error_Data <|
+        Test.expect_panic_with matcher=No_Such_Method.Error <|
             Text_Matcher.Case_Sensitive.match_criteria ["a"] ["a"] name_mapper=_.nonexistent_function
 
 main = Test_Suite.run_main spec

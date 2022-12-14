@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 from Standard.Base.Data.List import Empty_Error
 
@@ -58,7 +60,7 @@ spec = Test.group "List" <|
         list.filter (Filter_Condition.Is_In [7, 3, 2]) . should_equal [2, 3].to_list
         list.filter (Filter_Condition.Not_In [7, 3, 2]) . should_equal [1, 4, 5].to_list
 
-        Test.expect_panic_with (list.filter (Filter_Condition.Starts_With "a")) No_Such_Method_Error_Data
+        Test.expect_panic_with (list.filter (Filter_Condition.Starts_With "a")) No_Such_Method.Error
         list.filter Filter_Condition.Is_True . should_equal List.Nil
         list.filter Filter_Condition.Is_False . should_equal List.Nil
         list.filter Filter_Condition.Is_Nothing . should_equal List.Nil
@@ -72,7 +74,7 @@ spec = Test.group "List" <|
         txt.filter (Filter_Condition.Less than="a") . should_equal List.Nil
         txt.filter (Filter_Condition.Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"].to_list
         txt.filter (Filter_Condition.Between "b" "c") . should_equal ["bbb", "baaa"].to_list
-        Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types_Data
+        Test.expect_panic_with (txt.filter (Filter_Condition.Starts_With 42)) Unsupported_Argument_Types.Error
 
         ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Is_Empty) . should_equal ["", Nothing].to_list
         ["", Nothing, " ", "a"].to_list.filter (Filter_Condition.Not_Empty) . should_equal [" ", "a"].to_list

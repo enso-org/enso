@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
@@ -68,6 +70,9 @@ public class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
+  private final Assumption chromeInspectorNotAttached =
+      Truffle.getRuntime().createAssumption("chromeInspectorNotAttached");
+
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private final IOPermissions rootIOPermissions;
 
@@ -106,7 +111,12 @@ public class EnsoContext {
 
     this.shouldWaitForPendingSerializationJobs =
         environment.getOptions().get(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    this.compilerConfig = new CompilerConfig(isParallelismEnabled, true);
+    this.compilerConfig =
+        new CompilerConfig(
+            isParallelismEnabled,
+            true,
+            environment.getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY),
+            scala.Option.empty());
     this.home = home;
     this.builtins = new Builtins(this);
     this.notificationHandler = notificationHandler;
@@ -196,6 +206,11 @@ public class EnsoContext {
    */
   public final Compiler getCompiler() {
     return compiler;
+  }
+
+  /** Returns an {@link Assumption} that Chrome inspector is not attached to this context. */
+  public Assumption getChromeInspectorNotAttached() {
+    return chromeInspectorNotAttached;
   }
 
   /**

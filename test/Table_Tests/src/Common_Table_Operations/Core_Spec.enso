@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 
 from Standard.Table.Errors import all
 
@@ -28,7 +29,7 @@ spec setup =
             column_1.name . should_equal "bar"
             column_1.to_vector . should_equal [4, 5, 6]
 
-            table.at "nonexistent column name" . should_fail_with No_Such_Column_Error_Data
+            table.at "nonexistent column name" . should_fail_with No_Such_Column.Error
         Test.specify "should allow selecting columns by index" <|
             column_1 = table.at
             column_1.name . should_equal "foo"
@@ -42,7 +43,7 @@ spec setup =
             column_3.name . should_equal "abcd123"
             column_3.to_vector . should_equal [19, 20, 21]
 
-            table.at 100 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.at 100 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
@@ -77,19 +78,11 @@ spec setup =
             table.rows max_rows=2 . map .to_vector . should_equal [[1, 5, "A"], [2, 6, "B"]]
 
         Test.specify "should correctly handle errors" <|
-            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds_Error_Data
+            table.rows.at 5 . should_fail_with Index_Out_Of_Bounds.Error
             err = table.rows.at -6
-            err.should_fail_with Index_Out_Of_Bounds_Error_Data
-            err.catch . should_equal (Index_Out_Of_Bounds_Error_Data -6 4)
+            err.should_fail_with Index_Out_Of_Bounds.Error
+            err.catch . should_equal (Index_Out_Of_Bounds.Error -6 4)
 
-            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds_Error_Data
-            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds_Error_Data
-            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column_Error_Data
-
-        Test.specify "should visualize nicely" <|
-            table.rows . to_default_visualization_data . should_equal <|
-                '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
-
-            # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
-            t2 = table_builder [["X", 0.up_to 200 . to_vector]]
-            t2.rows.to_default_visualization_data . should_equal (0.up_to 100 . map (x -> [x])).to_default_visualization_data
+            table.rows (max_rows=2) . at 2 . should_fail_with Index_Out_Of_Bounds.Error
+            table.rows . at 0 . at -4 . should_fail_with Index_Out_Of_Bounds.Error
+            table.rows . at 0 . at "unknown" . should_fail_with No_Such_Column.Error

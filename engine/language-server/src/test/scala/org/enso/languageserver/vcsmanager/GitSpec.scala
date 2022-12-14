@@ -50,6 +50,16 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
         Some(dataDirectory)
       )
 
+      repoPath.resolve(dataDirectory).toFile.mkdir()
+
+      val relativePackageJsonFile = dataDirectory.resolve("project.json")
+      val absolutePackageJsonFie  = repoPath.resolve(relativePackageJsonFile)
+      createStubFile(absolutePackageJsonFie) should equal(true)
+      Files.write(
+        absolutePackageJsonFie,
+        "dummy package json file".getBytes(StandardCharsets.UTF_8)
+      )
+
       val targetRepo =
         repoPath.resolve(dataDirectory).resolve(VcsApi.DefaultRepoDir)
       targetRepo.toFile shouldNot exist
@@ -57,6 +67,18 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       result.isRight shouldBe true
       targetRepo.toFile should exist
       repoPath.resolve(VcsApi.DefaultRepoDir).toFile shouldNot exist
+      isPathUnderVcs(
+        repoPath.resolve(dataDirectory),
+        dataDirectory
+      ) shouldBe true
+      isPathUnderVcs(
+        repoPath.resolve(dataDirectory),
+        dataDirectory.resolve(VcsApi.DefaultRepoDir)
+      ) shouldBe false
+      isPathUnderVcs(
+        repoPath.resolve(dataDirectory),
+        relativePackageJsonFile
+      ) shouldBe true
     }
   }
 
@@ -123,7 +145,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val r = modifiedResultEither1.getOrElse(null)
       r shouldBe an[RepoStatus]
       repoStatusIgnoreSha(r) should equal(
-        RepoStatus(false, Set(), RepoCommit(null, "Initial commit"))
+        RepoStatus(false, Set(), Some(RepoCommit(null, "Initial commit")))
       )
 
       createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
@@ -140,7 +162,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val r = modifiedResultEither1.getOrElse(null)
       r shouldBe an[RepoStatus]
       repoStatusIgnoreSha(r) should equal(
-        RepoStatus(false, Set(), RepoCommit(null, "Initial commit"))
+        RepoStatus(false, Set(), Some(RepoCommit(null, "Initial commit")))
       )
 
       createStubFile(repoPath.resolve("Foo.enso")) should equal(true)
@@ -155,7 +177,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       repoStatusIgnoreSha(r2) shouldBe RepoStatus(
         false,
         Set(),
-        RepoCommit(null, "New files")
+        Some(RepoCommit(null, "New files"))
       )
     }
 
@@ -178,7 +200,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       repoStatusIgnoreSha(r) shouldBe RepoStatus(
         true,
         Set(fooFile.getFileName),
-        RepoCommit(null, "New files")
+        Some(RepoCommit(null, "New files"))
       )
 
     }
@@ -338,6 +360,23 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       jgit.log().call().asScala.toList
     }
 
+    def isPathUnderVcs(repo: Path, relativePath: Path): Boolean = {
+      isPathUnderVcs(testRepo(repo), relativePath)
+    }
+
+    def isPathUnderVcs(repo: Repository, relativePath: Path): Boolean = {
+      val jgit = new JGit(repo)
+      jgit
+        .log()
+        .addPath(ensureUnixPathSeparator(relativePath))
+        .call()
+        .iterator()
+        .hasNext
+    }
+
+    private def ensureUnixPathSeparator(path: Path): String =
+      path.toString.replaceAll("\\\\", "/")
+
     def hasUntrackedFiles(repoDir: Path): Boolean = {
       hasUntrackedFiles(testRepo(repoDir))
     }
@@ -352,7 +391,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
     }
 
     def repoStatusIgnoreSha(r: RepoStatus) = {
-      r.copy(lastCommit = r.lastCommit.copy(commitId = null))
+      r.copy(lastCommit = r.lastCommit.map(_.copy(commitId = null)))
     }
   }
 

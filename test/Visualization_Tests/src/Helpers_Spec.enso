@@ -9,6 +9,11 @@ import Standard.Test.Extensions
 
 import project.Helpers
 
+polyglot java import java.util.LinkedHashSet
+
+type My_Type
+    Value foo
+
 spec = 
     Test.group "Table.all_columns" <|
         Test.specify "works with empty table" <|
@@ -48,3 +53,63 @@ spec =
             table.lookup_ignore_case 'Ω' . expect 'ω' [12,22]
             table.lookup_ignore_case 'b' . is_error . should_equal True
             table.lookup_ignore_case 'B' . is_error . should_equal True
+
+    Test.group "Table.rows" <|
+        table = Table.new [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
+        Test.specify "should visualize nicely" <|
+            table.rows . to_default_visualization_data . should_equal <|
+                '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
+
+            # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
+            t2 = Table.new [["X", 0.up_to 200 . to_vector]]
+            t2.rows.to_default_visualization_data . should_equal (0.up_to 100 . map (x -> [x])).to_default_visualization_data
+
+    Test.group "Vector and Arrays" <|
+        ## Returns an array with the same contents as the given vector, surely backed by
+           a Java array.
+        make_java_array vector =
+            builder = LinkedHashSet.new
+            vector.each x->
+                builder.add x
+            builder.toArray
+
+        Test.specify "should be able to be efficiently visualise a Vector" <|
+            vec = Vector.fill 1000 0
+            text = vec.to_default_visualization_data
+            json = Json.parse text
+            as_vec = json.into (Vector.fill 1 Number)
+            as_vec.should_equal <| Vector.fill 100 0
+
+        Test.specify "should be able to visualize an Enso Array" <|
+            arr = Vector.fill 1000 0 . to_array
+            text = arr.to_default_visualization_data
+            json = Json.parse text
+            as_vec = json.into (Vector.fill 1 Number)
+            as_vec.should_equal <| Vector.fill 100 0
+
+        Test.specify "should be able to visualize a Polyglot Array" pending="`to_default_visualization_data` does not work for polyglot arrays" <|
+            arr = make_java_array (Vector.fill 1000 0)
+            text = arr.to_default_visualization_data
+            json = Json.parse text
+            as_vec = json.into (Vector.fill 1 Number)
+            as_vec.should_equal <| Vector.fill 100 0
+
+    Test.group "Dataflow Error Visualization" <|
+        Test.specify "should be able to be shown in the default visualization" <|
+            json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
+            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "Value"]]).to_text
+
+        Test.specify "should be able to be shown in the default vector visualization" <|
+            vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
+            visualization_text = vec.to_default_visualization_data
+            expected_json = Json.parse '''
+                [
+                  { "foo":"bar",
+                    "type":"Value"
+                  },
+                  { "content":{ "foo":42, "type":"Value" },
+                    "message":"My_Type.Value",
+                    "type":"Error"
+                  }
+                ]
+            visualization_text.should_equal expected_json.to_text

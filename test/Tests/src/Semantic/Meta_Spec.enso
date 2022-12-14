@@ -31,14 +31,20 @@ spec = Test.group "Meta-Value Manipulation" <|
     Test.specify "should allow manipulating atoms" <|
         atom = My_Type.Value 1 "foo" Nothing
         meta_atom = Meta.meta atom
-        meta_atom.constructor.should_equal My_Type.Value
+        meta_atom.constructor.value.should_equal My_Type.Value
         meta_atom.fields.should_equal [1, "foo", Nothing]
-        Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should_equal atom
+        Meta.meta (meta_atom.constructor.value) . new [1, "foo", Nothing] . should_equal atom
+    Test.specify "should allow getting a value's constructor's name" <|
+        Meta.meta List.Nil . constructor . name . should_equal "Nil"
+        Meta.meta (List.Cons 1 List.Nil) . constructor . name . should_equal "Cons"
+    Test.specify "should allow getting a value's constructor's fields" <|
+        Meta.meta List.Nil . constructor . fields . should_equal []
+        Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
     Test.specify "should allow creating atoms from atom constructors" <|
         atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
-        (Meta.meta atom_1).constructor . should_equal My_Type.Value
+        (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
         atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
-        (Meta.meta atom_2).constructor . should_equal My_Type.Value
+        (Meta.meta atom_2).constructor.value . should_equal My_Type.Value
     Test.specify "should correctly return representations of different classes of objects" <|
         Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
         Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
