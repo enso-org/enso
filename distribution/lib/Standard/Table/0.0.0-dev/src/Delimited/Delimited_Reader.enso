@@ -218,15 +218,15 @@ newline_at_eof file encoding =
 ## PRIVATE
 handle_parsing_failure =
     translate_parsing_failure caught_panic =
-        Error.throw (translate_reader_problem caught_panic.payload.cause.problem)
+        Error.throw (translate_reader_problem caught_panic.payload.problem)
     Panic.catch ParsingFailedException handler=translate_parsing_failure
 
 ## PRIVATE
 handle_parsing_exception =
     translate_parsing_exception caught_panic =
-        cause = caught_panic.payload.cause.getCause
-        if Java.is_instance cause IOException then Panic.throw cause else
-            Error.throw (Parser_Error.Error caught_panic.payload)
+        case caught_panic.payload.getCause of
+            ioe : IOException -> Panic.throw ioe
+            payload -> Error.throw (Parser_Error.Error payload)
     Panic.catch TextParsingException handler=translate_parsing_exception
 
 ## PRIVATE

@@ -135,7 +135,7 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
-                     Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+                     Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
     catch panic_type ~action handler =
         Panic.catch_primitive action caught_panic->
