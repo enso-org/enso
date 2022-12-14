@@ -1,0 +1,69 @@
+import project.Data.Array.Array
+import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Boolean.Boolean
+import project.Data.Json.Extensions
+import project.Data.Json.Json
+import project.Data.Numbers.Number
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+
+type JSON_Object
+    ## PRIVATE
+    Value js_object
+
+    ## Parse a Text value into JSON_Object or Enso Native
+    parse : Text -> JSON_Object | Boolean | Number | Nothing | Text | Vector
+    parse json =
+        parsed = json_parse json
+        make_enso parsed
+
+    ## Get a property from a JSON_Object
+    get : Text -> JSON_Object | Boolean | Number | Nothing | Text | Vector
+    get self key =
+        value = get_value self.js_object key
+        make_enso value
+
+    ## Get the keys of the object
+    keys : Vector
+    keys self =
+        Vector.from_polyglot_array (get_property_names self.js_object)
+
+    ## Gets the number of keys in the object
+    length : Number
+    length self =
+        get_property_names self.js_object . length
+
+    ## Convert the object to a Vector of Pairs
+    to_vector : Vector
+    to_vector self =
+        keys = get_property_names self.js_object
+        proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
+        Vector.from_polyglot_array proxy
+
+    ## Convert the object to a JSON
+    to_json : Json
+    to_json self =
+        pairs = self.keys.map k-> [k, self.get k . to_json]
+        Json.from_pairs pairs
+
+make_enso js_object =
+    case js_object of
+        Nothing -> Nothing
+        _ : Text -> js_object
+        _ : Boolean -> js_object
+        _ : Number -> js_object
+        _ : Array ->
+            proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
+            Vector.from_polyglot_array proxy
+        _ -> JSON_Object.Value js_object
+
+foreign js json_parse text = """
+    return JSON.parse(text)
+
+foreign js get_value object key = """
+    return object[key]
+
+foreign js get_property_names object = """
+    return Object.getOwnPropertyNames(object)
