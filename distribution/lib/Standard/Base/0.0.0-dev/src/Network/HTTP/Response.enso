@@ -1,4 +1,5 @@
 import project.Data.Json.Json
+import project.Data.Json.JSON_Object
 import project.Data.Vector.Vector
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
@@ -63,6 +64,7 @@ type Response
              import Standard.Examples
 
              example_to_json = Examples.get_response.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Response"], ["headers", self.headers], ["body", self.body], ["code", self.code]]
+    to_json : JSON_Object
+    to_json self =
+        Json.from_pairs [["type", "Standard.Base.Network.HTTP.Response.Response"], ["headers", self.headers], ["body", self.body], ["code", self.code]]
 
