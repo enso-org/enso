@@ -19,8 +19,8 @@ polyglot java import java.util.UUID
 type Foo
     Value x
 
-    to_json : Json
-    to_json self = Json.from_pairs [["x", self.x]]
+    to_js_object : JS_Object
+    to_js_object self = JS_Object.from_pairs [["x", self.x]]
 
 visualization_spec connection =
     t = connection.upload_table "T" <| Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]

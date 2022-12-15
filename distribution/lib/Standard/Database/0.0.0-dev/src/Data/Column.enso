@@ -63,9 +63,9 @@ type Column
 
     ## UNSTABLE
 
-       Converts this column to JSON.
-    to_json : Json
-    to_json self = self.to_sql.to_json
+       Converts this column to JS_Object representation.
+    to_js_object : JS_Object
+    to_js_object self = self.to_sql.to_js_object
 
     ## UNSTABLE
 

@@ -20,9 +20,9 @@ type Row
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
 
-    ## Converts this row into a JSON structure.
-    to_json : Json
-    to_json self = self.to_vector.to_json
+    ## Converts this row into a JS_Object.
+    to_js_object : Vector
+    to_js_object self = self.to_vector
 
     ## UNSTABLE
        ADVANCED

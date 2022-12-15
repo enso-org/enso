@@ -70,13 +70,13 @@ type SQL_Statement
 
     ## UNSTABLE
 
-       Returns a JSON representation of the statement.
-    to_json : Json
-    to_json self =
+       Returns a JS_Object representation of the statement.
+    to_js_object : JS_Object
+    to_js_object self =
         jsonify fragment = case fragment of
-            SQL_Fragment.Code_Part code -> Json.from_pairs [["sql_code", code]]
+            SQL_Fragment.Code_Part code -> JS_Object.from_pairs [["sql_code", code]]
             SQL_Fragment.Interpolation typ obj ->
-                inner = Json.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
-                Json.from_pairs [["sql_interpolation", inner]]
-        fragments = Json.Array (self.internal_fragments.map jsonify)
-        Json.from_pairs [["query", fragments]]
+                inner = JS_Object.from_pairs [["value", obj], ["expected_sql_type", typ.name]]
+                JS_Object.from_pairs [["sql_interpolation", inner]]
+        fragments = self.internal_fragments.map jsonify
+        JS_Object.from_pairs [["query", fragments]]

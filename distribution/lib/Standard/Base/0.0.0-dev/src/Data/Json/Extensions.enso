@@ -94,7 +94,7 @@ Any.to_js_object self =
                 field_names = cons.fields
 
                 builder = Vector.new_builder field_names.length+2
-                0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_json]
+                0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_js_object]
                 builder.append type_pair
                 builder.append ["constructor", cons.name]
                 JS_Object.from_pairs builder.to_vector
