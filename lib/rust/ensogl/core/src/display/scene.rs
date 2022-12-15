@@ -543,7 +543,6 @@ pub struct HardcodedLayers {
     pub tooltip:            Layer,
     pub tooltip_text:       Layer,
     pub cursor:             Layer,
-    pub mask:               Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -583,7 +582,6 @@ impl HardcodedLayers {
         let tooltip = root.create_sublayer("tooltip");
         let tooltip_text = root.create_sublayer("tooltip_text");
         let cursor = root.create_sublayer_with_cam("cursor", &cursor_cam);
-        let mask = root.create_sublayer("mask");
 
         Self {
             DETACHED,
@@ -604,7 +602,6 @@ impl HardcodedLayers {
             tooltip,
             tooltip_text,
             cursor,
-            mask,
         }
     }
 }
