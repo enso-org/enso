@@ -49,13 +49,13 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
     # We also visualize Vectors and arrays
     _ : Vector ->
         truncated = x.take (First max_rows)
-        Json.from_pairs [["json", truncated], ["all_rows_count", x.length]]
+        JS_Object.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
     _ : Array ->
         prepare_visualization (Vector.from_polyglot_array x) max_rows
 
     # Anything else will be visualized with the JSON or matrix visualization
     _ ->
-        Json.from_pairs [["json", x]]
+        JS_Object.from_pairs [["json", x]] . to_text
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
@@ -77,4 +77,4 @@ make_json dataframe indices all_rows_count =
     ixes        = ["indices", indices.map .to_vector]
     ixes_header = ["indices_header", indices.map .name]
     pairs    = [header, data, all_rows, ixes, ixes_header]
-    Json.from_pairs pairs
+    JS_Object.from_pairs pairs . to_text

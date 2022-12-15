@@ -23,9 +23,9 @@ spec = Test.group 'JSON conversion' <|
         out.delete_if_exists
 
     Test.specify "should allow converting a JSON array into a table" <|
-        r_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
-        r_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
-        r_3 = Json.from_pairs [['baz', False], ['foo', 13]]
+        r_1 = JS_Object.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+        r_2 = JS_Object.from_pairs [['bar', 'xyz'], ['baz', True]]
+        r_3 = JS_Object.from_pairs [['baz', False], ['foo', 13]]
         t = [r_1, r_2, r_3].to_json.to_table ['foo', 'bar', 'baz']
         t.columns.map .name . should_equal ['foo', 'bar', 'baz']
         t.at 'foo' . to_vector . should_equal [20, Nothing, 13]

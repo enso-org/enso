@@ -55,7 +55,7 @@ spec =
             interval = (Duration.new nanoseconds=120) + (Duration.new seconds=30) + (Duration.new hours=14)
             interval.to_json.should_equal <|
                 duration_pairs = [["hours", interval.hours], ["seconds", interval.seconds], ["nanoseconds", interval.nanoseconds]]
-                Json.from_pairs ([["type", "Standard.Base.Data.Time.Duration.Duration"], ["constructor", "new"]] + duration_pairs)
+                JS_Object.from_pairs ([["type", "Standard.Base.Data.Time.Duration.Duration"], ["constructor", "new"]] + duration_pairs) . to_text
 
         Test.specify "should be comparable" <|
             duration_1 = (Duration.new hours=5)

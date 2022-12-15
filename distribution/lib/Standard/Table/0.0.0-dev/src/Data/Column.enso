@@ -1113,7 +1113,7 @@ type Column
         name = ['name', self.name]
         max_data = 100
         data = ['data', self.to_vector.take (First max_data)]
-        Json.from_pairs [size, name, data] . to_text
+        JS_Object.from_pairs [size, name, data] . to_text
 
     ## UNSTABLE
 
