@@ -46,20 +46,6 @@ type Panic
     throw payload = @Builtin_Method "Panic.throw"
 
     ## PRIVATE
-       Executes the provided action and if any panic was thrown, calls the
-       provided callback.
-
-       If action executes successfully, the result of `Panic.catch Any` is the
-       result of that action. Otherwise, it is the result of the provided
-       handler callback, executed with the caught panic as its first argument.
-
-       Arguments:
-       - action: The code to execute that potentially panics.
-       - handler: The callback to handle any panics.
-    catch_primitive : Any -> (Caught_Panic -> Any) -> Any
-    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
-
-    ## PRIVATE
 
        Returns a raw representation of the stack trace attached to the provided
        throwable. It can be a dataflow error, a panic or a native Java exception.
@@ -137,11 +123,7 @@ type Panic
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
                      Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
-    catch panic_type ~action handler =
-        Panic.catch_primitive action caught_panic->
-            case caught_panic.payload.is_a panic_type of
-                True -> handler caught_panic
-                False -> Panic.throw caught_panic
+    catch panic_type ~action handler = @Builtin_Method "Panic.catch"
 
     ## Executes the provided action and converts a possible panic matching any of
        the provided types into a dataflow Error.

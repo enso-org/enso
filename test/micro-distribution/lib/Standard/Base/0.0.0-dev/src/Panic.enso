@@ -1,4 +1,7 @@
+import project.Any.Any
+
 @Builtin_Type
 type Panic
     throw payload = @Builtin_Method "Panic.throw"
-    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
+    catch panic_type ~action handler = @Builtin_Method "Panic.catch"
+    catch_primitive ~action handler = Panic.catch Any action handler

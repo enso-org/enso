@@ -40,7 +40,7 @@ class PanicsTest extends InterpreterTest {
           |
           |main =
           |    thrower = x -> Panic.throw x
-          |    caught = Panic.catch_primitive (thrower MyError) .convert_to_dataflow_error 
+          |    caught = Panic.catch Any (thrower MyError) .convert_to_dataflow_error
           |    IO.println caught
           |""".stripMargin
 
@@ -57,7 +57,7 @@ class PanicsTest extends InterpreterTest {
           |polyglot java import java.lang.NumberFormatException
           |
           |main =
-          |    caught = Panic.catch_primitive (Long.parseLong "oops") .convert_to_dataflow_error
+          |    caught = Panic.catch Any (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
           |    cause = caught.catch_primitive e-> case e of
           |        _ : NumberFormatException -> e

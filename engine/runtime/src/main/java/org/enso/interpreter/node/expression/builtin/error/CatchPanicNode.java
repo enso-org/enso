@@ -6,6 +6,7 @@ import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
@@ -20,11 +21,15 @@ import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Panic",
-    name = "catch_primitive",
+    name = "catch",
     description = "Executes an action if a panic was thrown, calls the provided callback.")
 public abstract class CatchPanicNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
+  private @Child IsPayloadOfPanicTypeNode isPayloadOfPanicTypeNode =
+      IsPayloadOfPanicTypeNode.build();
+  private @Child ThrowPanicNode throwPanicNode = ThrowPanicNode.build();
+  private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   CatchPanicNode() {
     this.invokeCallableNode =
@@ -39,12 +44,14 @@ public abstract class CatchPanicNode extends Node {
     return CatchPanicNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, State state, @Suspend Object action, Object handler);
+  abstract Object execute(
+      VirtualFrame frame, State state, Object panicType, @Suspend Object action, Object handler);
 
   @Specialization
   Object doExecute(
       VirtualFrame frame,
       State state,
+      Object panicType,
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
@@ -54,23 +61,28 @@ public abstract class CatchPanicNode extends Node {
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
-      return executeCallback(frame, state, handler, payload, e);
+      return executeCallback(frame, state, panicType, handler, payload, e);
     } catch (AbstractTruffleException e) {
       otherExceptionBranchProfile.enter();
-      Builtins builtins = EnsoContext.get(this).getBuiltins();
-      return executeCallback(frame, state, handler, e, e);
+      return executeCallback(frame, state, panicType, handler, e, e);
     }
   }
 
   private Object executeCallback(
       VirtualFrame frame,
       State state,
+      Object panicType,
       Object handler,
       Object payload,
       AbstractTruffleException originalException) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     Atom caughtPanic =
         builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
-    return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
+
+    if (profile.profile(isPayloadOfPanicTypeNode.execute(panicType, payload))) {
+      return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
+    } else {
+      return throwPanicNode.execute(caughtPanic);
+    }
   }
 }

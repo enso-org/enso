@@ -564,7 +564,7 @@ public class EnsoCompilerTest {
   public void testEmptyGroup() throws Exception {
     parseTest("""
     main =
-        x = Panic.catch_primitive () .convert_to_dataflow_error
+        x = Panic.catch Any () .convert_to_dataflow_error
         x.catch_primitive err->
             case err of
                 Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
