@@ -70,7 +70,7 @@ import project.Data.Interval.Bound
 import project.Data.Interval.Interval
 import project.Data.Json.Extensions
 import project.Data.Json.Json
-import project.Data.Json.JSON_Object
+import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
 import project.Data.Noise
@@ -122,7 +122,7 @@ export project.Data.Interval.Bound
 export project.Data.Interval.Interval
 export project.Data.Json.Extensions
 export project.Data.Json.Json
-export project.Data.Json.JSON_Object
+export project.Data.Json.JS_Object
 export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Natural_Order

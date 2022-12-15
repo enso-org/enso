@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
 import project.Data.Map.Map
-import project.Data.Map.No_Value_For_Key
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Pair.Pair
@@ -10,8 +9,10 @@ import project.Data.Range.Extensions
 import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.No_Such_Key.No_Such_Key
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -22,8 +23,8 @@ polyglot java import java.lang.Exception as JException
 
 ## Represents a JSON structure.
 type Json
-    ## Parse a Text value into JSON_Object or Enso Native
-    parse : Text -> JSON_Object | Boolean | Number | Nothing | Text | Vector
+    ## Parse a Text value into JS_Object or Enso Native
+    parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector
     parse json =
         parsed = json_parse json
         make_enso parsed
@@ -31,22 +32,16 @@ type Json
     ## Serialize an Object to JSON
     stringify : Text
     stringify object =
-        json = object.to_json
+        json = object.to_js_object
         case json of
-            JSON_Object.Value js_object -> json_stringify js_object
+            JS_Object.Value js_object -> json_stringify js_object
             _ -> json_stringify json
 
-    ## Creates a JSON_Object from a list of key-value pairs.
+    ## Convert a Vector of Keys and Values to JSON.
        Keys must be `Text` values.
-    from_pairs : Vector -> JSON_Object
+    from_pairs : Vector -> Text
     from_pairs pairs =
-        js_object = pairs.fold new_object current->pair->
-            case pair.at 0 of
-                _ : Text ->
-                    set_value current (pair.at 0) (pair.at 1).to_json
-                    current
-                _ -> Error.throw (Illegal_Argument.Error "JSON_Object.from_pairs: key must be a Text value")
-        JSON_Object.Value js_object
+        JS_Object.from_pairs pairs . to_text
 
 ## UNSTABLE
 
@@ -107,7 +102,23 @@ type Marshalling_Error
         Marshalling_Error.Missing_Field _ field _ ->
             "Missing field in Json: the field `" + field.to_text "` was missing in the json."
 
-type JSON_Object
+type JS_Object
+    ## Creates a JS_Object from a list of key-value pairs.
+       Keys must be `Text` values.
+       Values will be recursively converted to JSON serializable as needed.
+    from_pairs : Vector -> JS_Object
+    from_pairs pairs =
+        js_object = pairs.fold new_object current->pair->
+            case pair.at 0 of
+                _ : Text ->
+                    js_value = case pair.at 1 of
+                        JS_Object.Value js_object -> js_object
+                        enso -> enso.to_js_object
+                    set_value current (pair.at 0) js_value
+                    current
+                _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
+        JS_Object.Value js_object
+
     ## PRIVATE
     Value js_object
 
@@ -116,11 +127,19 @@ type JSON_Object
        Arguments:
        - key: The key to get.
        - other: The value to return if the key is not found.
-    get : Text -> Any -> JSON_Object | Boolean | Number | Nothing | Text | Vector
+    get : Text -> Any -> JS_Object | Boolean | Number | Nothing | Text | Vector
     get self key ~other=Nothing =
         if (has_property self.js_object key) . not then other else
             value = get_value self.js_object key
             make_enso value
+
+    ## Get a value for a key of the object.
+       If the key is not found, throws a `No_Such_Key` error.
+
+       Arguments:
+       - key: The key to get.
+    at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
     ## Get the keys of the object
     field_names : Vector
@@ -140,12 +159,24 @@ type JSON_Object
         Vector.from_polyglot_array proxy
 
     ## Convert the object to a JSON
-    to_json : JSON_Object
-    to_json self = self
+    to_js_object : JS_Object
+    to_js_object self = self
 
     ## Convert to string
     to_text : Text
     to_text self = json_stringify self.js_object
+
+    ## Checks if this JS_Object is equal to another JS_Object.
+
+       Arguments:
+       - that: The map to compare `self` to.
+    == : JS_Object -> Boolean
+    == self that = case that of
+        _ : JS_Object ->
+            self_keys = self.field_names
+            that_keys = that.field_names
+            self_keys.length == that_keys.length && self_keys.all key-> self.get key == that.get key
+        _ -> Error.throw (Type_Error.Error JS_Object that "that")
 
 make_enso js_object =
     case js_object of
@@ -156,7 +187,10 @@ make_enso js_object =
         _ : Array ->
             proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
             Vector.from_polyglot_array proxy
-        _ -> JSON_Object.Value js_object
+        _ : Vector ->
+            proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
+            Vector.from_polyglot_array proxy
+        _ -> JS_Object.Value js_object
 
 foreign js new_object = """
     return {}

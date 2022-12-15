@@ -1,6 +1,6 @@
 import project.Any.Any
 import project.Data.Json.Json
-import project.Data.Json.JSON_Object
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Error.Error
@@ -157,17 +157,19 @@ type Time_Zone
     zone_id : Text
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
 
-    ## Convert the time zone to JSON.
+    ## Convert to a JavaScript Object representing this Time_Zone.
 
        > Example
-         Convert your system's current timezone to JSON.
+         Convert your system's current timezone to a JS_Object.
 
              from Standard.Base import Time_Zone
 
-             example_to_json = Time_Zone.system.to_json
-    to_json : JSON_Object
-    to_json self =
-        Json.from_pairs [["type", "Standard.Base.Data.Time.Time_Zone.Time_Zone"], ["constructor", "parse"], ["id", self.zone_id]]
+             example_to_json = Time_Zone.system.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Standard.Base.Data.Time.Time_Zone.Time_Zone"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
 
     ## Compares two Zones for equality.
     == : Time_Zone -> Boolean

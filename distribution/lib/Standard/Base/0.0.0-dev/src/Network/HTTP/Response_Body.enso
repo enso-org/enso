@@ -1,6 +1,6 @@
 import project.Data.Boolean.Boolean
 import project.Data.Json.Json
-import project.Data.Json.JSON_Object
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Number
 import project.Data.Text.Extensions
 import project.Data.Text.Text
@@ -54,6 +54,6 @@ type Response_Body
 
              import Standard.Examples
 
-             example_to_text = Examples.get_geo_data.to_json
-    parse_json : JSON_Object | Boolean | Number | Nothing | Text | Vector
+             example_to_text = Examples.get_geo_data.parse_json
+    parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector
     parse_json self = Json.parse self.to_text

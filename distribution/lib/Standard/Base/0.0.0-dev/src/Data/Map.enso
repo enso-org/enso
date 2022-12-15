@@ -200,7 +200,7 @@ type Map
              example_get = Examples.map.get 1
     get : Any -> Any ! No_Such_Key
     get self key =
-        self.get_or_else key (Error.throw (No_Such_Key.Error key))
+        self.get_or_else key (Error.throw (No_Such_Key.Error self key))
 
     ## Gets the value associated with `key` in this map, or returns `other` if
        it isn't present.
