@@ -274,16 +274,6 @@ impl<Out: Data> HasOutput for NodeData<Out> {
 impl<Out: Data> EventEmitter for NodeData<Out> {
     fn emit_event(&self, stack: CallStack, value: &Out) {
         let new_stack = stack.sub(self.label);
-        // let prev_hook = std::panic::take_hook();
-        // let prev_hook = std::sync::Arc::new(std::sync::Mutex::new(Some(prev_hook)));
-        // let prev_hook_inner = prev_hook.clone();
-        // let label: &'static str = self.label;
-        // std::panic::set_hook(Box::new(move |info| {
-        //     error!("Panicked while emitting FRP node: '{}'", label);
-        //     let guard = prev_hook_inner.lock().unwrap();
-        //     let prev_hook = guard.as_ref().unwrap();
-        //     (*prev_hook)(info);
-        // }));
         if self.ongoing_evaluations.get() > EVALUATIONS_LIMIT {
             let logger: Logger = Logger::new("frp");
             warning!(logger, "The recursive evaluations limit exceeded.", || {
@@ -310,8 +300,6 @@ impl<Out: Data> EventEmitter for NodeData<Out> {
             }
             self.ongoing_evaluations.set(self.ongoing_evaluations.get() - 1);
         }
-        // let prev_hook = prev_hook.lock().unwrap().take().unwrap();
-        // std::panic::set_hook(prev_hook);
     }
 
     fn register_target(&self, target: EventInput<Out>) {
