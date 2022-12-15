@@ -1031,7 +1031,13 @@ object Main {
             exitFail()
           }
 
-      ProjectUploader.updateManifest(projectRoot, logLevel)
+      try {
+        ProjectUploader.updateManifest(projectRoot, logLevel)
+      } catch {
+        case NonFatal(err) =>
+          err.printStackTrace()
+          exitFail()
+      }
       exitSuccess()
     }
 
