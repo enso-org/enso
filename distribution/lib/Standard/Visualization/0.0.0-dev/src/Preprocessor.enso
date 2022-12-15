@@ -4,7 +4,9 @@ import project.Helpers
 ## PRIVATE
 
    Default visualization preprocessor.
-default_preprocessor x = x.to_default_visualization_data
+default_preprocessor x =
+    ## Workaround so that the JS String is converted to a Text
+    "" + x.to_default_visualization_data
 
 ## PRIVATE
 

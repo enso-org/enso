@@ -168,7 +168,7 @@ type JS_Object
 
     ## Convert to string
     to_text : Text
-    to_text self = json_stringify self.js_object
+    to_text self = json_stringify self.js_object + ""
 
     ## Checks if this JS_Object is equal to another JS_Object.
 

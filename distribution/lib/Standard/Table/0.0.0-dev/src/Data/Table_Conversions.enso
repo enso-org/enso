@@ -17,18 +17,18 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
         _ : Delimited_Format -> Delimited_Writer.write_text that format
         _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
 
-## ALIAS To Table
-
-   Converts a JSON array into a dataframe, by looking up the requested keys
+## Converts a JSON object or a Vector into a dataframe, by looking up the requested keys
    from each item.
 
    Arguments:
    - fields: a vector of texts representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
 
    The function assumes the elements have one of the following structures:
    - a JSON object containing the requested keys. In case an item is not an
      object, or the request key does not exist, the relevant values of the table
      will be set to `Nothing`.
+   - otherwise, the element will match the `Value` field name.
 
    > Example Converts a JSON array containing key-value pairs into a table for the
      provided headers.
@@ -39,9 +39,9 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
          example_to_table =
              json = Examples.simple_table_json
              headers = Examples.simple_table_json_headers
-             json.to_table headers
-Json.to_table : Any -> Vector | Nothing -> Table
-Json.to_table value fields=Nothing =
+             Table.from_json json headers
+Table.from_json : Any -> Vector | Nothing -> Table
+Table.from_json value fields=Nothing =
     table_for_value v =
         column_names = fields.if_nothing ["Value"]
         column_values = column_names.map f-> if f == "Value" then v else Nothing
@@ -53,7 +53,7 @@ Json.to_table value fields=Nothing =
         _ : Number -> "Value"
         _ : Boolean -> "Value"
         _ : Text -> "Value"
-        _ -> Invalid_JSON_Format.throw ("Json.to_table invalid item: " + v.to_text)
+        _ -> Error.throw (Invalid_JSON_Format.Error v "Invalid item for Json.to_table.")
 
     get_value v field = case v of
         _ : JS_Object -> v.get field
@@ -78,4 +78,4 @@ Json.to_table value fields=Nothing =
                     data.append (get_value v f)
             used_fields = fields.if_nothing column_map.keys
             Table.new used_fields (used_fields.map f-> column_map.get f . to_vector)
-        _ -> Invalid_JSON_Format.throw "Json.to_table expects a JSON valid type."
+        _ -> Error.throw (Invalid_JSON_Format.Error value "Invalid value for Json.to_table.")

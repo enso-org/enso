@@ -66,17 +66,6 @@ spec =
             deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
             "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
-        Test.specify "should parse and convert JSON into domain model" <|
-            book_1 = Book.Value "Lord of the Rings" <| Author.Value "J. R. R. Tolkien" 1892
-            book_2 = Book.Value "The Little Prince" <| Author.Value "Antoine de Saint-Exupéry" 1900
-            book_3 = Book.Value "And Then There Were None" <| Author.Value "Agatha Christie" 1890
-            books = [book_1, book_2, book_3]
-
-            json_string = (enso_project.data / "books.json").read_text
-            parsed = Json.parse json_string
-            domain = parsed.into (Vector.fill 1 (Book.Value title=Text (Author.Value name=Text year_of_birth=Number)))
-            domain.should_equal books
-
     Test.group "JSON Serialization" <|
         Test.specify "should print JSON structures to valid json" <|
             "0".should_render_itself
