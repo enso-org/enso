@@ -1,12 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.SpecializationStatistics;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -14,7 +14,6 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
@@ -23,19 +22,23 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.ExecuteCallNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen.InvokeEqualsNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
-import com.oracle.truffle.api.dsl.SpecializationStatistics;
 
 @BuiltinMethod(
     type = "Any",
@@ -307,6 +310,9 @@ public abstract class EqualsNode extends Node {
 
   @Specialization
   boolean equalsAtomConstructors(AtomConstructor selfConstructor, AtomConstructor otherConstructor) {
+    // TODO: return selfConstructor == otherConstructor?
+    //  Otherwise, it should be behind TruffleBoujndary because of String.equals
+
     String selfConstrName = selfConstructor.getName();
     String otherConstrName = otherConstructor.getName();
     boolean isSelfBuiltin = selfConstructor.isBuiltin();
@@ -326,8 +332,7 @@ public abstract class EqualsNode extends Node {
   }
 
   /**
-   * How many {@link EqualsNode} should be created for fields in specialization for atoms
-   * ({@link #equalsAtoms(Atom, Atom, EqualsNode, LoopConditionProfile, EqualsNode[], ConditionProfile)}
+   * How many {@link EqualsNode} should be created for fields in specialization for atoms.
    */
   static final int equalsNodeCountForFields = 10;
 
@@ -337,12 +342,18 @@ public abstract class EqualsNode extends Node {
     return nodes;
   }
 
+  static InvokeEqualsNode[] createInvokeEqualsNodes(int size) {
+    InvokeEqualsNode[] nodes = new InvokeEqualsNode[size];
+    Arrays.fill(nodes, InvokeEqualsNode.build());
+    return nodes;
+  }
 
   @Specialization
   boolean equalsAtoms(Atom self, Atom otherAtom,
       @Cached EqualsNode constrEqualsNode,
       @Cached LoopConditionProfile loopProfile,
       @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
+      @Cached(value = "createInvokeEqualsNodes(equalsNodeCountForFields)", allowUncached = true) InvokeEqualsNode[] fieldInvokeEqualsNodes,
       @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
       @Cached ConditionProfile fieldsSizeNotEqualProfile,
       @Cached ConditionProfile constructorsNotEqualProfile) {
@@ -352,6 +363,7 @@ public abstract class EqualsNode extends Node {
       return false;
     }
     if (constructorsNotEqualProfile.profile(
+        //TODO: self.getConstructor() != otherAtom.getConstructor()
         !constrEqualsNode.execute(self.getConstructor(), otherAtom.getConstructor())
     )) {
       return false;
@@ -362,29 +374,131 @@ public abstract class EqualsNode extends Node {
     if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
       loopProfile.profileCounted(fieldsSize);
       for (int i = 0; loopProfile.inject(i < fieldsSize); i++) {
-        boolean areFieldsSame = fieldEqualsNodes[i].execute(
-            self.getFields()[i],
-           otherAtom.getFields()[i]
-        );
+        boolean areFieldsSame;
+        // Note that otherFieldAtom does not have to override `==` method, it is sufficient if
+        // selfFieldAtom overrides `==` method.
+        Object selfField = self.getFields()[i];
+        Object otherField = otherAtom.getFields()[i];
+        if (selfField instanceof Atom selfFieldAtom
+            && otherField instanceof Atom otherFieldAtom
+            && atomOverridesEquals(selfFieldAtom)
+        ) {
+          areFieldsSame =
+              fieldInvokeEqualsNodes[i].execute(selfFieldAtom, otherFieldAtom);
+        } else {
+          areFieldsSame = fieldEqualsNodes[i].execute(
+              selfField,
+              otherField
+          );
+        }
         if (!areFieldsSame) {
           return false;
         }
       }
     } else {
       // If there are more fields than equalsNodeCountForFields, just bailout and use
-      // uncached variant of EqualsNode
+      // uncached variant of EqualsNode and InvokeEqualsNode
       CompilerDirectives.transferToInterpreterAndInvalidate();
       for (int i = 0; i < fieldsSize; i++) {
-        boolean areFieldsSame = EqualsNodeGen.getUncached().execute(
-            self.getFields()[i],
-           otherAtom.getFields()[i]
-        );
+        Object selfField = self.getFields()[i];
+        Object otherField = otherAtom.getFields()[i];
+        boolean areFieldsSame;
+        if (selfField instanceof Atom selfFieldAtom
+            && otherField instanceof Atom otherFieldAtom
+            && atomOverridesEquals(selfFieldAtom)) {
+          areFieldsSame = InvokeEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
+        } else {
+          areFieldsSame = EqualsNodeGen.getUncached().execute(selfField, otherField);
+        }
         if (!areFieldsSame) {
           return false;
         }
       }
     }
     return true;
+  }
+
+  /**
+   * Helper node for invoking `==` method on atoms, that override this method.
+   */
+  @GenerateUncached
+  static abstract class InvokeEqualsNode extends Node {
+    static InvokeEqualsNode getUncached() {
+      return InvokeEqualsNodeGen.getUncached();
+    }
+
+    static InvokeEqualsNode build() {
+      return InvokeEqualsNodeGen.create();
+    }
+
+    abstract boolean execute(Atom selfAtom, Atom otherAtom);
+
+    @Specialization(guards = "cachedSelfAtomCtor == selfAtom.getConstructor()")
+    boolean invokeEqualsCachedAtomCtor(Atom selfAtom, Atom otherAtom,
+        @Cached("selfAtom.getConstructor()") AtomConstructor cachedSelfAtomCtor,
+        @Cached("getEqualsMethod(cachedSelfAtomCtor)") Function equalsMethod,
+        @Cached ExecuteCallNode executeCallNode,
+        @CachedLibrary(limit = "3") InteropLibrary interop) {
+      assert atomOverridesEquals(selfAtom);
+      Object ret = executeCallNode.executeCall(
+          equalsMethod,
+          null,
+          State.create(EnsoContext.get(this)),
+          new Object[]{selfAtom, otherAtom}
+      );
+      try {
+        return interop.asBoolean(ret);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Specialization(replaces = "invokeEqualsCachedAtomCtor")
+    boolean invokeEqualsUncached(Atom selfAtom, Atom otherAtom,
+        @Cached ExecuteCallNode executeCallNode) {
+      Function equalsMethod = getEqualsMethod(selfAtom.getConstructor());
+      Object ret = executeCallNode.executeCall(
+          equalsMethod,
+          null,
+          State.create(EnsoContext.get(this)),
+          new Object[]{selfAtom, otherAtom}
+      );
+      assert InteropLibrary.getUncached().isBoolean(ret);
+      try {
+        return InteropLibrary.getUncached().asBoolean(ret);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    static Function getEqualsMethod(AtomConstructor atomConstructor) {
+      Type atomType = atomConstructor.getType();
+      Function equalsFunction = atomConstructor
+          .getDefinitionScope()
+          .getMethods()
+          .get(atomType)
+          .get("==");
+      assert equalsFunction != null;
+      return equalsFunction;
+    }
+  }
+
+  /**
+   * Returns true if the given atom overrides `==` operator.
+   */
+  @TruffleBoundary
+  private static boolean atomOverridesEquals(Atom atom) {
+    var atomType = atom.getConstructor().getType();
+    Map<String, Function> methodsOnType = atom
+        .getConstructor()
+        .getDefinitionScope()
+        .getMethods()
+        .get(atomType);
+    if (methodsOnType != null) {
+      return methodsOnType.containsKey("==");
+    } else {
+      return false;
+    }
   }
 
   @Fallback
