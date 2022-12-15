@@ -76,6 +76,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
             default()
         }
     };
+    state.metadata = meta;
     let result = env.new_direct_byte_buffer(&mut state.output);
     result.unwrap().into_inner()
 }
