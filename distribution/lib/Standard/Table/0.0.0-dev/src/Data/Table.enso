@@ -815,7 +815,7 @@ type Table
                 column
 
         new_columns = self.columns.map column->
-            is_selected = selected_names.get_or_else column.name False
+            is_selected = selected_names.get column.name False
             if is_selected then transform column else column
 
         result = Table.new new_columns
@@ -1237,7 +1237,7 @@ type Table
 
         selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
 
-        data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
+        data = columns_helper.internal_columns.filter column->(selected_names.get column.name False . not)
         java_data = data.map .java_column
 
         java_id = id_columns.map .java_column

@@ -115,6 +115,8 @@ spec =
             object.get "bar" 1 . should_equal 1
             object.at "foo" . should_equal "bar"
             object.at "bar" . should_fail_with No_Such_Key.Error
+            Json.parse "null" . get "foo" . should_equal Nothing
+            Json.parse "null" . get "foo" 1 . should_equal 1
 
         Test.specify "should be able to get field_names" <|
             Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["foo", "baz"]

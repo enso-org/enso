@@ -30,9 +30,9 @@ spec =
         Test.specify "should convert to Json" <|
             zone = Time_Zone.new 1 2 3
             zone.to_json.should_equal <|
-                Json.from_pairs [["type", "Time_Zone"], ["id", "+01:02:03"]]
+                Json.from_pairs [["type", "Standard.Base.Data.Time.Time_Zone.Time_Zone"], ["constructor", "new"], ["id", "+01:02:03"]]
             Time_Zone.utc.to_json.should_equal <|
-                Json.from_pairs [["type", "Time_Zone"], ["id", "UTC"]]
+                Json.from_pairs [["type", "Standard.Base.Data.Time.Time_Zone.Time_Zone"], ["constructor", "new"], ["id", "UTC"]]
         Test.specify "should throw error when parsing invalid zone id" <|
             case Time_Zone.parse "foo" . catch of
                 Time_Error.Error msg ->
@@ -64,9 +64,9 @@ spec =
         Test.specify "should convert to Json" <|
             zone = ZoneOffset.ofHoursMinutesSeconds 1 2 3
             zone.to_json.should_equal <|
-                Json.from_pairs [["type", "Time_Zone"], ["id", "+01:02:03"]]
+                Json.from_pairs [["type", "Standard.Base.Data.Time.Time_Zone.Time_Zone"], ["constructor", "new"], ["id", "+01:02:03"]]
             (ZoneId.of "UTC").to_json.should_equal <|
-                Json.from_pairs [["type", "Time_Zone"], ["id", "UTC"]]
+                Json.from_pairs [["type", "Standard.Base.Data.Time.Time_Zone.Time_Zone"], ["constructor", "new"], ["id", "UTC"]]
         Test.specify "should correctly determine the type of zone" <|
             zone = ZoneId.systemDefault
             Meta.type_of zone . should_equal_type Time_Zone

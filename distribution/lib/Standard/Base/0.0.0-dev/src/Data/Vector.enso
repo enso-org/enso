@@ -950,7 +950,7 @@ type Vector a
             result = self.fold Map.empty existing->
                 item->
                     key = on item
-                    if (existing.get_or_else key False) then existing else
+                    if (existing.get key False) then existing else
                         builder.append item
                         existing.insert key True
             if result.is_error then result else builder.to_vector

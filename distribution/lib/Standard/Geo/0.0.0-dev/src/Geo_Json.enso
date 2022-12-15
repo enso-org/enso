@@ -32,7 +32,7 @@ type Object_Type
 Json.get_type : Any
 Json.get_type self = case self of
     Json.Object object ->
-        object.get_or_else "type" Nothing.to_json . unwrap
+        object.get "type" Nothing.to_json . unwrap
 
 ## PRIVATE
 
@@ -59,7 +59,7 @@ Json.get_properties_row self = case self of
 Json.get_geometry_row : Map
 Json.get_geometry_row self = case self of
     Json.Object fields ->
-          geometry_type = fields.get_or_else "type" Nothing
+          geometry_type = fields.get "type"
           if geometry_type == "Point".to_json then self.get_point_row else Map.empty
 
 ## PRIVATE
