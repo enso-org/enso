@@ -1,5 +1,6 @@
 package org.enso.table.aggregations;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
@@ -26,9 +27,9 @@ public class Mode extends Aggregator {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
         // Merge all numbers onto a Long if possible or a Double if needed
-        Long lValue = CastToLong(value);
+        Long lValue = NumericConverter.tryConvertingToLong(value);
         if (lValue == null) {
-          Double dValue = CastToDouble(value);
+          Double dValue = NumericConverter.tryConvertingToDouble(value);
           if (dValue != null) {
             this.addProblem(new FloatingPointGrouping(this.getName(), row));
             value = dValue;

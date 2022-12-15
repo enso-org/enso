@@ -221,11 +221,10 @@ public class Table {
    * Creates an index for this table by using values from the specified columns.
    *
    * @param columns set of columns to use as an Index
-   * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
    * @return a table indexed by the proper column
    */
-  public MultiValueIndex indexFromColumns(Column[] columns, Comparator<Object> objectComparator) {
-    return new MultiValueIndex(columns, this.rowCount(), objectComparator);
+  public MultiValueIndex<?> indexFromColumns(Column[] columns) {
+    return MultiValueIndex.makeUnorderedIndex(columns, this.rowCount(), TextFoldingStrategy.unicodeNormalizedFold);
   }
 
   /**
@@ -237,7 +236,7 @@ public class Table {
    */
   public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
-    MultiValueIndex index = new MultiValueIndex(columns, this.rowCount(), directionInts, objectComparator);
+    MultiValueIndex<?> index = MultiValueIndex.makeOrderedIndex(columns, this.rowCount(), directionInts, objectComparator);
     OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
     return this.applyMask(mask);
   }
@@ -294,9 +293,7 @@ public class Table {
     JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
     if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
-      // TODO We'll want a mixed strategy doing Index for supported conditions and then scanning on subgroups. For now Index works only for the simple happy path.
-      boolean allCanUseIndex = conditions.stream().allMatch(IndexJoin::isSupported);
-      JoinStrategy strategy = allCanUseIndex ? new IndexJoin(objectComparator) : new ScanJoin(objectComparator, equalityFallback);
+      JoinStrategy strategy = new IndexJoin(objectComparator, equalityFallback);
       joinResult = strategy.join(this, right, conditions);
     }
 

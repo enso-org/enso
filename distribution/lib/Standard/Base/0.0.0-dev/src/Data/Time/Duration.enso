@@ -6,6 +6,7 @@ import project.Data.Pair.Pair
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Illegal_State.Illegal_State
@@ -197,9 +198,9 @@ type Duration
                  duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
-    compare_to self that =
-        ensure_duration that <|
-            Ordering.from_sign (self.compare_to_builtin that)
+    compare_to self that = case that of
+        _ : Duration -> Ordering.from_sign (self.compare_to_builtin that)
+        _ -> Error.throw (Type_Error.Error Duration that "that")
 
     ## Get the portion of the duration expressed in nanoseconds.
 

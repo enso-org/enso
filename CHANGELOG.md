@@ -257,6 +257,7 @@
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
 - [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
+- [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -404,6 +405,7 @@
 [3885]: https://github.com/enso-org/enso/pull/3885
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
+[3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 
 #### Enso Compiler

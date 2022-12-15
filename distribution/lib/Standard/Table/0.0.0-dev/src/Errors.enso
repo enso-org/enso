@@ -2,10 +2,10 @@ from Standard.Base import all
 
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
-
-## One or more columns not found in the input table.
-   Can occur when using By_Name or By_Column.
 type Missing_Input_Columns
+    ## PRIVATE
+       One or more columns not found in the input table.
+       Can occur when using By_Name or By_Column.
     Error (criteria : [Text])
 
     ## PRIVATE
@@ -15,9 +15,10 @@ type Missing_Input_Columns
     to_display_text self =
         "The criteria "+self.criteria.to_text+" did not match any columns."
 
-## One or more column indexes were invalid on the input table.
-   Can occur when using By_Index.
 type Column_Indexes_Out_Of_Range
+    ## PRIVATE
+       One or more column indexes were invalid on the input table.
+       Can occur when using By_Index.
     Error (indexes : [Integer])
 
     ## PRIVATE
@@ -28,9 +29,10 @@ type Column_Indexes_Out_Of_Range
         True -> "The index " + (self.indexes.at 0).to_text + " is out of range."
         False -> "The indexes "+self.indexes.short_display_text+" are out of range."
 
-## More names than the column count provided to the function.
-   Can occur when using By_Position.
 type Too_Many_Column_Names_Provided
+    ## PRIVATE
+       More names than the column count provided to the function.
+       Can occur when using By_Position.
     Error (column_names : [Text])
 
     ## PRIVATE

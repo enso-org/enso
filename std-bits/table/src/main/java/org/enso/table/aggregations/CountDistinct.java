@@ -1,9 +1,11 @@
 package org.enso.table.aggregations;
 
+import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.util.ConstantList;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -16,7 +18,7 @@ import java.util.List;
  */
 public class CountDistinct extends Aggregator {
   private final Storage<?>[] storage;
-  private final Comparator<Object> objectComparator;
+  private final List<TextFoldingStrategy> textFoldingStrategy;
   private final boolean ignoreAllNull;
 
   /**
@@ -26,19 +28,19 @@ public class CountDistinct extends Aggregator {
    * @param columns input columns
    * @param ignoreAllNull if true ignore then all values are null
    */
-  public CountDistinct(
-      String name, Column[] columns, boolean ignoreAllNull, Comparator<Object> objectComparator) {
+  public CountDistinct(String name, Column[] columns, boolean ignoreAllNull) {
     super(name, Storage.Type.LONG);
     this.storage = Arrays.stream(columns).map(Column::getStorage).toArray(Storage[]::new);
     this.ignoreAllNull = ignoreAllNull;
-    this.objectComparator = objectComparator;
+    textFoldingStrategy =
+        ConstantList.make(TextFoldingStrategy.unicodeNormalizedFold, storage.length);
   }
 
   @Override
   public Object aggregate(List<Integer> indexes) {
     HashSet<UnorderedMultiValueKey> set = new HashSet<>();
     for (int row : indexes) {
-      UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row);
+      UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, row, textFoldingStrategy);
       if (key.hasFloatValues()) {
         this.addProblem(new FloatingPointGrouping(this.getName(), row));
       }
