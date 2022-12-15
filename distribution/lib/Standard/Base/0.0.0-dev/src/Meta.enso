@@ -1,9 +1,11 @@
 import project.Any.Any
+import project.Nothing.Nothing
 import project.Data.Array.Array
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
+import project.Data.Text.Extensions
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date.Date
 import project.Data.Time.Duration.Duration
@@ -287,6 +289,22 @@ meta value = if is_atom value then Atom.Value value else
             if is_unresolved_symbol value then Unresolved_Symbol.Value value else
                 if is_error value then Error.Value value.catch else
                     Primitive.Value value
+
+## Given a type object, method name and parameter name, return the associated Attribute if it exists.
+
+   Attributes:
+   - target: The value or type to get the attribute from.
+   - method_name: The name of the method to get the attribute for.
+   - parameter_name: The name of the parameter to get the attribute for.
+Meta.get_annotation : Any -> Text -> Text -> Any | Nothing
+Meta.get_annotation target method_name parameter_name =
+    mock_table = if (target.to_text.contains "org.enso.table.data.table.Table@").not then Nothing else case method_name of
+        "at" -> case parameter_name of
+            "selector" -> target.columns.map .name
+            _ -> Nothing
+        _ -> Nothing
+
+    mock_table
 
 ## UNSTABLE
    ADVANCED
