@@ -945,15 +945,17 @@ mod test {
             expect_call!(json_client.vcs_status(root_path) => Ok(vcs_status));
 
             let ls = engine_protocol::language_server::Connection::new_mock_rc(json_client);
-            let mut publisher = notification::Publisher::default();
+            let publisher = notification::Publisher::default();
             let mut subscriber = publisher.subscribe();
 
-            let result = check_vcs_status_and_notify(root_id, ls.clone_ref(), publisher.clone_ref()).await;
+            let result =
+                check_vcs_status_and_notify(root_id, ls.clone_ref(), publisher.clone_ref()).await;
             let message = subscriber.next().await;
             assert_matches!(result, Ok(_));
             assert_matches!(message, Some(model::project::Notification::VcsStatusChanged(false)));
 
-            let result = check_vcs_status_and_notify(root_id, ls.clone_ref(), publisher.clone_ref()).await;
+            let result =
+                check_vcs_status_and_notify(root_id, ls.clone_ref(), publisher.clone_ref()).await;
             let message = subscriber.next().await;
             assert_matches!(result, Ok(_));
             assert_matches!(message, Some(model::project::Notification::VcsStatusChanged(true)));
