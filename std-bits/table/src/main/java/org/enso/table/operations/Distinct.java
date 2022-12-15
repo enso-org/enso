@@ -9,6 +9,7 @@ import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.util.ConstantList;
 
 public class Distinct {
   /** Creates a row mask containing only the first row from sets of rows grouped by key columns. */
@@ -23,8 +24,9 @@ public class Distinct {
       int size = keyColumns[0].getSize();
       Storage<?>[] storage =
           Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+      List<TextFoldingStrategy> strategies = ConstantList.make(textFoldingStrategy, storage.length);
       for (int i = 0; i < size; i++) {
-        UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, textFoldingStrategy);
+        UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, strategies);
 
         if (key.hasFloatValues()) {
           problems.add(new FloatingPointGrouping("Distinct", i));

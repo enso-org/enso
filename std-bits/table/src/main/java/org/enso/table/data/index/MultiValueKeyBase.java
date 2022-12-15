@@ -1,5 +1,6 @@
 package org.enso.table.data.index;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.ArrayList;
@@ -31,8 +32,8 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
-    for (Storage<?> value : storages) {
-      if (!value.isNa(rowIndex)) {
+    for (Storage<?> storage : storages) {
+      if (!storage.isNa(rowIndex)) {
         return false;
       }
     }
@@ -52,14 +53,10 @@ public abstract class MultiValueKeyBase {
     return hasFloatValues;
   }
 
-  protected boolean isFloatingPoint(Object value) {
-    return value instanceof Double || value instanceof Float;
-  }
-
   private boolean findFloats() {
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
-      if (isFloatingPoint(value)) {
+      if (NumericConverter.isDecimalLike(value)) {
         return true;
       }
     }
@@ -74,7 +71,7 @@ public abstract class MultiValueKeyBase {
     List<Integer> result = new ArrayList<>();
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
-      if (isFloatingPoint(value)) {
+      if (NumericConverter.isDecimalLike(value)) {
         result.add(i);
       }
     }

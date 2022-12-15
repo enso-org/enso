@@ -19,7 +19,6 @@ component-groups:
         exports:
           - Standard.Table.Data.Table.Table.at
           - Standard.Table.Data.Table.Table.select_columns
-          - Standard.Table.Data.Table.Table.rename_columns
           - Standard.Table.Data.Table.Table.remove_columns
           - Standard.Table.Data.Table.Table.reorder_columns
           - Standard.Table.Data.Table.Table.sort_columns
@@ -29,8 +28,11 @@ component-groups:
           - Standard.Table.Data.Table.Table.aggregate
     - Standard.Base.Transform:
         exports:
+          - Standard.Table.Data.Table.Table.rename_columns
+          - Standard.Table.Data.Table.Table.filter
           - Standard.Table.Data.Table.Table.order_by
-          - Standard.Table.Data.Table.Table.to_csv
+          - Standard.Table.Data.Table.Table.transpose
+          - Standard.Table.Data.Table.Table.cross_tab
           - Standard.Table.Data.Column.Column.to_table
     - Standard.Base.Output:
         exports:

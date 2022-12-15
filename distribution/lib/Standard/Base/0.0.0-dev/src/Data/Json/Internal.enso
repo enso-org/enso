@@ -279,7 +279,7 @@ render_helper builder json = case json of
     Json.String value ->
         builder + (Printer.json_escape value)
     Json.Number value ->
-        builder + value.to_text
+        builder + (if value.is_nan || value.is_infinite then "null" else value.to_text)
     Json.Boolean value ->
         val = if value then "true" else "false"
         builder + val

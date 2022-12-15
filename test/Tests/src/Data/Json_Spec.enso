@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 from Standard.Base.Data.Json import Json_Parse_Error, No_Such_Field
 
 from Standard.Test import Test, Test_Suite
@@ -34,7 +36,6 @@ Text.should_render_itself self =
 
 spec =
     Test.group "JSON Deserialization" <|
-
         Test.specify "should parse JSON structures" <|
             "0    ".should_parse_as 0
             " 123    ".should_parse_as 123
@@ -88,7 +89,6 @@ spec =
             domain.should_equal books
 
     Test.group "JSON Serialization" <|
-
         Test.specify "should print JSON structures to valid json" <|
             "0".should_render_itself
             "123".should_render_itself
@@ -117,8 +117,12 @@ spec =
                 fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
                 Json.Object fields
 
-    Test.group "JSON" <|
+        Test.specify "should render NaN and Infinity to null" <|
+            Number.nan.to_json.to_text . should_equal "null"
+            Number.positive_infinity.to_json.to_text . should_equal "null"
+            Number.negative_infinity.to_json.to_text . should_equal "null"
 
+    Test.group "JSON" <|
         Test.specify "should allow getting object fields" <|
             object = Json.parse '''
                 { "foo": "bar",
@@ -126,6 +130,42 @@ spec =
                   "y": {"z": null, "w": null} }
 
             object.get "foo" . should_equal (Json.String "bar")
+            object.get_or_else "foo" . should_equal (Json.String "bar")
             object.get "bar" . should_fail_with No_Such_Field.Error
+            object.get_or_else "bar" . should_equal Json.Null
+            object.get_or_else "bar" 1 . should_equal 1
+            Json.Null.get "foo" . should_fail_with No_Such_Field.Error
+            Json.Null.get_or_else "foo" . should_equal Json.Null
+            Json.Null.get_or_else "foo" 1 . should_equal 1
+
+        Test.specify "should be able to get field_names" <|
+            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["baz", "foo"]
+            Json.parse '{}' . field_names . should_equal []
+            Json.parse 'null' . field_names . should_fail_with Illegal_Argument.Error
+            Json.parse '[1,2,3]' . field_names . should_fail_with Illegal_Argument.Error
+
+        Test.specify "should be able to get a value by index" <|
+            Json.parse "[1, 2, 3, 4, 5]" . at 2 . should_equal (Json.Number 3)
+            Json.parse "[1, 2, 3, 4, 5]" . at -2 . should_equal (Json.Number 4)
+            Json.parse "[1, 2, 3, 4, 5]" . at 5 . should_fail_with Index_Out_Of_Bounds.Error
+            Json.parse '"foo"' . at 0 . should_equal (Json.String "f")
+            Json.parse '"foo"' . at -1 . should_equal (Json.String "o")
+            Json.parse '"foo"' . at 3 . should_fail_with Index_Out_Of_Bounds.Error
+            Json.parse '{}' . at 1 . should_fail_with Illegal_Argument.Error
+
+        Test.specify "should be able to make empty objects and array" <|
+            Json.empty_object.should_equal (Json.Object Map.empty)
+            Json.empty_object.to_text.should_equal "{}"
+            Json.empty_array.should_equal (Json.Array [])
+            Json.empty_array.to_text.should_equal "[]"
+
+        Test.specify "should be able to get length" <|
+            Json.empty_object.length.should_equal 0
+            Json.empty_array.length.should_equal 0
+            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . length . should_equal 2
+            Json.parse '[1, 2, 3, 4, 5]' . length . should_equal 5
+            Json.parse '"foo"' . length . should_equal 3
+            Json.parse '""' . length . should_equal 0
+            Json.Null.length.should_fail_with Illegal_Argument.Error
 
 main = Test_Suite.run_main spec
