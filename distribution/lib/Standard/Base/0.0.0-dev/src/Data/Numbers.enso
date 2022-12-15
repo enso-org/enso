@@ -348,6 +348,12 @@ type Number
         _ : Decimal -> Double.isNaN self
         _ -> False
 
+    ## Checks if the given number is infinite.
+    is_infinite : Boolean
+    is_infinite self = case self of
+        _ : Decimal -> Double.isInfinite self
+        _ -> False
+
     ## Returns the sign of the number.
     signum : Integer
     signum self =

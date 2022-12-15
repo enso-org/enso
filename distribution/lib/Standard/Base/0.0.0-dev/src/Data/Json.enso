@@ -2,7 +2,9 @@ import project.Any.Any
 import project.Data.Json.Internal
 import project.Data.Map.Map
 import project.Data.Map.No_Value_For_Key
+import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -113,6 +115,14 @@ type Json
     into self type_descriptor =
         Panic.recover Any (Internal.into_helper type_descriptor self)
 
+    ## Returns an empty JSON object.
+    empty_object : Json
+    empty_object = Json.Object Map.empty
+
+    ## Returns an empty JSON array.
+    empty_array : Json
+    empty_array = Json.Array []
+
     ## Returns this Json object.
 
        This is a no-op on a JSON object, but is included to implement the
@@ -150,10 +160,10 @@ type Json
 
     ## Gets the value associated with the given key in this object.
 
+       Throws `No_Such_Field` if the associated key is not defined.
+
        Arguments:
        - field: The name of the field from which to get the value.
-
-       Throws `Nothing` if the associated key is not defined.
 
        > Example
          Get the "title" field from this JSON representing a book.
@@ -162,11 +172,43 @@ type Json
 
              example_get = Examples.json_object.get "title"
     get : Text -> Json ! No_Such_Field
-    get self field = case self of
-        Json.Object _ -> self.fields.get field . map_error case _ of
-            No_Value_For_Key.Error _ -> No_Such_Field.Error field
-            x -> x
-        _ -> Error.throw (Illegal_Argument.Error "Json.get: self must be an Object")
+    get self field = self.get_or_else field (Error.throw (No_Such_Field.Error field))
+
+    ## Gets the value associated with the given key in this object.
+
+       Arguments:
+       - field: The name of the field from which to get the value.
+       - other: The value to return if not present. Defaults to `Json.Null`.
+    get_or_else : Text -> Any -> Json
+    get_or_else self field ~other=Json.Null = case self of
+        Json.Object fields -> fields.get_or_else field other
+        Json.Null -> other
+        _ -> Error.throw (Illegal_Argument.Error "Json.get_or_else: self must be an Object.")
+
+    ## Gets the value associated with the given index in this object.
+
+       Arguments:
+       - index: The index position from which to get the value.
+    at : Integer -> Json ! Illegal_Argument | Out_Of_Bounds
+    at self index = case self of
+        Json.Array array -> array.at index
+        Json.String text -> Json.String (text.at index)
+        Json.Null -> Json.Null
+        _ -> Error.throw (Illegal_Argument.Error "Json.at: self must be a String or an Array.")
+
+    ## Gets the set of field names for an object.
+    field_names : Vector ! Illegal_Argument
+    field_names self = case self of
+        Json.Object map -> map.keys
+        _ -> Error.throw (Illegal_Argument.Error "Json.field_name: self must be an Object.")
+
+    ## Returns the number of items in this array or object or length of string.
+    length : Integer ! Illegal_Argument
+    length self = case self of
+        Json.Array array -> array.length
+        Json.Object map -> map.size
+        Json.String text -> text.length
+        _ -> Error.throw (Illegal_Argument.Error "Json.length: self must be a String, an Object, or an Array.")
 
 ## UNSTABLE
 

@@ -1,5 +1,6 @@
 package org.enso.table.data.index;
 
+import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.storage.Storage;
@@ -7,43 +8,59 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.util.ConstantList;
 
 import java.util.*;
 import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class MultiValueIndex {
+public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
   private final int keyColumnsLength;
-  private final Map<MultiValueKeyBase, List<Integer>> locs;
+  private final Map<KeyType, List<Integer>> locs;
   private final AggregatedProblems problems;
-  private final Comparator<Object> comparator;
 
-  public MultiValueIndex(Column[] keyColumns, int tableSize, Comparator<Object> objectComparator) {
-    this(keyColumns, tableSize, null, objectComparator);
+  public static MultiValueIndex<OrderedMultiValueKey> makeOrderedIndex(
+      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
+    TreeMap<OrderedMultiValueKey, List<Integer>> locs = new TreeMap<>();
+    final Storage<?>[] storage =
+        Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
+    IntFunction<OrderedMultiValueKey> keyFactory =
+        i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator);
+    return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
   }
 
-  public MultiValueIndex(
-      Column[] keyColumns, int tableSize, int[] ordering, Comparator<Object> objectComparator) {
-    this.keyColumnsLength = keyColumns.length;
-    this.comparator = objectComparator;
-    this.problems = new AggregatedProblems();
-
-    boolean isOrdered = ordering != null;
-    this.locs = isOrdered ? new TreeMap<>() : new HashMap<>();
-
-    Storage<?>[] storage =
+  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
+      Column[] keyColumns, int tableSize, List<TextFoldingStrategy> textFoldingStrategies) {
+    HashMap<UnorderedMultiValueKey, List<Integer>> locs = new HashMap<>();
+    final Storage<?>[] storage =
         Arrays.stream(keyColumns).map(Column::getStorage).toArray(Storage[]::new);
-    IntFunction<MultiValueKeyBase> keyFactory =
-        isOrdered
-            ? i -> new OrderedMultiValueKey(storage, i, ordering, objectComparator)
-            : i -> new UnorderedMultiValueKey(storage, i);
+    IntFunction<UnorderedMultiValueKey> keyFactory =
+        i -> new UnorderedMultiValueKey(storage, i, textFoldingStrategies);
+    return new MultiValueIndex<>(keyColumns, tableSize, locs, keyFactory);
+  }
+
+  public static MultiValueIndex<UnorderedMultiValueKey> makeUnorderedIndex(
+      Column[] keyColumns, int tableSize, TextFoldingStrategy commonTextFoldingStrategy) {
+    List<TextFoldingStrategy> strategies =
+        ConstantList.make(commonTextFoldingStrategy, keyColumns.length);
+    return makeUnorderedIndex(keyColumns, tableSize, strategies);
+  }
+
+  private MultiValueIndex(
+      Column[] keyColumns,
+      int tableSize,
+      Map<KeyType, List<Integer>> initialLocs,
+      IntFunction<KeyType> keyFactory) {
+    this.keyColumnsLength = keyColumns.length;
+    this.problems = new AggregatedProblems();
+    this.locs = initialLocs;
 
     if (keyColumns.length != 0) {
       int size = keyColumns[0].getSize();
 
       for (int i = 0; i < size; i++) {
-        MultiValueKeyBase key = keyFactory.apply(i);
+        KeyType key = keyFactory.apply(i);
 
         if (key.hasFloatValues()) {
           final int row = i;
@@ -67,7 +84,7 @@ public class MultiValueIndex {
     final int length = columns.length;
     final int size = locs.size();
 
-    boolean emptyScenario = size == 0 & keyColumnsLength == 0;
+    boolean emptyScenario = size == 0 && keyColumnsLength == 0;
     Builder[] storage =
         Arrays.stream(columns)
             .map(c -> Builder.getForType(c.getType(), emptyScenario ? 1 : size))
@@ -106,7 +123,10 @@ public class MultiValueIndex {
     final int size = locs.size();
 
     var nameIndex =
-        new MultiValueIndex(new Column[] {nameColumn}, nameColumn.getSize(), null, this.comparator);
+        MultiValueIndex.makeUnorderedIndex(
+            new Column[] {nameColumn},
+            nameColumn.getSize(),
+            TextFoldingStrategy.unicodeNormalizedFold);
     final int columnCount = groupingColumns.length + nameIndex.locs.size() * aggregates.length;
 
     // Create the storage
@@ -196,15 +216,15 @@ public class MultiValueIndex {
     return output;
   }
 
-  public Set<MultiValueKeyBase> keys() {
+  public Set<KeyType> keys() {
     return locs.keySet();
   }
 
-  public boolean contains(MultiValueKeyBase key) {
+  public boolean contains(KeyType key) {
     return this.locs.containsKey(key);
   }
 
-  public List<Integer> get(MultiValueKeyBase key) {
+  public List<Integer> get(KeyType key) {
     return this.locs.get(key);
   }
 }
