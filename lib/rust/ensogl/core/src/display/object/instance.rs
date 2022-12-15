@@ -10,7 +10,7 @@
 //!
 //! The main idea behind the Grid layout system is to give the container the ability to alter its
 //! items’ width/height (and order) to best fill the available space (mostly to accommodate to all
-//! kind of display devices and screen sizes). A flex container expands items to fill available free
+//! kind of display devices and screen sizes). A Grid container expands items to fill available free
 //! space or shrinks them to prevent overflow.
 //!
 //! Most importantly, the layout system is direction-agnostic as opposed to common HTML layouts
@@ -43,86 +43,49 @@
 //! - **Grid track:** the space between two adjacent grid lines. You can think of them as the
 //!   columns or rows of the grid.
 //!
-//! - **Grid area:** the total space surrounded by four grid lines. A grid area may be composed of
-//!   any number of grid cells.
+//! - **Grid area:** the total space surrounded by any four grid lines. A grid area may be composed
+//!   of any number of grid cells.
 //!
 //!
 //!
 //! ## Setting elements sizes.
-//! Each display object can be assigned with a horizontal and vertical size. By default the size is
-//! set to 'hug', which means that it will be computed based on the content's size. Alternatively,
-//! the size can be set to a fixed value expressed in one of the units: pixels, percent of the
-//! parent container size, or the fraction of the leftover space in the container. The units will be
+//! Each display object can be assigned with a horizontal and vertical size. By default, the size is
+//! set to 'hug', which means that it will be resolved to the content's size. Alternatively, the
+//! size can be set to a fixed value expressed in one of the units: pixels, percent of the parent
+//! container size, or the fraction of the leftover space in the container. These units will be
 //! covered in the following chapters. For now, let's focus on the 'hug' and fixed pixel sizes.
 //!
-//! You can set the object size by using the [`set_size`] function family. Here is an example of a
-//! display object with width of 10 pixels and height set to 'hug' it's children (the default
-//! value). In case of display objects that do not contain any children, the hug size will be
-//! resolved to 0. The hug resizing is indicated by the `▶` and `◀` symbols in the following
+//! You can set the display object size by using the [`set_size`] function family. Here is an
+//! example of a display object with width of 10 pixels and height set to 'hug' it's children (the
+//! default value). In case of display objects that do not contain any children, the hug size will
+//! be resolved to 0. The hug resizing is indicated by the `▶` and `◀` symbols in the following
 //! illustrations.
 //!
-//! ```text
-//! ╭───────╮
-//! │ root  ▼
-//! │       ▲
-//! ╰───────╯
+//! ```
+//! // ╭───────╮
+//! // │ root  ▼
+//! // │       ▲
+//! // ╰───────╯
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
 //! root.set_size_x(10.0);
 //! ```
 //!
 //!
-//! ## Growing and shrinking objects.
-//! Beside a size, each display object can be assigned with a growth/shrink factor and a
-//! maximum/minimum size. These properties describe how the object should be stretched by the parent
-//! container if there is either a free space left or there is not enough space. You can use the
-//! following methods to control these properties: [`set_grow_factor`], [`set_shrink_factor`],
-//! [`set_max_size`], and [`set_min_size`].
-//!
-//! If there are several objects that can grow, their sizes will be computed as follows:
-//! `min(max_item_size, item_size + item_grow_factor / sum_of_all_grow_factors * leftover_space)`.
-//! Of course, the `leftover_space` value will be adjusted take into consideration max sizes of
-//! sibling objects.
-//!
-//! Analogously, if there are several objects that can shrink, their sizes will be computed as
-//! follows: `min(max_item_size, item_size - item_shrink_factor / sum_of_all_shrink_factors *
-//! missing_space)`.
-//!
-//! For convinience, there are also shortcut methods defined, the [`allow_grow`] and
-//! [`allow_shrink`], which set the grow/shrink factor to 1.0, respectively. The following code
-//! snippet shows a display object with a fixed size of 10 pixels with the the height shrink factor
-//! set to 1, width grow factor set to 1, and maximum width set to 15 pixels:
-//!
-//! ```text
-//! ╭─────────┬───▷┤
-//! │ root    │
-//! │         │ 10
-//! │         △
-//! ╰─────────╯
-//!     10
-//!
-//! let root = display::object::Instance::new();
-//! root.set_size((10.0, 10.0));
-//! root.allow_shrink_y();
-//! root.allow_grow_x();
-//! root.set_max_size_x(15.0);
-//! ```
-//!
-//!
-//!
 //! ## Automatic creation of columns and rows.
-//! Each display object can be asked to automatically place its children by using a Grid layout. The
-//! layout is divided into columns and rows. Every Grid has at leas one column and one row. To
+//! Each display object can be asked to automatically place its children by using the Grid layout.
+//! The layout is divided into columns and rows. Every Grid has at leas one column and one row. To
 //! enable the Grid layout, use the [`use_auto_layout`] method. Here is an example of a display
 //! object with an empty Grid layout:
 //!
-//! ```text
-//! ╔═══ ▶ ◀ ═══╗
-//! ║ ╭─ ▶ ◀ ─╮ ║
-//! ║ │ root  ▼ ▼
-//! ║ │       ▲ ▲
-//! ║ ╰───────╯ ║
-//! ╚═══════════╝
+//! ```
+//! // ╔═══ ▶ ◀ ═══╗
+//! // ║ ╭─ ▶ ◀ ─╮ ║
+//! // ║ │ root  ▼ ▼
+//! // ║ │       ▲ ▲
+//! // ║ ╰───────╯ ║
+//! // ╚═══════════╝
 //!
 //! let root = display::object::Instance::new();
 //! root.use_auto_layout();
@@ -131,77 +94,56 @@
 //! The above illustration contains visualization of both the Grid container and grid cells. The
 //! container is drawn with bold, double lines, while the cells use thin, single lines. All the Grid
 //! dimensions are set to 'hug' by default, including the width and height of the container, widths
-//! of columns and heights of rows. As earlier, an empty Grid layout with hug resizing will be
-// //! resolved to a zero-sized object.
+//! of columns and heights of rows. An empty Grid layout with hug resizing will be resolved to a
+//! zero-sized object.
 //!
-//! You do not need to add columns explicitly. They will be added automatically for you, one for
-//! every child. Columns with the 'hug' width will inherit some properties of their children, which
-//! will be covered in detils in the further sections. The following code defines a new Grid layout
-//! with two children. The children sizes are set explicitly, while the Grid, columns, and rows
-//! sizes are set to 'hug' (default):
+//! You do not need to define columns explicitly. They will be added automatically, one for every
+//! child. Columns with the 'hug' width will inherit some properties of their children, like their
+//! grow factors. The details will be covered in the further sections. The following code defines a
+//! new Grid layout with two children. The children sizes are set manually, while the container,
+//! columns, and rows sizes are set to 'hug' (default):
 //!
-//! ```text
-//! ╔═════════════ ▶ ◀ ═════════════╗
-//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
-//! ║ │ root        ┆  ╭───────╮  │ ║
-//! ║ │  ╭───────╮  ┆  │ node2 │  ▼ ▼
-//! ║ │  │ node1 │  ┆  │       │  ▲ ▲
-//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
-//! ║ ╰─────────────┴─────────────╯ ║
-//! ╚═══════════════════════════════╝
-//!
-//! let root = display::object::Instance::new();
-//! let node1 = root.new_child();
-//! let node2 = root.new_child();
-//! root.use_auto_layout();
-//! node1.set_size((10.0, 10.0));
-//! node2.set_size((10.0, 15.0));
 //! ```
+//! // ╔═════════════ ▶ ◀ ═════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! // ║ │ root        ┆  ╭───────╮  │ ║
+//! // ║ │  ╭───────╮  ┆  │ node2 │  ▼ ▼
+//! // ║ │  │ node1 │  ┆  │       │  ▲ ▲
+//! // ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! // ║ ╰─────────────┴─────────────╯ ║
+//! // ╚═══════════════════════════════╝
 //!
-//! Please note that setting the Grid container size does not influence the children placement if
-//! the columns are set to 'hug':
-//!
-//! ```text
-//! ╔═════════════ ▶ ◀ ══════════════════════════╗
-//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮              ║
-//! ║ │ root        ┆  ╭───────╮  │              ║
-//! ║ │  ╭───────╮  ┆  │ node2 │  ▼              ▼
-//! ║ │  │ node1 │  ┆  │       │  ▲              ▲
-//! ║ │  ╰───────╯  ┆  ╰───────╯  │              ║
-//! ║ ╰─────────────┴─────────────╯              ║
-//! ╚════════════════════════════════════════════╝
-//!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
 //! root.use_auto_layout();
-//! root.set_size_x(30.0);
 //! node1.set_size((10.0, 10.0));
 //! node2.set_size((10.0, 15.0));
 //! ```
 //!
 //! By default, the Grid layout will create as many columns as there are children. You can limit the
-//! maximum number of used columns with the [`set_column_count`] method. You can also prevent the
-//! container from creating new columns and define their properties manually, which will be covered
-//! in the upcoming sections. The following code defines a new Grid layout with a maximum number of
-//! 2 columns:
+//! maximum number of used columns with the [`set_column_count`] method. You can also define the
+//! properties of every column. This topic will be covered in the upcoming sections. The following
+//! code defines a new Grid layout with a maximum number of 2 columns:
 //!
-//! ```text
-//! ╔═════════════ ▶ ◀ ═════════════╗
-//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
-//! ║ │ root        ┆             │ ║
-//! ║ │  ╭───────╮  ┆             ▼ ║
-//! ║ │  │ node3 │  ┆             ▲ ║
-//! ║ │  │       │  ┆             │ ║
-//! ║ │  ╰───────╯  ┆             │ ▼
-//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
-//! ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
-//! ║ │  │ node1 │  ┆  │ node2 │  ▼ ║
-//! ║ │  │       │  ┆  │       │  ▲ ║
-//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
-//! ║ ╰─────────────┴─────────────╯ ║
-//! ╚═══════════════════════════════╝
+//! ```
+//! // ╔═════════════ ▶ ◀ ═════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! // ║ │ root        ┆             │ ║
+//! // ║ │  ╭───────╮  ┆             ▼ ║
+//! // ║ │  │ node3 │  ┆             ▲ ║
+//! // ║ │  │       │  ┆             │ ║
+//! // ║ │  ╰───────╯  ┆             │ ▼
+//! // ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! // ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
+//! // ║ │  │ node1 │  ┆  │ node2 │  ▼ ║
+//! // ║ │  │       │  ┆  │       │  ▲ ║
+//! // ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! // ║ ╰─────────────┴─────────────╯ ║
+//! // ╚═══════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -213,46 +155,125 @@
 //! ```
 //!
 //!
+//! ## Growing and shrinking objects.
+//! Beside a size, each display object can be assigned with a growth/shrink factor and a
+//! maximum/minimum size. These properties describe how the object should be stretched by the parent
+//! container if there is either a free space left or there is not enough space. You can use the
+//! following methods to control these properties: [`set_grow_factor`], [`set_shrink_factor`],
+//! [`set_max_size`], and [`set_min_size`].
+//!
+//! If there are several objects that can grow, the leftover space will be distributed to them by
+//! weight computed as `item_grow_factor / sum_of_all_grow_factors`. Analogously, if there are
+//! several objects that can shrink, their sizes will be decreased by weight computed as
+//! `item_shrink_factor / sum_of_all_shrink_factors`.
+//!
+//! For convenience, there are also shortcut methods defined. The [`allow_grow`] and
+//! [`allow_shrink`] set the grow and shrink factors to 1.0, respectively. The following code
+//! constructs a display object with 10 pixels width and height. The height shrink factor is set to
+//! 1, width grow factor set to 1, and the maximum width set to 15 pixels:
+//!
+//! ```
+//! // ╭─────────┬───▷┤
+//! // │ root    │
+//! // │         │ 10
+//! // │         △
+//! // ╰─────────╯
+//! //   10
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! root.set_size((10.0, 10.0));
+//! root.allow_shrink_y();
+//! root.allow_grow_x();
+//! root.set_max_size_x(15.0);
+//! ```
+//!
+//! Please note that setting the Grid container size does not influence the children placement if
+//! the columns are set to 'hug':
+//!
+//! ```
+//! // ╔════════════════════════════════════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮              ║
+//! // ║ │ root        ┆  ╭───────╮  │              ║
+//! // ║ │  ╭───────╮  ┆  │ node2 │  ▼              ▼
+//! // ║ │  │ node1 │  ┆  │       │  ▲              ▲
+//! // ║ │  ╰───────╯  ┆  ╰───────╯  │              ║
+//! // ║ ╰─────────────┴─────────────╯              ║
+//! // ╚════════════════════════════════════════════╝
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.use_auto_layout();
+//! root.set_size_x(30.0);
+//! node1.set_size((10.0, 10.0));
+//! node2.set_size((10.0, 15.0));
+//! ```
+//!
+//! However, if the child size is allowed to grow or shrink, the column will inherit this property:
+//!
+//! ```
+//! // ╔═══════════════════════════════════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ───────────────╮  ║
+//! // ║ │ root        ┆  ╭──────────────────┬▷ │  ║
+//! // ║ │  ╭───────╮  ┆  │ node2            │  ▼  ▼
+//! // ║ │  │ node1 │  ┆  │                  │  ▲  ▲
+//! // ║ │  ╰───────╯  ┆  ╰──────────────────╯  │  ║
+//! // ║ ╰─────────────┴────────────────────────╯  ║
+//! // ╚═══════════════════════════════════════════╝
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.use_auto_layout();
+//! root.set_size_x(30.0);
+//! node1.set_size((10.0, 10.0));
+//! node2.set_size((10.0, 15.0));
+//! node2.allow_grow_x();
+//! ```
+//!
+//!
+//!
 //! ## Manual creation of columns and rows.
 //! While automatic creation of columns and rows is convenient, manual creation provides much more
 //! flexibility and allows for more complex layout definitions. You can add a new column/row with
 //! the [`add_column`] and [`add_row`] methods. You can access a column/row by index with the
 //! [`column`] and [`row`] methods, respectively. Also, as the first column and row always exist,
-//! there are [`first_column`] and [`first_row`] methods provided.
-//!
-//! All these functions return a column/row reference allowing changing its properties:
+//! there are [`first_column`] and [`first_row`] methods provided. All these functions return a
+//! column/row reference which allows changing the following properties:
 //!
 //! - **Size:** the width of the column and height of the row. The size can be set to either 'hug'
 //!   or a fixed value. The value can be expressed in pixels, percentage of the parent container
-//!   size, or by using fractional units. All of these options will be described later.
+//!   size, or by using fractional units. All of these units will be described later.
 //!
 //! - **Minimum size:** the minimum size of the column/row. If the column/row size does not fit the
-//!   parent container, the Grid layout system will try to shrink it, but will not shrink it more
-//!   than expressed by this value.
+//!   parent container, the layout system will try to shrink it, but will not shrink it more than
+//!   expressed by this value.
 //!
 //! - **Maximum size:** the maximum size of the column/row. If the column/row grow factor was set a
 //!   positive value, the object will grow, but not more than expressed by this value.
 //!
 //! - **Grow factor:** a number describing how much the column/row should grow if there is extra
-//!   space after first layouting step. The space will be distributed among all elements that can
-//!   grow by using the grow factors as the distribution weights.
+//!   space after first layout step. The space will be distributed among all elements that can grow
+//!   by using the grow factors as the distribution weights.
 //!
 //! - **Shrink factor:** a number describing how much the column/row should shrink if there is not
-//!   enough space after first layouting step. All elements that can shrink will be resized by using
+//!   enough space after first layout step. All elements that can shrink will be resized by using
 //!   the shrink factors as the resizing weights.
 //!
-//! ```text
-//! ╔═════════════ ▶ ◀ ══════════════════════════╗
-//! ║ ╭──── ▶ ◀ ────┬────────── ▶ ◀ ──────────┬▷ ║
-//! ║ │ root        ┆                         │  ║
-//! ║ │             ┆  ╭───────╮              │  ║
-//! ║ │  ╭───────╮  ┆  │ node2 │              ▼  ▼
-//! ║ │  │ node1 │  ┆  │       │              ▲  ▲
-//! ║ │  │       │  ┆  │       │              │  ║
-//! ║ │  ╰───────╯  ┆  ╰───────╯              │  ║
-//! ║ ╰─────────────┴─────────────────────────╯  ║
-//! ╚════════════════════════════════════════════╝
+//! ```
+//! // ╔═════════════ ▶ ◀ ══════════════════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬────────── ▶ ◀ ──────────┬▷ ║
+//! // ║ │ root        ┆  ╭───────╮              │  ║
+//! // ║ │  ╭───────╮  ┆  │ node2 │              ▼  ▼
+//! // ║ │  │ node1 │  ┆  │       │              ▲  ▲
+//! // ║ │  ╰───────╯  ┆  ╰───────╯              │  ║
+//! // ║ ╰─────────────┴─────────────────────────╯  ║
+//! // ╚════════════════════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -268,27 +289,30 @@
 //! In case there are more columns/rows needed than defined, the defined columns/rows will be used
 //! in a loop. For example, you can define a layout where every second column is bigger:
 //!
-//! ```text
-//! ╔══════════════════════════════════ ▶ ◀ ══════════════════════════════════╗
-//! ║ ╭─────────────┬────────────────────┬─────────────┬────────────────────╮ ║
-//! ║ │ root        ┆                    ┆             ┆                    │ ║
-//! ║ │             ┆  ╭──────────────┬▷ ┆             ┆  ╭──────────────┬▷ │ ║
-//! ║ │  ╭───────┬▷ ┆  │ node2        │  ┆  ╭───────┬▷ ┆  │ node2        │  ▼ ▼
-//! ║ │  │ node1 │  ┆  │              │  ┆  │ node1 │  ┆  │              │  ▲ ▲
-//! ║ │  │       │  ┆  │              │  ┆  │       │  ┆  │              │  │ ║
-//! ║ │  ╰───────╯  ┆  ╰──────────────╯  ┆  ╰───────╯  ┆  ╰──────────────╯  │ ║
-//! ║ ╰─────────────┴────────────────────┴─────────────┴────────────────────╯ ║
-//! ║        2                4                 2                4            ║
-//! ╚═════════════════════════════════════════════════════════════════════════╝
+//! ```
+//! // ╔══════════════════════════════════ ▶ ◀ ══════════════════════════════════╗
+//! // ║ ╭─────────────┬────────────────────┬─────────────┬────────────────────╮ ║
+//! // ║ │ root        ┆  ╭──────────────┬▷ ┆             ┆  ╭──────────────┬▷ │ ║
+//! // ║ │  ╭───────┬▷ ┆  │ node2        │  ┆  ╭───────┬▷ ┆  │ node2        │  ▼ ▼
+//! // ║ │  │ node1 │  ┆  │              │  ┆  │ node1 │  ┆  │              │  ▲ ▲
+//! // ║ │  ╰───────╯  ┆  ╰──────────────╯  ┆  ╰───────╯  ┆  ╰──────────────╯  │ ║
+//! // ║ ╰─────────────┴────────────────────┴─────────────┴────────────────────╯ ║
+//! // ║        2                4                 2                4            ║
+//! // ╚═════════════════════════════════════════════════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
-//! let node1 = root.new_child().set_size_y(2.0).allow_grow_x();
-//! let node2 = root.new_child().set_size_y(3.0).allow_grow_x();
-//! let node3 = root.new_child().set_size_y(2.0).allow_grow_x();
-//! let node4 = root.new_child().set_size_y(3.0).allow_grow_x();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! let node4 = root.new_child();
 //! root.use_auto_layout();
 //! root.first_column().set_size_x(2.0);
 //! root.add_column().set_size_x(4.0);
+//! node1.set_size_y(2.0).allow_grow_x();
+//! node2.set_size_y(3.0).allow_grow_x();
+//! node3.set_size_y(2.0).allow_grow_x();
+//! node4.set_size_y(3.0).allow_grow_x();
 //! ```
 //!
 //!
@@ -297,23 +321,24 @@
 //! can set the default alignment of all children by using the [`set_children_alignment`] on the
 //! container, or override it per child using the [`set_alignment`] method.
 //!
-//! ```text
-//! ╔═════════════════ ▶ ◀ ═════════════════╗
-//! ║ ╭─────────────────┬─────────────────╮ ║
-//! ║ │ root            ┆                 │ ║
-//! ║ │  ╭───────╮      ┆                 ▼ ║
-//! ║ │  │ node3 │      ┆                 ▲ ║
-//! ║ │  │       │      ┆                 │ ║
-//! ║ │  ╰───────╯      ┆                 │ ▼
-//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
-//! ║ │      ╭───────╮  ┆      ╭───────╮  │ ║
-//! ║ │      │ node1 │  ┆      │ node2 │  ▼ ║
-//! ║ │      │       │  ┆      │       │  ▲ ║
-//! ║ │      ╰───────╯  ┆      ╰───────╯  │ ║
-//! ║ ╰─────────────────┴─────────────────╯ ║
-//! ║         10                 10         ║
-//! ╚═══════════════════════════════════════╝
+//! ```
+//! // ╔═════════════════ ▶ ◀ ═════════════════╗
+//! // ║ ╭─────────────────┬─────────────────╮ ║
+//! // ║ │ root            ┆                 │ ║
+//! // ║ │  ╭───────╮      ┆                 ▼ ║
+//! // ║ │  │ node3 │      ┆                 ▲ ║
+//! // ║ │  │       │      ┆                 │ ║
+//! // ║ │  ╰───────╯      ┆                 │ ▼
+//! // ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! // ║ │      ╭───────╮  ┆      ╭───────╮  │ ║
+//! // ║ │      │ node1 │  ┆      │ node2 │  ▼ ║
+//! // ║ │      │       │  ┆      │       │  ▲ ║
+//! // ║ │      ╰───────╯  ┆      ╰───────╯  │ ║
+//! // ║ ╰─────────────────┴─────────────────╯ ║
+//! // ║         10                 10         ║
+//! // ╚═══════════════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -329,26 +354,27 @@
 //! node3.set_alignment_left();
 //! ```
 //!
-//! Please note, that alignment works only if there is a space left in a column. So, in case of
-//! columns that simply hug the children and the children in the given column have the same sizes,
+//! Please note, that alignment works only if there is a space left in a column. In the case of
+//! columns that simply hug the children and the children in the given column have the same size,
 //! the alignment would not make any effect even if the container size is larger than columns:
 //!
-//! ```text
-//! ╔═════════════ ▶ ◀ ════════════════════════════╗
-//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮                ║
-//! ║ │ root        ┆             │                ║
-//! ║ │  ╭───────╮  ┆             ▼                ║
-//! ║ │  │ node3 │  ┆             ▲                ║
-//! ║ │  │       │  ┆             │                ║
-//! ║ │  ╰───────╯  ┆             │                ▼
-//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤                ▲
-//! ║ │  ╭───────╮  ┆  ╭───────╮  │                ║
-//! ║ │  │ node1 │  ┆  │ node2 │  ▼                ║
-//! ║ │  │       │  ┆  │       │  ▲                ║
-//! ║ │  ╰───────╯  ┆  ╰───────╯  │                ║
-//! ║ ╰─────────────┴─────────────╯                ║
-//! ╚══════════════════════════════════════════════╝
+//! ```
+//! // ╔═════════════ ▶ ◀ ════════════════════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮                ║
+//! // ║ │ root        ┆             │                ║
+//! // ║ │  ╭───────╮  ┆             ▼                ║
+//! // ║ │  │ node3 │  ┆             ▲                ║
+//! // ║ │  │       │  ┆             │                ║
+//! // ║ │  ╰───────╯  ┆             │                ▼
+//! // ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤                ▲
+//! // ║ │  ╭───────╮  ┆  ╭───────╮  │                ║
+//! // ║ │  │ node1 │  ┆  │ node2 │  ▼                ║
+//! // ║ │  │       │  ┆  │       │  ▲                ║
+//! // ║ │  ╰───────╯  ┆  ╰───────╯  │                ║
+//! // ║ ╰─────────────┴─────────────╯                ║
+//! // ╚══════════════════════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new().set_size_x(20.0);
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -365,26 +391,27 @@
 //!
 //!
 //! ## Reversing the column/row item order.
-//! It is possible to place items in a reversed order. You can use the [`reverse_columns`] and
-//! [`reverse_rows`] functions for that purpose. By default items are placed along the axes, from
-//! left to right and from bottom to top. The following example places the items from right to left:
+//! It is possible to reverse the columns and rows order by using the [`reverse_columns`] and
+//! [`reverse_rows`] functions. By default, items are placed along the axes, from left to right and
+//! from bottom to top. The following example places the items from right to left:
 //!
-//! ```text
-//! ╔═════════════ ▶ ◀ ═════════════╗
-//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
-//! ║ │ root        ┆             │ ║
-//! ║ │             ┆  ╭───────╮  ▼ ║
-//! ║ │             ┆  │ node3 │  ▲ ║
-//! ║ │             ┆  │       │  │ ║
-//! ║ │             ┆  ╰───────╯  │ ▼
-//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
-//! ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
-//! ║ │  │ node2 │  ┆  │ node1 │  ▼ ║
-//! ║ │  │       │  ┆  │       │  ▲ ║
-//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
-//! ║ ╰─────────────┴─────────────╯ ║
-//! ╚═══════════════════════════════╝
+//! ```
+//! // ╔═════════════ ▶ ◀ ═════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! // ║ │ root        ┆             │ ║
+//! // ║ │             ┆  ╭───────╮  ▼ ║
+//! // ║ │             ┆  │ node3 │  ▲ ║
+//! // ║ │             ┆  │       │  │ ║
+//! // ║ │             ┆  ╰───────╯  │ ▼
+//! // ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! // ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
+//! // ║ │  │ node2 │  ┆  │ node1 │  ▼ ║
+//! // ║ │  │       │  ┆  │       │  ▲ ║
+//! // ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! // ║ ╰─────────────┴─────────────╯ ║
+//! // ╚═══════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -400,47 +427,52 @@
 //!
 //!
 //! ## Grid flow.
-//! The grid flow defines how the grid items are placed in the grid. The default flow is 'row',
-//! which means that all items are placed in a row as long as there is space before moving to the
-//! next row. There are other flow modes available:
+//! The grid flow defines how the next item is placed in context of the previous one. The default
+//! flow is 'row', which means that the next item will be placed in the same row as the previous one
+//! if this is possible, e.g. if it was not limited by the [`set_column_count`] method. There are
+//! other flow modes available:
 //!
 //! - **Row:** The default flow. Items are placed in a row as long as there is space before moving
 //!   to the next row.
 //! - **Column:** Items are placed in a column as long as there is space before moving to the next
 //!   column.
-//! - **Dens:** (not implemented yet): tells the auto-placement algorithm to attempt to fill in
+//! - **Dense:** (not implemented yet): tells the auto-placement algorithm to attempt to fill in
 //!   holes earlier in the grid if smaller items come up later. See the CSS grid spec for more
 //!   info of how this mode will work: https://css-tricks.com/snippets/css/complete-guide-grid.
 //!
 //! For example, the following code will place items in a column and then move to the next column
-//! if the column count was limited:
+//! after the maximum column count was reached:
 //!
-//! ```text
-//! ╔═════════════ ▶ ◀ ═════════════╗
-//! ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
-//! ║ │ root        ┆             │ ║
-//! ║ │  ╭───────╮  ┆             ▼ ║
-//! ║ │  │ node3 │  ┆             ▲ ║
-//! ║ │  │       │  ┆             │ ║
-//! ║ │  ╰───────╯  ┆             │ ║
-//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ║
-//! ║ │  ╭───────╮  ┆             │ ║
-//! ║ │  │ node2 │  ┆             ▼ ▼
-//! ║ │  │       │  ┆             ▲ ▲
-//! ║ │  ╰───────╯  ┆             │ ║
-//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ║
-//! ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
-//! ║ │  │ node1 │  ┆  │ node4 │  ▼ ║
-//! ║ │  │       │  ┆  │       │  ▲ ║
-//! ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
-//! ║ ╰─────────────┴─────────────╯ ║
-//! ╚═══════════════════════════════╝
+//! ```
+//! // ╔═════════════ ▶ ◀ ═════════════╗
+//! // ║ ╭──── ▶ ◀ ────┬──── ▶ ◀ ────╮ ║
+//! // ║ │  ╭───────╮  ┆             │ ║
+//! // ║ │  │ node3 │  ┆             ▼ ║
+//! // ║ │  │       │  ┆             ▲ ║
+//! // ║ │  ╰───────╯  ┆             │ ║
+//! // ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ║
+//! // ║ │  ╭───────╮  ┆             │ ║
+//! // ║ │  │ node2 │  ┆             ▼ ▼
+//! // ║ │  │       │  ┆             ▲ ▲
+//! // ║ │  ╰───────╯  ┆             │ ║
+//! // ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ║
+//! // ║ │  ╭───────╮  ┆  ╭───────╮  │ ║
+//! // ║ │  │ node1 │  ┆  │ node4 │  ▼ ║
+//! // ║ │  │       │  ┆  │       │  ▲ ║
+//! // ║ │  ╰───────╯  ┆  ╰───────╯  │ ║
+//! // ║ ╰─────────────┴─────────────╯ ║
+//! // ╚═══════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
-//! let node1 = root.new_child().set_size((2.0, 2.0));
-//! let node2 = root.new_child().set_size((2.0, 2.0));
-//! let node3 = root.new_child().set_size((2.0, 2.0));
-//! let node4 = root.new_child().set_size((2.0, 2.0));
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! let node4 = root.new_child();
+//! let node1 = node1.set_size((2.0, 2.0));
+//! let node2 = node2.set_size((2.0, 2.0));
+//! let node3 = node3.set_size((2.0, 2.0));
+//! let node4 = node4.set_size((2.0, 2.0));
 //! root.use_auto_layout().set_row_count(3).set_column_flow();
 //! ```
 //!
@@ -448,29 +480,27 @@
 //! ## The column/row gap.
 //! The gap between columns/rows specifies the size of the grid lines. You can think of it like
 //! setting the width of the gutters between the columns/rows. The gutters are only created between
-//! the columns/rows, not on the outer edges. For example, the following code sets the gap of 2
-//! pixels between elements:
+//! the columns/rows, not on the outer edges. For example, the following code sets the gap of two
+//! pixels between all the elements:
 //!
-//! ```text
-//! ╔═══════════════ ▶ ◀ ═══════════════╗
-//! ║ ╭───── ▶ ◀ ─────┬───── ▶ ◀ ─────╮ ║
-//! ║ │ root        ╱╱┆╱╱             │ ║
-//! ║ │  ╭───────╮  ╱╱┆╱╱             ▼ ║
-//! ║ │  │ node3 │  ╱╱┆╱╱             ▲ ║
-//! ║ │  │       │  ╱╱┆╱╱             │ ║
-//! ║ │  ╰───────╯  ╱╱┆╱╱             │ ║
-//! ║ │             ╱╱┆╱╱             │ ║
-//! ║ │╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱│ ▼
-//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
-//! ║ │╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱│ ║
-//! ║ │             ╱╱┆╱╱             │ ║
-//! ║ │  ╭───────╮  ╱╱┆╱╱  ╭───────╮  │ ║
-//! ║ │  │ node1 │  ╱╱┆╱╱  │ node2 │  ▼ ║
-//! ║ │  │       │  ╱╱┆╱╱  │       │  ▲ ║
-//! ║ │  ╰───────╯  ╱╱┆╱╱  ╰───────╯  │ ║
-//! ║ ╰───────────────┴───────────────╯ ║
-//! ╚═══════════════════════════════════╝
+//! ```
+//! // ╔═══════════════ ▶ ◀ ═══════════════╗
+//! // ║ ╭───── ▶ ◀ ─────┬───── ▶ ◀ ─────╮ ║
+//! // ║ │  ╭───────╮  ╱╱┆╱╱             │ ║
+//! // ║ │  │ node3 │  ╱╱┆╱╱             ▼ ║
+//! // ║ │  │       │  ╱╱┆╱╱             ▲ ║
+//! // ║ │  ╰───────╯  ╱╱┆╱╱             │ ║
+//! // ║ │╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱│ ▼
+//! // ║ ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤ ▲
+//! // ║ │╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱│ ║
+//! // ║ │  ╭───────╮  ╱╱┆╱╱  ╭───────╮  │ ║
+//! // ║ │  │ node1 │  ╱╱┆╱╱  │ node2 │  ▼ ║
+//! // ║ │  │       │  ╱╱┆╱╱  │       │  ▲ ║
+//! // ║ │  ╰───────╯  ╱╱┆╱╱  ╰───────╯  │ ║
+//! // ║ ╰───────────────┴───────────────╯ ║
+//! // ╚═══════════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -486,53 +516,60 @@
 //!
 //!
 //! ## Grid padding.
-//! The padding specifies the size inside of the container that should be left empty. You can set
-//! the padding by using the [`set_padding`] method. The following code displays three objects
+//! The padding specifies the size inside the container that should be left empty. You can set the
+//! padding by using the [`set_padding`] method. The following code displays three objects
 //! within the padded container:
 //!
-//! ```text
-//! ╔═════════════════════ ▶ ◀ ═════════════════════╗
-//! ║ ╭───── ▶ ◀ ─────┬─── ▶ ◀ ───┬───── ▶ ◀ ─────╮ ║
-//! ║ │ root ╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │ ║
-//! ║ │ ╱╱╱           ┆           ┆ ╭───────╮ ╱╱╱ │ ║
-//! ║ │ ╱╱╱           ┆ ╭───────╮ ┆ │ node3 │ ╱╱╱ │ ║
-//! ║ │ ╱╱╱ ╭───────╮ ┆ │ node2 │ ┆ │       │ ╱╱╱ ▼ ▼
-//! ║ │ ╱╱╱ │ node1 │ ┆ │       │ ┆ │       │ ╱╱╱ ▲ ▲
-//! ║ │ ╱╱╱ │       │ ┆ │       │ ┆ │       │ ╱╱╱ │ ║
-//! ║ │ ╱╱╱ ╰───────╯ ┆ ╰───────╯ ┆ ╰───────╯ ╱╱╱ │ ║
-//! ║ │ ╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │ ║
-//! ║ ╰───────────────┴───────────┴───────────────╯ ║
-//! ╚═══════════════════════════════════════════════╝
+//! ```
+//! // ╔═════════════════════ ▶ ◀ ═════════════════════╗
+//! // ║ ╭───── ▶ ◀ ─────┬─── ▶ ◀ ───┬───── ▶ ◀ ─────╮ ║
+//! // ║ │ root ╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │ ║
+//! // ║ │ ╱╱╱           ┆           ┆ ╭───────╮ ╱╱╱ │ ║
+//! // ║ │ ╱╱╱           ┆ ╭───────╮ ┆ │ node3 │ ╱╱╱ │ ║
+//! // ║ │ ╱╱╱ ╭───────╮ ┆ │ node2 │ ┆ │       │ ╱╱╱ ▼ ▼
+//! // ║ │ ╱╱╱ │ node1 │ ┆ │       │ ┆ │       │ ╱╱╱ ▲ ▲
+//! // ║ │ ╱╱╱ ╰───────╯ ┆ ╰───────╯ ┆ ╰───────╯ ╱╱╱ │ ║
+//! // ║ │ ╱╱╱╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱┆╱╱╱╱╱╱╱╱╱╱╱╱╱╱ │ ║
+//! // ║ ╰───────────────┴───────────┴───────────────╯ ║
+//! // ╚═══════════════════════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
-//! let node1 = root.new_child().set_size((2.0, 2.0));
-//! let node2 = root.new_child().set_size((2.0, 3.0));
-//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 3.0));
+//! node3.set_size((2.0, 4.0));
 //! root.use_auto_layout().set_padding_all(10.0);
 //! ```
 //!
 //!
 //! ## Item's margin.
-//! The margin specifies the size outside of an item that should be left empty. You can set
-//! the margin by using the [`set_margin`] method. The following code displays three objects
-//! where the second object uses padding:
+//! The margin specifies the size outside an item that should be left empty. You can set the margin
+//! by using the [`set_margin`] method. The following code displays three objects where the second
+//! object uses margin:
 //!
-//! ```text
-//! ╔═══════════════════════ ▶ ◀ ══════════════════════╗
-//! ║ ╭──── ▶ ◀ ───┬──────── ▶ ◀ ────────┬─── ▶ ◀ ───╮ ║
-//! ║ │ root       ┆ ╱╱╱╱╱╱           ╱╱ ┆ ╭───────╮ │ ║
-//! ║ │            ┆ ╱╱╱╱╱╱ ╭───────╮ ╱╱ ┆ │ node3 │ │ ║
-//! ║ │  ╭───────╮ ┆ ╱╱╱╱╱╱ │ node2 │ ╱╱ ┆ │       │ ▼ ▼
-//! ║ │  │ node1 │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ ▲ ▲
-//! ║ │  │       │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ │ ║
-//! ║ │  ╰───────╯ ┆ ╱╱╱╱╱╱ ╰───────╯ ╱╱ ┆ ╰───────╯ │ ║
-//! ║ ╰────────────┴─────────────────────┴───────────╯ ║
-//! ╚══════════════════════════════════════════════════╝
+//! ```
+//! // ╔═══════════════════════ ▶ ◀ ══════════════════════╗
+//! // ║ ╭──── ▶ ◀ ───┬──────── ▶ ◀ ────────┬─── ▶ ◀ ───╮ ║
+//! // ║ │ root       ┆ ╱╱╱╱╱╱           ╱╱ ┆ ╭───────╮ │ ║
+//! // ║ │            ┆ ╱╱╱╱╱╱ ╭───────╮ ╱╱ ┆ │ node3 │ │ ║
+//! // ║ │  ╭───────╮ ┆ ╱╱╱╱╱╱ │ node2 │ ╱╱ ┆ │       │ ▼ ▼
+//! // ║ │  │ node1 │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ ▲ ▲
+//! // ║ │  │       │ ┆ ╱╱╱╱╱╱ │       │ ╱╱ ┆ │       │ │ ║
+//! // ║ │  ╰───────╯ ┆ ╱╱╱╱╱╱ ╰───────╯ ╱╱ ┆ ╰───────╯ │ ║
+//! // ║ ╰────────────┴─────────────────────┴───────────╯ ║
+//! // ╚══════════════════════════════════════════════════╝
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
-//! let node1 = root.new_child().set_size((2.0, 2.0));
-//! let node2 = root.new_child().set_size((2.0, 3.0));
-//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 3.0));
+//! node3.set_size((2.0, 4.0));
 //! node2.set_margin_left(2.0);
 //! node2.set_margin_right(1.0);
 //! root.use_auto_layout();
@@ -541,153 +578,431 @@
 //!
 //! ## Percentage size units.
 //! Sizes of all dimensions (element sizes, margins, paddings, column widths, row heights, etc.) can
-//! be expressed as a percentage value of the size of the parent container. Floating point numbers
-//! have a method `.pc()` which converts them to a percentage value. For example, the following code
-//! creates a container with two children. The first grows as much as possible, while the second
-//! occupies 30% of the parent container. The width of the first child will be set to 7, while the
-//! second will be set to 3:
+//! be expressed as a percentage value of the parent container's size. Numbers are equipped with a
+//! `.pc()` method which converts them to a percentage value. For example, the following code
+//! creates a container with two children. The first grows as much as possible, while the
+//! second occupies 30% of the parent container. Given the container width of 10 pixels, the width
+//! of the first child will be resolved to 7 pixels, while the second will be resolved to 3 pixels:
 //!
-//! ```text
-//! ╔════════════════════════════════════╗
-//! ║ ╭─────── ▶ ◀ ────────┬─── ▶ ◀ ───╮ ║
-//! ║ │ root               ┆ ╭───────╮ │ ║
-//! ║ │  ╭──────────────┬▷ ┆ │ node2 │ ▼ ▼
-//! ║ │  │ node1        │  ┆ │       │ ▲ ▲
-//! ║ │  │              │  ┆ │       │ │ ║
-//! ║ │  ╰──────────────╯  ┆ ╰───────╯ │ ║
-//! ║ │         0          ┆    30%    │ ║
-//! ║ ╰────────────────────┴───────────╯ ║
-//! ╚════════════════════════════════════╝
-//!                  10
+//! ```
+//! // ╔════════════════════════════════════╗
+//! // ║ ╭─────── ▶ ◀ ────────┬─── ▶ ◀ ───╮ ║
+//! // ║ │ root               ┆ ╭───────╮ │ ║
+//! // ║ │  ╭──────────────┬▷ ┆ │ node2 │ ▼ ▼
+//! // ║ │  │ node1        │  ┆ │       │ ▲ ▲
+//! // ║ │  │              │  ┆ │       │ │ ║
+//! // ║ │  ╰──────────────╯  ┆ ╰───────╯ │ ║
+//! // ║ │         0          ┆    30%    │ ║
+//! // ║ ╰────────────────────┴───────────╯ ║
+//! // ╚════════════════════════════════════╝
+//! //                  10
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
-//! let node1 = root.new_child().set_size((0.0, 2.0));
-//! let node2 = root.new_child().set_size((30.pc(), 3.0));
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! node1.set_size((0.0, 2.0));
+//! node2.set_size((30.pc(), 3.0));
 //! root.use_auto_layout();
 //! ```
 //!
 //!
 //! ## Fractional size units (flexible length).
 //! Sizes of all dimensions (element sizes, margins, paddings, column widths, row heights, etc.) can
-//! be expressed as a fraction of the leftover space in the parent container. Floating point numbers
-//! have a method `.fr()` which converts them to a fractional value.
-//!
-//! A flexible length or is a dimension with the `fr` unit, which represents a fraction of the
-//! leftover space in the grid container. Tracks sized with `fr` units are called flexible tracks as
-//! they flex in response to leftover space.
+//! be expressed as a fraction of the leftover space in the parent container. Numbers are equipped
+//! with an `.fr()` method which converts them to a fractional value.
 //!
 //! The distribution of leftover space occurs after all non-flexible track sizing functions have
 //! reached their maximum. The total size of such rows or columns is subtracted from the available
 //! space, yielding the leftover space, which is then divided among the flex-sized rows and columns
-//! in proportion to their flex factor.
-//!
-//! Each column or row’s share of the leftover space can be computed as the column or row’s
-//! `<flex> * <leftover space> / <sum of all flex factors>`.
+//! in proportion to their fractional size. Each column or row’s share of the leftover space can be
+//! computed as the column or row’s `fractional_size * leftover_space /
+//! sum_of_all_fractional_sizes`.
 //!
 //! The following code creates a container with three children. The second child will occupy 10% of
 //! the parent container, while the first child will be 2 times wider than the third one. Given the
-//! parent container with of 20 pixels, the second child size will be computed as `10% *  20px =
-//! 2px`. The leftover space is `20px - 2px = 18px`. The sum of all factors is 3. The first child
-//! size will be `2fr/3fr * 18px = 12px`, while the last child size will be `1fr/3fr * 18px = 6px`.
+//! parent container width of 20 pixels, the second child size will be resolved to `10% *  20px =
+//! 2px`. The leftover space is `20px - 2px = 18px`. The sum of all fractional sizes is 3. The first
+//! child size will be resolved to `2fr/3fr * 18px = 12px`, while the last child size will be
+//! resolved to `1fr/3fr * 18px = 6px`.
 //!
-//! ```text
-//! ╔═══════════════════════════════════════════════════════════════╗
-//! ║ ╭───────────── ▶ ◀ ────────────┬─── ▶ ◀ ───┬────── ▶ ◀ ─────╮ ║
-//! ║ │ root                         ┆ ╭───────╮ ┆ ╭────────────╮ │ ║
-//! ║ │  ╭────────────────────────╮  ┆ │ node2 │ ┆ │ node3      │ ▼ ▼
-//! ║ │  │ node1                  │  ┆ │       │ ┆ │            │ ▲ ▲
-//! ║ │  │                        │  ┆ │       │ ┆ │            │ │ ║
-//! ║ │  ╰────────────────────────╯  ┆ ╰───────╯ ┆ ╰────────────╯ │ ║
-//! ║ │             2fr              ┆    10%    ┆      1fr       │ ║
-//! ║ ╰──────────────────────────────┴───────────┴────────────────╯ ║
-//! ╚═══════════════════════════════════════════════════════════════╝
-//!                                20
+//! ```
+//! // ╔═══════════════════════════════════════════════════════════════╗
+//! // ║ ╭───────────── ▶ ◀ ────────────┬─── ▶ ◀ ───┬────── ▶ ◀ ─────╮ ║
+//! // ║ │ root                         ┆ ╭───────╮ ┆ ╭────────────╮ │ ║
+//! // ║ │  ╭────────────────────────╮  ┆ │ node2 │ ┆ │ node3      │ ▼ ▼
+//! // ║ │  │ node1                  │  ┆ │       │ ┆ │            │ ▲ ▲
+//! // ║ │  │                        │  ┆ │       │ ┆ │            │ │ ║
+//! // ║ │  ╰────────────────────────╯  ┆ ╰───────╯ ┆ ╰────────────╯ │ ║
+//! // ║ │             2fr              ┆    10%    ┆      1fr       │ ║
+//! // ║ ╰──────────────────────────────┴───────────┴────────────────╯ ║
+//! // ╚═══════════════════════════════════════════════════════════════╝
+//! //                                20
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
-//! let node1 = root.new_child().set_size((2.fr(), 2.0));
-//! let node2 = root.new_child().set_size((10.pc(), 3.0));
-//! let node3 = root.new_child().set_size((1.fr(), 3.0));
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.fr(), 2.0));
+//! node2.set_size((10.pc(), 3.0));
+//! node3.set_size((1.fr(), 3.0));
 //! root.use_auto_layout();
 //! ```
 //!
 //!
-//! ## Item justification.
+//! ## Content justification.
 //! Fractional units allow expressing elements spacing easily. For example, the following code
-//! places its children with the same spacing between them and half of the spacing around them. This
+//! places its children with the same spacing between them and half of the surrounding spacing. This
 //! is commonly referred to as "content justification":
 //!
 //!
-//! ```text
-//! ╭─────────────────┬─────────────────┬─────────────────╮
-//! │╱╱ root        ╱╱┆╱╱             ╱╱┆╱╱             ╱╱│
-//! │╱╱             ╱╱┆╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱│
-//! │╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱┆╱╱  │ node3 │  ╱╱│
-//! │╱╱  ╭───────╮  ╱╱┆╱╱  │ node2 │  ╱╱┆╱╱  │       │  ╱╱▼
-//! │╱╱  │ node1 │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱▲
-//! │╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱│
-//! │╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱│
-//! │.5fr    2       1fr       2       1fr       2    .5fr│
-//! ╰─────────────────┴─────────────────┴─────────────────╯
-//!                            12
+//! ```
+//! // ╔══════════════════════════ ▶ ◀ ══════════════════════════╗
+//! // ║ ╭─────────────────┬─────────────────┬─────────────────╮ ║
+//! // ║ │╱╱ root        ╱╱┆╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱│ ║
+//! // ║ │╱╱             ╱╱┆╱╱  ╭───────╮  ╱╱┆╱╱  │ node3 │  ╱╱▼ ▼
+//! // ║ │╱╱  ╭───────╮  ╱╱┆╱╱  │ node2 │  ╱╱┆╱╱  │       │  ╱╱▲ ▲
+//! // ║ │╱╱  │ node1 │  ╱╱┆╱╱  │       │  ╱╱┆╱╱  │       │  ╱╱│ ║
+//! // ║ │╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱│ ║
+//! // ║ │.5fr    2       1fr       2       1fr       2    .5fr│ ║
+//! // ║ ╰─────────────────┴─────────────────┴─────────────────╯ ║
+//! // ╚═════════════════════════════════════════════════════════╝
+//! //                             12
 //!
+//! # use crate::display;
 //! let root = display::object::Instance::new()
 //!     .use_auto_layout()
 //!     .set_size_x(12.0)
 //!     .set_padding_left(0.5.fr())
 //!     .set_padding_right(0.5.fr())
 //!     .set_gap_x(1.fr());
-//! let node1 = root.new_child().set_size((2.0, 2.0));
-//! let node2 = root.new_child().set_size((2.0, 3.0));
-//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 1.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 3.0));
 //! ```
 //!
-//! For convenience, there are shortcut functions defined. To get the same result, you can use the
-//! [`justify_content_x_space_around`] function instead. There are also other helper functions
-//! defined:
+//! For convenience, there are several content justification functions defined. To get the same
+//! result as above, you can simply use the [`justify_content_x_space_around`] function instead.
+//! There are also other helper functions defined:
 //!
-//! ```text
-//! ╭────────────┬─────────────┬─────────────╮
-//! │ root       ┆             ┆             │
-//! │ ╭───────╮  ┆  ╭───────╮  ┆  ╭───────╮  ▼
-//! │ │ node1 │  ┆  │ node2 │  ┆  │ node3 │  ▲
-//! │ ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │
-//! │0fr        0fr           0fr         0fr│ - TODO: dorysowac ramki grida !!!!!!!!!!!!!!!
-//! ╰────────────┴─────────────┴─────────────╯
+//! ### Justify content left.
+//! ```
+//! // ╔═══════════════════════════════════════════════════════════════════╗
+//! // ║ ╭──── ▶ ◀ ───┬──── ▶ ◀ ────┬──── ▶ ◀ ────╮  ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║ │ root       ┆             ┆             │  ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║ │ ╭───────╮  ┆  ╭───────╮  ┆  ╭───────╮  ▼  ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱▼
+//! // ║ │ │ node1 │  ┆  │ node2 │  ┆  │ node3 │  ▲  ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱▲
+//! // ║ │ ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │  ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║ │0fr        0fr           0fr         0fr│  ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║ ╰────────────┴─────────────┴─────────────╯           1fr          ║
+//! // ╚═══════════════════════════════════════════════════════════════════╝
+//!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
-//! root.use_auto_layout().justify_content_x_start();
-//! let node1 = root.new_child().set_size((2.0, 2.0));
-//! let node2 = root.new_child().set_size((2.0, 3.0));
-//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 1.0));
+//! node2.set_size((2.0, 1.0));
+//! node3.set_size((2.0, 1.0));
+//! root.use_auto_layout().set_size_x(8.0).justify_content_x_start();
 //! ```
 //!
-//! ```text
-//! ╭─────────────────┬─────────────────┬─────────────────╮
-//! │╱╱ root        ╱╱┆╱╱             ╱╱┆╱╱             ╱╱│
-//! │╱╱  ╭───────╮  ╱╱┆╱╱  ╭───────╮  ╱╱┆╱╱  ╭───────╮  ╱╱▼
-//! │╱╱  │ node1 │  ╱╱┆╱╱  │ node2 │  ╱╱┆╱╱  │ node3 │  ╱╱▲
-//! │╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱┆╱╱  ╰───────╯  ╱╱│
-//! │.5fr            1fr               1fr            .5fr│
-//! ╰─────────────────┴─────────────────┴─────────────────╯
+//! ### Justify content center.
+//! ```
+//! // ╔═════════════════════════════════════════════════════════════════════╗
+//! // ║╱╱╱╱╱╱╱╱╱╱╱  ╭──── ▶ ◀ ────┬──── ▶ ◀ ────┬──── ▶ ◀ ────╮  ╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║╱╱╱╱╱╱╱╱╱╱╱  │ root        ┆             ┆             │  ╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║╱╱╱╱╱╱╱╱╱╱╱  │  ╭───────╮  ┆  ╭───────╮  ┆  ╭───────╮  ▼  ╱╱╱╱╱╱╱╱╱╱╱▼
+//! // ║╱╱╱╱╱╱╱╱╱╱╱  │  │ node1 │  ┆  │ node2 │  ┆  │ node3 │  ▲  ╱╱╱╱╱╱╱╱╱╱╱▲
+//! // ║╱╱╱╱╱╱╱╱╱╱╱  │  ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │  ╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║╱╱╱╱╱╱╱╱╱╱╱  │0fr         0fr           0fr         0fr│  ╱╱╱╱╱╱╱╱╱╱╱║
+//! // ║    1fr      ╰─────────────┴─────────────┴─────────────╯      1fr    ║
+//! // ╚═════════════════════════════════════════════════════════════════════╝
+//!
+//! # use crate::display;
 //! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 1.0));
+//! node2.set_size((2.0, 1.0));
+//! node3.set_size((2.0, 1.0));
+//! root.use_auto_layout().set_size_x(12.0).justify_content_x_center();
+//! ```
+//!
+//! ### Justify content right.
+//! ```
+//! // ╔═════════════════════════════════════════════════════════════════════╗
+//! // ║╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱  ╭──── ▶ ◀ ────┬──── ▶ ◀ ────┬──── ▶ ◀ ────╮  ║
+//! // ║╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱  │ root        ┆             ┆             │  ║
+//! // ║╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱  │  ╭───────╮  ┆  ╭───────╮  ┆  ╭───────╮  ▼  ▼
+//! // ║╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱  │  │ node1 │  ┆  │ node2 │  ┆  │ node3 │  ▲  ▲
+//! // ║╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱  │  ╰───────╯  ┆  ╰───────╯  ┆  ╰───────╯  │  ║
+//! // ║╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱  │0fr         0fr           0fr         0fr│  ║
+//! // ║         1fr            ╰─────────────┴─────────────┴─────────────╯  ║
+//! // ╚═════════════════════════════════════════════════════════════════════╝
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 1.0));
+//! node2.set_size((2.0, 1.0));
+//! node3.set_size((2.0, 1.0));
+//! root.use_auto_layout().set_size_x(12.0).justify_content_x_right();
+//! ```
+//!
+//! ### Justify content space between.
+//! ```
+//! // ╔═════════════════════════════════════════════════════════════════════╗     
+//! // ║ ╭─────── ▶ ◀ ───────┬────────── ▶ ◀ ──────────┬─────── ▶ ◀ ───────╮ ║
+//! // ║ │ root        ╱╱╱╱╱╱┆╱╱╱╱╱╱             ╱╱╱╱╱╱┆╱╱╱╱╱╱             │ ║
+//! // ║ │  ╭───────╮  ╱╱╱╱╱╱┆╱╱╱╱╱╱  ╭───────╮  ╱╱╱╱╱╱┆╱╱╱╱╱╱  ╭───────╮  ▼ ▼
+//! // ║ │  │ node1 │  ╱╱╱╱╱╱┆╱╱╱╱╱╱  │ node2 │  ╱╱╱╱╱╱┆╱╱╱╱╱╱  │ node3 │  ▲ ▲
+//! // ║ │  ╰───────╯  ╱╱╱╱╱╱┆╱╱╱╱╱╱  ╰───────╯  ╱╱╱╱╱╱┆╱╱╱╱╱╱  ╰───────╯  │ ║
+//! // ║ │                  1fr                       1fr                  │ ║
+//! // ║ ╰───────────────────┴─────────────────────────┴───────────────────╯ ║
+//! // ╚═════════════════════════════════════════════════════════════════════╝
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 1.0));
+//! node2.set_size((2.0, 1.0));
+//! node3.set_size((2.0, 1.0));
+//! root.use_auto_layout().justify_content_x_space_between();
+//! ```
+//!
+//! ### Justify content space around.
+//! ```
+//! // ╔═════════════════════════════════════════════════════════════════════╗     
+//! // ║ ╭──────── ▶ ◀ ────────┬──────── ▶ ◀ ────────┬──────── ▶ ◀ ────────╮ ║
+//! // ║ │╱╱╱╱ root        ╱╱╱╱┆╱╱╱╱             ╱╱╱╱┆╱╱╱╱             ╱╱╱╱│ ║
+//! // ║ │╱╱╱╱  ╭───────╮  ╱╱╱╱┆╱╱╱╱  ╭───────╮  ╱╱╱╱┆╱╱╱╱  ╭───────╮  ╱╱╱╱▼ ▼
+//! // ║ │╱╱╱╱  │ node1 │  ╱╱╱╱┆╱╱╱╱  │ node2 │  ╱╱╱╱┆╱╱╱╱  │ node3 │  ╱╱╱╱▲ ▲
+//! // ║ │╱╱╱╱  ╰───────╯  ╱╱╱╱┆╱╱╱╱  ╰───────╯  ╱╱╱╱┆╱╱╱╱  ╰───────╯  ╱╱╱╱│ ║
+//! // ║ │.5fr                1fr                   1fr                .5fr│ ║
+//! // ║ ╰─────────────────────┴─────────────────────┴─────────────────────╯ ║
+//! // ╚═════════════════════════════════════════════════════════════════════╝
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 1.0));
+//! node2.set_size((2.0, 1.0));
+//! node3.set_size((2.0, 1.0));
 //! root.use_auto_layout().justify_content_x_space_around();
-//! let node1 = root.new_child().set_size((2.0, 2.0));
-//! let node2 = root.new_child().set_size((2.0, 3.0));
-//! let node3 = root.new_child().set_size((2.0, 4.0));
+//! ```
+//!
+//! ### Justify content space evenly.
+//! ```
+//! // ╔═════════════════════════════════════════════════════════════════════╗     
+//! // ║ ╭────────── ▶ ◀ ───────┬─────── ▶ ◀ ───────┬─────── ▶ ◀ ──────────╮ ║
+//! // ║ │╱╱╱╱╱╱ root        ╱╱╱┆╱╱╱             ╱╱╱┆╱╱╱             ╱╱╱╱╱╱│ ║
+//! // ║ │╱╱╱╱╱╱  ╭───────╮  ╱╱╱┆╱╱╱  ╭───────╮  ╱╱╱┆╱╱╱  ╭───────╮  ╱╱╱╱╱╱▼ ▼
+//! // ║ │╱╱╱╱╱╱  │ node1 │  ╱╱╱┆╱╱╱  │ node2 │  ╱╱╱┆╱╱╱  │ node3 │  ╱╱╱╱╱╱▲ ▲
+//! // ║ │╱╱╱╱╱╱  ╰───────╯  ╱╱╱┆╱╱╱  ╰───────╯  ╱╱╱┆╱╱╱  ╰───────╯  ╱╱╱╱╱╱│ ║
+//! // ║ │ 1fr                 1fr                 1fr                 1fr │ ║
+//! // ║ ╰──────────────────────┴───────────────────┴──────────────────────╯ ║
+//! // ╚═════════════════════════════════════════════════════════════════════╝
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 1.0));
+//! node2.set_size((2.0, 1.0));
+//! node3.set_size((2.0, 1.0));
+//! root.use_auto_layout().justify_content_x_space_evenly();
 //! ```
 //!
 //!
 //! ## Properties inheritance.
+//! Column and row size is set to 'hug' by default. Other properties will be inherited from children
+//! if not set explicitly. The following rules will apply:
+//!
+//! - The `min_size` will be set to the maximum of all children's `min_size`.
+//! - The `max_size` will be set to the minimum of all children's `max_size`.
+//! - The `grow_factor` will be set to the average of all children's `grow_factor`.
+//! - The `shrink_factor` will be set to the average of all children's `shrink_factor`.
+//! - In case the column/row size was set to 'hug' and the child size used fractional units to
+//!   express its size, the column/row size will be resolved to a maximum of children sizes,
+//!   including the fractional sizes.
 //!
 //!
+//! ## Overlapping items
+//! Sometimes, it is impossible to fit all children within the parent container. In such a case, the
+//! children can overflow the parent container and can overlap themselves. This can happen when you
+//! use negative margins, or when the columns can't grow enough to get all the needed space. For
+//! example, the following code creates a three-column layout, where both columns and children are
+//! of fixed sizes and are not allowed to grow nor shrink:
 //!
+//! ```
+//! // ╔═════════════════════════ ▶ ◀ ═════════════════════╗
+//! // ║ ╭─────────────┬─────────────┬─────────────╮       ║
+//! // ║ │ root        ┆             ┆  ╭──────────┼─────╮ ║
+//! // ║ │             ┆  ╭──────────┼──┼─╮ node3  │     │ ║
+//! // ║ │  ╭───────╮  ┆  │ node2    ┆  │ │        │     │ ▼
+//! // ║ │  │ node1 │  ┆  │          ┆  │ │        │     │ ▲
+//! // ║ │  ╰───────╯  ┆  ╰──────────┼──┴─╯────────┼─────╯ ║
+//! // ║ ╰─────────────┴─────────────┴─────────────╯       ║
+//! // ║      2.0           2.0           2.0              ║
+//! // ╚═══════════════════════════════════════════════════╝
 //!
-//! # Future Grid layout extensions.
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((1.0, 2.0));
+//! node2.set_size((2.0, 3.0));
+//! node3.set_size((3.0, 4.0));
+//! root.use_auto_layout().justify_content_x_space_evenly();
+//! ```
 //!
-//! ## Placing items across multiple rows/columns.
+//! ## Future Grid layout extensions.
+//!
+//! ### Placing items across multiple rows/columns.
 //! The CSS Grid allows placing items across multiple rows/columns. This mode is not supported by
 //! the Grid layout yet. See the `grid-template-areas` property to learn more about it:
 //! https://css-tricks.com/snippets/css/complete-guide-grid/#aa-grid-template-areas.
-
+//!
+//! ### The masonry layout.
+//! The masonry layout is a layout where rows or columns are not aligned and can be shifted in one
+//! direction. This mode is useful when creating "image walls" or lists of tags, where items have
+//! different lengths. For example, it will allow to place items in the following layout:
+//!
+//! ╔════════════════════════════════════════════════════════════════════════╗
+//! ║ ╭───────────── ▶ ◀ ────────────┬─── ▶ ◀ ───┬─────────── ▶ ◀ ─────────╮ ║
+//! ║ │  ╭────────────────────────╮  ┆ ╭───────╮ ┆ ╭─────────────────────╮ ▼ ║
+//! ║ │  ╰────────────────────────╯  ┆ ╰───────╯ ┆ ╰─────────────────────╯ ▲ ▼
+//! ║ ├╌╌╌╌╌╌╌╌╌╌╌╌┬╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┴╌╌╌╌┬╌╌╌╌╌╌┴╌╌╌╌╌╌╌┬╌╌╌╌╌╌╌╌┬╌╌╌╌╌╌╌╌╯ ▲
+//! ║ │  ╭──────╮  ┆ ╭──────────────────╮ ┆ ╭──────────╮ ┆ ╭────╮ ▼          ║
+//! ║ │  ╰──────╯  ┆ ╰──────────────────╯ ┆ ╰──────────╯ ┆ ╰────╯ ▲          ║
+//! ║ ╰─── ▶ ◀ ────┴───────── ▶ ◀ ────────┴──── ▶ ◀ ─────┴─ ▶ ◀ ──╯          ║
+//! ╚════════════════════════════════════════════════════════════════════════╝
+//!
+//! To learn more about the masonry layout, see the following article:
+//! https://css-tricks.com/snippets/css/complete-guide-grid/#aa-masonry.
+//!
+//!
+//!
+//!
+//! # The manual layout.
+//! The manual layout is a layout where the user can freely place the children. It is the default
+//! layout of display objects. Although the children are not automatically placed, the layout still
+//! computes some of their properties, including their size.
+//!
+//! Let's start with the size. In the case of fixed pixel and percentage of parent size units, the
+//! size will be computed just as we've seen previously. In case of non-zero relative units, the
+//! size will always be resolved to 100% of the parent container size. If the child was allowed to
+//! grow, it will always grow to the size of the parent container. For example, the following code
+//! creates a manual layout with two overlapping children that inherit their sizes from the parent
+//! container:
+//! ```
+//! // ╭─────────────────────╮
+//! // │ root             △  │
+//! // │  ╭───────────────┼▷ │
+//! // │  │ node1 & node2 │  │
+//! // │  │               │  │
+//! // │  │               │  │
+//! // │  │               │  │
+//! // │  │               │  │
+//! // │  ╰───────────────╯  │
+//! // ╰─────────────────────╯
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.set_size((10.0, 10.0));
+//! node1.allow_grow();
+//! node2.allow_grow();
+//! ```
+//!
+//! ## The content origin
+//! In the parent container size is set to hug, the container size will be automatically increased
+//! to fit the children, however, the children will not be moved, so they can still overflow the
+//! parent container. In such a case, the content origin point is set to the minimum X-axis and
+//! Y-axis of the content. For example, the following code creates a manual layout with three that
+//! overflow the parent container:
+//! ```
+//! //     ╭──────── ▶ ◀ ──────────────────╮
+//! //     │ root                          │
+//! //     │                 ╭────────╮    │
+//! // ╭───┼────╮            │ node3  │    │
+//! // │ node1  │            │        │    ▼
+//! // │   │    │ ╭────────╮ ╰────────╯    ▲
+//! // ╰───┼────╯ │ node2  │               │
+//! //     ╰──────┼────────┼───────────────╯
+//! //   ╱        │        │           
+//! // ◎          ╰────────╯
+//!
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! let node3 = root.new_child();
+//! node1.set_size((2.0, 2.0));
+//! node2.set_size((2.0, 2.0));
+//! node3.set_size((2.0, 2.0));
+//! node1.set_xy((-1.0, 0.0));
+//! node2.set_xy((1.0, -1.0));
+//! node3.set_xy((3.0, 1.0));
+//! ```
+//!
+//! The content origin tells the layout manager where the real bottom-left corner is. For example,
+//! we can place several manual layouts with children that overflow their parents in an auto-layout
+//! and get the correct result:
+//! ```
+//! //          ╭────── ▶ ◀ ──────────────╮    ╭────── ▶ ◀ ─────────────╮
+//! //          │ node1                   │    │ node2                  │
+//! // ╔════════╪═══════════════════ ▶ ◀ ═╪════╪════════════════════════╪╗
+//! // ║ ╭──────┼───────────────────────┬─┼────┼──────────────────────╮ │║
+//! // ║ │ root │                       ┆ │    │                      │ │║
+//! // ║ │  ╭───┼──────╮                ┆ ▼╭───┼──────╮               │ ▼║
+//! // ║ │  │ node1_1  │                ┆ ▲│ node2_1  │               │ ▲║
+//! // ║ │  │   │      │  ╭──────────╮  ┆ ││   │      │  ╭─────────╮  │ │▼
+//! // ║ │  ╰───┼──────╯  │ node1_2  │  ┆ │╰───┼──────╯  │ node2_2 │  │ │▲
+//! // ║ │      ╰─────────┼──────────┼──┼─╯    ╰─────────┼─────────┼──┼─╯║
+//! // ║ │    ╱           │          │  ┆    ╱           │         │  │  ║
+//! // ║ │  ◎             ╰──────────╯  ┆  ◎             ╰─────────╯  │  ║
+//! // ║ ╰──────────────────────────────┴─────────────────────────────╯  ║
+//! // ╚═════════════════════════════════════════════════════════════════╝
+//! 
+//! # use crate::display;
+//! let root = display::object::Instance::new();
+//! let node1 = root.new_child();
+//! let node2 = root.new_child();
+//! root.use_auto_layout();
+//! 
+//! let node1_1 = node1.new_child();
+//! let node1_2 = node1.new_child();
+//! node1_1.set_size((2.0, 2.0));
+//! node1_2.set_size((2.0, 2.0));
+//! node1_1.set_xy((-1.0, 0.0));
+//! node1_2.set_xy((1.0, -1.0));
+//! 
+//! let node2_1 = node2.new_child();
+//! let node2_2 = node2.new_child();
+//! node2_1.set_size((2.0, 2.0));
+//! node2_2.set_size((2.0, 2.0));
+//! node2_1.set_xy((-1.0, 0.0));
+//! node2_2.set_xy((1.0, -1.0));
+//! ```
+//! 
+//! 
 use crate::data::dirty::traits::*;
 use crate::display::object::layout::*;
 use crate::prelude::*;
