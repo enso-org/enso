@@ -170,9 +170,9 @@ impl ContentRoots {
 
 
 
-// ========================
-// === VCS status check ===
-// ========================
+// ======================
+// === VCS management ===
+// ======================
 
 /// Initialize the VCS if it was not already initialized.
 #[profile(Detail)]

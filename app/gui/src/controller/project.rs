@@ -8,12 +8,10 @@ use crate::controller::ide::StatusNotificationPublisher;
 use double_representation::import;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
-use engine_protocol::common::error::code;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use json_rpc::error::RpcError;
 use parser_scala::Parser;
 
 
