@@ -743,20 +743,6 @@ type Table
                 _ : Table -> True
                 _ -> False
             if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the table in-memory table before joining it with a database one, or materialize this table.") else
-#                # [left_unmatched, matched, right_unmatched]
-#                rows_to_keep = case join_kind of
-#                    Join_Kind.Inner           -> [False, True, False]
-#                    Join_Kind.Left_Outer      -> [True, True, False]
-#                    Join_Kind.Right_Outer     -> [False, True, True]
-#                    Join_Kind.Full            -> [True, True, True]
-#                    Join_Kind.Left_Exclusive  -> [True, False, False]
-#                    Join_Kind.Right_Exclusive -> [False, False, True]
-#
-#                columns_to_keep = case join_kind of
-#                    Join_Kind.Left_Exclusive  -> [True, False]
-#                    Join_Kind.Right_Exclusive -> [False, True]
-#                    _                         -> [True, True]
-
                 join_resolution = make_join_helpers self right . resolve on on_problems
                 right_columns_to_drop = join_resolution.redundant_column_names
                 Error.throw (Illegal_State.Error "TODO")
@@ -1376,7 +1362,7 @@ freshen_columns used_names columns =
 make_join_helpers left_table right_table =
     make_equals left right = unimplemented "TODO"
     make_equals_ignore_case left right locale =
-#        if locale != Locale.default then add warning
+        # if locale != Locale.default then add warning
         unimplemented "TODO"
     make_between left right_lower right_upper =
         unimplemented "TODO"
