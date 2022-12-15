@@ -360,6 +360,7 @@ fn get_method(
 /// Note that we need to use special serializer, as `serde_wasm_bindgen` defaults to outputting
 /// some special `Map` type that is not supported by the visualization API (rather than proper
 /// objects).
+#[cfg(target_arch = "wasm32")]
 pub fn json_to_value(
     json: &serde_json::Value,
 ) -> std::result::Result<JsValue, serde_wasm_bindgen::Error> {
