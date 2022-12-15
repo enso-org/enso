@@ -399,3 +399,18 @@ spec setup =
             error = Error.throw (Illegal_State.Error "FOO")
             t1.join error . should_fail_with Illegal_State.Error
             t1.join t2 on=["X", error] . should_fail_with Illegal_State.Error
+
+        Test.specify "should correctly handle all null rows" <|
+            t1 = table_builder [["A", [Nothing, 2, Nothing]], ["B", [Nothing, 3, 4]]]
+            t2 = table_builder [["C", [Nothing, 2, Nothing, 4]], ["B", [Nothing, 5, 6, Nothing]]]
+
+            t1.print
+            t2.print
+
+            t3 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Inner
+            t3.print
+            t4 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Full
+            t4.print
+            t5 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Exclusive
+            t5.print
+

@@ -1,9 +1,11 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.File_Error.File_Error
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Expression.Expression
@@ -12,6 +14,7 @@ import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
+import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -30,7 +33,7 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Join_Kind.Join_Kind
+import project.Internal.IR.Join_Kind.Join_Kind as Internal_Join_Kind
 import project.Internal.IR.Query.Query
 
 from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
@@ -775,7 +778,7 @@ type Table
             Panic.rethrow (Helpers.ensure_name_is_sane left_suffix && Helpers.ensure_name_is_sane right_suffix)
             if left_suffix == right_suffix then
                 Panic.throw <| Illegal_State.Error "left_suffix must be different from right_suffix"
-            kind = if drop_unmatched then Join_Kind.Inner else Join_Kind.Left
+            kind = if drop_unmatched then Internal_Join_Kind.Inner else Internal_Join_Kind.Left
 
             # Prepare the left and right pairs of indices along which the join will be performed.
             left_join_index : Vector Internal_Column
@@ -1360,10 +1363,10 @@ freshen_columns used_names columns =
 
 ## PRIVATE
 make_join_helpers left_table right_table =
-    make_equals left right = unimplemented "TODO"
+    make_equals left right = Unimplemented.throw "TODO"
     make_equals_ignore_case left right locale =
         # if locale != Locale.default then add warning
-        unimplemented "TODO"
+        Unimplemented.throw "TODO"
     make_between left right_lower right_upper =
-        unimplemented "TODO"
+        Unimplemented.throw "TODO"
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
