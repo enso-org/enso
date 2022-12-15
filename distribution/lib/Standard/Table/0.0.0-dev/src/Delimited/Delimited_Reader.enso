@@ -226,12 +226,12 @@ handle_parsing_exception =
     translate_parsing_exception caught_panic =
         case caught_panic.payload.getCause of
             ioe : IOException -> Panic.throw ioe
-            payload -> Error.throw (Parser_Error.Error payload)
+            _ -> Error.throw (Parser_Error.Error caught_panic.payload)
     Panic.catch TextParsingException handler=translate_parsing_exception
 
 ## PRIVATE
 handle_io_exception related_file ~action = Panic.catch IOException action cause->
-    Error.throw (File_Error.wrap_io_exception related_file cause.payload)
+    File_Error.wrap_io_exception related_file cause.payload
 
 ## PRIVATE
 default_max_columns = 4096
