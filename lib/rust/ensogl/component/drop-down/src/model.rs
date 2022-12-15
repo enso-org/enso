@@ -273,8 +273,8 @@ impl<T: PartialEq + Hash> display::Object for Model<T> {
     }
 }
 
-type DropdownGridEntry = Entry;
-type Grid = grid_view::scrollable::SelectableGridView<DropdownGridEntry>; // selectable is probably wrong, need multiselect
+type Grid = grid_view::scrollable::SelectableGridView<Entry>;
+
 
 
 // ===================
@@ -307,7 +307,7 @@ impl<T> EntryCache<T> {
     {
         let max_cache_size = max_cache_size.max(visible_range.end - visible_range.start);
 
-        if self.position_to_entry.len() > max_cache_size {
+        if self.position_to_entry.len() + update_range.len() > max_cache_size {
             self.prune(visible_range);
         }
 
@@ -316,6 +316,7 @@ impl<T> EntryCache<T> {
         }
     }
 
+    /// Remove cache entries that are not in the given range.
     fn prune(&mut self, retain_range: Range<usize>) {
         self.position_to_entry.retain(|k, _| retain_range.contains(k));
     }
