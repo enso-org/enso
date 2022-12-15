@@ -309,11 +309,9 @@ mod tests {
 
     // === Project Snapshotting ===
 
-    /// Structure that keeps track of whether the VCS is initialized and how many commits are made.
+    /// Structure that keeps track of how many commits are made.
     struct VcsMockState {
-        init:         Cell<bool>,
         commit_count: Cell<usize>,
-        dirty:        Cell<bool>,
     }
 
     /// Mock project that updates a VcsMockState on relevant language server API calls.
@@ -326,79 +324,13 @@ mod tests {
             commit_id: "commit_id".into(),
             message:   "message".into(),
         };
-        let vcs_status = language_server::response::VcsStatus {
-            dirty:     false,
-            changed:   Vec::new(),
-            last_save: vcs_entry.clone(),
-        };
 
-        let vcs_clone = vcs.clone();
-        let root_path_clone = root_path.clone();
-        json_client.expect.init_vcs(move |path| {
-            assert_eq!(path, &root_path_clone);
-            assert!(!vcs_clone.init.get(), "VCS is already initialized.");
-            vcs_clone.init.set(true);
-            Ok(())
-        });
-
-        let vcs_clone = vcs.clone();
-        let root_path_clone = root_path.clone();
-        let vcs_entry_clone = vcs_entry.clone();
-        let vcs_err = RpcError::RemoteError(json_rpc::messages::Error {
-            code:    code::FILE_NOT_FOUND,
-            message: "VCS is not initialized.".into(),
-            data:    None,
-        });
         json_client.expect.save_vcs(move |path, name| {
-            assert_eq!(path, &root_path_clone);
-            assert_eq!(name, &None);
-            if vcs_clone.init.get() {
-                let count = vcs_clone.commit_count.get();
-                vcs_clone.commit_count.set(count + 1);
-                vcs_clone.dirty.set(false);
-                Ok(vcs_entry_clone)
-            } else {
-                Err(vcs_err)
-            }
-        });
-
-        // Expect a 2nd call to `write_vcs` if the first failed because the VCS was not initialized.
-        let vcs_clone = vcs.clone();
-        let root_path_clone = root_path.clone();
-        json_client.expect.save_vcs(move |path, name| {
-            assert_eq!(path, &root_path_clone);
-            assert_eq!(name, &None);
-            assert!(vcs_clone.init.get(), "VCS is not initialized.");
-            let count = vcs_clone.commit_count.get();
-            vcs_clone.commit_count.set(count + 1);
-            vcs_clone.dirty.set(false);
-            Ok(vcs_entry)
-        });
-
-        let vcs_clone = vcs.clone();
-        let root_path_clone = root_path.clone();
-        let mut vcs_status_clone = vcs_status.clone();
-        let vcs_err = RpcError::RemoteError(json_rpc::messages::Error {
-            code:    code::FILE_NOT_FOUND,
-            message: "VCS is not initialized.".into(),
-            data:    None,
-        });
-        json_client.expect.vcs_status(move |path| {
-            assert_eq!(path, &root_path_clone);
-            if vcs_clone.init.get() {
-                vcs_status_clone.dirty = vcs_clone.dirty.get();
-                Ok(vcs_status_clone)
-            } else {
-                Err(vcs_err)
-            }
-        });
-
-        // Expect a 2nd call to `vcs_status` after a `write_vcs` is performed.
-        json_client.expect.vcs_status(move |path| {
             assert_eq!(path, &root_path);
-            assert!(vcs.init.get(), "VCS is not initialized.");
-            assert!(!vcs.dirty.get(), "VCS status is dirty.");
-            Ok(vcs_status)
+            assert_eq!(name, &None);
+            let count = vcs.commit_count.get();
+            vcs.commit_count.set(count + 1);
+            Ok(vcs_entry)
         });
 
         let ls = engine_protocol::language_server::Connection::new_mock_rc(json_client);
@@ -411,68 +343,12 @@ mod tests {
     #[wasm_bindgen_test]
     fn save_project_snapshot() {
         TestWithLocalPoolExecutor::set_up().run_task(async move {
-            let vcs = Rc::new(VcsMockState {
-                init:         Cell::new(true),
-                commit_count: Cell::new(2),
-                dirty:        Cell::new(false),
-            });
+            let vcs = Rc::new(VcsMockState { commit_count: Cell::new(2) });
             let project = setup_mock_project(vcs.clone());
             let project_controller = controller::Project::new(project, default());
             let result = project_controller.save_project_snapshot().await;
             assert_matches!(result, Ok(()));
-            assert!(vcs.init.get(), "VCS is not initialized.");
             assert_eq!(vcs.commit_count.get(), 3);
-        });
-    }
-
-    #[wasm_bindgen_test]
-    fn save_project_snapshot_vcs_not_init() {
-        TestWithLocalPoolExecutor::set_up().run_task(async move {
-            let vcs = Rc::new(VcsMockState {
-                init:         Cell::new(false),
-                commit_count: Cell::new(0),
-                dirty:        Cell::new(false),
-            });
-            let project = setup_mock_project(vcs.clone());
-            let project_controller = controller::Project::new(project, default());
-            let result = project_controller.save_project_snapshot().await;
-            assert_matches!(result, Ok(()));
-            assert!(vcs.init.get(), "VCS is not initialized.");
-            assert_eq!(vcs.commit_count.get(), 1);
-        });
-    }
-
-    #[wasm_bindgen_test]
-    fn check_project_status() {
-        TestWithLocalPoolExecutor::set_up().run_task(async move {
-            let vcs = Rc::new(VcsMockState {
-                init:         Cell::new(true),
-                commit_count: Cell::new(2),
-                dirty:        Cell::new(true),
-            });
-            let project = setup_mock_project(vcs.clone());
-            let project_controller = controller::Project::new(project, default());
-            let result = project_controller.check_project_vcs_is_outdated().await;
-            assert_matches!(result, Ok(true)); // Last VCS snapshot is outdated.
-            let result = project_controller.save_project_snapshot().await;
-            assert_matches!(result, Ok(())); // New VCS snapshot saved.
-            let result = project_controller.check_project_vcs_is_outdated().await;
-            assert_matches!(result, Ok(false)); // Last VCS snapshot is up to date.
-        });
-    }
-
-    #[wasm_bindgen_test]
-    fn check_project_status_vcs_not_init() {
-        TestWithLocalPoolExecutor::set_up().run_task(async move {
-            let vcs = Rc::new(VcsMockState {
-                init:         Cell::new(false),
-                commit_count: Cell::new(0),
-                dirty:        Cell::new(false),
-            });
-            let project = setup_mock_project(vcs.clone());
-            let project_controller = controller::Project::new(project, default());
-            let result = project_controller.check_project_vcs_is_outdated().await;
-            assert_matches!(result, Ok(true));
         });
     }
 }
