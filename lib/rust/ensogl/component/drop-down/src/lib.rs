@@ -199,7 +199,7 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             visible_range <- model.grid.viewport.map(|viewport| {
                 let start = (-viewport.top / ENTRY_HEIGHT).floor() as usize;
                 let end = (-viewport.bottom / ENTRY_HEIGHT).ceil() as usize;
-                start..(end + 1)
+                start..end
             });
             output.currently_visible_range <+ visible_range;
 
@@ -236,6 +236,12 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             model.grid.move_selection_up <+ input.focus_previous_entry;
             model.grid.move_selection_down <+ input.focus_next_entry;
             model.grid.select_entry <+ model.grid.entry_hovered;
+
+            has_focused_entry <- model.grid.entry_selected.map(|entry| entry.is_some());
+            model.grid.select_entry <+ input.focus_previous_entry.gate_not(&has_focused_entry)
+                .map2(&visible_range, |_, range| Some(((range.end - 1).max(range.start), 0)));
+            model.grid.select_entry <+ input.focus_next_entry.gate_not(&has_focused_entry)
+                .map2(&visible_range, |_, range| Some((range.start, 0)));
 
 
             // === Initialization ===
