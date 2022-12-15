@@ -65,38 +65,4 @@ public abstract class Aggregator {
     }
     problems.add(problem);
   }
-
-  protected static Long CastToLong(Object value) {
-    if (value instanceof Long) {
-      return (Long) value;
-    } else if (value instanceof Integer) {
-      return ((Integer) value).longValue();
-    } else if (value instanceof Byte) {
-      return ((Byte) value).longValue();
-    } else if (value instanceof Float && ((Float) value) % 1 == 0) {
-      // Only return if an integer stored as a float ( % 1 == 0)
-      return ((Float) value).longValue();
-    } else if (value instanceof Double && ((Double) value) % 1 == 0) {
-      // Only return if an integer stored as a double ( % 1 == 0)
-      return ((Double) value).longValue();
-    }
-
-    return null;
-  }
-
-  protected static Double CastToDouble(Object value) {
-    if (value instanceof Long) {
-      return ((Long) value).doubleValue();
-    } else if (value instanceof Integer) {
-      return ((Integer) value).doubleValue();
-    } else if (value instanceof Byte) {
-      return ((Byte) value).doubleValue();
-    } else if (value instanceof Float) {
-      return ((Float) value).doubleValue();
-    } else if (value instanceof Double) {
-      return ((Double) value);
-    }
-
-    return null;
-  }
 }

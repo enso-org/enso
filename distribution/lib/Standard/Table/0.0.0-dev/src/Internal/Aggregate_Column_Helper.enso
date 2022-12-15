@@ -195,7 +195,7 @@ java_aggregator name column =
         Count _ -> CountAggregator.new name
         Count_Distinct columns _ ignore_nothing ->
             resolved = columns.map .java_column
-            CountDistinctAggregator.new name resolved.to_array ignore_nothing Comparator.new
+            CountDistinctAggregator.new name resolved.to_array ignore_nothing
         Count_Not_Nothing c _ -> CountNothingAggregator.new name c.java_column False
         Count_Nothing c _ -> CountNothingAggregator.new name c.java_column True
         Count_Not_Empty c _ -> CountEmptyAggregator.new name c.java_column False
