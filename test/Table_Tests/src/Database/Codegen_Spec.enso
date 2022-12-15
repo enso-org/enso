@@ -39,7 +39,7 @@ spec =
             q1.should_equal expected
 
             q2 = t1.at "A" . to_json
-            expected_2 = JS_Object.from_pairs [["query", [JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A" FROM "T1" AS "T1"']]]]]) . to_text
+            expected_2 = JS_Object.from_pairs [["query", [JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A" FROM "T1" AS "T1"']]]]] . to_text
             q2.should_equal expected_2
 
     Test.group "[Codegen] Basic Select" <|

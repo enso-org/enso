@@ -125,7 +125,7 @@ Table.axes self =
         label = axis_pair.at 1
         label.is_valid && (self.all_columns.length > 0)
     axes_obj = JS_Object.from_pairs <| [x_axis, y_axis].filter is_valid
-    if axes_obj.fields.size > 0 then axes_obj else Nothing
+    if axes_obj.length > 0 then axes_obj else Nothing
 
 ## PRIVATE
 Vector.point_data : Vector -> JS_Object
@@ -143,8 +143,8 @@ bound_data bounds data = case bounds of
         max_y = bounds.at 3
 
         data.filter <| datum->
-            x = datum.get "x" . unwrap
-            y = datum.get "y" . unwrap
+            x = datum.get "x"
+            y = datum.get "y"
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
@@ -155,8 +155,8 @@ type Extreme
 limit_data limit data = case limit of
     Nothing -> data
     _ -> if ((data.length <= limit) || (data.length == 0)) then data else
-        x datum = (datum.get "x").unwrap
-        y datum = (datum.get "y").unwrap
+        x datum = (datum.get "x")
+        y datum = (datum.get "y")
 
         update_extreme current idx point =
             new_min_x = if x current.min_x.second > x point then [idx, point] else current.min_x

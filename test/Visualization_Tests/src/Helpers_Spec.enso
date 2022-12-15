@@ -77,22 +77,19 @@ spec =
             vec = Vector.fill 1000 0
             text = vec.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
+            json.should_equal <| Vector.fill 100 0
 
         Test.specify "should be able to visualize an Enso Array" <|
             arr = Vector.fill 1000 0 . to_array
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
+            json.should_equal <| Vector.fill 100 0
 
         Test.specify "should be able to visualize a Polyglot Array" pending="`to_default_visualization_data` does not work for polyglot arrays" <|
             arr = make_java_array (Vector.fill 1000 0)
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
+            json.should_equal <| Vector.fill 100 0
 
     Test.group "Dataflow Error Visualization" <|
         Test.specify "should be able to be shown in the default visualization" <|

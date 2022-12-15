@@ -217,7 +217,7 @@ type Map
 
              example_get = Examples.map.get 2 "zero"
     get : Any -> Any -> Any
-    get self key ~other =
+    get self key ~other=Nothing =
         go map = case map of
             Map.Tip -> other
             Map.Bin _ k v l r -> case Internal.compare_allow_nothing key k of
