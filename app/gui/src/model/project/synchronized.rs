@@ -170,26 +170,9 @@ impl ContentRoots {
 
 
 
-// ======================
-// === VCS management ===
-// ======================
-
-/// Initialize the VCS if it was not already initialized.
-#[profile(Detail)]
-fn initialize_vcs(project_root_id: Uuid, language_server: Rc<language_server::Connection>) {
-    let path_segments: [&str; 0] = [];
-    let root_path = language_server::Path::new(project_root_id, &path_segments);
-    executor::global::spawn(async move {
-        let response = language_server.init_vcs(&root_path).await;
-        match response {
-            Err(RpcError::RemoteError(json_rpc::messages::Error { code: error_code, .. }))
-                if error_code == code::VCS_ALREADY_EXISTS =>
-                info!("Project is already under version control."),
-            Err(err) => error!("Error while initializing project VCS: {err}"),
-            Ok(_) => {}
-        }
-    });
-}
+// ========================
+// === VCS status check ===
+// ========================
 
 /// Check whether the current state of the project differs from the most recent snapshot in the VCS,
 /// and emit a notification.
@@ -198,21 +181,21 @@ fn check_vcs_status_and_notify(
     project_root_id: Uuid,
     language_server: Rc<language_server::Connection>,
     publisher: notification::Publisher<model::project::Notification>,
-) {
+) -> impl Future<Output = json_rpc::Result<language_server::response::VcsStatus>> {
     let path_segments: [&str; 0] = [];
     let root_path = language_server::Path::new(project_root_id, &path_segments);
-    executor::global::spawn(async move {
+    async move {
         let status = language_server.vcs_status(&root_path).await;
-        match status {
-            Err(err) => {
+        match &status {
+            Err(_) => {
                 publisher.notify(model::project::Notification::VcsStatusChanged(true));
-                error!("Error while checking project snapshot status: {err}");
             }
             Ok(status) => {
                 publisher.notify(model::project::Notification::VcsStatusChanged(status.dirty));
             }
         }
-    });
+        status
+    }
 }
 
 
@@ -356,9 +339,7 @@ impl Project {
         let json_rpc_handler = ret.json_event_handler();
         crate::executor::global::spawn(json_rpc_events.for_each(json_rpc_handler));
 
-        let language_server = ret.json_rpc().clone_ref();
-        initialize_vcs(ret.project_content_root_id(), language_server);
-
+        ret.initialize_vcs().await.map_err(|err| wrap(err.into()))?;
         ret.acquire_suggestion_db_updates_capability().await.map_err(|err| wrap(err.into()))?;
         Ok(ret)
     }
@@ -523,7 +504,16 @@ impl Project {
                 Event::Notification(Notification::TextAutoSave(_)) => {
                     let publisher = publisher.clone_ref();
                     let language_server = language_server.clone_ref();
-                    check_vcs_status_and_notify(project_root_id, language_server, publisher);
+                    executor::global::spawn(async move {
+                        let status = check_vcs_status_and_notify(
+                            project_root_id,
+                            language_server,
+                            publisher,
+                        );
+                        if let Err(err) = status.await {
+                            error!("Error while checking project VCS status: {err}");
+                        }
+                    });
                 }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
@@ -590,6 +580,27 @@ impl Project {
         let capability = CapabilityRegistration::create_receives_suggestions_database_updates();
         self.language_server_rpc
             .acquire_capability(&capability.method, &capability.register_options)
+    }
+
+    /// Initialize the VCS if it was not already initialized.
+    #[profile(Detail)]
+    fn initialize_vcs(&self) -> impl Future<Output = json_rpc::Result<()>> {
+        let project_root_id = self.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = language_server::Path::new(project_root_id, &path_segments);
+        let language_server = self.json_rpc().clone_ref();
+        async move {
+            let response = language_server.init_vcs(&root_path).await;
+            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
+                code: code::VCS_ALREADY_EXISTS,
+                ..
+            })) = response
+            {
+                Ok(())
+            } else {
+                response
+            }
+        }
     }
 
     #[profile(Task)]
