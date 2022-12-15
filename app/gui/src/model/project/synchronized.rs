@@ -14,6 +14,7 @@ use crate::transport::web::WebSocket;
 use double_representation::name::project;
 use engine_protocol::binary;
 use engine_protocol::binary::message::VisualisationContext;
+use engine_protocol::common::error::code;
 use engine_protocol::language_server;
 use engine_protocol::language_server::CapabilityRegistration;
 use engine_protocol::language_server::ContentRoot;
@@ -23,6 +24,7 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
+use json_rpc::error::RpcError;
 use parser_scala::Parser;
 
 
@@ -172,13 +174,30 @@ impl ContentRoots {
 // === VCS status check ===
 // ========================
 
+/// Initialize the VCS if it was not already initialized.
+#[profile(Detail)]
+fn initialize_vcs(project_root_id: Uuid, language_server: Rc<language_server::Connection>) {
+    let path_segments: [&str; 0] = [];
+    let root_path = language_server::Path::new(project_root_id, &path_segments);
+    executor::global::spawn(async move {
+        let response = language_server.init_vcs(&root_path).await;
+        match response {
+            Err(RpcError::RemoteError(json_rpc::messages::Error { code: error_code, .. }))
+                if error_code == code::VCS_ALREADY_EXISTS =>
+                info!("Project is already under version control."),
+            Err(err) => error!("Error while initializing project VCS: {err}"),
+            Ok(_) => {}
+        }
+    });
+}
+
 /// Check whether the current state of the project differs from the most recent snapshot in the VCS,
 /// and emit a notification.
 #[profile(Detail)]
 fn check_vcs_status_and_notify(
-    publisher: notification::Publisher<model::project::Notification>,
     project_root_id: Uuid,
     language_server: Rc<language_server::Connection>,
+    publisher: notification::Publisher<model::project::Notification>,
 ) {
     let path_segments: [&str; 0] = [];
     let root_path = language_server::Path::new(project_root_id, &path_segments);
@@ -336,6 +355,9 @@ impl Project {
 
         let json_rpc_handler = ret.json_event_handler();
         crate::executor::global::spawn(json_rpc_events.for_each(json_rpc_handler));
+
+        let language_server = ret.json_rpc().clone_ref();
+        initialize_vcs(ret.project_content_root_id(), language_server);
 
         ret.acquire_suggestion_db_updates_capability().await.map_err(|err| wrap(err.into()))?;
         Ok(ret)
@@ -501,7 +523,7 @@ impl Project {
                 Event::Notification(Notification::TextAutoSave(_)) => {
                     let publisher = publisher.clone_ref();
                     let language_server = language_server.clone_ref();
-                    check_vcs_status_and_notify(publisher, project_root_id, language_server);
+                    check_vcs_status_and_notify(project_root_id, language_server, publisher);
                 }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
