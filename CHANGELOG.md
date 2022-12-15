@@ -262,6 +262,7 @@
 - [There is a new API to lazily feed visualisation information to the
   IDE.][3910]
 - [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
+- [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -410,6 +411,7 @@
 [3910]: https://github.com/enso-org/enso/pull/3910
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
+[3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 
 #### Enso Compiler

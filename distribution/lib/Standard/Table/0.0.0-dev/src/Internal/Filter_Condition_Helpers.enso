@@ -44,6 +44,10 @@ make_filter_column source_column filter_condition = case filter_condition of
         Value_Type.expect_text source_column.value_type <|
             expect_column_or_value_as_text "substring" substring <|
                 source_column.contains substring
+    Not_Contains substring ->
+        Value_Type.expect_text source_column.value_type <|
+            expect_column_or_value_as_text "substring" substring <|
+                source_column.contains substring . not
     Is_Empty ->
         Value_Type.expect_text source_column.value_type <|
             source_column.is_empty

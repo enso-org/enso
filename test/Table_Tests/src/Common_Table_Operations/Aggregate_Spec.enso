@@ -1137,6 +1137,18 @@ spec setup =
             materialized.columns.at 0 . name . should_equal "B"
             materialized.columns.at 0 . to_vector . should_equal [2, 3, 2]
 
+        if setup.test_selection.supports_unicode_normalization then
+            Test.specify "should correctly handle Unicode normalization within grouping" <|
+                table = table_builder [["A", ['s', 's\u0301', 'ś', 's\u0301']], ["B", [1, 2, 4, 8]]]
+                grouped = table.aggregate [Group_By "A", Sum "B"]
+                grouped.row_count . should_equal 2
+                materialized = materialize grouped . order_by ["A"]
+                materialized.column_count . should_equal 2
+                materialized.columns.at 0 . name . should_equal "A"
+                materialized.columns.at 0 . to_vector . should_equal ['s', 'ś']
+                materialized.columns.at 1 . name . should_equal "Sum B"
+                materialized.columns.at 1 . to_vector . should_equal [1, 14]
+
         if test_selection.date_support then
             Test.specify "should allow grouping by dates" <|
                 dates = ["Date", [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31, Date.new 2000 2 2, Date.new 1997]]

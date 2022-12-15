@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -61,7 +62,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
     return isArrayType;
   }
 
-  @Specialization
+  @Fallback
   public void doValue(VirtualFrame frame, Object state, Object target) {
     Object typeOfTarget = typeOfNode.execute(target);
     boolean test = isSameObject.execute(expectedType, typeOfTarget);
