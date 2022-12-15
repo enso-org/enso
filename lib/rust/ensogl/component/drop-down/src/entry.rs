@@ -3,15 +3,14 @@
 use ensogl_core::display::shape::*;
 use ensogl_grid_view::prelude::*;
 
-use ensogl_grid_view::entry;
-use ensogl_grid_view::entry::EntryFrp;
-
 use ensogl_core::application::command::FrpNetworkProvider;
 use ensogl_core::application::frp::API;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::scene::Layer;
+use ensogl_grid_view::entry;
+use ensogl_grid_view::entry::EntryFrp;
 use ensogl_text as text;
 
 

@@ -12,18 +12,15 @@ use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 use model::*;
 
+use ensogl_core::animation::Animation;
 use ensogl_core::application::shortcut;
 use ensogl_core::application::Application;
 use ensogl_core::application::View;
 use ensogl_core::data::color::Lcha;
 use ensogl_core::display::shape::StyleWatchFrp;
-// use ensogl_core::event::FocusIn;
-// use ensogl_core::event::FocusOut;
-use ensogl_core::animation::Animation;
 use ensogl_core::frp;
 use ensogl_gui_component::component;
 use ensogl_gui_component::component::ComponentView;
-
 
 
 // ==============

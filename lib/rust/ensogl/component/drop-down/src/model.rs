@@ -1,6 +1,11 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
 
+use crate::entry::Entry;
+use crate::entry::EntryModel;
+use crate::entry::EntryParams;
+use crate::DropdownValue;
+
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::data::color::Lcha;
@@ -8,10 +13,6 @@ use ensogl_core::display;
 use ensogl_grid_view as grid_view;
 use ensogl_gui_component::component;
 
-use crate::entry::Entry;
-use crate::entry::EntryModel;
-use crate::entry::EntryParams;
-use crate::DropdownValue;
 
 
 // =================

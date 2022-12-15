@@ -1,7 +1,6 @@
 //! Scene layers implementation. See docs of [`Group`] to learn more.
 
 use crate::data::dirty::traits::*;
-use crate::display::camera;
 use crate::prelude::*;
 
 use crate::data::dirty;

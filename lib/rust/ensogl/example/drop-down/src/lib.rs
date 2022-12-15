@@ -7,7 +7,6 @@
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
 
-
 use ensogl_core::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -17,7 +16,6 @@ use ensogl_core::display::object::ObjectOps;
 use ensogl_drop_down::Dropdown;
 use ensogl_drop_down::DropdownValue;
 use ensogl_hardcoded_theme as theme;
-use ensogl_text as text;
 use ensogl_text_msdf::run_once_initialized;
 
 

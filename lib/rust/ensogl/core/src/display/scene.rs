@@ -3,7 +3,6 @@
 
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
-use typenum::SquareRoot;
 use web::traits::*;
 
 use crate::animation;

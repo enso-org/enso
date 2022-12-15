@@ -2633,7 +2633,6 @@ dependencies = [
  "ensogl-drop-down",
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
- "ensogl-text",
  "ensogl-text-msdf",
  "wasm-bindgen",
 ]
