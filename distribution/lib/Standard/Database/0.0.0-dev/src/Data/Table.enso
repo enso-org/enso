@@ -746,7 +746,18 @@ type Table
                 _ : Table -> True
                 _ -> False
             if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the table in-memory table before joining it with a database one, or materialize this table.") else
-                join_resolution = make_join_helpers self right . resolve on on_problems
+                # TODO proper equality of nulls in join conditions
+                # TODO all-null rows
+                # TODO anti-joins
+                internal_kind = case join_kind of
+                    Join_Kind.Inner           -> Internal_Join_Kind.Inner
+                    Join_Kind.Left_Outer      -> Internal_Join_Kind.Left_Outer
+                    Join_Kind.Right_Outer     -> Internal_Join_Kind.Right_Outer
+                    Join_Kind.Full            -> Internal_Join_Kind.Full
+                    Join_Kind.Left_Exclusive  -> Unimplemented.throw "anti-joins not implemented yet"
+                    Join_Kind.Right_Exclusive -> Unimplemented.throw "anti-joins not implemented yet"
+                on_conditions = make_join_helpers self right . resolve on on_problems
+                # TODO rename right columns
                 right_columns_to_drop = join_resolution.redundant_column_names
                 Error.throw (Illegal_State.Error "TODO")
 
@@ -1363,8 +1374,10 @@ freshen_columns used_names columns =
 
 ## PRIVATE
 make_join_helpers left_table right_table =
+    # TODO maybe instead of a table we need subquery too
     make_equals left right = Unimplemented.throw "TODO"
     make_equals_ignore_case left right locale =
+        # TODO case insensitive equality, probably worth adding as column op too
         # if locale != Locale.default then add warning
         Unimplemented.throw "TODO"
     make_between left right_lower right_upper =
