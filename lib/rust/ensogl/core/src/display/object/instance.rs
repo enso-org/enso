@@ -1,25 +1,27 @@
-//! Implementation of display objects, elements that have visual representation and can form
-//! hierarchical layouts. The implementation is very careful about performance, it tracks the
-//! transformation changes and updates only the needed subset of the display object tree on demand.
+//! # Display Objects
+//! Display objects are essential structures used to build elements visible on the screen. They are
+//! used to build objects hierarchy, computing elements transformations within this hierarchy
+//! (position, rotation, and scale), passing events trough that hierarchy, and layouting the
+//! elements on the screen (e.g. with horizontal or vertical layout). The implementation is very
+//! performance-oriented, it tracks the transformation changes and updates only the needed
+//! subset of the display object tree on demand.
 //!
+//! ## Lazy updates of display objects
+//! Some operations on display objects are very expensive. For example, after moving the root object
+//! of a hierarchy, the matrix transformations of all its children, their children, etc. need to be
+//! updated. That's why these operations are performed in a lazy way. After an element is
+//! transformed, or when the hierarchy is modified, the change information is propagated up to the
+//! root of the hierarchy and is updated once per frame, after the [`update`] function is called
+//! (usually, it is called by the [`Scene`]). Emitting events is not done in a lazy fashion, as they
+//! do not require passing the event down the hierarchy. Instead, the event is passed up the
+//! hierarchy, from the object the event was emitted on all way to the root of the hierarchy.
 //!
-//! # The Grid Layout
-//! Display objects have built-in two-dimensional grid-based layout system, also called the Grid. It
-//! aims at providing an efficient way to lay out, align and distribute space among items in a
-//! container, even when their size is unknown and/or dynamic.
-//!
-//! The main idea behind the Grid layout system is to give the container the ability to alter its
-//! items’ width/height (and order) to best fill the available space (mostly to accommodate to all
-//! kind of display devices and screen sizes). A Grid container expands items to fill available free
-//! space or shrinks them to prevent overflow.
-//!
-//! Most importantly, the layout system is direction-agnostic as opposed to common HTML layouts
-//! (block which is vertically-based and inline which is horizontally-based). While those work well
-//! for pages, they lack flexibility to support large or complex applications (especially when it
-//! comes to orientation changing, resizing, stretching, shrinking, etc.). The layout system
-//! described in this chapter can remind of CSS Flexbox and CSS Grid. In fact, it is heavily
-//! inspired by these systems, but it was extended in order to provide functionality of both of them
-//! in a single layout algorithm.
+//! ## Scene Layers
+//! Every display object can be assigned to a [`scene::Layer`]. During object update, the assignment
+//! information is passed down the hierarchy. If an object was not assigned to a layer explicitly,
+//! it will inherit the assignment from its parent object, if any. This means that adding an object
+//! to a layer will also move all of its children there, until they are assigned with a different
+//! layer explicitly.
 //!
 //!
 //! ## Terminology and Concepts
@@ -1019,85 +1021,7 @@ pub struct ChildIndex(usize);
 // === Model ===
 // =============
 
-/// Display objects are essential structures used to build elements visible on the screen. They are
-/// used to build objects hierarchy, computing elements transformations within this hierarchy
-/// (position, rotation, and scale), passing events trough that hierarchy, and layouting the
-/// elements on the screen (e.g. with horizontal or vertical layout).
-///
-/// ## Lazy updates of display objects
-/// Some operations on display objects are very expensive. For example, after moving the root object
-/// of a hierarchy, the matrix transformations of all its children, their children, etc. need to be
-/// updated. That's why these operations are performed in a lazy way. After an element is
-/// transformed, or when the hierarchy is modified, the change information is propagated up to the
-/// root of the hierarchy and is updated once per frame, after the [`update`] function is called
-/// (usually, it is called by the [`Scene`]). Emitting events is not done in a lazy fashion, as they
-/// do not require passing the event down the hierarchy. Instead, the event is passed up the
-/// hierarchy, from the object the event was emitted on all way to the root of the hierarchy.
-///
-/// ## Scene Layers
-/// Every display object can be assigned to a [`scene::Layer`]. During object update, the assignment
-/// information is passed down the hierarchy. If an object was not assigned to a layer explicitly,
-/// it will inherit the assignment from its parent object, if any. This means that adding an object
-/// to a layer will also move all of its children there, until they are assigned with a different
-/// layer explicitly.
-///
-///
-///
-/// # Size and layout
-/// Display objects can position its children automatically and then, recompute their size based on
-/// the children bounding box. There are three layouts available: manual, horizontal, and vertical.
-///
-/// ## Size
-/// Every display object can be configured with a horizontal and vertical size mode. There are
-/// three modes available:
-/// - `Hug` (default). In this mode, the display object size will be set to the bounding box of its
-///   children. In case of no children, the display object will be resized to (0,0). The only
-///   exception is setting the hug size on a display object with a manual layout. Then, its size
-///   will be set to the children bounding box clipped to the positive X- and Y-axis.
-/// - `Fill`. In this mode, the display object will fill the free space in its parent. If several
-///   children are set to this mode, the free space will be divided evenly between them. If the
-///   parent size was set to `Hug`, all its children with size set to `Fill` will be resized to 0.
-/// - `Fixed`. In this mode, the display object size will be fixed. The size of children can be
-///   smaller or bigger than the size of the parent object.
-///
-/// ## Horizontal and vertical auto-layouts
-/// The auto-layout can be set to either horizontal or vertical one. Each layout can be configured
-/// with the following options:
-/// - `alignment`. The alignment of the children. For example, it allows to align the children to
-///   the right edge of their parent. The alignment is covered in detail in the following section.
-/// - `spacing`. The space between children.
-/// - `padding`. The space between the children and the edge of the parent.
-/// - `reversed`. A flag indicating whether the children should be placed in a reversed order. By
-///   default, children are placed from left to right or from bottom to top.
-///
-/// ## Alignment
-/// The alignment of the children can be set to one of two modes: packed and spaced. In the packed
-/// mode, the children will be placed next to each other and will be separated with the `spacing`
-/// value. In the spaced mode, the children will be placed as far away from each other as possible
-/// in order to fill the whole space of the parent display object. In case the parent display object
-/// size is smaller than the cumulative size of its children, the children will overlap.
-///
-/// ## Layout documentation
-/// Documentation of the layout uses drawings with graphical symbols for different size and
-/// layout modes. For example, the illustration below shows a ROOT display object with a horizontal
-/// layout and fixed size. The L child has a horiontal layout, fill horizontal size, and a
-/// fixed vertical size. The R child has a vertical layout, hug horizontal size, and a fill
-/// vertical size.
-///
-/// ```text
-/// ╭▷ ROOT ──────────────────────────╮
-/// │   ╭▷ L ◀ ▶ ──╮   ╭R─ ▶ ◀ ───╮   │   Auto-layout Legend:         
-/// │   │ ╭ ◀ ▶ ╮  │   ▽ ╭────╮   │   │   ┄── ▷ ──┄ : Horizontal auto-layout.
-/// │   │ │ L1  │  │   │ │ R2 ▲   │   │   ┄── ▽ ──┄ : Vertical auto-layout.
-/// │   │ │     │  │   │ │    ▼   │   │   ┄───────┄ : Manual layout.   
-/// │   │ │     │  ▼   │ ╰────╯   ▲   │
-/// │   │ │     │  ▲   │ ╭────╮   ▼   │   Size Legend:             
-/// │   │ │     │  │   │ │ R1 ▲   │   │   ┄── ◀ ▶ ──┄ : Fill size.
-/// │   │ │     │  │   │ │    ▼   │   │   ┄── ▶ ◀ ──┄ : Hug size.  
-/// │   │ ╰─────╯  │   │ ╰────╯   │   │   ┄─────────┄ : Fixed size.
-/// │   ╰──────────╯   ╰──────────╯   │
-/// ╰─────────────────────────────────╯
-/// ```
+/// The main display object structure. Read the docs of this module to learn more.
 #[derive(Derivative)]
 #[derive(CloneRef, Deref, From)]
 #[derivative(Clone(bound = ""))]
@@ -2879,22 +2803,22 @@ impl Model {
     /// the need of such a solution, consider the following example:
     ///
     /// ```text
-    /// ╭────────────────────┬────────────────╮
-    /// │╱╱╱╱╱ root          ┆             △  │    Auto-layout Legend:                
-    /// │╱╱╱╱╱  ╭── ▶ ◀ ──┬▷ ┆  ╭── ▶ ◀ ───┤  │    
-    /// │╱╱╱╱╱  │ L       │  ┆  │ R    △   │  │    ┄── ▷ ──┄ : Element can grow horizontally
-    /// │╱╱╱╱╱  │ ╭────┬▷ │  ┆  │ ╭────┤   │  │    ┄── ▽ ──┄ : Element can grow vertically.  
-    /// │╱╱╱╱╱  │ │ L1 │  │  ┆  │ │ R2 │   │  │    ┄─ ▶ ◀ ─┄ : Hug size.                                       
-    /// │╱╱╱╱╱  │ │    │  ▼  ┆  │ ╰────╯   │  ▼    ┄───────┄ : Fixed size.                                
-    /// │╱╱╱╱╱  │ │    │  │  ┆  │   30     │  │      ╱╱╱╱╱   : Padding (a free space).
-    /// │╱╱╱╱╱  │ │    │  ▲  ┆  │      △   │  ▲           
-    /// │╱╱╱╱╱  │ │    │  │  ┆  │ ╭────┤   │  │    Units Legend:
-    /// │╱╱╱╱╱  │ │    │  │  ┆  │ │ R1 │   │  │     10       : 10 pixels, set by the user.
-    /// │╱╱╱╱╱  │ ╰────╯  │  ┆  │ ╰────╯   │  │     1fr      : 1 fraction of the free space.
-    /// │╱╱╱╱╱  │   10    │  ┆  │   20     │  │
-    /// │ 1fr   ╰─────────╯  │  ╰──────────╯  │
-    /// ╰────────────────────┴────────────────╯
-    ///                   100
+    /// ╔ root ═══════════════════════════════════╗
+    /// ║ ╭────────────────────┬────────────────╮ ║
+    /// ║ │╱╱╱╱╱               ┆             △  │ ║
+    /// ║ │╱╱╱╱╱  ╭── ▶ ◀ ──┬▷ ┆  ╭ R ▶ ◀ ───┤  │ ║
+    /// ║ │╱╱╱╱╱  │ L       │  ┆  │      △   │  │ ║
+    /// ║ │╱╱╱╱╱  │ ╭ L1 ┬▷ │  ┆  │ ╭ R2 ┤   │  │ ║
+    /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ │ 30 │   │  │ ║                 
+    /// ║ │╱╱╱╱╱  │ │    │  ▼  ┆  │ ╰────╯   │  ▼ ║            
+    /// ║ │╱╱╱╱╱  │ │    │  ▲  ┆  │      △   │  ▲ ║
+    /// ║ │╱╱╱╱╱  │ │    │  │  ┆  │ ╭ R1 ┤   │  │ ║
+    /// ║ │╱╱╱╱╱  │ │ 10 │  │  ┆  │ │ 20 │   │  │ ║
+    /// ║ │╱╱╱╱╱  │ ╰────╯  │  ┆  │ ╰────╯   │  │ ║
+    /// ║ │ 1fr   ╰─────────╯  │  ╰──────────╯  │ ║
+    /// ║ ╰────────────────────┴────────────────╯ ║
+    /// ╚═════════════════════════════════════════╝
+    ///                     100
     /// ```
     ///
     /// Please note, that computing sizes could not be realized in a single pass. In order to
@@ -2919,15 +2843,15 @@ impl Model {
     /// X-axis direction. Thus, the size of R is set to 30, the bigger value.
     ///
     /// 1.c. We computed the static size of all elements. The static sizes of L and R are 10 and 30,
-    /// respectivelly.
+    /// respectively.
     ///
     ///
-    /// 2. We need to compute the correct size of all elements taking into consideration the lefover
-    /// space. In this case, the leftover space is 100 - 10 - 30 = 60. It needs to be first
-    /// distributed among objects that can grow.
+    /// 2. We need to compute the correct size of all elements taking into consideration the
+    /// leftover space. In this case, the leftover space is 100 - 10 - 30 = 60. It needs to be
+    /// first distributed among objects that can grow.
     ///
     /// 2.a. The L object can grow in the X-axis direction. The ability to grow is resolved before
-    /// fractional units, so the object is resized to ocupy all the free space, and thus, it's new
+    /// fractional units, so the object is resized to occupy all the free space, and thus, it's new
     /// X-axis size is 70.
     ///
     /// 2.b. As the L object was updated, we need to re-visit it's child to update it's size. The L1
@@ -2947,11 +2871,9 @@ impl Model {
     ///
     ///
     /// # Meaning of the function parameters.
-    ///
-    /// In order to make the code easy to understand, all variables in layouting functions were
-    /// named as if the code was updating horizontal layout only. In reality, the variables
-    /// [`x`] can be set to either [`X`] or [`Y`] to update horizontal and vertical axis,
-    /// respectively.
+    /// In order to make the code easy to understand, all variables in layout functions were named
+    /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
+    /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn refresh_layout(&self) {
         self.reset_size_to_static_values(X, 0.0);
         self.refresh_layout_internal(LayoutResolutionPass::First, PassConfig::Default);
@@ -3018,6 +2940,10 @@ impl Model {
         }
     }
 
+    /// # Meaning of the function parameters.
+    /// In order to make the code easy to understand, all variables in layout functions were named
+    /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
+    /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn refresh_manual_layout<Dim>(&self, x: Dim, pass: LayoutResolutionPass, pass_cfg: PassConfig)
     where Dim: ResolutionDim {
         let hug_children = pass_cfg != PassConfig::DoNotHugDirectChildren;
@@ -3062,7 +2988,6 @@ impl Model {
 }
 
 
-
 #[derive(Debug, Deref, DerefMut)]
 pub struct UnresolvedColumn {
     #[deref]
@@ -3091,6 +3016,10 @@ pub struct ResolvedAxis {
 }
 
 impl Model {
+    /// # Meaning of the function parameters.
+    /// In order to make the code easy to understand, all variables in layout functions were named
+    /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
+    /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn divide_children_to_columns<Dim>(
         &self,
         x: Dim,
@@ -3134,6 +3063,10 @@ impl Model {
         }
     }
 
+    /// # Meaning of the function parameters.
+    /// In order to make the code easy to understand, all variables in layout functions were named
+    /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
+    /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn resolve_columns<Dim>(
         &self,
         x: Dim,
@@ -3208,6 +3141,10 @@ impl Model {
         }
     }
 
+    /// # Meaning of the function parameters.
+    /// In order to make the code easy to understand, all variables in layout functions were named
+    /// as if the code was updating horizontal layout only. In reality, the variable [`x`] can be
+    /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn refresh_grid_layout<Dim>(&self, x: Dim, opts: &AutoLayout, pass: LayoutResolutionPass)
     where Dim: ResolutionDim {
         let children = self.children();
