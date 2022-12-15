@@ -192,9 +192,10 @@ pub fn main() {
             update_docs <- any(&button_pressed, &init);
             panel.frp.display_documentation <+ update_docs.map(f_!(wrapper.documentation()));
 
+
             // === Disable navigator on hover ===
 
-            // navigator.frp.set_enabled <+ panel.frp.is_hovered.not();
+            navigator.frp.set_enabled <+ panel.frp.is_hovered.not();
         }
         init.emit(());
         web::document
