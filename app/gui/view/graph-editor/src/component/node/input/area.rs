@@ -435,15 +435,14 @@ impl Model {
                 if let Some(port_widget) = port_widget {
                     port_widget.set_x(unit * index as f32);
                     builder.parent.add_child(&port_widget);
-                    port_widget.set_focused(true);
-                    let code = &expression.viz_code[port.payload.range()];
+                    let range = port.payload.range();
+                    let code = &expression.viz_code[range.clone()];
                     port_widget.set_current_value(Some(code.into()));
-                    // frp::extend! { port_network
-                        // toggle_opened <- bg_down.toggle();
-                            // raw_hovered <- bool(&mouse_out,&mouse_over_raw);
-                        // trace bg_down;
-                        // port_widget.set_focused <+ toggle_opened;
-                    // }
+                    frp::extend! { port_network
+                        area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
+                            f!([crumbs](v) (crumbs.clone_ref(), v.clone()))
+                        );
+                    }
                 }
                 
 
@@ -737,6 +736,7 @@ ensogl::define_endpoints! {
         on_port_press       (Crumbs),
         on_port_hover       (Switch<Crumbs>),
         on_port_type_change (Crumbs,Option<Type>),
+        on_port_code_update (Crumbs,Option<String>),
         on_background_press (),
         view_mode           (view::Mode),
     }
