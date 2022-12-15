@@ -16,9 +16,9 @@ build_long_bldr n =
     res = bldr.toString
     res
 
-bench =
+bench dry_run=False =
     n = 1000000
-    Bench.measure (build_long_bldr n) "string append bldr" 1 1
-    Bench.measure (build_long n) "string append" 1 1
+    Bench.measure (build_long_bldr n) "string append bldr" 1 1 dry_run
+    Bench.measure (build_long n) "string append" 1 1 dry_run
 
 main = bench

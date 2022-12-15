@@ -1,12 +1,14 @@
+from Standard.Base import False
+
 import project.Text.Build
 import project.Text.Compare
 import project.Text.Contains
 import project.Text.Reverse
 
-bench =
-    Build.bench
-    Compare.bench
-    Contains.bench
-    Reverse.bench
+bench dry_run=False =
+    Build.bench dry_run
+    Compare.bench dry_run
+    Contains.bench dry_run
+    Reverse.bench dry_run
 
 main = bench

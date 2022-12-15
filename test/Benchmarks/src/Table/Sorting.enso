@@ -16,7 +16,7 @@ iter_size = 20
 num_iterations = 10
 
 # The Benchmarks ==============================================================
-bench =
+bench dry_run=False =
     ints = (0.up_to vector_size).to_vector.take (Index_Sub_Range.Sample vector_size 42)
     start = Date_Time.new 1990 1 1
     dates = ints.map x->
@@ -27,13 +27,13 @@ bench =
     dates_table = Table.new [['dates', dates]]
     objects_table = Table.new [['objects', objects]]
 
-    Bench.measure (ints_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by ints" iter_size num_iterations
-    Bench.measure (ints.sort) "Vector.sort ints" iter_size num_iterations
+    Bench.measure (ints_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by ints" iter_size num_iterations dry_run
+    Bench.measure (ints.sort) "Vector.sort ints" iter_size num_iterations dry_run
 
-    Bench.measure (dates_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by dates" iter_size num_iterations
-    Bench.measure (dates.sort) "Vector.sort dates" iter_size num_iterations
+    Bench.measure (dates_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by dates" iter_size num_iterations dry_run
+    Bench.measure (dates.sort) "Vector.sort dates" iter_size num_iterations dry_run
 
-    Bench.measure (objects_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by objects" iter_size num_iterations
-    Bench.measure (objects.sort) "Vector.sort objects" iter_size num_iterations
+    Bench.measure (objects_table.order_by (Sort_Column_Selector.By_Index [0])) "Table.order_by objects" iter_size num_iterations dry_run
+    Bench.measure (objects.sort) "Vector.sort objects" iter_size num_iterations dry_run
 
 main = bench

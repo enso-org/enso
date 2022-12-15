@@ -1,8 +1,11 @@
+from Standard.Base import False
+
 import project.Table.Aggregate
 import project.Table.Sorting
 
-bench =
-    Aggregate.bench
-    Sorting.bench
+
+bench dry_run=False =
+    Aggregate.bench dry_run
+    Sorting.bench dry_run
 
 main = bench

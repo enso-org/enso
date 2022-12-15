@@ -1,6 +1,7 @@
+from Standard.Base import False
 import project.Time.Work_Days
 
-bench =
-    Work_Days.bench
+bench dry_run=False =
+    Work_Days.bench dry_run
 
 main = bench
