@@ -755,7 +755,7 @@ impl LayerModel {
     pub fn set_mask(&self, mask: &Layer) {
         self.remove_mask();
         *self.mask.borrow_mut() = Some(mask.downgrade());
-        // mask.add_parent(&self.sublayers);
+        mask.add_parent(&self.sublayers);
     }
 
     /// The layer's [`ScissorBox`], if any.
