@@ -4,7 +4,7 @@ from Standard.Test import Bench
 
 polyglot java import java.util.Random
 
-bench dry_run=False =
+bench =
     iter_size = 50
     num_iterations = 10
 
@@ -15,12 +15,12 @@ bench dry_run=False =
 
     shifts.each shift->
         shifted_dates = dates.map (d -> d + (Period.new days=shift))
-        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2) "(Shift="+shift.to_text+") work_days_until" iter_size num_iterations dry_run
-        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2 holidays=holidays) "(Shift="+shift.to_text+") work_days_until with holidays" iter_size num_iterations dry_run
+        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2) "(Shift="+shift.to_text+") work_days_until" iter_size num_iterations
+        Bench.measure (dates.zip shifted_dates d1-> d2-> d1.work_days_until d2 holidays=holidays) "(Shift="+shift.to_text+") work_days_until with holidays" iter_size num_iterations
 
-        Bench.measure (dates.map date-> date + (Period.new days=shift)) "(Shift="+shift.to_text+") add regular days" iter_size num_iterations dry_run
-        Bench.measure (dates.map date-> date.add_work_days shift) "(Shift="+shift.to_text+") add work days" iter_size num_iterations dry_run
-        Bench.measure (dates.map date-> date.add_work_days shift holidays=holidays) "(Shift="+shift.to_text+") add work days with holidays" iter_size num_iterations dry_run
+        Bench.measure (dates.map date-> date + (Period.new days=shift)) "(Shift="+shift.to_text+") add regular days" iter_size num_iterations
+        Bench.measure (dates.map date-> date.add_work_days shift) "(Shift="+shift.to_text+") add work days" iter_size num_iterations
+        Bench.measure (dates.map date-> date.add_work_days shift holidays=holidays) "(Shift="+shift.to_text+") add work days with holidays" iter_size num_iterations
 
     Nothing
 

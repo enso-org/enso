@@ -22,15 +22,15 @@ build_map size =
     rand = Random.new
     0.up_to size . fold Map.empty (m -> i -> m.insert (rand.nextInt 10000) i)
 
-bench dry_run=False =
+bench =
     mil = 1000000
     list = gen_list mil
     vec = Vector.new mil (ix -> ix + 1)
     vec_decimal = Vector.new mil (ix -> ix + 0.0)
-    Bench.measure (sum_list_meta list) "list meta-fold" 1000 10 dry_run
-    Bench.measure (list.fold 0 (+)) "list fold" 1000 10 dry_run
-    Bench.measure (vec.fold 0 (+)) "vector fold" 1000 10 dry_run
-    Bench.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10 dry_run
-    Bench.measure (build_map 10000) "build a map" 100 10 dry_run
+    Bench.measure (sum_list_meta list) "list meta-fold" 1000 10
+    Bench.measure (list.fold 0 (+)) "list fold" 1000 10
+    Bench.measure (vec.fold 0 (+)) "vector fold" 1000 10
+    Bench.measure (vec_decimal.fold 0 (+)) "vector decimal fold" 1000 10
+    Bench.measure (build_map 10000) "build a map" 100 10
 
 main = bench

@@ -1,4 +1,4 @@
-from Standard.Base import IO, Integer, Vector, False
+from Standard.Base import IO, Integer, Vector
 from Standard.Base.Data.Statistics import all
 import Standard.Base.Data.Range
 
@@ -16,11 +16,11 @@ create_vector rows (seed=1646322139) =
     0.up_to rows . map _-> faker.make_some_nothing (faker.integer 0 1000000)
 
 # The Benchmarks ==============================================================
-bench dry_run=False =
+bench =
     IO.println <| "Making data..."
     vector = create_vector vector_size
 
     IO.println <| "Testing..."
-    Bench.measure (vector.compute_bulk [Statistic.Count, Statistic.Minimum, Statistic.Maximum]) "Count Min Max" iter_size num_iterations dry_run
+    Bench.measure (vector.compute_bulk [Statistic.Count, Statistic.Minimum, Statistic.Maximum]) "Count Min Max" iter_size num_iterations
 
 main = bench

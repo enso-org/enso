@@ -16,17 +16,17 @@ num_iterations = 10
 
 # The Benchmarks ==============================================================
 
-bench dry_run=False =
+bench =
     random_vec = Utils.make_random_vec 10000
     uniform_vec = Base.Vector.fill 10000 1
 
     random_text_vec = random_vec.map .to_text
     uniform_text_vec = random_vec.map .to_text
 
-    Bench.measure (random_vec.distinct) "Random Integer Vector Distinct" iter_size num_iterations dry_run
-    Bench.measure (uniform_vec.distinct) "Uniform Integer Vector Distinct" iter_size num_iterations dry_run
+    Bench.measure (random_vec.distinct) "Random Integer Vector Distinct" iter_size num_iterations
+    Bench.measure (uniform_vec.distinct) "Uniform Integer Vector Distinct" iter_size num_iterations
 
-    Bench.measure (random_text_vec.distinct) "Random Text Vector Distinct" iter_size num_iterations dry_run
-    Bench.measure (uniform_text_vec.distinct) "Uniform Text Vector Distinct" iter_size num_iterations dry_run
+    Bench.measure (random_text_vec.distinct) "Random Text Vector Distinct" iter_size num_iterations
+    Bench.measure (uniform_text_vec.distinct) "Uniform Text Vector Distinct" iter_size num_iterations
 
 main = bench

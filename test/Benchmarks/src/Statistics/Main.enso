@@ -1,7 +1,6 @@
-from Standard.Base import False
 import project.Statistics.Count_Min_Max
 
-bench dry_run=False =
-    Count_Min_Max.bench dry_run
+bench =
+    Count_Min_Max.bench
 
 main = bench

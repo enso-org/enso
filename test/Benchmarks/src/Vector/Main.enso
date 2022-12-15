@@ -1,12 +1,10 @@
-from Standard.Base import False
-
 import project.Vector.Distinct
 import project.Vector.Sort
 import project.Vector.Operations
 
-bench dry_run=False =
-    Distinct.bench dry_run
-    Sort.bench dry_run
-    Operations.bench dry_run
+bench =
+    Distinct.bench
+    Sort.bench
+    Operations.bench
 
 main = bench

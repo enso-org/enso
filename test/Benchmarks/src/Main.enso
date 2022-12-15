@@ -1,5 +1,3 @@
-from Standard.Base import Environment
-
 import project.Collections
 import project.Equality
 import project.Json_Bench
@@ -17,15 +15,14 @@ import project.Vector
    sometimes we want to run all benchmarks to ensure our language changes are
    not breaking them.
 main =
-    dry_run = Environment.get_or_else "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
-    Collections.bench dry_run
-    Equality.bench dry_run
-    Json_Bench.bench dry_run
-    Natural_Order_Sort.bench dry_run
-    Number_Parse.bench dry_run
-    Sum.bench dry_run
-    Statistics.Main.bench dry_run
-    Table.Main.bench dry_run
-    Text.Main.bench dry_run
-    Time.Main.bench dry_run
-    Vector.Main.bench dry_run
+    Collections.bench
+    Equality.bench
+    Json_Bench.bench
+    Natural_Order_Sort.bench
+    Number_Parse.bench
+    Sum.bench
+    Statistics.Main.bench
+    Table.Main.bench
+    Text.Main.bench
+    Time.Main.bench
+    Vector.Main.bench
