@@ -245,18 +245,7 @@ impl Project {
         let root_path = Path::new(project_root_id, &path_segments);
         let language_server = self.model.json_rpc();
         async move {
-            let response = language_server.save_vcs(&root_path, &None).await;
-            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
-                code: error_code, ..
-            })) = response
-            {
-                if error_code == code::FILE_NOT_FOUND {
-                    language_server.init_vcs(&root_path).await?;
-                    language_server.save_vcs(&root_path, &None).await?;
-                    return Ok(());
-                }
-            }
-            response?;
+            language_server.save_vcs(&root_path, &None).await?;
             Ok(())
         }
     }
