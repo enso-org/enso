@@ -1,6 +1,8 @@
 use crate::prelude::*;
 
 use crate::paths::Paths;
+use crate::paths::ENSO_META_TEST_ARGS;
+use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
@@ -42,11 +44,19 @@ pub struct BuiltEnso {
 
 impl BuiltEnso {
     pub fn wrapper_script_path(&self) -> PathBuf {
-        self.paths.engine.dir.join("bin").join("enso")
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
+        self.paths.engine.dir.join_iter(["bin", &filename])
+    }
+
+    pub async fn run_benchmarks(&self) -> Result {
+        self.cmd()?
+            .with_args(["--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .run_ok()
+            .await
     }
 
     pub fn run_test(&self, test: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
-        let test_path = self.paths.stdlib_test(test);
+        let test_path = self.paths.repo_root.test.join(test);
         let mut command = self.cmd()?;
         command
             .arg(ir_caches)
@@ -81,6 +91,11 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
     ) -> Result {
         let paths = &self.paths;
+        // Environment for meta-tests. See:
+        // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
+        ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
+        ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
             let google_api_test_data_dir =
@@ -99,7 +114,7 @@ impl BuiltEnso {
                 // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in
                 // the container name.
                 let container_name =
-                    iformat!("postgres-for-{runner_context_string}").replace(' ', "_");
+                    format!("postgres-for-{runner_context_string}").replace(' ', "_");
                 let config = postgres::Configuration {
                     postgres_container: ContainerId(container_name),
                     database_name:      "enso_test_db".to_string(),
