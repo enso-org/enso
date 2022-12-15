@@ -84,23 +84,40 @@ impl EntryModel {
 #[derive(Clone, Debug)]
 pub struct EntryData {
     display_object: display::object::Instance,
-    pub label:      text::Text,
+    label_thin:     text::Text,
+    label_bold:     text::Text,
 }
 
 impl EntryData {
     fn new(app: &Application, text_layer: Option<&Layer>) -> Self {
         let display_object = display::object::Instance::new();
-        let label = app.new_view::<ensogl_text::Text>();
-        label.set_long_text_truncation_mode(true);
-        display_object.add_child(&label);
+        let label_thin = app.new_view::<ensogl_text::Text>();
+        let label_bold = app.new_view::<ensogl_text::Text>();
+        label_thin.set_long_text_truncation_mode(true);
+        label_bold.set_long_text_truncation_mode(true);
+        label_bold.set_property_default(text::Weight::Bold);
+        display_object.add_child(&label_thin);
         if let Some(layer) = text_layer {
-            label.add_to_scene_layer(layer);
+            label_thin.add_to_scene_layer(layer);
+            label_bold.add_to_scene_layer(layer);
         }
-        Self { display_object, label }
+        Self { display_object, label_thin, label_bold }
+    }
+
+    fn update_selected(&self, selected: bool) {
+        if selected {
+            self.display_object.remove_child(&self.label_thin);
+            self.display_object.add_child(&self.label_bold);
+        } else {
+            self.display_object.remove_child(&self.label_bold);
+            self.display_object.add_child(&self.label_thin);
+        }
     }
 
     fn update_layout(&self, contour: entry::Contour, text_size: text::Size, text_offset: f32) {
-        self.label.set_xy(Vector2(text_offset - contour.size.x / 2.0, text_size.value / 2.0));
+        let label_pos = Vector2(text_offset - contour.size.x / 2.0, text_size.value / 2.0);
+        self.label_thin.set_xy(label_pos);
+        self.label_bold.set_xy(label_pos);
     }
 }
 
@@ -141,28 +158,32 @@ impl ensogl_grid_view::Entry for Entry {
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
             selected <- input.set_model.map(|m| *m.selected);
-            current_text_color <- selected.switch(&text_color, &selected_text_color);
-            data.label.set_property_default <+ current_text_color.ref_into_some();
-            data.label.set_font <+ font;
-            data.label.set_property_default <+ text_size.ref_into_some();
+            eval selected ((&s) data.update_selected(s));
 
-            font_weight <- any(...);
-            font_weight <+ selected.on_true().constant(text::Weight::Bold);
-            font_weight <+ selected.on_false().constant(text::Weight::Normal);
-            data.label.set_property_default <+ font_weight.ref_into_some();
+            text_size <- text_size.ref_into_some();
+            data.label_thin.set_property_default <+ text_size;
+            data.label_bold.set_property_default <+ text_size;
+            data.label_thin.set_property_default <+ text_color.ref_into_some();
+            data.label_bold.set_property_default <+ selected_text_color.ref_into_some();
+            data.label_thin.set_font <+ font;
+            data.label_bold.set_font <+ font;
 
-            natural_entry_width <- data.label.width.map2(&text_offset, |w, offset| w + offset);
+            natural_entry_width <- data.label_bold.width.map2(&text_offset, |w, offset| w + offset);
             limited_entry_width <- natural_entry_width.map2(&input.set_params, |width, params| {
                 // Using min/max to avoid a panic in clamp when min_width > max_width. In those
                 // cases, the max value is returned instead.
                 #[allow(clippy::manual_clamp)]
                 width.max(params.min_width).min(params.max_width)
             });
-            width_too_small <- limited_entry_width.map2(&size, |w, s| *w > s.x);
-            out.override_column_width <+ limited_entry_width.gate(&width_too_small);
-            data.label.set_view_width <+ limited_entry_width.some();
+            out.minimum_column_width <+ limited_entry_width;
 
-            data.label.set_content <+ input.set_model.map(|m| m.text.clone_ref());
+            view_width <- limited_entry_width.map2(&text_offset, |w, offset| Some(w - offset));
+            data.label_thin.set_view_width <+ view_width;
+            data.label_bold.set_view_width <+ view_width;
+
+            content <- input.set_model.map(|m| m.text.clone_ref());;
+            data.label_thin.set_content <+ content;
+            data.label_bold.set_content <+ content;
 
             out.contour <+ contour;
             out.highlight_contour <+ contour;

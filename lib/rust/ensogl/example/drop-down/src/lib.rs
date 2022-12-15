@@ -54,17 +54,15 @@ fn init(app: &Application) {
     app.views.register::<Dropdown<EntryData>>();
     let main_dropdown = setup_main_dropdown(app);
 
-    let multi_config_dropdown =
-        setup_static_dropdown(app, Vector2(-200.0, 0.0), Some(Vector2(150.0, 200.0)), vec![
-            SelectConfigEntry("Single select".into(), false),
-            SelectConfigEntry("Multi select".into(), true),
-        ]);
+    let multi_config_dropdown = setup_static_dropdown(app, Vector2(-200.0, 0.0), None, vec![
+        SelectConfigEntry("Single select".into(), false),
+        SelectConfigEntry("Multi select".into(), true),
+    ]);
 
-    let open_dropdown =
-        setup_static_dropdown(app, Vector2(-200.0, -100.0), Some(Vector2(150.0, 200.0)), vec![
-            SelectConfigEntry("Opened".into(), true),
-            SelectConfigEntry("Closed".into(), false),
-        ]);
+    let open_dropdown = setup_static_dropdown(app, Vector2(-200.0, -100.0), None, vec![
+        SelectConfigEntry("Opened".into(), true),
+        SelectConfigEntry("Closed".into(), false),
+    ]);
 
     let secondary_dropdown = setup_static_dropdown(app, Vector2(100.0, 0.0), None, vec![]);
 
