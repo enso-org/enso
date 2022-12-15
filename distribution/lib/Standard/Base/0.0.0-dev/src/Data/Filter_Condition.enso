@@ -49,13 +49,21 @@ type Filter_Condition
          values from the source column and the provided column are checked.
     Ends_With (suffix:Text)
 
-    ## Does the value contain the needle (Text only)?
+    ## Does the value contain the substring (Text only)?
 
        ? Table Operations
          It accepts a Text value to check if the value contains it. In case of
          Table operations, it can accept another column - then the corresponding
          values from the source column and the provided column are checked.
     Contains (substring:Text)
+
+    ## Is the substring not present in the value (Text only)?
+
+       ? Table Operations
+         It accepts a Text value to check if the value contains it. In case of
+         Table operations, it can accept another column - then the corresponding
+         values from the source column and the provided column are checked.
+    Not_Contains (substring:Text)
 
     ## Is equal to Nothing?
     Is_Nothing
@@ -160,6 +168,7 @@ type Filter_Condition
         Starts_With prefix -> _.starts_with prefix
         Ends_With suffix -> _.ends_with suffix
         Contains substring -> _.contains substring
+        Not_Contains substring -> v-> v.contains substring . not
         Is_Nothing -> elem -> case elem of
             Nothing -> True
             _ -> False

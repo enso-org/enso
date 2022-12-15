@@ -24,6 +24,16 @@ wrap_junit_testsuites config builder ~action =
     result
 
 ## PRIVATE
+use_ansi_colors : Boolean
+use_ansi_colors = Environment.get "ENSO_TEST_ANSI_COLORS" . is_nothing . not
+
+## PRIVATE
+failure_message : Text
+failure_message =
+    fail = 'FAILED'
+    if use_ansi_colors then '\u001b[31;1m'+fail+'\u001b[0m' else fail
+
+## PRIVATE
    Prints a report on the tests to standard output.
 print_report : Test -> Suite_Config -> (StringBuilder|Nothing) -> Nothing
 print_report spec config builder =
@@ -71,7 +81,7 @@ print_report spec config builder =
                     if config.print_only_failures.not then
                         IO.println ("    - " + behavior.name + " " + make_behavior_description behavior)
                 Test_Result.Failure msg details ->
-                    IO.println ("    - [FAILED] " + behavior.name + " " + make_behavior_description behavior)
+                    IO.println ("    - ["+failure_message+"] " + behavior.name + " " + make_behavior_description behavior)
                     IO.println ("        Reason: " + msg)
                     if details.is_nothing.not then
                         IO.println details

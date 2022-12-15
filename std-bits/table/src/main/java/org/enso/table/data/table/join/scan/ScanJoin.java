@@ -1,15 +1,12 @@
 package org.enso.table.data.table.join.scan;
 
-import org.enso.table.data.table.Table;
-import org.enso.table.data.table.join.*;
-import org.enso.table.data.table.problems.AggregatedProblems;
-import org.graalvm.collections.Pair;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
+import org.enso.table.data.table.Table;
+import org.enso.table.data.table.join.*;
+import org.graalvm.collections.Pair;
 
 public class ScanJoin implements JoinStrategy {
 
@@ -29,27 +26,16 @@ public class ScanJoin implements JoinStrategy {
     int rs = right.rowCount();
 
     MatcherFactory factory = new MatcherFactory(objectComparator, equalityFallback);
-    List<Matcher> matchers = conditions.stream().map(factory::create).collect(Collectors.toList());
+    Matcher compoundMatcher = factory.create(conditions);
 
     for (int l = 0; l < ls; ++l) {
       for (int r = 0; r < rs; ++r) {
-        boolean match = true;
-        for (Matcher matcher : matchers) {
-          if (!matcher.matches(l, r)) {
-            match = false;
-            break;
-          }
-        }
-
-        if (match) {
+        if (compoundMatcher.matches(l, r)) {
           matches.add(Pair.create(l, r));
         }
       }
     }
 
-    AggregatedProblems problems =
-        AggregatedProblems.merge(
-            matchers.stream().map(Matcher::getProblems).toArray(AggregatedProblems[]::new));
-    return new JoinResult(matches, problems);
+    return new JoinResult(matches, compoundMatcher.getProblems());
   }
 }
