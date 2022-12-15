@@ -46,7 +46,7 @@ pub fn remove_var<K: AsRef<OsStr>>(key: K) {
     std::env::remove_var(key)
 }
 
-/// Define typed accessors for environment variables. Supported types inclide `String`, `PathBuf`,
+/// Define typed accessors for environment variables. Supported types include `String`, `PathBuf`,
 /// and other types that implement `FromStr`.
 ///
 /// Example:
@@ -160,12 +160,8 @@ impl Modification {
     pub fn apply(&self) -> Result {
         let normalized_name = &*self.variable_name;
         match &self.action {
-            Action::Remove => {
-                debug!("Removing {}", self.variable_name);
-                remove_var(normalized_name)
-            }
+            Action::Remove => remove_var(normalized_name),
             Action::Set(value) => {
-                debug!("Setting {}={}", self.variable_name, value);
                 set_var(normalized_name, value);
             }
             Action::PrependPaths(paths_to_prepend) =>

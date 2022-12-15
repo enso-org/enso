@@ -32,11 +32,12 @@ ide_ci::define_env_var! {
 
 pub const EDITION_FILE_ARTIFACT_NAME: &str = "Edition File";
 
-pub const LIBRARIES_TO_TEST: [&str; 7] = [
+pub const LIBRARIES_TO_TEST: [&str; 6] = [
     "Examples_Tests",
     "Geo_Tests",
     "Image_Tests",
-    "Meta_Test_Suite_Tests",
+    // Temporarily disabled due to https://www.pivotaltracker.com/story/show/184042416
+    // "Meta_Test_Suite_Tests",
     "Table_Tests",
     "Tests",
     "Visualization_Tests",
