@@ -1,0 +1,23 @@
+from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+spec = Test.group "Pair" <|
+    Test.specify "should be created by new" <|
+        Pair.new 1 2 . should_equal (Pair.Value 1 2)
+
+    Test.specify "should allow mapping" <|
+        Pair.new 1 2 . map x->x+1 . should_equal (Pair.Value 2 3)
+
+    Test.specify "should act as a length 2 Vector" <|
+        Pair.new "A" "B" . length . should_equal 2
+        Pair.new "A" "B" . at 0 . should_equal "A"
+        Pair.new "A" "B" . at -2 . should_equal "A"
+        Pair.new "A" "B" . at 1 . should_equal "B"
+        Pair.new "A" "B" . at -1 . should_equal "B"
+        Pair.new "A" "B" . at 2 . should_fail_with Index_Out_Of_Bounds.Error
+        Pair.new "A" "B" . to_vector . should_equal ["A", "B"]
+
+main = Test_Suite.run_main spec

@@ -203,6 +203,25 @@ type Range
                     @Tail_Call go new_acc current+self.step
             go init self.start
 
+    ## Combines all the elements of the range, by iteratively applying the
+       passed function with the next element of the range. After each step the
+       value is stored resulting in a new Vector of the same size as self.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking two elements and combining them.
+
+       > Example
+         Compute the running sum of all of the elements in a vector
+
+            [1, 2, 3].running_fold 0 (+)
+    running_fold : Any -> (Any -> Any -> Any) -> Vector Any
+    running_fold self init function =
+        wrapped builder value =
+            current = if builder.length == 0 then init else builder.last
+            builder.append (function current value)
+        built = self.fold (Vector.new_builder self.length) wrapped
+        built.to_vector
 
     ## Checks whether `predicate` is satisfied for all numbers in this range.
 

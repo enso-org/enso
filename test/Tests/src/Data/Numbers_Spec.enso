@@ -286,6 +286,9 @@ spec =
             1.0%0 . is_nan . should_be_true
             almost_max_long_times_three%0.0 . is_nan . should_be_true
 
+            1/0 . is_infinite . should_be_true
+            -1/0 . is_infinite . should_be_true
+
         Test.specify "should support less than operator" <|
             (1 < 2).should_be_true
             (1 < 1).should_be_false
@@ -439,6 +442,11 @@ spec =
             0.is_nan . should_be_false
             Number.positive_infinity.is_nan . should_be_false
             Number.negative_infinity.is_nan . should_be_false
+
+            Number.nan.is_infinite . should_be_false
+            0.is_infinite . should_be_false
+            Number.positive_infinity.is_infinite . should_be_true
+            Number.negative_infinity.is_infinite . should_be_true
 
             Number.nan==Number.nan . should_be_false
             Number.nan==0 . should_be_false
