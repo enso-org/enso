@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.No_Such_Key.No_Such_Key
-from Standard.Base.Data.Json import Json_Parse_Error
+from Standard.Base.Data.Json import Invalid_JSON
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -18,7 +18,7 @@ Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
         _ -> Test_Result.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
-        Json_Parse_Error.Error msg ->
+        Invalid_JSON.Error msg ->
             if msg.contains expected then Test_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
                 Test_Result.Failure fail_msg
@@ -59,12 +59,12 @@ spec =
                 JS_Object.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
 
         Test.specify "should report meaningful parsing errors" <|
-            "foo".should_fail_parsing_with "Expected a false"
-            "[,]".should_fail_parsing_with "Expected a start of a JSON value"
-            "{,}".should_fail_parsing_with "Expected a string"
+            "foo".should_fail_parsing_with "Unexpected token f in JSON at position 0"
+            "[,]".should_fail_parsing_with "Unexpected token , in JSON at position 1"
+            "{,}".should_fail_parsing_with "Unexpected token , in JSON at position 1"
             deep_err = '{ "foo": "bar", "baz": ["foo", "x"", false], "y": {"z": null, "w": null} }'
-            deep_err.should_fail_parsing_with "Expected a comma"
-            "123 4".should_fail_parsing_with "Expected end of input"
+            deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
+            "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
         Test.specify "should parse and convert JSON into domain model" <|
             book_1 = Book.Value "Lord of the Rings" <| Author.Value "J. R. R. Tolkien" 1892

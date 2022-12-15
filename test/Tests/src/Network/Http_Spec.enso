@@ -298,7 +298,7 @@ spec =
                     "key": "val"
                   }
                 }
-            json_body = '{ "key": "val" }'
+            json_body = '{"key":"val"}'
             req = Request.new HTTP_Method.Post url_post
             req_with_body = req.with_json json_body
             res = HTTP.new.request req_with_body

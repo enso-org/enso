@@ -24,10 +24,14 @@ polyglot java import java.lang.Exception as JException
 ## Represents a JSON structure.
 type Json
     ## Parse a Text value into JS_Object or Enso Native
-    parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
     parse json =
-        parsed = json_parse json
-        make_enso parsed
+        error_handler js_exception =
+            Error.throw (Invalid_JSON.Error js_exception.payload.cause.message)
+
+        Panic.catch Any handler=error_handler <|
+            parsed = json_parse json
+            make_enso parsed
 
     ## Serialize an Object to JSON
     stringify : Text
@@ -48,7 +52,7 @@ type Json
    A failure indicating malformed text input into the JSON parser.
 
    Check the `message` field for detailed information on the specific failure.
-type Json_Parse_Error
+type Invalid_JSON
     Error message
 
     ## PRIVATE
