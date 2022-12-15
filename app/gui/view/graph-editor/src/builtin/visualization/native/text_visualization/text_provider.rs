@@ -270,32 +270,26 @@ mod tests {
     fn test_backend_message_with_null_deserialization() {
         let sample_message =
             r#"{"chunks":[[[0, 0], "ABCDE"], [[0, 1], null]],"line_count":2,"longest_line":19}"#;
-        let json =
-            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
-        let result: Result<LazyGridData, _> = serde_json::from_value(json);
+        let result: Result<LazyGridData, _> = sample_message.to_string().try_into();
         assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
-    }
-
-    #[test]
-    fn test_backend_message_simple_string_deserialization() {
-        let sample_message = r#""Just a simple string
-            with two lines.""#;
-        let json =
-            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
-        let result: Result<LazyGridData, _> = serde_json::from_value(json);
-        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
-        let lazy_grid = result.unwrap();
-        assert_eq!(lazy_grid.line_count, 2);
     }
 
     #[test]
     fn test_backend_message_multiline_string_deserialization() {
-        let sample_message = "10";
-        let json =
-            serde_json::from_str(sample_message).expect("Text example contains invalid JSON.");
-        let result: Result<LazyGridData, _> = serde_json::from_value(json);
+        let sample_message = r#""Just a simple string
+            with two lines.""#;
+        let result: Result<LazyGridData, _> = sample_message.to_string().try_into();
         assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
         let lazy_grid = result.unwrap();
         assert_eq!(lazy_grid.line_count, 2);
+    }
+
+    #[test]
+    fn test_backend_message_simple_string_deserialization() {
+        let sample_message = "10";
+        let result: Result<LazyGridData, _> = sample_message.to_string().try_into();
+        assert!(result.is_ok(), "Deserialization failed with error: {:?}.", result.err());
+        let lazy_grid = result.unwrap();
+        assert_eq!(lazy_grid.line_count, 1);
     }
 }
