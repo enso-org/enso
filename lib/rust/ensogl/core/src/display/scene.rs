@@ -555,7 +555,6 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new() -> Self {
-        #[allow(non_snake_case)]
         let main_cam = Camera2d::new();
         let node_searcher_cam = Camera2d::new();
         let panel_cam = Camera2d::new();
@@ -563,6 +562,7 @@ impl HardcodedLayers {
         let port_selection_cam = Camera2d::new();
         let cursor_cam = Camera2d::new();
 
+        #[allow(non_snake_case)]
         let DETACHED = Layer::new("DETACHED");
         let root = Layer::new_with_cam("root", &main_cam);
 

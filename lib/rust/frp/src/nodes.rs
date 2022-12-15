@@ -2181,7 +2181,7 @@ impl<T1: EventOutput, T2: EventOutput> OwnedBatch<T1, T2> {
 impl<T1: EventOutput, T2: EventOutput> stream::EventConsumer<Output<T2>> for OwnedBatch<T1, T2> {
     fn on_event(&self, stack: CallStack, _: &Output<T2>) {
         let batch = std::mem::take(&mut *self.batch_collector.collected_batch.borrow_mut());
-        if batch.len() > 0 {
+        if !batch.is_empty() {
             self.emit_event(stack, &batch);
         }
     }

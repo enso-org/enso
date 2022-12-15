@@ -184,7 +184,7 @@ impl Layer {
 
     /// Create a new sublayer to this layer, with the same camera.
     pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
-        let layer = Layer::new_with_cam_parent(name, &self);
+        let layer = Layer::new_with_cam_parent(name, self);
         self.add_sublayer(&layer);
         layer
     }
@@ -516,6 +516,8 @@ impl LayerModel {
         *self.camera_parent.borrow_mut() = None;
     }
 
+    /// Set this layer's camera parent. The camera will be inherited from that layer dynamically.
+    /// Any camera changes applied to camera parent will be immediately reflected in this layer.
     pub fn set_camera_parent(&self, layer: WeakLayer) {
         *self.camera_parent.borrow_mut() = Some(layer);
     }

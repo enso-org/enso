@@ -172,9 +172,9 @@ impl<T: DropdownValue> Model<T> {
         let cache = self.cache.borrow();
         let Some(entry) = cache.get(index) else { return };
         let mut selected = self.selected_entries.borrow_mut();
-        if selected.contains(&entry) {
+        if selected.contains(entry) {
             if allow_empty || selected.len() > 1 {
-                selected.remove(&entry);
+                selected.remove(entry);
             }
         } else if allow_multiselect || selected.len() == 0 {
             selected.insert(entry.clone());

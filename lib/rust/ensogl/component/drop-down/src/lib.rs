@@ -206,7 +206,7 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             updated_range <- provided_entries.map4(
                 &visible_range, &max_cache_size, &number_of_entries,
                 f!(((range, entries), visible, cache_size, num_entries)
-                    model.insert_entries_in_range(range.clone(), &entries, visible.clone(), *cache_size, *num_entries))
+                    model.insert_entries_in_range(range.clone(), entries, visible.clone(), *cache_size, *num_entries))
             );
 
             range_to_update <- any(updated_range, requested_range_ready);

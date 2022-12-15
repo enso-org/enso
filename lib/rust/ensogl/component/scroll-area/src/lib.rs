@@ -24,7 +24,6 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
 use ensogl_core::display;
-use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::layer;
 use ensogl_core::display::shape;

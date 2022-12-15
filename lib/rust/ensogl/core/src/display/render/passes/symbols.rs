@@ -3,7 +3,6 @@
 use crate::prelude::*;
 use crate::system::gpu::*;
 
-use crate::display::camera::Camera2d;
 use crate::display::render::pass;
 use crate::display::scene;
 use crate::display::scene::layer;
