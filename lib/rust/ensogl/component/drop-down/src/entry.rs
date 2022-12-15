@@ -1,4 +1,4 @@
-//! A module defining the [`SimpleGridView`] with all helper structures.
+//! A module defining the drop-down specific grid-view [`Entry`].
 
 use ensogl_core::display::shape::*;
 use ensogl_grid_view::prelude::*;

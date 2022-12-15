@@ -55,11 +55,11 @@ pub type RoundedRect = rounded_rect::View;
 #[derive(Derivative, CloneRef, Debug)]
 #[derivative(Clone(bound = ""))]
 pub struct Model<T> {
-    display_object:       display::object::Instance,
-    pub background:       RoundedRect,
-    pub grid:             Grid,
-    pub selected_entries: Rc<RefCell<HashSet<T>>>,
-    pub cache:            Rc<RefCell<EntryCache<T>>>,
+    display_object:   display::object::Instance,
+    background:       RoundedRect,
+    pub grid:         Grid,
+    selected_entries: Rc<RefCell<HashSet<T>>>,
+    cache:            Rc<RefCell<EntryCache<T>>>,
 }
 
 impl<T> component::Model for Model<T> {
@@ -139,6 +139,8 @@ impl<T: DropdownValue> Model<T> {
         }
     }
 
+    /// Convert provided list of indices onto sets of index ranges. One set of ranges is for indices
+    /// that are already in cache, and the other set is for indices that need to be requested.
     pub fn get_ready_and_request_ranges(
         &self,
         requested_indices: &[usize],
@@ -168,6 +170,9 @@ impl<T: DropdownValue> Model<T> {
         (ready_ranges, request_ranges)
     }
 
+    /// Accepts entry at given index, modifying selection. If entry is already selected, it will be
+    /// unselected, unless it is the last selected entry and `allow_empty` is false. For
+    /// single-select dropdowns, previously selected entry will be unselected.
     pub fn accept_entry_at_index(&self, index: usize, allow_multiselect: bool, allow_empty: bool) {
         let cache = self.cache.borrow();
         let Some(entry) = cache.get(index) else { return };
@@ -203,6 +208,7 @@ impl<T: DropdownValue> Model<T> {
         })
     }
 
+    /// Update cache with new entries at given range. Returns range of indices that were updated.
     pub fn insert_entries_in_range(
         &self,
         updated_range: Range<usize>,
@@ -235,14 +241,17 @@ impl<T: DropdownValue> Model<T> {
         }
     }
 
+    /// Check if given entry is currently selected.
     pub fn is_selected(&self, entry: &T) -> bool {
         self.selected_entries.borrow().contains(entry)
     }
 
+    /// Get a set of all currently selected entries.
     pub fn get_selected_entries(&self) -> HashSet<T> {
         self.selected_entries.borrow().clone()
     }
 
+    /// Get currently selected entry, if and only if there is exactly one.
     pub fn get_single_selected_entry(&self) -> Option<T> {
         let entries = self.selected_entries.borrow();
         if entries.len() == 1 {
@@ -252,6 +261,7 @@ impl<T: DropdownValue> Model<T> {
         }
     }
 
+    /// Set the background color of the dropdown.
     pub fn set_color(&self, color: Lcha) {
         self.background.color_rgba.set(color::Rgba::from(color).into());
     }
@@ -275,7 +285,7 @@ type Grid = grid_view::scrollable::SelectableGridView<DropdownGridEntry>; // sel
 /// the position of each entry. It allows the dropdown to manage the grid-view internally and
 /// provide simplified external APIs for providing the dropdown entries.
 #[derive(Debug)]
-pub struct EntryCache<T> {
+struct EntryCache<T> {
     position_to_entry: HashMap<usize, T>,
 }
 
@@ -286,7 +296,7 @@ impl<T> Default for EntryCache<T> {
 }
 
 impl<T> EntryCache<T> {
-    pub fn insert(
+    fn insert(
         &mut self,
         update_range: Range<usize>,
         new_entries: &[T],
@@ -298,7 +308,7 @@ impl<T> EntryCache<T> {
         let max_cache_size = max_cache_size.max(visible_range.end - visible_range.start);
 
         if self.position_to_entry.len() > max_cache_size {
-            self.prune_cache(visible_range);
+            self.prune(visible_range);
         }
 
         for (position, entry) in update_range.zip(new_entries) {
@@ -306,17 +316,17 @@ impl<T> EntryCache<T> {
         }
     }
 
-    pub fn prune_cache(&mut self, retain_range: Range<usize>) {
+    fn prune(&mut self, retain_range: Range<usize>) {
         self.position_to_entry.retain(|k, _| retain_range.contains(k));
     }
 
     /// Get entry value at position.
-    pub fn get(&self, position: usize) -> Option<&T>
+    fn get(&self, position: usize) -> Option<&T>
     where T: Clone {
         self.position_to_entry.get(&position)
     }
 
-    pub fn contains_key(&self, position: usize) -> bool {
+    fn contains_key(&self, position: usize) -> bool {
         self.position_to_entry.contains_key(&position)
     }
 }
