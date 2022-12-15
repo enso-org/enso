@@ -74,6 +74,7 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
+  @TruffleBoundary
   boolean equalsBigInt(EnsoBigInteger self, EnsoBigInteger otherBigInt) {
     return self.equals(otherBigInt);
   }
@@ -308,6 +309,7 @@ public abstract class EqualsNode extends Node {
 
   /** Equals for Atoms and AtomConstructors */
 
+  @TruffleBoundary
   @Specialization
   boolean equalsAtomConstructors(AtomConstructor selfConstructor, AtomConstructor otherConstructor) {
     // TODO: return selfConstructor == otherConstructor?
@@ -471,6 +473,7 @@ public abstract class EqualsNode extends Node {
       }
     }
 
+    @TruffleBoundary
     static Function getEqualsMethod(AtomConstructor atomConstructor) {
       Type atomType = atomConstructor.getType();
       Function equalsFunction = atomConstructor
@@ -502,6 +505,7 @@ public abstract class EqualsNode extends Node {
   }
 
   @Fallback
+  @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
       @CachedLibrary(limit = "5") InteropLibrary interop) {
     EnsoContext ctx = EnsoContext.get(interop);
