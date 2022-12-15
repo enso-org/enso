@@ -28,7 +28,7 @@ spec =
             texts = ["texts", ["foo", "foo", "bar", "baz", "spam"]]
             table = Table.new [bools, texts]
             dynamic_drop_down = Meta.get_annotation table "at" "selector"
-            [ "bools", "texts" ] . should_equal dynamic_drop_down
+            dynamic_drop_down . should_equal [ "bools", "texts" ]
 
         Test.specify "find bools and two texts" <|
             bools = ["bools", [False, False, True]]
