@@ -200,12 +200,12 @@ get_boolean : Boolean
 get_boolean = False
 
 ## A simple small piece of JSON that can easily be converted into a table.
-simple_table_json : Json
+simple_table_json : Text
 simple_table_json =
     row_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
     row_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
     row_3 = Json.from_pairs [['baz', False], ['foo', 13]]
-    [row_1, row_2, row_3].to_json
+    [row_1, row_2, row_3].to_json_text
 
 ## The headers for the columns in the JSON table `simple_table_json`.
 simple_table_json_headers : Vector Text

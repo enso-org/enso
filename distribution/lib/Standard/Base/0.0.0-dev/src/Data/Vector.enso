@@ -166,6 +166,20 @@ type Vector a
     at : Integer -> Any ! Index_Out_Of_Bounds
     at self index = @Builtin_Method "Vector.at"
 
+    ## Gets an element from the vector at a specified index (0-based).
+       If the index is invalid then `other` is returned.
+
+       Arguments:
+       - index: The location in the vector to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the vector, i.e. -1 will correspond to the last element.
+       - other: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~other=Nothing =
+        len = self.length
+        if index < -len || index >= len then other else
+            self.at index
+
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
 

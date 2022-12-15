@@ -31,7 +31,10 @@ type Json
     ## Serialize an Object to JSON
     stringify : Text
     stringify object =
-        json_stringify object.to_json
+        json = object.to_json
+        case json of
+            JSON_Object.Value js_object -> json_stringify js_object
+            _ -> json_stringify json
 
     ## Creates a JSON_Object from a list of key-value pairs.
        Keys must be `Text` values.
@@ -108,9 +111,13 @@ type JSON_Object
     ## PRIVATE
     Value js_object
 
-    ## Get a property from a JSON_Object
+    ## Get a value for a key of the object.
+
+       Arguments:
+       - key: The key to get.
+       - other: The value to return if the key is not found.
     get : Text -> Any -> JSON_Object | Boolean | Number | Nothing | Text | Vector
-    get self ~other=Nothing key =
+    get self key ~other=Nothing =
         if (has_property self.js_object key) . not then other else
             value = get_value self.js_object key
             make_enso value

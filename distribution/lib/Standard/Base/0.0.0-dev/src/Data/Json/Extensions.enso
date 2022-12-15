@@ -5,6 +5,8 @@ import project.Data.Json.Json
 import project.Data.Json.JSON_Object
 import project.Data.Locale.Locale
 import project.Data.Map.Map
+import project.Data.Numbers.Decimal
+import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Range.Extensions
 import project.Data.Text.Extensions
@@ -19,29 +21,36 @@ from project.Data.Boolean import Boolean, True, False
 
 ## Converts the given value to a JSON serialized value.
 Any.to_json_text : Text
-Any.to_json_text self =
-    Json.stringify self
+Any.to_json_text self = Json.stringify self
 
 ## Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JSON_Object.
 Text.to_json : Text
-Text.to_json self = self
+Text.to_json self = case self of
+    Text -> Json.from_pairs [["type", Meta.get_qualified_type_name self]]
+    _ -> self
 
 ## Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JSON_Object.
 Number.to_json : Number
-Number.to_json self = self
+Number.to_json self = case self of
+    Number -> Json.from_pairs [["type", Meta.get_qualified_type_name self]]
+    Integer -> Json.from_pairs [["type", Meta.get_qualified_type_name self]]
+    Decimal -> Json.from_pairs [["type", Meta.get_qualified_type_name self]]
+    _ -> self
 
 ## Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
    For arrays or vectors, the elements are converted recursively.
    For atoms and maps, the object is converted to a JSON_Object.
 Boolean.to_json : Boolean
-Boolean.to_json self = self
+Boolean.to_json self = case self of
+    Boolean -> Json.from_pairs [["type", Meta.get_qualified_type_name self]]
+    _ -> self
 
 ## Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
@@ -77,15 +86,18 @@ Any.to_json self =
     m = Meta.meta self
     case m of
         _ : Meta.Atom ->
-            fs = m.fields
+            type_pair = ["type", Meta.get_qualified_type_name self]
             cons = m.constructor
-            field_names = cons.fields
+            java_cons = cons.value ...
+            if java_cons == self then Json.from_pairs [type_pair] else
+                fs = m.fields
+                field_names = cons.fields
 
-            builder = Vector.new_builder field_names.length+2
-            0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_json]
-            builder.append ["type", Meta.get_qualified_type_name self]
-            builder.append ["constructor", cons.name]
-            Json.from_pairs builder.to_vector
+                builder = Vector.new_builder field_names.length+2
+                0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_json]
+                builder.append type_pair
+                builder.append ["constructor", cons.name]
+                Json.from_pairs builder.to_vector
         _ : Meta.Constructor ->
             type_name = Meta.get_qualified_type_name self . take (Text_Sub_Range.Before_Last ".")
             Json.from_pairs [["type", type_name], ["constructor", m.name]]
@@ -113,15 +125,3 @@ Locale.to_json self =
     if self.country.is_nothing.not then b.append ["country", self.country]
     if self.variant.is_nothing.not then b.append ["variant", self.variant]
     Json.from_pairs b.to_vector
-
-## Get the keys of the object
-Nothing.get : Text -> Nothing
-Nothing.get self key =
-    _ = [key]
-    Nothing
-
-## Get the item at an index
-Nothing.at : Integer -> Nothing
-Nothing.at self key =
-    _ = [key]
-    Nothing

@@ -15,5 +15,5 @@ error_preprocessor x =
         message = err.to_display_text
         stack_trace = x.get_stack_trace_text.if_nothing "" . split '\n'
         full_message = message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
-        '{ "kind": "Dataflow", "message": ' + full_message.to_json.to_text + '}'
+        '{ "kind": "Dataflow", "message": ' + full_message.to_json_text + '}'
     if result.is_error then result.catch else ok

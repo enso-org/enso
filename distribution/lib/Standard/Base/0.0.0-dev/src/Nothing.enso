@@ -27,3 +27,14 @@ type Nothing
              "Hello".if_nothing ""
     if_nothing : Any -> Any
     if_nothing self ~function = function
+
+    ## Get a value for the key of the object.
+       As Nothing has no keys, returns `other`.
+
+       Arguments:
+       - key: The key to get.
+       - other: The value to return if the key is not found.
+    get : Text | Integer -> Any -> Nothing
+    get self key ~other=Nothing =
+        _ = [key]
+        other

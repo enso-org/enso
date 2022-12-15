@@ -29,7 +29,7 @@ Any.default_visualization self = Id.json
 
          2.to_default_visualization_data
 Any.to_default_visualization_data : Text
-Any.to_default_visualization_data self = self.to_json.to_text
+Any.to_default_visualization_data self = self.to_json_text
 
 ## PRIVATE
 
@@ -137,7 +137,7 @@ Vector.default_visualization self = Id.table
    visualization.
 Vector.to_default_visualization_data : Text
 Vector.to_default_visualization_data self =
-    json = self.take 100 . to_json
+    json = self.take 100 . to_json_text
     json.to_text
 
 ## UNSTABLE
