@@ -27,7 +27,6 @@ use ensogl::display::DomSymbol;
 use ensogl::display::Scene;
 use ensogl::system::web;
 use ensogl::system::web::JsValue;
-use serde::Serialize;
 use std::fmt::Formatter;
 
 
@@ -364,6 +363,7 @@ fn get_method(
 pub fn json_to_value(
     json: &serde_json::Value,
 ) -> std::result::Result<JsValue, serde_wasm_bindgen::Error> {
+    use serde::Serialize;
     let serializer = serde_wasm_bindgen::Serializer::json_compatible();
     json.serialize(&serializer)
 }
