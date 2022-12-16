@@ -32,6 +32,16 @@ type GrandParent
 type ManyFieldType
     Value f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
 
+type FourFieldType
+    Value f1 f2 f3 f4
+
+type Point
+    Value x y
+
+type Rect
+    Value (a:Point) (b:Point)
+
+
 spec =
     Test.group "Operator ==" <|
         Test.specify "should dispatch to overriden `==` on atoms" <|
@@ -61,6 +71,13 @@ spec =
             java_object2.put "a" 1
 
             java_object1.should_equal java_object2
+
+        Test.specify "should return False for different Atoms with same fields" <|
+            p1 = Point.Value 1 2
+            p2 = Point.Value 3 4
+            rect = Rect.Value p1 p2
+            four_field = FourFieldType.Value 1 2 3 4
+            rect.should_not_equal four_field
 
 
 main = Test_Suite.run_main spec
