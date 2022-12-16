@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
-import org.enso.interpreter.runtime.{Context => EnsoContext}
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -88,7 +88,7 @@ class RuntimeServerTest
       languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
-    );
+    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -1745,7 +1745,7 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.Text.overloaded arg = arg + 1
+        |Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -3352,8 +3352,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
-      "(Syntax_Error_Data 'Unrecognized token.')"
+      "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
+      "(Syntax_Error.Error 'Unrecognized token.')"
     )
   }
 
@@ -3365,8 +3365,8 @@ class RuntimeServerTest
 
     val code =
       """import Standard.Base.IO
-        |from Standard.Base.Error.Common import all
-        |from Standard.Base.Data.Any import all
+        |import Standard.Base.Panic.Panic
+        |import Standard.Base.Any.Any
         |
         |main =
         |    x = Panic.catch_primitive () .convert_to_dataflow_error

@@ -302,7 +302,7 @@ impl IdeDesktop {
         let output_path = TempDir::new()?;
         let watch_environment =
             ContentEnvironment::new(self, wasm, build_info, output_path).await?;
-        Span::current().record("wasm", watch_environment.wasm.as_str());
+        Span::current().record("wasm", watch_environment.wasm.as_ref().as_str());
         let child_process = if shell {
             ide_ci::os::default_shell()
                 .cmd()?

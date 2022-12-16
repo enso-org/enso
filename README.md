@@ -135,7 +135,7 @@ always trust the results you get.
 <ul><ul>
     <b>Download Enso</b><br/>
     <ul>
-        <li><a href="https://github.com/enso-org/ide/releases">Enso Interactive Environment</a></li>
+        <li><a href="https://github.com/enso-org/enso/releases">Enso Interactive Environment</a></li>
         <li><a href="https://github.com/enso-org/enso/releases">Enso Compiler (CLI, optional)</a></li>
     </ul>
 </ul></ul>

@@ -529,24 +529,43 @@ impl Model {
                     editing_color  <- profiled.switch(&std_editing_color,&profiled_editing_color);
                     // TODO: `label_color` should be animated, when when we can set text colors
                     //  more efficiently. (See https://www.pivotaltracker.com/story/show/183567665)
-                    label_color    <- all_with8(&area_frp.set_edit_mode,&selected,&area_frp.set_disabled
-                        ,&editing_color,&selected_color,&disabled_color,&expected_color,&base_color
-                        ,move |&editing,&selected,&disabled,&editing_color,&selected_color
-                        ,&disabled_color,&expected_color,&base_color| {
-                            if      editing         { color::Lcha::from(editing_color) }
-                            else if selected        { color::Lcha::from(selected_color) }
-                            else if disabled        { color::Lcha::from(disabled_color) }
-                            else if is_expected_arg { color::Lcha::from(expected_color) }
-                            else                    { color::Lcha::from(base_color) }
-                        });
+                    label_color <- all_with8(
+                        &area_frp.editing,
+                        &selected,
+                        &area_frp.set_disabled,
+                        &editing_color,
+                        &selected_color,
+                        &disabled_color,
+                        &expected_color,
+                        &base_color,
+                        move |&editing,
+                              &selected,
+                              &disabled,
+                              &editing_color,
+                              &selected_color,
+                              &disabled_color,
+                              &expected_color,
+                              &base_color| {
+                            if editing {
+                                color::Lcha::from(editing_color)
+                            } else if selected {
+                                color::Lcha::from(selected_color)
+                            } else if disabled {
+                                color::Lcha::from(disabled_color)
+                            } else if is_expected_arg {
+                                color::Lcha::from(expected_color)
+                            } else {
+                                color::Lcha::from(base_color)
+                            }
+                        },
+                    );
                 }
 
                 let index = node.payload.index;
                 let length = node.payload.length;
                 let label = model.label.clone_ref();
                 frp::extend! { port_network
-                    set_color <- all_with(&label_color,&area_frp.set_edit_mode,|&color, _| color);
-                    eval set_color ([label](color) {
+                    eval label_color ([label](color) {
                         let range = enso_text::Range::new(index, index + length);
                         // TODO: remove unwrap. (https://www.pivotaltracker.com/story/show/183567590)
                         let range = enso_text::Range::<Byte>::try_from(range).unwrap();
@@ -662,7 +681,7 @@ ensogl::define_endpoints! {
         set_edit_ready_mode (bool),
 
         /// Enable or disable node editing.
-        set_edit_mode (bool),
+        set_editing (bool),
 
         /// Set or unset hover over the node. Port area is unable to determine hover by itself, as
         /// the hover may sometimes happen on the node background and the area still needs to be
@@ -752,7 +771,7 @@ impl Area {
 
             // === Cursor setup ===
 
-            eval frp.input.set_edit_mode ([model](edit_mode) {
+            eval frp.input.set_editing ([model](edit_mode) {
                 model.label.deprecated_set_focus(edit_mode);
                 if *edit_mode {
                     // Reset the code to hide non-connected port names.
@@ -766,22 +785,22 @@ impl Area {
 
             // === Show / Hide Phantom Ports ===
 
-            edit_mode <- all_with3
-                ( &frp.input.set_edit_mode
+            edit_ready_mode <- all_with3
+                ( &frp.input.set_editing
                 , &frp.input.set_edit_ready_mode
                 , &frp.input.set_ports_active
-                , |edit_mode,edit_ready_mode,(set_ports_active,_)|
-                     (*edit_mode || *edit_ready_mode) && !set_ports_active
+                , |editing, edit_ready_mode, (set_ports_active, _)|
+                     (*editing || *edit_ready_mode) && !set_ports_active
                 );
 
-            port_vis <- all_with(&frp.input.set_ports_active,&edit_mode,|(a,_),b|*a&&(!b));
+            port_vis <- all_with(&frp.input.set_ports_active,&edit_ready_mode,|(a,_),b|*a&&(!b));
             frp.output.source.ports_visible <+ port_vis;
-            frp.output.source.editing       <+ edit_mode;
+            frp.output.source.editing       <+ frp.set_editing;
 
 
             // === Label Hover ===
 
-            label_hovered <- edit_mode && frp.output.body_hover;
+            label_hovered <- edit_ready_mode && frp.output.body_hover;
             eval label_hovered ((t) model.label.set_hover(t));
 
 
@@ -805,12 +824,12 @@ impl Area {
 
             let frp_endpoints = &frp.output;
             expression <- frp.input.set_expression.map2(
-                &edit_mode, f!([frp_endpoints, model](expr, is_editing)
+                &frp.input.set_editing, f!([frp_endpoints, model](expr, is_editing)
                     model.set_expression(expr, *is_editing, &frp_endpoints)
                 )
             );
             frp.output.source.expression <+ expression.map(|e| e.code.clone_ref());
-            expression_changed_by_user <- model.label.content.gate(&edit_mode);
+            expression_changed_by_user <- model.label.content.gate(&frp.input.set_editing);
             frp.output.source.expression <+ expression_changed_by_user.ref_into();
 
 

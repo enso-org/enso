@@ -205,9 +205,9 @@ mod tests {
             )
             .await;
 
-        std::env::set_var("ACTIONS_RUNTIME_URL", mock_server.uri());
-        std::env::set_var("ACTIONS_RUNTIME_TOKEN", "password123");
-        std::env::set_var("GITHUB_RUN_ID", "12");
+        crate::env::set_var("ACTIONS_RUNTIME_URL", mock_server.uri());
+        crate::env::set_var("ACTIONS_RUNTIME_TOKEN", "password123");
+        crate::env::set_var("GITHUB_RUN_ID", "12");
 
         let path_to_upload = "Cargo.toml";
 

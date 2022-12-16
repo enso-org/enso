@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -9,7 +10,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -27,7 +28,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
   CatchTypeBranchNode(Type tpe, RootCallTarget functionNode) {
     super(functionNode);
     this.expectedType = tpe;
-    this.isArrayType = Context.get(this).getBuiltins().array() == expectedType;
+    this.isArrayType = EnsoContext.get(this).getBuiltins().array() == expectedType;
   }
 
   /**
@@ -61,7 +62,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
     return isArrayType;
   }
 
-  @Specialization
+  @Fallback
   public void doValue(VirtualFrame frame, Object state, Object target) {
     Object typeOfTarget = typeOfNode.execute(target);
     boolean test = isSameObject.execute(expectedType, typeOfTarget);

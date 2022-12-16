@@ -1,14 +1,14 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Map.Internal
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Error
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error
 
 ## A key-value store. This type assumes all keys are pairwise comparable,
    using the `<`, `>` and `==` operators.

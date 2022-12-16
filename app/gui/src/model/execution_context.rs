@@ -493,6 +493,14 @@ pub trait API: Debug {
         let detach_actions = visualizations.into_iter().map(move |v| self.detach_visualization(v));
         futures::future::join_all(detach_actions).boxed_local()
     }
+
+    /// Interrupt the program execution.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn interrupt<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
+    /// Restart the program execution.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn restart<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes
@@ -581,7 +589,7 @@ mod tests {
 
         // Set two errors. One of old values is overridden
         let update1 = value_update_with_dataflow_error(expr2);
-        let update2 = value_update_with_dataflow_panic(expr3, &error_msg);
+        let update2 = value_update_with_dataflow_panic(expr3, error_msg);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.into()));
         assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value));

@@ -403,6 +403,8 @@ with_alignment_dim2_named_matrix!(gen_dim2_cons);
 
 macro_rules! gen_opt_dim2_cons {
     ([$([$f:ident [$x:ident] [$y:ident]])*]) => {
+        // We disable the clippy check because we are generating a `default` method here.
+        #[allow(clippy::should_implement_trait)]
         impl OptDim2 {$(
             /// Constructor.
             pub fn $f() -> Self {

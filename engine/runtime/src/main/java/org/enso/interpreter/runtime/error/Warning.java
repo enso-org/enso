@@ -12,7 +12,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.Type;
@@ -56,7 +56,7 @@ public final class Warning implements TruffleObject {
       description = "Creates a new instance of the primitive warning value.",
       autoRegister = false)
   @Builtin.Specialize
-  public static Warning create(Context ctx, Object payload, Object origin) {
+  public static Warning create(EnsoContext ctx, Object payload, Object origin) {
     return new Warning(payload, origin, ctx.clockTick());
   }
 
@@ -72,7 +72,7 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   public static WithWarnings attach(
-      Context ctx, WithWarnings value, Object warning, Object origin) {
+      EnsoContext ctx, WithWarnings value, Object warning, Object origin) {
     return value.prepend(new Warning(warning, origin, ctx.clockTick()));
   }
 
@@ -81,7 +81,7 @@ public final class Warning implements TruffleObject {
       description = "Attaches the given warning to the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static WithWarnings attach(Context ctx, Object value, Object warning, Object origin) {
+  public static WithWarnings attach(EnsoContext ctx, Object value, Object warning, Object origin) {
     return new WithWarnings(value, new Warning(warning, origin, ctx.clockTick()));
   }
 
@@ -91,8 +91,8 @@ public final class Warning implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static Array getAll(WithWarnings value) {
-    Warning[] warnings = value.getWarningsArray();
+  public static Array getAll(WithWarnings value, WarningsLibrary warningsLib) {
+    Warning[] warnings = value.getWarningsArray(warningsLib);
     Arrays.sort(warnings, Comparator.comparing(Warning::getCreationTime).reversed());
     Object[] result = new Object[warnings.length];
     System.arraycopy(warnings, 0, result, 0, warnings.length);
@@ -104,8 +104,16 @@ public final class Warning implements TruffleObject {
       description = "Gets all the warnings associated with the value.",
       autoRegister = false)
   @Builtin.Specialize(fallback = true)
-  public static Array getAll(Object value) {
-    return new Array();
+  public static Array getAll(Object value, WarningsLibrary warnings) {
+    if (warnings.hasWarnings(value)) {
+      try {
+        return new Array((Object[]) warnings.getWarnings(value, null));
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
+    } else {
+      return new Array();
+    }
   }
 
   @Builtin.Method(
@@ -196,6 +204,6 @@ public final class Warning implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().warning();
+    return EnsoContext.get(thisLib).getBuiltins().warning();
   }
 }

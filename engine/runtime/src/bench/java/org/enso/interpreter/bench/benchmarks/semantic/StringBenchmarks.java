@@ -46,16 +46,16 @@ public class StringBenchmarks {
       .allowIO(true)
       .allowAllAccess(true)
       .build();
-    var module = ctx.eval("enso", "\n" +
-      "from Standard.Base import all\n" +
-      "\n" +
-      "all_length v = v.fold 0 (sum -> str -> sum + str.length)\n" +
-      "\n" +
-      "create rep len = \n" +
-      "    s = \"Long string\".repeat rep\n" +
-      "    v = Vector.new len (_ -> s)\n" +
-      "    v\n" +
-      "\n");
+    var module = ctx.eval("enso", """
+        from Standard.Base import all
+
+        all_length v = v.fold 0 (sum -> str -> sum + str.length)
+
+        create rep len =
+            s = "Long string".repeat rep
+            v = Vector.new len (_ -> s)
+            v
+        """);
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
@@ -63,7 +63,7 @@ public class StringBenchmarks {
     var repeat = 2000;
     var length = 1000;
     this.vec = getMethod.apply("create").execute(self, repeat, length);
-    this.allLength = getMethod.apply("all_length"); 
+    this.allLength = getMethod.apply("all_length");
   }
 
   @Benchmark

@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 type My_Type
     Value a b

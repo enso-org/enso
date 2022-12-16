@@ -16,7 +16,7 @@ import assert from 'assert'
 import buildCfg from '../../../build.json'
 
 // @ts-ignore
-import firebase from 'firebase/app'
+import firebase from 'firebase/compat/app'
 // @ts-ignore
 import 'firebase/auth'
 // @ts-ignore
@@ -105,24 +105,16 @@ async function download_content(config: { wasm_glue_url: RequestInfo; wasm_url: 
 
     let download_size = loader.show_total_bytes()
     let download_info = `Downloading WASM binary and its dependencies (${download_size}).`
-    let wasm_loader = html_utils.log_group_collapsed(download_info, async () => {
+    let wasm = await html_utils.log_group_collapsed(download_info, async () => {
         let wasm_glue_js = await wasm_glue_fetch.text()
         let wasm_glue = Function('let exports = {};' + wasm_glue_js + '; return exports')()
-        let imports = await wasm_glue.wasm_imports()
         console.log('WASM dependencies loaded.')
         console.log('Starting online WASM compilation.')
-        let wasm_loader = await wasm_instantiate_streaming(wasm_fetch, imports)
+
         // @ts-ignore
-        wasm_loader.wasm_glue = wasm_glue
-        return wasm_loader
+        return await wasm_glue.init(wasm_fetch)
     })
 
-    // @ts-ignore
-    let wasm = await wasm_loader.then(({ instance, module, wasm_glue }) => {
-        let wasm = instance.exports
-        wasm_glue.after_load(wasm, module)
-        return wasm
-    })
     console.log('WASM Compiled.')
 
     await loader.initialized
@@ -769,7 +761,7 @@ class Config {
     public use_loader: boolean = true
     public wasm_url: string = '/assets/ide.wasm'
     public wasm_glue_url: string = '/assets/wasm_imports.js'
-    public node_labels: boolean = false
+    public node_labels: boolean = true
     public crash_report_host: string = defaultLogServerHost
     public data_gathering: boolean = true
     public is_in_cloud: boolean = false

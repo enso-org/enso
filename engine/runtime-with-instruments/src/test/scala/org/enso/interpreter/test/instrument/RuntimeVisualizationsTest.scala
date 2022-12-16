@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.ConstantsGen
-import org.enso.interpreter.runtime.{Context => EnsoContext}
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
@@ -1419,7 +1419,7 @@ class RuntimeVisualizationsTest
           Api.VisualisationConfiguration(
             contextId,
             Api.VisualisationExpression.Text(
-              "Standard.Visualization.Id",
+              "Standard.Visualization.Main",
               "x -> x.default_visualization.to_text"
             )
           )
@@ -1427,7 +1427,7 @@ class RuntimeVisualizationsTest
       )
     )
 
-    val attachVisualisationResponses = context.receiveN(6)
+    val attachVisualisationResponses = context.receiveN(8)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -1957,12 +1957,12 @@ class RuntimeVisualizationsTest
     val moduleName      = "Enso_Test.Test.Main"
     val metadata        = new Metadata
 
-    val idMain = metadata.addItem(116, 28)
+    val idMain = metadata.addItem(106, 28)
 
     val code =
       """import Standard.Base.Data.List
         |import Standard.Visualization
-        |from Standard.Base.Error.Common import all
+        |import Standard.Base.Error.Error
         |
         |main =
         |    Error.throw List.Empty_Error
@@ -2048,7 +2048,7 @@ class RuntimeVisualizationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty."}"""
+    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
   }
 
   it should "attach method pointer visualisation without arguments" in {

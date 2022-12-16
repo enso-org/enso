@@ -6,6 +6,7 @@
 #![feature(fn_traits)]
 #![feature(unsize)]
 #![feature(test)]
+#![feature(tuple_trait)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -127,7 +128,7 @@ impl<F: ?Sized> Registry<F> {
 
     /// Fires all registered callbacks and removes the ones which got dropped. The implementation
     /// is safe - you are allowed to change the registry while a callback is running.
-    fn run_impl<Args: Copy>(&self, args: Args)
+    fn run_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
     where F: FnMut<Args> {
         self.model.run_impl(args)
     }
@@ -151,7 +152,7 @@ impl<F: ?Sized> RegistryModel<F> {
         self.callback_list.borrow().is_empty() && self.callback_list_during_run.borrow().is_empty()
     }
 
-    fn run_impl<Args: Copy>(&self, args: Args)
+    fn run_impl<Args: Copy + std::marker::Tuple>(&self, args: Args)
     where F: FnMut<Args> {
         if self.is_running.get() {
             error!("Trying to run callback manager while it's already running, ignoring.");

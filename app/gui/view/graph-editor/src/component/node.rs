@@ -114,7 +114,7 @@ pub mod background {
             let width    = width  - PADDING.px() * 2.0;
             let height   = height - PADDING.px() * 2.0;
             let radius   = RADIUS.px();
-            let shape    = Rect((&width,&height)).corners_radius(&radius);
+            let shape    = Rect((&width,&height)).corners_radius(radius);
             let shape    = shape.fill(bg_color);
             shape.into()
         }
@@ -151,12 +151,12 @@ pub mod backdrop {
             let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
             let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
             let sel_radius  = &sel_height / 2.0;
-            let select      = Rect((&sel_width,&sel_height)).corners_radius(&sel_radius);
+            let select      = Rect((&sel_width,&sel_height)).corners_radius(sel_radius);
 
             let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
             let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
             let sel2_radius = &sel2_height / 2.0;
-            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(&sel2_radius);
+            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(sel2_radius);
 
             let select = select2 - select;
             let select = select.fill(sel_color);
@@ -233,7 +233,7 @@ pub mod error_shape {
             let stripe_red          = Rect((&stripe_width,INFINITE.px()));
             let stripe_angle_rad    = stripe_angle.radians();
             let pattern             = stripe_red.repeat(repeat).rotate(stripe_angle_rad);
-            let mask                = Rect((&width,&height)).corners_radius(&radius);
+            let mask                = Rect((&width,&height)).corners_radius(radius);
             let mask                = mask.grow(error_width);
             let pattern             = mask.intersection(pattern).fill(color_rgba);
 
@@ -298,6 +298,8 @@ ensogl::define_endpoints_2! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
+        set_skip_macro        (bool),
+        set_freeze_macro      (bool),
         set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
@@ -780,6 +782,8 @@ impl Node {
             show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
+            action_bar.set_action_freeze_state <+ input.set_freeze_macro;
+            action_bar.set_action_skip_state <+ input.set_skip_macro;
 
 
             // === View Mode ===

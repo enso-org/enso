@@ -65,7 +65,7 @@ mod status_indicator_shape {
             let height = height - node::PADDING.px() * 2.0;
             let radius = node::RADIUS.px();
 
-            let base = Rect((&width,&height)).corners_radius(&radius);
+            let base = Rect((&width,&height)).corners_radius(radius);
             let outer = base.grow(INDICATOR_WIDTH_OUTER.px());
             let inner = base.grow(INDICATOR_WIDTH_INNER.px());
 

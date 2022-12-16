@@ -269,7 +269,7 @@ mod tests {
         fn new() -> ClientFixture {
             let logger = Logger::new("ClientFixture");
             let transport = MockTransport::new();
-            let client = Client::new(&logger, transport.clone());
+            let client = Client::new(logger, transport.clone());
             let executor = futures::executor::LocalPool::new();
             executor.spawner().spawn_local(client.runner()).unwrap();
             ClientFixture { transport, client, executor }

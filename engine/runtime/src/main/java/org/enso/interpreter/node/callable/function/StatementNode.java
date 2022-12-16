@@ -4,7 +4,9 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * Node tagged with {@link StandardTags.StatementTag}. Inserted by {@link BlockNode} into the AST
@@ -42,6 +44,9 @@ final class StatementNode extends ExpressionNode {
 
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
+    if (AvoidIdInstrumentationTag.class == tag) {
+      return getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
+    }
     return StandardTags.StatementTag.class == tag;
   }
 }

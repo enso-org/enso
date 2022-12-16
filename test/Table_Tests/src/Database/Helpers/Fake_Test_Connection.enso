@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Table.Table as Materialized_Table
 from Standard.Database import SQL_Query
@@ -21,7 +22,7 @@ type Fake_Test_Connection
     query self query alias="" = case query of
         Text -> self.query (SQL_Query.Table_Name query) alias
         SQL_Query.Raw_SQL _ ->
-            Error.throw (Illegal_Argument_Error_Data "Cannot query a fake connection with raw SQL")
+            Error.throw (Illegal_Argument.Error "Cannot query a fake connection with raw SQL")
         SQL_Query.Table_Name name ->
             columns = self.tables.get name
             Database_Table.make_table self name columns (Context.for_table name)

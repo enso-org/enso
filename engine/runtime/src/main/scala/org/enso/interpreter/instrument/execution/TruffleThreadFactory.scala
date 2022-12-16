@@ -1,16 +1,16 @@
 package org.enso.interpreter.instrument.execution
 
+import org.enso.interpreter.runtime.EnsoContext
+
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.atomic.AtomicInteger
-
-import org.enso.interpreter.runtime.Context
 
 /** A factory that creates new truffle threads on demand.
   *
   * @param context the language context
   * @param prefix the prefix for names of created threads
   */
-class TruffleThreadFactory(context: Context, prefix: String)
+class TruffleThreadFactory(context: EnsoContext, prefix: String)
     extends ThreadFactory {
 
   private val counter = new AtomicInteger(0)

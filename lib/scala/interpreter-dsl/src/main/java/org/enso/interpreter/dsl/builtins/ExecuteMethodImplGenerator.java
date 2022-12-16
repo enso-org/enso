@@ -104,7 +104,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
         case VOID:
           return new String[] {
             "  " + qual + "." + name + "(" + paramsApplied + ");",
-            "  return Context.get(this).getBuiltins().nothing();"
+            "  return EnsoContext.get(this).getBuiltins().nothing();"
           };
         case ARRAY:
           return new String[] {
@@ -151,7 +151,7 @@ public final class ExecuteMethodImplGenerator extends MethodGenerator {
     List<String> method = new ArrayList<>();
     method.add(methodSigDef(owner, params, false) + " {");
     if (needsContext(params)) {
-      method.add("  Context context = Context.get(this);");
+      method.add("  EnsoContext context = EnsoContext.get(this);");
     }
     if (wrapsExceptions) {;
       method.add("  try {");

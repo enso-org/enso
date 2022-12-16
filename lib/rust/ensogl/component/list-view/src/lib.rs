@@ -204,7 +204,7 @@ impl<E: Entry> Model<E> {
         let logger = Logger::new("SelectionContainer");
         let display_object = display::object::Instance::new();
         let scrolled_area = display::object::Instance::new();
-        let entries = entry::List::new(&logger, &app);
+        let entries = entry::List::new(logger, &app);
         let background = background::View::new();
         let overlay = overlay::View::new();
         let selection = selection::View::new();

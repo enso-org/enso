@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.callable.function;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
@@ -16,7 +15,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Array;
@@ -187,7 +186,8 @@ public final class Function implements TruffleObject {
         Object[] arguments,
         @Cached InteropApplicationNode interopApplicationNode,
         @CachedLibrary("function") InteropLibrary thisLib) {
-      return interopApplicationNode.execute(function, Context.get(thisLib).emptyState(), arguments);
+      return interopApplicationNode.execute(
+          function, EnsoContext.get(thisLib).emptyState(), arguments);
     }
   }
 
@@ -368,7 +368,7 @@ public final class Function implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().function();
+    return EnsoContext.get(thisLib).getBuiltins().function();
   }
 
   public boolean isThunk() {

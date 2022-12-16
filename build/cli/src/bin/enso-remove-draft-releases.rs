@@ -7,20 +7,30 @@
 use enso_build_cli::prelude::*;
 
 use enso_build::setup_octocrab;
-use ide_ci::github::Repo;
+use ide_ci::github::RepoRef;
 use ide_ci::io::web::handle_error_response;
 use ide_ci::log::setup_logging;
 
 
 
+const REPO: RepoRef = RepoRef { owner: "enso-org", name: "enso" };
+
 #[tokio::main]
 async fn main() -> Result {
     setup_logging()?;
+    info!("Removing draft releases from GitHub.");
     let octo = setup_octocrab().await?;
-    let repo = Repo::from_str("enso-org/enso")?.handle(&octo);
-
+    if let Err(e) = octo.current().user().await {
+        bail!(
+            "Failed to authenticate: {}.\nBeing authenticated is necessary to see draft releases.",
+            e
+        );
+    }
+    let repo = REPO.handle(&octo);
+    info!("Fetching all releases.");
     let releases = repo.all_releases().await?;
-    let draft_releases = releases.into_iter().filter(|r| r.draft);
+    let draft_releases = releases.into_iter().filter(|r| r.draft).collect_vec();
+    info!("Found {} draft releases.", draft_releases.len());
     for release in draft_releases {
         let id = release.id;
 
@@ -30,6 +40,6 @@ async fn main() -> Result {
         handle_error_response(response).await?;
     }
 
-
+    info!("Done.");
     Ok(())
 }

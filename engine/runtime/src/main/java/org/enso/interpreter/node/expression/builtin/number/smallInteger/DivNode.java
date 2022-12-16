@@ -4,7 +4,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -24,7 +24,7 @@ public abstract class DivNode extends Node {
       return self / that;
     } catch (ArithmeticException e) {
       return DataflowError.withoutTrace(
-          Context.get(this).getBuiltins().error().getDivideByZeroError(), this);
+          EnsoContext.get(this).getBuiltins().error().getDivideByZeroError(), this);
     }
   }
 
@@ -36,7 +36,7 @@ public abstract class DivNode extends Node {
 
   @Fallback
   Object doOther(long self, Object that) {
-    Builtins builtins = Context.get(this).getBuiltins();
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
     var integer = builtins.number().getInteger();
     throw new PanicException(builtins.error().makeTypeError(integer, that, "that"), this);
   }

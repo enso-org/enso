@@ -159,10 +159,12 @@ public final class ParseStdLibTest extends TestCase {
         Arrays.asList(
             // Files containing type expressions not supported by old parser.
             "Data/Index_Sub_Range.enso",
-            "Data/Text/Regex/Engine/Default.enso",
-            "Internal/Base_Generator.enso",
+            "Data/Pair.enso",
             "Data/Sort_Column_Selector.enso",
-            "Data/Value_Type.enso"));
+            "Data/Text/Regex/Regex_Mode.enso",
+            "Data/Value_Type.enso",
+            "Error/Common.enso",
+            "Internal/Base_Generator.enso"));
   }
 
   private static boolean isKnownToWork(String name) {

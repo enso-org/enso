@@ -24,7 +24,6 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl::system::web::dom;
 use ensogl::Animation;
@@ -68,8 +67,8 @@ ensogl::define_endpoints! {
         close_open_dialog(),
         /// Simulates a style toggle press event.
         toggle_style(),
-        /// Saves the currently opened module to file.
-        save_module(),
+        /// Saves a snapshot of the current state of the project to the VCS.
+        save_project_snapshot(),
         /// Undo the last user's action.
         undo(),
         /// Redo the last undone action.
@@ -84,6 +83,10 @@ ensogl::define_endpoints! {
         disable_debug_mode(),
         /// A set of value updates has been processed and rendered.
         values_updated(),
+        /// Interrupt the running program.
+        execution_context_interrupt(),
+        /// Restart the program execution.
+        execution_context_restart(),
     }
 
     Output {
@@ -139,6 +142,7 @@ struct SearcherFrp {
     editing_committed: frp::Stream,
     is_visible:        frp::Stream<bool>,
     is_empty:          frp::Stream<bool>,
+    is_hovered:        frp::Stream<bool>,
 }
 
 /// A structure containing the Searcher View: the old Node Searcher of a new Component Browser.
@@ -162,12 +166,6 @@ impl SearcherVariant {
         }
     }
 
-    fn set_navigator(&self, navigator: Navigator) {
-        if let Self::ComponentBrowser(browser) = self {
-            browser.model().list.model().set_navigator(Some(navigator))
-        }
-    }
-
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
@@ -181,9 +179,11 @@ impl SearcherVariant {
                     editing_committed,
                     is_visible: view.output.is_visible.clone_ref().into(),
                     is_empty: is_empty.into(),
+                    is_hovered: view.output.is_hovered.clone_ref().into(),
                 }
             }
             SearcherVariant::OldNodeSearcher(view) => {
+                let documentation = view.documentation();
                 frp::extend! {project_view_network
                     editing_committed <- view.editing_committed.constant(());
                 }
@@ -191,6 +191,7 @@ impl SearcherVariant {
                     editing_committed,
                     is_visible: view.output.is_visible.clone_ref().into(),
                     is_empty: view.output.is_empty.clone_ref().into(),
+                    is_hovered: documentation.frp.is_hovered.clone_ref().into(),
                 }
             }
         }
@@ -272,7 +273,6 @@ impl Model {
         let display_object = display::object::Instance::new();
         let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
-        searcher.set_navigator(graph_editor.model.navigator.clone_ref());
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let prompt_background = prompt_background::View::new();
@@ -745,7 +745,8 @@ impl View {
             // === Disabling Navigation ===
 
             let documentation = model.searcher.documentation();
-            disable_navigation           <- documentation.frp.is_selected || frp.open_dialog_shown;
+            searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
+            disable_navigation <- searcher_active || frp.open_dialog_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
             // === Disabling Dropping ===
@@ -829,11 +830,13 @@ impl application::View for View {
             (Press, "", "cmd o", "disable_prompt"),
             (Press, "", "space", "disable_prompt"),
             (Press, "", "cmd alt shift t", "toggle_style"),
-            (Press, "", "cmd s", "save_module"),
+            (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
+            (Press, "", "cmd shift t", "execution_context_interrupt"),
+            (Press, "", "cmd shift r", "execution_context_restart"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

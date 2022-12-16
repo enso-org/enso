@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Numbers.Integer
 
@@ -33,4 +33,4 @@ type Array_Proxy
        methods.
     from_proxy_object : Any -> Array
     from_proxy_object proxy =
-        Array_Proxy.new proxy.length proxy.at
+        Array_Proxy.new proxy.length (i -> proxy.at i)

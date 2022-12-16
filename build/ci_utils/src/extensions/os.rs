@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 /// A bunch of constant literals associated with a given OS. Follows the convention of constants
 /// defined in [`std::env::consts`] module.
+#[const_trait]
 pub trait OsExt: Copy {
     fn exe_suffix(self) -> &'static str;
     fn exe_extension(self) -> &'static str;

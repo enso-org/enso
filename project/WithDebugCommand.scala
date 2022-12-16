@@ -27,7 +27,7 @@ object WithDebugCommand {
 
   val truffleShowCompilationsOptions = Seq(
     "-Dpolyglot.engine.TraceCompilation=true",
-    "-Dpolyglot.engine.TraceCompilationCallTree=true",
+    "-Dpolyglot.engine.TraceCompilationAST=true",
     "-Dpolyglot.engine.TraceInlining=true",
     "-Dpolyglot.engine.TracePerformanceWarnings=all"
   )

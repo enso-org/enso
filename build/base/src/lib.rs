@@ -71,6 +71,7 @@ pub mod prelude {
     pub use crate::extensions::iterator::IteratorExt as _;
     pub use crate::extensions::iterator::TryIteratorExt as _;
     pub use crate::extensions::option::OptionExt as _;
+    pub use crate::extensions::os_str::OsStrExt as _;
     pub use crate::extensions::path::PathExt as _;
     pub use crate::extensions::pathbuf::PathBufExt as _;
     pub use crate::extensions::result::ResultExt as _;

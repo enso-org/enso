@@ -212,8 +212,8 @@ fn init(app: Application) {
     let scene = scene.clone_ref();
     let handler = app.display.on.before_frame.add(move |_time| {
         let shape = scene.dom.shape();
-        div.set_style_or_warn("left", &format!("{}px", shape.width / 2.0));
-        div.set_style_or_warn("top", &format!("{}px", shape.height / 2.0 - 0.5));
+        div.set_style_or_warn("left", format!("{}px", shape.width / 2.0));
+        div.set_style_or_warn("top", format!("{}px", shape.height / 2.0 - 0.5));
     });
 
     mem::forget(handler);

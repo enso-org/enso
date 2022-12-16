@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::cache;
+use crate::env::known::PATH;
 use crate::programs;
 
 
@@ -23,11 +24,12 @@ impl cache::Goodie for Sbt {
         ready(Ok(programs::Sbt.lookup().is_ok())).boxed()
     }
 
-    fn activate(&self, package_path: PathBuf) -> Result {
+    fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>> {
         let sbt_home = package_path.join("sbt");
         // Yeah, it is needed. Sbt will fail, if not set.
-        SBT_HOME.set(&sbt_home)?;
-        crate::env::prepend_to_path(sbt_home.join("bin"))?;
-        Ok(())
+        Ok(vec![
+            crate::env::Modification::set(&SBT_HOME, &sbt_home)?,
+            crate::env::Modification::prepend_path(&PATH, sbt_home.join("bin")),
+        ])
     }
 }

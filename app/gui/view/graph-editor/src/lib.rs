@@ -598,6 +598,8 @@ ensogl::define_endpoints_2! {
         edit_node                    (NodeId),
         collapse_nodes               ((Vec<NodeId>,NodeId)),
         set_node_expression          ((NodeId,node::Expression)),
+        set_node_skip                ((NodeId,bool)),
+        set_node_freeze              ((NodeId,bool)),
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
@@ -1899,6 +1901,20 @@ impl GraphEditorModel {
         }
     }
 
+    fn set_node_skip(&self, node_id: impl Into<NodeId>, skip: &bool) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_skip_macro(*skip);
+        }
+    }
+
+    fn set_node_freeze(&self, node_id: impl Into<NodeId>, freeze: &bool) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_freeze_macro(*freeze);
+        }
+    }
+
     fn set_node_comment(&self, node_id: impl Into<NodeId>, comment: impl Into<node::Comment>) {
         let node_id = node_id.into();
         let comment = comment.into();
@@ -2632,11 +2648,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         disable_navigator <- any_(&set_navigator_false,&some_vis_selected);
         enable_navigator  <- any_(&set_navigator_true,&no_vis_selected);
 
-        eval_ disable_navigator ( model.navigator.disable() );
-        eval_ enable_navigator  ( model.navigator.enable()  );
+        model.navigator.frp.set_enabled <+ bool(&disable_navigator,&enable_navigator);
 
-        out.navigator_active <+ inputs.set_navigator_disabled
-                                    || out.some_visualisation_selected;
+        out.navigator_active <+ model.navigator.frp.enabled;
     }
 
 
@@ -2986,13 +3000,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         eval out.node_editing_started ([model] (id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_started");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.set_edit_mode(true);
+                node.model().input.set_editing(true);
             }
         });
         eval out.node_editing_finished ([model](id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_finished");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.set_edit_mode(false);
+                node.model().input.set_editing(false);
             }
         });
     }
@@ -3078,6 +3092,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
     out.node_expression_set <+ set_node_expression_string;
 
+    }
+
+
+    // === Set Node SKIP and FREEZE macros ===
+
+    frp::extend! { network
+        eval inputs.set_node_skip(((id, skip)) model.set_node_skip(id, skip));
+        eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(id, freeze));
     }
 
 
