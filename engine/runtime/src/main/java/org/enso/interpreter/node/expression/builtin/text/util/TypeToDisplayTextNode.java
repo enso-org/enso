@@ -72,12 +72,6 @@ public abstract class TypeToDisplayTextNode extends Node {
       } catch (UnsupportedMessageException e) {
         throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
       }
-    } else if (exceptions.hasExceptionMessage(value)) {
-      try {
-        return strings.asString(exceptions.getExceptionMessage(value));
-      } catch (UnsupportedMessageException e) {
-        throw new IllegalStateException(e);
-      }
     } else {
       // In case we forgot to handle some of the builtin types, the following
       // piece of code will handle that.

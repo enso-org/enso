@@ -44,17 +44,6 @@ public class PolyglotExceptionProxy extends AbstractTruffleException {
     throw this;
   }
 
-  @ExportMessage
-  boolean hasExceptionMessage() {
-    return true;
-  }
-
-  @ExportMessage
-  @CompilerDirectives.TruffleBoundary
-  Object getExceptionMessage() {
-    return original.getMessage();
-  }
-
   public AbstractTruffleException getOriginal() {
     return original;
   }
