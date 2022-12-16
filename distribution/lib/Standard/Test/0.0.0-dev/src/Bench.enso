@@ -38,10 +38,11 @@ type Bench
                 False ->
                     IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
                 True ->
-                    IO.println (label + "/dry-run: " + fmt 
-        if dry_run then times 1 (iteration 1) else times num_iters (iteration iter_size)
-        fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
-        IO.println (label + " average: " + fmt_avg + "ms")
+                    IO.println (label + "/dry-run: " + fmt)
+        if dry_run then times 1 (iteration 1) else
+            times num_iters (iteration iter_size)
+            fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
+            IO.println (label + " average: " + fmt_avg + "ms")
 
 ## PRIVATE
 
