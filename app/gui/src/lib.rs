@@ -83,6 +83,7 @@ pub mod test;
 pub mod transport;
 
 pub use crate::ide::*;
+pub use engine_protocol;
 pub use ide_view as view;
 
 

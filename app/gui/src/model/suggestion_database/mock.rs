@@ -322,6 +322,20 @@ macro_rules! mock_suggestion_database {
     }
 }
 
+/// This is a helper for [`mock_suggestion_database`] macro. See it's documentation for details.
+#[macro_export]
+macro_rules! doc_section_mark {
+    (!) => {
+        $crate::engine_protocol::language_server::Mark::Important
+    };
+    (>) => {
+        $crate::engine_protocol::language_server::Mark::Example
+    };
+    (?) => {
+        $crate::engine_protocol::language_server::Mark::Info
+    };
+}
+
 /// A helper macro for mocking entry's documentation.
 ///
 /// ### [`DocSection::Paragrah`]
@@ -339,7 +353,7 @@ macro_rules! mock_suggestion_database {
 /// ### [`DocSection::Keyed`]
 /// ```
 /// # use enso_gui::doc_section;
-/// doc_section!("Key" => "Value")
+/// doc_section!("Key" => "Value");
 /// ```
 ///
 /// ### [`DocSection::Marked`]
@@ -366,45 +380,17 @@ macro_rules! doc_section {
             body: $body.into(),
         }
     };
-    (! $body:expr) => {
-        engine_protocol::language_server::DocSection::Marked {
-            mark:   engine_protocol::language_server::Mark::Important,
+    ($mark:tt $body:expr) => {
+        $crate::engine_protocol::language_server::DocSection::Marked {
+            mark:   $crate::doc_section_mark!($mark),
             header: None,
             body:   $body.into(),
         }
     };
-    (! $header:expr, $body:expr) => {
-        engine_protocol::language_server::DocSection::Marked {
-            mark:   engine_protocol::language_server::Mark::Important,
+    ($mark:tt $header:expr, $body:expr) => {
+        $crate::engine_protocol::language_server::DocSection::Marked {
+            mark:   $crate::doc_section_mark!($mark),
             header: Some($header.into()),
-            body:   $body.into(),
-        }
-    };
-    (> $body:expr) => {
-        engine_protocol::language_server::DocSection::Marked {
-            mark:   engine_protocol::language_server::Mark::Example,
-            header: None,
-            body:   $body.into(),
-        }
-    };
-    (> $header:expr, $body:expr) => {
-        engine_protocol::language_server::DocSection::Marked {
-            mark:   engine_protocol::language_server::Mark::Example,
-            header: Some($header.into()),
-            body:   $body.into(),
-        }
-    };
-    (? $header:expr, $body:expr) => {
-        engine_protocol::language_server::DocSection::Marked {
-            mark:   engine_protocol::language_server::Mark::Info,
-            header: Some($header.into()),
-            body:   $body.into(),
-        }
-    };
-    (? $body:expr) => {
-        engine_protocol::language_server::DocSection::Marked {
-            mark:   engine_protocol::language_server::Mark::Info,
-            header: None,
             body:   $body.into(),
         }
     };

@@ -12,7 +12,6 @@ use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::navigation::navigator::Navigator;
-use ensogl::display::object::ObjectOps;
 use ensogl::display::shape::StyleWatchFrp;
 use ensogl::display::shape::*;
 use ensogl::frp;
@@ -29,7 +28,7 @@ use std::f32::consts::PI;
 // === DatabaseWrapper ===
 // =======================
 
-/// A wrapper around the suggestion database that allows iterate over entries and display their
+/// A wrapper for the suggestion database that allows iterating over entries and displaying their
 /// documentation.
 #[derive(Debug, Clone, CloneRef)]
 struct DatabaseWrapper {
@@ -58,7 +57,7 @@ impl DatabaseWrapper {
         self.current_entry.set(previous);
     }
 
-    /// Documentation for currently selected entry.
+    /// Documentation for the currently selected entry.
     fn documentation(&self) -> String {
         let index = self.current_entry.get();
         let ids = self.database.keys();
@@ -112,7 +111,6 @@ mod button {
             let icon = Triangle(10.0, 10.0);
             let icon = icon.rotate((PI/2.0).radians());
             let icon = icon.fill(color::Rgba::red());
-
             let shape = background + icon;
             shape.into()
         }
