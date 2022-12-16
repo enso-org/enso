@@ -34,7 +34,11 @@ type Bench
             avg = avg_list res
             fmt = (avg / 1000000).format "%.2f"
             result.put (result.get + avg)
-            IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
+            case dry_run of
+                False ->
+                    IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
+                True ->
+                    IO.println (label + "/dry-run: " + fmt 
         if dry_run then times 1 (iteration 1) else times num_iters (iteration iter_size)
         fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
         IO.println (label + " average: " + fmt_avg + "ms")
