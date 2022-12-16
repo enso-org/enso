@@ -75,7 +75,7 @@ class ValuesGenerator {
 
   public Value typeDate() {
     return v("typeDate", """
-    import Standard.Base.Data.Time.Date
+    import Standard.Base.Data.Time.Date.Date
     """, "Date");
   }
 
@@ -87,13 +87,13 @@ class ValuesGenerator {
 
   public Value typeDateTime() {
     return v("typeDate_Time", """
-    import Standard.Base.Data.Time.Date_Time
+    import Standard.Base.Data.Time.Date_Time.Date_Time
     """, "Date_Time");
   }
 
   public Value typeDuration() {
     return v("typeDuration", """
-    import Standard.Base.Data.Time.Duration
+    import Standard.Base.Data.Time.Duration.Duration
     """, "Duration");
   }
 
@@ -111,7 +111,7 @@ class ValuesGenerator {
 
   public Value typeTimeZone() {
     return v("typeTimeZone", """
-    import Standard.Base.Data.Time.Time_Zone
+    import Standard.Base.Data.Time.Time_Zone.Time_Zone
     """, "Time_Zone");
   }
 

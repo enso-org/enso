@@ -44,20 +44,12 @@ public final class ModuleScope implements TruffleObject {
     this.imports = new HashSet<>();
     this.exports = new HashSet<>();
     this.module = module;
-    Type type = null;
-    if (context != null) {
-      var builtinName = module.getName().toString();
-      type = context.getBuiltins().fromTypeSystem(builtinName);
-    }
-    if (type == null) {
-      type =
-          Type.createSingleton(
-              module.getName().item(),
-              this,
-              context == null ? null : context.getBuiltins().any(),
-              false);
-    }
-    this.associatedType = type;
+    this.associatedType =
+        Type.createSingleton(
+            module.getName().item(),
+            this,
+            context == null ? null : context.getBuiltins().any(),
+            false);
   }
 
   public ModuleScope(
