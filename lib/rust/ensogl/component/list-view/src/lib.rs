@@ -601,7 +601,7 @@ where E::Model: Default
             }));
             eval frp.selection_size ([model](size) {
                 let margin = Vector2(SHAPE_MARGIN, SHAPE_MARGIN);
-                model.selection.set_size(*size + 2.0 * margin)
+                model.selection.set_size(*size + 2.0 * margin);
             });
             eval_ frp.hide_selection (model.selection.unset_parent());
 

@@ -182,7 +182,7 @@ impl Icons {
         let icon_size = self.icon_size();
         let index = index as f32;
         view.set_x(index * icon_size.x + node::CORNER_RADIUS);
-        view.set_size(icon_size)
+        view.set_size(icon_size);
     }
 
     fn icon_size(&self) -> Vector2 {

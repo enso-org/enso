@@ -423,7 +423,7 @@ impl Glyph {
             self.glyph_id.get(),
         );
         if let Some(glyph_info) = opt_glyph_info {
-            self.view.set_size(glyph_info.scale.scale(size))
+            self.view.set_size(glyph_info.scale.scale(size));
         } else {
             error!("Cannot find glyph render info for glyph id: {:?}.", self.glyph_id.get());
         }
