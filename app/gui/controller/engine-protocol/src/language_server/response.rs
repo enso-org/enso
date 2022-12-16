@@ -108,7 +108,7 @@ pub struct GetComponentGroups {
 }
 
 /// Response of `save_vcs` method.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct SaveVcs {
@@ -117,7 +117,7 @@ pub struct SaveVcs {
 }
 
 /// Response of `list_vcs` method.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct ListVcs {
@@ -125,7 +125,7 @@ pub struct ListVcs {
 }
 
 /// Response of `vcs_status` method.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct VcsStatus {

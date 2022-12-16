@@ -317,14 +317,10 @@ mod tests {
     /// Mock project that updates a VcsMockState on relevant language server API calls.
     fn setup_mock_project(vcs: Rc<VcsMockState>) -> model::Project {
         let json_client = language_server::MockClient::default();
-        let project_root_id = crate::test::mock::data::ROOT_ID;
         let path_segments: [&str; 0] = [];
-        let root_path = Path::new(project_root_id, &path_segments);
-        let vcs_entry = language_server::response::SaveVcs {
-            commit_id: "commit_id".into(),
-            message:   "message".into(),
-        };
+        let root_path = Path::new(Uuid::default(), &path_segments);
 
+        let vcs_entry = language_server::response::SaveVcs::default();
         json_client.expect.save_vcs(move |path, name| {
             assert_eq!(path, &root_path);
             assert_eq!(name, &None);
@@ -333,9 +329,9 @@ mod tests {
             Ok(vcs_entry)
         });
 
-        let ls = engine_protocol::language_server::Connection::new_mock_rc(json_client);
+        let ls = language_server::Connection::new_mock_rc(json_client);
         let mut project = model::project::MockAPI::new();
-        model::project::test::expect_root_id(&mut project, project_root_id);
+        model::project::test::expect_root_id(&mut project, Uuid::default());
         project.expect_json_rpc().returning_st(move || ls.clone_ref());
         Rc::new(project)
     }

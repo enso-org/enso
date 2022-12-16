@@ -764,9 +764,8 @@ mod test {
             let method = capability_reg.method;
             let options = capability_reg.register_options;
             expect_call!(json_client.acquire_capability(method,options) => Ok(()));
-            let project_root_id = Uuid::default();
             let path_segments: [&str; 0] = [];
-            let root_path = language_server::Path::new(project_root_id, &path_segments);
+            let root_path = language_server::Path::new(Uuid::default(), &path_segments);
             expect_call!(json_client.init_vcs(root_path) => Ok(()));
 
             setup_mock_json(&mut json_client);
@@ -917,43 +916,33 @@ mod test {
     fn check_project_vcs_status() {
         TestWithLocalPoolExecutor::set_up().run_task(async move {
             let json_client = language_server::MockClient::default();
-            let root_id = crate::test::mock::data::ROOT_ID;
             let path_segments: [&str; 0] = [];
-            let root_path = language_server::Path::new(root_id, &path_segments);
-            let vcs_entry = language_server::response::SaveVcs {
-                commit_id: "commit_id".into(),
-                message:   "message".into(),
-            };
+            let root_path = language_server::Path::new(Uuid::default(), &path_segments);
 
-            let vcs_status = language_server::response::VcsStatus {
-                dirty:     false,
-                changed:   Vec::new(),
-                last_save: vcs_entry.clone(),
-            };
+            let vcs_status = language_server::response::VcsStatus::default();
             let root_path_clone = root_path.clone();
             expect_call!(json_client.vcs_status(root_path_clone) => Ok(vcs_status));
 
-            let vcs_status = language_server::response::VcsStatus {
-                dirty:     true,
-                changed:   Vec::new(),
-                last_save: vcs_entry.clone(),
-            };
+            let vcs_status =
+                language_server::response::VcsStatus { dirty: true, ..Default::default() };
             expect_call!(json_client.vcs_status(root_path) => Ok(vcs_status));
 
-            let ls = engine_protocol::language_server::Connection::new_mock_rc(json_client);
+            let ls = language_server::Connection::new_mock_rc(json_client);
             let publisher = notification::Publisher::default();
             let mut subscriber = publisher.subscribe();
 
             let result =
-                check_vcs_status_and_notify(root_id, ls.clone_ref(), publisher.clone_ref()).await;
+                check_vcs_status_and_notify(Uuid::default(), ls.clone_ref(), publisher.clone_ref())
+                    .await;
             let message = subscriber.next().await;
-            assert_matches!(result, Ok(_));
+            assert_matches!(result, Ok(language_server::response::VcsStatus { dirty: false, .. }));
             assert_matches!(message, Some(model::project::Notification::VcsStatusChanged(false)));
 
             let result =
-                check_vcs_status_and_notify(root_id, ls.clone_ref(), publisher.clone_ref()).await;
+                check_vcs_status_and_notify(Uuid::default(), ls.clone_ref(), publisher.clone_ref())
+                    .await;
             let message = subscriber.next().await;
-            assert_matches!(result, Ok(_));
+            assert_matches!(result, Ok(language_server::response::VcsStatus { dirty: true, .. }));
             assert_matches!(message, Some(model::project::Notification::VcsStatusChanged(true)));
         });
     }
