@@ -100,7 +100,7 @@ type No_Fallback_Column
 ## PRIVATE
 
    Generates JSON that describes points data.
-Table.point_data : Table -> JS_Object
+Table.point_data : Table -> Vector
 Table.point_data self =
     get_point_data field = field.lookup_in self . rename field.name . catch Any (_->Nothing)
     columns = Point_Data.all_fields.map get_point_data . filter (x -> x.is_nothing.not)
@@ -108,7 +108,7 @@ Table.point_data self =
         pairs = columns.map column->
             value = column.at row_n . catch_ Nothing
             [column.name, value]
-        JS_Object.from_pairs pairs
+        Json.from_pairs pairs
 
 ## PRIVATE
 
@@ -128,10 +128,9 @@ Table.axes self =
     if axes_obj.length > 0 then axes_obj else Nothing
 
 ## PRIVATE
-Vector.point_data : Vector -> JS_Object
+Vector.point_data : Vector -> Vector
 Vector.point_data self  =
-    self.map_with_index i-> elem->
-        JS_Object.from_pairs [[Point_Data.X.name, i], [Point_Data.Y.name, elem]]
+    self.map_with_index i-> elem-> Json.from_pairs [[Point_Data.X.name, i], [Point_Data.Y.name, elem]]
 
 ## PRIVATE
 bound_data bounds data = case bounds of
@@ -143,8 +142,9 @@ bound_data bounds data = case bounds of
         max_y = bounds.at 3
 
         data.filter <| datum->
-            x = datum.get "x"
-            y = datum.get "y"
+            v = Json.parse datum
+            x = v.get "x"
+            y = v.get "y"
 
             min_x<=x && x<=max_x && min_y<=y && y<=max_y
 
@@ -155,8 +155,8 @@ type Extreme
 limit_data limit data = case limit of
     Nothing -> data
     _ -> if ((data.length <= limit) || (data.length == 0)) then data else
-        x datum = (datum.get "x")
-        y datum = (datum.get "y")
+        x datum = ((Json.parse datum).get "x")
+        y datum = ((Json.parse datum).get "y")
 
         update_extreme current idx point =
             new_min_x = if x current.min_x.second > x point then [idx, point] else current.min_x
@@ -179,14 +179,13 @@ json_from_table : Table -> [Int]|Nothing -> Int|Nothing -> JS_Object
 json_from_table table bounds limit =
     data = table.point_data |> bound_data bounds |> limit_data limit
     axes = table.axes
-    JS_Object.from_pairs [[data_field,data], [axis_field, axes]]
+    '{"' + data_field + '": [' + (data.join ",") + '],' + '"' + axis_field + '":' + axes.to_json + '}'
 
 ## PRIVATE
 json_from_vector : Vector Any -> [Int]|Nothing -> Int|Nothing -> JS_Object
 json_from_vector vec bounds limit =
     data = vec.point_data |> bound_data bounds |> limit_data limit
-    axes = [axis_field, Nothing]
-    JS_Object.from_pairs [[data_field, data], axes]
+    '{"' + data_field + '": [' + (data.join ",") + '],' + '"' + axis_field + '":null}'
 
 ## PRIVATE
 
@@ -198,10 +197,8 @@ json_from_vector vec bounds limit =
    - value: the value to be visualized.
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing =
-    json = case value of
+    case value of
         _ : Column -> json_from_table  value.to_table bounds limit
         _ : Table  -> json_from_table  value bounds limit
         _ : Vector -> json_from_vector value bounds limit
         _          -> json_from_vector value.to_vector bounds limit
-
-    json.to_text

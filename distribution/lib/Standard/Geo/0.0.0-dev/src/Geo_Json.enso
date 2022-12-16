@@ -39,28 +39,28 @@ Json.get_feature_row self =
 ## PRIVATE
 
    Get column key-value pairs of a feature's "properties" object.
-Json.get_properties_row : Map
-Json.get_properties_row self = case self of
+get_properties_row : Map
+get_properties_row value = case value of
     Json.Object properties -> properties.map p-> case p of
         Json.Object _ -> Nothing.to_json
         _ -> p
 
 ## PRIVATE
    Get column key-value pairs of a feature's "geometry" object.
-Json.get_geometry_row : Map
-Json.get_geometry_row self = case self of
-    Json.Object fields ->
-          geometry_type = fields.get "type"
-          if geometry_type == "Point".to_json then get_point_row self else Map.empty
+get_geometry_row : JS_Object | Nothing
+get_geometry_row value = case value of
+    _ : JS_Object ->
+        geometry_type = value.get "type"
+        if geometry_type == "Point" then get_point_row value else Nothing
 
 ## PRIVATE
    Get column key-value pairs of a "Point" geometry object.
-get_point_row : JS_Object -> Map
+get_point_row : JS_Object -> Vector
 get_point_row value =
     fields = ["longitude", "latitude", "elevation"]
     case value.get "coordinates" of
         vector : Vector -> field.zip vector
-        _ -> Map.empty
+        _ -> []
 
 Json.geo_json_to_table : Vector -> Table
 Json.geo_json_to_table self fields=Nothing = case self of

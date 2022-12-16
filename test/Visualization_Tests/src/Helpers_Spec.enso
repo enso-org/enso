@@ -102,20 +102,21 @@ spec =
             vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
             visualization_text = vec.to_default_visualization_data
 
-            visualization_text.should_equal <|
-                expected_json = Json.parse '''
+            Json.parse visualization_text . should_equal <|
+                expected_json = '''
                     [
                       {
                         "type":"type_name",
                         "constructor":"Value",
                         "foo":"bar"
                       },
-                      { "content":{ "type":"type_name", "constructor":"Value", "foo":42 },
-                        "message":"My_Type.Value",
-                        "type":"Error"
+                      {
+                        "type":"Error",
+                        "content":{ "type":"type_name", "constructor":"Value", "foo":42 },
+                        "message":"My_Type.Value"
                       }
                     ]
                 type_name = Meta.get_qualified_type_name (My_Type.Value "aaa")
-                expected_json.to_text.replace "type_name" type_name
+                Json.parse (expected_json.replace "type_name" type_name)
 
 main = Test_Suite.run_main spec

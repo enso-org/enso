@@ -175,7 +175,7 @@ type JS_Object
             self_keys = self.field_names
             that_keys = that.field_names
             self_keys.length == that_keys.length && self_keys.all key-> self.get key == that.get key
-        _ -> Error.throw (Type_Error.Error JS_Object that "that")
+        _ -> False
 
 make_enso js_object =
     case js_object of

@@ -14,9 +14,9 @@ spec =
         json = Json.parse text
         json.field_names.should_equal ['data', 'axis']
 
-        expected_axis_labels   = ['axis', Json.parse axis_expected_text]
-        expected_data_pair     = ['data', Json.parse data_expected_text]
-        expected_result        = JS_Object.from_pairs [expected_axis_labels, expected_data_pair]
+        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + '}'
+        expected_result = Json.parse expect_text
+
         json.should_equal expected_result
 
     expect value axis_expected_text data_expected_text =
@@ -115,8 +115,8 @@ spec =
             text = Scatter_Plot.process_to_json_text vector limit=2
             json = Json.parse text
             json.field_names.should_equal ['data','axis']
-            data = json.fields.get 'data'
-            data.unwrap.length . should_equal 2
+            data = json.get 'data'
+            data.length . should_equal 2
 
         Test.specify "limit the number of squared elements" <|
             vector = (-15).up_to 15 . map (x -> x * x)
