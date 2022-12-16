@@ -110,25 +110,25 @@ impl QualifiedNameToIdMap {
 // === HierarchyIndex ===
 // ======================
 
-/// A map from "parent" to "children" entries. This could be called "self-type index", as it
-/// primarily stores self-type relation between entries. But it also stores Type-Module relations.
+/// A map from "parent" to "children" entries. It could be called a "self-type index", as it
+/// primarily stores self-type relations between entries. But it also stores Type-Module relations.
 ///
-/// For each key in the map, we store a list of "children" entry ids. "Children" are either
-/// Constructors and Methods of the certain type, or Types defined in the module. We populate this
-/// index when constructing the suggestion database, and keep it up-to-date when applying updates.
+/// We store a list of "children" entry ids for each key in the map. "Children" are either
+/// Constructors and Methods of a specific type, or Types defined in the module. We populate this
+/// index when constructing the suggestion database and keep it up-to-date when applying updates.
 ///
-/// This index is needed to render documentation pages, when the documentation page of the Module
-/// includes information about every Type and Method defined there, and the documentation page of
-/// the Type includes all Constructors and Methods defined for this type.
+/// This index is needed to render documentation pages when the Module's documentation page includes
+/// information about every Type and Method defined there, and the documentation page of the Type
+/// displays all Constructors and Methods defined for this type.
 #[derive(Clone, Debug, Default)]
 struct HierarchyIndex {
     inner: HashMap<entry::Id, HashSet<entry::Id>>,
 }
 
 impl HierarchyIndex {
-    /// Add new entry to the index. If the entry already exists, do nothing.
+    /// Add a new entry to the index. If the entry already exists, do nothing.
     ///
-    /// If entry has [`Entry::self_type`], we use it as a key in the index. If entry is a
+    /// If the entry has [`Entry::self_type`], we use it as a key in the index. If the entry is a
     /// [`Kind::Type`], we use its parent module as a key.
     pub fn add(
         &mut self,
@@ -163,9 +163,10 @@ impl HierarchyIndex {
         self.remove_from_parent(id);
     }
 
-    /// Remove the entry from "children" collections, but leave it as a parent. This is needed when
-    /// we want to modify some entry. Modification doesn't change the children (so we preserve the
-    /// key), but it can change the parent of the altered entry, so we remove it from any parent.
+    /// Remove the entry from "children" collections, but leave it as a parent. It is needed when
+    /// we want to modify some entries. The modification doesn't change the children (so we preserve
+    /// the key), but it can change the parent of the altered entry, so we remove it from any
+    /// parent.
     pub fn remove_from_parent(&mut self, id: entry::Id) {
         for (_, children) in self.inner.iter_mut() {
             children.remove(&id);
@@ -1208,7 +1209,7 @@ pub mod test {
     }
 
     /// Additional verification that hierarchy index is updated when we modify the parent module of
-    /// Types.
+    /// Type.
     #[test]
     fn hierarchy_index_is_updated_after_module_modifications() {
         let db = mock::standard_db_mock();
