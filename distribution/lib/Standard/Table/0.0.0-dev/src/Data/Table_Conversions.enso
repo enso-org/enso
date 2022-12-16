@@ -53,7 +53,7 @@ Table.from_json value fields=Nothing =
         _ : Number -> "Value"
         _ : Boolean -> "Value"
         _ : Text -> "Value"
-        _ -> Error.throw (Invalid_JSON_Format.Error v "Invalid item for Json.to_table.")
+        _ -> Error.throw (Invalid_JSON_Format.Error v "Invalid item for Table.from_json.")
 
     get_value v field = case v of
         _ : JS_Object -> v.get field
@@ -68,7 +68,7 @@ Table.from_json value fields=Nothing =
             field_names = fields.if_nothing value.field_names
             values = field_names.map value.get
             Table.new [["Name", field_names], ["Value", values]]
-        _ : Array -> Json.to_table (Vector.from_polyglot_array value) fields
+        _ : Array -> Table.from_json (Vector.from_polyglot_array value) fields
         _ : Vector ->
             column_map = value.fold_with_index Map.empty i->v->
                 field_names = fields.if_nothing get_fields v
@@ -78,4 +78,4 @@ Table.from_json value fields=Nothing =
                     data.append (get_value v f)
             used_fields = fields.if_nothing column_map.keys
             Table.new used_fields (used_fields.map f-> column_map.get f . to_vector)
-        _ -> Error.throw (Invalid_JSON_Format.Error value "Invalid value for Json.to_table.")
+        _ -> Error.throw (Invalid_JSON_Format.Error value "Invalid value for Table.from_json.")

@@ -24,8 +24,8 @@ spec =
         expect_text text axis_expected_text data_expected_text
 
     index = Scatter_Plot.index_name
-    axis label = Json.from_pairs [['label',label]]
-    labels x y = Json.from_pairs [['x', axis x], ['y', axis y]] . to_text
+    axis label = JS_Object.from_pairs [['label',label]]
+    labels x y = JS_Object.from_pairs [['x', axis x], ['y', axis y]] . to_text
     no_labels  = 'null'
 
     Test.group "Scatter Plot Visualization" <|

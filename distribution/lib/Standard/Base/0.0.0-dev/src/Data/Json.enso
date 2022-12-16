@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Array_Proxy.Array_Proxy
+import project.Data.Json.Extensions
 import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
@@ -36,10 +37,7 @@ type Json
     ## Serialize an Object to JSON
     stringify : Text
     stringify object =
-        json = object.to_js_object
-        case json of
-            JS_Object.Value js_object -> json_stringify js_object
-            _ -> json_stringify json
+        json_stringify (make_javascript object.to_js_object )
 
     ## Convert a Vector of Keys and Values to JSON.
        Keys must be `Text` values.
@@ -115,10 +113,7 @@ type JS_Object
         js_object = pairs.fold new_object current->pair->
             case pair.at 0 of
                 _ : Text ->
-                    js_value = case pair.at 1 of
-                        JS_Object.Value js_object -> js_object
-                        enso -> enso.to_js_object
-                    set_value current (pair.at 0) js_value
+                    set_value current (pair.at 0) (pair.at 1).to_js_object
                     current
                 _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
         JS_Object.Value js_object
@@ -168,7 +163,7 @@ type JS_Object
 
     ## Convert to string
     to_text : Text
-    to_text self = json_stringify self.js_object + ""
+    to_text self = Json.stringify self
 
     ## Checks if this JS_Object is equal to another JS_Object.
 
@@ -194,7 +189,18 @@ make_enso js_object =
         _ : Vector ->
             proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
             Vector.from_polyglot_array proxy
+        _ : JS_Object -> js_object
         _ -> JS_Object.Value js_object
+
+make_javascript enso_object =
+    case enso_object of
+        _ : JS_Object ->
+            enso_object.field_names.fold new_object current->key->
+                set_value current key (make_javascript (enso_object.get key))
+                current
+        _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
+        _ : Vector -> enso_object.map make_javascript
+        _ -> enso_object
 
 foreign js new_object = """
     return {}

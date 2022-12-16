@@ -4,7 +4,7 @@ from Standard.Table import Table
 
 import Standard.Visualization.Helpers
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Helpers
@@ -94,19 +94,28 @@ spec =
     Test.group "Dataflow Error Visualization" <|
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
-            json . should_equal <| JS_Object.from_pairs [["foo", "aaa"], ["type", "Value"]] . to_text
+            Json.parse json . should_equal <|
+                type_name = Meta.get_qualified_type_name (My_Type.Value "aaa")
+                JS_Object.from_pairs [["type", type_name], ["constructor", "Value"], ["foo", "aaa"]]
 
         Test.specify "should be able to be shown in the default vector visualization" <|
             vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
             visualization_text = vec.to_default_visualization_data
-            expected_json = Json.parse '''
-                [
-                  { "foo":"bar",
-                    "type":"Value"
-                  },
-                  { "content":{ "foo":42, "type":"Value" },
-                    "message":"My_Type.Value",
-                    "type":"Error"
-                  }
-                ]
-            visualization_text.should_equal expected_json.to_text
+
+            visualization_text.should_equal <|
+                expected_json = Json.parse '''
+                    [
+                      {
+                        "type":"type_name",
+                        "constructor":"Value",
+                        "foo":"bar"
+                      },
+                      { "content":{ "type":"type_name", "constructor":"Value", "foo":42 },
+                        "message":"My_Type.Value",
+                        "type":"Error"
+                      }
+                    ]
+                type_name = Meta.get_qualified_type_name (My_Type.Value "aaa")
+                expected_json.to_text.replace "type_name" type_name
+
+main = Test_Suite.run_main spec

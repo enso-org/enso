@@ -11,7 +11,7 @@ spec = Test.group 'JSON conversion' <|
     clothes = enso_project.data/'clothes.csv' . read
     simple_empty = enso_project.data/'simple_empty.csv' . read
 
-    Test.specify 'should convert tables to a format compatible with Json.Array.to_table' <|
+    Test.specify 'should convert tables to a format compatible with Table.from_json' <|
         clothes_json = clothes.to_json
         Table.from_json clothes_json ['Id', 'Name', 'Quantity', 'Rating', 'Price'] . should_equal clothes
 

@@ -28,14 +28,6 @@ type Object_Type
 
 ## PRIVATE
 
-   Get the type field of a GeoJSON object.
-Json.get_type : Any
-Json.get_type self = case self of
-    Json.Object object ->
-        object.get "type" Nothing.to_json . unwrap
-
-## PRIVATE
-
    Get key-value pairs of a Feature GeoJSON object.
 Json.get_feature_row : Map
 Json.get_feature_row self =
@@ -54,23 +46,20 @@ Json.get_properties_row self = case self of
         _ -> p
 
 ## PRIVATE
-
    Get column key-value pairs of a feature's "geometry" object.
 Json.get_geometry_row : Map
 Json.get_geometry_row self = case self of
     Json.Object fields ->
           geometry_type = fields.get "type"
-          if geometry_type == "Point".to_json then self.get_point_row else Map.empty
+          if geometry_type == "Point".to_json then get_point_row self else Map.empty
 
 ## PRIVATE
-
    Get column key-value pairs of a "Point" geometry object.
-Json.get_point_row : Map
-Json.get_point_row self =
+get_point_row : JS_Object -> Map
+get_point_row value =
     fields = ["longitude", "latitude", "elevation"]
-    case self.get "coordinates" of
-        Json.Array coordinates ->
-            Map.from_vector (fields.zip coordinates)
+    case value.get "coordinates" of
+        vector : Vector -> field.zip vector
         _ -> Map.empty
 
 Json.geo_json_to_table : Vector -> Table
@@ -79,15 +68,15 @@ Json.geo_json_to_table self fields=Nothing = case self of
         rows = items.map item->
             case item of
                 Json.Object _ ->
-                    if item.get_type != Object_Type.Feature.to_text then Vector.fill fields.length Nothing else
+                    if item.get "type" != Object_Type.Feature.to_text then Vector.fill fields.length Nothing else
                         row = item.get_feature_row
                         fields.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
                 _ -> Vector.fill fields.length Nothing
         cols = fields.map_with_index i-> n->
             [n, rows.map (_.at i)]
         Table.new cols
-    Json.Object _ ->
-        if self.get_type != Object_Type.Feature_Collection.to_text then Error.throw (Invalid_JSON_Format.Error self "not being a feature collection") else
+    _ : JS_Object ->
+        if self.get "type" != Object_Type.Feature_Collection.to_text then Error.throw (Invalid_JSON_Format.Error self "not being a feature collection") else
             case self.get "features" of
                 Json.Array items ->
                     feature_rows = items.map .get_feature_row
