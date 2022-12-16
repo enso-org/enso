@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::env::new::TypedVariable;
+use crate::env::accessor::TypedVariable;
 
 use anyhow::Context;
 use std::borrow::BorrowMut;

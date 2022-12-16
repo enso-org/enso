@@ -6,7 +6,7 @@
 use crate::prelude::*;
 
 use crate::actions::env;
-use crate::env::new::PathBufVariable;
+use crate::env::accessor::PathBufVariable;
 
 
 
