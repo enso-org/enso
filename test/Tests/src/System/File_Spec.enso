@@ -119,7 +119,7 @@ spec =
 
         Test.specify "should allow reading a UTF-8 file via path" <|
             full_path = sample_file . path
-            contents = Data.read_text_file full_path
+            contents = Data.read_text full_path
             contents.should_start_with "Cupcake ipsum dolor sit amet."
 
         Test.specify "should allow reading a Windows file via path" <|
@@ -134,16 +134,16 @@ spec =
 
         Test.specify "should handle exceptions when reading a non-existent file" <|
             file = File.new "does_not_exist.txt"
-            Data.read_text_file "does_not_exist.txt" . should_fail_with File_Error.Not_Found
+            Data.read_text "does_not_exist.txt" . should_fail_with File_Error.Not_Found
             file.read_text . should_fail_with File_Error.Not_Found
             non_existent_file.read_text . should_fail_with File_Error.Not_Found
 
         Test.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
-            contents = Data.read_text_file path_name
+            contents = Data.read_text path_name
             contents.should_start_with "Cupcake ipsum dolor sit amet."
             file = sample_file
-            contents_2 = Data.read_text_file file
+            contents_2 = Data.read_text file
             contents_2.should_start_with "Cupcake ipsum dolor sit amet."
 
     Test.group "write operations" <|
