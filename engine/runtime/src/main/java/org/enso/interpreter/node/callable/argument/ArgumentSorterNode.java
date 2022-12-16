@@ -3,7 +3,6 @@ package org.enso.interpreter.node.callable.argument;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ValueProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
@@ -20,7 +19,6 @@ import java.util.concurrent.locks.Lock;
  */
 @NodeInfo(description = "Reorders the arguments and executes them, according to a provided mapping")
 public class ArgumentSorterNode extends BaseNode {
-  private final ValueProfile profileFunction = ValueProfile.createIdentityProfile();
   private final FunctionSchema preApplicationSchema;
   private final FunctionSchema postApplicationSchema;
   private final ArgumentMapping mapping;
@@ -97,26 +95,40 @@ public class ArgumentSorterNode extends BaseNode {
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
   public MappedArguments execute(Function function, State state, Object[] arguments) {
-    var fn = profileFunction.profile(function);
     if (argumentsExecutionMode.shouldExecute()) {
       executeArguments(arguments, state);
     }
-    Object[] mappedAppliedArguments = prepareArguments(fn, arguments);
+    Object[] mappedAppliedArguments =
+        prepareArguments(
+            this.preApplicationSchema,
+            this.postApplicationSchema,
+            this.mapping,
+            function,
+            arguments);
     Object[] oversaturatedArguments = null;
     if (postApplicationSchema.hasOversaturatedArgs()) {
-      oversaturatedArguments = generateOversaturatedArguments(fn, arguments);
+      oversaturatedArguments = generateOversaturatedArguments(function, arguments);
     }
     return new MappedArguments(mappedAppliedArguments, oversaturatedArguments);
   }
 
-  private Object[] prepareArguments(Function function, Object[] arguments) {
+  @ExplodeLoop
+  static Object[] prepareArguments(
+      FunctionSchema preSchema,
+      FunctionSchema postSchema,
+      ArgumentMapping map,
+      Function fn,
+      Object[] args) {
     Object[] mappedAppliedArguments;
-    if (preApplicationSchema.hasAnyPreApplied()) {
-      mappedAppliedArguments = function.clonePreAppliedArguments();
+    if (preSchema.hasAnyPreApplied()) {
+      mappedAppliedArguments = new Object[preSchema.getArgumentsCount()];
+      for (int i = 0; i < mappedAppliedArguments.length; i++) {
+        mappedAppliedArguments[i] = fn.getPreAppliedArguments()[i];
+      }
     } else {
-      mappedAppliedArguments = new Object[this.postApplicationSchema.getArgumentsCount()];
+      mappedAppliedArguments = new Object[postSchema.getArgumentsCount()];
     }
-    mapping.reorderAppliedArguments(arguments, mappedAppliedArguments);
+    map.reorderAppliedArguments(args, mappedAppliedArguments);
     return mappedAppliedArguments;
   }
 
