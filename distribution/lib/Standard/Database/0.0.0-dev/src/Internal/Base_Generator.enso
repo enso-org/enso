@@ -289,6 +289,7 @@ generate_from_part dialect from_spec = case from_spec of
             Join_Kind.Inner -> "INNER JOIN"
             Join_Kind.Left -> "LEFT JOIN"
             Join_Kind.Right -> "RIGHT JOIN"
+            Join_Kind.Full -> "FULL OUTER JOIN"
             Join_Kind.Cross -> "CROSS JOIN"
         ons = SQL.join " AND " (on.map (generate_expression dialect)) . prefix_if_present " ON "
         left ++ (" " + prefix + " ") ++ right ++ ons

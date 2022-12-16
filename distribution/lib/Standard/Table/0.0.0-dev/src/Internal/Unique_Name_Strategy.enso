@@ -65,3 +65,10 @@ type Unique_Name_Strategy
              strategy.make_unique "A" # returns "A_1"
     make_unique : Text -> Text
     make_unique self name = self.deduplicator.makeUnique name
+
+    ## Takes a list of names and gets a list of unique versions.
+
+       Arguments:
+       - names: The column names to make unique.
+    make_all_unique : Vector Text -> Vector Text
+    make_all_unique self names = names.map self.make_unique

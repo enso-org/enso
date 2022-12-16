@@ -42,3 +42,6 @@ type Join_Kind
        the right source. Its `on` list should be empty, instead `where_filters`
        in the query can be used to filter the results.
     Cross
+
+    ## PRIVATE
+    Full

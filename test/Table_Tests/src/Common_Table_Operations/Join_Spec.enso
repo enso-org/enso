@@ -27,8 +27,8 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     materialize = setup.materialize
-    join_pending = if prefix.contains "In-Memory" then Nothing else "New Joining API is not supported by the database backends yet."
-    Test.group prefix+"Table.join" pending=join_pending <|
+    db_todo = if prefix.contains "In-Memory" then Nothing else "New Joining API is still WIP for the DB backend."
+    Test.group prefix+"Table.join" <|
         t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
         t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
         Test.specify "should allow to inner join on equality of a the first column by default" <|
@@ -63,7 +63,7 @@ spec setup =
             t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
             t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
 
-        Test.specify "should allow to perform anti-joins" <|
+        Test.specify "should allow to perform anti-joins" pending=db_todo <|
             t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive |> materialize |> _.order_by ["X"]
             t6.columns.map .name . should_equal ["X", "Y"]
             t6.at "X" . to_vector . should_equal [1]
@@ -93,7 +93,7 @@ spec setup =
             r = t3.join t4 on=["X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Z_1"]
             check_xy_joined r
 
-        Test.specify "should allow to join on text equality ignoring case" <|
+        Test.specify "should allow to join on text equality ignoring case" pending=db_todo <|
             t1 = table_builder [["X", ["a", "B"]], ["Y", [1, 2]]]
             t2 = table_builder [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
 
@@ -131,7 +131,7 @@ spec setup =
                 r2 . at "Z" . to_vector . should_equal [3, 3]
 
         # This may need a test_selection toggle in the future, depending on how well databases like coercing decimals and integers.
-        Test.specify "should correctly handle Enso Decimal-Integer equality" <|
+        Test.specify "should correctly handle Enso Decimal-Integer equality" pending=db_todo <|
             t1 = table_builder [["X", [1, 2]], ["Y", [10, 20]]]
             t2 = table_builder [["X", [2.0, 2.1, 0.0]], ["Z", [1, 2, 3]]]
 
@@ -207,7 +207,7 @@ spec setup =
                 r1 . at "upper" . to_vector . to_text . should_equal "[(My_Type.Value 2 1), (My_Type.Value 100 0)]"
                 r1 . at "Z" . to_vector . should_equal [10, 20]
 
-        Test.specify "should allow to mix join conditions of various kinds" <|
+        Test.specify "should allow to mix join conditions of various kinds" pending=db_todo <|
             t1 = table_builder [["X", [1, 12, 12, 0]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "A", "a", "ą"]], ["W", [1, 2, 3, 4]]]
             t2 = table_builder [["X", [12, 12, 1]], ["l", [0, 100, 100]], ["u", [10, 100, 100]], ["Z", ["A", "A", "A"]], ["W'", [10, 20, 30]]]
 
@@ -242,6 +242,9 @@ spec setup =
             r2 . at "X_1" . to_vector . should_equal ["A", "a", "b"]
             r2 . at "Z" . to_vector . should_equal [1, 2, 3]
 
+        Test.specify "should correctly handle joining a table with itself" pending="TODO!" <|
+            Nothing
+
         Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
             t2 = table_builder [["Z", [2, 1]], ["W", [5, 6]]]
@@ -256,7 +259,7 @@ spec setup =
             problems = [Column_Indexes_Out_Of_Range.Error [42, -3], Missing_Input_Columns.Error ["foo", "baz"]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" <|
+        Test.specify "should report Invalid_Value_Type if non-text columns are provided to Equals_Ignore_Case" pending=db_todo <|
             t1 = table_builder [["X", ["1", "2", "c"]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["Z", ["1", "2", "c"]], ["W", [1, 2, 3]]]
 
@@ -294,7 +297,7 @@ spec setup =
             test Value_Type.Integer Value_Type.Char <|
                 t1.join t2 on=(Join_Condition.Between "Y" "Z" "W")
 
-        Test.specify "should warn when joining on equality of Decimal columns" <|
+        Test.specify "should warn when joining on equality of Decimal columns" pending=db_todo <|
             t1 = table_builder [["X", [1.5, 2.0, 2.00000000001]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
 
@@ -338,7 +341,7 @@ spec setup =
                 problems3 = [Floating_Point_Grouping.Error "Z", Floating_Point_Grouping.Error "X"]
                 Problems.test_problem_handling action3 problems3 tester3
 
-        Test.specify "should correctly handle nulls in equality conditions" <|
+        Test.specify "should correctly handle nulls in equality conditions" pending=db_todo <|
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
             t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
 
@@ -348,7 +351,7 @@ spec setup =
             r1.at "Y" . to_vector . should_equal [1, 1, 2, 3, 3]
             r1.at "Z" . to_vector . should_equal [20, 30, 10, 20, 30]
 
-        Test.specify "should correctly handle nulls in case-insensitive equality conditions" <|
+        Test.specify "should correctly handle nulls in case-insensitive equality conditions" pending=db_todo <|
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
             t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
 
@@ -359,7 +362,7 @@ spec setup =
             r1.at "Y" . to_vector . should_equal [0, 1, 1, 2, 3, 3]
             r1.at "Z" . to_vector . should_equal [10, 20, 30, 10, 20, 30]
 
-        Test.specify "should correctly handle nulls in Between conditions" <|
+        Test.specify "should correctly handle nulls in Between conditions" pending=db_todo <|
             t1 = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0, 1, 2, 3]]]
             t2 = table_builder [["l", [Nothing, 0, 1]], ["u", [100, 10, Nothing]], ["Z", [10, 20, 30]]]
 
@@ -371,7 +374,7 @@ spec setup =
             r1.at "u" . to_vector . should_equal [10, 10]
             r1.at "Z" . to_vector . should_equal [20, 20]
 
-        Test.specify "should rename columns of the right table to avoid duplicates" <|
+        Test.specify "should rename columns of the right table to avoid duplicates" pending=db_todo <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
             t2 = table_builder [["X", [2, 1]], ["Y", [2, 2]]]
 
@@ -400,7 +403,7 @@ spec setup =
             t1.join error . should_fail_with Illegal_State.Error
             t1.join t2 on=["X", error] . should_fail_with Illegal_State.Error
 
-        Test.specify "should correctly handle all null rows" <|
+        Test.specify "should correctly handle all null rows" pending=db_todo <|
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
             t2 = table_builder [["C", [Nothing, 2, Nothing, 4]], ["D", [Nothing, 5, 6, Nothing]]]
 
