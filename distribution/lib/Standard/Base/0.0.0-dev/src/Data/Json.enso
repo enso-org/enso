@@ -18,6 +18,9 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 
+import project.IO
+import project.Warning.Warning
+
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import java.lang.Exception as JException
@@ -37,7 +40,7 @@ type Json
     ## Serialize an Object to JSON
     stringify : Text
     stringify object =
-        json_stringify (make_javascript object.to_js_object )
+        json_stringify (make_javascript object.to_js_object)
 
     ## Convert a Vector of Keys and Values to JSON.
        Keys must be `Text` values.
@@ -112,8 +115,8 @@ type JS_Object
     from_pairs pairs =
         js_object = pairs.fold new_object current->pair->
             case pair.at 0 of
-                _ : Text ->
-                    set_value current (pair.at 0) (pair.at 1).to_js_object
+                text : Text ->
+                    set_value current text (pair.at 1).to_js_object
                     current
                 _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
         JS_Object.Value js_object
@@ -193,14 +196,17 @@ make_enso js_object =
         _ -> JS_Object.Value js_object
 
 make_javascript enso_object =
-    case enso_object of
-        _ : JS_Object ->
-            enso_object.field_names.fold new_object current->key->
-                set_value current key (make_javascript (enso_object.get key))
-                current
-        _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
-        _ : Vector -> enso_object.map make_javascript
-        _ -> enso_object
+    if Warning.get_all enso_object != [] then make_javascript (Warning.set enso_object []) else
+        case enso_object of
+            _ : JS_Object ->
+                enso_object.field_names.fold new_object current->key->
+                    value = enso_object.get key
+                    js_value = make_javascript value
+                    set_value current key js_value
+                    current
+            _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
+            _ : Vector -> enso_object.map make_javascript
+            _ -> enso_object
 
 foreign js new_object = """
     return {}

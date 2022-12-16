@@ -35,7 +35,7 @@ reassign_test x =
     r = poly_sum prim_sum 1
     r
 
-baz value = Warning.attach value "I have warned you"
+baz value =Warning.attach value "I have warned you"
 bar value = baz value
 foo value = bar value
 
