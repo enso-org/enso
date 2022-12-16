@@ -183,7 +183,6 @@ async fn check_vcs_status_and_notify(
     language_server: Rc<language_server::Connection>,
     publisher: notification::Publisher<model::project::Notification>,
 ) -> json_rpc::Result<response::VcsStatus> {
-    warn!("abcdef");
     let path_segments: [&str; 0] = [];
     let root_path = language_server::Path::new(project_root_id, &path_segments);
     let status = language_server.vcs_status(&root_path).await;
