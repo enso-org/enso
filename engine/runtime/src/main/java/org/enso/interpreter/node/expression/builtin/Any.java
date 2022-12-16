@@ -10,7 +10,7 @@ public class Any extends Builtin {
   }
 
   @Override
-  protected boolean isInstanceOfItself() {
-    return true;
+  protected boolean containsValues() {
+    return false;
   }
 }

@@ -142,7 +142,7 @@ public class MetaIsATest {
       }
       var r = isACheck.execute(v, v);
       if (r.asBoolean()) {
-        f.append("\nType ").append(v).append(" should not be instance of itself");
+        f.append("\nType ").append(v).append(" shall not be instance of itself");
       }
     }
     assertEquals(f.toString(), 0, f.length());

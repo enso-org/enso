@@ -81,7 +81,7 @@ class ValuesGenerator {
 
   public Value typeDatePeriod() {
     return v("typeDate_Period", """
-    import Standard.Base.Data.Time.Date_Period
+    import Standard.Base.Data.Time.Date_Period.Date_Period
     """, "Date_Period");
   }
 
@@ -99,13 +99,13 @@ class ValuesGenerator {
 
   public Value typePeriod() {
     return v("typePeriod", """
-    import Standard.Base.Data.Time.Period
+    import Standard.Base.Data.Time.Period.Period
     """, "Period");
   }
 
   public Value typeTimePeriod() {
     return v("typeTimePeriod", """
-    import Standard.Base.Data.Time.Time_Period
+    import Standard.Base.Data.Time.Time_Period.Time_Period
     """, "Time_Period");
   }
 

@@ -71,9 +71,6 @@ public abstract class IsANode extends Node {
 
   @Specialization
   boolean doTypeCheck(Object value, Type type, @CachedLibrary(limit = "10") TypesLibrary types) {
-    if (value == type) {
-      return false;
-    }
     var t = types.getType(value);
     return t == type;
   }
