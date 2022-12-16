@@ -111,8 +111,8 @@ pub mod prelude {
 
 
     pub use crate::cache::goodie::GoodieExt as _;
-    pub use crate::env::new::RawVariable as _;
-    pub use crate::env::new::TypedVariable as _;
+    pub use crate::env::accessor::RawVariable as _;
+    pub use crate::env::accessor::TypedVariable as _;
     pub use crate::extensions::clap::ArgExt as _;
     pub use crate::extensions::command::CommandExt as _;
     pub use crate::extensions::version::PrereleaseExt as _;

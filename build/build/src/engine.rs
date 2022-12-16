@@ -1,3 +1,7 @@
+//! Top-level module for dealing with Enso Engine and its components.
+//!
+//! The reasonable entry point is the [`context::RunContext`] type.
+
 use crate::prelude::*;
 
 use crate::get_graal_version;
@@ -24,9 +28,13 @@ pub use context::RunContext;
 
 
 
+/// Version of `flatc` (the FlatBuffers compiler) that we require.
 const FLATC_VERSION: Version = Version::new(1, 12, 0);
+
+/// Whether pure Enso tests should be run in parallel.
 const PARALLEL_ENSO_TESTS: AsyncPolicy = AsyncPolicy::Sequential;
 
+/// Download template projects from GitHub.
 pub async fn download_project_templates(client: reqwest::Client, enso_root: PathBuf) -> Result {
     // Download Project Template Files
     let output_base = enso_root.join("lib/scala/pkg/src/main/resources/");
@@ -62,10 +70,15 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
     Ok(())
 }
 
+/// Describe, which benchmarks should be run.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
 pub enum Benchmarks {
+    /// Run all SBT-exposed benchmarks. Does *not* including pure Enso benchmarks.
     All,
+    /// Run the runtime benchmark (from `sbt`).
     Runtime,
+    /// Run benchmarks written in pure Enso.
+    Enso,
 }
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
@@ -76,10 +89,11 @@ pub enum Tests {
 }
 
 impl Benchmarks {
-    pub fn sbt_task(self) -> &'static str {
+    pub fn sbt_task(self) -> Option<&'static str> {
         match self {
-            Benchmarks::All => "bench",
-            Benchmarks::Runtime => "runtime/bench",
+            Benchmarks::All => Some("bench"),
+            Benchmarks::Runtime => Some("runtime/bench"),
+            Benchmarks::Enso => None,
         }
     }
 }
@@ -90,14 +104,17 @@ pub struct BuildConfigurationFlags {
     ///
     /// Makes sense given that incremental builds with SBT are currently broken.
     pub test_scala:                    bool,
+    /// Whether the Enso standard library should be tested.
     pub test_standard_library:         bool,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
     pub build_benchmarks:              bool,
+    /// Which benchmarks should be run.
     pub execute_benchmarks:            BTreeSet<Benchmarks>,
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once:       bool,
+    /// Whether the Scala-based parser should be compiled into JS.
     pub build_js_parser:               bool,
     pub build_engine_package:          bool,
     pub build_launcher_package:        bool,
@@ -138,6 +155,10 @@ impl BuildConfigurationResolved {
 
         if config.test_java_generated_from_rust {
             config.generate_java_from_rust = true;
+        }
+
+        if config.execute_benchmarks.contains(&Benchmarks::Enso) {
+            config.build_engine_package = true;
         }
 
         Self(config)
