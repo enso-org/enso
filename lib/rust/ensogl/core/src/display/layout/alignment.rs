@@ -40,6 +40,7 @@ impl Dim1 {
 }
 
 impl Dim1 {
+    /// A normalized value of the alignment, in the range [0.0, 1.0].
     pub fn normalized(self) -> f32 {
         match self {
             Dim1::Start => 0.0,
@@ -67,7 +68,10 @@ impl From<&Dim1> for Dim1 {
 // === 1-dimensional Optional Alignment ===
 // ========================================
 
+/// Optional version of `Dim1`. It expresses an alignment that could not be set. It can be used for
+/// example as an alignment override.
 #[derive(Clone, Copy, Debug, Deref, DerefMut, Default, PartialEq, Eq, From)]
+#[allow(missing_docs)]
 pub struct OptDim1 {
     pub value: Option<Dim1>,
 }
@@ -97,7 +101,10 @@ impl OptDim1 {
 // === 2-dimensional Alignment ===
 // ===============================
 
+/// Two dimensional alignment. It is equivalent to [`Vector2<Dim1>`], but also has many handy
+/// associated functions.
 #[derive(Clone, Copy, Debug, Deref, Default, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub struct Dim2 {
     pub vector: Vector2<Dim1>,
 }
@@ -111,6 +118,7 @@ impl Dim2 {
 }
 
 impl Dim2 {
+    /// A normalized value of the alignment, in the range [0.0, 1.0].
     pub fn normalized(self) -> Vector2<f32> {
         Vector2(self.vector.x.normalized(), self.vector.y.normalized())
     }
@@ -122,9 +130,10 @@ impl Dim2 {
 // === 2-dimensional Optional Alignment ===
 // ========================================
 
-
-
+/// Optional version of `Dim2`. It expresses an alignment that could not be set. It can be used for
+/// example as an alignment override.
 #[derive(Clone, Copy, Debug, Deref, DerefMut, Default, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub struct OptDim2 {
     pub vector: Vector2<OptDim1>,
 }
@@ -218,10 +227,14 @@ macro_rules! with_alignment_dim2_named_matrix {
 // === 2-dimensional Optional Alignment Macros ===
 // ===============================================
 
+/// Runs the provided macro with two arrays of anchors for horizontal and vertical alignment.
 #[macro_export]
 macro_rules! with_alignment_opt_dim2_anchors {
     ($f:path $([$($args:tt)*])?) => {
-        $f! { $([$($args)*])? [[left] [center] [right] [default] []] [[bottom] [center] [top] [default] []] }
+        $f! { $([$($args)*])?
+            [[left] [center] [right] [default] []]
+            [[bottom] [center] [top] [default] []]
+        }
     };
 }
 
@@ -240,6 +253,23 @@ macro_rules! with_alignment_opt_dim2_matrix {
     };
 }
 
+/// Runs the provided macro with an optional alignment anchor matrix. The passed values are of form
+/// `[name [x_anchor] [y_anchor]]`. The values [`x_anchor`] and [`y_anchor`] are optional and can be
+/// missing. The name is created as `$x_$y` with the exception for both anchors being 'center' or
+/// 'default', when the name is simply 'center' or 'default', respectively. For example, if run with
+/// the arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{
+///     [left_bottom [left][bottom]]
+///     [left_center [left][center]]
+///     [left_top [left][top]]
+///     [left_default [left][default]]
+///     [left [left][]]
+///     ...
+/// ```
+/// The 'default' value means that the alignment should be set to its default value. The `[args]`
+/// argument is optional.
 #[macro_export]
 macro_rules! with_alignment_opt_dim2_named_matrix_sparse {
     ($(#$meta:tt)* $f:path $([$($args:tt)*])?) => {
@@ -251,31 +281,49 @@ macro_rules! with_alignment_opt_dim2_named_matrix_sparse {
         $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ [$($fs)*] [] $($ts)*}
     };
     (@ $fs:tt [$($out:tt)*] [[[center] [center]] $($ts:tt)*]) => {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [center [center] [center]]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [center [center] [center]]] [$($ts)*]
+        }
     };
     (@ $fs:tt [$($out:tt)*] [[[center] []] $($ts:tt)*]) => {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [center_x [center] []]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [center_x [center] []]] [$($ts)*]
+        }
     };
     (@ $fs:tt [$($out:tt)*] [[[] [center]] $($ts:tt)*]) => {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [center_y [] [center]]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [center_y [] [center]]] [$($ts)*]
+        }
     };
     (@ $fs:tt [$($out:tt)*] [[[default] [default]] $($ts:tt)*]) => {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [default [default] [default]]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [default [default] [default]]] [$($ts)*]
+        }
     };
     (@ $fs:tt [$($out:tt)*] [[[default] []] $($ts:tt)*]) => {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [default_x [default] []]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [default_x [default] []]] [$($ts)*]
+        }
     };
     (@ $fs:tt [$($out:tt)*] [[[] [default]] $($ts:tt)*]) => {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [default_y [] [default]]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [default_y [] [default]]] [$($ts)*]
+        }
     };
     (@ $fs:tt [$($out:tt)*] [[[$x:ident] [$y:ident]] $($ts:tt)*]) => { paste! {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [[<$x _ $y>] [$x] [$y]]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [[<$x _ $y>] [$x] [$y]]] [$($ts)*]
+        }
     }};
     (@ $fs:tt [$($out:tt)*] [[[$x:ident] []] $($ts:tt)*]) => { paste! {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [[<$x>] [$x] []]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [[<$x>] [$x] []]] [$($ts)*]
+        }
     }};
     (@ $fs:tt [$($out:tt)*] [[[] [$y:ident]] $($ts:tt)*]) => { paste! {
-        $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)* [[<$y>] [] [$y]]] [$($ts)*]}
+        $crate::with_alignment_opt_dim2_named_matrix_sparse! {
+            @ $fs [$($out)* [[<$y>] [] [$y]]] [$($ts)*]
+        }
     }};
     (@ $fs:tt [$($out:tt)*] [[[] []] $($ts:tt)*]) => { paste! {
         $crate::with_alignment_opt_dim2_named_matrix_sparse! {@ $fs [$($out)*] [$($ts)*]}
@@ -285,6 +333,20 @@ macro_rules! with_alignment_opt_dim2_named_matrix_sparse {
     };
 }
 
+/// Runs the provided macro with an optional alignment anchor matrix. For example, if run with the
+/// arguments `f [args]`, it results in:
+///
+/// ```text
+/// f!{
+///     [left_bottom [left][bottom]]
+///     [left_center [left][center]]
+///     [left_top [left][top]]
+///     [left_default [left][default]]
+///     [center_bottom [center][bottom]]
+///     ...
+/// ```
+/// The 'default' value means that the alignment should be set to its default value. The `[args]`
+/// argument is optional.
 #[macro_export]
 macro_rules! with_alignment_opt_dim2_named_matrix {
     ($f:path $([$($args:tt)*])?) => {
@@ -323,6 +385,7 @@ macro_rules! gen_dim2_cons {
                 Self::new(Dim1::$x(), Dim1::$y())
             }
 
+            /// Change the alignment.
             pub fn [<align_ $f>](&mut self) {
                 *self = Self::$f();
             }

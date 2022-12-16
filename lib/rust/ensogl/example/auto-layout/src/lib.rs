@@ -15,19 +15,12 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::event::FocusIn;
-use ensogl_core::event::FocusOut;
-use ensogl_core::Animation;
 
 
 
 // ==============
 // === Shapes ===
 // ==============
-
-const BORDER_SIZE: f32 = 4.0;
-const RECT_SIZE: f32 = 140.0;
-const RECT_DIFF: f32 = 40.0;
 
 mod rectangle {
     use super::*;
@@ -57,7 +50,6 @@ pub fn main() {
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
-    let network = &scene.frp.network;
 
     let rect1 = rectangle::View::new();
     rect1.set_size(Vector2::new(100.0, 100.0));

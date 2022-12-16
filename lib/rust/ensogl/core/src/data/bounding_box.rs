@@ -45,10 +45,12 @@ impl BoundingBox {
         BoundingBox { top, bottom, left, right }
     }
 
+    /// Constructor.
     pub fn from_position_and_size(position: Vector2, size: Vector2) -> Self {
         Self::from_corners(position, position + size)
     }
 
+    /// Constructor.
     pub fn from_center_and_size(position: Vector2, size: Vector2) -> Self {
         Self::from_corners(position - size / 2.0, position + size / 2.0)
     }

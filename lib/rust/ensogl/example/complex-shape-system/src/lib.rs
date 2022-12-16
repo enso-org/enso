@@ -90,14 +90,14 @@ pub fn main() {
     style_watch.get("base_color");
 
     let view1 = shape::View::new();
-    view1.size.set(Vector2::new(300.0, 300.0));
+    view1.set_size((300.0, 300.0));
     view1.set_position(Vector3::new(50.0, 50.0, 0.0));
 
     let mask_layer = scene::layer::Layer::new("MaskLayer");
     scene.layers.node_searcher.set_mask(&mask_layer);
 
     let mask = mask::View::new();
-    mask.size.set(Vector2::new(300.0, 300.0));
+    mask.set_size((300.0, 300.0));
     mask.set_position(Vector3::new(-50.0, 0.0, 0.0));
 
     // FIXME[WD]: scissor box should not be computed from the left screen border. It should be
@@ -107,7 +107,7 @@ pub fn main() {
     scene.layers.main.set_scissor_box(Some(&scissor_box));
 
     let view2 = shape::View::new();
-    view2.size.set(Vector2::new(300.0, 300.0));
+    view2.set_size((300.0, 300.0));
     view2.set_position(Vector3::new(50.0, 0.0, 0.0));
 
     world.add_child(&view1);

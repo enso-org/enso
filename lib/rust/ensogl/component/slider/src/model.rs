@@ -154,8 +154,8 @@ impl Model {
     /// Set the component size.
     pub fn set_size(&self, size: Vector2<f32>) {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        self.background.size.set(size + margin);
-        self.track.size.set(size + margin);
+        self.background.set_size(size + margin);
+        self.track.set_size(size + margin);
     }
 
     /// Set the color of the slider track.

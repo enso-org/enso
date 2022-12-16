@@ -1060,6 +1060,7 @@ pub struct Model {
     /// learn more.
     pub network: frp::Network,
 
+    /// A name of this display object. Used for debugging purposes only.
     pub name: &'static str,
 
     #[deref]
@@ -1077,7 +1078,7 @@ impl Instance {
         default()
     }
 
-    /// Constructor.
+    /// Constructor of a named display object. The name is used for debugging purposes only.
     pub fn new_named(name: &'static str) -> Self {
         Self { def: InstanceDef::new_named(name) }
     }
@@ -1220,6 +1221,7 @@ impl Root {
         Self { def }.init()
     }
 
+    /// Constructor of a named display object. The name is used for debugging purposes only.
     pub fn new_named(name: &'static str) -> Self {
         let def = Instance::new_named(name);
         Self { def }.init()
@@ -1390,6 +1392,7 @@ pub mod dirty {
             Self { new_parent, modified_children, removed_children, transformation, new_layer }
         }
 
+        /// Check whether any of the dirty flags is set.
         pub fn check_all(&self) -> bool {
             self.new_parent.check()
                 || self.modified_children.check_all()
@@ -2253,7 +2256,7 @@ macro_rules! gen_alignment_setters {
 }
 
 macro_rules! gen_margin_or_padding_props {
-    ([$tp: ident] [ $([$name:ident $axis:ident $loc:ident])* ]) => { paste! { $(
+    ([$tp: ident] [ $([$axis:ident $name:ident $loc:ident])* ]) => { paste! { $(
         /// Modify the margin/padding of the object. Margin is the free space around this object,
         /// while padding is the space inside the object, close to its borders.
         #[enso_shapely::gen(update, set)]
@@ -2265,6 +2268,7 @@ macro_rules! gen_margin_or_padding_props {
 }
 
 impl<T: Object + ?Sized> LayoutOps for T {}
+/// Display object operations related to layout and size.
 pub trait LayoutOps: Object {
     crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_alignment_setters);
     crate::with_display_object_side_spacing_matrix!(gen_margin_or_padding_props[margin]);
@@ -2286,9 +2290,8 @@ pub trait LayoutOps: Object {
     /// the size either to a fixed pixel value, a percentage parent container size, or to a fraction
     /// of the free space left after layouting siblings with fixed sizes.
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
-    fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
+    fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) {
         self.display_object().modify_layout(|l| l.size.modify_(f));
-        self
     }
 
     /// Set the X-axis size of the object. Set the Y-axis size to hug the children.
@@ -2576,14 +2579,14 @@ where Dim: ColumnOrRowAccessor
 // === AutoLayoutFlow ===
 // ======================
 
+/// The grid flow defines how the next item is placed in context of the previous one. The default
+/// flow is 'row', which means that the next item will be placed in the same row as the previous one
+/// if this is possible, e.g. if it was not limited by the [`set_column_count`] method.
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+#[allow(missing_docs)]
 pub enum AutoLayoutFlow {
-    /// Tells the auto-placement algorithm to fill in each row in turn, adding new rows as
-    /// necessary.
     #[default]
     Row,
-    /// Tells the auto-placement algorithm to fill in each column in turn, adding new columns as
-    /// necessary.
     Column,
 }
 
@@ -2928,8 +2931,8 @@ impl Model {
         if self.dirty.transformation.check() || self.dirty.modified_children.check_all() {
             if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
                 match pass {
-                    LayoutResolutionPass::First => self.refresh_grid_layout(X, &layout, pass),
-                    LayoutResolutionPass::Second => self.refresh_grid_layout(Y, &layout, pass),
+                    LayoutResolutionPass::First => self.refresh_grid_layout(X, layout, pass),
+                    LayoutResolutionPass::Second => self.refresh_grid_layout(Y, layout, pass),
                 }
             } else {
                 match pass {
@@ -2989,7 +2992,7 @@ impl Model {
 
 
 #[derive(Debug, Deref, DerefMut)]
-pub struct UnresolvedColumn {
+struct UnresolvedColumn {
     #[deref]
     #[deref_mut]
     axis:     ColumnOrRow,
@@ -2997,7 +3000,7 @@ pub struct UnresolvedColumn {
 }
 
 #[derive(Debug, Deref, DerefMut)]
-pub struct ResolvedColumn {
+struct ResolvedColumn {
     #[deref]
     #[deref_mut]
     axis:     ResolvedAxis,
@@ -3005,7 +3008,7 @@ pub struct ResolvedColumn {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct ResolvedAxis {
+struct ResolvedAxis {
     size:              Size,
     min_size:          f32,
     max_size:          f32,
@@ -3036,7 +3039,7 @@ impl Model {
             AutoLayoutFlow::Row => opts.columns_and_rows_count.get_dim(X),
             AutoLayoutFlow::Column => opts.columns_and_rows_count.get_dim(Y),
         };
-        let prim_axis_item_count = prim_axis_item_count.unwrap_or_else(|| children.len());
+        let prim_axis_item_count = prim_axis_item_count.unwrap_or(children.len());
         let use_x_axis = first_pass == (opts.flow == AutoLayoutFlow::Row);
         if use_x_axis {
             let column_defs = columns_defs.iter().cycle().enumerate().take(prim_axis_item_count);
@@ -3088,16 +3091,18 @@ impl Model {
                 let mut max_child_size = 0.0;
                 let mut max_child_fr = Fraction::default();
                 for child in &children {
-                    let self_const_size = self.layout.size.get_dim(x).resolve_const_only();
+                    let self_const_size = self.layout.size.get_dim(x).resolve_pixels_or_default();
                     child.reset_size_to_static_values(x, self_const_size);
                     match child.layout.size.get_dim(x) {
                         Size::Hug => child.refresh_layout_internal(pass, PassConfig::Default),
-                        Size::Fixed(unit) => max_child_fr = max(max_child_fr, unit.to_fraction()),
+                        Size::Fixed(unit) =>
+                            max_child_fr = max(max_child_fr, unit.as_fraction_or_default()),
                     }
-                    let child_margin = child.layout.margin.get_dim(x).resolve_fixed();
+                    let child_margin = child.layout.margin.get_dim(x).resolve_pixels_or_default();
                     let child_size = child.layout.computed_size.get_dim(x) + child_margin.total();
-                    let child_min_size = child.layout.min_size.get_dim(x).resolve_const_only();
-                    let child_max_size = child.layout.max_size.get_dim(x).try_resolve_const_only();
+                    let child_min_size =
+                        child.layout.min_size.get_dim(x).resolve_pixels_or_default();
+                    let child_max_size = child.layout.max_size.get_dim(x).resolve_pixels();
                     let child_max_size = child_max_size.unwrap_or(f32::INFINITY);
                     avg_child_grow += child.layout.grow_factor.get_dim(x);
                     avg_child_shrink += child.layout.shrink_factor.get_dim(x);
@@ -3117,7 +3122,7 @@ impl Model {
                 let max_child_fr_size = column.axis.size.as_fraction().unwrap_or(max_child_fr);
 
                 let computed_size = match column.axis.size {
-                    Size::Fixed(unit) => unit.resolve_const_only(),
+                    Size::Fixed(unit) => unit.resolve_pixels_or_default(),
                     Size::Hug => max_child_size,
                 };
                 let size = column.axis.size;
@@ -3162,8 +3167,8 @@ impl Model {
         let gap_def = opts.gap.get_dim(x);
         let padding_def = self.layout.padding.get_dim(x);
         let gap_count = (resolved_columns.len() - 1) as f32;
-        let static_padding = padding_def.resolve_fixed().total();
-        let static_gap = gap_count * gap_def.resolve_const_only();
+        let static_padding = padding_def.resolve_pixels_or_default().total();
+        let static_gap = gap_count * gap_def.resolve_pixels_or_default();
         let self_size = self.layout.computed_size.get_dim(x);
         let mut space_left_with_static_sizes = self_size - static_padding - static_gap;
         let mut total_grow_factor = 0.0;
@@ -3175,9 +3180,9 @@ impl Model {
             total_shrink_factor += column.shrink_factor;
             total_fr += column.max_child_fr_size;
         }
-        total_fr += padding_def.start.to_fraction();
-        total_fr += padding_def.end.to_fraction();
-        total_fr += gap_def.to_fraction() * gap_count;
+        total_fr += padding_def.start.as_fraction_or_default();
+        total_fr += padding_def.end.as_fraction_or_default();
+        total_fr += gap_def.as_fraction_or_default() * gap_count;
         if self.layout.size.get_dim(x).is_hug() && space_left_with_static_sizes < 0.0 {
             self.layout.computed_size.update_dim(x, |t| t - space_left_with_static_sizes);
             space_left_with_static_sizes = 0.0;
@@ -3230,35 +3235,35 @@ impl Model {
                 let child_size = child.layout.computed_size.get_dim(x);
                 let child_unused_space = f32::max(0.0, column_size - child_size);
                 let unresolved_margin = child.layout.margin.get_dim(x);
-                let margin_fr = unresolved_margin.to_fraction().total();
+                let margin_fr = unresolved_margin.as_fraction_or_default().total();
                 let margin = unresolved_margin.resolve(self_size, child_unused_space, margin_fr);
                 let column_size_minus_margin = column_size - margin.start - margin.end;
 
                 let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
                 if child_can_grow && child_size < column_size_minus_margin {
-                    // FIXME: resolve_const_only here
+                    // FIXME: resolve_pixels_or_default here
                     let size = f32::min(
                         column_size_minus_margin,
-                        child.layout.max_size.get_dim(x).resolve_const_only(),
+                        child.layout.max_size.get_dim(x).resolve_pixels_or_default(),
                     );
                     child.layout.computed_size.set_dim(x, size);
                 }
                 if let Some(fr) = child.layout.size.get_dim(x).as_fraction() {
                     if fr > Fraction::from(0.0) {
-                        // FIXME: resolve_const_only here
+                        // FIXME: resolve_pixels_or_default here
                         let size = f32::min(
                             column_size_minus_margin,
-                            child.layout.max_size.get_dim(x).resolve_const_only(),
+                            child.layout.max_size.get_dim(x).resolve_pixels_or_default(),
                         );
                         child.layout.computed_size.set_dim(x, size);
                     }
                 }
                 if child_can_shrink && child_size > column_size_minus_margin {
-                    // FIXME: resolve_const_only here
+                    // FIXME: resolve_pixels_or_default here
                     let size = f32::max(
                         column_size_minus_margin,
-                        child.layout.min_size.get_dim(x).resolve_const_only(),
+                        child.layout.min_size.get_dim(x).resolve_pixels_or_default(),
                     );
                     child.layout.computed_size.set_dim(x, size);
                 }
@@ -3278,7 +3283,6 @@ impl Model {
                 let alignment = child.layout.alignment.get().get_dim(x).unwrap_or(def_alignment);
                 let child_offset = child_unused_space * alignment.normalized();
                 let content_origin = child.content_origin();
-                let child_size = child.layout.computed_size.get_dim(x);
                 let child_left = pos_x - content_origin.get_dim(x) + child_offset + margin.start;
                 child.set_position_dim(x, child_left);
             }

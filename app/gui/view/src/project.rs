@@ -737,7 +737,7 @@ impl View {
             _eval <- all_with3(&model.prompt.width,&prompt_size,&prompt_bg_padding,
                 f!([model](width,size,padding) {
                     model.prompt.set_x(- *width / 2.0);
-                    model.prompt_background.size.set(Vector2(*width + padding, *size + padding));
+                    model.prompt_background.set_size(Vector2(*width + padding, *size + padding));
                 })
             );
 

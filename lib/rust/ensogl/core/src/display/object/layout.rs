@@ -11,7 +11,6 @@ use unit2::Percent;
 // === Unit ===
 // ============
 
-
 /// Unit for display object layout.
 #[derive(Clone, Copy, Debug, Display, PartialEq, From)]
 pub enum Unit {
@@ -26,6 +25,7 @@ pub enum Unit {
 }
 
 impl Unit {
+    /// Matcher for the [`Fraction`] variant.
     pub fn as_fraction(self) -> Option<Fraction> {
         match self {
             Self::Fraction(f) => Some(f),
@@ -33,7 +33,8 @@ impl Unit {
         }
     }
 
-    pub fn to_fraction(self) -> Fraction {
+    /// Matcher for the [`Fraction`] variant. Returns default value if the variant does not match.
+    pub fn as_fraction_or_default(self) -> Fraction {
         match self {
             Self::Fraction(f) => f,
             _ => default(),
@@ -51,8 +52,8 @@ impl Unit {
     }
 
     /// Resolve the unit to fixed pixel value. If the unit was set to be a fraction or percent, it
-    /// will result in 0. This is mostly used in layouting algorithm.
-    pub fn resolve_const_only(&self) -> f32 {
+    /// will result in 0. This is mostly used in layout algorithm.
+    pub fn resolve_pixels_or_default(&self) -> f32 {
         match self {
             Unit::Pixels(value) => *value,
             Unit::Fraction(_) => 0.0,
@@ -60,13 +61,17 @@ impl Unit {
         }
     }
 
-    pub fn try_resolve_const_only(&self) -> Option<f32> {
+    /// Resolve the unit to fixed pixel value. If the unit was set to be a fraction or percent, it
+    /// will return [`None`].
+    pub fn resolve_pixels(&self) -> Option<f32> {
         match self {
             Unit::Pixels(value) => Some(*value),
             _ => None,
         }
     }
 
+    /// Resolve the unit to fixed pixel value. If the unit was set to be a fraction, it will return
+    /// [`None`].
     pub fn resolve_const_and_percent(&self, parent_size: f32) -> Option<f32> {
         match self {
             Unit::Pixels(value) => Some(*value),
@@ -119,6 +124,7 @@ impl Size {
         }
     }
 
+    /// Matcher for the [`Fraction`] variant. Returns default value if the variant does not match.
     pub fn as_fraction(self) -> Option<Fraction> {
         match self {
             Size::Fixed(unit) => unit.as_fraction(),
@@ -126,9 +132,11 @@ impl Size {
         }
     }
 
-    pub fn resolve_const_only(&self) -> f32 {
+    /// Resolve the unit to fixed pixel value. If the unit was set to be a fraction or percent, it
+    /// will result in 0. This is mostly used in layout algorithm.
+    pub fn resolve_pixels_or_default(&self) -> f32 {
         match self {
-            Size::Fixed(unit) => unit.resolve_const_only(),
+            Size::Fixed(unit) => unit.resolve_pixels_or_default(),
             Size::Hug => 0.0,
         }
     }
@@ -165,7 +173,7 @@ impl From<Percent> for Size {
 // ===================
 
 /// Data model used for expressing margin and padding.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub struct SideSpacing<T = Unit> {
     pub start: T,
@@ -186,6 +194,7 @@ impl<T> SideSpacing<T> {
 }
 
 impl SideSpacing<Unit> {
+    /// Resolve the unit to a pixel value.
     pub fn resolve(
         self,
         parent_size: f32,
@@ -198,12 +207,18 @@ impl SideSpacing<Unit> {
         )
     }
 
-    pub fn resolve_fixed(self) -> SideSpacing<f32> {
-        SideSpacing::new(self.start.resolve_const_only(), self.end.resolve_const_only())
+    /// Resolve the unit to fixed pixel value. If the unit was set to be a fraction or percent, it
+    /// will result in 0. This is mostly used in layout algorithm.
+    pub fn resolve_pixels_or_default(self) -> SideSpacing<f32> {
+        SideSpacing::new(
+            self.start.resolve_pixels_or_default(),
+            self.end.resolve_pixels_or_default(),
+        )
     }
 
-    pub fn to_fraction(self) -> SideSpacing<Fraction> {
-        SideSpacing::new(self.start.to_fraction(), self.end.to_fraction())
+    /// Matcher for the [`Fraction`] variant. Returns default value if the variant does not match.
+    pub fn as_fraction_or_default(self) -> SideSpacing<Fraction> {
+        SideSpacing::new(self.start.as_fraction_or_default(), self.end.as_fraction_or_default())
     }
 }
 
@@ -213,9 +228,11 @@ impl<T: Copy> From<T> for SideSpacing<T> {
     }
 }
 
+/// Runs the provided macro with a list of entries in a form of `[axis_name dim2_name dim1_name]`,
+/// like `[x left start]`. It defines the mapping between the dim1 and dim2 names.
 #[macro_export]
 macro_rules! with_display_object_side_spacing_matrix {
     ($f:path $([$($args:tt)*])?) => {
-        $f! { $([$($args)*])? [[left x start] [right x end] [bottom y start] [top y end]] }
+        $f! { $([$($args)*])? [[x left start] [x right end] [y bottom start] [y top end]] }
     }
 }

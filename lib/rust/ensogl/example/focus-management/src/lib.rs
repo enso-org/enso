@@ -62,7 +62,7 @@ mod rectangle2 {
 
 fn define_rect(width: f32, height: f32, network: &frp::Network) -> rectangle::View {
     let rect = rectangle::View::new();
-    rect.size.set(Vector2::new(width, height));
+    rect.set_size((width, height));
     rect.color.set(color::Rgba::new(0.0, 0.0, 0.0, 0.3).into());
 
     let border_size = Animation::<f32>::new(network);
@@ -123,7 +123,7 @@ pub fn main() {
     right_stack.update_x(|x| x + (container_size) / 2.0);
 
     let rect = rectangle2::View::new();
-    rect.size.set(Vector2::new(2.0, 2.0));
+    rect.set_size((2.0, 2.0));
     world.add_child(&rect);
     mem::forget(rect);
 

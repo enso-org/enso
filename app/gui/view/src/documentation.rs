@@ -127,7 +127,7 @@ impl Model {
     /// Set size of the documentation view.
     fn set_size(&self, size: Vector2) {
         self.size.set(size);
-        self.overlay.size.set(size);
+        self.overlay.set_size(size);
         self.reload_style();
     }
 

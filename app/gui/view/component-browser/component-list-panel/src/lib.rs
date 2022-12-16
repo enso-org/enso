@@ -230,7 +230,7 @@ pub struct Model {
     //   [issue](https://www.pivotaltracker.com/story/show/182593513) is fixed.
     //   To display the shadow correctly it needs to be clipped to the [`background`] shape, but
     //   we can't do that because of a bug in the renderer. So instead we add the shadow as a
-    //   separate shape and clip it using `size.set(...)`.
+    //   separate shape and clip it using `set_size(...)`.
     navigator_shadow:      navigator_shadow::View,
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
@@ -278,13 +278,13 @@ impl Model {
 
     fn update_style(&self, style: &AllStyles) {
         self.background.bg_color.set(style.panel.background_color.into());
-        self.background.size.set(style.background_sprite_size());
+        self.background.set_size(style.background_sprite_size());
         self.section_navigator.update_layout(style);
 
         let navigator_shadow_x = -style.grid.width / 2.0;
         self.navigator_shadow.set_x(navigator_shadow_x);
         let section_navigator_shadow_size = Vector2(style.navigator.width, style.size().y);
-        self.navigator_shadow.size.set(section_navigator_shadow_size);
+        self.navigator_shadow.set_size(section_navigator_shadow_size);
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
         self.breadcrumbs.set_size(style.breadcrumbs_size());
@@ -303,7 +303,7 @@ impl Model {
     // The `pos` is mouse position in Component List Panel space (the origin is in the middle of
     // the panel).
     fn is_hovered(&self, pos: Vector2) -> bool {
-        let size = self.background.size.get();
+        let size = self.background.computed_size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
     }

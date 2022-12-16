@@ -173,10 +173,11 @@ impl<T> ShapeSystemFlavorProvider for T {
 
 /// A visible shape instance, bound to a particular [`ShapeSystem`].
 #[derive(Deref, Debug)]
+#[allow(missing_docs)]
 pub struct ShapeInstance<S> {
     #[deref]
     shape:          S,
-    sprite:         RefCell<Sprite>,
+    pub sprite:     RefCell<Sprite>,
     display_object: display::object::Instance,
 }
 

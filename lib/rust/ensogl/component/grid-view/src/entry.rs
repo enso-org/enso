@@ -172,7 +172,8 @@ macro_rules! implement_shape_with_entry_contour {
     () => {
         impl ShapeWithEntryContour for View {
             fn size(&self) -> &ProxyParam<sprite::Size> {
-                &self.size
+                panic!()
+                // &self.size
             }
 
             fn corner_radius(&self) -> &ProxyParam<Attribute<f32>> {

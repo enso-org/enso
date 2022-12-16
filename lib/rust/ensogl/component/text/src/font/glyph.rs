@@ -193,7 +193,7 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
         *data.model.geometry_material.borrow_mut() = SpriteSystem::default_geometry_material();
         data.model.do_not_use_shape_definition.set(true);
 
-        sprite_system.set_alignment(alignment::Dim2::left_bottom());
+        sprite_system.unsafe_set_alignment(alignment::Dim2::left_bottom());
         scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
         scene.variables.add("msdf_size", size);
 
@@ -422,7 +422,7 @@ impl Glyph {
             self.glyph_id.get(),
         );
         if let Some(glyph_info) = opt_glyph_info {
-            self.view.size.set(glyph_info.scale.scale(size))
+            self.view.set_size(glyph_info.scale.scale(size))
         } else {
             error!("Cannot find glyph render info for glyph id: {:?}.", self.glyph_id.get());
         }
@@ -442,7 +442,7 @@ impl Glyph {
         if let Some(glyph_info) = opt_glyph_info {
             self.view.atlas_index.set(glyph_info.msdf_texture_glyph_id as f32);
             self.update_atlas();
-            self.view.size.set(glyph_info.scale.scale(self.font_size().value));
+            self.view.set_size(glyph_info.scale.scale(self.font_size().value));
         } else {
             // This should not happen. Fonts contain special glyph for missing characters.
             warn!("Cannot find glyph render info for glyph id: {:?}.", glyph_id);

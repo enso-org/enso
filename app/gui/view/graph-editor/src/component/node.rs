@@ -623,10 +623,10 @@ impl NodeModel {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
-        self.backdrop.size.set(padded_size);
-        self.background.size.set(padded_size);
-        self.drag_area.size.set(padded_size);
-        self.error_indicator.size.set(padded_size);
+        self.backdrop.set_size(padded_size);
+        self.background.set_size(padded_size);
+        self.drag_area.set_size(padded_size);
+        self.error_indicator.set_size(padded_size);
         self.vcs_indicator.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
         self.backdrop.set_x(x_offset_to_node_center);

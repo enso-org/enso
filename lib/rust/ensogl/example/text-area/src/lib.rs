@@ -126,8 +126,8 @@ impl Borders {
                 }
             });
             eval area.height ([borders](h) {
-                borders.right.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
-                borders.left.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
+                borders.right.set_size(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
+                borders.left.set_size(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
                 borders.right.set_y(-h/2.0);
                 borders.left.set_y(-h/2.0);
 
@@ -136,8 +136,8 @@ impl Borders {
                 borders.bottom.set_y(-*h);
             });
             eval area.width ([borders](w) {
-                borders.top.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
-                borders.bottom.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
+                borders.top.set_size(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
+                borders.bottom.set_size(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
                 borders.top.set_x(w/2.0);
                 borders.bottom.set_x(w/2.0);
 

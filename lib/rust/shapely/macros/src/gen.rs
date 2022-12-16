@@ -38,9 +38,9 @@ pub fn run(
                                             let lit = &val.lit;
                                             let lit = quote!(#lit).to_string();
                                             let lit = lit
-                                                .strip_prefix("\"")
+                                                .strip_prefix('"')
                                                 .unwrap()
-                                                .strip_suffix("\"")
+                                                .strip_suffix('"')
                                                 .unwrap();
                                             let tp: syn::Type = syn::parse_str(lit).unwrap();
                                             gen_set_trait = Some(tp);
@@ -49,9 +49,9 @@ pub fn run(
                                             let lit = &val.lit;
                                             let lit = quote!(#lit).to_string();
                                             let lit = lit
-                                                .strip_prefix("\"")
+                                                .strip_prefix('"')
                                                 .unwrap()
-                                                .strip_suffix("\"")
+                                                .strip_suffix('"')
                                                 .unwrap();
                                             let expr: syn::Expr = syn::parse_str(lit).unwrap();
                                             gen_set_fn = Some(expr);
@@ -127,18 +127,24 @@ pub fn run(
 
     if gen_update {
         let mut update_fn = modify_fn.clone();
+        let mut out_tp = arg.clone();
+        if let Some(set_trait) = &gen_set_trait {
+            out_tp = syn::parse_str("Out").unwrap();
+            update_fn.sig.generics.params.push(syn::parse_quote!(#out_tp: #set_trait));
+        }
         update_fn.sig.ident = quote::format_ident!("{}{}", UPDATE_NAME_PREFIX, core_fn_name);
-        update_fn.block = syn::parse_quote! {{
-            self.#modify_fn_name(|t| *t = f(*t))
-        }};
-        update_fn.sig.inputs[1] = syn::parse_quote! {f: impl FnOnce(#arg) -> #arg};
+        update_fn.block = match &gen_set_fn {
+            None => syn::parse_quote! {{ self.#modify_fn_name(|t| *t = f(*t)) }},
+            Some(t) => syn::parse_quote! {{ self.#modify_fn_name(|t| *t = f(*t).#t) }},
+        };
+        update_fn.sig.inputs[1] = syn::parse_quote! {f: impl FnOnce(#arg) -> #out_tp};
         out.push(quote! {#update_fn});
     }
 
     if gen_set {
         let mut set_fn = modify_fn.clone();
         set_fn.sig.ident = quote::format_ident!("{}{}", SETTER_NAME_PREFIX, core_fn_name);
-        set_fn.block = match gen_set_fn {
+        set_fn.block = match &gen_set_fn {
             None => syn::parse_quote! {{ self.#modify_fn_name(|t| *t = v.into()) }},
             Some(t) => syn::parse_quote! {{ self.#modify_fn_name(|t| *t = v.#t) }},
         };

@@ -172,7 +172,7 @@ impl ProjectNameModel {
         let y_center = y_top - height / 2.0;
 
         self.text_field.set_position(Vector3(x_left, y_center + TEXT_SIZE / 2.0, 0.0));
-        self.view.size.set(Vector2(width, height));
+        self.view.set_size(Vector2(width, height));
         self.view.set_position(Vector3(x_center, y_center, 0.0));
     }
 
