@@ -131,7 +131,7 @@ type Date
 
     new : Integer -> Integer -> Integer -> Date ! Time_Error
     new year (month = 1) (day = 1) =
-        Panic.catch Any (new_builtin year month day) caught->
+        Panic.catch JException (new_builtin year month day) caught->
             Error.throw (Time_Error.Error caught.payload.getMessage)
 
     ## ALIAS Date from Text

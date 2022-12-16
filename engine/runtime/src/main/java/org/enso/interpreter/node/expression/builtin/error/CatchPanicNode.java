@@ -4,6 +4,9 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -28,7 +31,6 @@ public abstract class CatchPanicNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private @Child IsPayloadOfPanicTypeNode isPayloadOfPanicTypeNode =
       IsPayloadOfPanicTypeNode.build();
-  private @Child ThrowPanicNode throwPanicNode = ThrowPanicNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   CatchPanicNode() {
@@ -55,34 +57,40 @@ public abstract class CatchPanicNode extends Node {
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
-      @Cached BranchProfile otherExceptionBranchProfile) {
+      @Cached BranchProfile otherExceptionBranchProfile,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return thunkExecutorNode.executeThunk(action, state, BaseNode.TailStatus.TAIL_DIRECT);
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
-      return executeCallback(frame, state, panicType, handler, payload, e);
+      return executeCallbackOrRethrow(frame, state, panicType, handler, payload, e, interop);
     } catch (AbstractTruffleException e) {
       otherExceptionBranchProfile.enter();
-      return executeCallback(frame, state, panicType, handler, e, e);
+      return executeCallbackOrRethrow(frame, state, panicType, handler, e, e, interop);
     }
   }
 
-  private Object executeCallback(
+  private Object executeCallbackOrRethrow(
       VirtualFrame frame,
       State state,
       Object panicType,
       Object handler,
       Object payload,
-      AbstractTruffleException originalException) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
-    Atom caughtPanic =
-        builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
+      AbstractTruffleException originalException,
+      InteropLibrary interopLibrary) {
 
     if (profile.profile(isPayloadOfPanicTypeNode.execute(panicType, payload))) {
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
+      Atom caughtPanic =
+          builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
       return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
     } else {
-      return throwPanicNode.execute(caughtPanic);
+      try {
+        return interopLibrary.throwException(originalException);
+      } catch (UnsupportedMessageException e) {
+        throw new IllegalStateException(e);
+      }
     }
   }
 }

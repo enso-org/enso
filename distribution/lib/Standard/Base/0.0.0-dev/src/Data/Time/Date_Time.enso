@@ -158,7 +158,7 @@ type Date_Time
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
     new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch Any (new_builtin year month day hour minute second total_nanoseconds zone) cause->
+        Panic.catch JException (new_builtin year month day hour minute second total_nanoseconds zone) cause->
             Error.throw (Time_Error.Error cause.payload.getMessage)
 
     ## ALIAS Time from Text
