@@ -99,3 +99,25 @@ pub mod regex_vec {
             .map_err(D::Error::custom)
     }
 }
+
+/// Module that serializes/deserialized types using [`Display`]/[`FromString`] traits.
+pub mod via_string {
+    use super::*;
+
+    /// Serializer, that uses [`Display`] trait.
+    pub fn serialize<S, T>(value: &T, ser: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: Display, {
+        ser.collect_str(value)
+    }
+
+    /// Deserializer, that uses [`FromString`] trait.
+    pub fn deserialize<'de, D, T>(de: D) -> std::result::Result<T, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: FromString, {
+        let text = String::deserialize(de)?;
+        T::from_str(&text).map_err(D::Error::custom)
+    }
+}
