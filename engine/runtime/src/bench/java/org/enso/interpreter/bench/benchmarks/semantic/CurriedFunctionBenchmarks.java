@@ -1,12 +1,10 @@
-    package org.enso.interpreter.bench.benchmarks.semantic;
+package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
-import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
