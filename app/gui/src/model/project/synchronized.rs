@@ -177,25 +177,23 @@ impl ContentRoots {
 /// Check whether the current state of the project differs from the most recent snapshot in the VCS,
 /// and emit a notification.
 #[profile(Detail)]
-fn check_vcs_status_and_notify(
+async fn check_vcs_status_and_notify(
     project_root_id: Uuid,
     language_server: Rc<language_server::Connection>,
     publisher: notification::Publisher<model::project::Notification>,
-) -> impl Future<Output = json_rpc::Result<language_server::response::VcsStatus>> {
+) -> json_rpc::Result<language_server::response::VcsStatus> {
     let path_segments: [&str; 0] = [];
     let root_path = language_server::Path::new(project_root_id, &path_segments);
-    async move {
-        let status = language_server.vcs_status(&root_path).await;
-        match &status {
-            Err(_) => {
-                publisher.notify(model::project::Notification::VcsStatusChanged(true));
-            }
-            Ok(status) => {
-                publisher.notify(model::project::Notification::VcsStatusChanged(status.dirty));
-            }
+    let status = language_server.vcs_status(&root_path).await;
+    match &status {
+        Err(_) => {
+            publisher.notify(model::project::Notification::VcsStatusChanged(true));
         }
-        status
+        Ok(status) => {
+            publisher.notify(model::project::Notification::VcsStatusChanged(status.dirty));
+        }
     }
+    status
 }
 
 
@@ -584,22 +582,20 @@ impl Project {
 
     /// Initialize the VCS if it was not already initialized.
     #[profile(Detail)]
-    fn initialize_vcs(&self) -> impl Future<Output = json_rpc::Result<()>> {
+    async fn initialize_vcs(&self) -> json_rpc::Result<()> {
         let project_root_id = self.project_content_root_id();
         let path_segments: [&str; 0] = [];
         let root_path = language_server::Path::new(project_root_id, &path_segments);
         let language_server = self.json_rpc().clone_ref();
-        async move {
-            let response = language_server.init_vcs(&root_path).await;
-            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
-                code: code::VCS_ALREADY_EXISTS,
-                ..
-            })) = response
-            {
-                Ok(())
-            } else {
-                response
-            }
+        let response = language_server.init_vcs(&root_path).await;
+        if let Err(RpcError::RemoteError(json_rpc::messages::Error {
+            code: code::VCS_ALREADY_EXISTS,
+            ..
+        })) = response
+        {
+            Ok(())
+        } else {
+            response
         }
     }
 
