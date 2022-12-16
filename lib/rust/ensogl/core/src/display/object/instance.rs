@@ -161,7 +161,8 @@
 //! maximum/minimum size. These properties describe how the object should be stretched by the parent
 //! container if there is either a free space left or there is not enough space. You can use the
 //! following methods to control these properties: [`set_grow_factor`], [`set_shrink_factor`],
-//! [`set_max_size`], and [`set_min_size`].
+//! [`set_max_size`], and [`set_min_size`]. Please note, that if an object with a hug resizing can
+//! grow and there is enough of free space, it will. Growing is performed after hugging the content.
 //!
 //! If there are several objects that can grow, the leftover space will be distributed to them by
 //! weight computed as `item_grow_factor / sum_of_all_grow_factors`. Analogously, if there are
@@ -1021,7 +1022,7 @@ pub struct ChildIndex(usize);
 // === Model ===
 // =============
 
-/// The main display object structure. Read the docs of this module to learn more.
+/// The main display object structure. Read the docs of [this module](self) to learn more.
 #[derive(Derivative)]
 #[derive(CloneRef, Deref, From)]
 #[derivative(Clone(bound = ""))]
@@ -1059,14 +1060,12 @@ pub struct Model {
     /// may survive the lifetime of other objects causing memory leaks. See the docs of FRP to
     /// learn more.
     pub network: frp::Network,
-
     /// A name of this display object. Used for debugging purposes only.
-    pub name: &'static str,
-
+    pub name:    &'static str,
     #[deref]
-    hierarchy: HierarchyModel,
-    event:     EventModel,
-    layout:    LayoutModel,
+    hierarchy:   HierarchyModel,
+    event:       EventModel,
+    layout:      LayoutModel,
 }
 
 
@@ -1162,7 +1161,7 @@ impl Display for InstanceDef {
 // === WeakInstance ===
 // ====================
 
-/// Weak display object instance. Will be dropped if no all strong instances are dropped.
+/// Weak display object instance.
 #[derive(Derivative)]
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = ""))]
@@ -1192,11 +1191,7 @@ impl InstanceDef {
 
 impl PartialEq for WeakInstance {
     fn eq(&self, other: &Self) -> bool {
-        if self.exists() && other.exists() {
-            self.weak.ptr_eq(&other.weak)
-        } else {
-            false
-        }
+        self.exists() && other.exists() && self.weak.ptr_eq(&other.weak)
     }
 }
 
@@ -2158,11 +2153,8 @@ impl Debug for InstanceDef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DisplayObject")
             .field("name", &self.name)
-            // .field("is_dirty", &self.dirty.check_all())
-            // .field("dirty", &self.dirty)
             .field("position", &self.position().xy().as_slice())
             .field("computed_size", &self.layout.computed_size.get().as_slice())
-            // .field("layout", &self.layout)
             .finish()
     }
 }
@@ -2188,6 +2180,10 @@ impl Debug for Instance {
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
 pub struct LayoutModel {
+    /// This struct is kept in an `Option` to make the initialization faster. Auto layout is not
+    /// used often. This field can contain [`AutoLayout`] instance even if auto layout is not used.
+    /// For example, if someone sets auto layout options (e.g. the `gap`), but the auto-layout
+    /// was not enabled, it will be instantiated with the `enabled` field set to `false`.
     auto_layout:             RefCell<Option<AutoLayout>>,
     alignment:               Cell<alignment::OptDim2>,
     margin:                  Cell<Vector2<SideSpacing>>,
@@ -2288,10 +2284,11 @@ pub trait LayoutOps: Object {
 
     /// Modify the size of the object. By default, the size is set to hug the children. You can set
     /// the size either to a fixed pixel value, a percentage parent container size, or to a fraction
-    /// of the free space left after layouting siblings with fixed sizes.
+    /// of the free space left after placing siblings with fixed sizes.
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
-    fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) {
-        self.display_object().modify_layout(|l| l.size.modify_(f));
+    fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
+        self.display_object().modify_layout(|layout| layout.size.modify_(f));
+        self
     }
 
     /// Set the X-axis size of the object. Set the Y-axis size to hug the children.
@@ -2597,10 +2594,10 @@ pub enum AutoLayoutFlow {
 // ==================
 
 /// The auto-layout options. The auto-layout is similar to a mix of CSS flexbox and CSS grid with a
-/// few additions. Read the docs of this module to learn more.
+/// few additions. Read the docs of [this module](self) to learn more.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AutoLayout {
-    /// Indicates whether the auto-layout is be enabled. This struct is kept in an `Option` to make
+    /// Indicates whether the auto-layout is enabled. This struct is kept in an `Option` to make
     /// the initialization faster. Auto layout is not used often. If someone sets auto layout
     /// options (e.g. the `gap`), but the auto-layout was not enabled, this field is set to false.
     pub enabled: bool,
@@ -2610,7 +2607,8 @@ pub struct AutoLayout {
     pub children_alignment: alignment::Dim2,
     /// The spacing between columns/rows.
     pub gap: Vector2<Unit>,
-    /// Indicates whether the columns/rows should be placed in order or in a reversed order.
+    /// Indicates whether the columns/rows should be placed in order (left to right, bottom to top)
+    /// or in a reversed order.
     pub reversed_columns_and_rows: Vector2<bool>,
     /// Other columns and rows definitions.
     pub columns_and_rows: (NonEmptyVec<ColumnOrRow>, NonEmptyVec<ColumnOrRow>),
@@ -2638,11 +2636,21 @@ impl AutoLayout {
 
 #[allow(missing_docs)]
 impl Model {
-    /// Modify the auto layout. It set's the dirty flag, so it should be used as the main function
+    /// Modify the auto layout. It sets the dirty flag, so it should be used as the main function
     /// for any user-facing API.
     fn modify_auto_layout<T>(&self, f: impl FnOnce(&mut AutoLayout) -> T) -> T {
+        self.modify_auto_layout_without_setting_dirty_flag(|layout| {
+            self.set_layout_dirty_flag();
+            f(layout)
+        })
+    }
+
+    /// Modify the auto layout. It does not set the dirty flag. Use with caution.
+    fn modify_auto_layout_without_setting_dirty_flag<T>(
+        &self,
+        f: impl FnOnce(&mut AutoLayout) -> T,
+    ) -> T {
         if let Some(layout) = &mut *self.layout.auto_layout.borrow_mut() {
-            self.dirty.transformation.set();
             f(layout)
         } else {
             // Creating a new auto-layout, but not enabling it.
@@ -2651,6 +2659,10 @@ impl Model {
             *self.layout.auto_layout.borrow_mut() = Some(layout);
             out
         }
+    }
+
+    fn set_layout_dirty_flag(&self) {
+        self.dirty.transformation.set();
     }
 
     fn set_children_alignment(&self, value: alignment::Dim2) {
@@ -2665,9 +2677,11 @@ impl InstanceDef {
 
     fn column_or_row<Dim>(&self, dim: Dim, index: usize) -> Option<ColumnOrRowRef<Dim>>
     where Dim: ColumnOrRowAccessor {
-        self.modify_auto_layout(|l| {
-            (l.columns_and_rows.get_dim(dim).len() < index)
-                .as_some(ColumnOrRowRef::new(self.clone_ref().into(), index))
+        self.modify_auto_layout_without_setting_dirty_flag(|l| {
+            (l.columns_and_rows.get_dim(dim).len() < index).as_some_from(|| {
+                self.set_layout_dirty_flag();
+                ColumnOrRowRef::new(self.clone_ref().into(), index)
+            })
         })
     }
 
@@ -2694,7 +2708,7 @@ impl<T: Object + ?Sized> AutoLayoutOps for T {}
 
 /// Options for controllin auto-layout.
 pub trait AutoLayoutOps: Object {
-    crate::with_alignment_dim2_named_matrix!(gen_layout_object_builder_alignment);
+    crate::with_alignment_dim2_named_anchors_cartesian!(gen_layout_object_builder_alignment);
 
     /// Set the size of the space between columns and rows.
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Unit>", fn = "into_vector_trans()"))]
@@ -2879,9 +2893,9 @@ impl Model {
     /// set to either [`X`] or [`Y`] to update horizontal and vertical axis, respectively.
     fn refresh_layout(&self) {
         self.reset_size_to_static_values(X, 0.0);
-        self.refresh_layout_internal(LayoutResolutionPass::First, PassConfig::Default);
+        self.refresh_layout_internal(LayoutResolutionPass::X, PassConfig::Default);
         self.reset_size_to_static_values(Y, 0.0);
-        self.refresh_layout_internal(LayoutResolutionPass::Second, PassConfig::Default);
+        self.refresh_layout_internal(LayoutResolutionPass::Y, PassConfig::Default);
     }
 }
 
@@ -2889,8 +2903,8 @@ impl Model {
 /// this module to learn more.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum LayoutResolutionPass {
-    First,
-    Second,
+    X,
+    Y,
 }
 
 /// Pass configuration.
@@ -2927,17 +2941,18 @@ impl Model {
         self.layout.computed_size.set_dim(x, size);
     }
 
+    /// The main entry point from the recursive auto-layout algorithm.
     fn refresh_layout_internal(&self, pass: LayoutResolutionPass, pass_cfg: PassConfig) {
         if self.dirty.transformation.check() || self.dirty.modified_children.check_all() {
             if let Some(layout) = &*self.layout.auto_layout.borrow() && layout.enabled {
                 match pass {
-                    LayoutResolutionPass::First => self.refresh_grid_layout(X, layout, pass),
-                    LayoutResolutionPass::Second => self.refresh_grid_layout(Y, layout, pass),
+                    LayoutResolutionPass::X => self.refresh_grid_layout(X, layout, pass),
+                    LayoutResolutionPass::Y => self.refresh_grid_layout(Y, layout, pass),
                 }
             } else {
                 match pass {
-                    LayoutResolutionPass::First => self.refresh_manual_layout(X, pass, pass_cfg),
-                    LayoutResolutionPass::Second => self.refresh_manual_layout(Y, pass, pass_cfg),
+                    LayoutResolutionPass::X => self.refresh_manual_layout(X, pass, pass_cfg),
+                    LayoutResolutionPass::Y => self.refresh_manual_layout(Y, pass, pass_cfg),
                 }
             }
         }
@@ -3033,7 +3048,7 @@ impl Model {
     where
         Dim: ResolutionDim,
     {
-        let first_pass = pass == LayoutResolutionPass::First;
+        let first_pass = pass == LayoutResolutionPass::X;
         let columns_defs = opts.columns_and_rows.get_dim(x);
         let prim_axis_item_count = match opts.flow {
             AutoLayoutFlow::Row => opts.columns_and_rows_count.get_dim(X),
@@ -3160,7 +3175,6 @@ impl Model {
         let unresolved_columns = self.divide_children_to_columns(x, opts, pass, &children);
         let mut resolved_columns = self.resolve_columns(x, opts, pass, unresolved_columns);
 
-        println!("resolved_columns: {:#?}", resolved_columns);
 
         // === Compute the static size (no grow, shrink, nor fraction yet) ===
 
@@ -4474,7 +4488,6 @@ mod layout_tests {
 
         root.update(&world.default_scene);
 
-        println!("L size: {:?}", l.computed_size());
         assert_eq!(root.position().xy(), Vector2(0.0, 0.0));
         assert_eq!(l.position().xy(), Vector2(0.0, 3.0));
         assert_eq!(r.position().xy(), Vector2(7.0, 0.0));

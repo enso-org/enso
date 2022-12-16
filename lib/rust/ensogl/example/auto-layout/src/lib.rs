@@ -1,4 +1,4 @@
-//! Example scene showing the usage of focusing objects in display object hierarchy.
+//! Example scene showing the usage of display object auto-layout.
 
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
@@ -66,7 +66,6 @@ pub fn main() {
     root.add_child(&rect2);
     world.add_child(&root);
 
-    // world.display_object().update(scene);
     warn!("rect1: {:?}", rect1.display_object());
 
     let r = rect1.clone_ref();

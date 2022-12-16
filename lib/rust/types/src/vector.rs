@@ -48,9 +48,9 @@ impl<T> IntoVector2<T> for (T, T) {
 
 
 
-// ========================
-// === IntoVectorTrans3 ===
-// ========================
+// ===================
+// === IntoVector3 ===
+// ===================
 
 /// Additional conversions from some struct to [`Vector3`].
 #[allow(missing_docs)]

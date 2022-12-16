@@ -8,9 +8,11 @@ use crate::prelude::*;
 // === 1-dimensional Alignment ===
 // ===============================
 
-/// Alignment. In one dimension the alignment is either start, center, or end. In 2 dimensions,
-/// [`Start`] means "left" horizontally and "bottom" vertically, while [`End`] means "right"
-/// horizontally and "top" vertically.
+/// One dimensional alignment.
+///
+/// In one dimension the alignment is either start, center, or end. In 2 dimensions, [`Start`] means
+/// "left" horizontally and "bottom" vertically, while [`End`] means "right" horizontally and "top"
+/// vertically.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum Dim1 {
@@ -176,7 +178,7 @@ macro_rules! with_alignment_dim2_anchors {
 ///
 /// The `[args]` argument is optional.
 #[macro_export]
-macro_rules! with_alignment_dim2_matrix {
+macro_rules! with_alignment_dim2_anchors_cartesian {
     ($f:path $([$($args:tt)*])?) => {
         $crate::with_alignment_dim2_anchors! {enso_shapely::cartesian [$f $([$($args)*])?] }
     };
@@ -201,20 +203,20 @@ macro_rules! with_alignment_dim2_matrix {
 ///
 /// The `[args]` argument is optional.
 #[macro_export]
-macro_rules! with_alignment_dim2_named_matrix {
+macro_rules! with_alignment_dim2_named_anchors_cartesian {
     ($f:path $([$($args:tt)*])?) => {
-        $crate::with_alignment_dim2_matrix! {
-            $crate::with_alignment_dim2_named_matrix [$f $([$($args)*])?]
+        $crate::with_alignment_dim2_anchors_cartesian! {
+            $crate::with_alignment_dim2_named_anchors_cartesian [$f $([$($args)*])?]
         }
     };
     ([$($fs:tt)*] $($ts:tt)*) => {
-        $crate::with_alignment_dim2_named_matrix! {@ [$($fs)*] [] $($ts)*}
+        $crate::with_alignment_dim2_named_anchors_cartesian! {@ [$($fs)*] [] $($ts)*}
     };
     (@ $fs:tt [$($out:tt)*] [[center center] $($ts:tt)*]) => {
-        $crate::with_alignment_dim2_named_matrix! {@ $fs [$($out)* [center center center]] [$($ts)*]}
+        $crate::with_alignment_dim2_named_anchors_cartesian! {@ $fs [$($out)* [center center center]] [$($ts)*]}
     };
     (@ $fs:tt [$($out:tt)*] [[$x:ident $y:ident] $($ts:tt)*]) => { paste! {
-        $crate::with_alignment_dim2_named_matrix! {@ $fs [$($out)* [[<$x _ $y>] $x $y]] [$($ts)*]}
+        $crate::with_alignment_dim2_named_anchors_cartesian! {@ $fs [$($out)* [[<$x _ $y>] $x $y]] [$($ts)*]}
     }};
     (@ [$f:path $([$($args:tt)*])?] $out:tt []) => {
         $f! { $([$($args)*])? $out }
@@ -393,7 +395,7 @@ macro_rules! gen_dim2_cons {
     }}
 }
 
-with_alignment_dim2_named_matrix!(gen_dim2_cons);
+with_alignment_dim2_named_anchors_cartesian!(gen_dim2_cons);
 
 
 

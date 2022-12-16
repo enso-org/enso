@@ -171,7 +171,6 @@ impl CellGetter for SizedObject {
 impl CellSetter for SizedObject {
     fn set(&self, v: Vector2) {
         self.size.set(v);
-        // self.display_object.set_size(v);
     }
 }
 

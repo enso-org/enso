@@ -118,10 +118,7 @@ impl Size {
 
     /// Checks whether the resizing mode is [`Size::Fixed`].
     pub fn is_fixed(self) -> bool {
-        match self {
-            Size::Fixed(_) => true,
-            Size::Hug => false,
-        }
+        matches!(self, Size::Fixed(_))
     }
 
     /// Matcher for the [`Fraction`] variant. Returns default value if the variant does not match.
