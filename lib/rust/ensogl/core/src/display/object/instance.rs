@@ -3426,7 +3426,11 @@ macro_rules! gen_object_trans {
                 self.display_object().def.$trans()
             }
 
-            #[enso_shapely::gen(update, set(trait = "IntoVector3<f32>", fn = "into_vector()"))]
+            #[enso_shapely::gen(
+                skip_fields,
+                update,
+                set(trait = "IntoVector3<f32>", fn = "into_vector()"))
+            ]
             fn [<modify_ $trans>](&self, f: impl FnOnce(&mut Vector3<f32>)) {
                 self.display_object().def.[<modify_ $trans>](f)
             }

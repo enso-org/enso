@@ -2367,6 +2367,7 @@ dependencies = [
  "boolinator",
  "enso-macro-utils",
  "itertools 0.8.2",
+ "paste 1.0.9",
  "proc-macro2",
  "quote",
  "syn",
