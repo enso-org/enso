@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 from Standard.Table import Table, Column
 import Standard.Table.Data.Storage.Storage
@@ -136,8 +137,17 @@ Vector.default_visualization self = Id.table
    Transform the vector into text for displaying as part of its default
    visualization.
 Vector.to_default_visualization_data : Text
-Vector.to_default_visualization_data self =
-    self.take 100 . to_json
+Vector.to_default_visualization_data self = render_vector self
+
+render_vector object depth=0 =
+    case object of
+        _ : Array ->
+            proxy = Array_Proxy.new object.length object.at
+            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth
+        _ : Vector -> if depth == 5 then "[...]" else
+            result = object.take 100 . map (elem-> render_vector elem (depth+1))
+            "[" + result.join ", " + "]"
+        _ -> object.to_default_visualization_data
 
 ## UNSTABLE
    ADVANCED

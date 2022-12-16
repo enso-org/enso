@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Json.Json
 import project.Data.Text.Encoding.Encoding
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -35,6 +36,17 @@ type Auto_Detect
                     @Tail_Call reader (idx + 1)
         reader 0
 
+    ## PRIVATE
+    get_web_parser : Text -> Uri -> Any | Nothing
+    get_web_parser mime_type uri =
+        reader idx =
+            if idx >= format_types.length then Nothing else
+                format = format_types.at idx . for_web mime_type uri
+                if format.is_nothing.not then format else
+                    @Tail_Call reader (idx + 1)
+        reader 0
+
+
 type File_Format
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
@@ -52,6 +64,13 @@ type Plain_Text_Format
             ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
 
+    ## If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> Uri -> Plain_Text_Format | Nothing
+    for_web mime_type _ =
+        case mime_type of
+            "text/plain" -> Plain_Text_Format.Plain_Text
+            _ -> Nothing
+
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
@@ -66,11 +85,38 @@ type Bytes
             ".dat" -> Bytes
             _ -> Nothing
 
+    ## If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> Uri -> Bytes | Nothing
+    for_web _ _ = Nothing
+
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file _ =
         file.read_bytes
+
+type JSON_File
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> JSON_File | Nothing
+    for_file file =
+        case file.extension of
+            ".json" -> JSON_File
+            ".geojson" -> JSON_File
+            _ -> Nothing
+
+    ## If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> Uri -> JSON_File | Nothing
+    for_web mime_type _ =
+        case mime_type of
+            "application/json" -> JSON_File
+            _ -> Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file _ =
+        text = file.read_text
+        Json.parse text
 
 ## A setting to infer the default behaviour of some option.
 type Infer

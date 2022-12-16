@@ -180,6 +180,29 @@ type JS_Object
             self_keys.length == that_keys.length && self_keys.all key-> self.get key == that.get key
         _ -> False
 
+    ## Render the object for display
+    to_default_visualization_data : Text
+    to_default_visualization_data self = render self
+
+render object depth=0 = case object of
+    _ : JS_Object ->
+        if depth == 5 then '"{...}"' else
+            keys = object.field_names.take 10
+            children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1))
+            '{' + (children.join ", ") + '}'
+    _ : Vector ->
+        if depth == 5 then '"[...]"' else
+            children = 0.up_to (10.min object.length) . map i-> render (object.at i) (depth+1)
+            "[" + (children.join ", ") + "]"
+    _ : Array ->
+        proxy = Array_Proxy.new object.length (i-> make_enso (js_object.at i))
+        @Tail_Call render (Vector.from_polyglot_array proxy) depth
+    Nothing -> object.to_json
+    _ : Text -> object.to_json
+    _ : Boolean -> object.to_json
+    _ : Number -> object.to_json
+    _ -> @Tail_Cal render (JS_Object.Value object) depth
+
 make_enso js_object =
     case js_object of
         Nothing -> Nothing

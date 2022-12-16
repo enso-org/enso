@@ -167,4 +167,4 @@ type HTTP_Status_Code
 
     ## Does the status code represent a successful response?
     is_success : Boolean
-    is_success = code >= 200 and code < 300
+    is_success self = self.code >= 200 && self.code < 300

@@ -52,7 +52,16 @@ type Delimited_Format
     for_file file =
         case file.extension of
             ".csv" -> Delimited_Format.Delimited ','
+            ".tab" -> Delimited_Format.Delimited '\t'
             ".tsv" -> Delimited_Format.Delimited '\t'
+            _ -> Nothing
+
+    ## If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> Uri -> Delimited_Format | Nothing
+    for_web mime_type _ =
+        case mime_type of
+            "text/csv" -> Delimited_Format.Delimited ','
+            "text/tab-separated-values" -> Delimited_Format.Delimited '\t'
             _ -> Nothing
 
     ## Implements the `File.read` for this `File_Format`
