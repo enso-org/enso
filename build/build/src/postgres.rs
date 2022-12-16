@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
-use ide_ci::env::new::RawVariable;
-use ide_ci::env::new::TypedVariable;
+use ide_ci::env::accessor::RawVariable;
+use ide_ci::env::accessor::TypedVariable;
 use ide_ci::get_free_port;
 use ide_ci::programs::docker::ContainerId;
 use ide_ci::programs::docker::ImageId;

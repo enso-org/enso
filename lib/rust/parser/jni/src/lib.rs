@@ -59,7 +59,10 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
     let mut code = input;
     let mut meta = None;
     if let Some((meta_, code_)) = enso_parser::metadata::parse(input) {
-        meta = Some(meta_);
+        match meta_ {
+            Ok(meta_) => meta = Some(meta_),
+            Err(e) => error!("Ignoring invalid metadata: {e}."),
+        }
         code = code_;
     }
     state.base = str::as_ptr(code) as usize as u64;
@@ -73,7 +76,7 @@ pub extern "system" fn Java_org_enso_syntax2_Parser_parseInput(
             default()
         }
     };
-    state.metadata = meta.and_then(|meta| meta.ok());
+    state.metadata = meta;
     let result = env.new_direct_byte_buffer(&mut state.output);
     result.unwrap().into_inner()
 }

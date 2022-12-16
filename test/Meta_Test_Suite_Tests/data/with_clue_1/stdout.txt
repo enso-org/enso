@@ -1,0 +1,6 @@
+Tests:  [0/1, ???ms]
+    - [FAILED] some property [???ms]
+        Reason: {x = 3, x*x == 4}: 9 did not equal 4 (at ???:13:17-36).
+0 tests succeeded.
+1 tests failed.
+0 tests skipped.

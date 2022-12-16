@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -63,5 +64,10 @@ spec =
             Ordering.Greater.and_then Ordering.Less . should_equal Ordering.Greater
             Ordering.Greater.and_then Ordering.Equal . should_equal Ordering.Greater
             Ordering.Greater.and_then Ordering.Greater . should_equal Ordering.Greater
+
+        Test.specify "should fail with Type_Error for wrong type of that" <|
+            Ordering.Less.compare_to 1 . should_fail_with Type_Error.Error
+            Ordering.Less.compare_to Nothing . should_fail_with Type_Error.Error
+            Ordering.Less.compare_to "Hello" . should_fail_with Type_Error.Error
 
 main = Test_Suite.run_main spec

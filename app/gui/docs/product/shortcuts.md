@@ -48,6 +48,8 @@ broken and require further investigation.
 | <kbd>ctrl</kbd>+<kbd>w</kbd>                                | Close the application (Windows, Linux)                                                                                                                                                                                                               |
 | :warning: <kbd>ctrl</kbd>+<kbd>p</kbd>                      | Toggle profiling mode                                                                                                                                                                                                                                |
 | <kbd>escape</kbd>                                           | Cancel current action. For example, drop currently dragged connection.                                                                                                                                                                               |
+| <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>t</kbd>                | Terminate the program execution                                                                                                                                                                                                                      |
+| <kbd>cmd</kbd>+<kbd>shift</kbd>+<kbd>r</kbd>                | Re-execute the program                                                                                                                                                                                                                               |
 
 #### Navigation
 

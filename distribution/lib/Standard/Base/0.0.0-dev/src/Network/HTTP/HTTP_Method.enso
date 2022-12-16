@@ -16,6 +16,9 @@ type HTTP_Method
     ## The HTTP method "PUT".
     Put
 
+    ## The HTTP method "PATCH".
+    Patch
+
     ## The HTTP method "DELETE".
     Delete
 
@@ -25,6 +28,9 @@ type HTTP_Method
     ## The HTTP method "CONNECT".
     Connect
 
+    ## Custom unsupported HTTP method.
+    Custom verb:Text
+
     ## Convert to a Text of the HTTP method name.
     to_http_method_name : Text
     to_http_method_name self =  case self of
@@ -33,6 +39,8 @@ type HTTP_Method
         HTTP_Method.Head -> "HEAD"
         HTTP_Method.Post -> "POST"
         HTTP_Method.Put -> "PUT"
+        HTTP_Method.Patch -> "PATCH"
         HTTP_Method.Delete -> "DELETE"
         HTTP_Method.Trace -> "TRACE"
         HTTP_Method.Connect -> "CONNECT"
+        HTTP_Method.Custom verb -> verb

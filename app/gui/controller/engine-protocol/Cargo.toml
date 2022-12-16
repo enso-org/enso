@@ -28,7 +28,7 @@ strum_macros = "0.24.0"
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 
 [dev-dependencies]
-wasm-bindgen-test = { version = "0.3.8" }
+wasm-bindgen-test = { workspace = true }
 enso-web = { path = "../../../../lib/rust/web" }
 
 [build-dependencies]

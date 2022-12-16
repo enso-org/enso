@@ -26,6 +26,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
+    materialize = setup.materialize
     join_pending = if prefix.contains "In-Memory" then Nothing else "New Joining API is not supported by the database backends yet."
     Test.group prefix+"Table.join" pending=join_pending <|
         t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -34,28 +35,28 @@ spec setup =
 
             t3 = t1.join t2
             expect_column_names ["X", "Y", "Z", "W"] t3
-            t4 = t3.order_by ["X", "W"] # TODO materialize for DB
+            t4 = t3 |> materialize |> _.order_by ["X", "W"]
             t4.at "X" . to_vector . should_equal [2, 2, 3]
             t4.at "Z" . to_vector . should_equal [2, 2, 3]
             t4.at "Y" . to_vector . should_equal [5, 5, 6]
             t4.at "W" . to_vector . should_equal [4, 6, 5]
 
         Test.specify "should allow to perform all kinds of joins" <|
-            t3 = t1.join t2 join_kind=Join_Kind.Full . order_by ["X", "W"]
+            t3 = t1.join t2 join_kind=Join_Kind.Full |> materialize |> _.order_by ["X", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t3
             t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
             t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
             t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
             t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
 
-            t4 = t1.join t2 join_kind=Join_Kind.Left_Outer . order_by ["X", "W"]
+            t4 = t1.join t2 join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by ["X", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t4
             t4.at "X" . to_vector . should_equal [1, 2, 2, 3]
             t4.at "Y" . to_vector . should_equal [4, 5, 5, 6]
             t4.at "Z" . to_vector . should_equal [Nothing, 2, 2, 3]
             t4.at "W" . to_vector . should_equal [Nothing, 4, 6, 5]
 
-            t5 = t1.join t2 join_kind=Join_Kind.Right_Outer . order_by ["X", "W"]
+            t5 = t1.join t2 join_kind=Join_Kind.Right_Outer |> materialize |> _.order_by ["X", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t5
             t5.at "X" . to_vector . should_equal [Nothing, 2, 2, 3]
             t5.at "Y" . to_vector . should_equal [Nothing, 5, 5, 6]
@@ -63,12 +64,12 @@ spec setup =
             t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
 
         Test.specify "should allow to perform anti-joins" <|
-            t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive . order_by ["X"]
+            t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive |> materialize |> _.order_by ["X"]
             t6.columns.map .name . should_equal ["X", "Y"]
             t6.at "X" . to_vector . should_equal [1]
             t6.at "Y" . to_vector . should_equal [4]
 
-            t7 = t1.join t2 join_kind=Join_Kind.Right_Exclusive . order_by ["Z"]
+            t7 = t1.join t2 join_kind=Join_Kind.Right_Exclusive |> materialize |> _.order_by ["Z"]
             t7.columns.map .name . should_equal ["Z", "W"]
             t7.at "Z" . to_vector . should_equal [4]
             t7.at "W" . to_vector . should_equal [7]
@@ -85,11 +86,11 @@ spec setup =
 
         Test.specify "should allow to join on equality of multiple columns and drop redundant columns" <|
             conditions = [Join_Condition.Equals "Y" "Y", Join_Condition.Equals "X" "X"]
-            r = t3.join t4 on=conditions . order_by ["X", "Y", "Z", "Z_1"]
+            r = t3.join t4 on=conditions |> materialize |> _.order_by ["X", "Y", "Z", "Z_1"]
             check_xy_joined r
 
         Test.specify "should support same-name column join shorthand" <|
-            r = t3.join t4 on=["X", "Y"] . order_by ["X", "Y", "Z", "Z_1"]
+            r = t3.join t4 on=["X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Z_1"]
             check_xy_joined r
 
         Test.specify "should allow to join on text equality ignoring case" <|
@@ -102,7 +103,7 @@ spec setup =
             r1 . at "Y" . to_vector . should_equal [1]
             r1 . at "Z" . to_vector . should_equal [2]
 
-            r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") . order_by ["Z"]
+            r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") |> materialize |> _.order_by ["Z"]
             # TODO rename to Right_X
             expect_column_names ["X", "Y", "X_1", "Z"] r2
             r2 . at "X" . to_vector . should_equal ["a", "a", "B"]
@@ -121,7 +122,7 @@ spec setup =
                 r1 . at "Y" . to_vector . should_equal [1]
                 r1 . at "Z" . to_vector . should_equal [3]
 
-                r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") . order_by ["Y"]
+                r2 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") |> materialize |> _.order_by ["Y"]
                 # TODO rename to Right_X
                 expect_column_names ["X", "Y", "X_1", "Z"] r2
                 r2 . at "X" . to_vector . should_equal ['s\u0301', 'S\u0301']
@@ -145,7 +146,7 @@ spec setup =
                 t1 = table_builder [["X", [My_Type.Value 1 2, My_Type.Value 2 3]], ["Y", [1, 2]]]
                 t2 = table_builder [["X", [My_Type.Value 5 0, My_Type.Value 2 1]], ["Z", [10, 20]]]
 
-                r1 = t1.join t2 . order_by ["Y"]
+                r1 = t1.join t2 |> materialize |> _.order_by ["Y"]
                 expect_column_names ["X", "Y", "Z"] r1
                 r1 . at "X" . to_vector . should_equal [My_Type.Value 1 2, My_Type.Value 2 3]
                 ## We don't keep the other column, because the values in both
@@ -160,7 +161,7 @@ spec setup =
             t1 = table_builder [["X", [1, 10, 12]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["lower", [1, 10, 8, 12]], ["upper", [1, 12, 30, 0]], ["Z", [1, 2, 3, 4]]]
 
-            r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") . order_by ["X", "Z"]
+            r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
             expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
             r1 . at "X" . to_vector . should_equal     [1, 10, 10, 12, 12]
             r1 . at "Y" . to_vector . should_equal     [1, 2,  2,  3,  3]
@@ -172,7 +173,7 @@ spec setup =
             t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [1, 2, 3]]]
             t2 = table_builder [["lower", ["a", "b"]], ["upper", ["a", "ccc"]], ["Z", [10, 20]]]
 
-            r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") . order_by ["X", "Z"]
+            r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["X", "Z"]
             expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
             r1 . at "X" . to_vector . should_equal     ["a", "b",   "c"]
             r1 . at "Y" . to_vector . should_equal     [1,    2,     3]
@@ -185,7 +186,7 @@ spec setup =
                 t1 = table_builder [["X", ['s\u0301', 's']], ["Y", [1, 2]]]
                 t2 = table_builder [["lower", ['s', 'ś']], ["upper", ['sa', 'ś']], ["Z", [10, 20]]]
 
-                r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") . order_by ["Y"]
+                r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["Y"]
                 expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
                 r1 . at "X" . to_vector . should_equal     ['s\u0301', 's']
                 r1 . at "Y" . to_vector . should_equal     [1, 2]
@@ -198,7 +199,7 @@ spec setup =
                 t1 = table_builder [["X", [My_Type.Value 20 30, My_Type.Value 1 2]], ["Y", [1, 2]]]
                 t2 = table_builder [["lower", [My_Type.Value 3 0, My_Type.Value 10 10]], ["upper", [My_Type.Value 2 1, My_Type.Value 100 0]], ["Z", [10, 20]]]
 
-                r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") . order_by ["Z"]
+                r1 = t1.join t2 on=(Join_Condition.Between "X" "lower" "upper") |> materialize |> _.order_by ["Z"]
                 expect_column_names ["X", "Y", "lower", "upper", "Z"] r1
                 r1 . at "X" . to_vector . to_text . should_equal "[(My_Type.Value 1 2), (My_Type.Value 20 30)]"
                 r1 . at "Y" . to_vector . should_equal [2, 1]
@@ -210,7 +211,7 @@ spec setup =
             t1 = table_builder [["X", [1, 12, 12, 0]], ["Y", [1, 2, 3, 4]], ["Z", ["a", "A", "a", "ą"]], ["W", [1, 2, 3, 4]]]
             t2 = table_builder [["X", [12, 12, 1]], ["l", [0, 100, 100]], ["u", [10, 100, 100]], ["Z", ["A", "A", "A"]], ["W'", [10, 20, 30]]]
 
-            r1 = t1.join t2 on=[Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", Join_Condition.Equals "X" "X"] . order_by ["Y"]
+            r1 = t1.join t2 on=[Join_Condition.Between "Y" "l" "u", Join_Condition.Equals_Ignore_Case "Z" "Z", Join_Condition.Equals "X" "X"] |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Z", "W", "l", "u", "Z_1", "W'"] r1
             r1.at "X" . to_vector . should_equal [12, 12]
             r1.at "Y" . to_vector . should_equal [2, 3]
@@ -222,13 +223,13 @@ spec setup =
             r1.at "W'" . to_vector . should_equal [10, 10]
 
         Test.specify "should work fine if the same condition is specified multiple times" <|
-            r = t3.join t4 on=["X", "X", "Y", "X", "Y"] . order_by ["X", "Y", "Z", "Z_1"]
+            r = t3.join t4 on=["X", "X", "Y", "X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Z_1"]
             check_xy_joined r
 
             t5 = table_builder [["X", [1, 10, 12]], ["Y", [1, 2, 3]]]
             t6 = table_builder [["lower", [1, 10, 8, 12]], ["upper", [1, 12, 30, 0]], ["Z", [1, 2, 3, 4]]]
 
-            r1 = t5.join t6 on=[Join_Condition.Between "X" "lower" "upper", Join_Condition.Between "X" "lower" "upper", Join_Condition.Between "X" "lower" "upper"] . order_by ["X", "Z"]
+            r1 = t5.join t6 on=[Join_Condition.Between "X" "lower" "upper", Join_Condition.Between "X" "lower" "upper", Join_Condition.Between "X" "lower" "upper"] |> materialize |> _.order_by ["X", "Z"]
             r1 . at "X" . to_vector . should_equal     [1, 10, 10, 12, 12]
             r1 . at "Y" . to_vector . should_equal     [1, 2,  2,  3,  3]
             r1 . at "Z" . to_vector . should_equal     [1, 2,  3,  2,  3]
@@ -236,7 +237,7 @@ spec setup =
             t7 = table_builder [["X", ["a", "B"]], ["Y", [1, 2]]]
             t8 = table_builder [["X", ["A", "a", "b"]], ["Z", [1, 2, 3]]]
 
-            r2 = t7.join t8 on=[Join_Condition.Equals_Ignore_Case "X", Join_Condition.Equals_Ignore_Case "X", Join_Condition.Equals_Ignore_Case "X" "X"] . order_by ["Z"]
+            r2 = t7.join t8 on=[Join_Condition.Equals_Ignore_Case "X", Join_Condition.Equals_Ignore_Case "X", Join_Condition.Equals_Ignore_Case "X" "X"] |> materialize |> _.order_by ["Z"]
             r2 . at "X" . to_vector . should_equal ["a", "a", "B"]
             r2 . at "X_1" . to_vector . should_equal ["A", "a", "b"]
             r2 . at "Z" . to_vector . should_equal [1, 2, 3]
@@ -341,7 +342,7 @@ spec setup =
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
             t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
 
-            r1 = t1.join t2 . order_by ["Y"]
+            r1 = t1.join t2 |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "Z"] r1
             r1.at "X" . to_vector . should_equal [Nothing, Nothing, "a", Nothing, Nothing]
             r1.at "Y" . to_vector . should_equal [1, 1, 2, 3, 3]
@@ -351,18 +352,18 @@ spec setup =
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
             t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
 
-            r1 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") . order_by ["Y"]
+            r1 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "X_1", "Z"] r1
             r1.at "X" . to_vector . should_equal ["A", Nothing, Nothing, "a", Nothing, Nothing]
             r1.at "X_1" . to_vector . should_equal ["a", Nothing, Nothing, "a", Nothing, Nothing]
             r1.at "Y" . to_vector . should_equal [0, 1, 1, 2, 3, 3]
             r1.at "Z" . to_vector . should_equal [10, 20, 30, 10, 20, 30]
 
-        Test.specify "should correctly handle nulls in between conditions" <|
+        Test.specify "should correctly handle nulls in Between conditions" <|
             t1 = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0, 1, 2, 3]]]
             t2 = table_builder [["l", [Nothing, 0, 1]], ["u", [100, 10, Nothing]], ["Z", [10, 20, 30]]]
 
-            r1 = t1.join t2 on=(Join_Condition.Between "X" "l" "u") . order_by ["Y"]
+            r1 = t1.join t2 on=(Join_Condition.Between "X" "l" "u") |> materialize |> _.order_by ["Y"]
             expect_column_names ["X", "Y", "l", "u", "Z"] r1
             r1.at "X" . to_vector . should_equal [1, 2]
             r1.at "Y" . to_vector . should_equal [0, 2]
@@ -375,7 +376,7 @@ spec setup =
             t2 = table_builder [["X", [2, 1]], ["Y", [2, 2]]]
 
             # TODO this should be Right_X, Right_Y instead of X_1, Y_1 once implemented properly
-            t3 = t1.join t2 on=(Join_Condition.Equals "X" "Y") . order_by ["X_1"]
+            t3 = t1.join t2 on=(Join_Condition.Equals "X" "Y") |> materialize |> _.order_by ["X_1"]
             expect_column_names ["X", "Y", "X_1", "Y_1"] t3
             t3.at "X" . to_vector . should_equal [2, 2]
             t3.at "Y_1" . to_vector . should_equal [2, 2]
@@ -398,3 +399,111 @@ spec setup =
             error = Error.throw (Illegal_State.Error "FOO")
             t1.join error . should_fail_with Illegal_State.Error
             t1.join t2 on=["X", error] . should_fail_with Illegal_State.Error
+
+        # TODO see if it makes sense to keep these tests for Databases. It could be a good idea to double-check that our resulting queries execute efficiently, but connection overhead may make the test unstable - to be seen!
+        n = 5000 # TODO I probably want 20k here after all, but for testing its easier to have a smaller value
+        Test.specify "should efficiently compute equality joins" <|
+            vec = 0.up_to n . to_vector
+            vec2 = 1.up_to n+1 . to_vector
+            t1 = table_builder [["X", vec], ["Y", 0.up_to n . map (_ % 2)]]
+            t2 = table_builder [["B", [0, 1]]]
+            t3 = table_builder [["X", vec.reverse], ["Z", vec2]]
+
+            r1 = Duration.time_execution <|
+                materialize <| t1.join t2 on=(Join_Condition.Equals "Y" "B")
+
+            r2 = Duration.time_execution <|
+                materialize <| t1.join t3 on="X"
+            t4 = r2.second . order_by ["X"]
+            t4.at "X" . to_vector . should_equal <| vec
+            t4.at "Z" . to_vector . should_equal <| vec2.reverse
+
+            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            runtime_ms = r2.first.total_milliseconds
+            if runtime_ms > expected_max_time_ms then
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+
+        Test.specify "should efficiently compute equality joins mixed with other secondary conditions" <|
+            vec = 0.up_to n . to_vector
+            vec2 = 1.up_to n+1 . to_vector
+            t1 = table_builder [["X", vec], ["Y", 0.up_to n . map (_ % 2)], ["A", Vector.fill n "a"], ["B", Vector.fill n 9]]
+            t2 = table_builder [["B", [0, 1]], ["A", ["A", "A"]], ["l", [0, 0]], ["u", [20, 20]]]
+            t3 = table_builder [["X", vec.reverse], ["Z", vec2], ["A", Vector.fill n "a"], ["l", Vector.fill n 0], ["u", Vector.fill n 20]]
+
+            secondary_conditions = [Join_Condition.Equals_Ignore_Case "A", Join_Condition.Between "B" "l" "u"]
+
+            r1 = Duration.time_execution <|
+                materialize <| t1.join t2 on=secondary_conditions+[Join_Condition.Equals "Y" "B"]
+
+            r2 = Duration.time_execution <|
+                materialize <| t1.join t3 on=secondary_conditions+[Join_Condition.Equals "X" "X"]
+            t4 = r2.second . order_by ["X"]
+            t4.at "X" . to_vector . should_equal <| vec
+            t4.at "Z" . to_vector . should_equal <| vec2.reverse
+
+            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            runtime_ms = r2.first.total_milliseconds
+            if runtime_ms > expected_max_time_ms then
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+
+        Test.specify "should efficiently compute case-insensitive equality joins" <|
+            unique_text_for_number prefix i =
+                suffix = Text.from_utf_8 [97 + i%20]
+                prefix + i.to_text + "-" + suffix
+            lowers = 0.up_to n . map (unique_text_for_number "a")
+            uppers = 0.up_to n . map (unique_text_for_number "A")
+            t1 = table_builder [["X", lowers], ["Y", 0.up_to n . map i-> if i%2 == 0 then "a" else "b"], ["A", Vector.fill n 44], ["B", Vector.fill n 9], ["N", 0.up_to n . to_vector]]
+            t2 = table_builder [["B", ["A", "B", "a"]], ["A", [44, 44, 44]], ["l", [0, 0, 0]], ["u", [20, 20, 20]]]
+            t3 = table_builder [["X", uppers.reverse], ["Z", 1.up_to n+1 . to_vector], ["A", Vector.fill n 44], ["l", Vector.fill n 0], ["u", Vector.fill n 20]]
+
+            secondary_conditions = [Join_Condition.Equals "A", Join_Condition.Between "B" "l" "u"]
+
+            r1 = Duration.time_execution <|
+                materialize <| t1.join t2 on=[Join_Condition.Equals_Ignore_Case "Y" "B"]+secondary_conditions
+            r1.second.row_count . should_equal (n + n/2)
+
+            r2 = Duration.time_execution <|
+                materialize <| t1.join t3 on=[Join_Condition.Equals_Ignore_Case "X" "X"]+secondary_conditions
+            t4 = r2.second . order_by "N"
+            t4.row_count . should_equal n
+            t4.at "X" . to_vector . should_equal lowers
+            t4.at "X_1" . to_vector . should_equal uppers
+            t4.at "Z" . to_vector . should_equal <| 1.up_to n+1 . to_vector . reverse
+
+            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            runtime_ms = r2.first.total_milliseconds
+            if runtime_ms > expected_max_time_ms then
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 3x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+
+        Test.specify "should efficiently compute Between joins" pending="TODO in task https://www.pivotaltracker.com/story/show/183913337" <|
+            xs = 0.up_to n . map x-> x * 20
+            ls = 0.up_to n . map x-> x * 20 - 20
+            us = 0.up_to n . map x-> x * 20 + 5
+            t1 = table_builder [["X", xs], ["A", Vector.fill n "a"], ["B", Vector.fill n 44]]
+            # We set up the ranges so that each entry of `t1` will match 2, apart from the first entry matched only once.
+            t2 = table_builder [["l", [0, 10]], ["u", [20 * n, 20 * n + 100]], ["A", ["a", "A"]], ["B", [44, 44]]]
+            # Here also, each range from `t3` will match 2 entries of `t1`, apart from the first one.
+            t3 = table_builder [["l", ls], ["u", us], ["A", Vector.fill n "A"], ["B", Vector.fill n 44]]
+
+            conditions = [Join_Condition.Equals_Ignore_Case "A", Join_Condition.Between "X" "l" "u", Join_Condition.Equals "B"]
+
+            r1 = Duration.time_execution <|
+                materialize <| t1.join t2 on=conditions
+            r1.second.row_count . should_equal (2*n - 1)
+
+            r2 = Duration.time_execution <|
+                materialize <| t1.join t3 on=conditions
+            t4 = r2.second . order_by ["X", "l"]
+            t4.row_count . should_equal (2*n - 1)
+
+            t4.at "X" . to_vector . should_equal ((xs.flat_map x-> [x, x]) . drop (Last 1))
+            t4.at "l" . to_vector . should_equal (ls.zip (ls.drop 1) . flatten)+[ls.last]
+
+            expected_max_time_ms = r1.first.total_milliseconds * 5 + 100
+            runtime_ms = r2.first.total_milliseconds
+            if runtime_ms > expected_max_time_ms then
+                Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
+
+        # TODO
+        Test.specify "should efficiently compute mixed joins where all kinds of conditions have big intersection sizes" <|
+            Nothing

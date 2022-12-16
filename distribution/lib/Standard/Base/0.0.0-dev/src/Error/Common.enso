@@ -3,7 +3,8 @@ import project.Meta
 
 @Builtin_Type
 type Index_Out_Of_Bounds
-    ## UNSTABLE
+    ## PRIVATE
+       UNSTABLE
 
        An error indicating that a requested index was out of bounds of a collection.
 
@@ -21,7 +22,8 @@ type Index_Out_Of_Bounds
 
 @Builtin_Type
 type Syntax_Error
-    ## The runtime representation of a syntax error.
+    ## PRIVATE
+       The runtime representation of a syntax error.
 
        Arguments:
        - message: A description of the erroneous syntax.
@@ -29,7 +31,8 @@ type Syntax_Error
 
 @Builtin_Type
 type Type_Error
-    ## The runtime representation of a type error.
+    ## PRIVATE
+       The runtime representation of a type error.
 
        Arguments:
        - expected: The expected type at the error location.
@@ -39,7 +42,8 @@ type Type_Error
 
 @Builtin_Type
 type Compile_Error
-    ## The runtime representation of a compilation error.
+    ## PRIVATE
+       The runtime representation of a compilation error.
 
        Arguments:
        - message: A description of the erroneous state.
@@ -47,7 +51,8 @@ type Compile_Error
 
 @Builtin_Type
 type Inexhaustive_Pattern_Match
-    ## The error thrown when a there is no pattern to match on the scrutinee.
+    ## PRIVATE
+       The error thrown when a there is no pattern to match on the scrutinee.
 
        Arguments:
        - scrutinee: The scrutinee that failed to match.
@@ -55,7 +60,8 @@ type Inexhaustive_Pattern_Match
 
 @Builtin_Type
 type Arity_Error
-    ## The error thrown when the number of arguments provided to an operation
+    ## PRIVATE
+       The error thrown when the number of arguments provided to an operation
        does not match the expected number of arguments.
 
        Arguments:
@@ -66,7 +72,8 @@ type Arity_Error
 
 @Builtin_Type
 type Uninitialized_State
-    ## The error thrown when the program attempts to read from a state slot that has
+    ## PRIVATE
+       The error thrown when the program attempts to read from a state slot that has
        not yet been initialized.
 
        Arguments:
@@ -75,7 +82,8 @@ type Uninitialized_State
 
 @Builtin_Type
 type No_Such_Method
-    ## The error thrown when the specified symbol does not exist as a method on
+    ## PRIVATE
+       The error thrown when the specified symbol does not exist as a method on
        the target.
 
        Arguments:
@@ -102,7 +110,8 @@ type No_Such_Method
 
 @Builtin_Type
 type Polyglot_Error
-    ## An error that occurred across a polyglot boundary.
+    ## PRIVATE
+       An error that occurred across a polyglot boundary.
 
        Arguments:
        - cause: A polyglot object corresponding to the original error.
@@ -115,7 +124,8 @@ type Module_Not_In_Package_Error
 
 @Builtin_Type
 type Arithmetic_Error
-    ## An error for when an erroneous arithmetic computation takes place.
+    ## PRIVATE
+       An error for when an erroneous arithmetic computation takes place.
 
        Arguments:
        - message: A description of the error condition.
@@ -123,7 +133,8 @@ type Arithmetic_Error
 
 @Builtin_Type
 type Invalid_Array_Index
-    ## An error that occurs when a program requests a read from an array index
+    ## PRIVATE
+       An error that occurs when a program requests a read from an array index
        that is out of bounds in the array.
 
        Arguments:
@@ -133,7 +144,8 @@ type Invalid_Array_Index
 
 @Builtin_Type
 type Not_Invokable
-    ## An error that occurs when an object is used as a function in a function
+    ## PRIVATE
+       An error that occurs when an object is used as a function in a function
        call, but it cannot be called.
 
        Arguments:
@@ -142,7 +154,8 @@ type Not_Invokable
 
 @Builtin_Type
 type Unsupported_Argument_Types
-    ## An error that occurs when arguments used in a function call are invalid
+    ## PRIVATE
+       An error that occurs when arguments used in a function call are invalid
        types for the function.
 
        Arguments:
@@ -152,7 +165,8 @@ type Unsupported_Argument_Types
 
 @Builtin_Type
 type Module_Does_Not_Exist
-    ## An error that occurs when the specified module cannot be found.
+    ## PRIVATE
+       An error that occurs when the specified module cannot be found.
 
        Arguments:
        - name: The module searched for.
@@ -160,7 +174,8 @@ type Module_Does_Not_Exist
 
 @Builtin_Type
 type Invalid_Conversion_Target
-    ## An error that occurs when the specified value cannot be converted to a given type
+    ## PRIVATE
+       An error that occurs when the specified value cannot be converted to a given type
 
        Arguments:
        - target: the type trying to be converted to.
@@ -168,7 +183,8 @@ type Invalid_Conversion_Target
 
 @Builtin_Type
 type No_Such_Conversion
-    ## An error that occurs when the conversion from one type to another does not exist
+    ## PRIVATE
+       An error that occurs when the conversion from one type to another does not exist
 
        Arguments:
        - target: the type trying to be converted to.

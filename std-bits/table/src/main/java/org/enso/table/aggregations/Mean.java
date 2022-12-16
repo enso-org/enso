@@ -1,5 +1,6 @@
 package org.enso.table.aggregations;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -31,7 +32,7 @@ public class Mean extends Aggregator {
     for (int row : indexes) {
       Object value = storage.getItemBoxed(row);
       if (value != null) {
-        Double dValue = CastToDouble(value);
+        Double dValue = NumericConverter.tryConvertingToDouble(value);
         if (dValue == null) {
           this.addProblem(
               new InvalidAggregation(this.getName(), row, "Cannot convert to a number."));
