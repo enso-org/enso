@@ -16,6 +16,7 @@ use engine_protocol::binary;
 use engine_protocol::binary::message::VisualisationContext;
 use engine_protocol::common::error::code;
 use engine_protocol::language_server;
+use engine_protocol::language_server::response;
 use engine_protocol::language_server::CapabilityRegistration;
 use engine_protocol::language_server::ContentRoot;
 use engine_protocol::language_server::ExpressionUpdates;
@@ -181,27 +182,16 @@ async fn check_vcs_status_and_notify(
     project_root_id: Uuid,
     language_server: Rc<language_server::Connection>,
     publisher: notification::Publisher<model::project::Notification>,
-) -> json_rpc::Result<language_server::response::VcsStatus> {
+) -> json_rpc::Result<response::VcsStatus> {
+    warn!("abcdef");
     let path_segments: [&str; 0] = [];
     let root_path = language_server::Path::new(project_root_id, &path_segments);
     let status = language_server.vcs_status(&root_path).await;
-    match &status {
-        Err(_) => {
-            publisher.notify(model::project::Notification::VcsStatusChanged(
-                model::project::VcsStatus::Dirty,
-            ));
-        }
-        Ok(language_server::response::VcsStatus { dirty: true, .. }) => {
-            publisher.notify(model::project::Notification::VcsStatusChanged(
-                model::project::VcsStatus::Dirty,
-            ));
-        }
-        Ok(language_server::response::VcsStatus { dirty: false, .. }) => {
-            publisher.notify(model::project::Notification::VcsStatusChanged(
-                model::project::VcsStatus::Clean,
-            ));
-        }
-    }
+    let notify_status = match &status {
+        Ok(response::VcsStatus { dirty: true, .. }) | Err(_) => model::project::VcsStatus::Dirty,
+        Ok(response::VcsStatus { dirty: false, .. }) => model::project::VcsStatus::Clean,
+    };
+    publisher.notify(model::project::Notification::VcsStatusChanged(notify_status));
     status
 }
 
@@ -763,10 +753,8 @@ mod test {
             binary_client.expect_event_stream().return_once(|| binary_events.boxed_local());
             let json_events_sender = json_client.setup_events();
 
-            let initial_suggestions_db = language_server::response::GetSuggestionDatabase {
-                entries:         vec![],
-                current_version: 0,
-            };
+            let initial_suggestions_db =
+                response::GetSuggestionDatabase { entries: vec![], current_version: 0 };
             expect_call!(json_client.get_suggestions_database() => Ok(initial_suggestions_db));
             let capability_reg =
                 CapabilityRegistration::create_receives_suggestions_database_updates();
@@ -928,12 +916,11 @@ mod test {
             let path_segments: [&str; 0] = [];
             let root_path = language_server::Path::new(Uuid::default(), &path_segments);
 
-            let vcs_status = language_server::response::VcsStatus::default();
+            let vcs_status = response::VcsStatus::default();
             let root_path_clone = root_path.clone();
             expect_call!(json_client.vcs_status(root_path_clone) => Ok(vcs_status));
 
-            let vcs_status =
-                language_server::response::VcsStatus { dirty: true, ..Default::default() };
+            let vcs_status = response::VcsStatus { dirty: true, ..Default::default() };
             expect_call!(json_client.vcs_status(root_path) => Ok(vcs_status));
 
             let ls = language_server::Connection::new_mock_rc(json_client);
@@ -944,7 +931,7 @@ mod test {
                 check_vcs_status_and_notify(Uuid::default(), ls.clone_ref(), publisher.clone_ref())
                     .await;
             let message = subscriber.next().await;
-            assert_matches!(result, Ok(language_server::response::VcsStatus { dirty: false, .. }));
+            assert_matches!(result, Ok(response::VcsStatus { dirty: false, .. }));
             assert_matches!(
                 message,
                 Some(model::project::Notification::VcsStatusChanged(
@@ -956,7 +943,7 @@ mod test {
                 check_vcs_status_and_notify(Uuid::default(), ls.clone_ref(), publisher.clone_ref())
                     .await;
             let message = subscriber.next().await;
-            assert_matches!(result, Ok(language_server::response::VcsStatus { dirty: true, .. }));
+            assert_matches!(result, Ok(response::VcsStatus { dirty: true, .. }));
             assert_matches!(
                 message,
                 Some(model::project::Notification::VcsStatusChanged(
