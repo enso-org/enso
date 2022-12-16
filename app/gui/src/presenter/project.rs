@@ -10,6 +10,9 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::project::SearcherParams;
+use model::module::NotificationKind;
+use model::project::Notification;
+use model::project::VcsStatus;
 
 
 
@@ -311,13 +314,16 @@ impl Project {
         spawn_stream_handler(weak, notifications, |notification, model| {
             info!("Processing notification {notification:?}");
             match notification {
-                model::project::Notification::ConnectionLost(_) => {
+                Notification::ConnectionLost(_) => {
                     let message = crate::BACKEND_DISCONNECTED_MESSAGE;
                     let message = view::status_bar::event::Label::from(message);
                     model.status_bar.add_event(message);
                 }
-                model::project::Notification::VcsStatusChanged(changed) => {
-                    model.set_project_changed(changed);
+                Notification::VcsStatusChanged(VcsStatus::Dirty) => {
+                    model.set_project_changed(true);
+                }
+                Notification::VcsStatusChanged(VcsStatus::Clean) => {
+                    model.set_project_changed(false);
                 }
             };
             std::future::ready(())
@@ -327,10 +333,9 @@ impl Project {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifications, move |notification, model| {
             match notification.kind {
-                model::module::NotificationKind::Invalidate
-                | model::module::NotificationKind::CodeChanged { .. }
-                | model::module::NotificationKind::MetadataChanged =>
-                    model.set_project_changed(true),
+                NotificationKind::Invalidate
+                | NotificationKind::CodeChanged { .. }
+                | NotificationKind::MetadataChanged => model.set_project_changed(true),
             }
             futures::future::ready(())
         });

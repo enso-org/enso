@@ -187,10 +187,19 @@ async fn check_vcs_status_and_notify(
     let status = language_server.vcs_status(&root_path).await;
     match &status {
         Err(_) => {
-            publisher.notify(model::project::Notification::VcsStatusChanged(true));
+            publisher.notify(model::project::Notification::VcsStatusChanged(
+                model::project::VcsStatus::Dirty,
+            ));
         }
-        Ok(status) => {
-            publisher.notify(model::project::Notification::VcsStatusChanged(status.dirty));
+        Ok(language_server::response::VcsStatus { dirty: true, .. }) => {
+            publisher.notify(model::project::Notification::VcsStatusChanged(
+                model::project::VcsStatus::Dirty,
+            ));
+        }
+        Ok(language_server::response::VcsStatus { dirty: false, .. }) => {
+            publisher.notify(model::project::Notification::VcsStatusChanged(
+                model::project::VcsStatus::Clean,
+            ));
         }
     }
     status
@@ -936,14 +945,24 @@ mod test {
                     .await;
             let message = subscriber.next().await;
             assert_matches!(result, Ok(language_server::response::VcsStatus { dirty: false, .. }));
-            assert_matches!(message, Some(model::project::Notification::VcsStatusChanged(false)));
+            assert_matches!(
+                message,
+                Some(model::project::Notification::VcsStatusChanged(
+                    model::project::VcsStatus::Clean
+                ))
+            );
 
             let result =
                 check_vcs_status_and_notify(Uuid::default(), ls.clone_ref(), publisher.clone_ref())
                     .await;
             let message = subscriber.next().await;
             assert_matches!(result, Ok(language_server::response::VcsStatus { dirty: true, .. }));
-            assert_matches!(message, Some(model::project::Notification::VcsStatusChanged(true)));
+            assert_matches!(
+                message,
+                Some(model::project::Notification::VcsStatusChanged(
+                    model::project::VcsStatus::Dirty
+                ))
+            );
         });
     }
 }

@@ -168,8 +168,8 @@ pub type Synchronized = synchronized::Project;
 pub enum Notification {
     /// One of the backend connections has been lost.
     ConnectionLost(BackendConnection),
-    /// Indicate whether the project has been changed compared the most recent VCS snapshot.
-    VcsStatusChanged(bool),
+    /// Indicates that the project VCS status has changed.
+    VcsStatusChanged(VcsStatus),
 }
 
 /// Denotes one of backend connections used by a project.
@@ -179,6 +179,16 @@ pub enum BackendConnection {
     LanguageServerJson,
     /// The binary conneection used to transfer FlatBuffers messages.
     LanguageServerBinary,
+}
+
+/// The VCS status indicates whether the project has been modified compared the most recent VCS
+/// snapshot.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VcsStatus {
+    /// The project has been modified since the last VCS snapshot.
+    Dirty,
+    /// The project is in the same state as the last VCS snapshot.
+    Clean,
 }
 
 
