@@ -195,13 +195,13 @@ render object depth=0 = case object of
             children = 0.up_to (10.min object.length) . map i-> render (object.at i) (depth+1)
             "[" + (children.join ", ") + "]"
     _ : Array ->
-        proxy = Array_Proxy.new object.length (i-> make_enso (js_object.at i))
+        proxy = Array_Proxy.new object.length (i-> make_enso (object.at i))
         @Tail_Call render (Vector.from_polyglot_array proxy) depth
     Nothing -> object.to_json
     _ : Text -> object.to_json
     _ : Boolean -> object.to_json
     _ : Number -> object.to_json
-    _ -> @Tail_Cal render (JS_Object.Value object) depth
+    _ -> @Tail_Call render (JS_Object.Value object) depth
 
 make_enso js_object =
     case js_object of
