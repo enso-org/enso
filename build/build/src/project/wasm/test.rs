@@ -102,7 +102,7 @@ pub async fn test_all(repo_root: PathBuf) -> Result {
                 .current_dir(&repo_root)
                 .arg("test")
                 .arg("--headless")
-                .arg("--chrome")
+                .arg("--firefox")
                 .env("WASM_BINDGEN_TEST_TIMEOUT", "300")
                 // .args(&wasm_pack_args)
                 .arg(member.strip_prefix(&repo_root).unwrap())
