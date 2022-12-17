@@ -151,11 +151,7 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
     if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code + ". " + response.body.to_text)) else
         response_headers = response.headers
         content_type = response_headers.find h-> "Content-Type".equals_ignore_case h.name
-        if (parse == False) || (content_type == Nothing) then response  else
-            case content_type.value.split ';' . first of
-                "application/json" -> response.body.parse_json
-                "text/plain" -> response.body.to_text
-                "text/csv" -> response.body.to_text
-                "text/xml" -> response.body.to_text
-                "application/xml" -> response.body.to_text
-                _ -> response
+        if (parse == False) || (content_type == Nothing) then response else
+            format = Auto_Detect.get_web_parser content_type.value uri
+            if format == Nothing then response else
+                format.read_web response

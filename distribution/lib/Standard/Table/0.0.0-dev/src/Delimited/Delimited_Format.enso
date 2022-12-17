@@ -59,15 +59,28 @@ type Delimited_Format
     ## If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Delimited_Format | Nothing
     for_web mime_type _ =
+        parts = content_type.split ";" . map (x->x.trim)
+
+        charset_part = parts.find (x->x.starts_with "charset=")
+        encoding = if charset_part.is_error then Encoding.utf_8 else
+            parsed = Encoding.from_name (charset_part.drop 8)
+            if parsed.is_error then Encoding.utf_8 else parsed
+
         case mime_type of
-            "text/csv" -> Delimited_Format.Delimited ','
-            "text/tab-separated-values" -> Delimited_Format.Delimited '\t'
+            "text/csv" -> Delimited_Format.Delimited ',' encoding
+            "text/tab-separated-values" -> Delimited_Format.Delimited '\t' encoding
             _ -> Nothing
 
     ## Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         Delimited_Reader.read_file self file on_problems
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_web : Response -> Any
+    read_web self response =
+        response.body.parse_json
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing

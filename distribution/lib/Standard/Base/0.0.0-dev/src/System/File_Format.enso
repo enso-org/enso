@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Json.Json
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
@@ -41,10 +42,10 @@ type Auto_Detect
 
     ## PRIVATE
     get_web_parser : Text -> URI -> Any | Nothing
-    get_web_parser mime_type uri =
+    get_web_parser content_type uri =
         reader idx =
             if idx >= format_types.length then Nothing else
-                format = format_types.at idx . for_web mime_type uri
+                format = format_types.at idx . for_web content_type uri
                 if format.is_nothing.not then format else
                     @Tail_Call reader (idx + 1)
         reader 0
@@ -69,9 +70,15 @@ type Plain_Text_Format
 
     ## If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Plain_Text_Format | Nothing
-    for_web mime_type _ =
-        case mime_type.split ';' . first of
-            "text/plain" -> Plain_Text_Format.Plain_Text
+    for_web content_type _ =
+        parts = content_type.split ";" . map (x->x.trim)
+        case parts.first of
+            "text/plain" -
+                charset_part = parts.find (x->x.starts_with "charset=")
+                encoding = if charset_part.is_error then Encoding.utf_8 else
+                    parsed = Encoding.from_name (charset_part.drop 8)
+                    if parsed.is_error then Encoding.utf_8 else parsed
+                Plain_Text_Format.Plain_Text encoding
             _ -> Nothing
 
     ## PRIVATE
@@ -82,9 +89,9 @@ type Plain_Text_Format
 
     ## PRIVATE
        Implements the `Data.parse` for this `File_Format`
-    read_web : Response -> Problem_Behavior -> Any
-    read_web self response on_problems =
-        Text.from_bytes response.body.bytes self.encoding on_problems
+    read_web : Response -> Any
+    read_web self response =
+        Text.from_bytes response.body.bytes self.encoding
 
 type Bytes
     ## If the File_Format supports reading from the file, return a configured instance.
@@ -115,8 +122,9 @@ type JSON_File
 
     ## If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> JSON_File | Nothing
-    for_web mime_type _ =
-        case mime_type of
+    for_web content_type _ =
+        first = content_type.split ';' . first
+        case first of
             "application/json" -> JSON_File
             _ -> Nothing
 
@@ -126,6 +134,12 @@ type JSON_File
     read self file _ =
         text = file.read_text
         Json.parse text
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_web : Response -> Any
+    read_web self response =
+        response.body.parse_json
 
 ## A setting to infer the default behaviour of some option.
 type Infer
