@@ -69,7 +69,7 @@
 //! // │       ▲
 //! // ╰───────╯
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! root.set_size_x(10.0);
 //! ```
@@ -115,7 +115,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -144,7 +144,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -182,7 +182,7 @@
 //! // ╰─────────╯
 //! //   10
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! root.set_size((10.0, 10.0));
 //! root.allow_shrink_y();
@@ -203,7 +203,7 @@
 //! // ║ ╰─────────────┴─────────────╯              ║
 //! // ╚════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -225,7 +225,7 @@
 //! // ║ ╰─────────────┴────────────────────────╯  ║
 //! // ╚═══════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -275,7 +275,7 @@
 //! // ║ ╰─────────────┴─────────────────────────╯  ║
 //! // ╚════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -302,7 +302,7 @@
 //! // ╚═════════════════════════════════════════════════════════════════════════╝
 //! //          2                4                 2                4             
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -339,7 +339,7 @@
 //! // ╚═════════════════════════════════════════╝
 //! //           10                 10         
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -374,7 +374,7 @@
 //! // ║ ╰─────────────┴─────────────╯                ║
 //! // ╚══════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new().set_size_x(20.0);
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -410,7 +410,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -462,7 +462,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -499,7 +499,7 @@
 //! // ║ ╰───────────────┴───────────────╯ ║
 //! // ╚═══════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -532,7 +532,7 @@
 //! // ║ ╰───────────────┴───────────┴───────────────╯ ║
 //! // ╚═══════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -561,7 +561,7 @@
 //! // ║ ╰────────────┴─────────────────────┴───────────╯ ║
 //! // ╚══════════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -595,7 +595,7 @@
 //! // ╚════════════════════════════════════╝
 //! //                  10
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -636,7 +636,7 @@
 //! // ╚═══════════════════════════════════════════════════════════════╝
 //! //                                20
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -666,7 +666,7 @@
 //! // ╚═════════════════════════════════════════════════════════╝
 //! //                             12
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new()
 //!     .use_auto_layout()
 //!     .set_size_x(12.0)
@@ -694,7 +694,7 @@
 //! // ║ ╰────────────┴─────────────┴─────────────╯           1fr          ║
 //! // ╚═══════════════════════════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -714,7 +714,7 @@
 //! // ║    1fr      ╰─────────────┴─────────────┴─────────────╯      1fr    ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -734,7 +734,7 @@
 //! // ║         1fr            ╰─────────────┴─────────────┴─────────────╯  ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -754,7 +754,7 @@
 //! // ║ ╰───────────────────┴─────────────────────────┴───────────────────╯ ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -774,7 +774,7 @@
 //! // ║ ╰─────────────────────┴─────────────────────┴─────────────────────╯ ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -794,7 +794,7 @@
 //! // ║ ╰──────────────────────┴───────────────────┴──────────────────────╯ ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -838,7 +838,7 @@
 //! // ╚═══════════════════════════════════════════════════╝
 //! //        2.0           2.0           2.0              
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -900,7 +900,7 @@
 //! // │  ╰───────────────╯  │
 //! // ╰─────────────────────╯
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -927,7 +927,7 @@
 //! //   ╱        │        │           
 //! // ◎          ╰────────╯
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
@@ -960,7 +960,7 @@
 //! // ╚═════════════════════════════════════════════════════════════════╝
 //!
 //!
-//! # use crate::display;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
