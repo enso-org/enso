@@ -33,4 +33,4 @@ type Array_Proxy
        methods.
     from_proxy_object : Any -> Array
     from_proxy_object proxy =
-        Array_Proxy.new proxy.length (i -> proxy.at i)
+        Array_Proxy.new proxy.length proxy.at
