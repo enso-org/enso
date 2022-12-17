@@ -3963,12 +3963,12 @@ mod tests {
         // Create 2nd node below the 1st one and move it slightly to the right.
         graph_editor.nodes().select(node_1_id);
         let (node_2_id, node_2) = graph_editor.add_node_by(&press_add_node_shortcut);
-        node_2.mod_x(|x| x + 16.0);
+        node_2.update_x(|x| x + 16.0);
 
         // Create 3rd node below the 2nd one and move it slightly down and far to the right.
         graph_editor.nodes().select(node_2_id);
         let (_, node_3) = graph_editor.add_node_by(&press_add_node_shortcut);
-        node_2.mod_xy(|pos| pos + Vector2(800.0, -7.0));
+        node_2.update_xy(|pos| pos + Vector2(800.0, -7.0));
 
         // Create 4th node by clicking (+) button when camera is roughly centered at the 1st node.
         let small_displacement = Vector2(8.0, 9.0);
