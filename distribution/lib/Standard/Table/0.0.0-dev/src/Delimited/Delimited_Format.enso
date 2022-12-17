@@ -57,7 +57,7 @@ type Delimited_Format
             _ -> Nothing
 
     ## If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> Uri -> Delimited_Format | Nothing
+    for_web : Text -> URI -> Delimited_Format | Nothing
     for_web mime_type _ =
         case mime_type of
             "text/csv" -> Delimited_Format.Delimited ','

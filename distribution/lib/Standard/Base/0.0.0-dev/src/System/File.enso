@@ -252,7 +252,7 @@ type File
              example_to_json = Examples.csv.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        type_pair = ["type", "Standard.Base.System.File.File"]
+        type_pair = ["type", "File"]
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["path", self.path]]
 

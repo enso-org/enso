@@ -1,3 +1,5 @@
+import project.Data.Boolean.Boolean
+
 type HTTP_Status_Code
     ## 100 Continue.
     continue : HTTP_Status_Code

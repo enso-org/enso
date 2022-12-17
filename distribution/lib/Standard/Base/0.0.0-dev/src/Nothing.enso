@@ -1,4 +1,6 @@
 import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
 
 from project.Data.Boolean import Boolean, True
 

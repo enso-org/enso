@@ -95,8 +95,7 @@ spec =
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
             Json.parse json . should_equal <|
-                type_name = Meta.get_qualified_type_name (My_Type.Value "aaa")
-                JS_Object.from_pairs [["type", type_name], ["constructor", "Value"], ["foo", "aaa"]]
+                JS_Object.from_pairs [["type", "My_Type"], ["constructor", "Value"], ["foo", "aaa"]]
 
         Test.specify "should be able to be shown in the default vector visualization" <|
             vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
@@ -106,17 +105,16 @@ spec =
                 expected_json = '''
                     [
                       {
-                        "type":"type_name",
+                        "type":"My_Type",
                         "constructor":"Value",
                         "foo":"bar"
                       },
                       {
                         "type":"Error",
-                        "content":{ "type":"type_name", "constructor":"Value", "foo":42 },
+                        "content":{ "type":"My_Type", "constructor":"Value", "foo":42 },
                         "message":"My_Type.Value"
                       }
                     ]
-                type_name = Meta.get_qualified_type_name (My_Type.Value "aaa")
-                Json.parse (expected_json.replace "type_name" type_name)
+                Json.parse expected_json
 
 main = Test_Suite.run_main spec

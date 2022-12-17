@@ -88,8 +88,7 @@ spec =
             1.54.to_json.should_equal "1.54"
             ["foo", "bar", "baz"].to_json.should_equal '["foo","bar","baz"]'
             Author.Value "Tolkien" 1892 . to_json . should_equal <|
-                type_name = Meta.get_qualified_type_name (Author.Value "Hello" 1234)
-                '{"type":"' + type_name + '","constructor":"Value","name":"Tolkien","year_of_birth":1892}'
+                '{"type":"Author","constructor":"Value","name":"Tolkien","year_of_birth":1892}'
 
         Test.specify "should render NaN and Infinity to null" <|
             Number.nan.to_json . should_equal "null"

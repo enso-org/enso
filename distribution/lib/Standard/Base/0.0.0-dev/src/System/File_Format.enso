@@ -1,11 +1,14 @@
 import project.Any.Any
 import project.Data.Json.Json
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Error.File_Error.File_Error
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Error.Unimplemented.Unimplemented
+import project.Network.HTTP.Response.Response
+import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
 
@@ -37,7 +40,7 @@ type Auto_Detect
         reader 0
 
     ## PRIVATE
-    get_web_parser : Text -> Uri -> Any | Nothing
+    get_web_parser : Text -> URI -> Any | Nothing
     get_web_parser mime_type uri =
         reader idx =
             if idx >= format_types.length then Nothing else
@@ -65,9 +68,9 @@ type Plain_Text_Format
             _ -> Nothing
 
     ## If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> Uri -> Plain_Text_Format | Nothing
+    for_web : Text -> URI -> Plain_Text_Format | Nothing
     for_web mime_type _ =
-        case mime_type of
+        case mime_type.split ';' . first of
             "text/plain" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
 
@@ -76,6 +79,12 @@ type Plain_Text_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         file.read_text self.encoding on_problems
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_web : Response -> Problem_Behavior -> Any
+    read_web self response on_problems =
+        Text.from_bytes response.body.bytes self.encoding on_problems
 
 type Bytes
     ## If the File_Format supports reading from the file, return a configured instance.
@@ -86,7 +95,7 @@ type Bytes
             _ -> Nothing
 
     ## If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> Uri -> Bytes | Nothing
+    for_web : Text -> URI -> Bytes | Nothing
     for_web _ _ = Nothing
 
     ## PRIVATE
@@ -105,7 +114,7 @@ type JSON_File
             _ -> Nothing
 
     ## If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> Uri -> JSON_File | Nothing
+    for_web : Text -> URI -> JSON_File | Nothing
     for_web mime_type _ =
         case mime_type of
             "application/json" -> JSON_File

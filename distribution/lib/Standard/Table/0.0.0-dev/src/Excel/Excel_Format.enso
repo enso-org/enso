@@ -50,7 +50,7 @@ type Excel_Format
             Excel_Format.Excel xls_format=is_xls
 
     ## If the File_Format supports reading from the web response, return a configured instance.
-    for_web : Text -> Uri -> Excel_Format | Nothing
+    for_web : Text -> URI -> Excel_Format | Nothing
     for_web _ _ =
         ## Currently not loading Excel files automatically as these need to be loaded as a connection.
         Nothing

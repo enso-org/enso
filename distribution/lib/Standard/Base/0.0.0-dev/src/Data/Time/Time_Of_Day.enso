@@ -304,7 +304,7 @@ type Time_Of_Day
              example_to_json = Time_Of_Day.now.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        type_pair = ["type", "Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day"]
+        type_pair = ["type", "Time_Of_Day"]
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
 

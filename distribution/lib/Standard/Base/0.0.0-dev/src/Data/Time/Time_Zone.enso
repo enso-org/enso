@@ -166,7 +166,7 @@ type Time_Zone
              example_to_json = Time_Zone.system.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        type_pair = ["type", "Standard.Base.Data.Time.Time_Zone.Time_Zone"]
+        type_pair = ["type", "Time_Zone"]
         cons_pair = ["constructor", "new"]
         JS_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
 

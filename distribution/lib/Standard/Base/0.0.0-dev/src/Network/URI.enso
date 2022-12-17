@@ -205,7 +205,7 @@ type URI
              example_to_json = Examples.uri.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        type_pair = ["type", "Standard.Base.Network.URI.URI"]
+        type_pair = ["type", "URI"]
         cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
 

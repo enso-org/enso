@@ -29,7 +29,7 @@ Any.to_json self = Json.stringify self
    For atoms and maps, the object is converted to a JS_Object.
 Text.to_js_object : JS_Object | Text
 Text.to_js_object self = case self of
-    Text -> JS_Object.from_pairs [["type", Meta.get_qualified_type_name self]]
+    Text -> JS_Object.from_pairs [["type", "Text"]]
     _ -> self
 
 ## Converts the given value to a JSON serializable object.
@@ -38,9 +38,9 @@ Text.to_js_object self = case self of
    For atoms and maps, the object is converted to a JS_Object.
 Number.to_js_object : JS_Object | Number
 Number.to_js_object self = case self of
-    Number -> JS_Object.from_pairs [["type", Meta.get_qualified_type_name self]]
-    Integer -> JS_Object.from_pairs [["type", Meta.get_qualified_type_name self]]
-    Decimal -> JS_Object.from_pairs [["type", Meta.get_qualified_type_name self]]
+    Number -> JS_Object.from_pairs [["type", "Number"]]
+    Integer -> JS_Object.from_pairs [["type", "Integer"]]
+    Decimal -> JS_Object.from_pairs [["type", "Decimal"]]
     _ -> self
 
 ## Converts the given value to a JSON serializable object.
@@ -49,7 +49,7 @@ Number.to_js_object self = case self of
    For atoms and maps, the object is converted to a JS_Object.
 Boolean.to_js_object : JS_Object | Boolean
 Boolean.to_js_object self = case self of
-    Boolean -> JS_Object.from_pairs [["type", Meta.get_qualified_type_name self]]
+    Boolean -> JS_Object.from_pairs [["type", "Boolean"]]
     _ -> self
 
 ## Converts the given value to a JSON serializable object.
@@ -86,7 +86,7 @@ Any.to_js_object self =
     m = Meta.meta self
     case m of
         _ : Meta.Atom ->
-            type_pair = ["type", Meta.get_qualified_type_name self]
+            type_pair = ["type", Meta.get_qualified_type_name self . split '.' . last]
             cons = m.constructor
             java_cons = cons.value ...
             if java_cons == self then JS_Object.from_pairs [type_pair] else
@@ -99,7 +99,7 @@ Any.to_js_object self =
                 0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_js_object]
                 JS_Object.from_pairs builder.to_vector
         _ : Meta.Constructor ->
-            type_name = Meta.get_qualified_type_name self . take (Text_Sub_Range.Before_Last ".")
+            type_name = Meta.get_qualified_type_name self . split '.' . at -2
             JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
         _ -> Error.throw ("Cannot convert " + self.to_text + " to JSON")
 
@@ -120,7 +120,7 @@ Error.to_js_object self =
 Locale.to_js_object : JS_Object
 Locale.to_js_object self =
     b = Vector.new_builder 5
-    b.append ["type", "Standard.Base.Data.Locale.Locale"]
+    b.append ["type", "Locale"]
     b.append ["constructor", "new"]
     b.append ["language", self.language]
     if self.country.is_nothing.not then b.append ["country", self.country]

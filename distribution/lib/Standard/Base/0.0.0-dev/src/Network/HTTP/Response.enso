@@ -65,6 +65,6 @@ type Response
              example_to_json = Examples.get_response.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        type_pair = ["type", "Standard.Base.Network.HTTP.Response.Response"]
+        type_pair = ["type", "Response"]
         cons_pair = ["constructor", "Value"]
         JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]
