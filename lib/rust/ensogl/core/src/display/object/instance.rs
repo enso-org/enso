@@ -2287,7 +2287,15 @@ pub trait LayoutOps: Object {
     /// of the free space left after placing siblings with fixed sizes.
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
     fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
-        self.display_object().modify_layout(|layout| layout.size.modify_(f));
+        self.display_object().modify_layout(|layout| {
+            let new_size = layout.size.modify(f);
+            if let Some(x) = new_size.x.as_pixels() {
+                layout.computed_size.set_x(x);
+            }
+            if let Some(y) = new_size.y.as_pixels() {
+                layout.computed_size.set_y(y);
+            }
+        });
         self
     }
 

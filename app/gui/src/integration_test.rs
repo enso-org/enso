@@ -79,27 +79,21 @@ impl Fixture {
     /// After returning, the IDE is in a state with new project opened and ready to work
     /// (after libraries' compilation).
     pub async fn new_project(&self) {
-        let project = self.ide.presenter.view().project();
         let controller = self.ide.presenter.controller();
         let project_management =
             controller.manage_projects().expect("Cannot access Managing Project API");
 
-        let expect_prompt = project.show_prompt.next_event();
         project_management.create_new_project(None).await.expect("Failed to create new project");
-        expect_prompt.await;
     }
 
     /// After returning, the IDE is in a state with the project opened and ready to work
     /// (after libraries' compilation).
     pub async fn load_project(&self, name: String) {
-        let project = self.ide.presenter.view().project();
         let controller = self.ide.presenter.controller();
         let project_management =
             controller.manage_projects().expect("Cannot access Managing Project API");
 
-        let expect_prompt = project.show_prompt.next_event();
         project_management.open_project_by_name(name).await.expect("Failed to open project");
-        expect_prompt.await;
     }
 
     /// Get the Project View.

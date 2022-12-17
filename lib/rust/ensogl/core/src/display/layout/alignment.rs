@@ -8,7 +8,7 @@ use crate::prelude::*;
 // === 1-dimensional Alignment ===
 // ===============================
 
-/// One dimensional alignment.
+/// One-dimensional alignment.
 ///
 /// In one dimension the alignment is either start, center, or end. In 2 dimensions, [`Start`] means
 /// "left" horizontally and "bottom" vertically, while [`End`] means "right" horizontally and "top"
@@ -99,11 +99,12 @@ impl OptDim1 {
 }
 
 
+
 // ===============================
 // === 2-dimensional Alignment ===
 // ===============================
 
-/// Two dimensional alignment. It is equivalent to [`Vector2<Dim1>`], but also has many handy
+/// Two-dimensional alignment. It is equivalent to [`Vector2<Dim1>`], but also has many handy
 /// associated functions.
 #[derive(Clone, Copy, Debug, Deref, Default, PartialEq, Eq)]
 #[allow(missing_docs)]

@@ -25,6 +25,14 @@ pub enum Unit {
 }
 
 impl Unit {
+    /// Matcher for the [`Pixels`] variant.
+    pub fn as_pixels(self) -> Option<f32> {
+        match self {
+            Unit::Pixels(pixels) => Some(pixels),
+            _ => None,
+        }
+    }
+
     /// Matcher for the [`Fraction`] variant.
     pub fn as_fraction(self) -> Option<Fraction> {
         match self {
@@ -119,6 +127,14 @@ impl Size {
     /// Checks whether the resizing mode is [`Size::Fixed`].
     pub fn is_fixed(self) -> bool {
         matches!(self, Size::Fixed(_))
+    }
+
+    /// Matcher for the [`Pixels`] variant.
+    pub fn as_pixels(self) -> Option<f32> {
+        match self {
+            Size::Fixed(unit) => unit.as_pixels(),
+            _ => None,
+        }
     }
 
     /// Matcher for the [`Fraction`] variant. Returns default value if the variant does not match.
