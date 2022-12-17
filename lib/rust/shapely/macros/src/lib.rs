@@ -197,7 +197,7 @@ pub fn tagged_enum(
 /// ```
 /// 
 /// This macro will generate the following code:
-/// ```
+/// ```text
 /// fn modify_column_count(&self, f: impl FnOnce(&mut Option<usize>)) -> &Self {
 ///     ...
 /// }
