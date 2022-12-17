@@ -43,6 +43,7 @@ pub use topology::*;
 pub use vector::*;
 
 
+
 /// Common traits.
 pub mod traits {
     pub use super::topology::traits::*;

@@ -959,6 +959,7 @@
 //! // ║ ╰──────────────────────────────┴─────────────────────────────╯  ║
 //! // ╚═════════════════════════════════════════════════════════════════╝
 //!
+//!
 //! # use crate::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -979,6 +980,19 @@
 //! node2_1.set_xy((-1.0, 0.0));
 //! node2_2.set_xy((1.0, -1.0));
 //! ```
+//!
+//!
+//! # Size and computed size.
+//! Display objects expose two functions to get their size: `size` and `computed_size`. The first
+//! one provides the size set by the user. It can be either 'hug' or a fixed value expressed as one
+//! of the supported units: pixels, percentage, or fraction. The `computed_size` is always expressed
+//! in pixels, however, it is updated during the layout refresh, which happens on every frame (if
+//! the layout was modified). It means, that you can not set object size and immediately read the
+//! computed size, as it will not give the correct result. However, in case you use the `set_size`
+//! function and you set the size to fixed pixel value, the computed size will be updated
+//! immediately. This is done only for convenience, as reading the size is a common operation.
+//! Please note that this still can provide incorrect value if the object can grow.
+
 use crate::data::dirty::traits::*;
 use crate::display::object::layout::*;
 use crate::prelude::*;
@@ -2285,6 +2299,9 @@ pub trait LayoutOps: Object {
     /// Modify the size of the object. By default, the size is set to hug the children. You can set
     /// the size either to a fixed pixel value, a percentage parent container size, or to a fraction
     /// of the free space left after placing siblings with fixed sizes.
+    ///
+    /// In case the size was modified to a fixed pixels value, the [`computed_size`] will be updated
+    /// immediately for convinience. See the docs of this module to learn more.
     #[enso_shapely::gen(update, set(trait = "IntoVectorTrans2<Size>", fn = "into_vector_trans()"))]
     fn modify_size(&self, f: impl FnOnce(&mut Vector2<Size>)) -> &Self {
         self.display_object().modify_layout(|layout| {
