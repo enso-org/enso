@@ -11,9 +11,9 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the payload check against the expected panic type. */
@@ -45,12 +45,38 @@ public abstract class IsPayloadOfPanicTypeNode extends Node {
     }
   }
 
+  @Specialization(guards = "isAnyType(panicType)")
+  boolean doAnyType(Object panicType, Object payload) {
+    return true;
+  }
+
+  @Specialization(
+      guards = {
+        "isArrayType(panicType)",
+        "interop.hasArrayElements(payload)",
+        "!types.hasType(payload)",
+        "interop.hasMetaObject(payload)"
+      })
+  public boolean doPolyglotArray(
+      Object panicType,
+      Object payload,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    return true;
+  }
+
+  boolean isAnyType(Object panicType) {
+    return EnsoContext.get(this).getBuiltins().any() == panicType;
+  }
+
+  boolean isArrayType(Object panicType) {
+    return EnsoContext.get(this).getBuiltins().array() == panicType;
+  }
+
   @Fallback
   boolean doType(Object panicType, Object payload) {
-    Builtins builtins = EnsoContext.get(this).getBuiltins();
     Object tpeOfPayload = typeOfNode.execute(payload);
-    if (profile.profile(
-        panicType == builtins.any() || isSameObject.execute(panicType, tpeOfPayload))) {
+    if (profile.profile(isSameObject.execute(panicType, tpeOfPayload))) {
       return true;
     } else if (TypesGen.isType(tpeOfPayload)) {
       Type tpe = TypesGen.asType(tpeOfPayload);

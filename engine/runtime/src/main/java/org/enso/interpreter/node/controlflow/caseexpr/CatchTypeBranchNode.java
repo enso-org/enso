@@ -21,6 +21,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
 
   private final Type expectedType;
   private final boolean isArrayType;
+  private final boolean isAnyType;
   private @Child TypeOfNode typeOfNode = TypeOfNode.build();
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
@@ -29,6 +30,7 @@ public abstract class CatchTypeBranchNode extends BranchNode {
     super(functionNode);
     this.expectedType = tpe;
     this.isArrayType = EnsoContext.get(this).getBuiltins().array() == expectedType;
+    this.isAnyType = EnsoContext.get(this).getBuiltins().any() == expectedType;
   }
 
   /**
@@ -40,6 +42,11 @@ public abstract class CatchTypeBranchNode extends BranchNode {
    */
   public static CatchTypeBranchNode build(Type tpe, RootCallTarget functionNode) {
     return CatchTypeBranchNodeGen.create(tpe, functionNode);
+  }
+
+  @Specialization(guards = "isAnyExpectedType()")
+  public void doAny(VirtualFrame frame, Object state, Object value) {
+    accept(frame, state, new Object[] {value});
   }
 
   @Specialization(
@@ -60,6 +67,10 @@ public abstract class CatchTypeBranchNode extends BranchNode {
 
   boolean isArrayExpectedType() {
     return isArrayType;
+  }
+
+  boolean isAnyExpectedType() {
+    return isAnyType;
   }
 
   @Fallback

@@ -287,5 +287,9 @@ spec = Test.group "Pattern Matches" <|
             _ : JList -> Nothing
             _ -> Test.fail "Expected to match on java.lang.Object type."
 
+        case ArrayList.new of
+            _ : Any -> Nothing
+            _ -> Test.fail "Expected to match on Any."
+
 
 main = Test_Suite.run_main spec

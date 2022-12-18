@@ -5,10 +5,11 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Runtime.Ref.Ref
 
-polyglot java import java.util.Random
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
 polyglot java import java.lang.Exception as JException
+polyglot java import java.util.ArrayList
+polyglot java import java.util.Random
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -226,5 +227,27 @@ spec =
                 (err.payload.message) . should_equal (err.payload.to_display_text)
 
             Panic.catch Unsupported_Argument_Types.Error (Long.decode 42) handler=check
+
+        Test.specify "should be able to throw and catch polyglot arrays" <|
+            handle_panic caught prefix="" =
+                if prefix == "" then caught.payload.to_text else prefix+": "+caught.payload.to_text
+
+            Panic.catch Any (Panic.throw (ArrayList.new)) handler=(handle_panic prefix="Any") . should_equal "Any: []"
+            Panic.catch ArrayList (Panic.throw (ArrayList.new)) handler=handle_panic . should_equal "[]"
+
+            catch_any = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch ArrayList handler=handle_panic <|
+                (Panic.throw (Vector.new 1 (i -> i + 1)))
+            catch_any . should_equal "Any: [1]"
+
+            catch_vector = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch Array handler=handle_panic <|
+                (Panic.throw (Vector.new 1 (i -> i + 1)))
+            catch_vector . should_equal "Any: [1]"
+
+            catch_array = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch Array handler=handle_panic <|
+                (Panic.throw (ArrayList.new))
+            catch_array . should_equal "[]"
 
 main = Test_Suite.run_main spec
