@@ -359,7 +359,7 @@
 //!     .use_auto_layout()
 //!     .set_column_count(2)
 //!     .set_children_alignment_right();
-//! root.first_column().set_size_x(10.0);
+//! root.first_column().set_size(10.0);
 //! node1.set_size((2.0, 2.0));
 //! node2.set_size((2.0, 2.0));
 //! node3.set_size((2.0, 2.0));
@@ -1459,8 +1459,8 @@ pub mod dirty {
 // === Hierarchy FRP ===
 // =====================
 
-
-// FIXME: maybe we should hide these things somehow, they are too easy accessible.
+// FIXME[WD]: We should probably not expose these FRP endpoints publicly. They are tricky to use
+//   (see the #WARNING doc section).
 
 /// FRP endpoints relate to display object hierarchy modification.
 ///
@@ -2653,7 +2653,7 @@ macro_rules! gen_column_or_row_builder_props {
     ($($name:ident : $ty:ty),*) => { paste! { $(
         /// Modify the property of the column/row.
         #[enso_shapely::gen(update, set)]
-        pub fn [<modify_ $name>](&self, f: impl FnOnce(&mut $ty)) {
+        pub fn [<modify_ $name>](&self, f: impl FnOnce(&mut $ty)) -> &Self {
             self.modify(|t| f(&mut t.$name))
         }
     )*}};
@@ -2662,9 +2662,10 @@ macro_rules! gen_column_or_row_builder_props {
 impl<Dim> ColumnOrRowRef<Dim>
 where Dim: ColumnOrRowAccessor
 {
-    fn modify(&self, f: impl FnOnce(&mut ColumnOrRow)) {
+    fn modify(&self, f: impl FnOnce(&mut ColumnOrRow)) -> &Self {
         self.instance
             .modify_auto_layout(|l| f(l.unchecked_column_or_row_mut(Dim::default(), self.index)));
+        self
     }
 
     gen_column_or_row_builder_props!(
@@ -2674,6 +2675,16 @@ where Dim: ColumnOrRowAccessor
         grow_factor: Option<f32>,
         shrink_factor: Option<f32>
     );
+
+    /// Allow the object to grow. This has the same effect as [`set_grow_factor(1.0)`].
+    fn allow_grow(&self) -> &Self {
+        self.set_grow_factor(1.0)
+    }
+
+    /// Allow the object to shrink. This has the same effect as [`set_shrink_factor(1.0)`].
+    fn allow_shrink(&self) -> &Self {
+        self.set_shrink_factor(1.0)
+    }
 }
 
 
@@ -2804,7 +2815,7 @@ impl InstanceDef {
 macro_rules! gen_layout_object_builder_alignment {
     ([$([$name:ident $x:ident $y:ident])*]) => { paste! { $(
         /// Set the default alignment of the children of this display object.
-        fn [<align_children_ $name>](&self) {
+        fn [<set_children_alignment_ $name>](&self) {
             self.display_object().def.set_children_alignment(alignment::Dim2::$name())
         }
     )*}}
@@ -3373,7 +3384,6 @@ impl Model {
                 let child_can_grow = child.layout.grow_factor.get_dim(x) > 0.0;
                 let child_can_shrink = child.layout.shrink_factor.get_dim(x) > 0.0;
                 if child_can_grow && child_size < column_size_minus_margin {
-                    // FIXME: resolve_pixels_or_default here
                     let size = f32::min(
                         column_size_minus_margin,
                         child.layout.max_size.get_dim(x).resolve_pixels_or_default(),
@@ -3382,7 +3392,6 @@ impl Model {
                 }
                 if let Some(fr) = child.layout.size.get_dim(x).as_fraction() {
                     if fr > Fraction::from(0.0) {
-                        // FIXME: resolve_pixels_or_default here
                         let size = f32::min(
                             column_size_minus_margin,
                             child.layout.max_size.get_dim(x).resolve_pixels_or_default(),
@@ -3391,7 +3400,6 @@ impl Model {
                     }
                 }
                 if child_can_shrink && child_size > column_size_minus_margin {
-                    // FIXME: resolve_pixels_or_default here
                     let size = f32::max(
                         column_size_minus_margin,
                         child.layout.min_size.get_dim(x).resolve_pixels_or_default(),
