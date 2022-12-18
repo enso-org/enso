@@ -342,11 +342,7 @@ impl Searcher {
         let graph = &model.view.graph().frp;
 
         frp::extend! { network
-            eval graph.node_expression_set ([model]((changed_node, expr)) {
-                if *changed_node == input_view {
-                    model.input_changed(expr);
-                }
-            });
+            eval model.view.searcher_input_changed ((expr) model.input_changed(expr));
 
             action_list_changed <- source::<()>();
             select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));
