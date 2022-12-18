@@ -32,6 +32,17 @@ use ide_view_graph_editor::NodeSource;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// A time which must pass since last change of expression of node which is the searcher input
+/// to send `searcher_input_changed` event. The delay ensures we don't needlessly update Component
+/// Browser when user is quickly typing in the expression input.
+const INPUT_CHANGE_DELAY_MS: i32 = 200;
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -86,6 +97,11 @@ ensogl::define_endpoints! {
 
     Output {
         searcher                       (Option<SearcherParams>),
+        /// The searcher input has changed and the Component Browser content should be refreshed.
+        /// Is **not** emitted with every graph's node expression change, only when
+        /// [`INPUT_CHANGE_DELAY_MS`] passes since last change, so we won't needlessly update the
+        /// Component Browser when user is quickly typing in the input.
+        searcher_input_changed         (ImString),
         is_searcher_opened             (bool),
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
@@ -461,6 +477,7 @@ impl View {
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
+        let input_change_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -585,6 +602,13 @@ impl View {
             frp.source.searcher <+ existing_node_edited.map(
                 |&node| Some(SearcherParams::new_for_edited_node(node))
             );
+            searcher_input_change_opt <- graph.node_expression_set.map2(&frp.searcher, |(node_id, expr), searcher| {
+                (searcher.as_ref()?.input == *node_id).then(|| expr.clone_ref())
+            });
+            searcher_input_change <- searcher_input_change_opt.filter_map(|expr| expr.clone());
+            input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
+            frp.source.searcher_input_changed <+ searcher_input_change.sample(&input_change_delay.on_expired);
+
 
 
             // === Searcher Position and Visibility ===
