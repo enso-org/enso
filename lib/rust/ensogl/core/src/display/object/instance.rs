@@ -69,6 +69,7 @@
 //! // │       ▲
 //! // ╰───────╯
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! root.set_size_x(10.0);
@@ -115,6 +116,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -144,6 +146,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -182,6 +185,7 @@
 //! // ╰─────────╯
 //! //   10
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! root.set_size((10.0, 10.0));
@@ -203,6 +207,7 @@
 //! // ║ ╰─────────────┴─────────────╯              ║
 //! // ╚════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -225,6 +230,7 @@
 //! // ║ ╰─────────────┴────────────────────────╯  ║
 //! // ╚═══════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -275,6 +281,7 @@
 //! // ║ ╰─────────────┴─────────────────────────╯  ║
 //! // ╚════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -302,6 +309,7 @@
 //! // ╚═════════════════════════════════════════════════════════════════════════╝
 //! //          2                4                 2                4             
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -339,6 +347,7 @@
 //! // ╚═════════════════════════════════════════╝
 //! //           10                 10         
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -374,6 +383,7 @@
 //! // ║ ╰─────────────┴─────────────╯                ║
 //! // ╚══════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new().set_size_x(20.0);
 //! let node1 = root.new_child();
@@ -410,6 +420,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -462,6 +473,7 @@
 //! // ║ ╰─────────────┴─────────────╯ ║
 //! // ╚═══════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -499,6 +511,7 @@
 //! // ║ ╰───────────────┴───────────────╯ ║
 //! // ╚═══════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -532,6 +545,7 @@
 //! // ║ ╰───────────────┴───────────┴───────────────╯ ║
 //! // ╚═══════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -561,6 +575,7 @@
 //! // ║ ╰────────────┴─────────────────────┴───────────╯ ║
 //! // ╚══════════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -595,6 +610,7 @@
 //! // ╚════════════════════════════════════╝
 //! //                  10
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -636,6 +652,7 @@
 //! // ╚═══════════════════════════════════════════════════════════════╝
 //! //                                20
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -666,6 +683,7 @@
 //! // ╚═════════════════════════════════════════════════════════╝
 //! //                             12
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new()
 //!     .use_auto_layout()
@@ -694,6 +712,7 @@
 //! // ║ ╰────────────┴─────────────┴─────────────╯           1fr          ║
 //! // ╚═══════════════════════════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -714,6 +733,7 @@
 //! // ║    1fr      ╰─────────────┴─────────────┴─────────────╯      1fr    ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -734,6 +754,7 @@
 //! // ║         1fr            ╰─────────────┴─────────────┴─────────────╯  ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -754,6 +775,7 @@
 //! // ║ ╰───────────────────┴─────────────────────────┴───────────────────╯ ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -774,6 +796,7 @@
 //! // ║ ╰─────────────────────┴─────────────────────┴─────────────────────╯ ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -794,6 +817,7 @@
 //! // ║ ╰──────────────────────┴───────────────────┴──────────────────────╯ ║
 //! // ╚═════════════════════════════════════════════════════════════════════╝
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -838,6 +862,7 @@
 //! // ╚═══════════════════════════════════════════════════╝
 //! //        2.0           2.0           2.0              
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -900,6 +925,7 @@
 //! // │  ╰───────────────╯  │
 //! // ╰─────────────────────╯
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -927,6 +953,7 @@
 //! //   ╱        │        │           
 //! // ◎          ╰────────╯
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -960,6 +987,7 @@
 //! // ╚═════════════════════════════════════════════════════════════════╝
 //!
 //!
+//! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! let node1 = root.new_child();
@@ -3120,7 +3148,7 @@ impl Model {
     where
         Dim: ResolutionDim,
     {
-        let resolved_columns = unresolved_columns
+        let columns = unresolved_columns
             .into_iter()
             .map(|column| {
                 let children = column.children;
@@ -3180,10 +3208,26 @@ impl Model {
             .collect_vec();
 
         if opts.reversed_columns_and_rows.get_dim(x) {
-            resolved_columns.reversed()
+            columns.reversed()
         } else {
-            resolved_columns
+            columns
         }
+    }
+
+    fn shrink_or_grow_coeff(f: impl Fn(f32, f32) -> f32, total_factor: f32, space: f32) -> f32 {
+        if total_factor > 0.0 {
+            f(0.0, space / total_factor)
+        } else {
+            0.0
+        }
+    }
+
+    fn shrink_coeff(total_factor: f32, space: f32) -> f32 {
+        Self::shrink_or_grow_coeff(f32::min, total_factor, space)
+    }
+
+    fn grow_coeff(total_factor: f32, space: f32) -> f32 {
+        Self::shrink_or_grow_coeff(f32::max, total_factor, space)
     }
 
     /// # Meaning of the function parameters.
@@ -3198,24 +3242,23 @@ impl Model {
         }
 
         let unresolved_columns = self.divide_children_to_columns(x, opts, pass, &children);
-        let mut resolved_columns = self.resolve_columns(x, opts, pass, unresolved_columns);
-        println!("resolved_columns: {:#?}", resolved_columns);
+        let mut columns = self.resolve_columns(x, opts, pass, unresolved_columns);
 
 
         // === Compute the static size (no grow, shrink, nor fraction yet) ===
 
         let gap_def = opts.gap.get_dim(x);
         let padding_def = self.layout.padding.get_dim(x);
-        let gap_count = (resolved_columns.len() - 1) as f32;
+        let gap_count = (columns.len() - 1) as f32;
         let static_padding = padding_def.resolve_pixels_or_default().total();
         let static_gap = gap_count * gap_def.resolve_pixels_or_default();
         let self_size = self.layout.computed_size.get_dim(x);
-        let mut space_left_with_static_sizes = self_size - static_padding - static_gap;
+        let mut space_left = self_size - static_padding - static_gap;
         let mut total_grow_factor = 0.0;
         let mut total_shrink_factor = 0.0;
         let mut total_fr = Fraction::default();
-        for column in &resolved_columns {
-            space_left_with_static_sizes -= column.computed_size;
+        for column in &columns {
+            space_left -= column.computed_size;
             total_grow_factor += column.grow_factor;
             total_shrink_factor += column.shrink_factor;
             total_fr += column.max_child_fr_size;
@@ -3223,42 +3266,33 @@ impl Model {
         total_fr += padding_def.start.as_fraction_or_default();
         total_fr += padding_def.end.as_fraction_or_default();
         total_fr += gap_def.as_fraction_or_default() * gap_count;
-        if self.layout.size.get_dim(x).is_hug() && space_left_with_static_sizes < 0.0 {
-            self.layout.computed_size.update_dim(x, |t| t - space_left_with_static_sizes);
-            space_left_with_static_sizes = 0.0;
+        if self.layout.size.get_dim(x).is_hug() && space_left < 0.0 {
+            self.layout.computed_size.update_dim(x, |t| t - space_left);
+            space_left = 0.0;
         }
 
 
         // === Resolve grow and shrink ===
 
-        // FIXME: here we are computing fraction paddings before children grow. See the commented
-        // test.
-        println!("space_left_with_static_sizes: {}", space_left_with_static_sizes);
         let self_size = self.layout.computed_size.get_dim(x);
-        let padding_static = padding_def.resolve_pixels_or_default(); //self_size, space_left_with_static_sizes, total_fr);
-        let gap_static = gap_def.resolve_pixels_or_default(); //self_size, space_left_with_static_sizes, total_fr);
+        let padding_static = padding_def.resolve_pixels_or_default();
+        let gap_static = gap_def.resolve_pixels_or_default();
         let total_gap_static = gap_count * gap_static;
-        let grow_coeff = if total_grow_factor > 0.0 {
-            f32::max(0.0, space_left_with_static_sizes / total_grow_factor)
-        } else {
-            0.0
-        };
-        let shrink_coeff = if total_shrink_factor > 0.0 {
-            f32::min(0.0, space_left_with_static_sizes / total_shrink_factor)
-        } else {
-            0.0
-        };
-        let mut space_left = self_size - padding_static.total() - total_gap_static;
-        for column in &mut resolved_columns {
+        let shrink_coeff = Self::shrink_coeff(total_shrink_factor, space_left);
+        space_left -= padding_static.total() + total_gap_static;
+
+        let sorted_columns = columns.iter_mut().sorted_by(|a, b| a.max_size.total_cmp(&b.max_size));
+        for column in sorted_columns {
+            let grow_coeff = Self::grow_coeff(total_grow_factor, space_left);
             let grow_size = column.grow_factor * grow_coeff;
             let shrink_size = column.shrink_factor * shrink_coeff;
             let column_size = column.computed_size + grow_size + shrink_size;
             let column_size = f32::max(column.min_size, column_size);
             let column_size = f32::min(column.max_size, column_size);
+            space_left -= column_size - column.computed_size;
+            total_grow_factor -= column.grow_factor;
             column.computed_size = column_size;
-            space_left -= column_size;
         }
-        println!("space_left: {}", space_left);
 
 
         // === Resolve fraction units and position the children ===
@@ -3266,7 +3300,7 @@ impl Model {
         let padding = padding_def.resolve(self_size, space_left, total_fr);
         let gap = gap_def.resolve(self_size, space_left, total_fr);
         let mut pos_x = padding.start;
-        for column in &resolved_columns {
+        for column in &columns {
             let fr_diff = if total_fr > Fraction::from(0.0) {
                 space_left * column.max_child_fr_size.unchecked_raw() / total_fr.unchecked_raw()
             } else {
@@ -4667,6 +4701,35 @@ mod layout_tests {
             .assert_node1_computed_size(0.0, 1.0)
             .assert_node2_computed_size(4.0, 2.0)
             .assert_node3_computed_size(3.0, 3.0)
+            .assert_root_position(0.0, 0.0)
+            .assert_node1_position(0.0, 0.0)
+            .assert_node2_position(0.0, 0.0)
+            .assert_node3_position(4.0, 0.0);
+    }
+
+    /// ```text
+    /// ╔ root ═══════════════════════════════════════════╗
+    /// ║ ╭──── ▶ ◀ ────┬────── ▶ ◀ ───┬────── ▶ ◀ ─────╮ ║
+    /// ║ │  ╭ node1 ╮  ┆  ╭ node2 ┬─▷┤┆  ╭ node3 ┬────▷│ ║
+    /// ║ │  │       │  ┆  │       │   ┆  │       │     ▼ ▼
+    /// ║ │  │       │  ┆  │       │   ┆  │       │     ▲ ▲
+    /// ║ │  ╰─ ▶ ◀ ─╯  ┆  ╰───────╯   ┆  ╰───────╯     │ ║
+    /// ║ ╰─────────────┴──────────────┴────────────────╯ ║
+    /// ╚═════════════════════════════════════════════════╝
+    /// ```
+    #[test]
+    fn test_horizontal_layout_with_children_with_mixed_grow() {
+        let test = TestFlatChildren3::new();
+        test.root.use_auto_layout();
+        test.root.set_size_x_hug(10.0);
+        test.node1.set_size_hug_y(1.0);
+        test.node2.set_size((2.0, 2.0)).allow_grow_x().set_max_size_x(4.0);
+        test.node3.set_size((2.0, 3.0)).allow_grow_x();
+        test.run()
+            .assert_root_computed_size(10.0, 3.0)
+            .assert_node1_computed_size(0.0, 1.0)
+            .assert_node2_computed_size(4.0, 2.0)
+            .assert_node3_computed_size(6.0, 3.0)
             .assert_root_position(0.0, 0.0)
             .assert_node1_position(0.0, 0.0)
             .assert_node2_position(0.0, 0.0)
