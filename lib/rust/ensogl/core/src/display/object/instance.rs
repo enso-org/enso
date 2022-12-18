@@ -703,7 +703,7 @@
 //! ```
 //!
 //! For convenience, there are several content justification functions defined. To get the same
-//! result as above, you can simply use the [`justify_content_x_space_around`] function instead.
+//! result as above, you can simply use the [`justify_content_space_around_x`] function instead.
 //! There are also other helper functions defined:
 //!
 //! ### Justify content left.
@@ -724,7 +724,7 @@
 //! node1.set_size((2.0, 1.0));
 //! node2.set_size((2.0, 1.0));
 //! node3.set_size((2.0, 1.0));
-//! root.use_auto_layout().set_size_x(8.0).justify_content_x_start();
+//! root.use_auto_layout().set_size_x(8.0).justify_content_left();
 //! ```
 //!
 //! ### Justify content center.
@@ -745,7 +745,7 @@
 //! node1.set_size((2.0, 1.0));
 //! node2.set_size((2.0, 1.0));
 //! node3.set_size((2.0, 1.0));
-//! root.use_auto_layout().set_size_x(12.0).justify_content_x_center();
+//! root.use_auto_layout().set_size_x(12.0).justify_content_center_x();
 //! ```
 //!
 //! ### Justify content right.
@@ -766,7 +766,7 @@
 //! node1.set_size((2.0, 1.0));
 //! node2.set_size((2.0, 1.0));
 //! node3.set_size((2.0, 1.0));
-//! root.use_auto_layout().set_size_x(12.0).justify_content_x_right();
+//! root.use_auto_layout().set_size_x(12.0).justify_content_right();
 //! ```
 //!
 //! ### Justify content space between.
@@ -787,7 +787,7 @@
 //! node1.set_size((2.0, 1.0));
 //! node2.set_size((2.0, 1.0));
 //! node3.set_size((2.0, 1.0));
-//! root.use_auto_layout().justify_content_x_space_between();
+//! root.use_auto_layout().justify_content_space_between_x();
 //! ```
 //!
 //! ### Justify content space around.
@@ -808,7 +808,7 @@
 //! node1.set_size((2.0, 1.0));
 //! node2.set_size((2.0, 1.0));
 //! node3.set_size((2.0, 1.0));
-//! root.use_auto_layout().justify_content_x_space_around();
+//! root.use_auto_layout().justify_content_space_around_x();
 //! ```
 //!
 //! ### Justify content space evenly.
@@ -829,7 +829,7 @@
 //! node1.set_size((2.0, 1.0));
 //! node2.set_size((2.0, 1.0));
 //! node3.set_size((2.0, 1.0));
-//! root.use_auto_layout().justify_content_x_space_evenly();
+//! root.use_auto_layout().justify_content_space_evenly_x();
 //! ```
 //!
 //!
@@ -874,7 +874,7 @@
 //! node1.set_size((1.0, 2.0));
 //! node2.set_size((2.0, 3.0));
 //! node3.set_size((3.0, 4.0));
-//! root.use_auto_layout().justify_content_x_space_evenly();
+//! root.use_auto_layout().justify_content_space_evenly_x();
 //! ```
 //!
 //! ## Future Grid layout extensions.
@@ -2308,12 +2308,62 @@ macro_rules! gen_margin_or_padding_props {
     )*}}
 }
 
+macro_rules! gen_content_justification {
+    ($axis:ident, $name:ident, $start:expr, $end: expr, $gap:expr) => {
+        paste! {
+            /// Content justification. See docs of this module to learn more and see examples.
+            fn [<justify_content_ $name>](&self) -> &Self {
+                self.display_object().def.modify_padding(|t| {
+                    t.$axis.start = $start.into();
+                    t.$axis.end = $end.into();
+                });
+                self.[<set_gap_ $axis>]($gap);
+                self
+            }
+        }
+    };
+}
+
 impl<T: Object + ?Sized> LayoutOps for T {}
 /// Display object operations related to layout and size.
 pub trait LayoutOps: Object {
     crate::with_alignment_opt_dim2_named_matrix_sparse!(gen_alignment_setters);
     crate::with_display_object_side_spacing_matrix!(gen_margin_or_padding_props[margin]);
     crate::with_display_object_side_spacing_matrix!(gen_margin_or_padding_props[padding]);
+
+    gen_content_justification!(x, left, 0.0, 1.fr(), 0.0);
+    gen_content_justification!(x, center_x, 1.fr(), 1.fr(), 0.0);
+    gen_content_justification!(x, right, 1.fr(), 0.0, 0.0);
+    gen_content_justification!(x, space_between_x, 0.0, 0.0, 1.fr());
+    gen_content_justification!(x, space_around_x, 0.5.fr(), 0.5.fr(), 1.fr());
+    gen_content_justification!(x, space_evenly_x, 1.fr(), 1.fr(), 1.fr());
+
+    gen_content_justification!(y, bottom, 0.0, 1.fr(), 0.0);
+    gen_content_justification!(y, center_y, 1.fr(), 1.fr(), 0.0);
+    gen_content_justification!(y, top, 1.fr(), 0.0, 0.0);
+    gen_content_justification!(y, space_between_y, 0.0, 0.0, 1.fr());
+    gen_content_justification!(y, space_around_y, 0.5.fr(), 0.5.fr(), 1.fr());
+    gen_content_justification!(y, space_evenly_y, 1.fr(), 1.fr(), 1.fr());
+
+    /// Content justification. See docs of this module to learn more and see examples.
+    fn justify_content_center(&self) -> &Self {
+        self.justify_content_center_x().justify_content_center_y()
+    }
+
+    /// Content justification. See docs of this module to learn more and see examples.
+    fn justify_content_space_between(&self) -> &Self {
+        self.justify_content_space_between_x().justify_content_space_between_y()
+    }
+
+    /// Content justification. See docs of this module to learn more and see examples.
+    fn justify_content_space_around(&self) -> &Self {
+        self.justify_content_space_around_x().justify_content_space_around_y()
+    }
+
+    /// Content justification. See docs of this module to learn more and see examples.
+    fn justify_content_space_evenly(&self) -> &Self {
+        self.justify_content_space_evenly_x().justify_content_space_evenly_y()
+    }
 
     /// The computed size of the object, in pixels. This value will be updated during display object
     /// refresh cycle, which happens once per frame.
