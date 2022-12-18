@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.error;
+package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -17,14 +17,14 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the payload check against the expected panic type. */
-@NodeInfo(shortName = "IsPayloadOfPanicTypeNode")
-public abstract class IsPayloadOfPanicTypeNode extends Node {
+@NodeInfo(shortName = "IsValueOfTypeNode")
+public abstract class IsValueOfTypeNode extends Node {
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
   private @Child TypeOfNode typeOfNode = TypeOfNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  public static IsPayloadOfPanicTypeNode build() {
-    return IsPayloadOfPanicTypeNodeGen.create();
+  public static IsValueOfTypeNode build() {
+    return IsValueOfTypeNodeGen.create();
   }
 
   public abstract boolean execute(Object panicType, Object payload);

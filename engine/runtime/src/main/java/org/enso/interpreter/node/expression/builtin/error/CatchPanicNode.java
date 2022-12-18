@@ -15,6 +15,7 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -29,8 +30,7 @@ import org.enso.interpreter.runtime.state.State;
 public abstract class CatchPanicNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
-  private @Child IsPayloadOfPanicTypeNode isPayloadOfPanicTypeNode =
-      IsPayloadOfPanicTypeNode.build();
+  private @Child IsValueOfTypeNode isValueOfTypeNode = IsValueOfTypeNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   CatchPanicNode() {
@@ -80,7 +80,7 @@ public abstract class CatchPanicNode extends Node {
       AbstractTruffleException originalException,
       InteropLibrary interopLibrary) {
 
-    if (profile.profile(isPayloadOfPanicTypeNode.execute(panicType, payload))) {
+    if (profile.profile(isValueOfTypeNode.execute(panicType, payload))) {
       Builtins builtins = EnsoContext.get(this).getBuiltins();
       Atom caughtPanic =
           builtins.caughtPanic().getUniqueConstructor().newInstance(payload, originalException);
