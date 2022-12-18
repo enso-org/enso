@@ -358,7 +358,7 @@
 //! root
 //!     .use_auto_layout()
 //!     .set_column_count(2)
-//!     .set_children_alignment_right();
+//!     .set_children_alignment_right_bottom();
 //! root.first_column().set_size(10.0);
 //! node1.set_size((2.0, 2.0));
 //! node2.set_size((2.0, 2.0));
@@ -394,7 +394,7 @@
 //! root
 //!     .use_auto_layout()
 //!     .set_column_count(2)
-//!     .set_children_alignment_right();
+//!     .set_children_alignment_right_bottom();
 //! node1.set_size((2.0, 2.0));
 //! node2.set_size((2.0, 2.0));
 //! node3.set_size((2.0, 2.0));
@@ -2677,12 +2677,12 @@ where Dim: ColumnOrRowAccessor
     );
 
     /// Allow the object to grow. This has the same effect as [`set_grow_factor(1.0)`].
-    fn allow_grow(&self) -> &Self {
+    pub fn allow_grow(&self) -> &Self {
         self.set_grow_factor(1.0)
     }
 
     /// Allow the object to shrink. This has the same effect as [`set_shrink_factor(1.0)`].
-    fn allow_shrink(&self) -> &Self {
+    pub fn allow_shrink(&self) -> &Self {
         self.set_shrink_factor(1.0)
     }
 }
