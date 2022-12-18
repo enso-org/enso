@@ -68,7 +68,7 @@ public final class Vector implements TruffleObject {
 
   @Builtin.Method(name = "slice", description = "Returns a slice of this Vector.")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   public final Vector slice(long start, long end, InteropLibrary interop)
       throws UnsupportedMessageException {
     long this_length = length(interop);
@@ -88,7 +88,7 @@ public final class Vector implements TruffleObject {
 
   @Builtin.Method(description = "Returns the length of this Vector.")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   public final long length(InteropLibrary interop) throws UnsupportedMessageException {
     return interop.getArraySize(storage);
   }

@@ -44,6 +44,8 @@ public abstract class CatchTypeBranchNode extends BranchNode {
     return CatchTypeBranchNodeGen.create(tpe, functionNode);
   }
 
+  public abstract void execute(VirtualFrame frame, Object state, Object target);
+
   @Specialization(guards = "isAnyExpectedType()")
   public void doAny(VirtualFrame frame, Object state, Object value) {
     accept(frame, state, new Object[] {value});
