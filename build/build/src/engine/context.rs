@@ -89,7 +89,6 @@ impl RunContext {
 
         // Other programs.
         ide_ci::programs::Git.require_present().await?;
-        ide_ci::programs::Go.require_present().await?;
         ide_ci::programs::Cargo.require_present().await?;
         ide_ci::programs::Node.require_present().await?;
         ide_ci::programs::Npm.require_present().await?;
