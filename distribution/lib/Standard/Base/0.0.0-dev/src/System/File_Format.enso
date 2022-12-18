@@ -71,9 +71,9 @@ type Plain_Text_Format
     ## If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Plain_Text_Format | Nothing
     for_web content_type _ =
-        parts = content_type.split ";" . map (x->x.trim)
+        parts = content_type.split ";" . map .trim
         case parts.first of
-            "text/plain" -
+            "text/plain" ->
                 charset_part = parts.find (x->x.starts_with "charset=")
                 encoding = if charset_part.is_error then Encoding.utf_8 else
                     parsed = Encoding.from_name (charset_part.drop 8)

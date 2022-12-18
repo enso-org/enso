@@ -58,7 +58,7 @@ type Delimited_Format
 
     ## If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Delimited_Format | Nothing
-    for_web mime_type _ =
+    for_web content_type _ =
         parts = content_type.split ";" . map (x->x.trim)
 
         charset_part = parts.find (x->x.starts_with "charset=")
@@ -66,7 +66,7 @@ type Delimited_Format
             parsed = Encoding.from_name (charset_part.drop 8)
             if parsed.is_error then Encoding.utf_8 else parsed
 
-        case mime_type of
+        case parts.first of
             "text/csv" -> Delimited_Format.Delimited ',' encoding
             "text/tab-separated-values" -> Delimited_Format.Delimited '\t' encoding
             _ -> Nothing

@@ -1103,19 +1103,6 @@ type Column
     to_table self = Table.Value self.java_column.toTable
 
     ## UNSTABLE
-       ADVANCED
-
-       Shows a JSON serialization of a truncated version of this column, for the
-       benefit of visualization in the IDE.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        size = ['length', self.length]
-        name = ['name', self.name]
-        max_data = 100
-        data = ['data', self.to_vector.take (First max_data)]
-        JS_Object.from_pairs [size, name, data] . to_text
-
-    ## UNSTABLE
 
        Sorts the column according to the specified rules.
 

@@ -176,23 +176,6 @@ type Table
             JS_Object.from_pairs vals_kv
         rows
 
-    ## UNSTABLE
-       ADVANCED
-
-       Returns a Text used to display this table in the IDE by default.
-
-       Returns a JSON object containing useful metadata and previews of column
-       values.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        max_size = 10
-        row_count = ['number_of_rows', self.row_count]
-        cols = self.columns.map c->
-            name = c.name
-            items = c.to_vector.take (First max_size)
-            JS_Object.from_pairs [['name', name], ['data', items]]
-        JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
-
     ## Returns the column with the given name.
 
        Arguments:

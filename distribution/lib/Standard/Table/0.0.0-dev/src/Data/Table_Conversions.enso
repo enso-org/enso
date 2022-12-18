@@ -49,10 +49,10 @@ Table.from_json value fields=Nothing =
 
     get_fields v = case v of
         _ : JS_Object -> v.field_names
-        Nothing -> "Value"
-        _ : Number -> "Value"
-        _ : Boolean -> "Value"
-        _ : Text -> "Value"
+        Nothing -> ["Value"]
+        _ : Number -> ["Value"]
+        _ : Boolean -> ["Value"]
+        _ : Text -> ["Value"]
         _ -> Error.throw (Invalid_JSON_Format.Error v "Invalid item for Table.from_json.")
 
     get_value v field = case v of
@@ -70,12 +70,24 @@ Table.from_json value fields=Nothing =
             Table.new [["Name", field_names], ["Value", values]]
         _ : Array -> Table.from_json (Vector.from_polyglot_array value) fields
         _ : Vector ->
-            column_map = value.fold_with_index Map.empty i->v->
-                field_names = fields.if_nothing get_fields v
-                field_names.each f->
-                    data = Map.get f (Vector.new_builder value.length)
+            len = value.length
+
+            ## For every record, get the values into a Map.
+            column_map = value.fold_with_index Map.empty current->i->v->
+                field_names = fields.if_nothing (get_fields v)
+                field_names.fold current c->f->
+                    data = c.get f (Vector.new_builder len)
                     data.length.up_to i . each _-> data.append Nothing
                     data.append (get_value v f)
+                    c.insert f data
+
             used_fields = fields.if_nothing column_map.keys
-            Table.new used_fields (used_fields.map f-> column_map.get f . to_vector)
+
+            ## Convert Builders to Vectors and fill as needed.
+            used_values = used_fields.map f->
+                data = column_map.get f (Vector.new_builder len)
+                data.length.up_to len . each _-> data.append Nothing
+                data.to_vector
+
+            Table.new (used_fields.zip used_values)
         _ -> Error.throw (Invalid_JSON_Format.Error value "Invalid value for Table.from_json.")

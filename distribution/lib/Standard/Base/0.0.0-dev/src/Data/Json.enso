@@ -181,27 +181,27 @@ type JS_Object
         _ -> False
 
     ## Render the object for display
-    to_default_visualization_data : Text
-    to_default_visualization_data self = render self
+    render : Text
+    render self max_depth=5 = render self 0 max_depth
 
-render object depth=0 = case object of
+render object depth max_depth = case object of
     _ : JS_Object ->
-        if depth == 5 then '"{...}"' else
+        if depth == max_depth then '"{...}"' else
             keys = object.field_names.take 10
-            children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1))
+            children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1) max_depth)
             '{' + (children.join ", ") + '}'
     _ : Vector ->
-        if depth == 5 then '"[...]"' else
-            children = 0.up_to (10.min object.length) . map i-> render (object.at i) (depth+1)
+        if depth == max_depth then '"[...]"' else
+            children = 0.up_to (10.min object.length) . map i-> render (object.at i) (depth+1) max_depth
             "[" + (children.join ", ") + "]"
     _ : Array ->
         proxy = Array_Proxy.new object.length (i-> make_enso (object.at i))
-        @Tail_Call render (Vector.from_polyglot_array proxy) depth
+        @Tail_Call render (Vector.from_polyglot_array proxy) depth max_depth
     Nothing -> object.to_json
     _ : Text -> object.to_json
     _ : Boolean -> object.to_json
     _ : Number -> object.to_json
-    _ -> @Tail_Call render (JS_Object.Value object) depth
+    _ -> @Tail_Call render (JS_Object.Value object) depth max_depth
 
 make_enso js_object =
     case js_object of

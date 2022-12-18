@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 from Standard.Table import Table, Column
+import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Storage.Storage
 
 import project.Id.Id
@@ -174,6 +175,13 @@ Array.to_default_visualization_data : Text
 Array.to_default_visualization_data self =
     Vector.from_polyglot_array self . to_default_visualization_data
 
+## UNSTABLE
+
+   Transform the vector into text for displaying as part of its default
+   visualization.
+JS_Object.to_default_visualization_data : Text
+JS_Object.to_default_visualization_data self = self.render
+
 ## PRIVATE
 
    Returns all the columns in the table, including indices.
@@ -212,9 +220,66 @@ Table.default_visualization self =
         if cols.contains "x" && cols.contains "y" then Id.scatter_plot else
             Id.table
 
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this table in the IDE by default.
+
+   Returns a JSON object containing useful metadata and previews of column
+   values.
+Table.to_default_visualization_data : Text
+Table.to_default_visualization_data self =
+    max_size = 10
+    row_count = ['number_of_rows', self.row_count]
+    cols = self.columns.map c->
+        name = c.name
+        items = c.to_vector.take (First max_size)
+        JS_Object.from_pairs [['name', name], ['data', items]]
+    JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this Column.
+Column.default_visualization : Id
+Column.default_visualization self = Id.table
+
 ## PRIVATE
 
   Checks if the column stores numbers.
 Column.is_numeric : Boolean
 Column.is_numeric self =
     [Storage.Integer,Storage.Decimal].contains self.storage_type
+
+## UNSTABLE
+   ADVANCED
+
+   Shows a JSON serialization of a truncated version of this column, for the
+   benefit of visualization in the IDE.
+Column.to_default_visualization_data : Text
+Column.to_default_visualization_data self =
+    size = ['length', self.length]
+    name = ['name', self.name]
+    max_data = 100
+    data = ['data', self.to_vector.take (First max_data)]
+    JS_Object.from_pairs [size, name, data] . to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this Row.
+Row.default_visualization : Id
+Row.default_visualization self = Id.table
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this table in the IDE by default.
+
+   Returns a JSON object containing useful metadata and previews of column
+   values.
+Row.to_default_visualization_data : Text
+Row.to_default_visualization_data self =
+    self.to_vector.to_default_visualization_data
