@@ -90,6 +90,8 @@
 //! // ║ ╰───────╯ ║
 //! // ╚═══════════╝
 //!
+//! # use ensogl_core::prelude::*;
+//! # use ensogl_core::display;
 //! let root = display::object::Instance::new();
 //! root.use_auto_layout();
 //! ```
@@ -287,7 +289,7 @@
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
 //! root.use_auto_layout();
-//! root.add_column().allow_grow_x();
+//! root.add_column().allow_grow();
 //! root.set_size_x(30.0);
 //! node1.set_size((10.0, 10.0));
 //! node2.set_size((10.0, 15.0));
@@ -317,8 +319,8 @@
 //! let node3 = root.new_child();
 //! let node4 = root.new_child();
 //! root.use_auto_layout();
-//! root.first_column().set_size_x(2.0);
-//! root.add_column().set_size_x(4.0);
+//! root.first_column().set_size(2.0);
+//! root.add_column().set_size(4.0);
 //! node1.set_size_y(2.0).allow_grow_x();
 //! node2.set_size_y(3.0).allow_grow_x();
 //! node3.set_size_y(2.0).allow_grow_x();
@@ -685,7 +687,8 @@
 //!
 //! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
-//! let root = display::object::Instance::new()
+//! let root = display::object::Instance::new();
+//! root
 //!     .use_auto_layout()
 //!     .set_size_x(12.0)
 //!     .set_padding_left(0.5.fr())
