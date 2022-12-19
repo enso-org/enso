@@ -122,14 +122,14 @@ type JS_Object
     ## PRIVATE
     Value js_object
 
-    ## Get a value for a key of the object.
+    ## Get a value for a key of the object, or a default value if that key is not present.
 
        Arguments:
        - key: The key to get.
-       - other: The value to return if the key is not found.
+       - if_missing: The value to return if the key is not found.
     get : Text -> Any -> JS_Object | Boolean | Number | Nothing | Text | Vector
-    get self key ~other=Nothing =
-        if (has_property self.js_object key) . not then other else
+    get self key ~if_missing=Nothing =
+        if (has_property self.js_object key) . not then if_missing else
             value = get_value self.js_object key
             make_enso value
 
@@ -175,7 +175,8 @@ type JS_Object
         _ : JS_Object ->
             self_keys = self.field_names
             that_keys = that.field_names
-            self_keys.length == that_keys.length && self_keys.all key-> self.get key == that.get key
+            self_keys.length == that_keys.length && self_keys.all key->
+                (this.get key == that.at key).catch No_Such_Key.Error _->False
         _ -> False
 
     ## Render the object for display

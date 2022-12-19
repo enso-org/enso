@@ -35,8 +35,8 @@ type Nothing
 
        Arguments:
        - key: The key to get.
-       - other: The value to return if the key is not found.
+       - if_missing: The value to return if the key is not found.
     get : Text | Integer -> Any -> Nothing
-    get self key ~other=Nothing =
+    get self key ~if_missing=Nothing =
         _ = [key]
-        other
+        if_missing

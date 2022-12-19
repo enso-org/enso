@@ -173,11 +173,11 @@ type Vector a
        - index: The location in the vector to get the element from. The index is
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
-       - other: The value to return if the index is out of bounds.
+       - if_missing: The value to return if the index is out of bounds.
     get : Integer -> Any -> Any
-    get self index ~other=Nothing =
+    get self index ~if_missing=Nothing =
         len = self.length
-        if index < -len || index >= len then other else
+        if index < -len || index >= len then if_missing else
             self.at index
 
     ## Combines all the elements of the vector, by iteratively applying the
