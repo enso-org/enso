@@ -10,6 +10,9 @@ use crate::presenter::graph::ViewNodeId;
 use enso_frp as frp;
 use ide_view as view;
 use ide_view::project::SearcherParams;
+use model::module::NotificationKind;
+use model::project::Notification;
+use model::project::VcsStatus;
 
 
 
@@ -171,11 +174,18 @@ impl Model {
 
     fn save_project_snapshot(&self) {
         let controller = self.controller.clone_ref();
+        let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.save_project_snapshot().await {
-                error!("Error while saving module: {err}");
+                error!("Error while saving project snapshot: {err}");
+            } else {
+                breadcrumbs.set_project_changed(false);
             }
         })
+    }
+
+    fn set_project_changed(&self, changed: bool) {
+        self.view.graph().model.breadcrumbs.set_project_changed(changed);
     }
 
     fn execution_context_interrupt(&self) {
@@ -301,13 +311,31 @@ impl Project {
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, notifications, |notification, model| {
             info!("Processing notification {notification:?}");
-            let message = match notification {
-                model::project::Notification::ConnectionLost(_) =>
-                    crate::BACKEND_DISCONNECTED_MESSAGE,
+            match notification {
+                Notification::ConnectionLost(_) => {
+                    let message = crate::BACKEND_DISCONNECTED_MESSAGE;
+                    let message = view::status_bar::event::Label::from(message);
+                    model.status_bar.add_event(message);
+                }
+                Notification::VcsStatusChanged(VcsStatus::Dirty) => {
+                    model.set_project_changed(true);
+                }
+                Notification::VcsStatusChanged(VcsStatus::Clean) => {
+                    model.set_project_changed(false);
+                }
             };
-            let message = view::status_bar::event::Label::from(message);
-            model.status_bar.add_event(message);
             std::future::ready(())
+        });
+
+        let notifications = self.model.module_model.subscribe();
+        let weak = Rc::downgrade(&self.model);
+        spawn_stream_handler(weak, notifications, move |notification, model| {
+            match notification.kind {
+                NotificationKind::Invalidate
+                | NotificationKind::CodeChanged { .. }
+                | NotificationKind::MetadataChanged => model.set_project_changed(true),
+            }
+            futures::future::ready(())
         });
         self
     }
