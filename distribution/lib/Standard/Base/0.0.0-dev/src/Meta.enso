@@ -17,6 +17,9 @@ import project.Polyglot.Java
 import project.Error.Error as Base_Error
 import project.Polyglot.Polyglot as Base_Polyglot
 
+import project.Metadata.Display
+import project.Metadata.Widget
+
 from project.Data.Boolean import Boolean, True, False
 
 type Atom
@@ -300,7 +303,8 @@ Meta.get_annotation : Any -> Text -> Text -> Any | Nothing
 Meta.get_annotation target method_name parameter_name =
     mock_table = if (target.to_text.contains "org.enso.table.data.table.Table@").not then Nothing else case method_name of
         "at" -> case parameter_name of
-            "selector" -> target.columns.map .name
+            "selector" ->
+                Widget.Single_Choice display=Display.Always values=(target.columns.map .name)
             _ -> Nothing
         _ -> Nothing
 

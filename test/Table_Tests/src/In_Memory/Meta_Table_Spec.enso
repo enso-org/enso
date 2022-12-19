@@ -11,6 +11,8 @@ from Standard.Table.Data.Storage import Storage
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column, Floating_Point_Grouping, Invalid_Value_Type
 
+import Standard.Base.Metadata.Widget
+import Standard.Base.Metadata.Display
 import Standard.Visualization
 
 from Standard.Database import Database, SQLite, In_Memory
@@ -28,7 +30,14 @@ spec =
             texts = ["texts", ["foo", "foo", "bar", "baz", "spam"]]
             table = Table.new [bools, texts]
             dynamic_drop_down = Meta.get_annotation table "at" "selector"
-            dynamic_drop_down . should_equal [ "bools", "texts" ]
+            case dynamic_drop_down of
+                Widget.Single_Choice arr n a b1 b2 ->
+                    arr . should_equal [ "bools", "texts" ]
+                    n . should_equal Nothing
+                    a . should_equal Display.Always
+                    b1 . should_equal False
+                    b2 . should_equal True
+                _ -> Test.fail "Unexpected type returned " + dynamic_drop_down.to_text
 
         Test.specify "find bools and two texts" <|
             bools = ["bools", [False, False, True]]
@@ -36,6 +45,13 @@ spec =
             texts2 = ["texts2", ["baz", "quux", "spam"]]
             table = Table.new [bools, texts1, texts2]
             dynamic_drop_down = Meta.get_annotation table "at" "selector"
-            dynamic_drop_down . should_equal [ "bools", "texts1", "texts2" ]
+            case dynamic_drop_down of
+                Widget.Single_Choice arr n a b1 b2 ->
+                    arr . should_equal [ "bools", "texts1", "texts2" ]
+                    n . should_equal Nothing
+                    a . should_equal Display.Always
+                    b1 . should_equal False
+                    b2 . should_equal True
+                _ -> Test.fail "Unexpected type returned " + dynamic_drop_down.to_text
 
 main = Test_Suite.run_main spec
