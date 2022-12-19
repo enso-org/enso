@@ -26,7 +26,8 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * Benchmarks for `Any.==` method.
+ * Benchmarks for `Any.==` method. This benchmark takes two vectors as input, and compares every
+ * element with `==`.
  */
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -37,10 +38,18 @@ import org.openjdk.jmh.infra.Blackhole;
 public class EqualsBenchmarks {
 
   private static final int primitiveVectorSize = 4_000;
+  /**
+   * Maximum length of randomly generated strings.
+   */
   private static final int maxStringSize = 20;
+  /**
+   * Maximum depth of a tree (Node type). Every Node can have up to 5 children.
+   */
   private static final int maxTreeDepth = 4;
+  /**
+   * Size of the vector of trees (Node type).
+   */
   private static final int treeVectorSize = 500;
-  private Set<Integer> trueExpectedAt;
   private Value module;
   private Value benchFunc;
 
@@ -78,6 +87,11 @@ public class EqualsBenchmarks {
         eq x y = x == y
         """
     );
+    // Indexes where `True` is expected. Inside the generated vectors, on a predefined indexes,
+    // we put "constant" values, such that when the elements at these indexes are compared,
+    // `True` is returned.
+    Set<Integer> trueExpectedAt;
+
     switch (benchmarkName) {
       case "equalsPrimitives" -> {
         trueExpectedAt = Set.of(
@@ -104,9 +118,7 @@ public class EqualsBenchmarks {
             treeVectorSize / 2,
             treeVectorSize / 4,
             treeVectorSize / 8,
-            treeVectorSize / 16,
-            treeVectorSize / 32,
-            treeVectorSize / 64
+            treeVectorSize / 16
         );
         codeBuilder
             .append(
@@ -145,6 +157,11 @@ public class EqualsBenchmarks {
     }
   }
 
+  /**
+   * Iterates over {@link #primitiveVectorSize} long vector of random generated primitive values - integers,
+   * doubles, and strings
+   * @param blackHole
+   */
   @Benchmark
   public void equalsPrimitives(Blackhole blackHole) {
     performBenchmark(blackHole);
@@ -160,7 +177,23 @@ public class EqualsBenchmarks {
     blackhole.consume(res);
   }
 
-  private static String generateVectorOfPrimitives(int totalSize, String vecName, Object constantElem, Collection<Integer> constantIdxs, Random random) {
+  /**
+   * Generates source code for a vector of primitive values. The vector will contain integers,
+   * doubles, and strings. Count of elements of these different value types is equally distributed,
+   * i.e., there is exact same amount of integers, doubles, and strings. Vector is
+   * shuffled, so that there should not be a long consecutive range of values of just one type.
+   * <p>
+   * Generates code of form {@code vecName = [...]}
+   *
+   * @param totalSize Total size of the generated vector.
+   * @param vecName Name of the generated vector.
+   * @param identityElem A primitive element considered an identity with respect to `==` operator,
+   *                     will be put in indexes denoted by {@code constantIdxs}
+   * @param constantIdxs Indexes where {@code identityElem} will be put.
+   * @param random Random number generator.
+   * @return Source of the generated vector
+   */
+  private static String generateVectorOfPrimitives(int totalSize, String vecName, Object identityElem, Collection<Integer> constantIdxs, Random random) {
     var partSize = totalSize / 3;
     List<Object> primitiveValues = new ArrayList<>();
     random.ints(partSize).forEach(primitiveValues::add);
@@ -173,7 +206,7 @@ public class EqualsBenchmarks {
     }
     Collections.shuffle(primitiveValues, random);
     for (Integer constantIdx : constantIdxs) {
-      primitiveValues.set(constantIdx, constantElem);
+      primitiveValues.set(constantIdx, identityElem);
     }
 
     var sb = new StringBuilder();
@@ -196,7 +229,21 @@ public class EqualsBenchmarks {
     return new NilNode(0, null);
   }
 
-  private static String generateVectorOfTrees(int size, String vecName, int maxDepth, Node constantNode, Collection<Integer> constantIdxs, Random random) {
+  /**
+   * Generates source code for a vector of trees (Node type), i.e., generates an expression
+   * {@code vecName = [...]}.
+   *
+   * @param size Total size of the generated vector.
+   * @param vecName How the vector should be named.
+   * @param maxDepth Maximum depth of the generated tree. Note that there is no lower bound, so
+   *                 the generated tree can have depth 1.
+   * @param identityNode A node that is considered an identity with respect to `==` operator.
+   *                     This node will be put on every indes of {@code constantIdxs}.
+   * @param constantIdxs Indexes in the vector where {@code identityNode} should be put.
+   * @param random Random number generator.
+   * @return Source code for the generated tree.
+   */
+  private static String generateVectorOfTrees(int size, String vecName, int maxDepth, Node identityNode, Collection<Integer> constantIdxs, Random random) {
     var trees = new ArrayList<Node>();
     for (int i = 0; i < size; i++) {
       trees.add(
@@ -204,7 +251,7 @@ public class EqualsBenchmarks {
       );
     }
     for (Integer constantIdx : constantIdxs) {
-      trees.set(constantIdx, constantNode);
+      trees.set(constantIdx, identityNode);
     }
 
     var sb = new StringBuilder();
@@ -255,6 +302,9 @@ public class EqualsBenchmarks {
   }
 
 
+  /**
+   * A simple hierarchy of Node classes that simplifies source code generation.
+   */
   abstract static class Node {
     final int depth;
     final Node parent;
