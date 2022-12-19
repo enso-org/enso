@@ -181,10 +181,16 @@ type JS_Object
                 (self.get key == that.at key).catch No_Such_Key.Error _->False
         _ -> False
 
-    ## Render the object for display
-    render : Integer -> Integer -> Text
-    render self depth=0 max_depth=5 = render self depth max_depth
+    ## UNSTABLE
 
+       Transform the vector into text for displaying as part of its default
+       visualization.
+    to_default_visualization_data : Integer -> Integer -> Text
+    to_default_visualization_data self depth=0 max_depth=5 =
+        self.render depth max_depth
+
+## PRIVATE
+   Render the JS_Object to Text with truncated depth.
 render object depth max_depth = case object of
     _ : JS_Object ->
         if depth == max_depth then '"{...}"' else
@@ -204,6 +210,10 @@ render object depth max_depth = case object of
     _ : Number -> object.to_json
     _ -> @Tail_Call render (JS_Object.Value object) depth max_depth
 
+## PRIVATE
+   Internal function ensuring that a JavaScript object is presented appropriately to Enso.
+   js_object must be a Native JS Object, Text, Boolean, Nothing, Number, Vector, Array, JS_Object.
+   Children of these types will be recursively passed through this function.
 make_enso js_object =
     case js_object of
         Nothing -> Nothing
@@ -219,18 +229,22 @@ make_enso js_object =
         _ : JS_Object -> js_object
         _ -> JS_Object.Value js_object
 
+## PRIVATE
+   Internal function to convert any JS_Objects into their native JS objects before passing to JS.
+   enso_object must be Text, Boolean, Nothing, Number, Vector, Array, JS_Object (and children as well).
 make_javascript enso_object =
-    if Warning.get_all enso_object != [] then make_javascript (Warning.set enso_object []) else
-        case enso_object of
-            _ : JS_Object ->
-                enso_object.field_names.fold new_object current->key->
-                    value = enso_object.get key
-                    js_value = make_javascript value
-                    set_value current key js_value
-                    current
-            _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
-            _ : Vector -> enso_object.map make_javascript
-            _ -> enso_object
+    ## Have to remove warnings before passing into JavaScript otherwise will be an Object.
+    stripped = Warning.set enso_object []
+    case stripped of
+        _ : JS_Object ->
+            stripped.field_names.fold new_object current->key->
+                value = stripped.get key
+                js_value = make_javascript value
+                set_value current key js_value
+                current
+        _ : Array -> Vector.from_polyglot_array stripped . map make_javascript
+        _ : Vector -> stripped.map make_javascript
+        _ -> stripped
 
 foreign js new_object = """
     return {}

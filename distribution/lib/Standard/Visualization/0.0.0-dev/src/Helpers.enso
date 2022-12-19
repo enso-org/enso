@@ -176,13 +176,6 @@ Array.to_default_visualization_data : Text
 Array.to_default_visualization_data self =
     Vector.from_polyglot_array self . to_default_visualization_data
 
-## UNSTABLE
-
-   Transform the vector into text for displaying as part of its default
-   visualization.
-JS_Object.to_default_visualization_data : Text
-JS_Object.to_default_visualization_data self = self.render
-
 ## PRIVATE
 
    Returns all the columns in the table, including indices.

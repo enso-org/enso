@@ -25,12 +25,7 @@ Any.to_json self = Json.stringify self
 
 ## Converts the given value to a JSON serialized value.
 Error.to_json : Text
-Error.to_json self =
-    caught = self.catch
-    error_type = ["type", "Error"]
-    error_content = ["content", caught]
-    error_message = ["message", caught.to_display_text]
-    JS_Object.from_pairs [error_type, error_content, error_message] . to_text
+Error.to_json self = self.to_js_object.to_text
 
 ## Converts the given value to a JSON serializable object.
    For Nothing, booleans, numbers and strings, this is the value itself.
@@ -132,6 +127,6 @@ Locale.to_js_object self =
     b.append ["type", "Locale"]
     b.append ["constructor", "new"]
     b.append ["language", self.language]
-    if self.country.is_nothing.not then b.append ["country", self.country]
-    if self.variant.is_nothing.not then b.append ["variant", self.variant]
+    b.append ["country", self.country]
+    b.append ["variant", self.variant]
     JS_Object.from_pairs b.to_vector

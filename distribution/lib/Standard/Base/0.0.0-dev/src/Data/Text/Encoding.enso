@@ -24,7 +24,7 @@ type Encoding
         Encoding.all_character_sets.map Encoding.Value
 
     ## Create an Encoding from a Text.
-    from_name : Text -> Encoding | Illegal_Argument
+    from_name : Text -> Encoding ! Illegal_Argument
     from_name name =
         handler = _-> Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + name))
         Panic.catch UnsupportedCharsetException handler=handler <|
