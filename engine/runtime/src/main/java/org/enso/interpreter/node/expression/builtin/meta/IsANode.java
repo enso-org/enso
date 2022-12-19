@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -36,37 +37,33 @@ public abstract class IsANode extends Node {
 
   @Specialization
   boolean doLongCheck(long value, Type type) {
-    return isNumberType(type);
+    var numbers = EnsoContext.get(this).getBuiltins().number();
+    return checkParentTypes(numbers.getSmallInteger(), type);
   }
 
   @Specialization
   boolean doDoubleCheck(double value, Type type) {
-    return isNumberType(type);
+    var numbers = EnsoContext.get(this).getBuiltins().number();
+    return checkParentTypes(numbers.getDecimal(), type);
   }
 
   @Specialization
   boolean doBigIntegerCheck(EnsoBigInteger value, Type type) {
-    return isNumberType(type);
+    var numbers = EnsoContext.get(this).getBuiltins().number();
+    return checkParentTypes(numbers.getBigInteger(), type);
   }
 
-  private boolean isNumberType(Type type) {
-    var numbers = EnsoContext.get(this).getBuiltins().number();
-    if (type == numbers.getSmallInteger()) {
-      return true;
+  @ExplodeLoop
+  private boolean checkParentTypes(Type actual, Type real) {
+    for (;;) {
+      if (actual == null) {
+        return false;
+      }
+      if (actual == real) {
+        return true;
+      }
+      actual = actual.getSupertype();
     }
-    if (type == numbers.getInteger()) {
-      return true;
-    }
-    if (type == numbers.getBigInteger()) {
-      return true;
-    }
-    if (type == numbers.getDecimal()) {
-      return true;
-    }
-    if (type == numbers.getNumber()) {
-      return true;
-    }
-    return false;
   }
 
   @Specialization

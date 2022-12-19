@@ -59,7 +59,7 @@ public class MetaIsATest {
     var typeNumber = g.typeNumber();
     for (var v : g.numbers()) {
       var r = isACheck.execute(v, typeNumber);
-      assertTrue("Value " + v + " is a number", r.asBoolean());
+      assertTrue("Value " + v + " is a number, type: " + v.getMetaObject(), r.asBoolean());
     }
   }
 
