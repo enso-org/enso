@@ -31,7 +31,6 @@ public abstract class TypeToDisplayTextNode extends Node {
       Object value,
       @CachedLibrary(limit = "5") InteropLibrary objects,
       @CachedLibrary(limit = "5") InteropLibrary displays,
-      @CachedLibrary(limit = "5") InteropLibrary exceptions,
       @CachedLibrary(limit = "5") InteropLibrary strings) {
     if (value == null) {
       // TODO [RW] This is a temporary workaround to make it possible to display errors related to

@@ -8,6 +8,8 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
+import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
 import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -27,63 +29,37 @@ public abstract class IsValueOfTypeNode extends Node {
     return IsValueOfTypeNodeGen.create();
   }
 
-  public abstract boolean execute(Object panicType, Object payload);
+  public abstract boolean execute(Object expectedType, Object payload);
 
   @Specialization
   boolean doAtom(AtomConstructor consr, Object payload) {
-    Object panicType = consr.getType();
-    return execute(panicType, payload);
+    Object expectedType = consr.getType();
+    return execute(expectedType, payload);
   }
 
-  @Specialization(guards = {"interop.isMetaObject(panicType)"})
-  boolean doPolyglotType(
-      Object panicType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    try {
-      return interop.isMetaInstance(panicType, payload);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
+  @Specialization
+  boolean doPolyglotProxy(Object expectedType, PolyglotProxy proxy) {
+    Object tpeOfPayload = typeOfNode.execute(proxy);
+    return isSameObject.execute(expectedType, tpeOfPayload);
   }
 
-  @Specialization(guards = "isAnyType(panicType)")
-  boolean doAnyType(Object panicType, Object payload) {
-    return true;
+  @Specialization(guards = "!isAnyType(expectedType)")
+  boolean doPolyglotExceptionProxy(Object expectedType, PolyglotExceptionProxy proxy) {
+    Object tpeOfPayload = typeOfNode.execute(proxy.getDelegate());
+    return isSameObject.execute(expectedType, tpeOfPayload);
   }
 
-  @Specialization(
-      guards = {
-        "isArrayType(panicType)",
-        "interop.hasArrayElements(payload)",
-        "!types.hasType(payload)",
-        "interop.hasMetaObject(payload)"
-      })
-  public boolean doPolyglotArray(
-      Object panicType,
-      Object payload,
-      @CachedLibrary(limit = "3") InteropLibrary interop,
-      @CachedLibrary(limit = "3") TypesLibrary types) {
-    return true;
-  }
-
-  boolean isAnyType(Object panicType) {
-    return EnsoContext.get(this).getBuiltins().any() == panicType;
-  }
-
-  boolean isArrayType(Object panicType) {
-    return EnsoContext.get(this).getBuiltins().array() == panicType;
-  }
-
-  @Fallback
-  boolean doType(Object panicType, Object payload) {
+  @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})
+  boolean doType(Type expectedType, Object payload) {
     Object tpeOfPayload = typeOfNode.execute(payload);
-    if (profile.profile(isSameObject.execute(panicType, tpeOfPayload))) {
+    if (profile.profile(isSameObject.execute(expectedType, tpeOfPayload))) {
       return true;
     } else if (TypesGen.isType(tpeOfPayload)) {
       Type tpe = TypesGen.asType(tpeOfPayload);
       Type superTpe = tpe.getSupertype();
 
       while (tpe != superTpe && superTpe != null) {
-        boolean testSuperTpe = isSameObject.execute(panicType, superTpe);
+        boolean testSuperTpe = isSameObject.execute(expectedType, superTpe);
         if (testSuperTpe) {
           return true;
         }
@@ -91,6 +67,64 @@ public abstract class IsValueOfTypeNode extends Node {
         superTpe = superTpe.getSupertype();
       }
     }
+    return false;
+  }
+
+  @Specialization(guards = {"interop.isMetaObject(expectedType)"})
+  boolean doPolyglotType(
+      Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    try {
+      return interop.isMetaInstance(expectedType, payload);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @Specialization(guards = "isAnyType(expectedType)")
+  boolean doAnyType(Object expectedType, Object payload) {
+    return true;
+  }
+
+  @Specialization(
+      guards = {
+        "isArrayType(expectedType)",
+        "interop.hasArrayElements(payload)",
+        "interop.hasMetaObject(payload)",
+        "!types.hasType(payload)"
+      })
+  public boolean doPolyglotArray(
+      Object expectedType,
+      Object payload,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    return true;
+  }
+
+  @Specialization(
+      guards = {
+        "isArrayType(expectedType)",
+        "interop.hasArrayElements(payload)",
+        "!interop.hasMetaObject(payload)",
+        "types.hasType(payload)"
+      })
+  public boolean doArray(
+      Object expectedType,
+      Object payload,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    return true;
+  }
+
+  boolean isAnyType(Object expectedType) {
+    return EnsoContext.get(this).getBuiltins().any() == expectedType;
+  }
+
+  boolean isArrayType(Object expectedType) {
+    return EnsoContext.get(this).getBuiltins().array() == expectedType;
+  }
+
+  @Fallback
+  public boolean doOther(Object expectedType, Object payload) {
     return false;
   }
 }

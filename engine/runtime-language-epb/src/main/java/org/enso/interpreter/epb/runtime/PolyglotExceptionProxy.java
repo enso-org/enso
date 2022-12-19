@@ -44,6 +44,10 @@ public class PolyglotExceptionProxy extends AbstractTruffleException {
     throw this;
   }
 
+  public PolyglotProxy getDelegate() {
+    return delegate;
+  }
+
   public AbstractTruffleException getOriginal() {
     return original;
   }

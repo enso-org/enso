@@ -23,6 +23,15 @@ throw_a_foo_panicking = Panic.throw "foo"
 throw_raw_java msg = Panic.throw (NumberFormatException.new msg)
 do_a_parse str = Long.parseLong str
 
+foreign js throw_js_int = """
+    throw 42;
+
+foreign js throw_js_str = """
+    throw "foo";
+
+foreign js throw_js_arr = """
+    throw [1,2,3];
+
 spec =
     Test.group "No Method Errors" <|
         Test.specify "should be recoverable" <|
@@ -243,11 +252,31 @@ spec =
             catch_vector = Panic.catch Any handler=(handle_panic prefix="Any") <|
               Panic.catch Array handler=handle_panic <|
                 (Panic.throw (Vector.new 1 (i -> i + 1)))
-            catch_vector . should_equal "Any: [1]"
+            catch_vector . should_equal "[1]"
 
             catch_array = Panic.catch Any handler=(handle_panic prefix="Any") <|
               Panic.catch Array handler=handle_panic <|
                 (Panic.throw (ArrayList.new))
             catch_array . should_equal "[]"
+
+        Test.specify "should be able to throw and catch polyglot values"  <|
+            caught_js_int_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Integer handler=err->"JS integer:"+err.payload.to_text <|
+                    throw_js_int
+
+            caught_js_int_panic . should_equal "JS integer:42"
+
+            caught_js_str_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Text handler=err->"JS string:"+err.payload.to_text <|
+                    throw_js_str
+
+            caught_js_str_panic . should_equal "JS string:'foo'"
+
+            caught_js_arr_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Array handler=err->"JS array:"+err.payload.to_text <|
+                    throw_js_arr
+
+            caught_js_arr_panic . should_equal "JS array:(3)[1, 2, 3]"
+
 
 main = Test_Suite.run_main spec
