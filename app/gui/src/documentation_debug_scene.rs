@@ -148,12 +148,12 @@ pub fn main() {
 
         let previous = button::View::new();
         previous.set_rotation_z(PI);
-        previous.size.set(Vector2(BUTTON_SIZE, BUTTON_SIZE));
+        previous.set_size(Vector2(BUTTON_SIZE, BUTTON_SIZE));
         buttons.add_child(&previous);
         previous.set_x(-BUTTON_SIZE);
 
         let next = button::View::new();
-        next.size.set(Vector2(BUTTON_SIZE, BUTTON_SIZE));
+        next.set_size(Vector2(BUTTON_SIZE, BUTTON_SIZE));
         buttons.add_child(&next);
         next.set_x(BUTTON_SIZE);
 
