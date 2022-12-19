@@ -25,7 +25,6 @@ public class Error {
   private final UninitializedState uninitializedState;
   private final NoSuchMethod noSuchMethod;
   private final NoSuchConversion noSuchConversion;
-  private final PolyglotError polyglotError;
   private final ModuleNotInPackageError moduleNotInPackageError;
   private final ArithmeticError arithmeticError;
   private final InvalidArrayIndex invalidArrayIndex;
@@ -58,7 +57,6 @@ public class Error {
     uninitializedState = builtins.getBuiltinType(UninitializedState.class);
     noSuchMethod = builtins.getBuiltinType(NoSuchMethod.class);
     noSuchConversion = builtins.getBuiltinType(NoSuchConversion.class);
-    polyglotError = builtins.getBuiltinType(PolyglotError.class);
     moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
     invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
@@ -139,10 +137,6 @@ public class Error {
    */
   public Atom makeTypeError(Object expected, Object actual, String name) {
     return typeError.newInstance(expected, actual, Text.create(name));
-  }
-
-  public PolyglotError getPolyglotError() {
-    return polyglotError;
   }
 
   /**
