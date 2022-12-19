@@ -133,7 +133,7 @@ class ValuesGenerator {
 
   public Value typeTimeOfDay() {
     return v("typeTimeOfDay", """
-    import Standard.Base.Data.Time.Time_Of_Day
+    import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day
     """, "Time_Of_Day").type();
   }
 
