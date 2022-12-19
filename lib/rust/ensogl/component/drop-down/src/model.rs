@@ -21,10 +21,19 @@ use ensogl_gui_component::component;
 
 /// Dropdown corner radius.
 const CORNER_RADIUS: f32 = 8.0;
-/// Dropdown padding.
+/// Dropdown padding. This is the padding between the dropdown border and the entry hover highlight.
 const CLIP_PADDING: f32 = 3.0;
 /// Size of single entry in pixels.
 pub(crate) const ENTRY_HEIGHT: f32 = 24.0;
+/// Open/close animation scale and offset factors. The animation is scaled and offset by these
+/// factors to avoid the animation showing a tiny sliver of the dropdown for too long. The values
+/// were chosen empirically to look good and not cause issues with dropdown scroll area.
+const OPEN_ANIMATION_SCALE: f32 = 1.05;
+/// The offset of scaled animation is applied to move the scaling pivot point towards the "fully
+/// open dropdown" end of the animation. A small extra epsilon is added to cancel out rounding
+/// errors that cause the dropdown scroll area to be slightly too small for its internal content,
+/// causing a scrollbar to appear when it is not necessary.
+const OPEN_ANIMATION_OFFSET: f32 = OPEN_ANIMATION_SCALE - 1.001;
 
 
 
@@ -109,13 +118,14 @@ impl<T: DropdownValue> Model<T> {
         anim_progress: f32,
     ) {
         // Limit animation near almost closed state to avoid slow animation on very thin dropdown.
-        let anim_progress = (anim_progress * 1.05 - 0.0499).clamp(0.0, 1.0);
+        let anim_progress = anim_progress * OPEN_ANIMATION_SCALE - OPEN_ANIMATION_OFFSET;
+        let anim_progress = anim_progress.clamp(0.0, 1.0);
         let total_grid_height = num_entries as f32 * ENTRY_HEIGHT;
         let limited_grid_height = total_grid_height.min(max_height - CLIP_PADDING * 2.0);
         let outer_height = (limited_grid_height + CLIP_PADDING * 2.0) * anim_progress;
         let inner_width = grid_width;
         let outer_width = inner_width + CLIP_PADDING * 2.0;
-        let inner_height = (outer_height - CLIP_PADDING * 2.0).max(0.0001);
+        let inner_height = outer_height - CLIP_PADDING * 2.0;
         let inner_size = Vector2(inner_width, inner_height);
         let outer_size = Vector2(outer_width, outer_height);
 

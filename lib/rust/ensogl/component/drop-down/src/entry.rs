@@ -154,7 +154,9 @@ impl ensogl_grid_view::Entry for Entry {
             corners_radius <- input.set_params.map(|p| p.corners_radius).on_change();
             selected_text_color <- input.set_params.map(|p| p.selected_text_color).on_change();
 
-            contour <- all_with(&size, &corners_radius, |&size, &corners_radius| entry::Contour { size, corners_radius });
+            contour <- all_with(&size, &corners_radius, |&size, &corners_radius|
+                entry::Contour { size, corners_radius }
+            );
             layout <- all(contour, text_size, text_offset);
             eval layout ((&(c, ts, to)) data.update_layout(c, ts, to));
             selected <- input.set_model.map(|m| *m.selected);

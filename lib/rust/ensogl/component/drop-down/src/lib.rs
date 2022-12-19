@@ -36,17 +36,15 @@ pub mod model;
 // === Constants ===
 // =================
 
-/// Default maximum external size of the whole dropdown.
+/// Default outer size of the dropdown. Defines the size of the background shape.
 const DEFAULT_SIZE: Vector2 = Vector2(160.0, 300.0);
-
-// BASE COLOR
-// const DEFAULT_COLOR: Lcha = Lcha::new(0.49112, 0.27123, 0.72659, 1.0);
-// MIXED COLOR (15% white on top)
+/// Default color of the dropdown background.
 const DEFAULT_COLOR: Lcha = Lcha::new(0.56708, 0.23249, 0.71372, 1.0);
-
-
 /// Default maximum number of entries that can be cached at once.
 const DEFAULT_MAX_ENTRIES: usize = 128;
+
+
+
 // ===========
 // === FRP ===
 // ===========
@@ -137,24 +135,8 @@ ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
     }
 }
 
-
-impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
-    fn init_inputs(frp: &Self::Public) {
-        frp.set_max_size(DEFAULT_SIZE);
-        frp.set_color(DEFAULT_COLOR);
-        frp.set_multiselect(false);
-        frp.set_max_cached_entries(DEFAULT_MAX_ENTRIES);
-        frp.set_open(false);
-        frp.allow_deselect_all(false);
-    }
-
-    fn init(
-        network: &frp::Network,
-        api: &Self::Private,
-        _app: &Application,
-        model: &Model<T>,
-        _style: &StyleWatchFrp,
-    ) {
+impl<T: DropdownValue> Frp<T> {
+    fn init(network: &frp::Network, api: &api::Private<T>, model: &Model<T>) {
         let input = &api.input;
         let output = &api.output;
 
@@ -178,8 +160,6 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             max_height <- input.set_max_size.map(|s| s.y);
             max_width <- input.set_max_size.map(|s| s.x).on_change();
             eval max_width((width) model.set_max_outer_width(*width));
-
-
 
             dimensions <- all(number_of_entries, max_height, grid_width, open_anim.value);
             eval dimensions((&(num_entries, max_height, grid_width, anim_progress))
@@ -249,6 +229,28 @@ impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
             once_after_animations <- after_animations.constant(true).on_change().constant(());
             model.grid.request_model_for_visible_entries <+ once_after_animations;
         }
+    }
+}
+
+
+impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
+    fn init_inputs(frp: &Self::Public) {
+        frp.set_max_size(DEFAULT_SIZE);
+        frp.set_color(DEFAULT_COLOR);
+        frp.set_multiselect(false);
+        frp.set_max_cached_entries(DEFAULT_MAX_ENTRIES);
+        frp.set_open(false);
+        frp.allow_deselect_all(false);
+    }
+
+    fn init(
+        network: &frp::Network,
+        api: &Self::Private,
+        _app: &Application,
+        model: &Model<T>,
+        _style: &StyleWatchFrp,
+    ) {
+        Frp::init(network, api, model);
     }
 
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
