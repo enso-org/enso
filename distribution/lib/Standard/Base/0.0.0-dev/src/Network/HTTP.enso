@@ -22,6 +22,7 @@ import project.Network.URI.URI
 
 from project.Data.Boolean import Boolean, True, False
 
+polyglot java import java.lang.Exception as JException
 polyglot java import java.net.http.HttpClient
 polyglot java import java.net.http.HttpRequest
 polyglot java import java.net.http.HttpResponse
@@ -418,7 +419,7 @@ type HTTP
     request : Request -> Response ! Request_Error
     request self req =
         handle_request_error =
-            Panic.catch_java Any handler=(err-> Error.throw (Request_Error.Error 'IllegalArgumentException' err.getMessage))
+            Panic.catch JException handler=(cause-> Error.throw (Request_Error.Error 'IllegalArgumentException' cause.payload.getMessage))
         Panic.recover Any <| handle_request_error <|
             body_publishers = HttpRequest.BodyPublishers
             builder = HttpRequest.newBuilder

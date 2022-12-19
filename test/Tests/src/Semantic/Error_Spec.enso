@@ -1,14 +1,15 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Polyglot_Error
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Runtime.Ref.Ref
 
-polyglot java import java.util.Random
 polyglot java import java.lang.Long
 polyglot java import java.lang.NumberFormatException
+polyglot java import java.lang.Exception as JException
+polyglot java import java.util.ArrayList
+polyglot java import java.util.Random
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -21,6 +22,15 @@ throw_a_bar_panicking = Panic.throw "bar"
 throw_a_foo_panicking = Panic.throw "foo"
 throw_raw_java msg = Panic.throw (NumberFormatException.new msg)
 do_a_parse str = Long.parseLong str
+
+foreign js throw_js_int = """
+    throw 42;
+
+foreign js throw_js_str = """
+    throw "foo";
+
+foreign js throw_js_arr = """
+    throw [1,2,3];
 
 spec =
     Test.group "No Method Errors" <|
@@ -144,7 +154,7 @@ spec =
         Test.specify "should allow catching Java exceptions easily" <|
             parse str =
                 Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
-                    Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+                    Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.getMessage)
 
             parse "42" . should_equal 42
             dataflow_error = parse "foo"
@@ -152,31 +162,31 @@ spec =
             Test.expect_panic_with (parse 0.0) Unsupported_Argument_Types.Error
 
         Test.specify "should allow to throw raw Java exceptions" <|
-            exception = Panic.catch_java NumberFormatException (throw_raw_java "foo") (p -> p)
-            exception.getMessage . should_equal "foo"
+            exception = Panic.catch NumberFormatException (throw_raw_java "foo") (p -> p)
+            exception.payload.getMessage . should_equal "foo"
             Panic.get_attached_stack_trace exception . second . name . should_equal "Error_Spec.throw_raw_java"
 
             caught_panic = Panic.catch Any (throw_raw_java "foo") x->x
             caught_panic.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
-            caught_panic.payload . should_be_a Polyglot_Error.Error
+            caught_panic.payload . should_be_a JException
 
         Test.specify "should allow to re-throw raw Java exceptions" <|
             message_1 = Ref.new ""
             caught_1 = Panic.recover Any <|
                 Panic.catch NumberFormatException (do_a_parse "foo") caught_panic->
-                    message_1 . put caught_panic.payload.cause.getMessage
-                    Panic.throw caught_panic.payload.cause
+                    message_1 . put caught_panic.payload.getMessage
+                    Panic.throw caught_panic.payload
             message_1.get . should_equal 'For input string: "foo"'
-            caught_1.catch . should_be_a Polyglot_Error.Error
+            caught_1.catch . should_be_a JException
             caught_1.stack_trace.at 2 . name . should_equal "Error_Spec.do_a_parse"
 
             message_2 = Ref.new ""
             caught_2 = Panic.recover Any <|
                 Panic.catch NumberFormatException (throw_raw_java "foo") caught_panic->
-                    message_2.put caught_panic.payload.cause.getMessage
-                    Panic.throw caught_panic.payload.cause
+                    message_2.put caught_panic.payload.getMessage
+                    Panic.throw caught_panic.payload
             message_2.get . should_equal "foo"
-            caught_2.catch . should_be_a Polyglot_Error.Error
+            caught_2.catch . should_be_a JException
             caught_2.stack_trace.second.name . should_equal "Error_Spec.throw_raw_java"
 
         Test.specify "should allow to catch a specific panic type easily" <|
@@ -192,7 +202,7 @@ spec =
                 "caught"
             message_2 . should_equal "caught"
 
-            message_3 = Panic.catch Polyglot_Error.Error (Long.parseLong "foo") _->
+            message_3 = Panic.catch JException (Long.parseLong "foo") _->
                 "polyglot"
             message_3 . should_equal "polyglot"
             message_4 = Panic.catch Any (Long.parseLong "foo") _->
@@ -202,7 +212,7 @@ spec =
                 "uat"
             message_5 . should_equal "uat"
 
-            Test.expect_panic_with (Panic.catch Illegal_Argument.Error (Long.parseLong "foo") (_->"polyglot3")) Polyglot_Error.Error
+            Test.expect_panic_with (Panic.catch Illegal_Argument.Error (Long.parseLong "foo") (_->"polyglot3")) JException
             Test.expect_panic_with (Panic.catch Nothing (Long.parseLong 0) (_->"polyglot4")) Unsupported_Argument_Types.Error
 
         Test.specify "should be able to be recovered selectively" <|
@@ -212,10 +222,10 @@ spec =
             Panic.recover [Illegal_State.Error, Illegal_Argument.Error] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch . should_be_an Illegal_Argument.Error
 
             Test.expect_panic_with <| Panic.recover Illegal_State.Error (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
-            Test.expect_panic_with <| Panic.recover [Illegal_State.Error, Polyglot_Error.Error] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
+            Test.expect_panic_with <| Panic.recover [Illegal_State.Error] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
             Test.expect_panic_with <| Panic.recover [] (Panic.throw (Illegal_Argument.Error "msg" Nothing)) . catch
 
-            Panic.recover [Polyglot_Error.Error] (do_a_parse "foo") . catch . should_be_a Polyglot_Error.Error
+            Panic.recover [JException] (do_a_parse "foo") . catch . should_be_a JException
 
             Panic.recover Any throw_a_bar_panicking . catch . should_equal "bar"
             Panic.recover Text throw_a_bar_panicking . stack_trace . second . name . should_equal "Error_Spec.throw_a_bar_panicking"
@@ -226,5 +236,47 @@ spec =
                 (err.payload.message) . should_equal (err.payload.to_display_text)
 
             Panic.catch Unsupported_Argument_Types.Error (Long.decode 42) handler=check
+
+        Test.specify "should be able to throw and catch polyglot arrays" <|
+            handle_panic caught prefix="" =
+                if prefix == "" then caught.payload.to_text else prefix+": "+caught.payload.to_text
+
+            Panic.catch Any (Panic.throw (ArrayList.new)) handler=(handle_panic prefix="Any") . should_equal "Any: []"
+            Panic.catch ArrayList (Panic.throw (ArrayList.new)) handler=handle_panic . should_equal "[]"
+
+            catch_any = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch ArrayList handler=handle_panic <|
+                (Panic.throw (Vector.new 1 (i -> i + 1)))
+            catch_any . should_equal "Any: [1]"
+
+            catch_vector = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch Array handler=handle_panic <|
+                (Panic.throw (Vector.new 1 (i -> i + 1)))
+            catch_vector . should_equal "[1]"
+
+            catch_array = Panic.catch Any handler=(handle_panic prefix="Any") <|
+              Panic.catch Array handler=handle_panic <|
+                (Panic.throw (ArrayList.new))
+            catch_array . should_equal "[]"
+
+        Test.specify "should be able to throw and catch polyglot values"  <|
+            caught_js_int_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Integer handler=err->"JS integer:"+err.payload.to_text <|
+                    throw_js_int
+
+            caught_js_int_panic . should_equal "JS integer:42"
+
+            caught_js_str_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Text handler=err->"JS string:"+err.payload.to_text <|
+                    throw_js_str
+
+            caught_js_str_panic . should_equal "JS string:'foo'"
+
+            caught_js_arr_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
+                Panic.catch Array handler=err->"JS array:"+err.payload.to_text <|
+                    throw_js_arr
+
+            caught_js_arr_panic . should_equal "JS array:(3)[1, 2, 3]"
+
 
 main = Test_Suite.run_main spec

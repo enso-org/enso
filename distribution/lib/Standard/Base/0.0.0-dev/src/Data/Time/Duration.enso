@@ -147,7 +147,7 @@ type Duration
     + self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.plus_builtin that) err->
-                Error.throw (Time_Error.Error err.getMessage)
+                Error.throw (Time_Error.Error err.payload.getMessage)
 
     ## Subtract the specified amount of time from this duration.
 
@@ -164,7 +164,7 @@ type Duration
     - self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.minus_builtin that) err->
-                Error.throw (Time_Error.Error err.getMessage)
+                Error.throw (Time_Error.Error err.payload.getMessage)
 
     ## Check two durations for equality.
 
