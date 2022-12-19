@@ -57,8 +57,8 @@ spec =
     Test.group "Table.rows" <|
         table = Table.new [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
         Test.specify "should visualize nicely" <|
-            table.rows . to_default_visualization_data . should_equal <|
-                '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
+            Json.parse (table.rows . to_default_visualization_data) . should_equal <|
+                Json.parse '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
 
             # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
             t2 = Table.new [["X", 0.up_to 200 . to_vector]]

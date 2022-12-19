@@ -176,12 +176,12 @@ type JS_Object
             self_keys = self.field_names
             that_keys = that.field_names
             self_keys.length == that_keys.length && self_keys.all key->
-                (this.get key == that.at key).catch No_Such_Key.Error _->False
+                (self.get key == that.at key).catch No_Such_Key.Error _->False
         _ -> False
 
     ## Render the object for display
-    render : Text
-    render self max_depth=5 = render self 0 max_depth
+    render : Integer -> Integer -> Text
+    render self depth=0 max_depth=5 = render self depth max_depth
 
 render object depth max_depth = case object of
     _ : JS_Object ->
