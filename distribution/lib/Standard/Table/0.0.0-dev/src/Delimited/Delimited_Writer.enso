@@ -114,7 +114,7 @@ write_text table format =
 write_to_stream : Table -> Delimited_Format -> Output_Stream -> Problem_Behavior -> File | Nothing -> Text | Nothing -> Boolean -> Any
 write_to_stream table format stream on_problems related_file=Nothing separator_override=Nothing needs_leading_newline=False =
     handle_io_exception ~action = Panic.catch IOException action caught_panic->
-        Error.throw (File_Error.wrap_io_exception related_file caught_panic.payload.cause)
+        File_Error.wrap_io_exception related_file caught_panic.payload
 
     handle_io_exception <|
         stream.with_stream_encoder format.encoding on_problems reporting_stream_encoder->
