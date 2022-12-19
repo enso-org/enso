@@ -81,7 +81,8 @@ type Delimited_Format
        Implements the `Data.parse` for this `File_Format`
     read_web : Response -> Any
     read_web self response =
-        response.body.parse_json
+        text = Text.from_bytes response.body.bytes self.encoding
+        Delimited_Reader.read_text text format Report_Warning
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing

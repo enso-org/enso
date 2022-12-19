@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+from Standard.Base.Data.Json import render
 
 from Standard.Table import Table, Column
 import Standard.Table.Data.Row.Row
@@ -140,15 +141,15 @@ Vector.default_visualization self = Id.table
 Vector.to_default_visualization_data : Text
 Vector.to_default_visualization_data self = render_vector self
 
-render_vector object depth=0 =
+render_vector object depth=0 max_depth=5 =
     case object of
-        _ : Vector -> if depth == 5 then "[...]" else
-            result = object.take 100 . map (elem-> if elem.is_error then elem.to_json else render_vector elem (depth+1))
+        _ : Vector -> if depth == max_depth then "[...]" else
+            result = object.take 100 . map (elem-> if elem.is_error then elem.to_json else render_vector elem (depth+1) max_depth)
             "[" + result.join ", " + "]"
         _ : Array ->
             proxy = Array_Proxy.new object.length object.at
-            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth
-        _ : JS_Object -> object.to_default_visualization_data depth
+            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth max_depth
+        _ : JS_Object -> render object depth max_depth
         _ -> object.to_default_visualization_data
 
 ## UNSTABLE

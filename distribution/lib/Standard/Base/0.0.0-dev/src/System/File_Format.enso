@@ -24,7 +24,7 @@ format_types = Vector.from_polyglot_array (FileFormatSPI.get_types False)
 ## PRIVATE
    Gets the first format not returning Nothing from the callback
 get_format : Function -> Any | Nothing
-get_format ~callback =
+get_format callback =
     reader idx =
         if idx >= format_types.length then Nothing else
             format = callback (format_types.at idx)

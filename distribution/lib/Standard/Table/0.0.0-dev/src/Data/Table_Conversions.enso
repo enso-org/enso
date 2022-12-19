@@ -72,7 +72,7 @@ Table.from_json value fields=Nothing =
             len = value.length
 
             ## For every record, get the values into a Map.
-            column_map = value.fold_with_index Map.empty current->i->v->
+            column_map = value.fold_with_index Map.empty current-> i-> v->
                 field_names = fields.if_nothing (get_fields v)
                 field_names.fold current c->f->
                     data = c.get f (Vector.new_builder len)
