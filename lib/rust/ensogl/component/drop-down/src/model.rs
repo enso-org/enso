@@ -129,7 +129,7 @@ impl<T: DropdownValue> Model<T> {
         let inner_size = Vector2(inner_width, inner_height);
         let outer_size = Vector2(outer_width, outer_height);
 
-        self.background.size.set(outer_size);
+        self.background.set_size(outer_size);
         // align the dropdown origin to its top left corner
         self.background.set_xy(Vector2(outer_width, -outer_height) / 2.0);
         self.background.corner_radius.set(CORNER_RADIUS);
