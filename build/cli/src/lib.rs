@@ -567,11 +567,12 @@ impl Processor {
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput { gui, project_manager, output_path } = params;
+        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
         let input = ide::BuildInput {
-            gui:             self.get(gui),
+            gui: self.get(gui),
             project_manager: self.get(project_manager),
-            version:         self.triple.versions.version.clone(),
+            version: self.triple.versions.version.clone(),
+            electron_target,
         };
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
         let build_job = target.build(&self.context, input, output_path);
