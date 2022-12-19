@@ -23,8 +23,15 @@ type Object_Type
 get_feature_row : JS_Object -> JS_Object
 get_feature_row feature =
     properties_row = feature.get "properties" . to_vector
-    geometry_row = feature.get "geometry" . to_vector
+    geometry_row = get_geometry_row feature
     JS_Object.from_pairs (geometry_row + properties_row)
+
+## PRIVATE
+   Get column key-value pairs of a feature's "geometry" object.
+get_geometry_row : JS_Object -> Any
+get_geometry_row feature =
+    geometry = feature.get "geometry"
+    if geometry.get "type" == "Point" then get_point_row geometry else []
 
 ## PRIVATE
    Get column key-value pairs of a "Point" geometry object.
