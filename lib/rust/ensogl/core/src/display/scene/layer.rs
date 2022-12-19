@@ -159,34 +159,26 @@ pub struct Layer {
 }
 
 impl Layer {
-    /// Constructor.
+    /// Create a new detached layer. It will inherit the camera of the parent layer once it is
+    /// attached.
     pub fn new(name: impl Into<String>) -> Self {
-        let model = LayerModel::new(name);
-        let model = Rc::new(model);
-        Self { model }
+        Self::new_with_flags(name, true, true)
     }
 
-    /// Constructor.
+    /// Create a new layer with specified camera. If it will be later attached as a sublayer, it
+    /// will not inherit the camera of the set parent layer.
     #[profile(Detail)]
     pub fn new_with_cam(name: impl Into<String>, camera: &Camera2d) -> Self {
-        let this = Self::new(name);
+        let this = Self::new_with_flags(name, false, true);
         this.set_camera(camera);
         this
     }
 
-    /// Create a new layer that will follow camera changes of another layer.
-    #[profile(Detail)]
-    pub fn new_with_cam_parent(name: impl Into<String>, camera_parent: &Layer) -> Self {
-        let this = Self::new(name);
-        this.set_camera_parent(camera_parent.downgrade());
-        this
-    }
-
-    /// Create a new sublayer to this layer, with the same camera.
-    pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
-        let layer = Layer::new_with_cam_parent(name, self);
-        self.add_sublayer(&layer);
-        layer
+    /// Create a new layer with specified inheritance and renderable flags.
+    fn new_with_flags(name: impl Into<String>, inherit_camera: bool, renderable: bool) -> Self {
+        let model = LayerModel::new(name, inherit_camera, renderable);
+        let model = Rc::new(model);
+        Self { model }
     }
 
     /// Create a new weak pointer to this layer.
@@ -222,20 +214,20 @@ impl Layer {
 
     /// Iterate over all layers and sublayers of this layer hierarchically. Parent layers will be
     /// visited before their corresponding sublayers. Does not visit masks. If you want to visit
-    /// masks, use [`iter_sublayers_and_masks_nested`] instead.
+    /// masks, use [`iter_sublayers_and_masks_nested`] instead. The visited layer sublayers will be
+    /// borrowed during the iteration.
     pub fn iter_sublayers_nested(&self, mut f: impl FnMut(&Layer)) {
         self.iter_sublayers_nested_internal(&mut f)
     }
 
     fn iter_sublayers_nested_internal(&self, f: &mut impl FnMut(&Layer)) {
         f(self);
-        for layer in self.sublayers() {
-            layer.iter_sublayers_nested_internal(f)
-        }
+        self.for_each_sublayer(|layer| layer.iter_sublayers_nested_internal(f));
     }
 
     /// Iterate over all layers, sublayers, masks, and their sublayers of this layer hierarchically.
-    /// Parent layers will be visited before their corresponding sublayers.
+    /// Parent layers will be visited before their corresponding sublayers. The visited layer
+    /// sublayers and masks will be borrowed during the iteration.
     pub fn iter_sublayers_and_masks_nested(&self, mut f: impl FnMut(&Layer)) {
         self.iter_sublayers_and_masks_nested_internal(&mut f)
     }
@@ -247,9 +239,7 @@ impl Layer {
                 layer.iter_sublayers_and_masks_nested_internal(f)
             }
         }
-        for layer in self.sublayers() {
-            layer.iter_sublayers_and_masks_nested_internal(f)
-        }
+        self.for_each_sublayer(|layer| layer.iter_sublayers_and_masks_nested_internal(f));
     }
 }
 
@@ -336,14 +326,14 @@ impl PartialEq for WeakLayer {
 
 /// Internal representation of [`Layer`].
 ///
-/// Please note that the [`parents`] field contains reference to a very small part of parent layer,
+/// Please note that the [`parent`] field contains reference to a very small part of parent layer,
 /// namely to its [`Sublayers`] struct. Only this part is needed to properly update all the models.
-#[derive(Clone)]
 #[allow(missing_docs)]
 pub struct LayerModel {
     pub name: String,
     camera: RefCell<Camera2d>,
-    camera_parent: RefCell<Option<WeakLayer>>,
+    inherit_camera: bool,
+    pub renderable: bool,
     pub shape_system_registry: ShapeSystemRegistry,
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
@@ -351,7 +341,7 @@ pub struct LayerModel {
     symbols_renderable: Rc<RefCell<RenderGroup>>,
     depth_order: RefCell<DependencyGraph<LayerItem>>,
     depth_order_dirty: dirty::SharedBool<OnDepthOrderDirty>,
-    parents: Rc<RefCell<Vec<Sublayers>>>,
+    parent: Rc<RefCell<Option<Sublayers>>>,
     global_element_depth_order: Rc<RefCell<DependencyGraph<LayerItem>>>,
     sublayers: Sublayers,
     mask: RefCell<Option<WeakLayer>>,
@@ -373,37 +363,33 @@ impl Debug for LayerModel {
 
 impl Drop for LayerModel {
     fn drop(&mut self) {
-        let id = self.id();
-        for parent in &mut *self.parents.borrow_mut() {
-            let mut model = parent.borrow_mut();
-            model.remove(id);
-        }
+        self.remove_from_parent();
     }
 }
 
 impl LayerModel {
-    fn new(name: impl Into<String>) -> Self {
+    fn new(name: impl Into<String>, inherit_camera: bool, renderable: bool) -> Self {
         let name = name.into();
         let camera = default();
-        let camera_parent = default();
         let shape_system_registry = default();
         let shape_system_to_symbol_info_map = default();
         let symbol_to_shape_system_map = default();
         let elements = default();
         let symbols_renderable = default();
         let depth_order = default();
-        let parents = default();
-        let on_mut = on_depth_order_dirty(&parents);
+        let parent = default();
+        let on_mut = on_depth_order_dirty(&parent);
         let depth_order_dirty = dirty::SharedBool::new(on_mut);
         let global_element_depth_order = default();
-        let sublayers = Sublayers::new(&parents);
+        let sublayers = Sublayers::new(&parent);
         let mask = default();
         let scissor_box = default();
         let mem_mark = default();
         Self {
             name,
             camera,
-            camera_parent,
+            inherit_camera,
+            renderable,
             shape_system_registry,
             shape_system_to_symbol_info_map,
             symbol_to_shape_system_map,
@@ -411,7 +397,7 @@ impl LayerModel {
             symbols_renderable,
             depth_order,
             depth_order_dirty,
-            parents,
+            parent,
             global_element_depth_order,
             sublayers,
             mask,
@@ -506,20 +492,17 @@ impl LayerModel {
 
     /// Camera getter of this layer.
     pub fn camera(&self) -> Camera2d {
-        let camera_parent = self.camera_parent.borrow().as_ref().and_then(|t| t.upgrade());
-        camera_parent.map_or_else(|| self.camera.borrow().clone_ref(), |l| l.camera())
+        self.camera.borrow().clone_ref()
     }
 
-    /// Camera setter of this layer.
-    pub fn set_camera(&self, camera: impl Into<Camera2d>) {
-        *self.camera.borrow_mut() = camera.into();
-        *self.camera_parent.borrow_mut() = None;
-    }
-
-    /// Set this layer's camera parent. The camera will be inherited from that layer dynamically.
-    /// Any camera changes applied to camera parent will be immediately reflected in this layer.
-    pub fn set_camera_parent(&self, layer: WeakLayer) {
-        *self.camera_parent.borrow_mut() = Some(layer);
+    /// Camera setter of this layer. Will propagate the camera to all sublayers if they inherit
+    /// the parent camera.
+    fn set_camera(&self, camera: impl Into<Camera2d>) {
+        let camera = camera.into();
+        *self.camera.borrow_mut() = camera.clone_ref();
+        self.for_each_sublayer(|layer| {
+            layer.set_camera(camera.clone_ref());
+        });
     }
 
     /// Add the symbol to this layer.
@@ -600,9 +583,9 @@ impl LayerModel {
         if self.sublayers.element_depth_order_dirty.check() {
             was_dirty = true;
             self.sublayers.element_depth_order_dirty.unset();
-            for layer in self.sublayers() {
+            self.for_each_sublayer(|layer| {
                 layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
-            }
+            });
             if let Some(layer) = &*self.mask.borrow() {
                 if let Some(layer) = layer.upgrade() {
                     layer.update_internal(Some(&*self.global_element_depth_order.borrow()));
@@ -681,38 +664,62 @@ impl LayerModel {
         self.sublayers.borrow().all()
     }
 
-    /// Attach a `layer` as a sublayer.
+    /// Iterate over all sublayers, ordered according to the defined depth-order dependencies. The
+    /// layer sublayers list will be borrowed during the iteration.
+    ///
+    /// Please note that this function does not update the depth-ordering of the layers. Updates are
+    /// performed by calling the `update` method on [`Group`], which usually happens once per
+    /// animation frame.
+    pub fn for_each_sublayer(&self, mut f: impl FnMut(Layer)) {
+        for layer in self.sublayers.borrow().iter_all() {
+            f(layer);
+        }
+    }
+
+    /// Attach a `layer` as a sublayer. If that layer is already attached as a sublayer of any
+    /// layer, it will be detached first.
     pub fn add_sublayer(&self, layer: &Layer) {
-        let ix = self.sublayers.borrow_mut().layers.insert(layer.downgrade());
-        self.sublayers.borrow_mut().layer_placement.insert(layer.id(), ix);
-        layer.add_parent(&self.sublayers);
+        layer.remove_from_parent();
+        self.sublayers.borrow_mut().add(layer);
+        layer.set_parent(self);
     }
 
     /// Remove previously attached sublayer.
     ///
     /// The implementation is the opposite of [`LayerModel::add_sublayer`]: we modify both fields of
-    /// [`SublayersModel`] and also unset parent.
+    /// [`SublayersModel`] and also unset parent. If the layer was not attached as a sublayer, this
+    /// function does nothing.
     pub fn remove_sublayer(&self, layer: &Layer) {
-        self.sublayers.borrow_mut().remove(layer.id());
-        layer.remove_parent(&self.sublayers);
+        let removed = self.sublayers.borrow_mut().remove(layer.id());
+        if removed {
+            *layer.parent.borrow_mut() = None;
+        }
     }
 
     fn remove_all_sublayers(&self) {
         for layer in self.sublayers.borrow().layers.iter() {
             if let Some(layer) = layer.upgrade() {
-                layer.remove_parent(&self.sublayers)
+                layer.remove_parent()
             }
         }
         mem::take(&mut *self.sublayers.model.borrow_mut());
     }
 
-    fn add_parent(&self, parent: &Sublayers) {
-        let parent = parent.clone_ref();
-        self.parents.borrow_mut().push(parent);
+    fn set_parent(&self, parent: &LayerModel) {
+        *self.parent.borrow_mut() = Some(parent.sublayers.clone_ref());
+        if self.inherit_camera {
+            self.set_camera(parent.camera());
+        }
     }
 
-    fn remove_parent(&self, parent: &Sublayers) {
-        self.parents.borrow_mut().remove_item(parent);
+    fn remove_parent(&self) {
+        *self.parent.borrow_mut() = None;
+    }
+
+    fn remove_from_parent(&self) {
+        if let Some(sublayers) = self.parent.borrow_mut().take() {
+            sublayers.borrow_mut().remove(self.id());
+        }
     }
 
     fn remove_mask(&self) {
@@ -727,21 +734,29 @@ impl LayerModel {
         }
     }
 
-    /// Create a new sublayer to this layer, with the same camera.
-    pub fn create_sublayer_with_cam_parent(
-        &self,
-        name: impl Into<String>,
-        parent: &Layer,
-    ) -> Layer {
-        let layer = Layer::new_with_cam_parent(name, parent);
+    /// Create a new sublayer to this layer. It will inherit this layer's camera.
+    pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
+        let layer = Layer::new_with_flags(name, true, true);
+        self.add_sublayer(&layer);
+        layer
+    }
+
+    /// Create a new sublayer to this layer. Override the camera for this layer, breaking the camera
+    /// inheritance chain. Updates to the parent camera will not affect this layer.
+    pub fn create_sublayer_with_cam(&self, name: impl Into<String>, camera: &Camera2d) -> Layer {
+        let layer = Layer::new_with_cam(name, camera);
         self.add_sublayer(&layer);
         layer
     }
 
 
-    /// Create a new sublayer to this layer, with the same camera.
-    pub fn create_sublayer_with_cam(&self, name: impl Into<String>, camera: &Camera2d) -> Layer {
-        let layer = Layer::new_with_cam(name, camera);
+    /// Create a new sublayer to this layer. It will inherit this layer's camera, but will not be
+    /// rendered as a part of standard layer stack. Instead, it will only be rendered as a mask for
+    /// other layers. See [`Layer::set_mask`] for more information. Note that this will not set up
+    /// the mask connection. You still have to separately call `set_mask` on any layer you want to
+    /// mask with this layer.
+    pub fn create_mask_sublayer(&self, name: impl Into<String>) -> Layer {
+        let layer = Layer::new_with_flags(name, true, false);
         self.add_sublayer(&layer);
         layer
     }
@@ -755,7 +770,7 @@ impl LayerModel {
     pub fn set_mask(&self, mask: &Layer) {
         self.remove_mask();
         *self.mask.borrow_mut() = Some(mask.downgrade());
-        mask.add_parent(&self.sublayers);
+        // mask.add_parent(&self.sublayers);
     }
 
     /// The layer's [`ScissorBox`], if any.
@@ -836,11 +851,11 @@ impl LayerModel {
 
 /// The callback setting `element_depth_order_dirty` in parents.
 pub type OnDepthOrderDirty = impl Fn();
-fn on_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnDepthOrderDirty {
-    let parents = parents.clone();
+fn on_depth_order_dirty(parent: &Rc<RefCell<Option<Sublayers>>>) -> OnDepthOrderDirty {
+    let parent = parent.clone();
     move || {
-        for parent in &*parents.borrow() {
-            // It's safe to do it having parents borrowed, because the only possible callback called
+        if let Some(parent) = parent.borrow().as_ref() {
+            // It's safe to do it having parent borrowed, because the only possible callback called
             // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
             parent.element_depth_order_dirty.set()
         }
@@ -887,15 +902,17 @@ impl LayerShapeBinding {
 // === Sublayers ===
 // =================
 
-/// The callback propagating `element_depth_order_dirty` flag to parents.
+/// The callback propagating `element_depth_order_dirty` flag to parent.
 pub type OnElementDepthOrderDirty = impl Fn();
-fn on_element_depth_order_dirty(parents: &Rc<RefCell<Vec<Sublayers>>>) -> OnElementDepthOrderDirty {
-    let parents = parents.clone_ref();
+fn on_element_depth_order_dirty(
+    parent: &Rc<RefCell<Option<Sublayers>>>,
+) -> OnElementDepthOrderDirty {
+    let parent = parent.clone_ref();
     move || {
-        for sublayers in parents.borrow().iter() {
-            // It's safe to do it having parents borrowed, because the only possible callback called
+        if let Some(parent) = parent.borrow().as_ref() {
+            // It's safe to do it having parent borrowed, because the only possible callback called
             // [`OnElementDepthOrderDirty`], which don't borrow_mut at any point.
-            sublayers.element_depth_order_dirty.set()
+            parent.element_depth_order_dirty.set()
         }
     }
 }
@@ -923,9 +940,9 @@ impl PartialEq for Sublayers {
 
 impl Sublayers {
     /// Constructor.
-    pub fn new(parents: &Rc<RefCell<Vec<Sublayers>>>) -> Self {
+    pub fn new(parent: &Rc<RefCell<Option<Sublayers>>>) -> Self {
         let model = default();
-        let dirty_on_mut = on_element_depth_order_dirty(parents);
+        let dirty_on_mut = on_element_depth_order_dirty(parent);
         let element_depth_order_dirty = dirty::SharedBool::new(dirty_on_mut);
         Self { model, element_depth_order_dirty }
     }
@@ -950,16 +967,35 @@ impl SublayersModel {
     /// by calling the `update` method on [`Group`], which usually happens once per animation
     /// frame.
     pub fn all(&self) -> Vec<Layer> {
-        self.layers.iter().filter_map(|t| t.upgrade()).collect()
+        self.iter_all().collect()
     }
+
+    /// Iterator of all layers, ordered according to the defined depth-order dependencies. It will
+    /// borrow the sublayers for as long as the iterator is alive.
+    ///
+    /// Please note that this function does not update the depth-ordering of the layers. Updates are
+    /// performed by calling the `update` method on [`Group`], which usually happens once per
+    /// animation frame.
+    pub fn iter_all(&self) -> impl Iterator<Item = Layer> + '_ {
+        self.layers.iter().filter_map(|t| t.upgrade())
+    }
+
 
     fn layer_ix(&self, layer_id: LayerId) -> Option<usize> {
         self.layer_placement.get(&layer_id).copied()
     }
 
-    fn remove(&mut self, layer_id: LayerId) {
+    fn add(&mut self, layer: &Layer) {
+        let ix = self.layers.insert(layer.downgrade());
+        self.layer_placement.insert(layer.id(), ix);
+    }
+
+    fn remove(&mut self, layer_id: LayerId) -> bool {
         if let Some(ix) = self.layer_ix(layer_id) {
             self.layers.remove(ix);
+            true
+        } else {
+            false
         }
     }
 
@@ -1003,7 +1039,7 @@ impl Masked {
     /// Constructor.
     pub fn new() -> Self {
         let masked_layer = Layer::new("MaskedLayer");
-        let mask_layer = Layer::new_with_cam_parent("MaskLayer", &masked_layer);
+        let mask_layer = masked_layer.create_mask_sublayer("MaskLayer");
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
     }
@@ -1011,7 +1047,7 @@ impl Masked {
     /// Constructor.
     pub fn new_with_cam(camera: &Camera2d) -> Self {
         let masked_layer = Layer::new_with_cam("MaskedLayer", camera);
-        let mask_layer = Layer::new_with_cam_parent("MaskLayer", &masked_layer);
+        let mask_layer = masked_layer.create_mask_sublayer("MaskLayer");
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }
     }
