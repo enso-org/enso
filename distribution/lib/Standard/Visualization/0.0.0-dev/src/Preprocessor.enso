@@ -2,14 +2,12 @@ from Standard.Base import all
 import project.Helpers
 
 ## PRIVATE
-
    Default visualization preprocessor.
 default_preprocessor x =
     ## Workaround so that the JS String is converted to a Text
     "" + x.to_default_visualization_data
 
 ## PRIVATE
-
    Error visualization preprocessor.
 error_preprocessor x =
     ok = '{ message: ""}'

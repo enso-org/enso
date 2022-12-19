@@ -80,7 +80,7 @@ Any.catch_ self ~val = self.catch Any (_-> val)
 
          example_display = Examples.throw_error.to_default_visualization_data
 Error.to_default_visualization_data : Text
-Error.to_default_visualization_data self = self.catch Any .to_default_visualization_data
+Error.to_default_visualization_data self = self.catch . to_default_visualization_data
 
 ## PRIVATE
 
