@@ -478,6 +478,7 @@
 - [From/all import must not include module in name resolution][3931]
 - [Vector returns warnings of individual elements][3938]
 - [Add executionContext/interrupt API command][3952]
+- [Simplify exception handling for polyglot exceptions][3981]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -552,6 +553,7 @@
 [3931]: https://github.com/enso-org/enso/pull/3931
 [3938]: https://github.com/enso-org/enso/pull/3938
 [3952]: https://github.com/enso-org/enso/pull/3952
+[3981]: https://github.com/enso-org/enso/pull/3981
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

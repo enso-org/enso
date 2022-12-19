@@ -167,5 +167,5 @@ type Array
     == self that =
         if Meta.is_same_object Array self then Meta.is_same_object Array that else
             eq_at i = self.at i == that.at i
-            Panic.catch_primitive handler=(_ -> False)
+            Panic.catch Any handler=(_ -> False)
                 if self.length == that.length then 0.up_to self.length . all eq_at else False

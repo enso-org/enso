@@ -165,10 +165,9 @@ close_connection connection =
 handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
 handle_sql_errors ~action related_query=Nothing =
     Panic.catch SQLException action caught_panic->
-        exc = caught_panic.payload.cause
-        case Java.is_instance exc SQLTimeoutException of
-            True -> Error.throw (SQL_Timeout.Error exc related_query)
-            False -> Error.throw (SQL_Error.Error exc related_query)
+        case caught_panic.payload of
+            exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
+            exc -> Error.throw (SQL_Error.Error exc related_query)
 
 ## PRIVATE
    Sets values inside of a prepared statement.

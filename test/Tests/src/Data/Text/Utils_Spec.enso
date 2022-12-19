@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Polyglot_Error
 
 polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.text.CaseFoldedString
@@ -7,6 +6,8 @@ polyglot java import com.ibm.icu.text.BreakIterator
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+
+polyglot java import java.lang.Exception as JException
 
 spec =
     Test.group "Text_Utils" <|
@@ -57,8 +58,8 @@ spec =
                 folded.findGrapheme ix . index
             grapheme_ixes . should_equal [0, 0, 1, 2, 3, 3, 4, 4, 4, 5, 6]
 
-            Test.expect_panic_with (folded.findGrapheme -1) Polyglot_Error.Error
-            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) Polyglot_Error.Error
+            Test.expect_panic_with (folded.findGrapheme -1) JException
+            Test.expect_panic_with (folded.findGrapheme folded.getFoldedString.char_vector.length+1) JException
 
         Test.specify "should correctly take prefix and suffix of a string" <|
             txt = 's\u0301ąśc\u0301'

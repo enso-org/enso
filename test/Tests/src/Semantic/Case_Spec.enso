@@ -85,15 +85,22 @@ spec = Test.group "Pattern Matches" <|
             Text_Module -> Nothing
             _ -> Test.fail "Expected the Text module to matc5h."
     Test.specify "should be able to match on the Array type" <|
-        case [].to_array of
+        case [1].to_array of
             Array -> Test.fail "Expected an array type to match."
             _ : Array -> Nothing
-            _ -> Test.fail "Expected an array type  to match."
-        case Array of
-            Array_Module -> Test.fail "Expected the Array type to match."
+            _ -> Test.fail "Expected an array type to match."
+        case [1] of
             _ : Array -> Nothing
-            Array -> Test.fail "Expected the Array type to match."
-            _ -> Test.fail "Expected the Array Type to match."
+            _ -> Test.fail "Expected an array type to match."
+        case [1] of
+            _ : Vector -> Nothing
+            _ : Array -> Test.fail "Expected an vector type to match."
+            _ -> Test.fail "Expected an vector type to match."
+        case Array of
+            Array_Module -> "Expected to match on Array type."
+            _ : Array -> "Expected to match on Array type."
+            Array -> Nothing
+            _ -> Test.fail "Expected to match on Array type."
         case Array_Module of
             _ : Array -> Test.fail "Expected the Array module to match."
             Array -> Test.fail "Expected the Array module to match."
@@ -266,9 +273,10 @@ spec = Test.group "Pattern Matches" <|
         foo x = case x of
             _ : Array -> "array"
             _ : Text -> "text"
-        v = ["X", list.toArray]
+            _ -> "invalid"
+        v = ["X", list.toArray, list]
         u = v.map foo
-        u.should_equal ["text", "array"]
+        u.should_equal ["text", "array", "array"]
 
     Test.specify "should correctly pattern match on supertype" <|
         case 1 of
@@ -287,5 +295,8 @@ spec = Test.group "Pattern Matches" <|
             _ : JList -> Nothing
             _ -> Test.fail "Expected to match on java.lang.Object type."
 
+        case ArrayList.new of
+            _ : Any -> Nothing
+            _ -> Test.fail "Expected to match on Any."
 
 main = Test_Suite.run_main spec
