@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 import java.util.*;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
@@ -182,8 +183,38 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
+  boolean hasMetaObject() {
+      return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject() {
+      return getType();
+  }
+
+  @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
     return name;
+  }
+
+  @ExportMessage
+  boolean isMetaObject() {
+      return true;
+  }
+
+  @ExportMessage
+  boolean isMetaInstance(Object instance) {
+    return instance instanceof Atom atom && atom.getType() == this;
+  }
+
+  @ExportMessage
+  String getMetaSimpleName() {
+      return getName();
+  }
+
+  @ExportMessage
+  String getMetaQualifiedName() {
+      return getQualifiedName().toString();
   }
 
   @ExportMessage
