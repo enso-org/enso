@@ -15,6 +15,8 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 
+polyglot java import java.lang.Exception as JException
+
 ## Represents a JSON structure.
 type Json
     ## A smart constructor, building an object representation based on a vector
@@ -53,8 +55,8 @@ type Json
              example_parse = Json.parse '{ "a": 1 }'
     parse : Text -> Json ! Json_Parse_Error
     parse json_text =
-        Panic.catch_java Any (Internal.parse_helper json_text) java_exception->
-            Error.throw (Json_Parse_Error.Error java_exception.getMessage)
+        Panic.catch JException (Internal.parse_helper json_text) cause->
+            Error.throw (Json_Parse_Error.Error cause.payload.getMessage)
 
     ## A representation of a JSON object.
 

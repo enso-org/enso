@@ -193,8 +193,8 @@ public abstract class MethodGenerator {
               valueTo = (Attribute.Class) (entry.getValue());
             }
           }
-          if (valueFrom != null && valueTo != null) {
-            exceptionWrappers.add(new SafeWrapException(valueFrom, valueTo));
+          if (valueFrom != null) {
+            exceptionWrappers.add(new SafeWrapException(valueFrom, Optional.ofNullable(valueTo)));
           }
         }
       }
@@ -228,8 +228,9 @@ public abstract class MethodGenerator {
                     valueTo = (Attribute.Class) p.snd;
                   }
                 }
-                if (valueFrom != null && valueTo != null) {
-                  SafeWrapException converted = new SafeWrapException(valueFrom, valueTo);
+                if (valueFrom != null) {
+                  SafeWrapException converted =
+                      new SafeWrapException(valueFrom, Optional.ofNullable(valueTo));
                   wrappedExceptions.add(converted);
                 }
               }
