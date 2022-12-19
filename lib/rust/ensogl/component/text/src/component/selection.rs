@@ -183,7 +183,7 @@ impl Selection {
                 f!([model](ascender,descender) {
                     let height = ascender - descender;
                     model.view.set_y(height / 2.0 + descender);
-                    model.view.size.modify(|t| Vector2(t.x, CURSOR_PADDING * 2.0 + height));
+                    model.view.set_size_y(CURSOR_PADDING * 2.0 + height);
                 })
             );
 
@@ -219,7 +219,7 @@ impl Selection {
                     let view_x     = (abs_width/2.0) * side;
                     model.display_object.set_xy(*p);
                     model.right_side.set_x(abs_width);
-                    model.view.size.modify(|t| Vector2(view_width,t.y));
+                    model.view.set_size_x(view_width);
                     model.view.set_x(view_x);
                 })
             );

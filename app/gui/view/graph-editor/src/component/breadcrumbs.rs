@@ -273,7 +273,7 @@ impl BreadcrumbsModel {
             crate::MACOS_TRAFFIC_LIGHTS_CONTENT_HEIGHT + BACKGROUND_PADDING * 2.0;
         let width_with_shadow = background_width + MAGIC_SHADOW_MARGIN * 2.0;
         let height_with_shadow = background_height + MAGIC_SHADOW_MARGIN * 2.0;
-        self.background.size.set(Vector2(width_with_shadow, height_with_shadow));
+        self.background.set_size(Vector2(width_with_shadow, height_with_shadow));
         self.background.set_x(width / 2.0);
         self.background.set_y(-HEIGHT / 2.0);
     }

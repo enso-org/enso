@@ -44,7 +44,7 @@ pub fn main() {
 
     let sprite1 = sprite_system.new_instance();
     sprite1.size.set(Vector2::new(10.0, 10.0));
-    sprite1.mod_position(|t| *t = Vector3::new(5.0, 5.0, 0.0));
+    sprite1.set_position(Vector3::new(5.0, 5.0, 0.0));
 
     scene.add_child(&sprite_system);
 
@@ -66,7 +66,7 @@ pub fn main() {
         .add(move |time| {
             i += 1;
             if i <= 100 {
-                sprite1.mod_position(|p| p.x += 1.0);
+                sprite1.modify_position(|p| p.x += 1.0);
             }
             let _keep_alive = &camera;
             let _keep_alive = &iter;
@@ -110,7 +110,7 @@ pub fn on_frame(
             sprites.push(sprite);
         }
     } else if *iter < pause_duration + cycle_duration {
-        sprite1.mod_position(|p| p.y += 0.5);
+        sprite1.modify_position(|p| p.y += 0.5);
         frozen = true;
     } else if *iter < pause_duration + (cycle_duration * 2) {
         for _ in 0..sprite_diff_per_cycle {

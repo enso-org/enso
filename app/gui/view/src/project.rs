@@ -26,7 +26,6 @@ use ensogl::application::Application;
 use ensogl::display;
 use ensogl::system::web;
 use ensogl::system::web::dom;
-use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
@@ -84,10 +83,6 @@ ensogl::define_endpoints! {
         undo(),
         /// Redo the last undone action.
         redo(),
-        /// Show the prompt informing about tab key if it is not disabled.
-        show_prompt(),
-        /// Disable the prompt. It will be hidden if currently visible.
-        disable_prompt(),
         // Enable Debug Mode of Graph Editor.
         enable_debug_mode(),
         // Disable Debug Mode of Graph Editor.
@@ -119,30 +114,6 @@ ensogl::define_endpoints! {
         fullscreen_visualization_shown (bool),
         drop_files_enabled             (bool),
         debug_mode                     (bool),
-    }
-}
-
-
-
-// ==============
-// === Shapes ===
-// ==============
-
-mod prompt_background {
-    use super::*;
-
-    ensogl::shape! {
-        (style:Style, color_rgba:Vector4<f32>) {
-            let width         = Var::<Pixels>::from("input_size.x");
-            let height        = Var::<Pixels>::from("input_size.y");
-
-            let corner_radius = style.get_number(ensogl_hardcoded_theme::graph_editor::prompt::background::corner_radius);
-            let shape         = Rect((&width,&height));
-            let shape         = shape.corners_radius(corner_radius.px());
-            let bg            = shape.fill(color_rgba);
-
-            bg.into()
-        }
     }
 }
 
@@ -276,8 +247,6 @@ struct Model {
     searcher:               SearcherVariant,
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    prompt_background:      prompt_background::View,
-    prompt:                 ensogl_text::Text,
     open_dialog:            Rc<OpenDialog>,
     debug_mode_popup:       debug_mode_popup::View,
 }
@@ -291,8 +260,6 @@ impl Model {
         let graph_editor = app.new_view::<GraphEditor>();
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let prompt_background = prompt_background::View::new();
-        let prompt = ensogl_text::Text::new(app);
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
@@ -303,16 +270,9 @@ impl Model {
         let window_control_buttons = Immutable(window_control_buttons);
         let open_dialog = Rc::new(OpenDialog::new(app));
 
-        prompt_background.add_child(&prompt);
-        prompt.set_content("Press the tab key to search for components.");
-        scene.layers.panel.add(&prompt_background);
-        scene.layers.main.remove(&prompt);
-        prompt.add_to_scene_layer(&scene.layers.panel_text);
-
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
-        display_object.add_child(&prompt_background);
         display_object.add_child(&debug_mode_popup);
         display_object.remove_child(&searcher);
 
@@ -327,8 +287,6 @@ impl Model {
             searcher,
             code_editor,
             fullscreen_vis,
-            prompt_background,
-            prompt,
             open_dialog,
             debug_mode_popup,
         }
@@ -512,7 +470,6 @@ impl View {
         let project_list = &model.open_dialog.project_list;
         let file_browser = &model.open_dialog.file_browser;
         let searcher_anchor = DEPRECATED_Animation::<Vector2<f32>>::new(network);
-        let prompt_visibility = Animation::new(network);
 
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
         //   want shader recompilation. Model uses styles already.
@@ -521,9 +478,6 @@ impl View {
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
         let input_change_delay = frp::io::timer::Timeout::new(network);
-
-        let style_sheet = &scene.style_sheet;
-        let styles = StyleWatchFrp::new(style_sheet);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -723,48 +677,7 @@ impl View {
                 }
             });
 
-
-            // === Prompt ===
-
             init <- source::<()>();
-            let prompt_bg_color_path   = ensogl_hardcoded_theme::graph_editor::prompt::background;
-            let prompt_bg_padding_path = ensogl_hardcoded_theme::graph_editor::prompt::background::padding;
-            let prompt_color_path      = ensogl_hardcoded_theme::graph_editor::prompt::text;
-            let prompt_size_path       = ensogl_hardcoded_theme::graph_editor::prompt::text::size;
-            let prompt_bg_color        = styles.get_color(prompt_bg_color_path);
-            prompt_bg_color            <- all(&prompt_bg_color,&init)._0();
-            let prompt_bg_padding      = styles.get_number(prompt_bg_padding_path);
-            prompt_bg_padding          <- all(&prompt_bg_padding,&init)._0();
-            let prompt_color           = styles.get_color(prompt_color_path);
-            prompt_color               <- all(&prompt_color,&init)._0();
-            let prompt_size            = styles.get_number(prompt_size_path);
-            prompt_size                <- all(&prompt_size,&init)._0();
-
-            disable_after_opening_searcher <- frp.searcher.filter_map(|s| s.map(|_| ()));
-            disable                        <- any(frp.disable_prompt,disable_after_opening_searcher);
-            disabled                       <- disable.constant(true);
-            show_prompt                    <- frp.show_prompt.gate_not(&disabled);
-
-            prompt_visibility.target <+ show_prompt.constant(1.0);
-            prompt_visibility.target <+ disable.constant(0.0);
-            _eval <- all_with4(&prompt_visibility.value,&prompt_bg_color,&prompt_color,&prompt_size,
-                f!([model](weight,bg_color,color,size) {
-                    let mut bg_color = *bg_color;
-                    bg_color.alpha  *= weight;
-                    let mut color    = *color;
-                    color.alpha     *= weight;
-                    model.prompt_background.color_rgba.set(bg_color.into());
-                    model.prompt.set_property(.., color);
-                    model.prompt.set_property_default(ensogl_text::Size(*size));
-                })
-            );
-            _eval <- all_with3(&model.prompt.width,&prompt_size,&prompt_bg_padding,
-                f!([model](width,size,padding) {
-                    model.prompt.set_x(- *width / 2.0);
-                    model.prompt_background.size.set(Vector2(*width + padding, *size + padding));
-                })
-            );
-
 
             // === Disabling Navigation ===
 
@@ -788,7 +701,6 @@ impl View {
         }
         model.searcher.setup_anchor(network, &searcher_anchor.value);
         init.emit(());
-        std::mem::forget(prompt_visibility);
 
         Self { model, frp }
     }
@@ -850,9 +762,6 @@ impl application::View for View {
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
-            (Press, "", "tab", "disable_prompt"),
-            (Press, "", "cmd o", "disable_prompt"),
-            (Press, "", "space", "disable_prompt"),
             (Press, "", "cmd alt shift t", "toggle_style"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd z", "undo"),

@@ -259,8 +259,6 @@ impl Project {
             eval_ view.redo (model.redo());
 
             values_computed <- source::<()>();
-            values_computed_first_time <- values_computed.constant(true).on_change().constant(());
-            view.show_prompt <+ values_computed_first_time;
             view.values_updated <+ values_computed;
 
             eval_ view.save_project_snapshot(model.save_project_snapshot());

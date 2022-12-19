@@ -213,8 +213,8 @@ impl EntryData {
     fn update_layout(&self, contour: Contour, text_padding: f32, text_y_offset: f32) {
         let size = contour.size;
         self.text.set_xy(Vector2(text_padding - size.x / 2.0, text_y_offset));
-        self.separator.size.set(Vector2(separator::ICON_WIDTH, size.y));
-        self.ellipsis.size.set(Vector2(ellipsis::ICON_WIDTH, size.y));
+        self.separator.set_size(Vector2(separator::ICON_WIDTH, size.y));
+        self.ellipsis.set_size(Vector2(ellipsis::ICON_WIDTH, size.y));
     }
 
     fn set_default_color(&self, color: color::Lcha) {

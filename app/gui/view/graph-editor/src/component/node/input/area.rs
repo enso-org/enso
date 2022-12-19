@@ -232,7 +232,7 @@ impl Model {
         let origin = Vector2(TEXT_OFFSET, 0.0);
         self.ports.set_xy(origin);
         self.label.set_xy(origin);
-        self.label.mod_position(|t| t.y += TEXT_SIZE / 2.0);
+        self.label.modify_position(|t| t.y += TEXT_SIZE / 2.0);
 
         self
     }
@@ -338,9 +338,9 @@ impl Model {
                 let size = Vector2(width, height);
                 let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
 
-                port_shape.mod_position(|t| t.x = unit * index as f32);
+                port_shape.set_x(unit * index as f32);
                 if DEBUG {
-                    port_shape.mod_position(|t| t.y = DEBUG_PORT_OFFSET)
+                    port_shape.set_y(DEBUG_PORT_OFFSET)
                 }
 
                 if is_header {

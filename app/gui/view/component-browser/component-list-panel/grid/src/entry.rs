@@ -318,11 +318,11 @@ impl Data {
         };
         let bg_height = entry_size.y + overlap;
         // See comment in [`Self::update_shadow`] method.
-        let shadow_addition = self.background.size.get().y - self.background.height.get();
+        let shadow_addition = self.background.computed_size().y - self.background.height.get();
         let bg_sprite_height = bg_height + shadow_addition;
         let bg_y = -gap_over_header + overlap / 2.0 + local_scope_offset;
         self.background.set_y(bg_y);
-        self.background.size.set(Vector2(bg_width, bg_sprite_height));
+        self.background.set_size(Vector2(bg_width, bg_sprite_height));
         self.background.height.set(bg_height);
         let width = grid_style.column_width();
         let left = -width / 2.0 + style.padding;
@@ -379,7 +379,7 @@ impl Data {
         entry_size: Vector2,
     ) {
         if header_position.position != Vector2::default() {
-            let bg_width = self.background.size.get().x;
+            let bg_width = self.background.computed_size().x;
             let bg_height = self.background.height.get();
             let distance_to_section_top =
                 header_position.y_range.end() - header_position.position.y;
@@ -393,7 +393,7 @@ impl Data {
             // is not visible outside the component group background.
             let shadow_size = style.header_shadow_size.min(distance_to_section_bottom);
             let bg_sprite_height = bg_height + shadow_size * 2.0;
-            self.background.size.set(Vector2(bg_width, bg_sprite_height));
+            self.background.set_size(Vector2(bg_width, bg_sprite_height));
             let header_shadow_peak = entry_size.y / 2.0;
             let height_multiplier = (distance_to_section_top / header_shadow_peak).min(1.0);
             self.background.shadow_height_multiplier.set(height_multiplier);

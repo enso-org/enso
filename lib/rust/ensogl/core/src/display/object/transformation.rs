@@ -202,18 +202,6 @@ impl CachedTransformation {
 // === Getters ===
 
 impl CachedTransformation {
-    pub fn position(&self) -> Vector3<f32> {
-        self.transform.position
-    }
-
-    pub fn rotation(&self) -> Vector3<f32> {
-        self.transform.rotation
-    }
-
-    pub fn scale(&self) -> Vector3<f32> {
-        self.transform.scale
-    }
-
     pub fn matrix(&self) -> Matrix4<f32> {
         self.matrix
     }
@@ -223,46 +211,35 @@ impl CachedTransformation {
     }
 }
 
+macro_rules! gen_transform {
+    ($name: ident) => {
+        paste! {
+            impl CachedTransformation {
+                pub fn $name(&self) -> Vector3<f32> {
+                    self.transform.$name
+                }
 
-// === Setters ===
+                pub fn [<$name _mut>](&mut self) -> &mut Vector3<f32> {
+                    self.dirty = true;
+                    &mut self.transform.$name
+                }
 
-impl CachedTransformation {
-    pub fn position_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty = true;
-        &mut self.transform.position
-    }
+                pub fn [<set_ $name>](&mut self, t: Vector3<f32>) {
+                    *self.[<$name _mut>]() = t;
+                }
 
-    pub fn rotation_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty = true;
-        &mut self.transform.rotation
-    }
+                pub fn [<update_ $name>]<F: FnOnce(Vector3<f32>) -> Vector3<f32>>(&mut self, f: F) {
+                    *self.[<$name _mut>]() = f(self.$name());
+                }
 
-    pub fn scale_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty = true;
-        &mut self.transform.scale
-    }
-
-    pub fn set_position(&mut self, t: Vector3<f32>) {
-        *self.position_mut() = t;
-    }
-
-    pub fn set_rotation(&mut self, t: Vector3<f32>) {
-        *self.rotation_mut() = t;
-    }
-
-    pub fn set_scale(&mut self, t: Vector3<f32>) {
-        *self.scale_mut() = t;
-    }
-
-    pub fn mod_position<F: FnOnce(&mut Vector3<f32>)>(&mut self, f: F) {
-        f(self.position_mut());
-    }
-
-    pub fn mod_rotation<F: FnOnce(&mut Vector3<f32>)>(&mut self, f: F) {
-        f(self.rotation_mut());
-    }
-
-    pub fn mod_scale<F: FnOnce(&mut Vector3<f32>)>(&mut self, f: F) {
-        f(self.scale_mut());
-    }
+                pub fn [<modify_ $name>]<F: FnOnce(&mut Vector3<f32>)>(&mut self, f: F) {
+                    f(self.[<$name _mut>]());
+                }
+            }
+        }
+    };
 }
+
+gen_transform!(position);
+gen_transform!(rotation);
+gen_transform!(scale);
