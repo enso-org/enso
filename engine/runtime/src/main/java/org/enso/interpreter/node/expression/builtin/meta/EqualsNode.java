@@ -179,7 +179,6 @@ public abstract class EqualsNode extends Node {
     return selfJavaTime.equals(otherJavaTime);
   }
 
-  // TODO: Need to negate all the guards from previous specializations?
   @Specialization(guards = {
       "selfInterop.isDuration(selfDuration)",
       "otherInterop.isDuration(otherDuration)"
@@ -259,7 +258,6 @@ public abstract class EqualsNode extends Node {
       }
       return true;
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      // TODO: Return just false?
       throw new IllegalStateException(e);
     }
   }
@@ -309,28 +307,9 @@ public abstract class EqualsNode extends Node {
 
   /** Equals for Atoms and AtomConstructors */
 
-  @TruffleBoundary
   @Specialization
   boolean equalsAtomConstructors(AtomConstructor selfConstructor, AtomConstructor otherConstructor) {
-    // TODO: return selfConstructor == otherConstructor?
-    //  Otherwise, it should be behind TruffleBoujndary because of String.equals
-
-    String selfConstrName = selfConstructor.getName();
-    String otherConstrName = otherConstructor.getName();
-    boolean isSelfBuiltin = selfConstructor.isBuiltin();
-    boolean isOtherBuiltin = otherConstructor.isBuiltin();
-    String selfConstrFuncName = selfConstructor.getConstructorFunction().getName();
-    String otherConstrFuncName = otherConstructor.getConstructorFunction().getName();
-    Type selfAssociatedType = selfConstructor.getDefinitionScope().getAssociatedType();
-    Type otherAssociatedType = otherConstructor.getDefinitionScope().getAssociatedType();
-    QualifiedName selfModuleName = selfConstructor.getDefinitionScope().getModule().getName();
-    QualifiedName otherModuleName = otherConstructor.getDefinitionScope().getModule().getName();
-
-    return selfConstrName.equals(otherConstrName)
-        && isSelfBuiltin == isOtherBuiltin
-        && selfConstrFuncName.equals(otherConstrFuncName)
-        && selfAssociatedType.equals(otherAssociatedType)
-        && selfModuleName.equals(otherModuleName);
+    return selfConstructor == otherConstructor;
   }
 
   /**
@@ -352,7 +331,6 @@ public abstract class EqualsNode extends Node {
 
   @Specialization
   boolean equalsAtoms(Atom self, Atom otherAtom,
-      @Cached EqualsNode constrEqualsNode,
       @Cached LoopConditionProfile loopProfile,
       @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
       @Cached(value = "createInvokeEqualsNodes(equalsNodeCountForFields)", allowUncached = true) InvokeEqualsNode[] fieldInvokeEqualsNodes,
@@ -365,8 +343,7 @@ public abstract class EqualsNode extends Node {
       return false;
     }
     if (constructorsNotEqualProfile.profile(
-        //TODO: self.getConstructor() != otherAtom.getConstructor()
-        !constrEqualsNode.execute(self.getConstructor(), otherAtom.getConstructor())
+        self.getConstructor() != otherAtom.getConstructor()
     )) {
       return false;
     }
@@ -528,6 +505,4 @@ public abstract class EqualsNode extends Node {
   private static boolean isHostObject(EnsoContext context, Object object) {
     return context.getEnvironment().isHostObject(object);
   }
-
-  // TODO: Add specialization for WithWarnings?
 }
