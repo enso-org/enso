@@ -387,7 +387,8 @@
 //!
 //! # use ensogl_core::prelude::*;
 //! # use ensogl_core::display;
-//! let root = display::object::Instance::new().set_size_x(20.0);
+//! let root = display::object::Instance::new();
+//! root.set_size_x(20.0);
 //! let node1 = root.new_child();
 //! let node2 = root.new_child();
 //! let node3 = root.new_child();
