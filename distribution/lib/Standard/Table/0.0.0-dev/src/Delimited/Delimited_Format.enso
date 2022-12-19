@@ -82,7 +82,7 @@ type Delimited_Format
     read_web : Response -> Any
     read_web self response =
         text = Text.from_bytes response.body.bytes self.encoding
-        Delimited_Reader.read_text text format Report_Warning
+        Delimited_Reader.read_text text self Report_Warning
 
     ## Implements the `Table.write` for this `File_Format`.
     write_table : File -> Table -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing
