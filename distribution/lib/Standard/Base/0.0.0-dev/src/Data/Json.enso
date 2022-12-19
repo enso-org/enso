@@ -17,8 +17,6 @@ import project.Error.No_Such_Key.No_Such_Key
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
-
-import project.IO
 import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
