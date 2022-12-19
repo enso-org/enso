@@ -148,7 +148,7 @@ render_vector object depth=0 =
         _ : Array ->
             proxy = Array_Proxy.new object.length object.at
             @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth
-        _ : JS_Object -> object.render depth
+        _ : JS_Object -> object.to_default_visualization_data depth
         _ -> object.to_default_visualization_data
 
 ## UNSTABLE
