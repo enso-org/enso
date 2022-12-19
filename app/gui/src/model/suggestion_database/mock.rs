@@ -245,6 +245,7 @@ macro_rules! mock_suggestion_database_entries {
 /// This macro takes a declaration of suggestion database entries in a kind of pseudo code:
 /// ```
 /// use enso_gui::mock_suggestion_database;
+/// use enso_gui::model::suggestion_database::entry;
 ///
 /// let db = mock_suggestion_database! {
 ///    Standard.Base {
@@ -368,17 +369,8 @@ macro_rules! doc_section_mark {
 /// ```
 #[macro_export]
 macro_rules! doc_section {
-    ($paragraph:expr) => {
-        engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
-    };
     (@ $tag:expr, $body:expr) => {
         engine_protocol::language_server::DocSection::Tag { name: $tag.into(), body: $body.into() }
-    };
-    ($key:expr => $body:expr) => {
-        engine_protocol::language_server::DocSection::Keyed {
-            key:  $name.into(),
-            body: $body.into(),
-        }
     };
     ($mark:tt $body:expr) => {
         $crate::engine_protocol::language_server::DocSection::Marked {
@@ -392,6 +384,15 @@ macro_rules! doc_section {
             mark:   $crate::doc_section_mark!($mark),
             header: Some($header.into()),
             body:   $body.into(),
+        }
+    };
+    ($paragraph:expr) => {
+        engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
+    };
+    ($key:expr => $body:expr) => {
+        engine_protocol::language_server::DocSection::Keyed {
+            key:  $key.into(),
+            body: $body.into(),
         }
     };
 }
