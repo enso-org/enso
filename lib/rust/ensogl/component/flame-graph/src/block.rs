@@ -121,7 +121,7 @@ impl component::Model for Model {
 
 impl Model {
     fn set_size(&self, size: Vector2) {
-        self.background.size.set(size);
+        self.background.set_size(size);
     }
 
     fn set_content(&self, t: &str) {

@@ -186,7 +186,7 @@ impl Model {
 
         let size = Vector2(width, height);
         self.shape.set_xy(Vector2(size.x, -size.y) / 2.0);
-        self.shape.size.set(size);
+        self.shape.set_size(size);
         size
     }
 }

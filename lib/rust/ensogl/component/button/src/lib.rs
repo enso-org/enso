@@ -315,7 +315,7 @@ impl<Shape: ButtonShape> View<Shape> {
         let events = &model.shape.events;
 
         frp::extend! { network
-            eval frp.set_size ((&size) model.shape.size.set(size));
+            eval frp.set_size ((&size) model.shape.set_size(size););
             frp.source.size <+ frp.set_size;
 
             // Mouse

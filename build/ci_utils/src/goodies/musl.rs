@@ -32,7 +32,7 @@
 //
 // impl crate::goodie::Instance for Instance {
 //     fn add_to_environment(&self) -> anyhow::Result<()> {
-//         std::env::set_var("TOOLCHAIN_DIR", &self.directory);
+//         crate::env::set_var("TOOLCHAIN_DIR", &self.directory);
 //         crate::env::prepend_to_path(self.directory.join("bin"))
 //     }
 // }

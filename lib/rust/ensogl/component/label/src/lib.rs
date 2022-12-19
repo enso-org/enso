@@ -133,7 +133,7 @@ impl Model {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + padding * 2.0;
-        self.background.size.set(padded_size);
+        self.background.set_size(padded_size);
         let text_origin = Vector2(text_offset - size.x / 2.0, text_size / 2.0);
         self.label.set_xy(text_origin);
         padded_size

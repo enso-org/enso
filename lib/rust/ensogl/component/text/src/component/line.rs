@@ -309,7 +309,7 @@ impl View {
             let x = x + truncation.x_after_last_glyph();
             truncation.ellipsis.set_xy(Vector2(x, truncation.y()));
             truncation.ellipsis.scale.set(truncation.scale);
-            truncation.ellipsis.size.set(truncation.dim());
+            truncation.ellipsis.set_size(truncation.dim());
             let was_truncated = self.truncation.borrow().is_some();
             *self.truncation.borrow_mut() = Some(truncation);
             if !was_truncated {

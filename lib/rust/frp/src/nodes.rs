@@ -799,6 +799,16 @@ impl Network {
         self.register(OwnedMap::new(label, src, f))
     }
 
+    pub fn map_<'a, T, F, Out>(&self, label: Label, src: &T, f: F) -> Stream<()>
+    where
+        T: EventOutput,
+        F: 'static + Fn(&Output<T>) -> Out,
+        Out: 'a, {
+        self.map(label, src, move |t| {
+            f(t);
+        })
+    }
+
     /// A shortcut for `.map(|v| Some(v.clone()))`.
     pub fn some<T>(&self, label: Label, src: &T) -> Stream<Option<Output<T>>>
     where T: EventOutput {

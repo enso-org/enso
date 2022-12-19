@@ -267,8 +267,8 @@ impl FlameGraph {
     /// position as the root display object).
     pub fn set_origin(&mut self, new_origin: f64) {
         let delta = (self.origin_x - new_origin) as f32;
-        self.marks.iter().for_each(|mark| mark.mod_x(|pos| pos - delta));
-        self.blocks.iter().for_each(|block| block.mod_x(|pos| pos - delta));
+        self.marks.iter().for_each(|mark| mark.update_x(|pos| pos - delta));
+        self.blocks.iter().for_each(|block| block.update_x(|pos| pos - delta));
         self.origin_x = new_origin
     }
 }
