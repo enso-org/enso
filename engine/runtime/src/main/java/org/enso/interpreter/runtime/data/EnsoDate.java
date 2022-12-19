@@ -23,7 +23,7 @@ import java.time.format.DateTimeParseException;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date")
+@Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date.Date")
 public final class EnsoDate implements TruffleObject {
   private final LocalDate date;
 
