@@ -24,11 +24,12 @@ import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 
+polyglot java import java.lang.ArithmeticException
+polyglot java import java.lang.Exception as JException
+polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
-polyglot java import java.time.ZonedDateTime
-polyglot java import java.lang.ArithmeticException
 
 polyglot java import org.enso.base.Time_Utils
 
@@ -157,8 +158,8 @@ type Date_Time
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
     new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch_java Any (new_builtin year month day hour minute second total_nanoseconds zone) java_exception->
-            Error.throw (Time_Error.Error java_exception.getMessage)
+        Panic.catch JException (new_builtin year month day hour minute second total_nanoseconds zone) cause->
+            Error.throw (Time_Error.Error cause.payload.getMessage)
 
     ## ALIAS Time from Text
 
@@ -240,7 +241,7 @@ type Date_Time
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
     parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error.Error java_exception.getMessage)) <|
+        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
             case pattern of
                 Nothing -> parse_builtin text
                 _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale

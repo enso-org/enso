@@ -22,6 +22,8 @@
 #![feature(slice_as_chunks)]
 #![feature(local_key_cell_methods)]
 #![feature(auto_traits)]
+#![feature(int_roundings)]
+#![feature(let_chains)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]

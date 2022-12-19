@@ -23,6 +23,7 @@ polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
+polyglot java import java.lang.Exception as JException
 
 ## PRIVATE
 
@@ -100,8 +101,8 @@ type Time_Of_Day
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
     new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch_java Any (new_builtin hour minute second total_nanoseconds) java_exception->
-            Error.throw (Time_Error.Error java_exception.getMessage)
+        Panic.catch JException (new_builtin hour minute second total_nanoseconds) caught_panic->
+            Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
     ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -166,7 +167,7 @@ type Time_Of_Day
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
     parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error.Error java_exception.getMessage)) <|
+        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
             case pattern of
                 Nothing -> parse_builtin text
                 _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale

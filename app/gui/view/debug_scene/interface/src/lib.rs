@@ -234,7 +234,6 @@ fn init(app: &Application) {
         }
     });
 
-    root_view.project().show_prompt();
 
     // === Profiling ===
 

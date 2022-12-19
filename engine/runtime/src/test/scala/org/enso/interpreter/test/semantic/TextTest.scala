@@ -106,6 +106,7 @@ class TextTest extends InterpreterTest {
     "support converting values to display texts" in {
       val code =
         """
+          |import Standard.Base.Any.Any
           |import Standard.Base.Data.List.List
           |from Standard.Base.Error.Common import all
           |import Standard.Base.Panic.Panic
@@ -120,8 +121,8 @@ class TextTest extends InterpreterTest {
           |    IO.println (Compile_Error.Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match.Error 32).to_display_text
           |    IO.println (Arithmetic_Error.Error "cannot frobnicate quaternions").to_display_text
-          |    IO.println ((Panic.catch_primitive (1 + "foo") .convert_to_dataflow_error).catch_primitive .to_display_text)
-          |    IO.println ((Panic.catch_primitive (7 1) .convert_to_dataflow_error).catch_primitive .to_display_text)
+          |    IO.println ((Panic.catch Any (1 + "foo") .convert_to_dataflow_error).catch_primitive .to_display_text)
+          |    IO.println ((Panic.catch Any (7 1) .convert_to_dataflow_error).catch_primitive .to_display_text)
           |    IO.println (Arity_Error.Error 10 10 20).to_display_text
           |""".stripMargin
       eval(code)

@@ -13,7 +13,6 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Error.Common.Polyglot_Error
 import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -27,11 +26,13 @@ import project.Polyglot
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
 
-polyglot java import org.enso.base.Time_Utils
+polyglot java import java.lang.Exception as JException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import java.time.DateTimeException
 polyglot java import java.lang.ArithmeticException
+
+polyglot java import org.enso.base.Time_Utils
 
 ## PRIVATE
    Constructs a new Date from a year, month, and day.
@@ -130,8 +131,8 @@ type Date
 
     new : Integer -> Integer -> Integer -> Date ! Time_Error
     new year (month = 1) (day = 1) =
-        Panic.catch_java Any (new_builtin year month day) java_exception->
-            Error.throw (Time_Error.Error java_exception.getMessage)
+        Panic.catch JException (new_builtin year month day) caught->
+            Error.throw (Time_Error.Error caught.payload.getMessage)
 
     ## ALIAS Date from Text
 
@@ -202,7 +203,7 @@ type Date
             _ : Text -> parse_builtin text pattern
             _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
         result . map_error <| case _ of
-            Polyglot_Error.Error err -> Time_Error.Error err.getMessage
+            err : JException -> Time_Error.Error err.getMessage
             ex -> ex
 
     ## Get the year field.

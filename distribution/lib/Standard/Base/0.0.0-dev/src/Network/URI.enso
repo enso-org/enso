@@ -7,6 +7,7 @@ import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
 
+polyglot java import java.lang.Exception as JException
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.util.Optional
 
@@ -39,8 +40,8 @@ type URI
              example_parse = URI.parse "http://example.com"
     parse : Text -> URI ! Syntax_Error
     parse text =
-        Panic.catch_java Any (URI.Value (Java_URI.create text)) java_exception->
-            Error.throw (Syntax_Error.Error ("URI syntax error: " + java_exception.getMessage))
+        Panic.catch JException (URI.Value (Java_URI.create text)) caught_panic->
+            Error.throw (Syntax_Error.Error ("URI syntax error: " + caught_panic.payload.getMessage))
 
     ## PRIVATE
 

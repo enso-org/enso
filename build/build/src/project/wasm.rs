@@ -442,9 +442,9 @@ impl Wasm {
                 env::WASM_BINDGEN_TEST_TIMEOUT,
                 wasm_timeout.map(|d| d.as_secs()).as_ref(),
             )?
-            .arg("test")
+            .test()
             .apply_opt(headless.then_some(&Headless))
-            .apply(&Chrome)
+            .apply(&test::BROWSER_FOR_WASM_TESTS)
             .arg("integration-test")
             .arg("--profile=integration-test")
             .args(additional_options)
