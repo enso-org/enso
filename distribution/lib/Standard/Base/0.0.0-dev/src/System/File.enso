@@ -242,7 +242,7 @@ type File
     resolve : (Text | File) -> File
     resolve self = @Builtin_Method "File.resolve"
 
-    ## Convert to a JavaScript Object representing this File.
+    ## Convert the file descriptor to a JS_Object.
 
        > Example
          Convert a file to a JS_Object.

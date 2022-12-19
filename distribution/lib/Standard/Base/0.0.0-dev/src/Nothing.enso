@@ -31,12 +31,12 @@ type Nothing
     if_nothing self ~function = function
 
     ## Get a value for the key of the object.
-       As Nothing has no keys, returns `other`.
+       As `Nothing` has no keys, returns `if_missing`.
 
        Arguments:
        - key: The key to get.
        - if_missing: The value to return if the key is not found.
     get : Text | Integer -> Any -> Nothing
     get self key ~if_missing=Nothing =
-        _ = [key]
+        _ = key
         if_missing

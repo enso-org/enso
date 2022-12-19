@@ -201,12 +201,12 @@ type Map
     at : Any -> Any ! No_Such_Key
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
-    ## Gets the value associated with `key` in this map, or returns `other` if
-       it isn't present.
+    ## Gets the value associated with `key` in this map, or returns
+       `if_missing` if it isn't present.
 
        Arguments:
        - key: The key to look up in the map.
-       - other: The value to use if the key isn't present.
+       - if_missing: The value to use if the key isn't present.
 
        > Example
          Get the value for the key 2 in a map or instead return "zero" if it
