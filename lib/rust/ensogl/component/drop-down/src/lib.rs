@@ -146,7 +146,9 @@ impl<T: DropdownValue> Frp<T> {
         frp::extend! { network
             // === Static entries support ===
             static_number_of_entries <- input.set_all_entries.map(|entries| entries.len());
-            static_entries <- input.set_all_entries.map(|entries| (0..entries.len(), entries.clone()));
+            static_entries <- input.set_all_entries.map(|entries|
+                (0..entries.len(), entries.clone())
+            );
             max_cache_size <- any(input.set_max_cached_entries, static_number_of_entries);
             number_of_entries <- any(input.set_number_of_entries, static_number_of_entries);
             provided_entries <- any(input.provide_entries_at_range, static_entries);
@@ -170,7 +172,9 @@ impl<T: DropdownValue> Frp<T> {
             // === Entry update and dynamic entries support ===
             requested_index <- model.grid.model_for_entry_needed._0();
             requested_batch <- requested_index.batch(&after_animations);
-            ready_and_request_ranges <- requested_batch.map(f!((batch) model.get_ready_and_request_ranges(batch)));
+            ready_and_request_ranges <- requested_batch.map(
+                f!((batch) model.get_ready_and_request_ranges(batch))
+            );
             requested_range_ready <- ready_and_request_ranges._0().iter();
             requested_range_needed <- ready_and_request_ranges._1().iter();
 
@@ -185,8 +189,11 @@ impl<T: DropdownValue> Frp<T> {
 
             updated_range <- provided_entries.map4(
                 &visible_range, &max_cache_size, &number_of_entries,
-                f!(((range, entries), visible, cache_size, num_entries)
-                    model.insert_entries_in_range(range.clone(), entries, visible.clone(), *cache_size, *num_entries))
+                f!([model]((range, entries), visible, max_size, num_entries) {
+                    let range = range.clone();
+                    let visible = visible.clone();
+                    model.insert_entries_in_range(range, entries, visible, *max_size, *num_entries)
+                })
             );
 
             range_to_update <- any(updated_range, requested_range_ready);
@@ -198,7 +205,9 @@ impl<T: DropdownValue> Frp<T> {
 
 
             // === Selection ===
-            selection_pruned <- input.set_multiselect.map(f!((multi) model.set_multiselect(*multi))).on_true();
+            selection_pruned <- input.set_multiselect.map(
+                f!((multi) model.set_multiselect(*multi))
+            ).on_true();
             selection_accepted <- model.grid.entry_accepted.map3(
                 &input.set_multiselect, &input.allow_deselect_all,
                 f!(((row, _), multi, allow) model.accept_entry_at_index(*row, *multi, *allow)));
@@ -207,9 +216,12 @@ impl<T: DropdownValue> Frp<T> {
             selection_changed <- any3(&selection_accepted, &selection_set, &selection_pruned);
 
             model.grid.request_model_for_visible_entries <+ selection_changed;
-            output.selected_entries <+ selection_changed.map(f!((()) model.get_selected_entries())).on_change();
-            output.single_selected_entry <+ selection_changed.map(f!((()) model.get_single_selected_entry())).on_change();
-
+            output.selected_entries <+ selection_changed.map(
+                f!((()) model.get_selected_entries())
+            ).on_change();
+            output.single_selected_entry <+ selection_changed.map(
+                f!((()) model.get_single_selected_entry())
+            ).on_change();
 
             // === Keyboard navigation ===
             model.grid.accept_selected_entry <+ input.toggle_focused_entry;
