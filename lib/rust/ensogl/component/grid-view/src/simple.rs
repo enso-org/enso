@@ -140,7 +140,7 @@ impl crate::Entry for Entry {
         let network = frp.network();
 
         enso_frp::extend! { network
-            size <- input.set_size.on_change();
+            size <- input.set_size_tmp.on_change();
             bg_color <- input.set_params.map(|p| p.bg_color).on_change();
             bg_margin <- input.set_params.map(|p| p.bg_margin).on_change();
             hover_color <- input.set_params.map(|p| p.hover_color).on_change();
@@ -168,7 +168,7 @@ impl crate::Entry for Entry {
             data.label.set_font <+ font;
             data.label.set_property_default <+ text_size.ref_into_some();
             content <- input.set_model.map(|m| m.text.clone_ref());
-            max_width_px <- input.set_size.map(|size| size.x);
+            max_width_px <- input.set_size_tmp.map(|size| size.x);
             data.label.set_content <+ content;
             data.label.set_view_width <+ max_width_px.some();
 

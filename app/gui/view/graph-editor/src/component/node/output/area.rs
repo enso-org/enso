@@ -125,7 +125,7 @@ impl From<node::Expression> for Expression {
 // because `api::Private` owns the network, which contains (strong) references to the model.
 ensogl::define_endpoints! {
     Input {
-        set_size                  (Vector2),
+        set_size_tmp                  (Vector2),
         set_hover                 (bool),
         set_expression            (node::Expression),
         set_expression_visibility (bool),
@@ -328,7 +328,7 @@ impl Model {
     }
 
     #[profile(Debug)]
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         self.ports.set_x(size.x / 2.0);
     }
 
@@ -369,17 +369,17 @@ impl Model {
                         (f!([crumbs](t) Switch::new(crumbs.clone(),*t)));
                     self.frp.source.on_port_press <+ port_frp.on_press.constant(crumbs.clone());
 
-                    port_frp.set_size_multiplier        <+ self.frp.port_size_multiplier;
+                    port_frp.set_size_tmp_multiplier        <+ self.frp.port_size_multiplier;
                     self.frp.source.on_port_type_change <+ port_frp.tp.map(move |t|(crumbs.clone(),t.clone()));
                     port_frp.set_type_label_visibility  <+ self.frp.type_label_visibility;
                     self.frp.source.tooltip             <+ port_frp.tooltip;
                     port_frp.set_view_mode              <+ self.frp.view_mode;
-                    port_frp.set_size                   <+ self.frp.size;
+                    port_frp.set_size_tmp                   <+ self.frp.size;
                 }
 
                 port_frp.set_type_label_visibility.emit(self.frp.type_label_visibility.value());
                 port_frp.set_view_mode.emit(self.frp.view_mode.value());
-                port_frp.set_size.emit(self.frp.size.value());
+                port_frp.set_size_tmp.emit(self.frp.size.value());
                 self.ports.add_child(&port_shape);
                 port_index += 1;
             }
@@ -479,8 +479,8 @@ impl Area {
             hysteretic_transition.to_end   <+ on_hover_out;
 
             frp.source.port_size_multiplier <+ hysteretic_transition.value;
-            eval frp.set_size ((t) model.set_size(*t));
-            frp.source.size <+ frp.set_size;
+            eval frp.set_size_tmp ((t) model.set_size_tmp(*t));
+            frp.source.size <+ frp.set_size_tmp;
 
             expr_label_x <- model.label.width.map(|width| -width - input::area::TEXT_OFFSET);
             eval expr_label_x ((x) model.label.set_x(*x));

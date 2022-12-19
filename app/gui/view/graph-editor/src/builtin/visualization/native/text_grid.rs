@@ -124,7 +124,7 @@ mod entry {
                 eval input.set_model((model) new_entry.set_model(model));
                 eval input.set_params((params) new_entry.set_params(params));
 
-                pos_size <- all(&input.position_set, &input.set_size);
+                pos_size <- all(&input.position_set, &input.set_size_tmp);
                 eval pos_size (((pos, size)) new_entry.set_position_and_size(pos, size));
             }
             init.emit(());
@@ -204,14 +204,14 @@ impl<T: TextProvider> Model<T> {
         }
     }
 
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         self.scroll_bar_horizontal.set_y(-size.y / 2.0);
         self.scroll_bar_horizontal.set_length(size.x);
 
         self.scroll_bar_vertical.set_x(size.x / 2.0);
         self.scroll_bar_vertical.set_length(size.y);
 
-        self.clipping_div.set_size(size);
+        self.clipping_div.set_size_tmp(size);
         self.size.set(size);
     }
 
@@ -296,7 +296,7 @@ impl<T: 'static + TextProvider> TextGrid<T> {
 
             // === Visualisation API Inputs ===
 
-            eval frp.set_size  ((size) model.set_size(*size));
+            eval frp.set_size_tmp  ((size) model.set_size_tmp(*size));
             eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));
@@ -318,7 +318,7 @@ impl<T: 'static + TextProvider> TextGrid<T> {
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
             trace scroll_positition;
-            viewport <- all_with3(&scroll_positition, &frp.set_size, &text_grid.content_size, f!([dom_entry_root](scroll_position, vis_size, content_size) {
+            viewport <- all_with3(&scroll_positition, &frp.set_size_tmp, &text_grid.content_size, f!([dom_entry_root](scroll_position, vis_size, content_size) {
                 let (scroll_x, scroll_y) = *scroll_position;
                 let top = -scroll_y * content_size.y;
                 let bottom = top - vis_size.y;

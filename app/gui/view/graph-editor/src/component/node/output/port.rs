@@ -392,8 +392,8 @@ impl PortShapeView {
     }
 
     fn_both! {
-        set_size            (this,t:Vector2)     {this.size.set(t)}
-        set_size_multiplier (this,t:f32)         {this.size_multiplier.set(t)}
+        set_size_tmp            (this,t:Vector2)     {this.size.set(t)}
+        set_size_tmp_multiplier (this,t:f32)         {this.size_multiplier.set(t)}
         set_color           (this,t:color::Rgba) {this.color_rgb.set(t.opaque.into())}
         set_opacity         (this,t:f32)         {this.opacity.set(t)}
     }
@@ -430,11 +430,11 @@ impl display::Object for PortShapeView {
 
 ensogl::define_endpoints! {
     Input {
-        set_size_multiplier       (f32),
+        set_size_tmp_multiplier       (f32),
         set_definition_type       (Option<Type>),
         set_usage_type            (Option<Type>),
         set_type_label_visibility (bool),
-        set_size                  (Vector2),
+        set_size_tmp                  (Vector2),
         set_view_mode             (view::Mode),
     }
 
@@ -536,9 +536,9 @@ impl Model {
 
             // === Size ===
 
-            frp.source.size <+ frp.set_size;
+            frp.source.size <+ frp.set_size_tmp;
             eval frp.size ((&s)
-                shape.set_size(s + Vector2(HOVER_AREA_PADDING,HOVER_AREA_PADDING) * 2.0));
+                shape.set_size_tmp(s + Vector2(HOVER_AREA_PADDING,HOVER_AREA_PADDING) * 2.0));
             set_type_label_x <- all_with(&frp.size,&type_label.width,
                 f!([port_count,port_index](port_size,type_label_width) {
                     let shape_length   = shape_border_length(node::RADIUS, port_size.x);
@@ -550,7 +550,7 @@ impl Model {
                     label_center_x - type_label_width / 2.0
                 }));
             eval set_type_label_x ((&t) type_label.set_x(t));
-            eval frp.set_size_multiplier ((t) shape.set_size_multiplier(*t));
+            eval frp.set_size_tmp_multiplier ((t) shape.set_size_tmp_multiplier(*t));
 
 
             // === Type ===
@@ -624,9 +624,9 @@ impl Model {
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn set_size(&self, size: Vector2) {
+    pub fn set_size_tmp(&self, size: Vector2) {
         if let Some(frp) = &self.frp {
-            frp.set_size(size);
+            frp.set_size_tmp(size);
         }
     }
 }

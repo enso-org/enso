@@ -85,7 +85,7 @@ impl component::Frp<Model> for Frp {
             app.frp.set_tooltip <+ background.mouse_out.constant(tooltip::Style::unset_label());
         }
 
-        model.set_size(Vector2::new(MARK_WIDTH + 2.0 * MARK_HOVER_AREA_WIDTH, INFINITE));
+        model.set_size_tmp(Vector2::new(MARK_WIDTH + 2.0 * MARK_HOVER_AREA_WIDTH, INFINITE));
     }
 }
 
@@ -123,7 +123,7 @@ impl component::Model for Model {
 }
 
 impl Model {
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         self.background.size.set(size);
     }
 

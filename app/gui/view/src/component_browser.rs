@@ -116,7 +116,7 @@ impl component::Frp<Model> for Frp {
 
             doc_height <- all_with(&init, &list_panel.size, |(), size| size.y);
             doc_size <- all_with(&doc_width, &doc_height, |w, h| Vector2(*w, *h));
-            eval doc_size ((size) documentation.visualization_frp.inputs.set_size.emit(*size));
+            eval doc_size ((size) documentation.visualization_frp.inputs.set_size_tmp.emit(*size));
             size <- all_with4(&init, &list_panel.size, &doc_size, &gap, |(), list_size, doc_size, gap| {
                 let width = list_size.x + gap + doc_size.x;
                 let height = max(list_size.y, doc_size.y);

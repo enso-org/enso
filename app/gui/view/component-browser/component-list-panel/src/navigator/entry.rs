@@ -141,7 +141,7 @@ impl grid::entry::Entry for View {
             selection_color <- style.map(|s| s.selection_color).on_change();
             hover_color <- style.map(|s| s.hover_color).on_change();
 
-            out.contour <+ input.set_size.map(|s| grid::entry::Contour::rectangular(*s));
+            out.contour <+ input.set_size_tmp.map(|s| grid::entry::Contour::rectangular(*s));
             out.highlight_contour <+ out.contour.all_with(&style,
                 |c,s| grid::entry::Contour { corners_radius: s.selection_corners_radius, ..*c }
             );

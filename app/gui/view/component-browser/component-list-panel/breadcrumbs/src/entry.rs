@@ -302,7 +302,7 @@ impl ensogl_grid_view::Entry for Entry {
 
         enso_frp::extend! { network
             init <- source_();
-            size <- input.set_size.on_change();
+            size <- input.set_size_tmp.on_change();
             margin <- input.set_params.map(|p| p.style.margin).on_change();
             hover_color <- input.set_params.map(|p| p.style.hover_color).cloned_into().on_change();
             font <- input.set_params.map(|p| p.style.font_name.clone_ref()).on_change();

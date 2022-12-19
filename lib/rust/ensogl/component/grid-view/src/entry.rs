@@ -73,7 +73,7 @@ impl Default for MovedHeaderPosition {
 ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node::Data)>
     Input {
         set_model(Model),
-        set_size(Vector2),
+        set_size_tmp(Vector2),
         set_params(Params),
         set_location((Row, Col)),
         /// Called to inform the entry that its position is updated. Note that this is not usually

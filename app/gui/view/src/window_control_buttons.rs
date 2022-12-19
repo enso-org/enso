@@ -240,8 +240,8 @@ impl View {
         frp::extend! { network
             // Layout
             button_size               <- radius.map(|&r| Vector2(2.0 * r, 2.0 * r));
-            model.close.set_size      <+ button_size;
-            model.fullscreen.set_size <+ button_size;
+            model.close.set_size_tmp      <+ button_size;
+            model.fullscreen.set_size_tmp <+ button_size;
             button_resized            <- any_(&model.close.size,&model.fullscreen.size);
             layout_on_button_change   <- sample(&layout_style,&button_resized);
             need_relayout             <- any(&layout_style,&layout_on_button_change);

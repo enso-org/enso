@@ -89,7 +89,7 @@ pub fn set_viewport(shape: &View, viewport: Viewport) {
 #[allow(missing_docs)]
 pub trait AttrSetter {
     fn set_position(shape: &View, position: Vector2, viewport: Viewport);
-    fn set_size(shape: &View, size: Vector2);
+    fn set_size_tmp(shape: &View, size: Vector2);
     fn set_corners_radius(shape: &View, radius: f32);
     fn set_color(shape: &View, color: color::Lcha);
     fn set_top_clip(shape: &View, y: f32, viewport: Viewport);
@@ -106,7 +106,7 @@ impl AttrSetter for kind::Hover {
         shape.highlights_pos.set(attr);
     }
 
-    fn set_size(shape: &View, size: Vector2) {
+    fn set_size_tmp(shape: &View, size: Vector2) {
         let mut attr = shape.highlights_sizes.get();
         attr.x = size.x;
         attr.y = size.y;
@@ -146,7 +146,7 @@ impl AttrSetter for kind::Selection {
         shape.highlights_pos.set(attr);
     }
 
-    fn set_size(shape: &View, size: Vector2) {
+    fn set_size_tmp(shape: &View, size: Vector2) {
         let mut attr = shape.highlights_sizes.get();
         attr.z = size.x;
         attr.w = size.y;

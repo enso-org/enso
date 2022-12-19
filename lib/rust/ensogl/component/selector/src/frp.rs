@@ -123,7 +123,7 @@ impl Frp {
             track_max_width <- size.map(slider_area_width);
             size_update <- all(size,shadow_padding);
             eval size_update(((size, shadow_padding)) {
-                model.set_size(*size,*shadow_padding)
+                model.set_size_tmp(*size,*shadow_padding)
             });
 
             // Mouse IO

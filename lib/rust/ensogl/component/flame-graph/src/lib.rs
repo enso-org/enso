@@ -135,7 +135,7 @@ pub fn shape_from_block<BlockType: IntoThemePath>(
     let pos = Vector2::new(x as f32, y as f32);
 
     component.set_content.emit(block.label);
-    component.set_size.emit(size);
+    component.set_size_tmp.emit(size);
     component.set_xy(pos);
 
     component

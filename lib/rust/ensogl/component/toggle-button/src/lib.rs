@@ -53,7 +53,7 @@ ensogl_core::define_endpoints! {
     Input {
         set_visibility   (bool),
         set_color_scheme (ColorScheme),
-        set_size         (Vector2),
+        set_size_tmp         (Vector2),
         toggle           (),
         set_state        (bool),
     }
@@ -227,7 +227,7 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
              // === Input Processing ===
 
-            eval frp.set_size ((size) model.icon.size.set(*size));
+            eval frp.set_size_tmp ((size) model.icon.size.set(*size));
 
 
             // === State ===

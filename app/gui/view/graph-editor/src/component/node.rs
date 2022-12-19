@@ -504,7 +504,7 @@ impl NodeModel {
 
         let error_visualization = error::Container::new(app);
         let (x, y) = ERROR_VISUALIZATION_SIZE;
-        error_visualization.set_size.emit(Vector2(x, y));
+        error_visualization.set_size_tmp.emit(Vector2(x, y));
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
@@ -629,7 +629,7 @@ impl NodeModel {
         self.background.size.set(padded_size);
         self.drag_area.size.set(padded_size);
         self.error_indicator.size.set(padded_size);
-        self.vcs_indicator.set_size(padded_size);
+        self.vcs_indicator.set_size_tmp(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
         self.backdrop.set_x(x_offset_to_node_center);
         self.background.set_x(x_offset_to_node_center);
@@ -641,7 +641,7 @@ impl NodeModel {
         self.action_bar.mod_position(|t| {
             t.x = x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0;
         });
-        self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
+        self.action_bar.frp.set_size_tmp(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         let visualization_offset = visualization_offset(width);
         self.error_visualization.set_xy(visualization_offset);
@@ -772,7 +772,7 @@ impl Node {
             // === Size ===
 
             new_size <- model.input.frp.width.map(f!((w) model.set_width(*w)));
-            model.output.frp.set_size <+ new_size;
+            model.output.frp.set_size_tmp <+ new_size;
 
 
             // === Action Bar ===

@@ -244,7 +244,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         let width_diff = self.column_widths.width_diff(col);
         let header = self.visible_headers.borrow().get(&col).map(|h| h.entry.clone_ref());
         if let Some(header) = header {
-            header.entry.frp().set_size(entries_size + Vector2(width_diff, 0.0))
+            header.entry.frp().set_size_tmp(entries_size + Vector2(width_diff, 0.0))
         }
     }
 
@@ -293,7 +293,7 @@ impl<InnerGrid, HeaderEntry: Entry> Model<InnerGrid, HeaderEntry, HeaderEntry::P
         entry_frp.set_model(model);
         entry_frp.set_location((entry.section_rows.start, col));
         let width_offset = self.column_widths.width_diff(col);
-        entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
+        entry_frp.set_size_tmp(entry_size + Vector2(width_offset, 0.0));
         let position = entry.header_position(col, entry_size, viewport, widths);
         entry.entry.set_xy(position.position);
         entry_frp.moved_as_header(&position);

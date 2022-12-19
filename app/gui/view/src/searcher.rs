@@ -150,7 +150,11 @@ impl Model {
 
     fn set_height(&self, h: f32) {
         self.list.resize(Vector2(ACTION_LIST_WIDTH, h));
-        self.documentation.visualization_frp.inputs.set_size.emit(Vector2(DOCUMENTATION_WIDTH, h));
+        self.documentation
+            .visualization_frp
+            .inputs
+            .set_size_tmp
+            .emit(Vector2(DOCUMENTATION_WIDTH, h));
     }
 }
 

@@ -113,7 +113,7 @@ impl AddNodeButton {
                 Self::update_position(&view, &camera, size, margin);
             });
             update_size <- all(init, size, shadow);
-            view.set_size <+ update_size.map(|&((), size, shadow)| {
+            view.set_size_tmp <+ update_size.map(|&((), size, shadow)| {
                 let view_size_1d = size + shadow * 2.0;
                 Vector2(view_size_1d, view_size_1d)
             });

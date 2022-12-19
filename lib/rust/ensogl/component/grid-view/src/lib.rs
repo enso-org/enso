@@ -346,7 +346,7 @@ impl<E: Entry> Model<E, E::Params> {
             entry_frp.set_location((row, col));
         }
         let width_offset = self.column_widths.width_diff(col);
-        entry_frp.set_size(entry_size + Vector2(width_offset, 0.0));
+        entry_frp.set_size_tmp(entry_size + Vector2(width_offset, 0.0));
         entry_frp.set_model(model);
     }
 
@@ -380,7 +380,7 @@ impl<E: Entry> Model<E, E::Params> {
             entries_and_sizes.collect_vec()
         };
         for (visible_entry, size) in entries_and_sizes {
-            visible_entry.entry.frp().set_size(size);
+            visible_entry.entry.frp().set_size_tmp(size);
         }
         to_model_request
     }
@@ -464,8 +464,8 @@ pub struct GridViewTemplate<
 /// to the number of visible entries.
 ///
 /// After either method of resizing, each visible entry in the affected column will receive
-/// the [`EntryFrp::set_size`] event. It is up to the entry implementation to avoid loops between
-/// [`EntryFrp::set_size`] and [`EntryFrp::override_column_width`].
+/// the [`EntryFrp::set_size_tmp`] event. It is up to the entry implementation to avoid loops
+/// between [`EntryFrp::set_size_tmp`] and [`EntryFrp::override_column_width`].
 ///
 /// **Important**: The current implementation has performance implications for large amounts of
 /// entries. A more effective implementation is possible and may be implemented using a

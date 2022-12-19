@@ -174,7 +174,7 @@ where InnerGrid: AsRef<crate::GridView<E>>
                 highlight_grid_frp.set_entries_params <+ entries_params;
             }
             kind::Hover::set_color(shape, color::Lcha::black());
-            kind::Selection::set_size(shape, default());
+            kind::Selection::set_size_tmp(shape, default());
             layers
         });
         let is_layer_set = new_layers.is_some();
@@ -214,7 +214,7 @@ where InnerGrid: AsRef<crate::GridView<E>>
         frp::extend! { network
             pos_and_viewport <- all(position, grid_frp.viewport);
             eval pos_and_viewport ([shape](&(pos, vp)) Setter::set_position(&shape, pos, vp));
-            eval size ([shape](&size) Setter::set_size(&shape, size));
+            eval size ([shape](&size) Setter::set_size_tmp(&shape, size));
             eval corners_radius ([shape](&r) Setter::set_corners_radius(&shape, r));
             top_clip_and_viewport <- all(top_clip, grid_frp.viewport);
             eval top_clip_and_viewport ([shape](&(c, v)) Setter::set_top_clip(&shape, c, v));

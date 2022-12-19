@@ -442,11 +442,11 @@ impl grid_view::Entry for View {
             group_colors <- input.set_params.map(|p| p.group_colors).on_change();
             grid_style <- input.set_params.map(|p| p.grid_style).on_change();
             kind_and_style <- all(kind, style, grid_style);
-            layout_data <- all(kind_and_style, input.set_size);
+            layout_data <- all(kind_and_style, input.set_size_tmp);
             eval layout_data ((((kind, style, grid_style), entry_sz))
                 data.update_layout(*kind, style, grid_style, *entry_sz)
             );
-            out.contour <+ all_with(&grid_style, &input.set_size, |grid_style, entry_sz| {
+            out.contour <+ all_with(&grid_style, &input.set_size_tmp, |grid_style, entry_sz| {
                 Data::contour(grid_style, *entry_sz)
             });
             out.contour_offset <+ kind_and_style.map(|(k, _, gs)| Data::contour_offset(*k, gs));
@@ -474,7 +474,7 @@ impl grid_view::Entry for View {
 
             // === Header Shadow ===
 
-            shadow_data <- all(input.moved_as_header, style, input.set_size);
+            shadow_data <- all(input.moved_as_header, style, input.set_size_tmp);
             eval shadow_data (((p, s, e)) data.update_shadow(p, s, *e));
 
 

@@ -57,7 +57,7 @@ mod background {
 ensogl_core::define_endpoints_2! {
     Input {
         set_content(String),
-        set_size(Vector2),
+        set_size_tmp(Vector2),
         set_color(Lcha)
     }
     Output {}
@@ -74,7 +74,7 @@ impl component::Frp<Model> for Frp {
         let background = &model.background.events;
         frp::extend! { network
             eval api.input.set_content((t) model.set_content(t));
-            eval api.input.set_size((size) model.set_size(*size));
+            eval api.input.set_size_tmp((size) model.set_size_tmp(*size));
             eval api.input.set_color((color) model.set_color(*color));
 
             tooltip_content <- api.input.set_content.sample(&background.mouse_over);
@@ -120,7 +120,7 @@ impl component::Model for Model {
 }
 
 impl Model {
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         self.background.size.set(size);
     }
 

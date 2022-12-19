@@ -129,11 +129,11 @@ impl Default for PreprocessorConfiguration {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct FrpInputs {
-    pub set_size:   frp::Source<Vector2>,
-    pub send_data:  frp::Source<Data>,
-    pub activate:   frp::Source,
-    pub deactivate: frp::Source,
-    pub set_layer:  frp::Source<Layer>,
+    pub set_size_tmp: frp::Source<Vector2>,
+    pub send_data:    frp::Source<Data>,
+    pub activate:     frp::Source,
+    pub deactivate:   frp::Source,
+    pub set_layer:    frp::Source<Layer>,
 }
 
 /// Visualization FRP network.
@@ -161,13 +161,13 @@ impl FrpInputs {
     /// Constructor.
     pub fn new(network: &frp::Network) -> Self {
         frp::extend! { network
-            set_size   <- source();
+            set_size_tmp   <- source();
             send_data  <- source();
             activate   <- source();
             deactivate <- source();
             set_layer  <- source();
         };
-        Self { set_size, send_data, activate, deactivate, set_layer }
+        Self { set_size_tmp, send_data, activate, deactivate, set_layer }
     }
 }
 

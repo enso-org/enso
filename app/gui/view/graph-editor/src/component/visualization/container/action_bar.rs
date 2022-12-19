@@ -196,7 +196,7 @@ impl Icons {
         self
     }
 
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         self.size.set(size);
         self.icon_root.set_x(-size.x / 2.0);
         self.place_shape_in_slot(&self.drag_icon, 0);
@@ -226,7 +226,7 @@ impl display::Object for Icons {
 
 ensogl::define_endpoints! {
     Input {
-        set_size                   (Vector2),
+        set_size_tmp                   (Vector2),
         show_icons                 (),
         hide_icons                 (),
         set_selected_visualization (Option<visualization::Path>),
@@ -287,11 +287,11 @@ impl Model {
         self
     }
 
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         self.size.set(size);
         self.hover_area.size.set(size);
         self.background.size.set(size);
-        self.icons.set_size(size);
+        self.icons.set_size_tmp(size);
 
         let height = size.y;
         let width = size.x;
@@ -364,7 +364,7 @@ impl ActionBar {
 
             // === Input Processing ===
 
-            eval  frp.set_size ((size) model.set_size(*size));
+            eval  frp.set_size_tmp ((size) model.set_size_tmp(*size));
             eval_ frp.hide_icons ( model.hide() );
             eval_ frp.show_icons ( model.show() );
 

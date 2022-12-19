@@ -140,7 +140,7 @@ impl Model {
 
     /// Set the size of the overall shape, taking into account the extra padding required to
     /// render the shadow.
-    pub fn set_size(&self, size: Vector2, shadow_padding: Vector2) {
+    pub fn set_size_tmp(&self, size: Vector2, shadow_padding: Vector2) {
         let size_with_shadow = size + shadow_padding;
         self.background.size.set(size_with_shadow);
         self.left_overflow.size.set(size_with_shadow);

@@ -90,7 +90,7 @@ pub struct InstanceModel {
     pub root_node:       DomSymbol,
     pub logger:          Logger,
     on_data_received:    Rc<Option<web::Function>>,
-    set_size:            Rc<Option<web::Function>>,
+    set_size_tmp:        Rc<Option<web::Function>>,
     #[derivative(Debug = "ignore")]
     object:              Rc<java_script::binding::Visualization>,
     #[derivative(Debug = "ignore")]
@@ -175,15 +175,15 @@ impl InstanceModel {
         let object = Self::instantiate_class_with_args(class, init_data)?;
         let on_data_received = get_method(&object, method::ON_DATA_RECEIVED).ok();
         let on_data_received = Rc::new(on_data_received);
-        let set_size = get_method(&object, method::SET_SIZE).ok();
-        let set_size = Rc::new(set_size);
+        let set_size_tmp = get_method(&object, method::set_size_tmp).ok();
+        let set_size_tmp = Rc::new(set_size_tmp);
         let object = Rc::new(object);
         let scene = scene.clone_ref();
         Ok(InstanceModel {
             root_node,
             logger,
             on_data_received,
-            set_size,
+            set_size_tmp,
             object,
             preprocessor_change,
             scene,
@@ -198,14 +198,14 @@ impl InstanceModel {
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         let data_json = serde_wasm_bindgen::to_value(&size).unwrap();
-        let _ = self.try_call1(&self.set_size, &data_json);
-        self.root_node.set_size(size);
+        let _ = self.try_call1(&self.set_size_tmp, &data_json);
+        self.root_node.set_size_tmp(size);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn set_size(&self, _size: Vector2) {}
+    fn set_size_tmp(&self, _size: Vector2) {}
 
     #[cfg(target_arch = "wasm32")]
     fn receive_data(&self, data: &Data) -> result::Result<(), DataError> {
@@ -286,7 +286,7 @@ impl Instance {
         let model = self.model.clone_ref();
         let frp = self.frp.clone_ref();
         frp::extend! { network
-            eval frp.set_size  ((size) model.set_size(*size));
+            eval frp.set_size_tmp  ((size) model.set_size_tmp(*size));
             eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));

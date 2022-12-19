@@ -37,7 +37,7 @@ pub mod field {
 #[allow(missing_docs)]
 pub mod method {
     pub const ON_DATA_RECEIVED: &str = "onDataReceived";
-    pub const SET_SIZE: &str = "setSize";
+    pub const set_size_tmp: &str = "setSize";
 }
 
 

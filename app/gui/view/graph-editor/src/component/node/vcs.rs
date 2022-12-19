@@ -127,7 +127,7 @@ impl display::Object for StatusIndicatorModel {
 ensogl::define_endpoints! {
     Input {
         set_status     (Option<Status>),
-        set_size       (Vector2),
+        set_size_tmp       (Vector2),
         set_visibility (bool),
     }
     Output {
@@ -172,7 +172,7 @@ impl StatusIndicator {
                 model.shape.color_rgba.set(color::Rgba::from(c).into())
             );
 
-            eval frp.input.set_size ((size)
+            eval frp.input.set_size_tmp ((size)
                 model.shape.size.set(*size);
             );
 

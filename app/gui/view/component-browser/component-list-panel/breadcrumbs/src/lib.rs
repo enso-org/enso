@@ -94,7 +94,7 @@ pub type BreadcrumbId = usize;
 // ============
 
 /// A rectangular mask used to crop the breadcrumbs' content when it doesn't fit in the size set
-/// by [`Frp::set_size`]. The mask covers the visible portion of the breadcrumbs. See [Layer]
+/// by [`Frp::set_size_tmp`]. The mask covers the visible portion of the breadcrumbs. See [Layer]
 /// documentation to learn more about masking.
 ///
 /// [Layer]: ensogl_core::display::scene::layer::Layer#masking-layers-with-arbitrary-shapes
@@ -408,7 +408,7 @@ ensogl_core::define_endpoints_2! {
         /// Set the size of the visible portion of the breadcrumbs. The widget will crop the
         /// breadcrumbs to this size and prioritize showing the right part of the list if it
         /// can't fit in completely.
-        set_size(Vector2),
+        set_size_tmp(Vector2),
         /// Move the selection to the previous (higher-level) breadcrumb in the list.
         move_up(),
         /// Move the selection to the next (lower-level) breadcrumb in the list.
@@ -458,7 +458,7 @@ impl Breadcrumbs {
             out.selected <+ selected;
 
             scroll_anim.target <+ all_with3(
-                &model.grid.content_size, &input.set_size, &model.grid.entry_selected,
+                &model.grid.content_size, &input.set_size_tmp, &model.grid.entry_selected,
                 f!((content_size, size, _) {
                     model.update_layout(*content_size, *size);
                     model.offset(*content_size, *size)

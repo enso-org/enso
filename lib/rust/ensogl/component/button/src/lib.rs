@@ -239,7 +239,7 @@ impl<Shape: ButtonShape> Model<Shape> {
 
 ensogl_core::define_endpoints! {
     Input {
-        set_size (Vector2),
+        set_size_tmp (Vector2),
         mouse_nearby (bool),
         click (),
     }
@@ -315,8 +315,8 @@ impl<Shape: ButtonShape> View<Shape> {
         let events = &model.shape.events;
 
         frp::extend! { network
-            eval frp.set_size ((&size) model.shape.size.set(size));
-            frp.source.size <+ frp.set_size;
+            eval frp.set_size_tmp ((&size) model.shape.size.set(size));
+            frp.source.size <+ frp.set_size_tmp;
 
             // Mouse
             frp.source.is_hovered <+ bool(&events.mouse_out,&events.mouse_over);
@@ -364,7 +364,7 @@ impl<Shape: ButtonShape> View<Shape> {
         }
 
         let (size_x, size_y) = DEFAULT_SIZE_XY;
-        frp.set_size.emit(Vector2(size_x, size_y));
+        frp.set_size_tmp.emit(Vector2(size_x, size_y));
 
         Self { frp, model, style }
     }

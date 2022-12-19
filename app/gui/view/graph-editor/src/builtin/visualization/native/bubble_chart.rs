@@ -125,7 +125,7 @@ impl BubbleChart {
         let model = self.model.clone_ref();
 
         frp::extend! { network
-            eval frp.set_size ((s) model.size.set(*s));
+            eval frp.set_size_tmp ((s) model.size.set(*s));
             eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));

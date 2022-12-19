@@ -131,7 +131,7 @@ ensogl::define_endpoints! {
         set_data            (visualization::Data),
         select              (),
         deselect            (),
-        set_size            (Vector2),
+        set_size_tmp            (Vector2),
         enable_fullscreen   (),
         disable_fullscreen  (),
         set_vis_input_type  (Option<enso::Type>),
@@ -355,7 +355,7 @@ impl ContainerModel {
         preprocessor: &frp::Any<PreprocessorConfiguration>,
     ) {
         let size = self.size.get();
-        visualization.set_size.emit(size);
+        visualization.set_size_tmp.emit(size);
         frp::new_network! { vis_frp_connection
             // We need an additional "copy" node here. We create a new network to manage lifetime of
             // connection between `visualization.on_preprocessor_change` and `preprocessor`.
@@ -380,10 +380,10 @@ impl ContainerModel {
 
     fn update_shape_sizes(&self) {
         let size = self.size.get();
-        self.set_size(size);
+        self.set_size_tmp(size);
     }
 
-    fn set_size(&self, size: impl Into<Vector2>) {
+    fn set_size_tmp(&self, size: impl Into<Vector2>) {
         let dom = self.view.background_dom.dom();
         let bg_dom = self.fullscreen_view.background_dom.dom();
         let size = size.into();
@@ -397,7 +397,7 @@ impl ContainerModel {
             dom.set_style_or_warn("height", "0");
             bg_dom.set_style_or_warn("width", format!("{}px", size[0]));
             bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
-            self.action_bar.frp.set_size.emit(Vector2::zero());
+            self.action_bar.frp.set_size_tmp.emit(Vector2::zero());
         } else {
             // self.view.background.shape.radius.set(CORNER_RADIUS);
             self.view.overlay.radius.set(CORNER_RADIUS);
@@ -411,13 +411,13 @@ impl ContainerModel {
             // self.fullscreen_view.background.shape.sprite.size.set(zero());
 
             let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
-            self.action_bar.frp.set_size.emit(action_bar_size);
+            self.action_bar.frp.set_size_tmp.emit(action_bar_size);
         }
 
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {
-            viz.set_size.emit(size);
+            viz.set_size_tmp.emit(size);
         }
     }
 
@@ -509,7 +509,7 @@ impl Container {
             eval  frp.set_visibility    ((v) model.set_visibility(*v));
             eval_ frp.toggle_visibility (model.toggle_visibility());
             eval  frp.set_data          ((t) model.set_visualization_data(t));
-            frp.source.size    <+ frp.set_size;
+            frp.source.size    <+ frp.set_size_tmp;
             frp.source.visible <+ frp.set_visibility;
             frp.source.visible <+ frp.toggle_visibility.map(f!((()) model.is_active()));
             eval  frp.set_layer         ([model](l) {
@@ -598,7 +598,7 @@ impl Container {
             fullscreen_enabled_weight  <- frp.enable_fullscreen.constant(1.0);
             fullscreen_disabled_weight <- frp.disable_fullscreen.constant(0.0);
             fullscreen_weight          <- any(fullscreen_enabled_weight,fullscreen_disabled_weight);
-            frp.source.size            <+ frp.set_size;
+            frp.source.size            <+ frp.set_size_tmp;
 
             _eval <- fullscreen_weight.all_with3(&frp.size,scene_shape,
                 f!([model] (weight,viz_size,scene_size) {
@@ -606,7 +606,7 @@ impl Container {
                     let scene_size : Vector2 = scene_size.into();
                     let current_size         = viz_size * weight_inv + scene_size * *weight;
                     model.set_corner_roundness(weight_inv);
-                    model.set_size(current_size);
+                    model.set_size_tmp(current_size);
 
                     let m1  = model.scene.layers.panel.camera().inversed_view_matrix();
                     let m2  = model.scene.layers.viz.camera().view_matrix();
@@ -669,7 +669,7 @@ impl Container {
         //
         // This is not optimal the optimal solution to this problem, as it also means that we have
         // an animation on an invisible component running.
-        frp.set_size.emit(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
+        frp.set_size_tmp.emit(Vector2(DEFAULT_SIZE.0, DEFAULT_SIZE.1));
         frp.set_visualization.emit(Some(visualization::Registry::default_visualisation()));
         self
     }

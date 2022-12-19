@@ -56,7 +56,7 @@ mod hover_area {
 
 ensogl::define_endpoints! {
     Input {
-        set_size                    (Vector2),
+        set_size_tmp                    (Vector2),
         set_visibility              (bool),
         set_action_visibility_state (bool),
         set_action_skip_state       (bool),
@@ -173,7 +173,7 @@ impl Model {
         let padding = BUTTON_PADDING;
         let offset = BUTTON_OFFSET;
         button.mod_position(|p| p.x = ((1.0 + padding) * index + offset) * icon_size.x);
-        button.frp.set_size(icon_size);
+        button.frp.set_size_tmp(icon_size);
     }
 
     fn icon_size(&self) -> Vector2 {
@@ -197,7 +197,7 @@ impl Model {
         self.hover_area.set_x(center_offset + padding_offset);
     }
 
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         self.size.set(size);
         self.icons.set_x(-size.x / 2.0);
 
@@ -271,7 +271,7 @@ impl ActionBar {
 
             // === Input Processing ===
 
-            eval frp.set_size                    ((size)  model.set_size(*size));
+            eval frp.set_size_tmp                    ((size)  model.set_size_tmp(*size));
             eval frp.set_visibility              ((t)     model.icons.set_visibility(*t));
             eval frp.set_action_visibility_state ((state) model.icons.visibility.set_state(state));
             eval frp.set_action_skip_state ((state) model.icons.skip.set_state(state));

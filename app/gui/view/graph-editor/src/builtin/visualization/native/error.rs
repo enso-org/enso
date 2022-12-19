@@ -124,7 +124,7 @@ impl Error {
         let model = self.model.clone_ref();
         let frp = self.frp.clone_ref();
         frp::extend! { network
-            eval frp.set_size  ((size) model.set_size(*size));
+            eval frp.set_size_tmp  ((size) model.set_size_tmp(*size));
             eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));
@@ -201,7 +201,7 @@ impl Model {
         self
     }
 
-    fn set_size(&self, size: Vector2) {
+    fn set_size_tmp(&self, size: Vector2) {
         let x_mod = size.x - PADDING_TEXT;
         let y_mod = size.y - PADDING_TEXT;
         let size = Vector2(x_mod, y_mod);
@@ -247,7 +247,7 @@ impl Model {
     }
 
     fn reload_style(&self) {
-        self.dom.set_size(self.size.get());
+        self.dom.set_size_tmp(self.size.get());
     }
 
     fn set_text_color(&self, color: impl Into<display::style::Path>) {

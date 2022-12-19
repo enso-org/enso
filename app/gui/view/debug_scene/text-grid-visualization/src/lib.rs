@@ -98,7 +98,7 @@ fn init(app: &Application) {
 
         let grid = TextGrid::new(app.clone_ref());
         grid.set_text_provider(text_source);
-        grid.frp.set_size.emit(Vector2::new(200.0, 200.0));
+        grid.frp.set_size_tmp.emit(Vector2::new(200.0, 200.0));
 
         let mut was_rendered = false;
         let mut loader_hidden = false;

@@ -96,7 +96,7 @@ where EntryParams: frp::node::Data
             let mouse = &self.app.display.default_scene.mouse.frp;
             frp::new_bridge_network! { [network, entry_network] grid_view_entry_bridge
                 init <- source_();
-                entry_frp.set_size <+ all(init, self.set_entry_size)._1();
+                entry_frp.set_size_tmp <+ all(init, self.set_entry_size)._1();
                 entry_frp.set_params <+ all(init, self.set_entry_params)._1();
                 contour <- all(init, entry_frp.contour)._1();
                 eval contour ((c) overlay.set_contour(*c));
