@@ -693,7 +693,7 @@ impl Slider {
 
         frp::extend! { network
             comp_size <- all2(&input.set_width, &input.set_height).map(|(w, h)| Vector2(*w,*h));
-            eval comp_size((size) model.set_size(*size));
+            eval comp_size((size) model.update_size(*size));
             eval input.set_value_indicator((i) model.set_value_indicator(i));
             output.width <+ input.set_width;
             output.height <+ input.set_height;

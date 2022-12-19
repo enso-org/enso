@@ -60,7 +60,7 @@ impl RawText {
         let model = self.model.clone_ref();
         let frp = self.frp.clone_ref();
         frp::extend! { network
-            eval frp.set_size  ((size) model.set_size(*size));
+            eval frp.set_size ((size) model.set_size(*size));
             eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));
@@ -156,7 +156,7 @@ impl RawTextModel {
     }
 
     fn reload_style(&self) {
-        self.dom.set_size(self.size.get());
+        self.dom.set_dom_size(self.size.get());
     }
 
     fn set_layer(&self, layer: Layer) {

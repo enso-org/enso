@@ -272,7 +272,7 @@ impl Model {
         self.section_navigator.update_layout(style);
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
-        self.breadcrumbs.set_size(style.breadcrumbs_size());
+        self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
         self.grid.set_xy(style.grid_pos());
     }
 
