@@ -14,6 +14,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -146,5 +147,29 @@ public class MetaIsATest {
       }
     }
     assertEquals(f.toString(), 0, f.length());
+  }
+
+  @Test
+  public void consistencyWithCase() throws Exception {
+    var g = ValuesGenerator.create(ctx);
+    var f = new StringBuilder();
+    for (var t : g.allTypes()) {
+      var typeCaseOf = g.withType(t);
+
+      for (var v : g.allValues()) {
+        var test = typeCaseOf.execute(v);
+        assertTrue(test.isNumber());
+        var testBool = test.asInt() == 1;
+        var res = isACheck.execute(v, t);
+        assertTrue(res.isBoolean());
+        if (res.asBoolean() != testBool) {
+          f.append("\nType ").append(t).append(" and value ").append(v).
+            append(" caseof: ").append(test).append(" Meta.is_a ").append(res);
+        }
+      }
+    }
+    if (f.length() > 0) {
+      fail(f.toString());
+    }
   }
 }

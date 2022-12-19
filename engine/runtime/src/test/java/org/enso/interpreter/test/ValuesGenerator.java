@@ -52,10 +52,13 @@ class ValuesGenerator {
                     
       """.replace("{type}", s).replace("{import}", t)
       );
-      var check = f.invokeMember("eval_expression", "n");
-      v = new ValueInfo(value, check);
       if (k != null) {
+        var check = c.invokeMember("eval_expression", "check");
+        assertTrue("Can execute the check", check.canExecute());
+        v = new ValueInfo(value, check);
         values.put(k, v);
+      } else {
+        v = new ValueInfo(value, null);
       }
     }
     Assert.assertFalse("Not a function", v.type().canExecute());
