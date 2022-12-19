@@ -539,7 +539,7 @@ type Date
             _ ->
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
-    ## Convert to a JavaScript Object representing this Date.
+    ## Convert to a JS_Object representing this Date.
 
        > Example
          Convert the current date to a JS_Object.

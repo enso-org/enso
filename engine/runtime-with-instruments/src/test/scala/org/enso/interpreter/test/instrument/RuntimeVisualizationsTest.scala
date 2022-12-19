@@ -1951,6 +1951,7 @@ class RuntimeVisualizationsTest
   }
 
   it should "run internal IDE visualisation preprocessor catching error" in {
+    pending
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()

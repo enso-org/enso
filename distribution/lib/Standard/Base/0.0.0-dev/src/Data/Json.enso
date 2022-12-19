@@ -194,13 +194,15 @@ type JS_Object
 render object depth max_depth = case object of
     _ : JS_Object ->
         if depth == max_depth then '"{...}"' else
-            keys = object.field_names.take 10
+            len = object.length
+            keys = object.field_names.take 50
             children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1) max_depth)
-            '{' + (children.join ", ") + '}'
+            '{' + (children.join ", ") + (if len > 50 then ', "...": "Another ' + (len - 50).to_text + ' items truncated."' else "") + '}'
     _ : Vector ->
         if depth == max_depth then '"[...]"' else
-            children = 0.up_to (10.min object.length) . map i-> render (object.at i) (depth+1) max_depth
-            "[" + (children.join ", ") + "]"
+            len = object.length
+            children = 0.up_to (50.min len) . map i-> render (object.at i) (depth+1) max_depth
+            "[" + (children.join ", ") + (if len > 50 then ', "... another ' + (len - 50).to_text + ' items truncated."' else "") + "]"
     _ : Array ->
         proxy = Array_Proxy.new object.length (i-> make_enso (object.at i))
         @Tail_Call render (Vector.from_polyglot_array proxy) depth max_depth
