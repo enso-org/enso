@@ -312,8 +312,12 @@ impl Processor {
             arg::wasm::Command::Watch(job) => self.watch_and_wait(job),
             arg::wasm::Command::Build(job) => self.build(job).void_ok().boxed(),
             arg::wasm::Command::Check => Wasm.check().boxed(),
-            arg::wasm::Command::Test { no_wasm, no_native } =>
-                Wasm.test(self.repo_root.to_path_buf(), !no_wasm, !no_native).boxed(),
+            arg::wasm::Command::Test { no_wasm, no_native, browser } => {
+                let wasm_browsers =
+                    if no_wasm { default() } else { browser.into_iter().map_into().collect_vec() };
+                let root = self.repo_root.to_path_buf();
+                async move { Wasm.test(root, &wasm_browsers, !no_native).await }.boxed()
+            }
             arg::wasm::Command::Get(source) => self.get(source).void_ok().boxed(),
         }
     }

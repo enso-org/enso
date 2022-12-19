@@ -391,7 +391,7 @@ impl Wasm {
             .await
     }
 
-    pub async fn test(&self, repo_root: PathBuf, wasm: bool, native: bool) -> Result {
+    pub async fn test(&self, repo_root: PathBuf, wasm: &[test::Browser], native: bool) -> Result {
         async fn maybe_run<Fut: Future<Output = Result>>(
             name: &str,
             enabled: bool,
@@ -421,7 +421,7 @@ impl Wasm {
         })
         .await?;
 
-        maybe_run("wasm", wasm, || test::test_all(repo_root.clone())).await?;
+        maybe_run("wasm", !wasm.is_empty(), || test::test_all(repo_root.clone(), wasm)).await?;
         Ok(())
     }
 
