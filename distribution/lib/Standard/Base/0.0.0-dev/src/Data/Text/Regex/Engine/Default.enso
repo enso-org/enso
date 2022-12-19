@@ -52,7 +52,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Compile_Error, Syntax_Error, Polyglot_Error
+from project.Error.Common import Compile_Error, Syntax_Error
 
 polyglot java import java.lang.IllegalArgumentException
 polyglot java import java.lang.IndexOutOfBoundsException
@@ -132,9 +132,7 @@ type Default_Engine
             Java_Pattern.compile (unicode_regex.transform expression) options_bitmask
 
         internal_pattern = maybe_java_pattern.map_error case _ of
-            Polyglot_Error.Error err -> case err of
-                _ : PatternSyntaxException -> Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
-                _ -> err
+            err : PatternSyntaxException -> Syntax_Error.Error ("The regex could not be compiled: " + err.getMessage)
             other -> other
 
         Pattern.Value internal_pattern all_options self
@@ -829,10 +827,8 @@ type Match
    - id: The group identifier with which the error is associated.
 handle_error : Any -> (Text | Integer) -> Any
 handle_error error id = case error of
-    Polyglot_Error.Error err -> case err of
-        _ : IndexOutOfBoundsException -> No_Such_Group.Error id
-        _ : IllegalArgumentException -> No_Such_Group.Error id
-        _ -> err
+    _ : IndexOutOfBoundsException -> No_Such_Group.Error id
+    _ : IllegalArgumentException -> No_Such_Group.Error id
     other -> other
 
 ## Options specific to the `Default` regular expression engine.
