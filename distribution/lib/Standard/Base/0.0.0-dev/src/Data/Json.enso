@@ -21,9 +21,7 @@ import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
 
-polyglot java import java.lang.Exception as JException
-
-## Represents a JSON structure.
+## Methods for serializing from and to JSON.
 type Json
     ## Parse a Text value into a `JS_Object` or an Enso primitive value (like `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
     parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
@@ -141,30 +139,34 @@ type JS_Object
     at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
-    ## Get the keys of the object
+    ## Get the keys of the object.
     field_names : Vector
     field_names self =
         Vector.from_polyglot_array (get_property_names self.js_object)
 
-    ## Gets the number of keys in the object
+    ## Gets the number of keys in the object.
     length : Number
     length self =
         get_property_names self.js_object . length
 
-    ## Convert the object to a Vector of Pairs
+    ## Convert the object to a Vector of Pairs.
     to_vector : Vector
     to_vector self =
         keys = get_property_names self.js_object
         proxy = Array_Proxy.new keys.length (i-> Pair.new (keys.at i) (self.get (keys.at i)))
         Vector.from_polyglot_array proxy
 
-    ## Convert the object to a JSON
+    ## Convert the object to a JS_Object.
     to_js_object : JS_Object
     to_js_object self = self
 
-    ## Convert to string
+    ## Convert to a Text.
     to_text : Text
     to_text self = Json.stringify self
+
+    ## Convert to a JSON representation.
+    to_json : Text
+    to_json self = self.to_text
 
     ## Checks if this JS_Object is equal to another JS_Object.
 
