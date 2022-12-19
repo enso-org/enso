@@ -18,7 +18,7 @@ type Display
     Expanded_Only
 
 type Parameter_Type
-    Parameter value:Text label:Text=code parameters:(Vector Widget)=[] icon:Text=""
+    Parameter value:Text label:Text="code" parameters:(Vector Widget)=[] icon:Text=""
 
 
 type File_Action
