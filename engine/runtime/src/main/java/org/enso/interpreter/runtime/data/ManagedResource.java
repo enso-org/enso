@@ -13,7 +13,7 @@ import java.lang.ref.PhantomReference;
 
 /** A runtime representation of a managed resource. */
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Resource.Managed_Resource")
+@Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
 public final class ManagedResource implements TruffleObject {
   private final Object resource;
   private PhantomReference<ManagedResource> phantomReference;

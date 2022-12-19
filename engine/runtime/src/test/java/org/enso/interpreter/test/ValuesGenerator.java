@@ -28,7 +28,7 @@ class ValuesGenerator {
     this.ctx = ctx;
     this.languages = languages;
   }
-  
+
   private record ValueInfo(Value type, Value check) {
   }
 
@@ -45,11 +45,11 @@ class ValuesGenerator {
       var value = f.invokeMember("eval_expression", "n");
       var c = ctx.eval("enso", """
       {import}
-                                   
+
       check x = case x of
           v : {type} -> 1
           _ -> 0
-                    
+
       """.replace("{type}", s).replace("{import}", t)
       );
       if (k != null) {
@@ -71,6 +71,12 @@ class ValuesGenerator {
     """, "Any").type();
   }
 
+  public Value typeNothing() {
+    return v("typeNothing", """
+    import Standard.Base.Nothing.Nothing
+    """, "Nothing").type();
+  }
+
   public Value typeNumber() {
     return v("typeNumber", """
     from Standard.Base import Nothing, Vector, Number, Decimal, Integer
@@ -81,6 +87,24 @@ class ValuesGenerator {
     return v("typeInteger", """
     from Standard.Base import Nothing, Vector, Number, Decimal, Integer
     """, "Integer").type();
+  }
+
+  public Value typeDecimal() {
+    return v("typeDecimal", """
+    from Standard.Base import Nothing, Vector, Number, Decimal, Integer
+    """, "Decimal").type();
+  }
+
+  public Value typeBoolean() {
+    return v("typeBoolean", """
+    import Standard.Base.Data.Boolean.Boolean
+    """, "Boolean").type();
+  }
+
+  public Value typeArrayProxy() {
+    return v("typeArrayProxy", """
+    import Standard.Base.Data.Array_Proxy.Array_Proxy
+    """, "Array_Proxy").type();
   }
 
   public Value typeText() {
@@ -107,6 +131,12 @@ class ValuesGenerator {
     """, "Date_Time").type();
   }
 
+  public Value typeTimeOfDay() {
+    return v("typeTimeOfDay", """
+    import Standard.Base.Data.Time.Time_Of_Day
+    """, "Time_Of_Day").type();
+  }
+
   public Value typeDuration() {
     return v("typeDuration", """
     import Standard.Base.Data.Time.Duration.Duration
@@ -130,7 +160,61 @@ class ValuesGenerator {
     import Standard.Base.Data.Time.Time_Zone.Time_Zone
     """, "Time_Zone").type();
   }
-  
+
+  public Value typeArray() {
+    return v("typeArray", """
+    import Standard.Base.Data.Array.Array
+    """, "Array").type();
+  }
+
+  public Value typeVector() {
+    return v("typeVector", """
+    import Standard.Base.Data.Vector.Vector
+    """, "Vector").type();
+  }
+
+  public Value typeWarning() {
+    return v("typeWarning", """
+    import Standard.Base.Warning.Warning
+    """, "Warning").type();
+  }
+
+  public Value typeFile() {
+    return v("typeFile", """
+    import Standard.Base.System.File.File
+    """, "File").type();
+  }
+
+  public Value typeRef() {
+    return v("typeRef", """
+    import Standard.Base.Runtime.Ref.Ref
+    """, "Ref").type();
+  }
+
+  public Value typeFunction() {
+    return v("typeFunction", """
+    import Standard.Base.Function.Function
+    """, "Function").type();
+  }
+
+  public Value typeError() {
+    return v("typeError", """
+    import Standard.Base.Error.Error
+    """, "Error").type();
+  }
+
+  public Value typePanic() {
+    return v("typePanic", """
+    import Standard.Base.Panic.Panic
+    """, "Panic").type();
+  }
+
+  public Value typeManagedResource() {
+    return v("typeManaged_Resource", """
+    import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+    """, "Managed_Resource").type();
+  }
+
   public Value withType(Value type) {
     for (var info : values.values()) {
       if (info.type() == type) {
