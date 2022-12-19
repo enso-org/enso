@@ -194,6 +194,10 @@ trait API {
     /// Return a list of all project states that are saved to the VCS.
     #[MethodInput=VcsListInput, rpc_name="vcs/list"]
     fn list_vcs(&self, root: Path, limit: Option<usize>) -> response::ListVcs;
+
+    /// Returns the current status of the changes made to the project.
+    #[MethodInput=VcsStatusInput, rpc_name="vcs/status"]
+    fn vcs_status(&self, root: Path) -> response::VcsStatus;
 }}
 
 
@@ -203,7 +207,7 @@ trait API {
 // ==============
 
 /// Check if the given `Error` value corresponds to an RPC call timeout.
-/// 
+///
 /// Recognizes both client- and server-side timeouts.
 #[rustfmt::skip]
 pub fn is_timeout_error(error: &failure::Error) -> bool {
