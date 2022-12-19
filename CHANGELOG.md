@@ -262,7 +262,7 @@
 - [Aligned `Text.match`/`Text.locate` API][3841]
 - [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 - [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
-- [Overhauled the JSON support (now based of JavaScript), Data.fetch and other
+- [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
 
 [debug-shortcuts]:

@@ -27,7 +27,7 @@ polyglot java import java.lang.Exception as JException
 
 ## Represents a JSON structure.
 type Json
-    ## Parse a Text value into JS_Object or Enso Native
+    ## Parse a Text value into a `JS_Object` or an Enso primitive value (like `Text`, `Number`, `Boolean`, `Nothing`), or a `Vector` of values.
     parse : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! Invalid_JSON
     parse json =
         error_handler js_exception =
@@ -38,7 +38,7 @@ type Json
             make_enso parsed
 
     ## Serialize an Object to JSON
-    stringify : Text
+    stringify : (JS_Object | Boolean | Number | Nothing | Text | Vector) -> Text
     stringify object =
         json_stringify (make_javascript object.to_js_object)
 

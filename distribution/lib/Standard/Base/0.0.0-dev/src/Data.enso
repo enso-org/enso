@@ -138,7 +138,7 @@ list_directory directory name_filter=Nothing recursive=False =
    - method: The HTTP method to use. Defaults to `GET`.
    - headers: The headers to send with the request. Defaults to an empty vector.
    - parse:  If successful should the body be parsed to an Enso native object.
-fetch : (URI | Text) -> HTTP_Method -> Vector -> Boolean -> Any
+fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
 fetch uri method=HTTP_Method.Get headers=[] parse=True =
     parsed_headers = headers . map h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
