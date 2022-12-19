@@ -136,7 +136,7 @@ type JS_Object
 
        Arguments:
        - key: The key to get.
-    at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector
+    at : Text -> JS_Object | Boolean | Number | Nothing | Text | Vector ! No_Such_Key
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
     ## Get the keys of the object.
