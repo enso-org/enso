@@ -157,19 +157,23 @@ public class MetaIsATest {
       var typeCaseOf = g.withType(t);
 
       for (var v : g.allValues()) {
-        var test = typeCaseOf.execute(v);
-        assertTrue(test.isNumber());
-        var testBool = test.asInt() == 1;
-        var res = isACheck.execute(v, t);
-        assertTrue(res.isBoolean());
-        if (res.asBoolean() != testBool) {
-          f.append("\nType ").append(t).append(" and value ").append(v).
-            append(" caseof: ").append(test).append(" Meta.is_a ").append(res);
-        }
+        assertTypeAndValue(typeCaseOf, v, t, f);
       }
     }
     if (f.length() > 0) {
       fail(f.toString());
+    }
+  }
+
+  private void assertTypeAndValue(Value caseOf, Value v, Value t, StringBuilder f) {
+    var test = caseOf.execute(v);
+    assertTrue(test.isNumber());
+    var testBool = test.asInt() == 1;
+    var res = isACheck.execute(v, t);
+    assertTrue(res.isBoolean());
+    if (res.asBoolean() != testBool) {
+      f.append("\nType ").append(t).append(" and value ").append(v).
+        append(" caseof: ").append(test).append(" Meta.is_a ").append(res);
     }
   }
 }
