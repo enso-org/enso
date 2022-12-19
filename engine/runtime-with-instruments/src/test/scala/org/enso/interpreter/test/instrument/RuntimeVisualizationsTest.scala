@@ -74,6 +74,15 @@ class RuntimeVisualizationsTest
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )
+    println(executionContext.context.getEngine.getLanguages)
+//    println(
+//      org.graalvm.polyglot.Context
+//        .newBuilder()
+//        .allowExperimentalOptions(true)
+//        .build()
+//        .getEngine()
+//        .getLanguages()
+//    )
     executionContext.context.initialize(LanguageInfo.ID)
 
     val languageContext = executionContext.context
@@ -2242,6 +2251,7 @@ class RuntimeVisualizationsTest
     )
     val attachVisualisationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
+    println(attachVisualisationResponses)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)

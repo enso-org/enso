@@ -1534,18 +1534,35 @@ lazy val `runtime-with-instruments` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
-      Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true",
-        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
-      ),
+      // Test / javaOptions ++= Seq(
+      //   "-Dgraalvm.locatorDisabled=true",
+      //   s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      // ),
+      Test / javaOptions ++= {
+        // Note [Classpath Separation]
+        val rClasspath =
+          (LocalProject("runtime") / Compile / fullClasspath).value
+            .map(_.data)
+            //.mkString(File.pathSeparator)
+        val rsClasspath =
+          (LocalProject("runtime-instrument-runtime-server") / Compile / fullClasspath).value
+            .map(_.data)
+        //.mkString(File.pathSeparator)
+        val runtimeClasspath = (rClasspath ++ rsClasspath).mkString(File.pathSeparator)
+        Seq(
+          //"-Dgraalvm.locatorDisabled=true",
+          s"-Dtruffle.class.path.append=$runtimeClasspath"
+        )
+      },
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
+        "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion     % "provided",
         "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
-        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % Test,
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % Test
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % "provided"
       ),
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
