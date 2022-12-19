@@ -247,6 +247,33 @@ impl Project {
             Ok(())
         }
     }
+
+    /// Restores the state of the project to the last snapshot saved to the VCS.
+    #[profile(Detail)]
+    pub fn restore_project_snapshot(&self) -> impl Future<Output = FallibleResult> {
+        let project_root_id = self.model.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root_id, &path_segments);
+        let language_server = self.model.json_rpc();
+        let model = self.model.clone_ref();
+
+        async move {
+            warn!("Restoring project snapshot!");
+            language_server.restore_vcs(&root_path, &None).await?;
+
+            warn!("Updating module model!");
+            let module = model.main_module_model().await?;
+            let file_path = module.path();
+            let opened = language_server.client.open_text_file(&file_path).await?;
+
+            warn!("{}", &opened.content);
+
+            let source = model.parser().parse_with_metadata(opened.content)?;
+            module.update_whole(source)?;
+
+            Ok(())
+        }
+    }
 }
 
 
