@@ -52,8 +52,8 @@ pub fn main() {
     let navigator = Navigator::new(scene, &camera);
 
     let view = shape::View::new();
-    view.size.set(Vector2::new(300.0, 300.0));
-    view.mod_position(|t| *t = Vector3::new(50.0, 50.0, 0.0));
+    view.set_size((300.0, 300.0));
+    view.set_position(Vector3::new(50.0, 50.0, 0.0));
 
     world.add_child(&view);
     world.keep_alive_forever();

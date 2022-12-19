@@ -69,9 +69,10 @@ debug = true
 debug-assertions = true
 
 [workspace.dependencies]
-console-subscriber = "=0.1.7"
+console-subscriber = "0.1.8"
 nix = "0.26.1"
 serde-wasm-bindgen = "0.4.5"
+tokio = { version = "1.23.0", features = ["full", "tracing"] }
+tokio-util = { version = "0.7.4", features = ["full"] }
 wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
 wasm-bindgen-test = { version = "0.3.33" }
-tokio = { version = "=1.20.1", features = ["full", "tracing"] }

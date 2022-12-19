@@ -288,7 +288,7 @@ impl Cursor {
             eval radius.value ((v) model.for_each_view(|vw| vw.radius.set(*v)));
             eval size.value   ([model] (v) {
                 let dim = Vector2(v.x+SIDES_PADDING,v.y+SIDES_PADDING);
-                model.for_each_view(|vw| vw.size.set(dim));
+                model.for_each_view(|vw| {vw.set_size(dim);});
             });
 
             alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);

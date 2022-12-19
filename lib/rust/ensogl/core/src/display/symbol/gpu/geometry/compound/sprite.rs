@@ -10,7 +10,6 @@ use crate::debug::Stats;
 use crate::display;
 use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
-use crate::display::layout::Alignment;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
@@ -66,6 +65,7 @@ pub struct Size {
     value:  Rc<Cell<Vector2<f32>>>,
     attr:   Attribute<Vector2<f32>>,
 }
+
 
 // === Setters ===
 
@@ -125,20 +125,21 @@ pub struct SizedObject {
 impl SizedObject {
     fn new(attr: Attribute<Vector2<f32>>, transform: &Attribute<Matrix4<f32>>) -> Self {
         let size = Size::new(attr);
-        let display_object = display::object::Instance::new();
+        let display_object = display::object::Instance::new_named("Sprite");
         let weak_display_object = display_object.downgrade();
         let network = &display_object.network;
         frp::extend! { network
-            eval_ display_object.on_updated ([transform] {
+            eval_ display_object.on_updated ([transform, size] {
                 if let Some(display_object) = weak_display_object.upgrade() {
-                    transform.set(display_object.transformation_matrix())
+                    transform.set(display_object.transformation_matrix());
+                    size.set(display_object.computed_size());
                 }
             });
         }
         Self { size, display_object }.init()
     }
 
-    /// Init display object bindings. In particular defines the behavior of the show and hide
+    /// Init display object bindings. In particular define the behavior of the show and hide
     /// callbacks.
     fn init(self) -> Self {
         let size = &self.size;
@@ -170,7 +171,6 @@ impl CellGetter for SizedObject {
 impl CellSetter for SizedObject {
     fn set(&self, v: Vector2) {
         self.size.set(v);
-        self.display_object.set_bounding_box(v);
     }
 }
 
@@ -275,12 +275,13 @@ impl display::Object for Sprite {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct SpriteSystem {
-    pub symbol: Symbol,
-    transform:  Buffer<Matrix4<f32>>,
-    uv:         Buffer<Vector2<f32>>,
-    size:       Buffer<Vector2<f32>>,
-    alignment:  Uniform<Vector2<f32>>,
-    stats:      Stats,
+    pub symbol:      Symbol,
+    transform:       Buffer<Matrix4<f32>>,
+    uv:              Buffer<Vector2<f32>>,
+    size:            Buffer<Vector2<f32>>,
+    alignment:       Uniform<Vector2<f32>>,
+    alignment_value: Rc<Cell<alignment::Dim2>>,
+    stats:           Stats,
 }
 
 impl SpriteSystem {
@@ -296,12 +297,13 @@ impl SpriteSystem {
         let uv = point_scope.add_buffer("uv");
         let transform = instance_scope.add_buffer("transform");
         let size = instance_scope.add_buffer("size");
-        let initial_alignment = Self::uv_offset(Alignment::center());
+        let alignment_value = Rc::new(Cell::new(alignment::Dim2::center()));
+        let initial_alignment = alignment_value.get().normalized();
         let alignment = symbol.variables().add_or_panic("alignment", initial_alignment);
 
         stats.inc_sprite_system_count();
 
-        let this = Self { symbol, transform, uv, size, alignment, stats };
+        let this = Self { symbol, transform, uv, size, alignment, alignment_value, stats };
         this.init_attributes();
         this.init_shader();
         this
@@ -313,6 +315,7 @@ impl SpriteSystem {
         let transform = self.transform.at(instance.instance_id);
         let size = self.size.at(instance.instance_id);
         let sprite = Sprite::new(&self.symbol, instance, transform, size, &self.stats);
+        sprite.unsafe_set_forced_origin_alignment(self.alignment_value.get());
         self.add_child(&sprite);
         sprite
     }
@@ -333,8 +336,14 @@ impl SpriteSystem {
     }
 
     /// Set alignment of sprites.
-    pub fn set_alignment(&self, alignment: Alignment) {
-        self.alignment.set(Self::uv_offset(alignment));
+    ///
+    /// # Safety
+    /// It is advised not to use this function. Use display object auto-layout instead. This
+    /// function can be called only before creating sprites, as its changes will not be
+    /// propagated to sprite instances.
+    pub fn unsafe_set_alignment(&self, alignment: alignment::Dim2) {
+        self.alignment_value.set(alignment);
+        self.alignment.set(alignment.normalized());
     }
 
     /// Run the renderer.
@@ -412,20 +421,6 @@ impl SpriteSystem {
         material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));
         material.set_main("output_color = vec4(0.0,0.0,0.0,1.0); output_id=vec4(0.0,0.0,0.0,0.0);");
         material
-    }
-
-    fn uv_offset(alignment: Alignment) -> Vector2<f32> {
-        let x = match alignment.horizontal {
-            alignment::Horizontal::Left => 0.0,
-            alignment::Horizontal::Center => 0.5,
-            alignment::Horizontal::Right => 1.0,
-        };
-        let y = match alignment.vertical {
-            alignment::Vertical::Top => 1.0,
-            alignment::Vertical::Center => 0.5,
-            alignment::Vertical::Bottom => 0.0,
-        };
-        Vector2::new(x, y)
     }
 }
 

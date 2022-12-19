@@ -10,7 +10,7 @@ use anyhow::Context;
 use chrono::Datelike;
 use derivative::Derivative;
 use ide_ci::define_env_var;
-use ide_ci::env::new::TypedVariable;
+use ide_ci::env::accessor::TypedVariable;
 use ide_ci::github;
 use octocrab::models::repos::Release;
 use semver::Prerelease;

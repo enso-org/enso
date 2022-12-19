@@ -75,7 +75,7 @@ impl BubbleChartModel {
         views.iter().zip(data_inner.iter()).for_each(|(view, item)| {
             let size = self.size.get();
             self.display_object.add_child(&view);
-            view.size.set(size);
+            view.set_size(size);
             view.radius.set(item.z);
             view.position.set(Vector2(item.x, item.y) - size / 2.0);
         });

@@ -45,15 +45,12 @@ impl BoundingBox {
         BoundingBox { top, bottom, left, right }
     }
 
-    /// Return a bounding box given by the position and size. The position interpreted as the
-    /// top-right corner and size as the extension along the positive x and y-axis. Negative sizes
-    /// are valid.
+    /// Constructor.
     pub fn from_position_and_size(position: Vector2, size: Vector2) -> Self {
         Self::from_corners(position, position + size)
     }
 
-    /// Return a bounding box given by the center and size. Negative sizes
-    /// are valid.
+    /// Constructor.
     pub fn from_center_and_size(position: Vector2, size: Vector2) -> Self {
         Self::from_corners(position - size / 2.0, position + size / 2.0)
     }

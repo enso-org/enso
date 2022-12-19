@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::env::new::RawVariable;
+use crate::env::accessor::RawVariable;
 
 use heck::ToKebabCase;
 use std::collections::btree_map::Entry;

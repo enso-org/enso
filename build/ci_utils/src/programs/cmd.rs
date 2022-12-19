@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::env;
+use crate::env::Action;
 use crate::env::Modification;
 use crate::programs::cmd::args::RUN_COMMAND;
 
@@ -46,6 +47,19 @@ impl Shell for Cmd {
 
     fn run_shell(&self) -> Result<Command> {
         self.cmd()
+    }
+
+    fn modify_env(&self, change: &Modification) -> Result<String> {
+        let name = &change.variable_name;
+        Ok(match &change.action {
+            Action::Remove => format!("set {}=", name),
+            Action::Set(value) => format!("set {}={}", name, value),
+            Action::PrependPaths(paths) => self.set_prepended_paths(name, paths)?,
+        })
+    }
+
+    fn access_environment_variable(&self, name: &str) -> String {
+        format!("%{}%", name)
     }
 }
 
@@ -162,5 +176,23 @@ mod tests {
         assert!(is_path_like("PaTh"));
         assert!(!is_path_like("PETh"));
         assert!(!is_path_like("foo"));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn env_commands() {
+        let set_foobar = Modification {
+            variable_name: "FOOBAR".into(),
+            action:        Action::Set("foobar_value".into()),
+        };
+        let unset_foobar =
+            Modification { variable_name: "FOOBAR".into(), action: Action::Remove };
+        let prepend_path = Modification {
+            variable_name: "PATH".into(),
+            action:        Action::PrependPaths(vec!["C:\\foo".into(), "C:\\bar".into()]),
+        };
+        assert_eq!(Cmd.modify_env(&set_foobar).unwrap(), "set FOOBAR=foobar_value");
+        assert_eq!(Cmd.modify_env(&unset_foobar).unwrap(), "set FOOBAR=");
+        assert_eq!(Cmd.modify_env(&prepend_path).unwrap(), r"set PATH=C:\foo;C:\bar;%PATH%");
     }
 }

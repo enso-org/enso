@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 use crate::cache;
-use crate::env::prepend_to_path;
+use crate::env::known::PATH;
 use crate::program::version::IsVersionPredicate;
 use crate::programs::wasm_opt;
 use crate::programs::wasm_opt::WasmOpt;
@@ -47,10 +47,10 @@ impl cache::Goodie for Binaryen {
         .boxed()
     }
 
-    fn activate(&self, package_path: PathBuf) -> Result {
+    fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>> {
         let bin_dir = package_path.join(format!("binaryen-version_{}", self.version)).join("bin");
         crate::fs::expect_dir(&bin_dir)?;
-        prepend_to_path(bin_dir)
+        Ok(vec![crate::env::Modification::prepend_path(&PATH, bin_dir)])
     }
 }
 
