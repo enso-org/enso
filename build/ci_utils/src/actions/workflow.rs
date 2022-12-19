@@ -52,7 +52,7 @@ pub fn set_env(name: impl AsRef<str>, value: &impl ToString) -> BoxFuture<'stati
     let name = name.as_ref().to_string();
     let value_string = value.to_string();
     async move {
-        std::env::set_var(&name, &value_string);
+        crate::env::set_var(&name, &value_string);
         if is_in_env() {
             debug!("Setting GitHub Actions environment variable {name} to {value_string}");
             env_file::GITHUB_ENV.append_key_value(name, value_string).await?;
