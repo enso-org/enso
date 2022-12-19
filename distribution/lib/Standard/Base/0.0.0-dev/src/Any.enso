@@ -80,29 +80,6 @@ type Any
     == : Any -> Boolean
     == self that = self.equals_builtin that
 
-    old_equals : Any -> Boolean
-    old_equals self that = if Meta.is_same_object self that then True else
-        self_meta = Meta.meta self
-        that_meta = Meta.meta that
-        case Pair.new self_meta that_meta of
-            Pair.Value (Meta.Atom.Value _) (Meta.Atom.Value _) ->
-                c_1 = self_meta.constructor.value ...
-                c_2 = that_meta.constructor.value ...
-                if Meta.is_same_object c_1 c_2 . not then False else
-                    f_1 = self_meta.fields
-                    f_2 = that_meta.fields
-                    0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
-            Pair.Value (Meta.Error.Value _) (Meta.Error.Value _) -> self_meta.payload == that_meta.payload
-            Pair.Value (Meta.Polyglot.Value o_1) (Meta.Polyglot.Value o_2) ->
-                langs_match = (self_meta.get_language == Meta.Language.Java) && (that_meta.get_language == Meta.Language.Java)
-                if langs_match.not then False else o_1.equals o_2
-            Pair.Value (Meta.Unresolved_Symbol.Value _) (Meta.Unresolved_Symbol.Value _) ->
-                (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
-            ## Constructor comparison is covered by the identity equality.
-               Primitive objects should define their own equality.
-               Therefore, there are no more cases to handle in self method.
-            _ -> False
-
     ## ALIAS Inequality
 
        Checks if `self` is not equal to `that`.
