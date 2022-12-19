@@ -1,5 +1,6 @@
 package org.enso.interpreter.epb.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -41,6 +42,10 @@ public class PolyglotExceptionProxy extends AbstractTruffleException {
   @ExportMessage
   RuntimeException throwException() {
     throw this;
+  }
+
+  public PolyglotProxy getDelegate() {
+    return delegate;
   }
 
   public AbstractTruffleException getOriginal() {

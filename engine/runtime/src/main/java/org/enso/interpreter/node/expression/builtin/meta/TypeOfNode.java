@@ -9,6 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -74,6 +75,26 @@ public abstract class TypeOfNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") TypesLibrary types) {
     return EnsoContext.get(this).getBuiltins().text();
+  }
+
+  @Specialization(
+      guards = {
+        "interop.isNumber(proxy)",
+        "!types.hasType(proxy)",
+        "!interop.hasMetaObject(proxy)"
+      })
+  Object doPolyglotNumber(
+      PolyglotProxy proxy,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
+    if (interop.fitsInInt(proxy)) {
+      return builtins.number().getInteger();
+    } else if (interop.fitsInDouble(proxy)) {
+      return builtins.number().getDecimal();
+    } else {
+      return EnsoContext.get(this).getBuiltins().number();
+    }
   }
 
   @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})

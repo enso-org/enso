@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Polyglot_Error
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Time_Error.Time_Error
 
@@ -164,10 +163,10 @@ enso_time hour minute=0 second=0 nanoOfSecond=0 =
     Time_Of_Day.new hour minute second nanosecond=nanoOfSecond
 
 java_time hour minute=0 second=0 nanoOfSecond=0 =
-    Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
+    Panic.catch Any (LocalTime.of hour minute second nanoOfSecond) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
 
 java_parse time_text pattern=Nothing =
-    Panic.catch Polyglot_Error.Error handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
+    Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
         if pattern.is_nothing then LocalTime.parse time_text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalTime.parse time_text (formatter.withLocale Locale.default.java_locale)

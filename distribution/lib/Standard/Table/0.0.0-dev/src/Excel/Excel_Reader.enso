@@ -38,10 +38,10 @@ make_java_headers headers = case headers of
    Handle and map the Java errors when reading an Excel file
 handle_reader : File -> (Input_Stream -> (Table | Vector)) -> (Table | Vector)
 handle_reader file reader =
-    bad_format caught_panic = Error.throw (File_Error.IO_Error file caught_panic.payload.cause.getMessage)
+    bad_format caught_panic = Error.throw (File_Error.IO_Error file caught_panic.payload.getMessage)
     handle_bad_format = Panic.catch UnsupportedFileFormatException handler=bad_format
 
-    bad_argument caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.cause.getCause)
+    bad_argument caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.getCause)
     handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
 
     File_Error.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|

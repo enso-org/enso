@@ -74,6 +74,10 @@
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
 - [Added project snapshot saving on shortcut][3923]
+- [The color of the displayed project name indicates whether the project's
+  current state is saved in a snapshot.][3950] The project name is darker when
+  the project is changed from the last saved snapshot and lighter when the
+  snapshot matches the current project state.
 - [Added shortcut to interrupt the program][3967]
 
 #### EnsoGL (rendering engine)
@@ -405,6 +409,7 @@
 [3885]: https://github.com/enso-org/enso/pull/3885
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
+[3950]: https://github.com/enso-org/enso/pull/3950
 [3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 
@@ -478,6 +483,7 @@
 - [From/all import must not include module in name resolution][3931]
 - [Vector returns warnings of individual elements][3938]
 - [Add executionContext/interrupt API command][3952]
+- [Simplify exception handling for polyglot exceptions][3981]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -552,6 +558,7 @@
 [3931]: https://github.com/enso-org/enso/pull/3931
 [3938]: https://github.com/enso-org/enso/pull/3938
 [3952]: https://github.com/enso-org/enso/pull/3952
+[3981]: https://github.com/enso-org/enso/pull/3981
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
