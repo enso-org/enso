@@ -2,9 +2,9 @@ import project.Any.Any
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.File_Error.File_Error
-import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
@@ -142,8 +142,9 @@ fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boole
 fetch uri method=HTTP_Method.Get headers=[] parse=True =
     parsed_headers = headers . map h-> case h of
         _ : Vector -> Header.new (h.at 0) (h.at 1)
+        _ : Pair -> Header.new (h.at 0) (h.at 1)
         _ : Header -> h
-        _ -> Error.throw (Illegal_Argument.Error "Invalid header type.")
+        _ -> Error.throw (Type_Error.Error Header "Invalid header type (must be a Pair, Vector or Header).")
 
     request = Request.new method uri parsed_headers
     response = HTTP.new.request request
