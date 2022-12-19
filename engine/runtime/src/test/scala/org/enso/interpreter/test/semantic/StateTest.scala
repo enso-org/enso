@@ -106,7 +106,7 @@ class StateTest extends InterpreterTest {
           |
           |stater =
           |    State.put Number 5
-          |    Panic.catch_primitive panicker x->x
+          |    Panic.catch Any panicker x->x
           |    State.get Number
           |
           |main = State.run Number 0 stater

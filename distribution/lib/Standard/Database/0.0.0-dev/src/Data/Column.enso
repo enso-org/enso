@@ -732,7 +732,6 @@ type Column
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
     is_in self vector = case vector of
-        _ : Array -> self.is_in (Vector.from_polyglot_array vector)
         _ : Vector ->
             ## This is slightly hacky - we don't provide operand types as we want to
                allow any type to get through and currently we do not have a mapping
@@ -758,6 +757,7 @@ type Column
             case nulls.not_empty of
                 True -> is_in_not_null || self.is_missing
                 False -> is_in_not_null
+        _ : Array -> self.is_in (Vector.from_polyglot_array vector)
         column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
             ## We slightly abuse the expression syntax putting a Query as one of
                the sub-expressions. Once type-checking is added, we may need to
