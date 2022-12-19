@@ -195,7 +195,7 @@ impl Model {
             .borrow()
             .deref()
             .iter()
-            .for_each(|line| line.mod_x(|x| x + delta))
+            .for_each(|line| line.update_x(|x| x + delta))
     }
 }
 

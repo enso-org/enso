@@ -71,7 +71,7 @@ impl Model {
         let logger = DefaultTraceLogger::new("Button");
         let display_object = display::object::Instance::new();
         let shape = shape::View::new();
-        shape.size.set(Vector2::new(100.0, 100.0));
+        shape.set_size(Vector2::new(100.0, 100.0));
         display_object.add_child(&shape);
         Self { app, logger, display_object, shape }
     }
@@ -164,7 +164,7 @@ pub fn main() {
     run_once_initialized(|| {
         let app = Application::new("root");
         let shape: View = app.new_view();
-        shape.model.shape.size.set(Vector2::new(300.0, 300.0));
+        shape.model.shape.set_size((300.0, 300.0));
         app.display.add_child(&shape);
 
         let scene = &app.display.default_scene;

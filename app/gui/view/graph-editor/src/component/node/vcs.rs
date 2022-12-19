@@ -173,7 +173,7 @@ impl StatusIndicator {
             );
 
             eval frp.input.set_size ((size)
-                model.shape.size.set(*size);
+                model.shape.set_size(*size);
             );
 
             has_status <- frp.status.map(|status| status.is_some());
