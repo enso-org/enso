@@ -222,10 +222,10 @@ make_enso js_object =
         _ : Text -> js_object
         _ : Boolean -> js_object
         _ : Number -> js_object
-        _ : Array ->
+        _ : Vector ->
             proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
             Vector.from_polyglot_array proxy
-        _ : Vector ->
+        _ : Array ->
             proxy = Array_Proxy.new js_object.length (i-> make_enso (js_object.at i))
             Vector.from_polyglot_array proxy
         _ : JS_Object -> js_object
@@ -236,17 +236,17 @@ make_enso js_object =
    enso_object must be Text, Boolean, Nothing, Number, Vector, Array, JS_Object (and children as well).
 make_javascript enso_object =
     ## Have to remove warnings before passing into JavaScript otherwise will be an Object.
-    stripped = Warning.set enso_object []
-    case stripped of
-        _ : JS_Object ->
-            stripped.field_names.fold new_object current->key->
-                value = stripped.get key
-                js_value = make_javascript value
-                set_value current key js_value
-                current
-        _ : Array -> Vector.from_polyglot_array stripped . map make_javascript
-        _ : Vector -> stripped.map make_javascript
-        _ -> stripped
+    if Warning.get_all enso_object != [] then make_javascript (Warning.set enso_object []) else
+        case enso_object of
+            _ : JS_Object ->
+                enso_object.field_names.fold new_object current->key->
+                    value = enso_object.get key
+                    js_value = make_javascript value
+                    set_value current key js_value
+                    current
+            _ : Vector -> enso_object.map make_javascript
+            _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
+            _ -> enso_object
 
 foreign js new_object = """
     return {}

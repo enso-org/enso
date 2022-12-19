@@ -142,12 +142,12 @@ Vector.to_default_visualization_data self = render_vector self
 
 render_vector object depth=0 =
     case object of
-        _ : Array ->
-            proxy = Array_Proxy.new object.length object.at
-            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth
         _ : Vector -> if depth == 5 then "[...]" else
             result = object.take 100 . map (elem-> if elem.is_error then elem.to_json else render_vector elem (depth+1))
             "[" + result.join ", " + "]"
+        _ : Array ->
+            proxy = Array_Proxy.new object.length object.at
+            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth
         _ : JS_Object -> object.render depth
         _ -> object.to_default_visualization_data
 

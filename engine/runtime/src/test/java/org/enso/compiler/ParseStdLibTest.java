@@ -164,7 +164,6 @@ public final class ParseStdLibTest extends TestCase {
             "Data/Text/Regex/Regex_Mode.enso",
             "Data/Value_Type.enso",
             "Data/Vector.enso",
-            "Error/Common.enso",
             "Internal/Base_Generator.enso"));
   }
 

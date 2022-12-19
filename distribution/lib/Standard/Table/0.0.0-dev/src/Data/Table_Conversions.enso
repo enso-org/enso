@@ -68,7 +68,6 @@ Table.from_json value fields=Nothing =
             field_names = fields.if_nothing value.field_names
             values = field_names.map value.get
             Table.new [["Name", field_names], ["Value", values]]
-        _ : Array -> Table.from_json (Vector.from_polyglot_array value) fields
         _ : Vector ->
             len = value.length
 
@@ -90,4 +89,5 @@ Table.from_json value fields=Nothing =
                 data.to_vector
 
             Table.new (used_fields.zip used_values)
+        _ : Array -> Table.from_json (Vector.from_polyglot_array value) fields
         _ -> Error.throw (Invalid_JSON_Format.Error value "Invalid value for Table.from_json.")
