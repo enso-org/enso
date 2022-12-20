@@ -219,7 +219,7 @@ public final class Vector implements TruffleObject {
 
   @ExportMessage
   Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().array();
+    return EnsoContext.get(thisLib).getBuiltins().vector();
   }
 
   @ExportMessage
