@@ -41,6 +41,8 @@ public class ExcelRow {
         if (DateUtil.isCellDateFormatted(cell) && DateUtil.isValidExcelDate(dblValue)) {
           var dateTime = DateUtil.getLocalDateTime(dblValue);
           if (dateTime.isBefore(LocalDateTime.of(1900, 1, 2, 0, 0))) {
+            // Excel stores times as if they are on the 1st January 1900.
+            // Due to the 1900 leap year bug might be 31st December 1899.
             return dateTime.toLocalTime();
           }
           if (dateTime.getHour() == 0 && dateTime.getMinute() == 0 && dateTime.getSecond() == 0) {

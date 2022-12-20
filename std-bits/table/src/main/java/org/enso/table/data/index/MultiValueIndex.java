@@ -181,6 +181,7 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
     int offset = groupingColumns.length;
     for (List<Integer> name_locs : nameIndex.locs.values()) {
+      // ToDo: Use the NameDeduplicator here.
       Object boxed = nameColumn.getStorage().getItemBoxed(name_locs.get(0));
       String name = boxed == null ? "" : boxed.toString();
 
