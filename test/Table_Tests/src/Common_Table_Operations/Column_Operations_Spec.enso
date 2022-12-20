@@ -28,4 +28,4 @@ spec setup =
             x.zip y (.equals_ignore_case) . should_equal r
 
             t = table_builder [["X", x], ["Y", y]]
-            t.at "X" . equals_ignore_case t.at "Y" . to_vector . should_equal r
+            (t.at "X") . equals_ignore_case (t.at "Y") . to_vector . should_equal r
