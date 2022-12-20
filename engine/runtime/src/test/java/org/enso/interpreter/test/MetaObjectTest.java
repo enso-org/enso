@@ -124,10 +124,12 @@ public class MetaObjectTest {
 
   private static void checkValue(Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
     var t = type == null ? v.getMetaObject() : type;
+    if (t == null) {
+      return;
+    }
     if (!expecting.remove(t)) {
       if (!successfullyRemoved.contains(t)) {
         w.append("\nCannot remove type ").append(t).append(" for value ").append(v);
-        return;
       }
     } else {
       successfullyRemoved.add(t);
