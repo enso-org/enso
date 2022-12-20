@@ -64,15 +64,10 @@ spec_fmt header file read_method =
 
 spec_write suffix test_sheet_name =
     Test.group ("Write " + suffix + " Files") <|
-        ## We disable parsing dates, because date support is not advanced enough
-           for these tests. This should ideally be re-enabled with the
-           completion of the following story:
-           https://www.pivotaltracker.com/story/show/181755990
-        no_dates = Delimited "," value_formatter=(Data_Formatter.Value date_formats=[] time_formats=[] datetime_formats=[])
         out = enso_project.data / ('out.' + suffix)
         out_bak = enso_project.data / ('out.' + suffix + '.bak')
-        table = enso_project.data/'varied_column.csv' . read (format = no_dates)
-        clothes = enso_project.data/'clothes.csv' . read (format = no_dates)
+        table = enso_project.data/'varied_column.csv' . read
+        clothes = enso_project.data/'clothes.csv' . read
         sub_clothes = clothes.select_columns (Column_Selector.By_Index [0, 1])
 
         Test.specify 'should write a table to non-existent file as a new sheet with headers' <|
@@ -465,20 +460,22 @@ spec =
 
     col_a = ["Test", "Here", "Is", "Data"]
     col_b = [1, 2, 3, 4]
-    # col_c = [Date.new 2022 06 12, Date.new 2022 10 20, Date.new 2022 07 30, Date.new 2022 10 15]
+    col_c = [Date.new 2022 06 12, Date.new 2022 10 20, Date.new 2022 07 30, Date.new 2022 10 15]
+    col_d = [Time_Of_Day.new 12 34 56, Time_Of_Day.new 1 23 45, Time_Of_Day.new 2 46, Time_Of_Day.new 9]
+    col_e = [Date_Time.new 2022 06 12 12 34 56, Date_Time.new 2022 10 20 1 23 45, Date_Time.new 2022 07 30 2 46, Date_Time.new 2022 10 15 9]
 
     check_column col expected =
         start = col.length - expected.length
         0.up_to start . map i->(col.at i . should_equal Nothing)
         start.up_to col.length . map i->(col.at i . should_equal (expected.at (i - start)))
 
-    check_table table =
-        table.column_count . should_equal 3
-        check_column (table.at "A") col_a
-        check_column (table.at "B") col_b
-        ## ToDo [JD]: Can't check Dates at present as not being handled correctly. Coming as a Polyglot array
-           https://www.pivotaltracker.com/story/show/181755990
-        # check_column (table.at "C") col_c
+    check_table table count=5 =
+        table.column_count . should_equal count
+        if count > 0 then check_column (table.at "A") col_a
+        if count > 1 then check_column (table.at "B") col_b
+        if count > 2 then check_column (table.at "C") col_c
+        if count > 3 then check_column (table.at "D") col_d
+        if count > 4 then check_column (table.at "E") col_e
 
     Test.group "Read XLSX / XLS Files" <|
         Test.specify "should let you read the first sheet with Auto_Detect" <|
@@ -513,7 +510,7 @@ spec =
 
             table_2 = xlsx_sheet.read (Excel (Worksheet 1 (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
-            check_table <| table_2
+            check_table table_2
 
         Test.specify "should let you read by sheet name" <|
             table = xlsx_sheet.read (Excel (Worksheet "Sheet1"))
@@ -521,7 +518,7 @@ spec =
 
             table_2 = xlsx_sheet.read (Excel (Worksheet "Sheet1" (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
-            check_table <| table_2
+            check_table table_2
 
         Test.specify "should let you read XLS by sheet index" <|
             table = xls_sheet.read (Excel (Worksheet 1))
@@ -529,7 +526,7 @@ spec =
 
             table_2 = xls_sheet.read (Excel (Worksheet 1 (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
-            check_table <| table_2
+            check_table table_2
 
         Test.specify "should let you read XLS by sheet name" <|
             table = xls_sheet.read (Excel (Worksheet "Sheet1"))
@@ -537,19 +534,19 @@ spec =
 
         Test.specify "should let you read by range" <|
             table = xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C"))
-            check_table table
+            check_table table 3
 
             table_2 = xlsx_sheet.read (Excel (Cell_Range "Sheet1!A:C" (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
-            check_table <| table_2
+            check_table table_2 3
 
             check_table <| xlsx_sheet.read (Excel (Cell_Range "Sheet1!10:13"))
-            check_table <| xlsx_sheet.read (Excel (Cell_Range "Sheet1!A10:C13"))
+            check_table count=3 <| xlsx_sheet.read (Excel (Cell_Range "Sheet1!A10:C13"))
 
         Test.specify "should let you read by range name" <|
             table = xlsx_sheet.read (Excel (Cell_Range "myData"))
             table.row_count . should_equal col_a.length
-            check_table <| table
+            check_table table 3
 
         Test.specify "should let you restrict number of rows read and skip rows" <|
             table = xlsx_sheet.read (Excel (Worksheet "Sheet1"))
@@ -557,7 +554,7 @@ spec =
 
             table_2 = xlsx_sheet.read (Excel (Worksheet "Sheet1" (table.row_count - col_a.length)))
             table_2.row_count . should_equal col_a.length
-            check_table <| table_2
+            check_table table_2
 
             table_3 = xlsx_sheet.read (Excel (Worksheet "Sheet1" (table.row_count - col_a.length) 2))
             table_3.row_count . should_equal 2

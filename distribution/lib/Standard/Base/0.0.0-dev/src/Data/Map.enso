@@ -166,7 +166,9 @@ type Map
                 other = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
                 Examples.map == other
     == : Map -> Boolean
-    == self that = self.to_vector == that.to_vector
+    == self that = case that of
+        _ : Map -> self.to_vector == that.to_vector
+        _ -> False
 
     ## Inserts a key-value mapping into this map, overriding any existing
        instance of `key` with the new `value`.
