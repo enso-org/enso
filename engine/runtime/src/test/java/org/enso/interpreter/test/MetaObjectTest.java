@@ -111,7 +111,19 @@ public class MetaObjectTest {
   public void checkAllTypesHaveSomeValues() throws Exception {
     var g = ValuesGenerator.create(ctx);
     var expecting = new LinkedHashSet<Value>();
-    expecting.addAll(g.allTypes());
+    for (var t : g.allTypes()) {
+      switch (t.getMetaSimpleName()) {
+        // type of Nothing isn't Nothing, but Nothing.type
+        case "Nothing" -> {}
+        // represented as primitive values without meta object
+        case "Decimal" -> {}
+        // has no instances
+        case "Array_Proxy" -> {}
+        // how to construct these?
+        case "Warning", "Error", "Panic", "Managed_Resource" -> {}
+        default -> expecting.add(t);
+      }
+    }
     var successfullyRemoved = new HashSet<Value>();
     var w = new StringBuilder();
     for (var v : g.allValues()) {

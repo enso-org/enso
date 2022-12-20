@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.junit.Assert;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -355,6 +354,20 @@ class ValuesGenerator {
     for (var v : collect) {
       assertTrue("It is can be executed" + v, v.canExecute());
     }
+    return collect;
+  }
+
+  public List<Value> runtimeSystems() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, "import Standard.Base.Runtime.Ref.Ref", "Ref.new 10").type());
+      collect.add(v(null, "import Standard.Base.System.File.File", "File.new '/'").type());
+      // collect.add(v(null, "import Standard.Base.Runtime.Managed_Resource", "Managed_Resource.register '/' (x -> x)").type());
+    }
+
+    if (languages.contains(Language.JAVA)) {
+    }
+
     return collect;
   }
 
