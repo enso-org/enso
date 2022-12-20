@@ -2499,6 +2499,7 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "bit_field",
+ "bitflags",
  "code-builder",
  "console_error_panic_hook",
  "enso-callback",

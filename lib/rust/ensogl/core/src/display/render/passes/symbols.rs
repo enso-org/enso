@@ -171,7 +171,7 @@ impl SymbolsRenderPass {
         self.symbol_registry.set_camera(&layer.camera());
         self.symbol_registry.render_symbols(&layer.symbols());
         layer.for_each_sublayer(|sublayer| {
-            if sublayer.renderable {
+            if sublayer.flags.contains(layer::LayerFlags::MAIN_PASS_VISIBLE) {
                 self.render_layer(instance, &sublayer, scissor_stack, was_ever_masked);
             }
         });

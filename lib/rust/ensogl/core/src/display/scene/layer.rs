@@ -162,21 +162,23 @@ impl Layer {
     /// Create a new detached layer. It will inherit the camera of the parent layer once it is
     /// attached.
     pub fn new(name: impl Into<String>) -> Self {
-        Self::new_with_flags(name, true, true)
+        let flags = LayerFlags::MAIN_PASS_VISIBLE | LayerFlags::INHERIT_PARENT_CAMERA;
+        Self::new_with_flags(name, flags)
     }
 
     /// Create a new layer with specified camera. If it will be later attached as a sublayer, it
     /// will not inherit the camera of the set parent layer.
     #[profile(Detail)]
-    pub fn new_with_cam(name: impl Into<String>, camera: &Camera2d) -> Self {
-        let this = Self::new_with_flags(name, false, true);
+    pub fn new_with_camera(name: impl Into<String>, camera: &Camera2d) -> Self {
+        let flags = LayerFlags::MAIN_PASS_VISIBLE;
+        let this = Self::new_with_flags(name, flags);
         this.set_camera(camera);
         this
     }
 
-    /// Create a new layer with specified inheritance and renderable flags.
-    fn new_with_flags(name: impl Into<String>, inherit_camera: bool, renderable: bool) -> Self {
-        let model = LayerModel::new(name, inherit_camera, renderable);
+    /// Create a new layer with specified inheritance and render_only_as_mask flags.
+    fn new_with_flags(name: impl Into<String>, flags: LayerFlags) -> Self {
+        let model = LayerModel::new(name, flags);
         let model = Rc::new(model);
         Self { model }
     }
@@ -332,8 +334,6 @@ impl PartialEq for WeakLayer {
 pub struct LayerModel {
     pub name: String,
     camera: RefCell<Camera2d>,
-    inherit_camera: bool,
-    pub renderable: bool,
     pub shape_system_registry: ShapeSystemRegistry,
     shape_system_to_symbol_info_map: RefCell<HashMap<ShapeSystemId, ShapeSystemSymbolInfo>>,
     symbol_to_shape_system_map: RefCell<HashMap<SymbolId, ShapeSystemId>>,
@@ -347,6 +347,7 @@ pub struct LayerModel {
     mask: RefCell<Option<WeakLayer>>,
     scissor_box: RefCell<Option<ScissorBox>>,
     mem_mark: Rc<()>,
+    pub flags: LayerFlags,
 }
 
 impl Debug for LayerModel {
@@ -368,7 +369,7 @@ impl Drop for LayerModel {
 }
 
 impl LayerModel {
-    fn new(name: impl Into<String>, inherit_camera: bool, renderable: bool) -> Self {
+    fn new(name: impl Into<String>, flags: LayerFlags) -> Self {
         let name = name.into();
         let camera = default();
         let shape_system_registry = default();
@@ -388,8 +389,6 @@ impl LayerModel {
         Self {
             name,
             camera,
-            inherit_camera,
-            renderable,
             shape_system_registry,
             shape_system_to_symbol_info_map,
             symbol_to_shape_system_map,
@@ -403,6 +402,7 @@ impl LayerModel {
             mask,
             scissor_box,
             mem_mark,
+            flags,
         }
     }
 
@@ -500,9 +500,11 @@ impl LayerModel {
     fn set_camera(&self, camera: impl Into<Camera2d>) {
         let camera = camera.into();
         *self.camera.borrow_mut() = camera.clone_ref();
-        self.for_each_sublayer(|layer| {
-            layer.set_camera(camera.clone_ref());
-        });
+        for layer in self.sublayers.borrow().iter_all() {
+            if layer.flags.contains(LayerFlags::INHERIT_PARENT_CAMERA) {
+                layer.set_camera(camera.clone_ref());
+            }
+        }
     }
 
     /// Add the symbol to this layer.
@@ -707,7 +709,7 @@ impl LayerModel {
 
     fn set_parent(&self, parent: &LayerModel) {
         *self.parent.borrow_mut() = Some(parent.sublayers.clone_ref());
-        if self.inherit_camera {
+        if self.flags.contains(LayerFlags::INHERIT_PARENT_CAMERA) {
             self.set_camera(parent.camera());
         }
     }
@@ -736,15 +738,18 @@ impl LayerModel {
 
     /// Create a new sublayer to this layer. It will inherit this layer's camera.
     pub fn create_sublayer(&self, name: impl Into<String>) -> Layer {
-        let layer = Layer::new_with_flags(name, true, true);
+        let layer = Layer::new_with_flags(
+            name,
+            LayerFlags::MAIN_PASS_VISIBLE | LayerFlags::INHERIT_PARENT_CAMERA,
+        );
         self.add_sublayer(&layer);
         layer
     }
 
     /// Create a new sublayer to this layer. Override the camera for this layer, breaking the camera
     /// inheritance chain. Updates to the parent camera will not affect this layer.
-    pub fn create_sublayer_with_cam(&self, name: impl Into<String>, camera: &Camera2d) -> Layer {
-        let layer = Layer::new_with_cam(name, camera);
+    pub fn create_sublayer_with_camera(&self, name: impl Into<String>, camera: &Camera2d) -> Layer {
+        let layer = Layer::new_with_camera(name, camera);
         self.add_sublayer(&layer);
         layer
     }
@@ -756,7 +761,7 @@ impl LayerModel {
     /// the mask connection. You still have to separately call `set_mask` on any layer you want to
     /// mask with this layer.
     pub fn create_mask_sublayer(&self, name: impl Into<String>) -> Layer {
-        let layer = Layer::new_with_flags(name, true, false);
+        let layer = Layer::new_with_flags(name, LayerFlags::INHERIT_PARENT_CAMERA);
         self.add_sublayer(&layer);
         layer
     }
@@ -770,7 +775,6 @@ impl LayerModel {
     pub fn set_mask(&self, mask: &Layer) {
         self.remove_mask();
         *self.mask.borrow_mut() = Some(mask.downgrade());
-        // mask.add_parent(&self.sublayers);
     }
 
     /// The layer's [`ScissorBox`], if any.
@@ -871,6 +875,27 @@ impl AsRef<LayerModel> for Layer {
 impl std::borrow::Borrow<LayerModel> for Layer {
     fn borrow(&self) -> &LayerModel {
         &self.model
+    }
+}
+
+
+
+// ==================
+// === LayerFlags ===
+// ==================
+
+bitflags::bitflags! {
+    /// A set of flags associated with each [`Layer`].
+    #[derive(Shrinkwrap)]
+    pub struct LayerFlags: u8 {
+        /// When layer is `MAIN_PASS_VISIBLE`, it will be rendered during standard color buffer
+        /// render pass. Layers without this flag are not rendered in main pass, but can still be
+        /// rendered in other passes, e.g. when used as mask layers.
+        const MAIN_PASS_VISIBLE = 1 << 0;
+        /// This layer's camera will be updated every time its parent camera is updated, or the
+        /// parent layer itself is changed. See [`LayerModel::set_camera`] for implementation of
+        /// camera inheritance.
+        const INHERIT_PARENT_CAMERA = 1 << 1;
     }
 }
 
@@ -1046,7 +1071,7 @@ impl Masked {
 
     /// Constructor.
     pub fn new_with_cam(camera: &Camera2d) -> Self {
-        let masked_layer = Layer::new_with_cam("MaskedLayer", camera);
+        let masked_layer = Layer::new_with_camera("MaskedLayer", camera);
         let mask_layer = masked_layer.create_mask_sublayer("MaskLayer");
         masked_layer.set_mask(&mask_layer);
         Self { masked_layer, mask_layer }

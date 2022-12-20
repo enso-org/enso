@@ -171,8 +171,8 @@ impl ensogl_grid_view::Entry for Entry {
             data.label_thin.set_font <+ font;
             data.label_bold.set_font <+ font;
 
-            natural_entry_width <- data.label_bold.width.map2(&text_offset, |w, offset| w + offset);
-            limited_entry_width <- natural_entry_width.map2(&input.set_params, |width, params| {
+            desired_entry_width <- data.label_bold.width.map2(&text_offset, |w, offset| w + offset);
+            limited_entry_width <- desired_entry_width.map2(&input.set_params, |width, params| {
                 // Using min/max to avoid a panic in clamp when min_width > max_width. In those
                 // cases, the max value is returned instead.
                 #[allow(clippy::manual_clamp)]

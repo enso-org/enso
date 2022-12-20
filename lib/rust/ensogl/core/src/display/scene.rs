@@ -563,25 +563,27 @@ impl HardcodedLayers {
 
         #[allow(non_snake_case)]
         let DETACHED = Layer::new("DETACHED");
-        let root = Layer::new_with_cam("root", &main_cam);
+        let root = Layer::new_with_camera("root", &main_cam);
 
         let viz = root.create_sublayer("viz");
         let below_main = root.create_sublayer("below_main");
         let main = root.create_sublayer("main");
-        let port_selection = root.create_sublayer_with_cam("port_selection", &port_selection_cam);
+        let port_selection =
+            root.create_sublayer_with_camera("port_selection", &port_selection_cam);
         let label = root.create_sublayer("label");
         let above_nodes = root.create_sublayer("above_nodes");
         let above_nodes_text = root.create_sublayer("above_nodes_text");
-        let panel = root.create_sublayer_with_cam("panel", &panel_cam);
-        let panel_text = root.create_sublayer_with_cam("panel_text", &panel_cam);
-        let node_searcher = root.create_sublayer_with_cam("node_searcher", &node_searcher_cam);
+        let panel = root.create_sublayer_with_camera("panel", &panel_cam);
+        let panel_text = root.create_sublayer_with_camera("panel_text", &panel_cam);
+        let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
         let node_searcher_text =
-            root.create_sublayer_with_cam("node_searcher_text", &node_searcher_cam);
-        let edited_node = root.create_sublayer_with_cam("edited_node", &edited_node_cam);
-        let edited_node_text = root.create_sublayer_with_cam("edited_node_text", &edited_node_cam);
+            root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
+        let edited_node = root.create_sublayer_with_camera("edited_node", &edited_node_cam);
+        let edited_node_text =
+            root.create_sublayer_with_camera("edited_node_text", &edited_node_cam);
         let tooltip = root.create_sublayer("tooltip");
         let tooltip_text = root.create_sublayer("tooltip_text");
-        let cursor = root.create_sublayer_with_cam("cursor", &cursor_cam);
+        let cursor = root.create_sublayer_with_camera("cursor", &cursor_cam);
 
         Self {
             DETACHED,
