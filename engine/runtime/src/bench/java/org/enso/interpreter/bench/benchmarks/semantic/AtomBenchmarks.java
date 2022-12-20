@@ -37,10 +37,10 @@ public class AtomBenchmarks {
     main.mainFunction().value().execute(fixtures.millionElementList());
   }
 
-//  @Benchmark
-//  public void benchReverseList() {
-//    benchOnList(fixtures.reverseList());
-//  }
+  @Benchmark
+  public void benchReverseList() {
+    benchOnList(fixtures.reverseList());
+  }
 //
 //  @Benchmark
 //  public void benchReverseListMethods() {
@@ -51,26 +51,26 @@ public class AtomBenchmarks {
   public void benchSumList() {
     benchOnList(fixtures.sumList());
   }
-
-  @Benchmark
-  public void sumListLeftFold() {
-    benchOnList(fixtures.sumListLeftFold());
-  }
-
-  @Benchmark
-  public void benchSumListFallback() {
-    benchOnList(fixtures.sumListFallback());
-  }
-
-  @Benchmark
-  public void benchSumListMethods() {
-    benchOnList(fixtures.sumListMethods());
-  }
-
+//
 //  @Benchmark
-//  public void benchMapReverseList() {
-//    benchOnList(fixtures.mapReverseList());
+//  public void sumListLeftFold() {
+//    benchOnList(fixtures.sumListLeftFold());
 //  }
+//
+//  @Benchmark
+//  public void benchSumListFallback() {
+//    benchOnList(fixtures.sumListFallback());
+//  }
+//
+//  @Benchmark
+//  public void benchSumListMethods() {
+//    benchOnList(fixtures.sumListMethods());
+//  }
+
+  @Benchmark
+  public void benchMapReverseList() {
+    benchOnList(fixtures.mapReverseList());
+  }
 //
 //  @Benchmark
 //  public void benchMapReverseCurryList() {
