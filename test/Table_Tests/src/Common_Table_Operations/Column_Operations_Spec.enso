@@ -18,3 +18,14 @@ spec setup =
             t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]
 
         Test.specify "iif on Columns" pending="Not implemented yet." Nothing
+
+        Test.specify "equals_ignore_case" <|
+            # TODO test for nothing too
+            x = ["a", "B", "c", "DEF", "ę"]
+            y = ["ą", "b", "c", "dEf", "Ę"]
+            r = [False, True, True, True, True]
+
+            x.zip y (.equals_ignore_case) . should_equal r
+
+            t = table_builder [["X", x], ["Y", y]]
+            t.at "X" . equals_ignore_case t.at "Y" . to_vector . should_equal r
