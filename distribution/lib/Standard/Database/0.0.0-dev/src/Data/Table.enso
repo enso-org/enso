@@ -1346,6 +1346,8 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
     resolve_right = resolve_target_expression right_column_mapping
 
     make_equals left right =
+        # TODO if left.sql_type.is_definitely_double attach a floating point grouping warning
+        # TODO a way to attach warnings nicely here
         SQL_Expression.Operation "=" [resolve_left left, resolve_right right]
     make_equals_ignore_case left right locale =
         Helpers.assume_default_locale locale <|
