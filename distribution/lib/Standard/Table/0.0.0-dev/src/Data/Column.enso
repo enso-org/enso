@@ -806,8 +806,8 @@ type Column
                 fallback_fn _ _ =
                     Panic.throw (Illegal_State.Error "Impossible: This is a bug in the Standard.Table library.")
                 true_vector = case vector of
-                    _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector -> vector
+                    _ : Array -> Vector.from_polyglot_array vector
                     column : Column -> column.to_vector
                 run_vectorized_binary_op self op_name fallback_fn true_vector skip_nulls=False new_name=result_name
             False ->
@@ -818,8 +818,8 @@ type Column
                    against the whole other column, instead of just the
                    corresponding row - so we need to go around a bit.
                 true_vector = case vector of
-                    _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector -> vector
+                    _ : Array -> Vector.from_polyglot_array vector
                     ## This does no copying, as `Column.to_vector` just returns
                        a view of the storage.
                     column : Column -> column.to_vector
