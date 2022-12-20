@@ -256,18 +256,17 @@ impl Project {
         let root_path = Path::new(project_root_id, &path_segments);
         let language_server = self.model.json_rpc();
         let model = self.model.clone_ref();
-
         async move {
-            warn!("Restoring project snapshot!");
             language_server.restore_vcs(&root_path, &None).await?;
-
-            warn!("Updating module model!");
             let module = model.main_module_model().await?;
             let file_path = module.path();
             let content = language_server.read_file(&file_path).await?.contents;
+
+            // FIXME: Convert content line endings as a temporary workaround.
+            let content = content.lines().collect::<Vec<_>>().join("\n");
+
             let source = model.parser().parse_with_metadata(content)?;
             module.update_whole(source)?;
-
             Ok(())
         }
     }
