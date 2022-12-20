@@ -1,4 +1,4 @@
-//! Scene layers implementation. See docs of [`Group`] to learn more.
+//! Scene layers implementation. See docs of [`Layer`] to learn more.
 
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
@@ -69,7 +69,8 @@ use std::any::TypeId;
 ///
 ///
 /// # Layer Ordering
-/// Group can be ordered by using the `set_sublayers` method.
+/// Layers can be ordered by using the `set_sublayers` method on their parent. By default,
+/// layers are ordered according to their creation order.
 ///
 ///
 /// # Symbols Ordering
@@ -110,7 +111,7 @@ use std::any::TypeId;
 ///
 /// # Compile Time Shapes Ordering Relations
 /// There is also a third way to define depth-dependencies for shapes. However, unlike previous
-/// methods, this one does not require you to own a reference to [`Scene`] or its [`Group`]. Also,
+/// methods, this one does not require you to own a reference to [`Scene`] or its [`Layer`]. Also,
 /// it is impossible to remove during runtime dependencies created this way. This might sound
 /// restrictive, but actually it is what you may often want to do. For example, when creating a
 /// text area, you want to define that the cursor should always be above its background and there is
@@ -121,11 +122,11 @@ use std::any::TypeId;
 ///
 ///
 /// # Layer Lifetime Management
-/// Both [`Group`] and every [`Layer`] instance are strongly interconnected. This is needed for a
-/// nice API. For example, [`Layer`] allows you to add symbols while removing them from other layers
-/// automatically. Although the [`SublayersModel`] registers [`WeakLayer`], the weak form is used
-/// only to break cycles and never points to a dropped [`Layer`], as layers update the information
-/// on a drop.
+/// Every [`Layer`] allows you to add symbols while removing them from other layers automatically.
+/// The [`SublayersModel`] holds [`WeakLayer`], the weak form of a [`Layer`] that does not prevent
+/// the layer from being dropped. That means a layer is not held alive just by being a part of the
+/// scene hierarchy. When you drop last [`Layer`] reference, it will be automatically unregistered
+/// from its parent and all its symbols will be removed from the scene.
 ///
 /// # Masking Layers With ScissorBox
 /// Layers rendering an be limited to a specific set of pixels by using the [`ScissorBox`] object.
@@ -414,8 +415,8 @@ impl LayerModel {
 
     /// Vector of all symbols registered in this layer, ordered according to the defined depth-order
     /// dependencies. Please note that this function does not update the depth-ordering of the
-    /// elements. Updates are performed by calling the `update` method on [`Group`], which usually
-    /// happens once per animation frame.
+    /// elements. Updates are performed by calling the `update` method on [`Layer`], which happens
+    /// at least once per animation frame.
     pub fn symbols(&self) -> impl Deref<Target = RenderGroup> + '_ {
         self.symbols_renderable.borrow()
     }
@@ -500,11 +501,11 @@ impl LayerModel {
     fn set_camera(&self, camera: impl Into<Camera2d>) {
         let camera = camera.into();
         *self.camera.borrow_mut() = camera.clone_ref();
-        for layer in self.sublayers.borrow().iter_all() {
+        self.for_each_sublayer(|layer| {
             if layer.flags.contains(LayerFlags::INHERIT_PARENT_CAMERA) {
                 layer.set_camera(camera.clone_ref());
             }
-        }
+        });
     }
 
     /// Add the symbol to this layer.
@@ -599,8 +600,8 @@ impl LayerModel {
     }
 
     /// Compute a combined [`DependencyGraph`] for the layer taking into consideration the global
-    /// dependency graph (from [`Group`]), the local one (per layer), and individual shape
-    /// preferences (see the "Compile Time Shapes Ordering Relations" section in docs of [`Group`]
+    /// dependency graph (from root [`Layer`]), the local one (per layer), and individual shape
+    /// preferences (see the "Compile Time Shapes Ordering Relations" section in docs of [`Layer`]
     /// to learn more).
     fn combined_depth_order_graph(
         &self,
@@ -660,7 +661,7 @@ impl LayerModel {
 
     /// Vector of all layers, ordered according to the defined depth-order dependencies. Please note
     /// that this function does not update the depth-ordering of the layers. Updates are performed
-    /// by calling the `update` method on [`Group`], which usually happens once per animation
+    /// by calling the `update` method on [`Layer`], which happens at least once per animation
     /// frame.
     pub fn sublayers(&self) -> Vec<Layer> {
         self.sublayers.borrow().all()
@@ -670,7 +671,7 @@ impl LayerModel {
     /// layer sublayers list will be borrowed during the iteration.
     ///
     /// Please note that this function does not update the depth-ordering of the layers. Updates are
-    /// performed by calling the `update` method on [`Group`], which usually happens once per
+    /// performed by calling the `update` method on [`Layer`], which happens at least once per
     /// animation frame.
     pub fn for_each_sublayer(&self, mut f: impl FnMut(Layer)) {
         for layer in self.sublayers.borrow().iter_all() {
@@ -979,7 +980,7 @@ impl Sublayers {
 // === SublayersModel ===
 // ======================
 
-/// Internal representation of [`Group`].
+/// Internal representation of [`Sublayers`].
 #[derive(Debug, Default)]
 pub struct SublayersModel {
     layers:          OptVec<WeakLayer>,
@@ -989,18 +990,15 @@ pub struct SublayersModel {
 impl SublayersModel {
     /// Vector of all layers, ordered according to the defined depth-order dependencies. Please note
     /// that this function does not update the depth-ordering of the layers. Updates are performed
-    /// by calling the `update` method on [`Group`], which usually happens once per animation
-    /// frame.
+    /// by calling the `update` method on [`LayerModel`], which happens once per animation frame.
     pub fn all(&self) -> Vec<Layer> {
         self.iter_all().collect()
     }
 
-    /// Iterator of all layers, ordered according to the defined depth-order dependencies. It will
-    /// borrow the sublayers for as long as the iterator is alive.
-    ///
-    /// Please note that this function does not update the depth-ordering of the layers. Updates are
-    /// performed by calling the `update` method on [`Group`], which usually happens once per
-    /// animation frame.
+    /// Iterator of all layers, ordered according to the defined depth-order dependencies. Please
+    /// note that this function does not update the depth-ordering of the layers. Updates are
+    /// performed by calling the `update` method on [`LayerModel`], which happens once per animation
+    /// frame.
     pub fn iter_all(&self) -> impl Iterator<Item = Layer> + '_ {
         self.layers.iter().filter_map(|t| t.upgrade())
     }
@@ -1102,7 +1100,7 @@ newtype_prim! {
 // === LayerItem ===
 // =================
 
-/// Abstraction over [`SymbolId`] and [`ShapeSystemId`]. Read docs of [`Group`] to learn about its
+/// Abstraction over [`SymbolId`] and [`ShapeSystemId`]. Read docs of [`Layer`] to learn about its
 /// usage scenarios.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Hash, Ord)]
 #[allow(missing_docs)]
@@ -1277,7 +1275,7 @@ pub type ShapeSystemSymbolInfo = ShapeSystemInfoTemplate<SymbolId>;
 /// When adding a [`ShapeProxy`] to a [`Layer`], it will get instantiated to [`Shape`] by reusing
 /// the shape system (read docs of [`ShapeSystemRegistry`] to learn more). This struct contains
 /// information about the compile time depth ordering relations. See the "Compile Time Shapes
-/// Ordering Relations" section in docs of [`Group`] to learn more.
+/// Ordering Relations" section in docs of [`Layer`] to learn more.
 #[derive(Clone, Debug)]
 pub struct ShapeSystemStaticDepthOrdering {
     above: Vec<ShapeSystemId>,
