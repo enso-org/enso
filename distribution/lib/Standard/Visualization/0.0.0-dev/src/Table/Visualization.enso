@@ -21,14 +21,17 @@ import project.Helpers
 
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Text
-prepare_visualization x max_rows=1000 = Helpers.recover_errors <| "" + case x of
+prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
     _ : Dataframe_Table ->
         dataframe = x.take (First max_rows)
         all_rows_count = x.row_count
         included_rows = dataframe.row_count
         index = dataframe.index.catch Any _->
             Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
-        make_json dataframe [index] all_rows_count
+
+        ## Workaround so that the JS String is converted to a Text
+           https://www.pivotaltracker.com/story/show/184061302
+        "" + make_json dataframe [index] all_rows_count
 
     _ : Database_Table ->
         # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
@@ -37,7 +40,10 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| "" + case x of
         vis_df = df.select_columns (Column_Selector.By_Name (x.columns.map .name))
         indices = if x.indices.length == 0 then [] else df.select_columns (Column_Selector.By_Name (x.indices.map .name)) . columns
         all_rows_count = x.row_count
-        make_json vis_df indices all_rows_count
+
+        ## Workaround so that the JS String is converted to a Text
+           https://www.pivotaltracker.com/story/show/184061302
+        "" + make_json vis_df indices all_rows_count
 
     # We display columns as 1-column tables.
     _ : Dataframe_Column ->

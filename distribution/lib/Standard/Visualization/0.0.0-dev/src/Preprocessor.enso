@@ -5,15 +5,16 @@ import project.Helpers
    Default visualization preprocessor.
 default_preprocessor x =
     ## Workaround so that the JS String is converted to a Text
+       https://www.pivotaltracker.com/story/show/184061302
     "" + x.to_default_visualization_data
 
 ## PRIVATE
    Error visualization preprocessor.
 error_preprocessor x =
-    ok = '{ message: ""}'
+    ok = JS_Object.from_pairs [['message', '']] . to_json
     result = x.map_error err->
         message = err.to_display_text
         stack_trace = x.get_stack_trace_text.if_nothing "" . split '\n'
         full_message = message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
-        '{ "kind": "Dataflow", "message": ' + full_message.to_json + '}'
+        JS_Object.from_pairs [['kind', 'Dataflow'], ['message', full_message]] . to_json
     if result.is_error then result.catch else ok

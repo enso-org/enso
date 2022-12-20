@@ -95,6 +95,25 @@ spec =
             Number.positive_infinity.to_json . should_equal "null"
             Number.negative_infinity.to_json . should_equal "null"
 
+    Test.group "JS_Object" <|
+        Test.specify "should be buildable from pairs" <|
+            JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
+            JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
+
+        Test.specify "should be handle equality on a key level" <|
+            JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'
+            JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["a", 43]]
+            JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["b", 42]]
+
+            JS_Object.from_pairs [["a", 42], ["b", Nothing]] . should_equal <| JS_Object.from_pairs [["b", Nothing], ["a", 42]]
+            JS_Object.from_pairs [["a", 42], ["b", Nothing]] . should_not_equal <| JS_Object.from_pairs [["c", Nothing], ["a", 42]]
+
+            obj1 = JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",2]]]]
+            obj1 . should_equal <| JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",2]]]]
+            obj1 . should_equal <| JS_Object.from_pairs [["b", JS_Object.from_pairs [["d",2], ["c",1]]], ["a", 42]]
+            obj1 . should_not_equal <| JS_Object.from_pairs [["a", 43], ["b", 123]]
+            obj1 . should_not_equal <| JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",3]]]]
+
     Test.group "JSON" <|
         Test.specify "should allow getting object fields" <|
             object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'

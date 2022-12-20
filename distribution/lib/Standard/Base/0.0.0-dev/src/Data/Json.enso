@@ -191,26 +191,26 @@ type JS_Object
 
 ## PRIVATE
    Render the JS_Object to Text with truncated depth.
-render object depth=0 max_depth=5 = case object of
+render object depth=0 max_depth=5 max_length=100 = case object of
     _ : JS_Object ->
         if depth == max_depth then '"{...}"' else
             len = object.length
-            keys = object.field_names.take 50
-            children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1) max_depth)
-            '{' + (children.join ", ") + (if len > 50 then ', "...": "Another ' + (len - 50).to_text + ' items truncated."' else "") + '}'
+            keys = object.field_names.take max_length
+            children = keys.map key-> key.to_json + ': ' + (render (object.get key) (depth+1) max_depth max_length)
+            '{' + (children.join ", ") + (if len > max_length then ', "...": "Another ' + (len - max_length).to_text + ' items truncated."' else "") + '}'
     _ : Vector ->
         if depth == max_depth then '"[...]"' else
             len = object.length
-            children = 0.up_to (50.min len) . map i-> render (object.at i) (depth+1) max_depth
-            "[" + (children.join ", ") + (if len > 50 then ', "... another ' + (len - 50).to_text + ' items truncated."' else "") + "]"
+            children = 0.up_to (max_length.min len) . map i-> render (object.at i) (depth+1) max_depth max_length
+            "[" + (children.join ", ") + (if len > max_length then ', "... another ' + (len - max_length).to_text + ' items truncated."' else "") + "]"
     _ : Array ->
         proxy = Array_Proxy.new object.length (i-> make_enso (object.at i))
-        @Tail_Call render (Vector.from_polyglot_array proxy) depth max_depth
+        @Tail_Call render (Vector.from_polyglot_array proxy) depth max_depth max_length
     Nothing -> object.to_json
     _ : Text -> object.to_json
     _ : Boolean -> object.to_json
     _ : Number -> object.to_json
-    _ -> @Tail_Call render (JS_Object.Value object) depth max_depth
+    _ -> @Tail_Call render (JS_Object.Value object) depth max_depth max_length
 
 ## PRIVATE
    Internal function ensuring that a JavaScript object is presented appropriately to Enso.

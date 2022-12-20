@@ -23,5 +23,5 @@ geo_json_to_table geo_json fields=Nothing = case geo_json of
             case features of
                 _ : Vector ->
                     feature_rows = features.map Helpers.get_feature_row
-                    Table.from_json feature_rows fields
+                    Table.from_objects feature_rows fields
                 _ -> Error.throw (Invalid_JSON_Format.Error geo_json "not having the 'features' key.")

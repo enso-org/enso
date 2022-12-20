@@ -60,7 +60,7 @@ type Delimited_Format
     ## If the File_Format supports reading from the web response, return a configured instance.
     for_web : Text -> URI -> Delimited_Format | Nothing
     for_web content_type _ =
-        parts = content_type.split ";" . map (x->x.trim)
+        parts = content_type.split ";" . map .trim
 
         charset_part = parts.find (x->x.starts_with "charset=")
         encoding = if charset_part.is_error then Encoding.utf_8 else

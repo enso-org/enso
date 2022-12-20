@@ -141,15 +141,15 @@ Vector.default_visualization self = Id.table
 Vector.to_default_visualization_data : Text
 Vector.to_default_visualization_data self = render_vector self
 
-render_vector object depth=0 max_depth=5 =
+render_vector object depth=0 max_depth=5 max_length=100 =
     case object of
         _ : Vector -> if depth == max_depth then "[...]" else
-            result = object.take 100 . map (elem-> if elem.is_error then elem.to_json else render_vector elem (depth+1) max_depth)
+            result = object.take max_length . map (elem-> if elem.is_error then elem.to_json else render_vector elem (depth+1) max_depth max_length)
             "[" + result.join ", " + "]"
         _ : Array ->
             proxy = Array_Proxy.new object.length object.at
-            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth max_depth
-        _ : JS_Object -> render object depth max_depth
+            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth max_depth max_length
+        _ : JS_Object -> render object depth max_depth max_length
         _ -> object.to_default_visualization_data
 
 ## UNSTABLE
