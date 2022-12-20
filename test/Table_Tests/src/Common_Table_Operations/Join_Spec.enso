@@ -255,8 +255,42 @@ spec setup =
             r2 . at "X_1" . to_vector . should_equal ["A", "a", "b"]
             r2 . at "Z" . to_vector . should_equal [1, 2, 3]
 
-        Test.specify "should correctly handle joining a table with itself" pending="TODO!" <|
-            Nothing
+        Test.specify "should correctly handle joining a table with itself" <|
+            t1 = table_builder [["X", [0, 1, 2, 3, 2]], ["Y", [1, 2, 3, 4, 100]], ["A", ["B", "C", "D", "E", "X"]]]
+            t2 = t1.join t1 on=(Join_Condition.Equals left="X" right="Y") |> materialize |> _.order_by ["X", "Y"]
+
+            expect_column_names ["X", "Y", "A", "X_1", "Y_1", "A_1"] t2
+            t2.at "X" . to_vector . should_equal [1, 2, 2, 3]
+            t2.at "Y_1" . to_vector . should_equal [1, 2, 2, 3]
+
+            t2.at "Y" . to_vector . should_equal [2, 3, 100, 4]
+            t2.at "A" . to_vector . should_equal ["C", "D", "X", "E"]
+            t2.at "X_1" . to_vector . should_equal [0, 1, 1, 2]
+            t2.at "A_1" . to_vector . should_equal ["B", "C", "C", "D"]
+
+            t3 = t1.join t1 join_kind=Join_Kind.Full on=(Join_Condition.Equals left="X" right="Y") |> materialize |> _.order_by ["X", "Y", "X_1"]
+            case setup.test_selection.supports_right_join of
+                True ->
+                    expect_column_names ["X", "Y", "A", "X_1", "Y_1", "A_1"] t3
+                    t3.at "X" . to_vector . should_equal [Nothing, Nothing, 0, 1, 2, 2, 3]
+                    t3.at "Y_1" . to_vector . should_equal [100, 4, Nothing, 1, 2, 2, 3]
+
+                    t3.at "Y" . to_vector . should_equal [Nothing, Nothing, 1, 2, 3, 100, 4]
+                    t3.at "A" . to_vector . should_equal [Nothing, Nothing, "B", "C", "D", "X", "E"]
+                    t3.at "X_1" . to_vector . should_equal [2, 3, Nothing, 0, 1, 1, 2]
+                    t3.at "A_1" . to_vector . should_equal ["X", "E", Nothing, "B", "C", "C", "D"]
+                False -> Nothing
+
+            t4 = table_builder [["X", [Nothing, "a", "B"]], ["Y", ["ą", "b", Nothing]], ["Z", [1, 2, 3]]]
+            t5 = t4.join t4 on=(Join_Condition.Equals_Ignore_Case left="Y" right="X") |> materialize |> _.order_by ["Y"]
+            expect_column_names ["X", "Y", "Z", "X_1", "Y_1", "Z_1"] t5
+            t5.at "Y" . to_vector . should_equal [Nothing, "b"]
+            t5.at "X_1" . to_vector . should_equal [Nothing, "B"]
+
+            t5.at "X" . to_vector . should_equal ["B", "a"]
+            t5.at "Z" . to_vector . should_equal [3, 2]
+            t5.at "Y_1" . to_vector . should_equal ["ą", Nothing]
+            t5.at "Z_1" . to_vector . should_equal [1, 3]
 
         Test.specify "should gracefully handle unmatched columns in Join_Conditions" pending=db_todo <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
