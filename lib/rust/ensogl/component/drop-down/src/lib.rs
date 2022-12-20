@@ -36,8 +36,11 @@ pub mod model;
 // === Constants ===
 // =================
 
-/// Default outer size of the dropdown. Defines the size of the background shape.
-const DEFAULT_SIZE: Vector2 = Vector2(160.0, 300.0);
+/// Default minimum outer size of the dropdown. Defines the minimum width of the background shape.
+const DEFAULT_MIN_WIDTH: f32 = 40.0;
+/// Default maximum outer size of the dropdown. Defines the maximum size of the background shape.
+/// Entries exceeding this size will have added.
+const DEFAULT_MAX_SIZE: Vector2 = Vector2(160.0, 300.0);
 /// Default color of the dropdown background.
 const DEFAULT_COLOR: Lcha = Lcha::new(0.56708, 0.23249, 0.71372, 1.0);
 /// Default maximum number of entries that can be cached at once.
@@ -69,9 +72,12 @@ ensogl_core::define_endpoints_2! { <T: (DropdownValue)>
         set_color(Lcha),
         /// The dropdown initially is not open. This event can open or close the dropdown.
         set_open(bool),
-        /// Set maximum width and height of the dropdown. If the content is larger, it will be
+        /// Set maximum width and height of the open dropdown. If the content is larger, it will be
         /// scrollable and/or ellipsis will be applied to labels.
-        set_max_size(Vector2),
+        set_max_open_size(Vector2),
+        /// Set minimum width of the open dropdown. If the content is smaller, the dropdown will
+        /// expand to the minimum width anyway adding padding to the right of the labels.
+        set_min_open_width(f32),
         /// Provide a list of entries to be displayed. The list is assumed to be complete. No
         /// `entries_in_range_needed` event will be emitted after this call.
         ///
@@ -159,9 +165,10 @@ impl<T: DropdownValue> Frp<T> {
             output.is_open <+ input.set_open;
 
             grid_width <- model.grid.content_size.map(|s| s.x).on_change();
-            max_height <- input.set_max_size.map(|s| s.y);
-            max_width <- input.set_max_size.map(|s| s.x).on_change();
-            eval max_width((width) model.set_max_outer_width(*width));
+            max_height <- input.set_max_open_size.map(|s| s.y);
+            max_width <- input.set_max_open_size.map(|s| s.x);
+            width_bounds <- all(input.set_min_open_width, max_width).on_change();
+            eval width_bounds(((min, max)) model.set_outer_width_bounds(*min, *max));
 
             dimensions <- all(number_of_entries, max_height, grid_width, open_anim.value);
             eval dimensions((&(num_entries, max_height, grid_width, anim_progress))
@@ -247,7 +254,8 @@ impl<T: DropdownValue> Frp<T> {
 
 impl<T: DropdownValue> component::Frp<Model<T>> for Frp<T> {
     fn init_inputs(frp: &Self::Public) {
-        frp.set_max_size(DEFAULT_SIZE);
+        frp.set_min_open_width(DEFAULT_MIN_WIDTH);
+        frp.set_max_open_size(DEFAULT_MAX_SIZE);
         frp.set_color(DEFAULT_COLOR);
         frp.set_multiselect(false);
         frp.set_max_cached_entries(DEFAULT_MAX_ENTRIES);

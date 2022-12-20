@@ -44,7 +44,7 @@ impl Default for EntryParams {
             text_color:          color::Lcha::from(color::Rgba(1.0, 1.0, 1.0, 0.7)),
             selected_text_color: color::Lcha::from(color::Rgba(1.0, 1.0, 1.0, 1.0)),
             corners_radius:      0.0,
-            min_width:           80.0,
+            min_width:           40.0,
             max_width:           160.0,
         }
     }
@@ -153,6 +153,7 @@ impl ensogl_grid_view::Entry for Entry {
             text_size <- input.set_params.map(|p| p.text_size).on_change();
             corners_radius <- input.set_params.map(|p| p.corners_radius).on_change();
             selected_text_color <- input.set_params.map(|p| p.selected_text_color).on_change();
+            max_width <- input.set_params.map(|p| p.max_width).on_change();
 
             contour <- all_with(&size, &corners_radius, |&size, &corners_radius|
                 entry::Contour { size, corners_radius }
@@ -177,9 +178,10 @@ impl ensogl_grid_view::Entry for Entry {
                 #[allow(clippy::manual_clamp)]
                 width.max(params.min_width).min(params.max_width)
             });
+            trace limited_entry_width;
             out.minimum_column_width <+ limited_entry_width;
 
-            view_width <- limited_entry_width.map2(&text_offset, |w, offset| Some(w - offset));
+            view_width <- max_width.map2(&text_offset, |width, offset| Some(width - offset));
             data.label_thin.set_view_width <+ view_width;
             data.label_bold.set_view_width <+ view_width;
 

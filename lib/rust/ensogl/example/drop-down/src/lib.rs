@@ -97,6 +97,32 @@ fn init(app: &Application) {
     world.add_child(&dropdown_static1);
     world.add_child(&dropdown_static2);
 
+
+    let auto_max_size = Some(Vector2(1000.0, 250.0));
+    let auto_width_demo1 = setup_static_dropdown(app, Vector2(-200.0, 300.0), auto_max_size, vec![
+        "A", "B", "C", "D", "E", "F",
+    ]);
+    let auto_width_demo2 = setup_static_dropdown(app, Vector2(-100.0, 300.0), auto_max_size, vec![
+        "5", "10", "15", "200", "300", "5000",
+    ]);
+    let auto_width_demo3 = setup_static_dropdown(app, Vector2(0.0, 300.0), auto_max_size, vec![
+        "Hello World",
+        "This Is",
+        "A Longer Entry",
+    ]);
+    let auto_width_demo4 = setup_static_dropdown(app, Vector2(200.0, 300.0), auto_max_size, vec![
+        "This dropdown has a very long text.",
+        "So that it can be used to test",
+        "the automatic width adjustment of the dropdown.",
+        "It should be able to adjust to the longest entry",
+        "on its own, up to a set maximum width.",
+    ]);
+
+    world.add_child(&auto_width_demo1);
+    world.add_child(&auto_width_demo2);
+    world.add_child(&auto_width_demo3);
+    world.add_child(&auto_width_demo4);
+
     std::mem::forget((
         main_dropdown,
         multi_config_dropdown,
@@ -104,6 +130,10 @@ fn init(app: &Application) {
         secondary_dropdown,
         dropdown_static1,
         dropdown_static2,
+        auto_width_demo1,
+        auto_width_demo2,
+        auto_width_demo3,
+        auto_width_demo4,
         navigator,
         network,
     ));
@@ -136,7 +166,8 @@ fn setup_static_dropdown<T: DropdownValue>(
     let dropdown = app.new_view::<Dropdown<T>>();
     dropdown.set_xy(pos);
     if let Some(max_size) = max_size {
-        dropdown.set_max_size(max_size);
+        warn!("Setting max size: {:?}", max_size);
+        dropdown.set_max_open_size(max_size);
     }
     dropdown.set_all_entries(values);
     dropdown.set_open(true);

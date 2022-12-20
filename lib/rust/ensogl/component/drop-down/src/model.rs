@@ -96,15 +96,12 @@ impl<T> component::Model for Model<T> {
 }
 
 impl<T: DropdownValue> Model<T> {
-    /// Set the maximum allowed inner width of an entry.
-    pub fn set_max_outer_width(&self, max_outer_width: f32) {
-        let inner_corners_radius = CORNER_RADIUS - CLIP_PADDING;
+    /// Set the minimum and maximum allowed inner width of an entry.
+    pub fn set_outer_width_bounds(&self, min_outer_width: f32, max_outer_width: f32) {
+        let corners_radius = CORNER_RADIUS - CLIP_PADDING;
         let max_width = max_outer_width - CLIP_PADDING * 2.0;
-
-        let mut params = EntryParams { corners_radius: inner_corners_radius, ..default() };
-        params.max_width = max_width;
-        params.min_width = params.min_width.min(max_width);
-        let min_width = params.min_width;
+        let min_width = min_outer_width.min(max_width);
+        let params = EntryParams { corners_radius, min_width, max_width, ..default() };
         self.grid.set_entries_params(params);
         self.grid.set_entries_size(Vector2(min_width, ENTRY_HEIGHT));
     }
