@@ -114,21 +114,27 @@ public class MetaObjectTest {
     var successfullyRemoved = new HashSet<Value>();
     var w = new StringBuilder();
     for (var v : g.allValues()) {
-      checkValue(v, expecting, successfullyRemoved, w);
+      checkValue(v, null, expecting, successfullyRemoved, w);
     }
     if (!expecting.isEmpty()) {
       fail("These types don't have any values: " + expecting + w);
     }
   }
 
-  private static void checkValue(Value v, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
-    var t = v.getMetaObject();
+  private static void checkValue(Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
+    var t = type == null ? v.getMetaObject() : type;
     if (!expecting.remove(t)) {
       if (!successfullyRemoved.contains(t)) {
         w.append("\nCannot remove type ").append(t).append(" for value ").append(v);
+        return;
       }
     } else {
       successfullyRemoved.add(t);
+    }
+    if (t.hasMetaParents() && t.getMetaParents() instanceof Value p && p.hasArrayElements()) {
+      for (long i = 0; i < p.getArraySize(); i++) {
+        checkValue(v, p.getArrayElement(i), expecting, successfullyRemoved, w);
+      }
     }
   }
 }

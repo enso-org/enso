@@ -193,6 +193,16 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
+  Object getMetaParents() {
+    assert supertype != null;
+    return new Array(supertype);
+  }
+
+  @ExportMessage boolean hasMetaParents() {
+    return supertype != null && supertype != this;
+  }
+
+  @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
     return name;
   }
