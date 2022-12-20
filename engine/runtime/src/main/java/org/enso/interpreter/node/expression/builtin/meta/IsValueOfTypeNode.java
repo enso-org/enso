@@ -10,8 +10,6 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
-import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
-import org.enso.interpreter.node.expression.builtin.meta.TypeOfNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
@@ -49,6 +47,11 @@ public abstract class IsValueOfTypeNode extends Node {
     return isSameObject.execute(expectedType, tpeOfPayload);
   }
 
+  @Specialization(guards = "isAnyType(expectedType)")
+  boolean doAnyType(Object expectedType, Object payload) {
+    return true;
+  }
+  
   @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})
   boolean doType(Type expectedType, Object payload) {
     Object tpeOfPayload = typeOfNode.execute(payload);
@@ -78,11 +81,6 @@ public abstract class IsValueOfTypeNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-  }
-
-  @Specialization(guards = "isAnyType(expectedType)")
-  boolean doAnyType(Object expectedType, Object payload) {
-    return true;
   }
 
   @Specialization(
