@@ -16,6 +16,12 @@ use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 
+use naga;
+use naga::back::spv;
+use naga::front::glsl::Options;
+use naga::front::glsl::Parser;
+use naga::ShaderStage;
+use rspirv::binary::Disassemble;
 
 
 // ==============
@@ -24,12 +30,12 @@ use ensogl_core::display::object::ObjectOps;
 
 mod rectangle {
     use super::*;
-    ensogl_core::shape! {
+    ensogl_core::shape2! {
         (style: Style, color: Vector4<f32>) {
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
             let rect = Rect((&width, &height)).corners_radius(10.0.px());
-            let shape = rect.fill(color::Rgba(0.0,0.0,0.0,0.2));
+            let shape = rect.fill(color::Rgba(1.0,0.0,0.0,0.2));
             shape.into()
         }
     }
@@ -46,6 +52,26 @@ mod rectangle {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    let glsl = r#"
+        #version 450 core
+    
+        void main() {}
+    "#;
+
+    let mut parser = Parser::default();
+    let options = Options::from(ShaderStage::Vertex);
+    let module = parser.parse(&options, glsl).unwrap();
+    warn!("{:?}", module);
+
+    let capabilities = naga::valid::Capabilities::empty();
+    let info = naga::valid::Validator::new(naga::valid::ValidationFlags::all(), capabilities)
+        .validate(&module)
+        .expect("Naga module validation failed");
+
+    let spv_vec = spv::write_vec(&module, &info, &spv::Options::default(), None).unwrap();
+    let dis = rspirv::dr::load_words(spv_vec).expect("Produced invalid SPIR-V").disassemble();
+    warn!("{}", dis);
+
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();

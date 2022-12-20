@@ -10,6 +10,8 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 wasm-bindgen = { workspace = true }
+naga = { version = "0.10.0", features = ["glsl-in", "spv-out"] }
+rspirv = "0.11.0+1.5.4"
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
 [package.metadata.wasm-pack.profile.release]

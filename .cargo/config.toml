@@ -1,6 +1,6 @@
 [build]
 target-dir = "target/rust/"
-rustflags = ["--cfg", "tokio_unstable"]
+rustflags = ["--cfg", "tokio_unstable", "--cfg", "procmacro2_semver_exempt"]
 
 [target.wasm32-unknown-unknown]
 rustflags = [

@@ -1,0 +1,36 @@
+[package]
+name = "ensogl-core-macros"
+version = "0.2.1"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2021"
+description = "EnsoGL Core Macros."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso/lib/rust/ensogl"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../../LICENSE"
+keywords = ["typeclass", "deriving", "macro"]
+categories = ["algorithms"]
+publish = true
+
+[lib]
+proc-macro = true
+
+[features]
+default = []
+
+[dependencies]
+enso-macro-utils = { path = "../../../macro-utils" }
+proc-macro2 = "1.0"
+quote = "1.0"
+Inflector = "0.11.4"
+itertools = "0.8.1"
+boolinator = "2.4.0"
+paste = "1.0.7"
+cargo = "0.67.0"
+
+[dependencies.syn]
+version = "1.0"
+features = ['extra-traits', 'visit', 'full']
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.8"
