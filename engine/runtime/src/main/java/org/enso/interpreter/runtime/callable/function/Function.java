@@ -361,6 +361,16 @@ public final class Function implements TruffleObject {
   }
 
   @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().function();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
   boolean hasType() {
     return true;
   }

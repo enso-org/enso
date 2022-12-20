@@ -63,7 +63,6 @@ class ValuesGenerator {
         v = new ValueInfo(value, null);
       }
     }
-    Assert.assertFalse("Not a function", v.type().canExecute());
     return v;
   }
 
@@ -340,6 +339,21 @@ class ValuesGenerator {
 
     for (var v : collect) {
       assertTrue("It is an array" + v, v.hasArrayElements());
+    }
+    return collect;
+  }
+
+  public List<Value> functions() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, "mul x = x * 2", "mul").type());
+    }
+
+    if (languages.contains(Language.JAVA)) {
+    }
+
+    for (var v : collect) {
+      assertTrue("It is can be executed" + v, v.canExecute());
     }
     return collect;
   }
