@@ -277,6 +277,23 @@ class ValuesGenerator {
     return collect;
   }
 
+  public List<Value> booleans() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, "from Standard.Base.Data.Boolean.Boolean import True, False", "True").type());
+      collect.add(v(null, "from Standard.Base.Data.Boolean.Boolean import True, False", "False").type());
+    }
+
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue(true));
+      collect.add(ctx.asValue(false));
+    }
+
+    for (var v : collect) {
+      assertTrue("It is an boolean" + v, v.isBoolean());
+    }
+    return collect;
+  }
   public List<Value> arrayLike() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {

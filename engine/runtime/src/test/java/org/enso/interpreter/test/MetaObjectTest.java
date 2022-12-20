@@ -7,6 +7,7 @@ import java.net.URI;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.enso.interpreter.runtime.type.ConstantsGen;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
@@ -113,17 +114,21 @@ public class MetaObjectTest {
     var successfullyRemoved = new HashSet<Value>();
     var w = new StringBuilder();
     for (var v : g.allValues()) {
-      var t = v.getMetaObject();
-      if (!expecting.remove(t)) {
-        if (!successfullyRemoved.contains(t)) {
-          w.append("\nCannot remove type ").append(t).append(" for value ").append(v);
-        }
-      } else {
-        successfullyRemoved.add(t);
-      }
+      checkValue(v, expecting, successfullyRemoved, w);
     }
     if (!expecting.isEmpty()) {
       fail("These types don't have any values: " + expecting + w);
+    }
+  }
+
+  private static void checkValue(Value v, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
+    var t = v.getMetaObject();
+    if (!expecting.remove(t)) {
+      if (!successfullyRemoved.contains(t)) {
+        w.append("\nCannot remove type ").append(t).append(" for value ").append(v);
+      }
+    } else {
+      successfullyRemoved.add(t);
     }
   }
 }
