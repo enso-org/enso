@@ -1395,6 +1395,7 @@ impl Searcher {
                 defined_in:         module.clone(),
                 arguments:          vec![],
                 return_type:        "Standard.Base.System.File.File".try_into().unwrap(),
+                documentation:      vec![],
                 documentation_html: None,
                 self_type:          Some(self_type.clone()),
                 is_static:          true,

@@ -6,6 +6,7 @@ import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.No_Such_Key.No_Such_Key
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
@@ -185,7 +186,7 @@ type Map
     insert self key value = Internal.insert self key value
 
     ## Gets the value associated with `key` in this map, or throws a
-       `No_Value_For_Key_Error` if `key` is not present.
+       `No_Such_Key.Error` if `key` is not present.
 
        Arguments:
        - key: The key to look up in the map.
@@ -196,17 +197,16 @@ type Map
              import Standard.Base.Data.Map.Map
              import Standard.Examples
 
-             example_get = Examples.map.get 1
-    get : Any -> Any ! No_Value_For_Key
-    get self key =
-        self.get_or_else key (Error.throw (No_Value_For_Key.Error key))
+             example_at = Examples.map.at 1
+    at : Any -> Any ! No_Such_Key
+    at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
-    ## Gets the value associated with `key` in this map, or returns `other` if
-       it isn't present.
+    ## Gets the value associated with `key` in this map, or returns
+       `if_missing` if it isn't present.
 
        Arguments:
        - key: The key to look up in the map.
-       - other: The value to use if the key isn't present.
+       - if_missing: The value to use if the key isn't present.
 
        > Example
          Get the value for the key 2 in a map or instead return "zero" if it
@@ -215,11 +215,11 @@ type Map
              import Standard.Base.Data.Map.Map
              import Standard.Examples
 
-             example_get_or_else = Examples.map.get_or_else 2 "zero"
-    get_or_else : Any -> Any -> Any
-    get_or_else self key ~other =
+             example_get = Examples.map.get 2 "zero"
+    get : Any -> Any -> Any
+    get self key ~if_missing=Nothing =
         go map = case map of
-            Map.Tip -> other
+            Map.Tip -> if_missing
             Map.Bin _ k v l r -> case Internal.compare_allow_nothing key k of
                 Ordering.Equal -> v
                 Ordering.Less -> @Tail_Call go l
@@ -465,19 +465,3 @@ type Map
             Map.Bin _ k v _ r -> @Tail_Call last (Pair.new k v) r
             Map.Tip -> p
         last Nothing self
-
-## UNSTABLE
-
-   An error for getting a missing value from a map.
-
-   Arguments:
-   - key: The key that was asked for.
-type No_Value_For_Key
-    Error key
-
-    ## PRIVATE
-
-       Converts the error into a human-readable representation.
-    to_display_text : Text
-    to_display_text self =
-        "The map contained no value for the key " + self.key.to_text + "."

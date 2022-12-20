@@ -98,15 +98,24 @@ spec = Test.group "Vectors" <|
         vec = [Error.throw (My_Error.Value "foo"), "bar"]
         vec.at 1 . should_equal "bar"
         vec.at 0 . should_fail_with My_Error.Value
+        vec.get 1 . should_equal "bar"
+        vec.get 0 . should_fail_with My_Error.Value
 
     Test.specify "should allow accessing elements with negative indices" <|
         [1,2,3].at -1 . should_equal 3
         [1,2,3].at -2 . should_equal 2
         [1,2,3].at -3 . should_equal 1
+        [1,2,3].get -1 . should_equal 3
+        [1,2,3].get -2 . should_equal 2
+        [1,2,3].get -3 . should_equal 1
 
-    Test.specify "should return a dataflow error when accessing elements out of bounds" <|
+    Test.specify "should correctly handle out of bounds access" <|
         [1,2,3].at -4 . should_fail_with Index_Out_Of_Bounds.Error
         [1,2,3].at 3 . should_fail_with Index_Out_Of_Bounds.Error
+        [1,2,3].get -4 . should_equal Nothing
+        [1,2,3].get 3 . should_equal Nothing
+        [1,2,3].get -4 "???" . should_equal "???"
+        [1,2,3].get 3 "???" . should_equal "???"
 
     Test.specify "should have a well-defined length" <|
         [1,2,3].length . should_equal 3
