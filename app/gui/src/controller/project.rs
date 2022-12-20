@@ -264,11 +264,8 @@ impl Project {
             warn!("Updating module model!");
             let module = model.main_module_model().await?;
             let file_path = module.path();
-            let opened = language_server.client.open_text_file(&file_path).await?;
-
-            warn!("{}", &opened.content);
-
-            let source = model.parser().parse_with_metadata(opened.content)?;
+            let content = language_server.read_file(&file_path).await?.contents;
+            let source = model.parser().parse_with_metadata(content)?;
             module.update_whole(source)?;
 
             Ok(())

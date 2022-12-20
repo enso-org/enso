@@ -189,7 +189,7 @@ impl Model {
         let breadcrumbs = self.view.graph().model.breadcrumbs.clone_ref();
         executor::global::spawn(async move {
             if let Err(err) = controller.restore_project_snapshot().await {
-                error!("Error while saving project snapshot: {err}");
+                error!("Error while restoring project snapshot: {err}");
             } else {
                 breadcrumbs.set_project_changed(false);
             }
