@@ -39,6 +39,17 @@ public final class EnsoDuration implements TruffleObject {
     return EnsoContext.get(thisLib).getBuiltins().duration();
   }
 
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().duration();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+
   @Builtin.Method(
       name = "new_builtin",
       description =

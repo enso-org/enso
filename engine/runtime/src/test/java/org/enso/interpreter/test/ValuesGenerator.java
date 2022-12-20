@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -294,6 +296,31 @@ class ValuesGenerator {
     }
     return collect;
   }
+
+  public List<Value> times() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, "import Standard.Base.Data.Time.Date.Date", "Date.now").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Date_Time.Date_Time", "Date_Time.now").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Time_Zone.Time_Zone", "Time_Zone.new").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day", "Time_Of_Day.now").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Duration.Duration", "Duration.new").type());
+      for (var v : collect) {
+        assertTrue("It is a time like value " + v, v.isDate() || v.isTime() || v.isTimeZone() || v.isDuration());
+      }
+      collect.add(v(null, "import Standard.Base.Data.Time.Date_Period.Date_Period", "Date_Period.Year").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Time_Period.Time_Period", "Time_Period.Day").type());
+      collect.add(v(null, "import Standard.Base.Data.Time.Period.Period", "Period.new 1 2 3").type());
+    }
+
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue(LocalDate.of(2022, 12, 10)));
+      collect.add(ctx.asValue(LocalTime.of(12, 35)));
+    }
+
+    return collect;
+  }
+
   public List<Value> arrayLike() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {

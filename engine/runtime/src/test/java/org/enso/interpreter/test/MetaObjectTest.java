@@ -6,6 +6,7 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.enso.interpreter.runtime.type.ConstantsGen;
@@ -109,7 +110,7 @@ public class MetaObjectTest {
   @Test
   public void checkAllTypesHaveSomeValues() throws Exception {
     var g = ValuesGenerator.create(ctx);
-    var expecting = new HashSet<Value>();
+    var expecting = new LinkedHashSet<Value>();
     expecting.addAll(g.allTypes());
     var successfullyRemoved = new HashSet<Value>();
     var w = new StringBuilder();

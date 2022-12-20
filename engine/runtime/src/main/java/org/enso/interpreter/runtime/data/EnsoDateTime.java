@@ -234,6 +234,17 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().dateTime();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+
+  @ExportMessage
   boolean hasType() {
     return true;
   }
