@@ -176,7 +176,7 @@ base_dialect =
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
-    text = [is_empty, bin "LIKE"]
+    text = [is_empty, bin "LIKE", simple_equals_ignore_case]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
@@ -296,6 +296,11 @@ generate_from_part dialect from_spec = case from_spec of
     From_Spec.Sub_Query columns context as_name ->
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
+
+## PRIVATE
+simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
+    res = code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
+    res.paren
 
 ## PRIVATE
 

@@ -19,11 +19,11 @@ spec setup =
 
         Test.specify "iif on Columns" pending="Not implemented yet." Nothing
 
-        Test.specify "equals_ignore_case" <|
+        Test.specify "equals_ignore_case for ASCII" <|
             # TODO test for nothing too
-            x = ["a", "B", "c", "DEF", "ę"]
-            y = ["ą", "b", "c", "dEf", "Ę"]
-            r = [False, True, True, True, True]
+            x = ["a", "B", "c", "DEF"]
+            y = ["aa", "b", "c", "dEf"]
+            r = [False, True, True, True]
 
             x.zip y (.equals_ignore_case) . should_equal r
 

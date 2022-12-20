@@ -126,7 +126,7 @@ type Column
     == self other =
         run_vectorized_binary_op self "==" (==) other
 
-    ## Element-wise case-insensitive Text equality comparison.
+    ## Element-wise case-insensitive text equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -137,6 +137,10 @@ type Column
        `other`.
     equals_ignore_case : Column | Any -> Locale -> Column
     equals_ignore_case self other locale=Locale.default =
+        ## TODO currently this always runs the fallback which is slow due to the
+           cost of Java-to-Enso calls. We want to have a vectorized
+           implementation, but we need to extend the architecture to allow
+           passing the locale to it.
         run_vectorized_binary_op self "equals_ignore_case" (x-> y-> x.equals_ignore_case y locale=locale) other
 
     ## Element-wise non-equality comparison.

@@ -230,6 +230,20 @@ type Column
     == : Column | Any -> Column
     == self other = self.make_binary_op "=" other new_type=SQL_Type.boolean
 
+    ## Element-wise case-insensitive text equality comparison.
+
+       Arguments:
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
+    equals_ignore_case : Column | Any -> Locale -> Column
+    equals_ignore_case self other locale=Locale.default =
+        Helpers.assume_default_locale locale <|
+            self.make_binary_op "equals_ignore_case" other new_type=SQL_Type.boolean
+
     ## UNSTABLE
 
        Element-wise non-equality comparison.

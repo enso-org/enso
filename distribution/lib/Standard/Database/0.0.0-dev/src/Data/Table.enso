@@ -1340,7 +1340,7 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
     ## Resolves the column in the original table and finds the expression
        corresponding to it in the subquery.
     resolve_target_expression column_mapping column =
-        new_column = column_mapping.get_or_else column.name (Panic.throw (Illegal_State.Error "Impossible. Could not find column "+column.name+" in the mapping. This is a bug in the Database library."))
+        new_column = column_mapping.get column.name if_missing=(Panic.throw (Illegal_State.Error "Impossible. Could not find column "+column.name+" in the mapping. This is a bug in the Database library."))
         new_column.expression
     resolve_left = resolve_target_expression left_column_mapping
     resolve_right = resolve_target_expression right_column_mapping
@@ -1348,10 +1348,8 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
     make_equals left right =
         SQL_Expression.Operation "=" [resolve_left left, resolve_right right]
     make_equals_ignore_case left right locale =
-        _ = [left, right, locale]
-        # TODO case insensitive equality, probably worth adding as column op too
-        # if locale != Locale.default then add warning
-        Unimplemented.throw "TODO"
+        Helpers.assume_default_locale locale <|
+            SQL_Expression.Operation "equals_ignore_case" [resolve_left left, resolve_right right]
     make_between left right_lower right_upper =
         args = [resolve_left left, resolve_right right_lower, resolve_right right_upper]
         SQL_Expression.Operation "BETWEEN" args
