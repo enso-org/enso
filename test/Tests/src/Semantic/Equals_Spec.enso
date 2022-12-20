@@ -109,6 +109,10 @@ spec =
 
             java_object1.should_equal java_object2
 
+            java_object2.put "c" 42
+
+            java_object1.should_not_equal java_object2
+
         Test.specify "should return False for different Atoms with same fields" <|
             p1 = Point.Value 1 2
             p2 = Point.Value 3 4
@@ -116,13 +120,20 @@ spec =
             four_field = FourFieldType.Value 1 2 3 4
             rect.should_not_equal four_field
 
+        Test.specify "should dispatch to overriden `==` in vectors" <|
+            [(Child.Value 1)].should_equal [(Child.Value 101)]
+            [(Child.Value 1)].should_not_equal [(Child.Value 2)]
+
+        Test.specify "should dispatch to overriden `==` in arrays" <|
+            (Array.new_1 (Child.Value 1)).should_equal (Array.new_1 (Child.Value 101))
+
         Test.specify "should handle recursive atoms without custom `==`" <|
             rnd = (Random.new seed=42).java_random
             trees = (0.up_to 5).map _->
                 create_random_tree 5 rnd
             trees.each tree->
                 dupl_tree = tree.deep_copy
-                tree.should_equal dupl_tree
+                Test.with_clue "Seed sed to 42" (tree.should_equal dupl_tree)
 
 
 main = Test_Suite.run_main spec

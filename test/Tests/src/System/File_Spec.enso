@@ -44,6 +44,10 @@ spec =
             f_2 = File.new "bar/../baz/../foo"
             f_2.normalize.should_equal f_1
 
+        Test.specify "should handle `==` on files" <|
+            (File.new "foo").should_equal (File.new "foo")
+            (File.new "bar").should_not_equal (File.new "foo")
+
         Test.specify "should allow reading a file byte by byte" <|
             f = enso_project.data / "short.txt"
             f.delete_if_exists

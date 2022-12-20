@@ -34,6 +34,10 @@ spec =
             arr = make_enso_array [1, 2, 3]
             arr.method . should_equal 0
 
+        Test.specify "should handle ==" <|
+            (make_enso_array [1,2,3]).should_equal (make_enso_array [1,2,3])
+            (make_enso_array [1]).should_not_equal (make_enso_array [2])
+
         Test.specify "should propagate dataflow errors" <|
             err = Error.throw (Illegal_State.Error "Foo")
             res = Array.new err

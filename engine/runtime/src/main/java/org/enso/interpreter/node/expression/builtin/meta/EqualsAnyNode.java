@@ -1,12 +1,12 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.ibm.icu.text.Normalizer;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.dsl.SpecializationStatistics;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -27,7 +27,7 @@ import java.util.Objects;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsNodeGen.InvokeEqualsNodeGen;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNodeGen.InvokeEqualsNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -35,9 +35,9 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.State;
-import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
 
 @BuiltinMethod(
@@ -46,13 +46,12 @@ import org.enso.polyglot.MethodNames;
     description = "Implementation of Any.=="
 )
 @GenerateUncached
-@SpecializationStatistics.AlwaysEnabled
-public abstract class EqualsNode extends Node {
+public abstract class EqualsAnyNode extends Node {
 
   protected static String EQUALS_MEMBER_NAME = MethodNames.Function.EQUALS;
 
-  public static EqualsNode build() {
-    return EqualsNodeGen.create();
+  public static EqualsAnyNode build() {
+    return EqualsAnyNodeGen.create();
   }
   public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
 
@@ -61,6 +60,26 @@ public abstract class EqualsNode extends Node {
   @Specialization
   boolean equalsLong(long self, long other) {
     return self == other;
+  }
+
+  @Specialization
+  boolean equalsLongDouble(long self, double other) {
+    return (double) self == other;
+  }
+
+  @Specialization
+  boolean equalsDoubleLong(double self, long other) {
+    return self == (double) other;
+  }
+
+  @Specialization
+  boolean equalsIntLong(int self, long other) {
+    return (long) self == other;
+  }
+
+  @Specialization
+  boolean equalsLongInt(long self, int other) {
+    return self == (long) other;
   }
 
   @Specialization
@@ -79,22 +98,88 @@ public abstract class EqualsNode extends Node {
     return self.equals(otherBigInt);
   }
 
+  @Specialization
+  @TruffleBoundary
+  boolean equalsBitIntDouble(EnsoBigInteger self, double other) {
+    return self.doubleValue() == other;
+  }
+
+  @Specialization
+  @TruffleBoundary
+  boolean equalsDoubleBigInt(double self, EnsoBigInteger other) {
+    return self == other.doubleValue();
+  }
+
   /** Enso specific types **/
 
   @Specialization
   boolean equalsUnresolvedSymbols(UnresolvedSymbol self, UnresolvedSymbol otherSymbol,
-      @Cached EqualsNode equalsNode) {
+      @Cached EqualsAnyNode equalsNode) {
     return self.getName().equals(otherSymbol.getName())
         && equalsNode.execute(self.getScope(), otherSymbol.getScope());
   }
 
   @Specialization
   boolean equalsUnresolvedConversion(UnresolvedConversion selfConversion, UnresolvedConversion otherConversion,
-      @Cached EqualsNode equalsNode) {
+      @Cached EqualsAnyNode equalsNode) {
     return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
   }
 
+  /**
+   * If one of the objects has warnings attached, just treat it as an objects without any
+   * warnings.
+   */
+  @Specialization(guards = {
+      "selfWarnLib.hasWarnings(selfWithWarnings) || otherWarnLib.hasWarnings(otherWithWarnings)"
+  }, limit = "3")
+  boolean equalsWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
+      @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
+      @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
+      @Cached EqualsAnyNode equalsNode
+  ) {
+    try {
+      Object self =
+          selfWarnLib.hasWarnings(selfWithWarnings) ? selfWarnLib.removeWarnings(selfWithWarnings)
+              : selfWithWarnings;
+      Object other =
+          otherWarnLib.hasWarnings(otherWithWarnings) ? otherWarnLib.removeWarnings(otherWithWarnings)
+              : otherWithWarnings;
+      return equalsNode.execute(self, other);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   /** Interop libraries **/
+
+  @Specialization(guards = {
+      "selfInterop.isNull(selfNull)",
+      "otherInterop.isNull(otherNull)"
+  }, limit = "3")
+  boolean equalsNull(
+      Object selfNull, Object otherNull,
+      @CachedLibrary("selfNull") InteropLibrary selfInterop,
+      @CachedLibrary("otherNull") InteropLibrary otherInterop
+  ) {
+    return true;
+  }
+
+  @Specialization(guards = {
+      "selfInterop.isBoolean(selfBoolean)",
+      "otherInterop.isBoolean(otherBoolean)"
+  }, limit = "3")
+  boolean equalsBooleanInterop(
+      Object selfBoolean,
+      Object otherBoolean,
+      @CachedLibrary("selfBoolean") InteropLibrary selfInterop,
+      @CachedLibrary("otherBoolean") InteropLibrary otherInterop
+  ) {
+    try {
+      return selfInterop.asBoolean(selfBoolean) == otherInterop.asBoolean(otherBoolean);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
+  }
 
   @Specialization(guards = {
       "selfInterop.isMetaObject(selfMeta)",
@@ -103,7 +188,7 @@ public abstract class EqualsNode extends Node {
   boolean equalsMetaObjects(Object selfMeta, Object otherMeta,
       @CachedLibrary("selfMeta") InteropLibrary selfInterop,
       @CachedLibrary("otherMeta") InteropLibrary otherInterop,
-      @Cached EqualsNode equalsNode) {
+      @Cached EqualsAnyNode equalsNode) {
     try {
       Object selfMetaName = selfInterop.getMetaQualifiedName(selfMeta);
       Object otherMetaName = otherInterop.getMetaQualifiedName(otherMeta);
@@ -197,6 +282,11 @@ public abstract class EqualsNode extends Node {
     return selfJavaDuration.equals(otherJavaDuration);
   }
 
+  /**
+   * Compares interop strings according to the lexicographical order, handling Unicode
+   * normalization. See {@code Text_Utils.compare_to}.
+   */
+  @TruffleBoundary
   @Specialization(guards = {
       "selfInterop.isString(selfString)",
       "otherInterop.isString(otherString)"
@@ -212,7 +302,11 @@ public abstract class EqualsNode extends Node {
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return selfJavaString.equals(otherJavaString);
+    return Normalizer.compare(
+        selfJavaString,
+        otherJavaString,
+        Normalizer.FOLD_CASE_DEFAULT
+    ) == 0;
   }
 
   @Specialization(guards = {
@@ -242,7 +336,7 @@ public abstract class EqualsNode extends Node {
   boolean equalsArrays(Object selfArray, Object otherArray,
       @CachedLibrary("selfArray") InteropLibrary selfInterop,
       @CachedLibrary("otherArray") InteropLibrary otherInterop,
-      @Cached EqualsNode equalsNode
+      @Cached EqualsAnyNode equalsNode
       ) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
@@ -313,13 +407,13 @@ public abstract class EqualsNode extends Node {
   }
 
   /**
-   * How many {@link EqualsNode} should be created for fields in specialization for atoms.
+   * How many {@link EqualsAnyNode} should be created for fields in specialization for atoms.
    */
   static final int equalsNodeCountForFields = 10;
 
-  static EqualsNode[] createEqualsNodes(int size) {
-    EqualsNode[] nodes = new EqualsNode[size];
-    Arrays.fill(nodes, EqualsNode.build());
+  static EqualsAnyNode[] createEqualsNodes(int size) {
+    EqualsAnyNode[] nodes = new EqualsAnyNode[size];
+    Arrays.fill(nodes, EqualsAnyNode.build());
     return nodes;
   }
 
@@ -330,25 +424,32 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization
-  boolean equalsAtoms(Atom self, Atom otherAtom,
+  boolean equalsAtoms(Atom self, Atom other,
       @Cached LoopConditionProfile loopProfile,
-      @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
+      @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsAnyNode[] fieldEqualsNodes,
       @Cached(value = "createInvokeEqualsNodes(equalsNodeCountForFields)", allowUncached = true) InvokeEqualsNode[] fieldInvokeEqualsNodes,
+      @Cached InvokeEqualsNode atomInvokeEqualsNode,
       @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
       @Cached ConditionProfile fieldsSizeNotEqualProfile,
       @Cached ConditionProfile constructorsNotEqualProfile) {
     if (fieldsSizeNotEqualProfile.profile(
-        self.getFields().length != otherAtom.getFields().length
+        self.getFields().length != other.getFields().length
     )) {
       return false;
     }
     if (constructorsNotEqualProfile.profile(
-        self.getConstructor() != otherAtom.getConstructor()
+        self.getConstructor() != other.getConstructor()
     )) {
       return false;
     }
 
-    assert self.getFields().length == otherAtom.getFields().length;
+    if (self instanceof Atom selfAtom
+        && other instanceof Atom otherAtom
+        && atomOverridesEquals(selfAtom)) {
+      return atomInvokeEqualsNode.execute(selfAtom, otherAtom);
+    }
+
+    assert self.getFields().length == other.getFields().length;
     int fieldsSize = self.getFields().length;
     if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
       loopProfile.profileCounted(fieldsSize);
@@ -357,7 +458,7 @@ public abstract class EqualsNode extends Node {
         // Note that otherFieldAtom does not have to override `==` method, it is sufficient if
         // selfFieldAtom overrides `==` method.
         Object selfField = self.getFields()[i];
-        Object otherField = otherAtom.getFields()[i];
+        Object otherField = other.getFields()[i];
         if (selfField instanceof Atom selfFieldAtom
             && otherField instanceof Atom otherFieldAtom
             && atomOverridesEquals(selfFieldAtom)
@@ -376,18 +477,18 @@ public abstract class EqualsNode extends Node {
       }
     } else {
       // If there are more fields than equalsNodeCountForFields, just bailout and use
-      // uncached variant of EqualsNode and InvokeEqualsNode
+      // uncached variant of EqualsAnyNode and InvokeEqualsNode
       CompilerDirectives.transferToInterpreterAndInvalidate();
       for (int i = 0; i < fieldsSize; i++) {
         Object selfField = self.getFields()[i];
-        Object otherField = otherAtom.getFields()[i];
+        Object otherField = other.getFields()[i];
         boolean areFieldsSame;
         if (selfField instanceof Atom selfFieldAtom
             && otherField instanceof Atom otherFieldAtom
             && atomOverridesEquals(selfFieldAtom)) {
           areFieldsSame = InvokeEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
         } else {
-          areFieldsSame = EqualsNodeGen.getUncached().execute(selfField, otherField);
+          areFieldsSame = EqualsAnyNodeGen.getUncached().execute(selfField, otherField);
         }
         if (!areFieldsSame) {
           return false;
