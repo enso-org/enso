@@ -22,8 +22,8 @@ runs:
         conda-channels: anaconda, conda-forge
     - name: Install wasm-pack (macOS GH runners only)
       env:
-        WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.2
-        WASMPACKDIR: wasm-pack-v0.10.2-x86_64-apple-darwin
+        WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.10.3
+        WASMPACKDIR: wasm-pack-v0.10.3-x86_64-apple-darwin
       run: |-
         curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
         mv $WASMPACKDIR/wasm-pack ~/.cargo/bin

@@ -96,23 +96,6 @@ impl Handle {
         }
     }
 
-    /// Store the given content to file.
-    #[profile(Detail)]
-    pub fn store_content(&self, content: String) -> impl Future<Output = FallibleResult> {
-        let file_handle = self.file.clone_ref();
-        async move {
-            match file_handle {
-                FileHandle::PlainText { path, language_server } =>
-                    language_server.write_file(&path, &content).await?,
-                FileHandle::Module { controller } => {
-                    controller.check_code_sync(content)?;
-                    controller.save_file().await?
-                }
-            }
-            Ok(())
-        }
-    }
-
     /// Apply text change.
     ///
     /// This function should be called by view on every user interaction changing the text content

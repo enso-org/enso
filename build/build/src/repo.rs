@@ -13,7 +13,7 @@ pub mod cloud;
 /// repository.
 ///
 /// Current heuristic is: contains Cargo workspace root and SBT build configuration file.
-#[instrument(fields(path = %path.as_ref().display()), ret)]
+#[instrument(level = "trace", fields(path = %path.as_ref().display()), ret)]
 pub fn looks_like_enso_repository_root(path: impl AsRef<Path>) -> bool {
     (move || -> Result<bool> {
         let cargo_toml = path.as_ref().join("Cargo.toml");

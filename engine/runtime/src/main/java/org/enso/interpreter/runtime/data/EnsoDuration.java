@@ -15,7 +15,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -36,7 +36,7 @@ public final class EnsoDuration implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().duration();
+    return EnsoContext.get(thisLib).getBuiltins().duration();
   }
 
   @Builtin.Method(
@@ -89,7 +89,7 @@ public final class EnsoDuration implements TruffleObject {
   private static PanicException createNotDateTimePanic(
       String varName, Object object, InteropLibrary interop) {
     return new PanicException(
-        Context.get(interop).getBuiltins().error().makeTypeError("Date_Time", object, varName),
+        EnsoContext.get(interop).getBuiltins().error().makeTypeError("Date_Time", object, varName),
         interop);
   }
 
@@ -146,7 +146,7 @@ public final class EnsoDuration implements TruffleObject {
 
   @Builtin.Method(name = "plus_builtin", description = "Adds another Duration")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
   public EnsoDuration plus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
@@ -155,7 +155,7 @@ public final class EnsoDuration implements TruffleObject {
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts another Duration")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
   public EnsoDuration minus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
@@ -164,7 +164,7 @@ public final class EnsoDuration implements TruffleObject {
 
   @Builtin.Method(name = "compare_to_builtin", description = "Compares to other duration")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   public long compareTo(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     return duration.compareTo(interop.asDuration(durationObject));
@@ -172,7 +172,7 @@ public final class EnsoDuration implements TruffleObject {
 
   @Builtin.Method(name = "equals_builtin")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   public boolean equalsDuration(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
     return duration.equals(interop.asDuration(durationObject));

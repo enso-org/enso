@@ -9,7 +9,7 @@ use std::any::type_name;
 
 /// An equivalent of standard's library `std::str::FromStr` trait, but with nice error messages.
 pub trait FromString: Sized {
-    /// Parse a string into a value of this type. See: `std::str::FromStr::from_str`.
+    /// Parse a string into a value of this type. See: [`std::str::FromStr::from_str`].
     fn from_str(s: &str) -> Result<Self>;
 
     /// Parse a string into a value of this type and then convert it to `R`.

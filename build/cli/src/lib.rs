@@ -75,6 +75,7 @@ use enso_build::source::ReleaseSource;
 use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
+use enso_build::version;
 use futures_util::future::try_join;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
@@ -83,6 +84,7 @@ use ide_ci::fs::remove_if_exists;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
+use ide_ci::programs::git;
 use ide_ci::programs::git::clean;
 use ide_ci::programs::rustc;
 use ide_ci::programs::Cargo;
@@ -121,13 +123,9 @@ impl Processor {
     pub async fn new(cli: &Cli) -> Result<Self> {
         let absolute_repo_path = cli.repo_path.absolutize()?;
         let octocrab = setup_octocrab().await?;
-        let remote_repo = cli.repo_remote.handle(&octocrab);
-        let versions = enso_build::version::deduce_or_generate(
-            Ok(&remote_repo),
-            cli.build_kind,
-            &absolute_repo_path,
-        )
-        .await?;
+        let git = git::new(absolute_repo_path.as_ref()).await?;
+        let release_provider = || version::promote::releases_on_remote(&git);
+        let versions = version::deduce_or_generate(release_provider).await?;
         let mut triple = TargetTriple::new(versions);
         triple.os = cli.target_os;
         triple.versions.publish().await?;
@@ -845,7 +843,8 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
         }
         Target::Release(release) => match release.action {
             Action::CreateDraft => {
-                enso_build::release::draft_a_new_release(&ctx).await?;
+                let commit = ide_ci::actions::env::GITHUB_SHA.get()?;
+                enso_build::release::draft_a_new_release(&ctx, &commit).await?;
             }
             Action::DeployRuntime(args) => {
                 enso_build::release::deploy_to_ecr(&ctx, args.ecr_repository).await?;
@@ -861,6 +860,10 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
             }
             Action::Publish => {
                 enso_build::release::publish_release(&ctx).await?;
+            }
+            Action::Promote(args) => {
+                let crate::arg::release::Promote { designation } = args;
+                enso_build::release::promote_release(&ctx, designation).await?;
             }
         },
         Target::CiGen => ci_gen::generate(

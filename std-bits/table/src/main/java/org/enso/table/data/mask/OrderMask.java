@@ -1,5 +1,8 @@
 package org.enso.table.data.mask;
 
+import java.util.Arrays;
+import java.util.List;
+
 /** Describes a storage reordering operator. */
 public class OrderMask {
   private final int[] positions;
@@ -24,5 +27,23 @@ public class OrderMask {
    */
   public int[] getPositions() {
     return positions;
+  }
+
+  public OrderMask append(OrderMask other) {
+    int[] result = Arrays.copyOf(positions, positions.length + other.positions.length);
+    System.arraycopy(other.positions, 0, result, positions.length, other.positions.length);
+    return new OrderMask(result);
+  }
+
+  public static OrderMask empty() {
+    return new OrderMask(new int[0]);
+  }
+
+  public static OrderMask fromList(List<Integer> positions) {
+    int[] result = new int[positions.size()];
+    for (int i = 0; i < positions.size(); i++) {
+      result[i] = positions.get(i);
+    }
+    return new OrderMask(result);
   }
 }

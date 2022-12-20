@@ -20,23 +20,29 @@ type Bench
              example_measure =
                  Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
     measure : Any -> Text -> Integer -> Integer -> Nothing
-    measure = ~act -> label -> iter_size -> num_iters ->
+    measure = ~act -> label -> iter_size -> num_iters  ->
+        dry_run = Environment.get_or_else "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
         result = Ref.new 0.0
         single_call = _ ->
             x1 = System.nano_time
             Runtime.no_inline act
             x2 = System.nano_time
             x2 - x1
-        iteration = it_num ->
+        iteration = it_size -> it_num ->
             act_it_num = num_iters - it_num
-            res = times iter_size single_call
+            res = times it_size single_call
             avg = avg_list res
             fmt = (avg / 1000000).format "%.2f"
             result.put (result.get + avg)
-            IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
-        times num_iters iteration
-        fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
-        IO.println (label + " average: " + fmt_avg + "ms")
+            case dry_run of
+                False ->
+                    IO.println (label + "/iteration:" + act_it_num.to_text + ": " + fmt + "ms")
+                True ->
+                    IO.println (label + "/dry-run: " + fmt)
+        if dry_run then times 1 (iteration 1) else
+            times num_iters (iteration iter_size)
+            fmt_avg = (result.get / (1000000*num_iters)).format "%.2f"
+            IO.println (label + " average: " + fmt_avg + "ms")
 
 ## PRIVATE
 

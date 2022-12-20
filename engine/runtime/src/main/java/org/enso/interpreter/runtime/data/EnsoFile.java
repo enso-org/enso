@@ -7,8 +7,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.io.IOException;
@@ -38,7 +37,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public OutputStream outputStream(OpenOption[] opts) throws IOException {
@@ -46,7 +45,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public InputStream inputStream(OpenOption[] opts) throws IOException {
@@ -54,7 +53,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "read_last_bytes_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public ArrayOverBuffer readLastBytes(long n) throws IOException {
     try (SeekableByteChannel channel =
@@ -89,7 +88,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "creation_time_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getCreationTime() throws IOException {
@@ -98,7 +97,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "last_modified_time_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime getLastModifiedTime() throws IOException {
@@ -107,7 +106,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "posix_permissions_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @Builtin.ReturningGuestObject
   @CompilerDirectives.TruffleBoundary
   public Set<PosixFilePermission> getPosixPermissions() throws IOException {
@@ -155,7 +154,7 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "list_immediate_children_array")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public EnsoFile[] list() throws IOException {
     return this.truffleFile.list().stream().map(EnsoFile::new).toArray(EnsoFile[]::new);
@@ -195,21 +194,21 @@ public final class EnsoFile implements TruffleObject {
   }
 
   @Builtin.Method(name = "delete_builtin")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public void delete() throws IOException {
     truffleFile.delete();
   }
 
   @Builtin.Method(name = "copy_builtin", description = "Copy this file to a target destination")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public void copy(EnsoFile target, CopyOption[] options) throws IOException {
     truffleFile.copy(target.truffleFile, options);
   }
 
   @Builtin.Method(name = "move_builtin", description = "Move this file to a target destination")
-  @Builtin.WrapException(from = IOException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = IOException.class)
   @CompilerDirectives.TruffleBoundary
   public void move(EnsoFile target, CopyOption[] options) throws IOException {
     truffleFile.move(target.truffleFile, options);
@@ -228,7 +227,7 @@ public final class EnsoFile implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoFile fromString(Context context, String path) {
+  public static EnsoFile fromString(EnsoContext context, String path) {
     TruffleFile file = context.getEnvironment().getPublicTruffleFile(path);
     return new EnsoFile(file);
   }
@@ -239,7 +238,7 @@ public final class EnsoFile implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoFile currentDirectory(Context context) {
+  public static EnsoFile currentDirectory(EnsoContext context) {
     TruffleFile file = context.getEnvironment().getCurrentWorkingDirectory();
     return new EnsoFile(file);
   }
@@ -250,7 +249,7 @@ public final class EnsoFile implements TruffleObject {
       autoRegister = false)
   @Builtin.Specialize
   @CompilerDirectives.TruffleBoundary
-  public static EnsoFile userHome(Context context) {
+  public static EnsoFile userHome(EnsoContext context) {
     return fromString(context, System.getProperty("user.home"));
   }
 
@@ -267,6 +266,6 @@ public final class EnsoFile implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().file();
+    return EnsoContext.get(thisLib).getBuiltins().file();
   }
 }

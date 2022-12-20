@@ -3,8 +3,8 @@
 use crate::prelude::*;
 
 use crate::define_env_var;
-use crate::env::new::RawVariable;
-use crate::env::new::TypedVariable;
+use crate::env::accessor::RawVariable;
+use crate::env::accessor::TypedVariable;
 use crate::github::Repo;
 
 

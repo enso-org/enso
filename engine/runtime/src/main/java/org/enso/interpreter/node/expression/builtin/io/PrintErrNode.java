@@ -13,7 +13,7 @@ import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.state.State;
@@ -37,7 +37,7 @@ public abstract class PrintErrNode extends Node {
       State state,
       Object message,
       @CachedLibrary(limit = "10") InteropLibrary strings) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     try {
       print(ctx.getErr(), strings.asString(message));
     } catch (UnsupportedMessageException e) {
@@ -56,7 +56,7 @@ public abstract class PrintErrNode extends Node {
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached ExpectStringNode expectStringNode) {
     var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     print(ctx.getErr(), expectStringNode.execute(str));
     return ctx.getNothing();
   }
@@ -78,6 +78,6 @@ public abstract class PrintErrNode extends Node {
   }
 
   UnresolvedSymbol buildSymbol() {
-    return UnresolvedSymbol.build("to_text", Context.get(this).getBuiltins().getScope());
+    return UnresolvedSymbol.build("to_text", EnsoContext.get(this).getBuiltins().getScope());
   }
 }

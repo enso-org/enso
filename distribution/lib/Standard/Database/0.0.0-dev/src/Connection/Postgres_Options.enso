@@ -1,5 +1,6 @@
 from Standard.Base import all
-from Standard.Base.Data.Numbers import Number_Parse_Error
+import Standard.Base.Data.Numbers.Number_Parse_Error
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 import project.Connection.Client_Certificate.Client_Certificate
 import project.Connection.Connection_Options.Connection_Options
@@ -9,9 +10,6 @@ import project.Internal.Postgres.Postgres_Connection
 import project.Internal.Postgres.Pgpass
 
 polyglot java import org.postgresql.Driver
-
-from project.Connection.Postgres_Options.Postgres_Options import Postgres
-from project.Connection.Postgres_Options.Postgres_Options export Postgres
 
 type Postgres_Options
     ## Connect to a PostgreSQL database.
@@ -58,7 +56,7 @@ type Postgres_Options
                     Pair.Value Nothing Nothing ->
                         Pgpass.read self.host self.port self.database
                     Pair.Value Nothing _ ->
-                        Error.throw (Illegal_State_Error_Data "PGPASSWORD is set, but PGUSER is not.")
+                        Error.throw (Illegal_State.Error "PGPASSWORD is set, but PGUSER is not.")
                     Pair.Value username Nothing ->
                         Pgpass.read self.host self.port self.database username
                     Pair.Value username password ->
@@ -89,7 +87,7 @@ ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
             [Pair.new 'sslmode' 'verify-full', Pair.new 'sslrootcert' (File.new cert_file).absolute.path]
 
 ## PRIVATE
-default_postgres_host = Environment.get_or_else "PGHOST" "localhost"
+default_postgres_host = Environment.get "PGHOST" "localhost"
 
 ## PRIVATE
 default_postgres_port =
@@ -99,4 +97,4 @@ default_postgres_port =
         port -> Integer.parse port . catch Number_Parse_Error.Error (_->hardcoded_port)
 
 ## PRIVATE
-default_postgres_database = Environment.get_or_else "PGDATABASE" ""
+default_postgres_database = Environment.get "PGDATABASE" ""

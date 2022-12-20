@@ -127,7 +127,7 @@ impl Model {
     /// Set size of the documentation view.
     fn set_size(&self, size: Vector2) {
         self.size.set(size);
-        self.overlay.size.set(size);
+        self.overlay.set_size(size);
         self.reload_style();
     }
 
@@ -216,8 +216,8 @@ impl Model {
     fn reload_style(&self) {
         let size = self.size.get();
         let padding = (size.x.min(size.y) / 2.0).min(PADDING);
-        self.outer_dom.set_size(Vector2(size.x, size.y));
-        self.inner_dom.set_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
+        self.outer_dom.set_dom_size(Vector2(size.x, size.y));
+        self.inner_dom.set_dom_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
         self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding));
         self.inner_dom.dom().set_style_or_warn("padding-top", format!("{}px", PADDING_TOP));
     }
@@ -238,6 +238,8 @@ ensogl::define_endpoints! {
         /// Indicates whether the documentation panel has been selected through clicking into
         /// it, or deselected by clicking somewhere else.
         is_selected(bool),
+        /// Indicates whether the documentation panel has been hovered.
+        is_hovered(bool),
     }
 }
 
@@ -279,12 +281,14 @@ impl View {
         let visualization_frp = visualization::instance::Frp::new(&frp.network);
         let model = Model::new(scene);
         model.load_waiting_screen();
-        Self { model, visualization_frp, frp }.init(scene)
+        Self { model, visualization_frp, frp }.init(app)
     }
 
-    fn init(self, scene: &Scene) -> Self {
+    fn init(self, app: &Application) -> Self {
         let network = &self.frp.network;
         let model = &self.model;
+        let scene = &app.display.default_scene;
+        let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
         frp::extend! { network
@@ -301,7 +305,7 @@ impl View {
 
             // === Size and position ===
 
-            eval visualization.set_size  ((size) model.set_size(*size));
+            eval visualization.set_size ((size) model.set_size(*size));
 
 
             // === Activation ===
@@ -320,6 +324,25 @@ impl View {
                 (new != old).as_some(new)
             });
             frp.source.is_selected <+ is_selected_changed;
+
+
+            // === Mouse Cursor ===
+
+            app.frp.show_system_cursor <+ overlay.events.mouse_over;
+            app.frp.hide_system_cursor <+ overlay.events.mouse_out;
+
+
+            // === Hover ===
+
+            frp.source.is_hovered <+ model.overlay.events.mouse_over.constant(true);
+            frp.source.is_hovered <+ model.overlay.events.mouse_out.constant(false);
+            let mouse_up = scene.mouse.frp.up.clone_ref();
+            let mouse_down = scene.mouse.frp.down.clone_ref();
+            let mouse_wheel = scene.mouse.frp.wheel.clone_ref();
+            let mouse_position = scene.mouse.frp.position.clone_ref();
+            caught_mouse <- any_(mouse_up,mouse_down,mouse_wheel,mouse_position);
+            pass_to_dom <- caught_mouse.gate(&frp.source.is_hovered);
+            eval_ pass_to_dom(scene.current_js_event.pass_to_dom.emit(()));
         }
         visualization.pass_events_to_dom_if_active(scene, network);
         self

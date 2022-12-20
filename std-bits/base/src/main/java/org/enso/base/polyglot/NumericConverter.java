@@ -48,10 +48,13 @@ public class NumericConverter {
 
   /** Returns true if the object is any supported number. */
   public static boolean isCoercibleToDouble(Object o) {
+    return isDecimalLike(o)|| isCoercibleToLong(o);
+  }
+
+  public static boolean isDecimalLike(Object o) {
     return o instanceof Double
         || o instanceof BigDecimal
-        || o instanceof Float
-        || isCoercibleToLong(o);
+        || o instanceof Float;
   }
 
   /**

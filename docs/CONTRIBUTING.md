@@ -218,9 +218,9 @@ Please consult the [GUI Contribution Guide](../app/gui/docs/CONTRIBUTING.md) to
 learn details on setting your system up. Quick summary:
 
 ```bash
-enso$ rustup toolchain install stable                  # Stable toolchain required for the following tools.
-enso$ cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
-enso$ cargo +stable install cargo-watch                # To enable `./run wasm watch` utility
+enso$ rustup toolchain install stable   # Stable toolchain required for the following tools.
+enso$ cargo +stable install wasm-pack   # Install the wasm-pack toolkit.
+enso$ cargo +stable install cargo-watch # To enable `./run wasm watch` utility
 ```
 
 The previous three steps shall be enough to build the IDE via

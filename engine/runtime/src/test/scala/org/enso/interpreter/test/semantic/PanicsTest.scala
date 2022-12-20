@@ -40,7 +40,7 @@ class PanicsTest extends InterpreterTest {
           |
           |main =
           |    thrower = x -> Panic.throw x
-          |    caught = Panic.catch_primitive (thrower MyError) .convert_to_dataflow_error 
+          |    caught = Panic.catch Any (thrower MyError) .convert_to_dataflow_error
           |    IO.println caught
           |""".stripMargin
 
@@ -52,13 +52,15 @@ class PanicsTest extends InterpreterTest {
     "catch polyglot errors" in {
       val code =
         """from Standard.Base import all
+          |import Standard.Base.Error.Common.Polyglot_Error
           |polyglot java import java.lang.Long
+          |polyglot java import java.lang.NumberFormatException
           |
           |main =
-          |    caught = Panic.catch_primitive (Long.parseLong "oops") .convert_to_dataflow_error
+          |    caught = Panic.catch Any (Long.parseLong "oops") .convert_to_dataflow_error
           |    IO.println caught
           |    cause = caught.catch_primitive e-> case e of
-          |        Polyglot_Error_Data err -> err
+          |        _ : NumberFormatException -> e
           |        _ -> "fail"
           |    IO.println cause
           |    message = cause.getMessage
@@ -66,7 +68,7 @@ class PanicsTest extends InterpreterTest {
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        """(Error: (Polyglot_Error_Data java.lang.NumberFormatException: For input string: "oops"))""",
+        """(Error: java.lang.NumberFormatException: For input string: "oops")""",
         """java.lang.NumberFormatException: For input string: "oops"""",
         """For input string: "oops""""
       )

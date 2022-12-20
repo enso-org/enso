@@ -50,15 +50,6 @@ impl<'s> Item<'s> {
         }
     }
 
-    /// Convert this item to a [`Tree`].
-    pub fn to_ast(self) -> Tree<'s> {
-        match self {
-            Item::Token(token) => token.into(),
-            Item::Tree(ast) => ast,
-            Item::Block(items) => build_block(items),
-        }
-    }
-
     /// If this item is an [`Item::Tree`], apply the given function to the contained [`Tree`] and
     /// return the result.
     pub fn map_tree<'t: 's, F>(self, f: F) -> Self
@@ -90,7 +81,7 @@ impl<'s> TryAsRef<Item<'s>> for Item<'s> {
 
 /// Given a sequence of [`Line`]s belonging to one block, create an AST block node, of a type
 /// determined by the syntax of the lines in the block.
-fn build_block<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
+pub fn build_block<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
     let mut block_builder = tree::block::Builder::new();
     let mut precedence = operator::Precedence::new();
     for Line { newline, items } in lines {

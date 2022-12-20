@@ -149,7 +149,7 @@ impl Mouse {
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
-            f!([frp, scene_frp, position, last_position, display_mode] (event: &mouse::OnMove) {
+            f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
                 let shape = scene_frp.shape.value();
                 let pixel_ratio = shape.pixel_ratio;
                 let screen_x = event.client_x();
@@ -749,7 +749,7 @@ impl SceneData {
         debug!("Initializing.");
         let display_mode = display_mode.clone_ref();
         let dom = Dom::new();
-        let display_object = display::object::Root::new();
+        let display_object = display::object::Root::new_named("Scene");
         let variables = UniformScope::new();
         let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;
@@ -922,8 +922,8 @@ impl SceneData {
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
         debug_span!("Resized to {screen.width}px x {screen.height}px.").in_scope(|| {
-            self.dom.layers.canvas.set_attribute_or_warn("width", &width.to_string());
-            self.dom.layers.canvas.set_attribute_or_warn("height", &height.to_string());
+            self.dom.layers.canvas.set_attribute_or_warn("width", width.to_string());
+            self.dom.layers.canvas.set_attribute_or_warn("height", height.to_string());
             if let Some(context) = &*self.context.borrow() {
                 context.viewport(0, 0, width, height);
             }

@@ -16,7 +16,7 @@ ide-view = { path = "../.." }
 js-sys = { version = "0.3.28" }
 nalgebra = { version = "0.26.1" }
 serde_json = { version = "1.0" }
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+wasm-bindgen = { workspace = true }
 ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
 ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view" }
 web-sys = "0.3.4"

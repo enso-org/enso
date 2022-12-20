@@ -9,8 +9,9 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.epb.runtime.PolyglotExceptionProxy;
 import org.enso.interpreter.epb.runtime.PolyglotProxy;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -31,22 +32,22 @@ public abstract class TypeOfNode extends Node {
 
   @Specialization
   Object doDouble(double value) {
-    return Context.get(this).getBuiltins().number().getDecimal();
+    return EnsoContext.get(this).getBuiltins().number().getDecimal();
   }
 
   @Specialization
   Object doLong(long value) {
-    return Context.get(this).getBuiltins().number().getInteger();
+    return EnsoContext.get(this).getBuiltins().number().getInteger();
   }
 
   @Specialization
   Object doBigInteger(EnsoBigInteger value) {
-    return Context.get(this).getBuiltins().number().getInteger();
+    return EnsoContext.get(this).getBuiltins().number().getInteger();
   }
 
   @Specialization
   Object doString(String value) {
-    return Context.get(this).getBuiltins().text();
+    return EnsoContext.get(this).getBuiltins().text();
   }
 
   @Specialization(
@@ -60,7 +61,7 @@ public abstract class TypeOfNode extends Node {
       PolyglotProxy proxy,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") TypesLibrary types) {
-    return Context.get(this).getBuiltins().array();
+    return EnsoContext.get(this).getBuiltins().array();
   }
 
   @Specialization(
@@ -73,36 +74,56 @@ public abstract class TypeOfNode extends Node {
       PolyglotProxy proxy,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") TypesLibrary types) {
-    return Context.get(this).getBuiltins().text();
+    return EnsoContext.get(this).getBuiltins().text();
+  }
+
+  @Specialization(
+      guards = {
+        "interop.isNumber(proxy)",
+        "!types.hasType(proxy)",
+        "!interop.hasMetaObject(proxy)"
+      })
+  Object doPolyglotNumber(
+      PolyglotProxy proxy,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
+    Builtins builtins = EnsoContext.get(this).getBuiltins();
+    if (interop.fitsInInt(proxy)) {
+      return builtins.number().getInteger();
+    } else if (interop.fitsInDouble(proxy)) {
+      return builtins.number().getDecimal();
+    } else {
+      return EnsoContext.get(this).getBuiltins().number();
+    }
   }
 
   @Specialization(guards = {"interop.isTime(value)", "interop.isDate(value)"})
   Object doDateTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    return Context.get(this).getBuiltins().dateTime();
+    return EnsoContext.get(this).getBuiltins().dateTime();
   }
 
   @Specialization(
       guards = {"interop.isTimeZone(value)", "!interop.isDate(value)", "!interop.isTime(value)"})
   Object doTimeZone(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().timeZone();
   }
 
   @Specialization(guards = {"interop.isDate(value)", "!interop.isTime(value)"})
   Object doDate(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().date();
   }
 
   @Specialization(guards = {"interop.isTime(value)", "!interop.isDate(value)"})
   Object doTime(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().timeOfDay();
   }
 
   @Specialization(guards = "interop.isDuration(value)")
   Object doDuration(Object value, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Context ctx = Context.get(this);
+    EnsoContext ctx = EnsoContext.get(this);
     return ctx.getBuiltins().duration();
   }
 
@@ -122,7 +143,7 @@ public abstract class TypeOfNode extends Node {
       return interop.getMetaObject(value);
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
-      Builtins builtins = Context.get(this).getBuiltins();
+      Builtins builtins = EnsoContext.get(this).getBuiltins();
       throw new PanicException(builtins.error().makeCompileError("invalid meta object"), this);
     }
   }
@@ -138,6 +159,9 @@ public abstract class TypeOfNode extends Node {
   @Fallback
   @CompilerDirectives.TruffleBoundary
   Object doAny(Object value) {
-    return Context.get(this).getBuiltins().error().makeCompileError("unknown type_of for " + value);
+    return EnsoContext.get(this)
+        .getBuiltins()
+        .error()
+        .makeCompileError("unknown type_of for " + value);
   }
 }

@@ -4,7 +4,7 @@ import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
 import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
-import org.enso.interpreter.runtime.{Context => EnsoContext}
+import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot._
@@ -88,7 +88,7 @@ class RuntimeServerTest
       languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
     languageContext.getLanguage.getIdExecutionService.ifPresent(
       _.overrideTimer(new TestTimer)
-    );
+    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -183,8 +183,7 @@ class RuntimeServerTest
 
         def mainY(
           contextId: UUID,
-          fromCache: Boolean = false,
-          noPointer: Boolean = false
+          fromCache: Boolean = false
         ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
@@ -193,15 +192,13 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(ConstantsGen.INTEGER),
-                  if (noPointer) None
-                  else
-                    Some(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        ConstantsGen.NUMBER,
-                        "foo"
-                      )
-                    ),
+                  Some(
+                    Api.MethodPointer(
+                      "Enso_Test.Test.Main",
+                      ConstantsGen.NUMBER,
+                      "foo"
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   Api.ExpressionUpdate.Payload.Value()
@@ -425,7 +422,7 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       Api.Response(
         None,
@@ -437,7 +434,6 @@ class RuntimeServerTest
           )
         )
       ),
-      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
@@ -1122,19 +1118,12 @@ class RuntimeServerTest
 
     // pop the foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages
         .pending(
           contextId,
           fooX
-        ),
-      TestMessages
-        .update(
-          contextId,
-          mainFoo,
-          ConstantsGen.INTEGER,
-          fromCache = true
         ),
       TestMessages
         .update(
@@ -1265,7 +1254,7 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("6")
   }
 
-  it should "not send updates when the type is not changed" in {
+  it should "send updates when the type is not changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1327,7 +1316,7 @@ class RuntimeServerTest
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receiveN(
-      6
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       Api.Response(
@@ -1340,7 +1329,6 @@ class RuntimeServerTest
           )
         )
       ),
-      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
@@ -1704,7 +1692,12 @@ class RuntimeServerTest
         contextId,
         idMainA
       ),
-      TestMessages.update(contextId, idMainA, ConstantsGen.TEXT),
+      TestMessages.update(
+        contextId,
+        idMainA,
+        ConstantsGen.TEXT,
+        Api.MethodPointer(moduleName, moduleName, "hie")
+      ),
       TestMessages.update(
         contextId,
         idMainP,
@@ -1745,7 +1738,7 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.Text.overloaded arg = arg + 1
+        |Text.overloaded arg = arg + 1
         |Number.overloaded arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
@@ -1822,12 +1815,13 @@ class RuntimeServerTest
 
     // pop call1
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(8) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
         id1,
         ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
         fromCache = true
       ),
       TestMessages.update(
@@ -1846,13 +1840,6 @@ class RuntimeServerTest
         contextId,
         idMain,
         ConstantsGen.NOTHING
-      ),
-      TestMessages.update(
-        contextId,
-        id1,
-        ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
-        fromCache = true
       ),
       context.executionComplete(contextId)
     )
@@ -2253,7 +2240,7 @@ class RuntimeServerTest
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receiveN(
-      6
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       Api.Response(
@@ -2266,7 +2253,6 @@ class RuntimeServerTest
           )
         )
       ),
-      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       Api.Response(
         Api.ExpressionUpdates(
           contextId,
@@ -3352,8 +3338,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error_Data 'Unrecognized token.'))",
-      "(Syntax_Error_Data 'Unrecognized token.')"
+      "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
+      "(Syntax_Error.Error 'Unrecognized token.')"
     )
   }
 
@@ -3365,8 +3351,8 @@ class RuntimeServerTest
 
     val code =
       """import Standard.Base.IO
-        |from Standard.Base.Error.Common import all
-        |from Standard.Base.Data.Any import all
+        |import Standard.Base.Panic.Panic
+        |import Standard.Base.Any.Any
         |
         |main =
         |    x = Panic.catch_primitive () .convert_to_dataflow_error

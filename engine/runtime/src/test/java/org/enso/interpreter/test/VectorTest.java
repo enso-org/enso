@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
@@ -25,18 +24,15 @@ public class VectorTest {
 
   @Before
   public void prepareCtx() {
-    Engine eng = Engine.newBuilder()
+    this.ctx = Context.newBuilder()
       .allowExperimentalOptions(true)
+      .allowIO(true)
+      .allowAllAccess(true)
       .logHandler(new ByteArrayOutputStream())
       .option(
         RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
-    this.ctx = Context.newBuilder()
-      .engine(eng)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .build();
     final Map<String, Language> langs = ctx.getEngine().getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
   }

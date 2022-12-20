@@ -13,4 +13,4 @@ ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text = { path = "../../component/text" }
 ensogl-text-embedded-fonts = { path = "../../component/text/src/font/embedded" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+wasm-bindgen = { workspace = true }

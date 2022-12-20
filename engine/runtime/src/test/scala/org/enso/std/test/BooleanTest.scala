@@ -12,7 +12,7 @@ class BooleanTest extends InterpreterTest {
     "support if_then_else" in {
       val code =
         """from Standard.Base.Data.Boolean import all
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |
           |main =
           |    if True then IO.println "true when true" else IO.println "false when true"
@@ -25,9 +25,9 @@ class BooleanTest extends InterpreterTest {
     "support overriding methods on boolean" in {
       val code =
         """from Standard.Base.Data.Boolean import all
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |
-          |Boolean.Boolean.isTrue self = self
+          |Boolean.isTrue self = self
           |
           |main =
           |    true = 1 == 1
@@ -57,7 +57,7 @@ class BooleanTest extends InterpreterTest {
     "support logical AND and OR operators" in {
       val code =
         """from Standard.Base.Data.Boolean import all
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |
           |main =
           |    IO.println True&&False
@@ -73,7 +73,7 @@ class BooleanTest extends InterpreterTest {
     "support negation" in {
       val code =
         """from Standard.Base.Data.Boolean import all
-          |from Standard.Base.IO import all
+          |import Standard.Base.IO
           |
           |main =
           |    IO.println True.not

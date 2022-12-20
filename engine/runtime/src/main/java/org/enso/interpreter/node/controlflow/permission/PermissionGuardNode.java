@@ -3,7 +3,7 @@ package org.enso.interpreter.node.controlflow.permission;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -29,7 +29,7 @@ public class PermissionGuardNode extends ExpressionNode {
     if (checkInput && !state.getIoPermissions().isInputAllowed()) {
       inputDisallowed.enter();
       throw new PanicException(
-          Context.get(this)
+          EnsoContext.get(this)
               .getBuiltins()
               .error()
               .getForbiddenOperation()
@@ -40,7 +40,7 @@ public class PermissionGuardNode extends ExpressionNode {
     if (checkOutput && !state.getIoPermissions().isOutputAllowed()) {
       outputDisallowed.enter();
       throw new PanicException(
-          Context.get(this)
+          EnsoContext.get(this)
               .getBuiltins()
               .error()
               .getForbiddenOperation()

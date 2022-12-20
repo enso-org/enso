@@ -1,0 +1,18 @@
+from Standard.Base import all
+
+from Standard.Test import Test_Suite
+
+import project.IO.Csv_Spec
+import project.IO.Delimited_Read_Spec
+import project.IO.Delimited_Write_Spec
+import project.IO.Excel_Spec
+import project.IO.Json_Spec
+
+spec =
+    Csv_Spec.spec
+    Delimited_Read_Spec.spec
+    Delimited_Write_Spec.spec
+    Excel_Spec.spec
+    Json_Spec.spec
+
+main = Test_Suite.run_main spec

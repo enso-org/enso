@@ -16,7 +16,7 @@ ensogl-selector = { path = "../../../../../lib/rust/ensogl/component/selector" }
 ensogl-text = { path = "../../../../../lib/rust/ensogl/component/text" }
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view-component-list-panel = { path = "../../component-browser/component-list-panel" }
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+wasm-bindgen = { workspace = true }
 js-sys = { version = "0.3" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.

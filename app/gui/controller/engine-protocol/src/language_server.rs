@@ -151,6 +151,14 @@ trait API {
     fn modify_visualisation
     (&self, visualisation_id: Uuid, visualisation_config: VisualisationConfiguration) -> ();
 
+    /// Interrupt the program execution.
+    #[MethodInput=InterruptInput, rpc_name="executionContext/interrupt"]
+    fn interrupt(&self, context_id: ContextId) -> ();
+
+    /// Restart the program execution.
+    #[MethodInput=RecomputeInput, rpc_name="executionContext/recompute"]
+    fn recompute(&self, context_id: ContextId) -> ();
+
     /// Obtain the full suggestions database.
     #[MethodInput=GetSuggestionsDatabaseInput, rpc_name="search/getSuggestionsDatabase"]
     fn get_suggestions_database(&self) -> response::GetSuggestionDatabase;
@@ -174,6 +182,22 @@ trait API {
     /// Get the list of component groups available in runtime.
     #[MethodInput=GetComponentGroups, rpc_name="executionContext/getComponentGroups"]
     fn get_component_groups(&self, context_id: ContextId) -> response::GetComponentGroups;
+
+    /// Initialize VCS at the specified root.
+    #[MethodInput=VcsInitInput, rpc_name="vcs/init"]
+    fn init_vcs(&self, root: Path) -> ();
+
+    /// Save project to VCS at the specified root.
+    #[MethodInput=VcsWriteInput, rpc_name="vcs/save"]
+    fn save_vcs(&self, root: Path, name: Option<String>) -> response::SaveVcs;
+
+    /// Return a list of all project states that are saved to the VCS.
+    #[MethodInput=VcsListInput, rpc_name="vcs/list"]
+    fn list_vcs(&self, root: Path, limit: Option<usize>) -> response::ListVcs;
+
+    /// Returns the current status of the changes made to the project.
+    #[MethodInput=VcsStatusInput, rpc_name="vcs/status"]
+    fn vcs_status(&self, root: Path) -> response::VcsStatus;
 }}
 
 
@@ -183,7 +207,7 @@ trait API {
 // ==============
 
 /// Check if the given `Error` value corresponds to an RPC call timeout.
-/// 
+///
 /// Recognizes both client- and server-side timeouts.
 #[rustfmt::skip]
 pub fn is_timeout_error(error: &failure::Error) -> bool {

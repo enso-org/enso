@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.List.List
@@ -7,21 +7,25 @@ import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Ordering.Sort_Direction.Sort_Direction
 import project.Data.Pair.Pair
+import project.Data.Range.Range
+import project.Data.Range.Extensions
 import project.Data.Text.Text
+import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Common.No_Such_Method
+import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Incomparable_Values.Incomparable_Values
 import project.Function.Function
-import project.Nothing.Nothing
 import project.Math
+import project.Nothing.Nothing
+import project.Panic.Panic
 import project.Random
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Index_Sub_Range import Index_Sub_Range, take_helper, drop_helper
-from project.Data.Json import Json
-from project.Data.Range import Range
-from project.Error.Common import Error, Panic, Index_Out_Of_Bounds_Error, Index_Out_Of_Bounds_Error_Data, No_Such_Method_Error, No_Such_Method_Error_Data, Illegal_Argument_Error_Data, Incomparable_Values_Error, Type_Error_Data, Unsupported_Argument_Types_Data
 
 polyglot java import java.lang.IndexOutOfBoundsException
 polyglot java import org.enso.base.Array_Builder
-polyglot java import java.lang.ClassCastException
 
 ##  The basic, immutable, vector type.
     A vector allows to store an arbitrary number of elements, in linear memory.
@@ -77,7 +81,7 @@ type Vector a
 
        Arguments:
        - length: The length of the vector (>= 0).
-       - constructor: A value fo be placed into each element of the vector.
+       - item: A value to be placed into each element of the vector.
 
        A vector allows to store an arbitrary number of elements in linear memory. It
        is the recommended data structure for most applications.
@@ -87,10 +91,8 @@ type Vector a
 
              Vector.fill length=50 item=42
     fill : Integer -> Any -> Vector Any
-    fill length ~item =
-        builder = (0.up_to length).fold (Vector.new_builder length) builder-> _->
-            builder.append item
-        builder.to_vector
+    fill length item =
+        Vector.new length _->item
 
     ## Creates a new vector builder instance.
 
@@ -161,8 +163,22 @@ type Vector a
          Get the last element of a vector.
 
              [1, 2, 3].at -1 == 3
-    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at : Integer -> Any ! Index_Out_Of_Bounds
     at self index = @Builtin_Method "Vector.at"
+
+    ## Gets an element from the vector at a specified index (0-based).
+       If the index is invalid then `if_missing` is returned.
+
+       Arguments:
+       - index: The location in the vector to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the vector, i.e. -1 will correspond to the last element.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing =
+        len = self.length
+        if index < -len || index >= len then if_missing else
+            self.at index
 
     ## Combines all the elements of the vector, by iteratively applying the
        passed function with next elements of the vector.
@@ -202,6 +218,26 @@ type Vector a
         f = acc -> ix -> function acc ix (self.at ix)
         0.up_to self.length . fold init f
 
+    ## Combines all the elements of the vector, by iteratively applying the
+       passed function with the next element of the vector. After each step the
+       value is stored resulting in a new Vector of the same size as self.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking two elements and combining them.
+
+       > Example
+         Compute the running sum of all of the elements in a vector
+
+            [1, 2, 3].running_fold 0 (+)
+    running_fold : Any -> (Any -> Any -> Any) -> Vector Any
+    running_fold self init function =
+        wrapped builder value =
+            current = if builder.length == 0 then init else builder.last
+            builder.append (function current value)
+        built = self.fold (Vector.new_builder self.length) wrapped
+        built.to_vector
+
     ## Combines all the elements of a non-empty vector using a binary operation.
 
        Arguments:
@@ -215,11 +251,15 @@ type Vector a
              [0, 1, 2] . reduce (+)
     reduce : (Any -> Any -> Any) -> Any ! Empty_Error
     reduce self function =
-        case self.not_empty of
-            True -> if self.length == 1 then self.at 0 else
-                f = acc -> ix -> function acc (self.at ix)
-                1.up_to self.length . fold (self.at 0) f
-            False -> Error.throw Empty_Error
+        len = self.length
+        case len of
+            0 -> Error.throw Empty_Error
+            1 -> self.at 0
+            _ ->
+                fold_function current idx =
+                    if idx == len then current else
+                        @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
+                fold_function (self.at 0) 1
 
     ## Computes the sum of the values in the vector.
 
@@ -230,11 +270,11 @@ type Vector a
          Compute the sum of all fo the elements in a vector.
 
              [0, 1, 2].sum
-    sum : Any ! (Empty_Error | No_Such_Method_Error)
+    sum : Any ! (Empty_Error | No_Such_Method)
     sum self =
         result = Panic.recover Any <| self.reduce (+)
         result.map_error x->case x of
-            No_Such_Method_Error_Data _ _ -> x
+            _ : No_Such_Method -> x
             Empty_Error -> x
             _ -> Panic.throw x
 
@@ -267,13 +307,8 @@ type Vector a
              [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Any ! Nothing
     find self predicate =
-        len = self.length
-        go idx =
-            if (idx >= len) then Error.throw Nothing else
-                elem = self.at idx
-                if predicate elem then elem else
-                    @Tail_Call go idx+1
-        go 0
+        found = 0.up_to self.length . find (idx -> (predicate (self.at idx)))
+        if found.is_nothing then Error.throw Nothing else self.at found
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -559,7 +594,7 @@ type Vector a
              (0.up_to 100).to_vector.short_display_text max_entries=2 == "[0, 1 and 98 more elements]"
     short_display_text : Integer -> Text
     short_display_text self max_entries=10 =
-        if max_entries < 1 then Error.throw <| Illegal_Argument_Error_Data "The `max_entries` parameter must be positive." else
+        if max_entries < 1 then Error.throw <| Illegal_Argument.Error "The `max_entries` parameter must be positive." else
             prefix = self.take (Index_Sub_Range.First max_entries)
             if prefix.length == self.length then self.to_text else
                 remaining_count = self.length - prefix.length
@@ -745,15 +780,6 @@ type Vector a
         if self.length >= n then self else
             self + (Vector.fill n-self.length elem)
 
-    ## Vector to JSON conversion.
-
-       > Example
-         Convert a vector of numbers to JSON.
-
-             [1, 2, 3].to_json
-    to_json : Json
-    to_json self = Json.Array (self.map .to_json)
-
     ## Get the first element from the vector, or an `Empty_Error` if the vector
        is empty.
 
@@ -804,7 +830,7 @@ type Vector a
     first : Vector ! Empty_Error
     first self = self.head
 
-    ## Get the second element from the vector, or a `Index_Out_Of_Bounds_Error` if the
+    ## Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
        vector doesn't have a second element.
 
        Useful when tuples are implemented as vectors.
@@ -813,7 +839,7 @@ type Vector a
          The following code returns 2.
 
              [1, 2, 3, 4].second
-    second : Vector ! Index_Out_Of_Bounds_Error
+    second : Vector ! Index_Out_Of_Bounds
     second self = self.at 1
 
     ## Get all elements in the vector except the first.
@@ -865,7 +891,7 @@ type Vector a
          Sorting a vector of `Pair`s on the first element, descending.
 
              [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Direction.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values_Error
+    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values
     sort self (on = x -> x) (by = (_.compare_to _)) (order = Sort_Direction.Ascending) =
         ## Prepare the destination array that will underlie the vector. We do
            not want to sort in place on the original vector, as `sort` is not
@@ -881,7 +907,7 @@ type Vector a
         compare = if order == Sort_Direction.Ascending then comp_ascending else
             comp_descending
 
-        handle_incomparable_value <|
+        Incomparable_Values.handle_errors <|
             new_vec_arr.sort compare
             Vector.from_polyglot_array new_vec_arr
 
@@ -919,25 +945,15 @@ type Vector a
 
            More details on the HashCode / HashMap ticket https://www.pivotaltracker.com/story/show/181027272.
 
-        handle_incomparable_value <|
+        Incomparable_Values.handle_errors <|
             builder = Vector.new_builder
             result = self.fold Map.empty existing->
                 item->
                     key = on item
-                    if (existing.get_or_else key False) then existing else
+                    if (existing.get key False) then existing else
                         builder.append item
                         existing.insert key True
             if result.is_error then result else builder.to_vector
-
-
-    ## UNSTABLE
-
-       Transform the vector into text for displaying as part of its default
-       visualization.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        json = self.take (Index_Sub_Range.First 100) . to_json
-        json.to_text
 
     ## UNSTABLE
        Converts the vector to a list with the same elements.
@@ -1000,6 +1016,10 @@ type Builder
     ## Checks if this builder is not empty.
     not_empty : Boolean
     not_empty self = self.is_empty.not
+
+    ## Gets the current length of the builder.
+    length : Integer
+    length self = self.java_builder.getSize
 
     ## Appends a new element into this builder and returns it, propagating any
        errors that the provided element could have contained.
@@ -1066,11 +1086,31 @@ type Builder
        - index: The location in the vector to get the element from. The index is
          also allowed be negative, then the elements are indexed from the back
          of the vector, i.e. -1 will correspond to the last element.
-    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at : Integer -> Any ! Index_Out_Of_Bounds
     at self index =
         actual_index = if index < 0 then self.length + index else index
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
-            Error.throw (Index_Out_Of_Bounds_Error_Data index self.length)
+            Error.throw (Index_Out_Of_Bounds.Error index self.length)
+
+    ## Get the first element from the vector, or an `Empty_Error` if the vector
+       is empty.
+
+       > Example
+         The following code returns 1.
+
+             [1, 2, 3, 4].first
+    first : Vector ! Index_Out_Of_Bounds
+    first self = self.at 0
+
+    ## Get the last element of the vector, or an `Empty_Error` if the vector is
+       empty.
+
+       > Example
+         The following code returns 4.
+
+             [1, 2, 3, 4].last
+    last : Vector ! Index_Out_Of_Bounds
+    last self = self.at -1
 
     ## Checks whether a predicate holds for at least one element of this builder.
 
@@ -1097,8 +1137,7 @@ type Builder
     to_vector self =
         ## This creates a fresh copy of the builders storage, so any future
            changes to the builder will not affect the returned vector.
-        new_array = self.java_builder.toArray
-        Vector.from_polyglot_array new_array
+        Vector.from_polyglot_array self.java_builder.toArray
 
 ## UNSTABLE
 
@@ -1111,17 +1150,6 @@ type Empty_Error
     to_display_text : Text
     to_display_text self = "The vector is empty."
 
-## ADVANCED
-   Catches possible errors from comparing values and throws an
-   Incomparable_Values_Error if any occur.
-handle_incomparable_value ~function =
-    handle t = Panic.catch t handler=(_-> Error.throw Incomparable_Values_Error)
-    handle ClassCastException <|
-        handle No_Such_Method_Error_Data <|
-            handle Type_Error_Data <|
-                handle Unsupported_Argument_Types_Data <|
-                    function.catch Type_Error_Data handler=(_-> Error.throw Incomparable_Values_Error)
-
 ## PRIVATE
    Creates a new vector where for each range, a corresponding section of the
    source vector is added to the result.
@@ -1133,7 +1161,7 @@ slice_ranges vector ranges =
         if ranges.length != 1 then slice_many_ranges vector ranges else
             case ranges.first of
                 _ : Integer -> [vector.at ranges.first]
-                Range.Value start end step -> case step == 1 of
+                Range.Between start end step -> case step == 1 of
                     True -> vector.slice start end
                     False -> slice_many_ranges vector ranges
 
@@ -1147,7 +1175,7 @@ slice_many_ranges vector ranges =
     ranges.each descriptor-> case descriptor of
         _ : Integer ->
             builder.append (vector.at descriptor)
-        Range.Value start end step -> case step == 1 of
+        Range.Between start end step -> case step == 1 of
             True ->
                 builder.append_vector_range vector start end
             False ->

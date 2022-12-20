@@ -13,9 +13,6 @@ polyglot java import com.amazon.redshift.jdbc.Driver
 polyglot java import java.util.Properties
 polyglot java import org.enso.database.JDBCProxy
 
-from project.Connection.Redshift_Options.Redshift_Options import Redshift
-from project.Connection.Redshift_Options.Redshift_Options export Redshift
-
 type Redshift_Options
     ## Connect to a AWS Redshift database.
 

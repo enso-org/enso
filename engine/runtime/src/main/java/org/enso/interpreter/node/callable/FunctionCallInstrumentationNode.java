@@ -21,6 +21,8 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
 import java.util.Arrays;
 import java.util.UUID;
+import org.enso.interpreter.node.ClosureRootNode;
+import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 
 /**
  * A node used for instrumenting function calls. It does nothing useful from the language
@@ -151,6 +153,9 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
+    if (AvoidIdInstrumentationTag.class == tag) {
+      return getRootNode() instanceof ClosureRootNode c && !c.isSubjectToInstrumentation();
+    }
     return tag == StandardTags.CallTag.class || (tag == IdentifiedTag.class && id != null);
   }
 

@@ -1,16 +1,90 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
+import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Delimited_Reader
 import project.Delimited.Delimited_Writer
+import project.Errors.Invalid_JSON_Format
 
-from project.Delimited.Delimited_Format import Delimited_Format, Delimited
-from project.Errors import unimplemented
+Table.from (that : Text) (format:Delimited_Format = Delimited_Format.Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
+    case format of
+        _ : Delimited_Format -> Delimited_Reader.read_text that format on_problems
+        _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
 
-Table.from (that : Text) (format:Delimited_Format = Delimited '\t') (on_problems:Problem_Behavior=Report_Warning) =
-    if format.is_a Delimited then Delimited_Reader.read_text that format on_problems else
-        unimplemented "Table.from for fixed-width files is not yet implemented."
+Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '\t') =
+    case format of
+        _ : Delimited_Format -> Delimited_Writer.write_text that format
+        _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
 
-Text.from (that : Table) (format:Delimited_Format = Delimited '\t') =
-    if format.is_a Delimited then Delimited_Writer.write_text that format else
-        unimplemented "Text.from for fixed-width files is not yet implemented."
+## Converts an object or a Vector of object into a Table, by looking up the
+   requested fields from each item.
+
+   Arguments:
+   - value: The object or Vector of objects to convert to a table.
+     If a Vector or Array, then each item is added as a row.
+     Otherwise, treated as a single row.
+   - fields: a Vector of Text representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
+
+   > Example Converts a set of objects into a table using the provided headers.
+
+         from Standard.Table import Table
+         import Standard.Examples
+
+         example_to_table =
+             json = Examples.simple_table_json
+             headers = Examples.simple_table_json_headers
+             Table.from_objects json headers
+Table.from_objects : Any -> Vector | Nothing -> Table ! Type_Error
+Table.from_objects value fields=Nothing =
+    table_for_value v =
+        column_names = fields.if_nothing ["Value"]
+        column_values = column_names.map f-> if f == "Value" then v else Nothing
+        Table.from_rows column_names [column_values]
+
+    get_fields v = case v of
+        _ : JS_Object -> v.field_names
+        Nothing -> ["Value"]
+        _ : Number -> ["Value"]
+        _ : Boolean -> ["Value"]
+        _ : Text -> ["Value"]
+        _ -> Error.throw (Type_Error.Error Any "Invalid item within Vector for Table.from_objects. Currently only JS_Object, Number, Boolean, Text and Nothing are supported.")
+
+    get_value v field = case v of
+        _ : JS_Object -> v.get field
+        _ -> if field == "Value" then v else Nothing
+
+    case value of
+        Nothing -> table_for_value value
+        _ : Number -> table_for_value value
+        _ : Boolean -> table_for_value value
+        _ : Text -> table_for_value value
+        _ : JS_Object ->
+            field_names = fields.if_nothing value.field_names
+            values = field_names.map value.get
+            Table.from_rows field_names [values]
+        _ : Vector ->
+            len = value.length
+
+            ## For every record, get the values into a Map.
+            column_map = value.fold_with_index Map.empty current-> i-> v->
+                field_names = fields.if_nothing (get_fields v)
+                field_names.fold current c->f->
+                    data = c.get f (Vector.new_builder len)
+                    data.length.up_to i . each _-> data.append Nothing
+                    data.append (get_value v f)
+                    c.insert f data
+
+            used_fields = fields.if_nothing column_map.keys
+
+            ## Convert Builders to Vectors and fill as needed.
+            used_values = used_fields.map f->
+                data = column_map.get f (Vector.new_builder len)
+                data.length.up_to len . each _-> data.append Nothing
+                data.to_vector
+
+            Table.new (used_fields.zip used_values)
+        _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
+        _ -> Error.throw (Type_Error.Error Any "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported.")

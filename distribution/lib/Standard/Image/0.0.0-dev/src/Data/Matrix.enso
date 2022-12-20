@@ -151,8 +151,8 @@ type Matrix
              example_get = Examples.matrix.get 0 0
     get : Integer -> Integer -> Vector ! Matrix_Error
     get self row column =
-        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns row) else
-            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns column) else
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns column) else
                 arr = Java_Matrix.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
@@ -419,16 +419,16 @@ type Matrix
 
     ## UNSTABLE
 
-       Convert this matrix to Json.
+       Convert this matrix to a JS_Object.
 
        > Example
-         Convert a matrix to JSON.
+         Convert a matrix to a JavaScript object.
 
              import Standard.Examples
 
-             example_to_json = Examples.matrix.to_json
-    to_json : Json
-    to_json self = Json.String self.opencv_mat.to_text
+             example_to_json = Examples.matrix.to_js_object
+    to_js_object : Text
+    to_js_object self = self.opencv_mat.to_text
 
 ## PRIVATE
 

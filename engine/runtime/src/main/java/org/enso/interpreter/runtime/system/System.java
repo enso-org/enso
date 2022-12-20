@@ -8,12 +8,15 @@ import org.apache.commons.lang3.SystemUtils;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class System {
 
@@ -55,12 +58,12 @@ public class System {
   @Builtin.Method(
       description = "Create a system process, returning the exit code.",
       autoRegister = false)
-  @Builtin.WrapException(from = IOException.class, to = PanicException.class)
-  @Builtin.WrapException(from = InterruptedException.class, to = PanicException.class)
+  @Builtin.WrapException(from = IOException.class)
+  @Builtin.WrapException(from = InterruptedException.class)
   @CompilerDirectives.TruffleBoundary
   @ExplodeLoop
   public static Atom createProcess(
-      Context ctx,
+      EnsoContext ctx,
       Object command,
       Object arguments,
       Object input,

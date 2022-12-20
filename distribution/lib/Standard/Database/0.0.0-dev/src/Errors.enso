@@ -2,14 +2,10 @@ from Standard.Base import all
 
 polyglot java import java.sql.SQLException
 
-# TODO Dubious constructor export
-from project.Errors.Unsupported_Database_Operation_Error import all
-from project.Errors.Unsupported_Database_Operation_Error export all
-
 ## Indicates that a requested operation is not supported, for example because a
    particular database backend does not support it.
-type Unsupported_Database_Operation_Error
-    Unsupported_Database_Operation_Error_Data message
+type Unsupported_Database_Operation
+    Error message
 
     ## UNSTABLE
 
@@ -25,10 +21,6 @@ type Unsupported_Database_Operation_Error
     to_display_text self =
         "Unsupported database operation: " + self.message
 
-# TODO Dubious constructor export
-from project.Errors.SQL_Error import all
-from project.Errors.SQL_Error export all
-
 type SQL_Error
     ## UNSTABLE
 
@@ -39,7 +31,7 @@ type SQL_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    SQL_Error_Data java_exception related_query=Nothing
+    Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
@@ -60,13 +52,9 @@ type SQL_Error
        Throws an error as if a SQL Exception was thrown.
     throw_sql_error : Text -> SQL_Error
     throw_sql_error message =
-        Error.throw (SQL_Error_Data (SQLException.new message))
+        Error.throw (SQL_Error.Error (SQLException.new message))
 
-# TODO Dubious constructor export
-from project.Errors.SQL_Timeout_Error import all
-from project.Errors.SQL_Timeout_Error export all
-
-type SQL_Timeout_Error
+type SQL_Timeout
     ## UNSTABLE
 
        Indicates that an operation has timed out.
@@ -75,7 +63,7 @@ type SQL_Timeout_Error
        - java_exception: The underlying exception.
        - related_query (optional): A string representation of a query that this
          error is related to.
-    SQL_Timeout_Error_Data java_exception related_query=Nothing
+    Error java_exception related_query=Nothing
 
     ## UNSTABLE
 
@@ -88,5 +76,54 @@ type SQL_Timeout_Error
     ## UNSTABLE
 
        Pretty print the timeout error.
+    to_display_text : Text
+    to_display_text self = self.to_text
+
+
+## UNSTABLE
+
+   Signals that a name for a column or table is not supported.
+
+   Arguments:
+   - text: The name that is not supported.
+
+   Currently the names can only include ASCII letters, numbers and the
+   underscore. This is a temporary limitation simplifying name handling. It will
+   be removed in a future version.
+type Unsupported_Name
+    Error text
+
+    ## PRIVATE
+
+       Creates a human-readable representation of the unsupported name error.
+    to_text : Text
+    to_text self =
+        "The name " + self.text + " is not currently supported by the Database library."
+
+    ## UNSTABLE
+
+       Pretty print the unsupported name error.
+    to_display_text : Text
+    to_display_text self = self.to_text
+
+
+type Integrity_Error
+    ## UNSTABLE
+
+       Signalizes that an operation tried using objects coming from different
+       contexts.
+
+       To use columns from different tables, you must first join them.
+    Error object_description
+
+    ## PRIVATE
+
+       Creates a human-readable representation of the integrity error.
+    to_text : Text
+    to_text self = self.object_description + " comes from a different context."
+
+    ## UNSTABLE
+
+       Pretty print the integrity error.
     to_display_text : Text
     to_display_text self = self.to_text

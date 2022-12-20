@@ -1,0 +1,70 @@
+import project.Data.Json.JS_Object
+import project.Data.Vector.Vector
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
+import project.Network.HTTP.Response_Body.Response_Body
+
+polyglot java import org.enso.base.Http_Utils
+
+type Response
+    ## PRIVATE
+
+       A type representing an HTTP response.
+
+       Arguments:
+       - internal_http_response: The internal representation of the HTTP
+         response.
+    Value internal_http_response
+
+    ## Get the response headers.
+
+       > Example
+         Getting the headers from a response. NOTE that this example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_headers = Examples.get_response.headers
+    headers : Vector
+    headers self =
+        header_entries = Vector.from_polyglot_array (Http_Utils.get_headers self.internal_http_response.headers)
+        header_entries.map e-> Header.new e.getKey e.getValue
+
+    ## Get the response body.
+
+       > Example
+         Getting the body from a response. NOTE that this example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_body = Examples.get_response.body
+    body : Response_Body
+    body self = Response_Body.Value (Vector.from_polyglot_array self.internal_http_response.body)
+
+    ## Get the response status code.
+
+       > Example
+         Getting the code from a response. NOTE that this example will make a
+         network request.
+
+             import Standard.Examples
+
+             example_code = Examples.get_response.code
+    code : HTTP_Status_Code
+    code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
+
+    ## Convert to a JavaScript Object representing this Response.
+
+       > Example
+         Convert a response to JS_Object.
+         NOTE that this example will make a network request.
+
+             import Standard.Examples
+
+             example_to_json = Examples.get_response.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Response"]
+        cons_pair = ["constructor", "Value"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]

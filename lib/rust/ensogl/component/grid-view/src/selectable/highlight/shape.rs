@@ -78,7 +78,7 @@ ensogl_core::shape! {
 /// Updates the shape's viewport. The position and size of the sprite will be updated. See
 /// [module's docs](mod@self) for more info.
 pub fn set_viewport(shape: &View, viewport: Viewport) {
-    shape.size.set(viewport.size());
+    shape.set_size(viewport.size());
     shape.set_xy(viewport.center_point());
 }
 
