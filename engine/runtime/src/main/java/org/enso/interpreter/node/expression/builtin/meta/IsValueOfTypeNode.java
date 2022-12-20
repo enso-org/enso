@@ -5,6 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -14,6 +15,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the payload check against the expected panic type. */
@@ -51,7 +53,39 @@ public abstract class IsValueOfTypeNode extends Node {
   boolean doAnyType(Object expectedType, Object payload) {
     return true;
   }
-  
+
+
+  @Specialization
+  boolean doLongCheck(Type expectedType, long payload) {
+    var numbers = EnsoContext.get(this).getBuiltins().number();
+    return checkParentTypes(numbers.getSmallInteger(), expectedType);
+  }
+
+  @Specialization
+  boolean doDoubleCheck(Type expectedType, double payload) {
+    var numbers = EnsoContext.get(this).getBuiltins().number();
+    return checkParentTypes(numbers.getDecimal(), expectedType);
+  }
+
+  @Specialization
+  boolean doBigIntegerCheck(Type expectedType, EnsoBigInteger value) {
+    var numbers = EnsoContext.get(this).getBuiltins().number();
+    return checkParentTypes(numbers.getBigInteger(), expectedType);
+  }
+
+  @ExplodeLoop
+  private boolean checkParentTypes(Type actual, Type real) {
+    for (;;) {
+      if (actual == null) {
+        return false;
+      }
+      if (actual == real) {
+        return true;
+      }
+      actual = actual.getSupertype();
+    }
+  }
+
   @Specialization(guards = {"!isArrayType(expectedType)", "!isAnyType(expectedType)"})
   boolean doType(Type expectedType, Object payload) {
     Object tpeOfPayload = typeOfNode.execute(payload);
