@@ -1,9 +1,17 @@
 import project.Any.Any
+import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
+import project.Error.Error
 import project.Error.File_Error.File_Error
 import project.Error.Problem_Behavior.Problem_Behavior
+import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Request.Request
+import project.Network.HTTP.Request_Error
 import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File_Format.Auto_Detect
@@ -41,8 +49,8 @@ from project.Data.Boolean import Boolean, True, False
          import Standard.Examples
 
          example_xls_to_table = Data.read Examples.xls (Excel (Worksheet 'Dates'))
-read_file : File_Format -> Problem_Behavior -> Any ! File_Error
-read_file path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
+read : File_Format -> Problem_Behavior -> Any ! File_Error
+read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
 
 ## Open and read the file at the provided `path`.
@@ -64,9 +72,9 @@ read_file path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) 
          import Standard.Base.Data
          import Standard.Examples
 
-         example_read = Data.read_text_file Examples.csv_path
-read_text_file : (Text | File) -> Encoding -> Problem_Behavior -> Text
-read_text_file path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
+         example_read = Data.read_text Examples.csv_path
+read_text : (Text | File) -> Encoding -> Problem_Behavior -> Text
+read_text path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read_text encoding on_problems
 
 ## Lists files contained in the provided directory.
@@ -122,3 +130,30 @@ read_text_file path (encoding=Encoding.utf_8) (on_problems=Problem_Behavior.Repo
 list_directory : (File | Text) -> Text -> Boolean -> Vector File
 list_directory directory name_filter=Nothing recursive=False =
     File.new directory . list name_filter=name_filter recursive=recursive
+
+## Fetches from the provided URL and returns the response body.
+   Will error if the status code does not represent a successful response.
+
+   Arguments:
+   - url: The URL to fetch.
+   - method: The HTTP method to use. Defaults to `GET`.
+   - headers: The headers to send with the request. Defaults to an empty vector.
+   - parse:  If successful should the body be parsed to an Enso native object.
+fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> Boolean -> Any
+fetch uri method=HTTP_Method.Get headers=[] parse=True =
+    parsed_headers = headers . map h-> case h of
+        _ : Vector -> Header.new (h.at 0) (h.at 1)
+        _ : Pair -> Header.new (h.at 0) (h.at 1)
+        _ : Header -> h
+        _ -> Error.throw (Type_Error.Error Header "Invalid header type (must be a Pair, Vector or Header).")
+
+    request = Request.new method uri parsed_headers
+    response = HTTP.new.request request
+
+    if response.code.is_success.not then Error.throw (Request_Error.Error "Status Code" ("Request failed with status code: " + response.code + ". " + response.body.to_text)) else
+        response_headers = response.headers
+        content_type = response_headers.find h-> "Content-Type".equals_ignore_case h.name
+        if (parse == False) || (content_type == Nothing) then response else
+            format = Auto_Detect.get_web_parser content_type.value uri
+            if format == Nothing then response else
+                format.read_web response

@@ -2,7 +2,7 @@ from Standard.Base import all
 from Standard.Table import Table
 
 import project.Geo_Json
-export project.Geo_Json
+from project.Geo_Json export geo_json_to_table
 
 ## UNSTABLE
 

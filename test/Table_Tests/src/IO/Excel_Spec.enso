@@ -483,19 +483,19 @@ spec =
     Test.group "Read XLSX / XLS Files" <|
         Test.specify "should let you read the first sheet with Auto_Detect" <|
             check_table <| xlsx_sheet.read
-            check_table <| Data.read_file xlsx_sheet
-            check_table <| Data.read_file xlsx_path
+            check_table <| Data.read xlsx_sheet
+            check_table <| Data.read xlsx_path
             check_table <| xls_sheet.read
-            check_table <| Data.read_file xls_sheet
-            check_table <| Data.read_file xls_path
+            check_table <| Data.read xls_sheet
+            check_table <| Data.read xls_path
 
         Test.specify "should let you read the first sheet with Excel" <|
             check_table <| xlsx_sheet.read Excel
-            check_table <| Data.read_file xlsx_sheet Excel
-            check_table <| Data.read_file xlsx_path Excel
+            check_table <| Data.read xlsx_sheet Excel
+            check_table <| Data.read xlsx_path Excel
             check_table <| xls_sheet.read Excel
-            check_table <| Data.read_file xls_sheet Excel
-            check_table <| Data.read_file xls_path Excel
+            check_table <| Data.read xls_sheet Excel
+            check_table <| Data.read xls_path Excel
 
         Test.specify "should let you read the sheet names" <|
             sheet_names = ["Sheet1", "Another", "NoHeaders", "Random"]

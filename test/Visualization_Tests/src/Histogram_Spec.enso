@@ -13,13 +13,13 @@ spec =
     expect value expected_label expected_values =
         text = Histogram.process_to_json_text value
         json = Json.parse text
-        expected_data = Json.from_pairs [['values', expected_values]]
+        expected_data = JS_Object.from_pairs [['values', expected_values]]
         expected_json = case expected_label of
-            Nothing -> Json.from_pairs [['data', expected_data]]
+            Nothing -> JS_Object.from_pairs [['data', expected_data]]
             _       ->
-                expected_x = Json.from_pairs [['label', expected_label]]
-                expected_axis = ['axis', Json.from_pairs [['x', expected_x]]]
-                Json.from_pairs [['data', expected_data], expected_axis]
+                expected_x = JS_Object.from_pairs [['label', expected_label]]
+                expected_axis = ['axis', JS_Object.from_pairs [['x', expected_x]]]
+                JS_Object.from_pairs [['data', expected_data], expected_axis]
         json.should_equal expected_json
 
     Test.group "Histogram Visualization" <|

@@ -12,13 +12,13 @@ type Id
 
     ## Serializes this ID to a JSON format understandable by the graphical
        interface.
-    to_json self =
+    to_js_object self =
         project = case self of
             Id.Builtin _ -> Nothing
             Id.Library project _ ->
                 full_name = project.namespace + "." + project.name
-                Json.from_pairs [["name", full_name]]
-        Json.from_pairs [["library", project], ["name", self.name]]
+                JS_Object.from_pairs [["name", full_name]]
+        JS_Object.from_pairs [["library", project], ["name", self.name]]
 
     ## UNSTABLE
        ADVANCED

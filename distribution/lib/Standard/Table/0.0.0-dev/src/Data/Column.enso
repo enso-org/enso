@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
@@ -1045,28 +1046,21 @@ type Column
 
     ## UNSTABLE
 
-       Converts this column to JSON.
+       Converts this column to JS_Object representation.
 
        > Example
-         Get a JSON representation of the column.
+         Get a JavaScript representation of the column.
 
              import Standard.Examples
 
-             example_to_json = Examples.integer_column.to_json
-    to_json : Json
-    to_json self =
-        col = self.java_column
-        name = col.getName
-        storage = col.getStorage
-        json_factory = case self.storage_type of
-            Storage.Text -> Json.String
-            Storage.Integer -> Json.Number
-            Storage.Decimal -> Json.Number
-            Storage.Boolean -> Json.Boolean
-            _ -> .to_json
-        storage_json = Json.Array (storage_to_json storage json_factory)
-        fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
-        Json.Object fields
+             example_to_json = Examples.integer_column.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        name = self.java_column.getName
+        storage = self.java_column.getStorage
+        storage_proxy = Array_Proxy.new storage.size i-> storage.getItem i
+        storage_json = Vector.from_polyglot_array storage_proxy
+        JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
     ## Efficiently joins two tables based on either the index or the specified
        key column.
@@ -1107,19 +1101,6 @@ type Column
              example_to_table = Examples.integer_column.to_table
     to_table : Table
     to_table self = Table.Value self.java_column.toTable
-
-    ## UNSTABLE
-       ADVANCED
-
-       Shows a JSON serialization of a truncated version of this column, for the
-       benefit of visualization in the IDE.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        size = ['length', self.length]
-        name = ['name', self.name]
-        max_data = 100
-        data = ['data', self.to_vector.take (First max_data)]
-        Json.from_pairs [size, name, data] . to_text
 
     ## UNSTABLE
 
@@ -1347,19 +1328,6 @@ run_vectorized_unary_op column name fallback_fn on_missing=Nothing =
     ix = column.java_column.getIndex
     rs = s.map name fallback_fn on_missing
     Column.Value (Java_Column.new "Result" ix rs)
-
-## PRIVATE
-
-   A helper function for converting a column storage to JSON.
-
-   Arguments:
-   - storage: The storage to convert to JSON.
-   - factory: The factory function for converting the storage.
-storage_to_json : Storage -> (Any -> Json) -> Json
-storage_to_json storage factory =
-    Vector.new storage.size ix->
-        if storage.isNa ix then Json.Null else
-            factory (storage.getItem ix)
 
 ## PRIVATE
 

@@ -67,7 +67,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time.to_json.should_equal <|
                 zone_pairs = [["zone", Time_Zone.utc]]
                 time_pairs = [["year", time.year], ["month", time.month], ["day", time.day], ["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
-                Json.from_pairs ([["type", "Date_Time"]] + time_pairs + zone_pairs)
+                JS_Object.from_pairs ([["type", "Date_Time"], ["constructor", "new"]] + time_pairs + zone_pairs) . to_text
 
         Test.specify "should parse default time format" <|
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
