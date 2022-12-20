@@ -277,6 +277,29 @@ class ValuesGenerator {
     return collect;
   }
 
+  public List<Value> arrayLike() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, "", "[1, 2, 3]").type());
+      collect.add(v(null, "", "['a', 'b']").type());
+      collect.add(v(null, "", "[]").type());
+      collect.add(v(null, "", "[1, 2, 3].to_array").type());
+      collect.add(v(null, "", "['a', 'b'].to_array").type());
+      collect.add(v(null, "", "[].to_array").type());
+    }
+
+    if (languages.contains(Language.JAVA)) {
+      collect.add(ctx.asValue(new String[] { "Hello", "World!" }));
+      collect.add(ctx.asValue(new int[] { 6, 7, 42 }));
+      collect.add(ctx.asValue(List.of(1, 2, 3)));
+    }
+
+    for (var v : collect) {
+      assertTrue("It is an array" + v, v.hasArrayElements());
+    }
+    return collect;
+  }
+
   public List<Value> allValues() throws Exception {
     var collect = new ArrayList<Value>();
     for (var m : getClass().getMethods()) {

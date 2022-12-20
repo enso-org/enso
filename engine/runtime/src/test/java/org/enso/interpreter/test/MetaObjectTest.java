@@ -13,6 +13,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -101,6 +102,28 @@ public class MetaObjectTest {
 
     if (!expecting.isEmpty()) {
       fail("Should be empty: " + expecting + w);
+    }
+  }
+
+  @Test
+  public void checkAllTypesHaveSomeValues() throws Exception {
+    var g = ValuesGenerator.create(ctx);
+    var expecting = new HashSet<Value>();
+    expecting.addAll(g.allTypes());
+    var successfullyRemoved = new HashSet<Value>();
+    var w = new StringBuilder();
+    for (var v : g.allValues()) {
+      var t = v.getMetaObject();
+      if (!expecting.remove(t)) {
+        if (!successfullyRemoved.contains(t)) {
+          w.append("\nCannot remove type ").append(t).append(" for value ").append(v);
+        }
+      } else {
+        successfullyRemoved.add(t);
+      }
+    }
+    if (!expecting.isEmpty()) {
+      fail("These types don't have any values: " + expecting + w);
     }
   }
 }
