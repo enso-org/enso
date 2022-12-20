@@ -213,8 +213,19 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
-  boolean isMetaInstance(Object instance) {
-    return instance instanceof Atom atom && atom.getType() == this;
+  boolean isMetaInstance(Object instance, @CachedLibrary(limit="3") TypesLibrary lib) {
+    var b = EnsoContext.get(lib).getBuiltins();
+    if (b.any() == this) {
+      return true;
+    }
+    var type = lib.getType(instance);
+    while (type != null && type != b.any()) {
+      if (type == this) {
+        return true;
+      }
+      type = type.getSupertype();
+    }
+    return false;
   }
 
   @ExportMessage

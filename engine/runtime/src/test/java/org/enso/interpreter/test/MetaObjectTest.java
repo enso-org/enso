@@ -109,6 +109,15 @@ public class MetaObjectTest {
 
   @Test
   public void checkAllTypesHaveSomeValues() throws Exception {
+    checkAllTypesSatisfy(MetaObjectTest::checkValue);
+  }
+
+  @Test
+  public void checkAllTypesHaveInstanceOfValues() throws Exception {
+    checkAllTypesSatisfy(MetaObjectTest::checkIsInstance);
+  }
+
+  private void checkAllTypesSatisfy(Check check) throws Exception {
     var g = ValuesGenerator.create(ctx);
     var expecting = new LinkedHashSet<Value>();
     for (var t : g.allTypes()) {
@@ -127,11 +136,16 @@ public class MetaObjectTest {
     var successfullyRemoved = new HashSet<Value>();
     var w = new StringBuilder();
     for (var v : g.allValues()) {
-      checkValue(v, null, expecting, successfullyRemoved, w);
+      check.check(v, null, expecting, successfullyRemoved, w);
     }
     if (!expecting.isEmpty()) {
       fail("These types don't have any values: " + expecting + w);
     }
+  }
+
+  @FunctionalInterface
+  interface Check {
+    void check(Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w);
   }
 
   private static void checkValue(Value v, Value type, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
@@ -149,6 +163,21 @@ public class MetaObjectTest {
     if (t.hasMetaParents() && t.getMetaParents() instanceof Value p && p.hasArrayElements()) {
       for (long i = 0; i < p.getArraySize(); i++) {
         checkValue(v, p.getArrayElement(i), expecting, successfullyRemoved, w);
+      }
+    }
+  }
+
+  private static void checkIsInstance(Value v, Value nullT, Set<Value> expecting, Set<Value> successfullyRemoved, StringBuilder w) {
+    for (var type : new LinkedHashSet<>(expecting)) {
+      if (!type.isMetaInstance(v)) {
+        continue;
+      }
+      if (!expecting.remove(type)) {
+        if (!successfullyRemoved.contains(type)) {
+          w.append("\nCannot remove type ").append(type).append(" for value ").append(v);
+        }
+      } else {
+        successfullyRemoved.add(type);
       }
     }
   }
