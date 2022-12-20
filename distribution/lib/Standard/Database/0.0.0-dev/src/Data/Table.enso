@@ -774,7 +774,6 @@ type Table
             left_new_columns = left_config.second.at 0
             right_subquery = right_config.first
             right_new_columns = right_config.second.at 0
-            # right_new_kept_columns = right.columns.filter c-> right_columns_to_drop.contains c.name . not
 
             left_column_mapping = Map.from_vector <|
                 left.internal_columns.zip left_new_columns old-> new-> [old.name, new]
@@ -788,21 +787,21 @@ type Table
                https://www.pivotaltracker.com/story/show/183901439
             _ = right_prefix
             renamer = Unique_Name_Strategy.new
-            left_new_columns_names = renamer.make_all_unique <| left.columns.map .name
-            # TODO do not include dropped right columns in the renaming
-            right_new_columns_names = renamer.make_all_unique <| right.columns.map .name
+            left_new_columns_names = renamer.make_all_unique <| left_new_columns.map .name
+            right_new_kept_columns = right_new_columns.filter c-> right_columns_to_drop.contains c.name . not
+            right_new_kept_columns_names = renamer.make_all_unique <| right_new_kept_columns.map .name
 
             left_renamed_columns = internal_rename_columns left_new_columns left_new_columns_names
-            right_renamed_columns = internal_rename_columns right_new_columns right_new_columns_names
-            new_columns = left_renamed_columns + right_renamed_columns
+            right_renamed_kept_columns = internal_rename_columns right_new_kept_columns right_new_kept_columns_names
+            new_columns = left_renamed_columns + right_renamed_kept_columns
 
             # TODO proper equality of nulls in join conditions
             # TODO all-null rows
             # TODO anti-joins
             internal_kind = case join_kind of
                 Join_Kind.Inner           -> Internal_Join_Kind.Inner
-                Join_Kind.Left_Outer      -> Internal_Join_Kind.Left_Outer
-                Join_Kind.Right_Outer     -> Internal_Join_Kind.Right_Outer
+                Join_Kind.Left_Outer      -> Internal_Join_Kind.Left
+                Join_Kind.Right_Outer     -> Internal_Join_Kind.Right
                 Join_Kind.Full            -> Internal_Join_Kind.Full
                 Join_Kind.Left_Exclusive  -> Unimplemented.throw "anti-joins not implemented yet"
                 Join_Kind.Right_Exclusive -> Unimplemented.throw "anti-joins not implemented yet"

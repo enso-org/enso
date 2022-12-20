@@ -6,6 +6,8 @@ import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Value_Type.Value_Type
 from Standard.Table.Errors import all
 
+from Standard.Database.Errors import Unsupported_Database_Operation
+
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
@@ -31,7 +33,7 @@ spec setup =
     Test.group prefix+"Table.join" <|
         t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
         t2 = table_builder [["Z", [2, 3, 2, 4]], ["W", [4, 5, 6, 7]]]
-        Test.specify "should allow to inner join on equality of a the first column by default" <|
+        Test.specify "should allow to Inner join on equality of a the first column by default" <|
 
             t3 = t1.join t2
             expect_column_names ["X", "Y", "Z", "W"] t3
@@ -41,14 +43,20 @@ spec setup =
             t4.at "Y" . to_vector . should_equal [5, 5, 6]
             t4.at "W" . to_vector . should_equal [4, 6, 5]
 
-        Test.specify "should allow to perform all kinds of joins" <|
+        Test.specify "should allow Full join" <|
             t3 = t1.join t2 join_kind=Join_Kind.Full |> materialize |> _.order_by ["X", "W"]
-            expect_column_names ["X", "Y", "Z", "W"] t3
-            t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
-            t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
-            t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
-            t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
+            case setup.test_selection.supports_right_join of
+                True ->
+                    expect_column_names ["X", "Y", "Z", "W"] t3
+                    t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
+                    t3.at "Y" . to_vector . should_equal [Nothing, 4, 5, 5, 6]
+                    t3.at "Z" . to_vector . should_equal [4, Nothing, 2, 2, 3]
+                    t3.at "W" . to_vector . should_equal [7, Nothing, 4, 6, 5]
+                False ->
+                    t3.should_fail_with Unsupported_Database_Operation.Error
 
+
+        Test.specify "should allow Left Outer join" <|
             t4 = t1.join t2 join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by ["X", "W"]
             expect_column_names ["X", "Y", "Z", "W"] t4
             t4.at "X" . to_vector . should_equal [1, 2, 2, 3]
@@ -56,12 +64,17 @@ spec setup =
             t4.at "Z" . to_vector . should_equal [Nothing, 2, 2, 3]
             t4.at "W" . to_vector . should_equal [Nothing, 4, 6, 5]
 
+        Test.specify "should allow Right Outer join" <|
             t5 = t1.join t2 join_kind=Join_Kind.Right_Outer |> materialize |> _.order_by ["X", "W"]
-            expect_column_names ["X", "Y", "Z", "W"] t5
-            t5.at "X" . to_vector . should_equal [Nothing, 2, 2, 3]
-            t5.at "Y" . to_vector . should_equal [Nothing, 5, 5, 6]
-            t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
-            t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
+            case setup.test_selection.supports_right_join of
+                True ->
+                    expect_column_names ["X", "Y", "Z", "W"] t5
+                    t5.at "X" . to_vector . should_equal [Nothing, 2, 2, 3]
+                    t5.at "Y" . to_vector . should_equal [Nothing, 5, 5, 6]
+                    t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
+                    t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
+                False ->
+                    t5.should_fail_with Unsupported_Database_Operation.Error
 
         Test.specify "should allow to perform anti-joins" pending=db_todo <|
             t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive |> materialize |> _.order_by ["X"]
@@ -222,7 +235,7 @@ spec setup =
             r1.at "Z_1" . to_vector . should_equal ["A", "A"]
             r1.at "W'" . to_vector . should_equal [10, 10]
 
-        Test.specify "should work fine if the same condition is specified multiple times" <|
+        Test.specify "should work fine if the same condition is specified multiple times" pending=db_todo <|
             r = t3.join t4 on=["X", "X", "Y", "X", "Y"] |> materialize |> _.order_by ["X", "Y", "Z", "Z_1"]
             check_xy_joined r
 
@@ -245,7 +258,7 @@ spec setup =
         Test.specify "should correctly handle joining a table with itself" pending="TODO!" <|
             Nothing
 
-        Test.specify "should gracefully handle unmatched columns in Join_Conditions" <|
+        Test.specify "should gracefully handle unmatched columns in Join_Conditions" pending=db_todo <|
             t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
             t2 = table_builder [["Z", [2, 1]], ["W", [5, 6]]]
 
