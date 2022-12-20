@@ -21,7 +21,7 @@ public abstract class IsSameObjectNode extends Node {
   }
 
   public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
-
+  
   /**
    * Shortcut specialization for meta objects.
    *
@@ -46,6 +46,16 @@ public abstract class IsSameObjectNode extends Node {
   @Fallback
   boolean isIdenticalObjects(
       Object left, Object right, @CachedLibrary(limit = "2") InteropLibrary interop) {
-    return (left == right) || interop.isIdentical(left, right, interop);
+    if (left == right) {
+      return true;
+    }
+    if (interop.isString(left) && interop.isString(right)) {
+      try {
+        return interop.asString(left).equals(interop.asString(right));
+      } catch (UnsupportedMessageException ex) {
+        // go on
+      }
+    }
+    return interop.isIdentical(left, right, interop);
   }
 }
