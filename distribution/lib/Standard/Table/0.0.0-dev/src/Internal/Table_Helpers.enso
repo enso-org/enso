@@ -84,7 +84,7 @@ type Table_Column_Helper
         selection = self.select_columns_helper selector reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         result = self.internal_columns.filter column->
-            should_be_removed = selected_names.get_or_else column.name False
+            should_be_removed = selected_names.get column.name False
             should_be_removed.not
         if result.is_empty then
             problem_builder.report_other_warning No_Output_Columns
@@ -115,7 +115,7 @@ type Table_Column_Helper
         problem_builder.attach_problems_before on_problems <|
             selected_names = Map.from_vector (selection.map column-> [column.name, True])
             other_columns = self.internal_columns.filter column->
-                is_selected = selected_names.get_or_else column.name False
+                is_selected = selected_names.get column.name False
                 is_selected.not
             result = case position of
                 Position.Before_Other_Columns -> selection + other_columns
@@ -266,7 +266,7 @@ rename_columns internal_columns mapping on_problems =
             index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
 
             new_names = 0.up_to col_count . map i->
-                target = index_map.get_or_else i Nothing
+                target = index_map.get i Nothing
                 if target.is_nothing then Nothing else unique.make_unique target
 
             new_names
@@ -338,7 +338,7 @@ select_indices_reordering vector indices =
 select_indices_preserving_order vector indices =
     indices_to_keep = Map.from_vector (indices.map i-> [i, True])
     vector.filter_with_index ix-> _->
-        indices_to_keep.get_or_else ix False
+        indices_to_keep.get ix False
 
 ## PRIVATE
    Returns the actual position in the array that the index points to.
@@ -393,7 +393,7 @@ validate_unique vector problem_callback on=(x->x) =
     acc = vector.fold [Map.empty, Vector.new_builder, Vector.new_builder] acc-> item->
         existing = acc.at 0
         key = on item
-        already_present = existing.get_or_else key False
+        already_present = existing.get key False
         case already_present of
             True -> [existing, acc.at 1, acc.at 2 . append item]
             False -> [existing.insert key True, acc.at 1 . append item, acc.at 2]
@@ -499,7 +499,7 @@ transform_columns_by_index internal_columns index_selectors problem_builder inde
     good_indices = validate_indices internal_columns.length index_selectors problem_builder index_extractor
     selectors_map = Map.from_vector good_indices
     internal_columns.map_with_index i-> column->
-        associated_selector = selectors_map.get_or_else i Nothing
+        associated_selector = selectors_map.get i Nothing
         Column_Transform_Element.Value column associated_selector
 
 ## PRIVATE

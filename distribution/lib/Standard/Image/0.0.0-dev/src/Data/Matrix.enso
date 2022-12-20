@@ -419,16 +419,16 @@ type Matrix
 
     ## UNSTABLE
 
-       Convert this matrix to Json.
+       Convert this matrix to a JS_Object.
 
        > Example
-         Convert a matrix to JSON.
+         Convert a matrix to a JavaScript object.
 
              import Standard.Examples
 
-             example_to_json = Examples.matrix.to_json
-    to_json : Json
-    to_json self = Json.String self.opencv_mat.to_text
+             example_to_json = Examples.matrix.to_js_object
+    to_js_object : Text
+    to_js_object self = self.opencv_mat.to_text
 
 ## PRIVATE
 

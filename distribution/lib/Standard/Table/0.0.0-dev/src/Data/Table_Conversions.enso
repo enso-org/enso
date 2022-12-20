@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
@@ -17,21 +18,17 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
         _ : Delimited_Format -> Delimited_Writer.write_text that format
         _ -> Unimplemented.throw "Text.from is currently only implemented for Delimited_Format."
 
-## ALIAS To Table
-
-   Converts a JSON array into a dataframe, by looking up the requested keys
-   from each item.
+## Converts an object or a Vector of object into a Table, by looking up the
+   requested fields from each item.
 
    Arguments:
-   - fields: a vector of texts representing the names of fields to look up.
+   - value: The object or Vector of objects to convert to a table.
+     If a Vector or Array, then each item is added as a row.
+     Otherwise, treated as a single row.
+   - fields: a Vector of Text representing the names of fields to look up.
+     If `Nothing` then all fields found are added.
 
-   The function assumes the elements have one of the following structures:
-   - a JSON object containing the requested keys. In case an item is not an
-     object, or the request key does not exist, the relevant values of the table
-     will be set to `Nothing`.
-
-   > Example Converts a JSON array containing key-value pairs into a table for the
-     provided headers.
+   > Example Converts a set of objects into a table using the provided headers.
 
          from Standard.Table import Table
          import Standard.Examples
@@ -39,13 +36,55 @@ Text.from (that : Table) (format:Delimited_Format = Delimited_Format.Delimited '
          example_to_table =
              json = Examples.simple_table_json
              headers = Examples.simple_table_json_headers
-             json.to_table headers
-Json.to_table : Vector -> Table
-Json.to_table self fields=Nothing = case self of
-    Json.Array items ->
-        rows = items.map item-> case item of
-            Json.Object row -> fields.map n-> row.get n . unwrap . catch Any (_ -> Nothing)
-            _ -> Vector.fill fields.length Nothing
-        cols = fields.map_with_index i-> n-> [n, rows.map (_.at i)]
-        Table.new cols
-    _ -> Invalid_JSON_Format.throw "Json.to_table expects a JSON array."
+             Table.from_objects json headers
+Table.from_objects : Any -> Vector | Nothing -> Table ! Type_Error
+Table.from_objects value fields=Nothing =
+    table_for_value v =
+        column_names = fields.if_nothing ["Value"]
+        column_values = column_names.map f-> if f == "Value" then v else Nothing
+        Table.from_rows column_names [column_values]
+
+    get_fields v = case v of
+        _ : JS_Object -> v.field_names
+        Nothing -> ["Value"]
+        _ : Number -> ["Value"]
+        _ : Boolean -> ["Value"]
+        _ : Text -> ["Value"]
+        _ -> Error.throw (Type_Error.Error Any "Invalid item within Vector for Table.from_objects. Currently only JS_Object, Number, Boolean, Text and Nothing are supported.")
+
+    get_value v field = case v of
+        _ : JS_Object -> v.get field
+        _ -> if field == "Value" then v else Nothing
+
+    case value of
+        Nothing -> table_for_value value
+        _ : Number -> table_for_value value
+        _ : Boolean -> table_for_value value
+        _ : Text -> table_for_value value
+        _ : JS_Object ->
+            field_names = fields.if_nothing value.field_names
+            values = field_names.map value.get
+            Table.from_rows field_names [values]
+        _ : Vector ->
+            len = value.length
+
+            ## For every record, get the values into a Map.
+            column_map = value.fold_with_index Map.empty current-> i-> v->
+                field_names = fields.if_nothing (get_fields v)
+                field_names.fold current c->f->
+                    data = c.get f (Vector.new_builder len)
+                    data.length.up_to i . each _-> data.append Nothing
+                    data.append (get_value v f)
+                    c.insert f data
+
+            used_fields = fields.if_nothing column_map.keys
+
+            ## Convert Builders to Vectors and fill as needed.
+            used_values = used_fields.map f->
+                data = column_map.get f (Vector.new_builder len)
+                data.length.up_to len . each _-> data.append Nothing
+                data.to_vector
+
+            Table.new (used_fields.zip used_values)
+        _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
+        _ -> Error.throw (Type_Error.Error Any "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported.")

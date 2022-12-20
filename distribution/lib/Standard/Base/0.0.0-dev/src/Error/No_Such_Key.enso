@@ -1,0 +1,18 @@
+import project.Data.Text.Text
+
+type No_Such_Key
+    ## UNSTABLE
+
+       An error for getting a missing value from a map.
+
+       Arguments:
+       - object: The object that was being accessed.
+       - key: The key that was asked for.
+    Error object key
+
+    ## PRIVATE
+
+       Converts the error into a human-readable representation.
+    to_display_text : Text
+    to_display_text self =
+        "The object does not contain the key " + self.key.to_text + "."

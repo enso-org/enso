@@ -14,17 +14,17 @@ type Histogram
 
     ## UNSTABLE
 
-       Convert histogram data to Json.
+       Convert histogram data to a JS_Object.
 
        > Example
-         Convert a histogram to JSON.
+         Convert a histogram to a JavaScript object.
 
              import Standard.Examples
 
-             example_to_json =
+             example_to_js_object =
                  histo = Examples.image.histogram 0
-                 histo.to_json
-    to_json : Json
-    to_json self =
-        bins = Json.from_pairs [["bins", self.data]]
-        Json.from_pairs [["data", bins]]
+                 histo.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        bins = JS_Object.from_pairs [["bins", self.data]]
+        JS_Object.from_pairs [["data", bins]]
