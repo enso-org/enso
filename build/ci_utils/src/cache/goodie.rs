@@ -18,21 +18,34 @@ pub mod sbt;
 pub trait Goodie: Debug + Clone + Send + Sync + 'static {
     fn url(&self) -> BoxFuture<'static, Result<Url>>;
     fn is_active(&self) -> BoxFuture<'static, Result<bool>>;
-    fn activate(&self, package_path: PathBuf) -> Result;
+    fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>>;
+    fn activate(&self, package_path: &Path) -> Result {
+        for modification in self.activation_env_changes(package_path)? {
+            modification.apply()?;
+        }
+        Ok(())
+    }
 }
 
 pub trait GoodieExt: Goodie {
-    fn install_if_missing(&self, cache: &Cache) -> BoxFuture<'static, Result> {
+    /// Check if this goodie is active. If not, download it and activate it.
+    ///
+    /// If the goodie was already ective, returns Ok(None). If it was not active, returns
+    /// Ok(Some(path)), where path is the path to the downloaded goodie within the cache.
+    /// Usually it should not be necessary to use the returned path, as the goodie should have been
+    /// activated and the global state modified accordingly.
+    fn install_if_missing(&self, cache: &Cache) -> BoxFuture<'static, Result<Option<PathBuf>>> {
         let this = self.clone();
         let cache = cache.clone();
         async move {
             if this.is_active().await.unwrap_or(false) {
                 trace!("Skipping activation of {this:?} because it already present.",);
+                Result::Ok(None)
             } else {
                 let package = this.download(&cache).await?;
-                this.activate(package)?;
+                this.activate(&package)?;
+                Result::Ok(Some(package))
             }
-            Result::Ok(())
         }
         .boxed()
     }

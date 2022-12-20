@@ -1,4 +1,6 @@
 import project.Data.Numbers.Integer
+import project.Error.Common.Type_Error
+import project.Error.Error
 
 ## Types representing the ordering of values.
 
@@ -41,7 +43,9 @@ type Ordering
         Ordering.Greater -> Ordering.Greater
 
     compare_to : Ordering -> Ordering
-    compare_to self other = self.to_sign.compare_to other.to_sign
+    compare_to self that = case that of
+        _ : Ordering -> self.to_sign.compare_to that.to_sign
+        _ -> Error.throw (Type_Error.Error Ordering that "that")
 
     ## Converts a sign-based representation of ordering to Enso's native ordering.
 

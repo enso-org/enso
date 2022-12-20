@@ -1,24 +1,24 @@
 /// Computes a cartesian product of the provided input.
 ///
-/// For the following expression:
+/// The following expression:
 /// ```text
-/// cartesian!(f [g] [a b c] [x y z]);
+/// cartesian!([macro_path::f [args]] [a b c] [x y z]);
 /// ```
 ///
-/// It expands to:
+/// ... expands to:
 /// ```text
-/// f! { [g] [ [a x] [a y] [a z] [b x] [b y] [b z] [c x] [c y] [c z] ] }
+/// macro_path::f! { [args] [ [a x] [a y] [a z] [b x] [b y] [b z] [c x] [c y] [c z] ] }
 /// ```
 ///
-/// If you provide underscore as second argument, it is skipped in the ouput macro:
+/// The `[args]` part is optional. The following expression:
 ///
 /// ```text
-/// cartesian!(f _ [a b c] [x y z]);
+/// cartesian!([macro_path::f] [a b c] [x y z]);
 /// ```
 ///
-/// Expands to:
+/// ... expands to:
 /// ```text
-/// f! { [ [a x] [a y] [a z] [b x] [b y] [b z] [c x] [c y] [c z] ] }
+/// macro_path::f! { [ [a x] [a y] [a z] [b x] [b y] [b z] [c x] [c y] [c z] ] }
 /// ```
 #[macro_export]
 macro_rules! cartesian {
@@ -30,11 +30,11 @@ macro_rules! cartesian {
 /// Internal helper for `cartesian` macro.
 #[macro_export]
 macro_rules! _cartesian_impl {
-    ([[$f:path]] $out:tt [] $b:tt $init_b:tt) => {
+    ([$f:path] $out:tt [] $b:tt $init_b:tt) => {
         $f!{ $out }
     };
-    ([[$f:path] $args:tt] $out:tt [] $b:tt $init_b:tt) => {
-        $f!{ $args $out }
+    ([$f:path [$($args:tt)*]] $out:tt [] $b:tt $init_b:tt) => {
+        $f!{ [$($args)*] $out }
     };
     ($f:tt $out:tt [$a:tt $($at:tt)*] [] $init_b:tt) => {
         $crate::_cartesian_impl!{ $f $out [$($at)*] $init_b $init_b }

@@ -14,7 +14,7 @@ type My_Type
 spec = Test.group "Serializable Visualization Identifiers" <|
 
     Test.specify "serializes builtin visualizations in the correct format" <|
-        json_for_name n = Json.from_pairs [["library", Nothing], ["name", n]]
+        json_for_name n = JS_Object.from_pairs [["library", Nothing], ["name", n]] . to_text
         Visualization.Id.json.to_json . should_equal (json_for_name "JSON")
         Visualization.Id.scatter_plot.to_json . should_equal (json_for_name "Scatter Plot")
         Visualization.Id.histogram.to_json . should_equal (json_for_name "Histogram")
@@ -26,8 +26,8 @@ spec = Test.group "Serializable Visualization Identifiers" <|
 
     Test.specify "serializes library visualizations in the correct format" <|
         expected p_name v_name =
-            lib = Json.from_pairs [["name", p_name]]
-            Json.from_pairs [["library", lib], ["name", v_name]]
+            lib = JS_Object.from_pairs [["name", p_name]]
+            JS_Object.from_pairs [["library", lib], ["name", v_name]] . to_text
         v_1 = Visualization.Id.from_module Id_Spec "My Vis"
         v_2 = Visualization.Id.from_module Base "Other Vis"
         v_1.to_json.should_equal (expected "enso_dev.Visualization_Tests" "My Vis")

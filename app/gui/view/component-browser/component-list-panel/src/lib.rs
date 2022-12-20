@@ -55,7 +55,6 @@ use ensogl_core::data::bounding_box::BoundingBox;
 use ensogl_core::data::color;
 use ensogl_core::define_endpoints_2;
 use ensogl_core::display;
-use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::shape::StyleWatchFrp;
 use ensogl_derive_theme::FromTheme;
@@ -238,14 +237,12 @@ pub struct Model {
     pub grid:              grid::View,
     pub section_navigator: SectionNavigator,
     pub breadcrumbs:       breadcrumbs::Breadcrumbs,
-    scene_navigator:       Rc<RefCell<Option<Navigator>>>,
 }
 
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
         let display_object = display::object::Instance::new();
-        let scene_navigator = default();
 
         let background = background::View::new();
         display_object.add_child(&background);
@@ -260,7 +257,7 @@ impl Model {
         breadcrumbs.set_base_layer(&app.display.default_scene.layers.node_searcher);
         display_object.add_child(&breadcrumbs);
 
-        Self { display_object, background, grid, section_navigator, scene_navigator, breadcrumbs }
+        Self { display_object, background, grid, section_navigator, breadcrumbs }
     }
 
     fn set_initial_breadcrumbs(&self) {
@@ -271,17 +268,12 @@ impl Model {
 
     fn update_style(&self, style: &AllStyles) {
         self.background.bg_color.set(style.panel.background_color.into());
-        self.background.size.set(style.background_sprite_size());
+        self.background.set_size(style.background_sprite_size());
         self.section_navigator.update_layout(style);
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
-        self.breadcrumbs.set_size(style.breadcrumbs_size());
+        self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
         self.grid.set_xy(style.grid_pos());
-    }
-
-    /// Set the navigator so it can be disabled on hover.
-    pub fn set_navigator(&self, navigator: Option<Navigator>) {
-        *self.scene_navigator.borrow_mut() = navigator
     }
 
     // Note that this is a workaround for lack of hierarchical mouse over events.
@@ -291,26 +283,9 @@ impl Model {
     // The `pos` is mouse position in Component List Panel space (the origin is in the middle of
     // the panel).
     fn is_hovered(&self, pos: Vector2) -> bool {
-        let size = self.background.size.get();
+        let size = self.background.computed_size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
-    }
-
-    fn on_hover(&self) {
-        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
-            navigator.disable()
-        } else {
-            warn!(
-                "Navigator was not initialised on ComponentBrowserPanel. \
-            Scroll events will not be handled correctly."
-            )
-        }
-    }
-
-    fn on_hover_end(&self) {
-        if let Some(navigator) = self.scene_navigator.borrow().as_ref() {
-            navigator.enable()
-        }
     }
 }
 
@@ -345,6 +320,7 @@ define_endpoints_2! {
     }
     Output{
         size(Vector2),
+        is_hovered(bool),
     }
 }
 
@@ -367,15 +343,13 @@ impl component::Frp<Model> for Frp {
                 let pos = scene.screen_to_object_space(&model, pos.xy());
                 model.is_hovered(pos)
             })).gate(&is_visible).on_change();
+            output.is_hovered <+ is_hovered;
             // TODO[ib] Temporary solution for focus, we grab keyboard events if the
             //   component browser is visible. The proper implementation is tracked in
             //   https://www.pivotaltracker.com/story/show/180872763
             model.grid.deprecated_set_focus <+ is_visible;
 
-            on_hover <- is_hovered.on_true();
             on_hover_end <- is_hovered.on_false();
-            eval_ on_hover ( model.on_hover() );
-            eval_ on_hover_end ( model.on_hover_end() );
             model.grid.unhover_element <+ on_hover_end;
 
 

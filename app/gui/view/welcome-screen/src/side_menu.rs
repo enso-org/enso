@@ -60,8 +60,7 @@ impl Model {
         frp::extend! { network
             open_project <+ entry.click.constant(name.to_owned());
         }
-        let new_project_button = &self.new_project_button;
-        self.projects_list_dom.insert_before_or_warn(&entry, new_project_button);
+        self.projects_list_dom.append_or_warn(&entry);
         self.projects.borrow_mut().push(entry);
     }
 

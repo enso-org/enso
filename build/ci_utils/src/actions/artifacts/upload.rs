@@ -278,9 +278,9 @@ mod tests {
         tokio::spawn(warp::serve(routes).run(([127, 0, 0, 1], 8080)));
 
         debug!("Hello!");
-        std::env::set_var("ACTIONS_RUNTIME_URL", "http://localhost:8080");
-        std::env::set_var("ACTIONS_RUNTIME_TOKEN", "test-token");
-        std::env::set_var("GITHUB_RUN_ID", "123");
+        crate::env::set_var("ACTIONS_RUNTIME_URL", "http://localhost:8080");
+        crate::env::set_var("ACTIONS_RUNTIME_TOKEN", "test-token");
+        crate::env::set_var("GITHUB_RUN_ID", "123");
         let result = artifacts::upload_single_file("file", "name").await;
         dbg!(result)?;
         Ok(())

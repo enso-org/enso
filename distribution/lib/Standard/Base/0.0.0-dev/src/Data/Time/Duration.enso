@@ -1,11 +1,12 @@
 import project.Any.Any
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Period.Period
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Illegal_State.Illegal_State
@@ -146,7 +147,7 @@ type Duration
     + self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.plus_builtin that) err->
-                Error.throw (Time_Error.Error err.getMessage)
+                Error.throw (Time_Error.Error err.payload.getMessage)
 
     ## Subtract the specified amount of time from this duration.
 
@@ -163,7 +164,7 @@ type Duration
     - self that =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.minus_builtin that) err->
-                Error.throw (Time_Error.Error err.getMessage)
+                Error.throw (Time_Error.Error err.payload.getMessage)
 
     ## Check two durations for equality.
 
@@ -197,9 +198,9 @@ type Duration
                  duration_2 = (Duration.new minutes=60) + (Duration.new minutes=5)
                  duration_1.compare_to duration_2
     compare_to : Duration -> Ordering
-    compare_to self that =
-        ensure_duration that <|
-            Ordering.from_sign (self.compare_to_builtin that)
+    compare_to self that = case that of
+        _ : Duration -> Ordering.from_sign (self.compare_to_builtin that)
+        _ -> Error.throw (Type_Error.Error Duration that "that")
 
     ## Get the portion of the duration expressed in nanoseconds.
 
@@ -299,24 +300,23 @@ type Duration
     to_vector : Vector Integer
     to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
-    ## A Duration to Json conversion.
+    ## Convert to a JavaScript Object representing a Duration.
 
        > Example
-         Convert a duration of 10 seconds to Json.
+         Convert a duration of 10 seconds to a JS_Object.
 
-             import Standard.Base.Data.Time.Duration
-
-             example_to_json = (Duration.new seconds=10).to_json
-    to_json : Json
-    to_json self =
-        b = Vector.new_builder
+             example_to_json = (Duration.new seconds=10).to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        b = Vector.new_builder 7
         b.append ["type", "Duration"]
+        b.append ["constructor", "new"]
         if self.hours==0 . not then b.append ["hours", self.hours]
         if self.minutes==0 . not then b.append ["minutes", self.minutes]
         if self.seconds==0 . not then b.append ["seconds", self.seconds]
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
-        Json.from_pairs b.to_vector
+        JS_Object.from_pairs b.to_vector
 
     ## Check if this duration represents an empty time-span.
 

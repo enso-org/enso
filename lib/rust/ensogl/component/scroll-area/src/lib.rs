@@ -204,7 +204,7 @@ impl Model {
         self.v_scrollbar.set_x(scrollbar_y);
         self.h_scrollbar.set_x(size.x / 2.0);
         self.v_scrollbar.set_y(-size.y / 2.0);
-        self.mask.size.set(size);
+        self.mask.set_size(size);
         self.mask.set_x(size.x / 2.0);
         self.mask.set_y(-size.y / 2.0);
     }

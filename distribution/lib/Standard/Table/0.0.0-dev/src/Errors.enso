@@ -2,10 +2,10 @@ from Standard.Base import all
 
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
-
-## One or more columns not found in the input table.
-   Can occur when using By_Name or By_Column.
 type Missing_Input_Columns
+    ## PRIVATE
+       One or more columns not found in the input table.
+       Can occur when using By_Name or By_Column.
     Error (criteria : [Text])
 
     ## PRIVATE
@@ -15,9 +15,10 @@ type Missing_Input_Columns
     to_display_text self =
         "The criteria "+self.criteria.to_text+" did not match any columns."
 
-## One or more column indexes were invalid on the input table.
-   Can occur when using By_Index.
 type Column_Indexes_Out_Of_Range
+    ## PRIVATE
+       One or more column indexes were invalid on the input table.
+       Can occur when using By_Index.
     Error (indexes : [Integer])
 
     ## PRIVATE
@@ -28,9 +29,10 @@ type Column_Indexes_Out_Of_Range
         True -> "The index " + (self.indexes.at 0).to_text + " is out of range."
         False -> "The indexes "+self.indexes.short_display_text+" are out of range."
 
-## More names than the column count provided to the function.
-   Can occur when using By_Position.
 type Too_Many_Column_Names_Provided
+    ## PRIVATE
+       More names than the column count provided to the function.
+       Can occur when using By_Position.
     Error (column_names : [Text])
 
     ## PRIVATE
@@ -125,11 +127,11 @@ type Invalid_Aggregation
 
 ## Indicates that a floating point number was used in a grouping.
 type Floating_Point_Grouping
-    Error (column:Text) (rows:[Integer])
+    Error (column:Text)
 
     to_display_text : Text
     to_display_text self =
-        "Grouping on floating points is not recommended within "+self.column+" at row "+self.row.to_text+"."
+        "Grouping on floating points is not recommended (within "+self.column+")."
 
 ## Indicates that a text value with a delimiter was included in a concatenation without any quote character
 type Unquoted_Delimiter
@@ -245,7 +247,7 @@ type Column_Count_Mismatch
     ## PRIVATE
     handle_java_exception =
         throw_column_count_mismatch caught_panic =
-            cause = caught_panic.payload.cause
+            cause = caught_panic.payload
             Error.throw (Column_Count_Mismatch.Error cause.getExpected cause.getActual)
         Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
 
@@ -260,7 +262,7 @@ type Column_Name_Mismatch
     ## PRIVATE
     handle_java_exception =
         throw_column_name_mismatch caught_panic =
-            cause = caught_panic.payload.cause
+            cause = caught_panic.payload
             Error.throw (Column_Name_Mismatch.Error (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
         Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
 

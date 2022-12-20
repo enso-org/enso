@@ -153,13 +153,12 @@ public final class Function implements TruffleObject {
   }
 
   /**
-   * Gets a copy of the partially applied arguments for this function, safe to be mutated by
-   * clients.
+   * Gets the partially applied arguments for this function.
    *
-   * @return a copy of the partially applied arguments for this function
+   * @return a read only array of the partially applied arguments
    */
-  public Object[] clonePreAppliedArguments() {
-    return preAppliedArguments.clone();
+  public Object[] getPreAppliedArguments() {
+    return preAppliedArguments;
   }
 
   /**

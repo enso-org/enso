@@ -87,7 +87,7 @@ ssl_mode_to_jdbc_properties use_ssl = case use_ssl of
             [Pair.new 'sslmode' 'verify-full', Pair.new 'sslrootcert' (File.new cert_file).absolute.path]
 
 ## PRIVATE
-default_postgres_host = Environment.get_or_else "PGHOST" "localhost"
+default_postgres_host = Environment.get "PGHOST" "localhost"
 
 ## PRIVATE
 default_postgres_port =
@@ -97,4 +97,4 @@ default_postgres_port =
         port -> Integer.parse port . catch Number_Parse_Error.Error (_->hardcoded_port)
 
 ## PRIVATE
-default_postgres_database = Environment.get_or_else "PGDATABASE" ""
+default_postgres_database = Environment.get "PGDATABASE" ""

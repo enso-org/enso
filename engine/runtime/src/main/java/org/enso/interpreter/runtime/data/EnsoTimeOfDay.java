@@ -14,10 +14,8 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
@@ -35,7 +33,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
       description = "Constructs a new DateTime from text with optional pattern",
       autoRegister = false)
   @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeParseException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay parse(String text) {
     return new EnsoTimeOfDay(LocalTime.parse(text));
@@ -45,7 +43,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
       name = "new_builtin",
       description = "Constructs a new Time_OF_Day from an hour",
       autoRegister = false)
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeOfDay create(long hour, long minute, long second, long nanosecond) {
     return new EnsoTimeOfDay(
@@ -84,7 +82,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
 
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this Time_Of_Day")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
   public EnsoTimeOfDay plus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
@@ -96,7 +94,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
       name = "minus_builtin",
       description = "Subtracts a duration from this Time_Of_Day")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   @TruffleBoundary
   public EnsoTimeOfDay minus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {

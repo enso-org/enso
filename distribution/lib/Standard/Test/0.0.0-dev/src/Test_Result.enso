@@ -28,3 +28,9 @@ type Test_Result
     is_fail self = case self of
         Test_Result.Failure _ _ -> True
         _ -> False
+
+    ## Checks if the Test_Result is a success.
+    is_success : Boolean
+    is_success self = case self of
+        Test_Result.Success -> True
+        _ -> False

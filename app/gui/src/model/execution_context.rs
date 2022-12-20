@@ -493,6 +493,14 @@ pub trait API: Debug {
         let detach_actions = visualizations.into_iter().map(move |v| self.detach_visualization(v));
         futures::future::join_all(detach_actions).boxed_local()
     }
+
+    /// Interrupt the program execution.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn interrupt<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
+    /// Restart the program execution.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn restart<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes

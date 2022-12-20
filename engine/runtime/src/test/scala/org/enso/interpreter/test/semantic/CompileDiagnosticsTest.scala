@@ -12,9 +12,10 @@ class CompileDiagnosticsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Error.Common import Syntax_Error
           |import Standard.Base.Panic.Panic
+          |import Standard.Base.Any.Any
           |
           |main =
-          |    x = Panic.catch_primitive () .convert_to_dataflow_error
+          |    x = Panic.catch Any () .convert_to_dataflow_error
           |    x.catch_primitive err->
           |        case err of
           |            Syntax_Error.Error msg -> "Oopsie, it's a syntax error: " + msg
@@ -40,12 +41,13 @@ class CompileDiagnosticsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Error.Common import all
           |import Standard.Base.Panic.Panic
+          |import Standard.Base.Any.Any
           |
           |foo =
           |    x = 1
           |    x = 2
           |
-          |main = Panic.catch_primitive foo caught_panic->caught_panic.payload.to_text
+          |main = Panic.catch Any foo caught_panic->caught_panic.payload.to_text
           |""".stripMargin
       eval(
         code
@@ -56,12 +58,13 @@ class CompileDiagnosticsTest extends InterpreterTest {
       val code =
         """from Standard.Base.Error.Common import all
           |import Standard.Base.Panic.Panic
+          |import Standard.Base.Any.Any
           |
           |foo =
           |    my_var = 10
           |    my_vra
           |
-          |main = Panic.catch_primitive foo caught_panic-> caught_panic.payload.to_text
+          |main = Panic.catch Any foo caught_panic-> caught_panic.payload.to_text
           |""".stripMargin
       eval(
         code

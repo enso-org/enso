@@ -62,6 +62,8 @@
           java/:
   target/:
     generated-java/:
+  test/:
+    Benchmarks/:
   tools/:
     ci/:
       docker/:

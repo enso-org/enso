@@ -1,15 +1,11 @@
     package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileWriter;
 import java.nio.file.Paths;
 import java.util.AbstractList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -38,19 +34,17 @@ public class VectorBenchmarks {
 
   @Setup
   public void initializeBenchmark(BenchmarkParams params) throws Exception {
-    Engine eng = Engine.newBuilder()
+    var ctx = Context.newBuilder()
       .allowExperimentalOptions(true)
+      .allowIO(true)
+      .allowAllAccess(true)
       .logHandler(new ByteArrayOutputStream())
       .option(
         "enso.languageHomeOverride",
         Paths.get("../../distribution/component").toFile().getAbsolutePath()
       ).build();
-    var ctx = Context.newBuilder()
-      .engine(eng)
-      .allowIO(true)
-      .allowAllAccess(true)
-      .build();
 
+    var benchmarkName = params.getBenchmark().replaceFirst(".*\\.", "");
     var code = """
         import Standard.Base.Data.Vector.Vector
         import Standard.Base.Data.Array_Proxy.Array_Proxy
@@ -80,8 +74,11 @@ public class VectorBenchmarks {
           proxy.init size at
         create_array_proxy vec =
           Array_Proxy.from_proxy_object vec
+        create_array_proxy_new vec =
+          Array_Proxy.new vec.length (i -> vec.at i)
         """;
-    var module = ctx.eval("enso", code);
+
+    var module = ctx.eval(SrcUtil.source(benchmarkName, code));
 
     this.self = module.invokeMember("get_associated_type");
     Function<String,Value> getMethod = (name) -> module.invokeMember("get_method", self, name);
@@ -89,7 +86,7 @@ public class VectorBenchmarks {
     var length = 1000;
     Value vec = getMethod.apply("fibarr").execute(self, length, Integer.MAX_VALUE);
 
-    switch (params.getBenchmark().replaceFirst(".*\\.", "")) {
+    switch (benchmarkName) {
       case "averageOverVector": {
         this.arrayOfFibNumbers = vec;
         break;
@@ -114,6 +111,10 @@ public class VectorBenchmarks {
       }
       case "averageOverArrayProxy": {
         this.arrayOfFibNumbers = getMethod.apply("create_array_proxy").execute(self, vec);
+        break;
+      }
+      case "averageOverArrayProxyNew": {
+        this.arrayOfFibNumbers = getMethod.apply("create_array_proxy_new").execute(self, vec);
         break;
       }
       case "averageAbstractList": {
@@ -169,11 +170,16 @@ public class VectorBenchmarks {
   }
 
   @Benchmark
+  public void averageOverArrayProxyNew(Blackhole matter) {
+    performBenchmark(matter);
+  }
+
+  @Benchmark
   public void averageAbstractList(Blackhole matter) {
     performBenchmark(matter);
   }
 
-  private void performBenchmark(Blackhole matter) throws AssertionError {
+  private void performBenchmark(Blackhole hole) throws AssertionError {
     var average = avg.execute(self, arrayOfFibNumbers);
     if (!average.fitsInDouble()) {
       throw new AssertionError("Shall be a double: " + average);
@@ -183,7 +189,7 @@ public class VectorBenchmarks {
     if (!isResultCorrect) {
       throw new AssertionError("Expecting reasonable average but was " + result + "\n" + arrayOfFibNumbers);
     }
-    matter.consume(result);
+    hole.consume(result);
   }
 
   public static final class ProxyList<T> extends AbstractList<T> {

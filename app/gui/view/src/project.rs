@@ -24,13 +24,22 @@ use ensogl::application;
 use ensogl::application::shortcut;
 use ensogl::application::Application;
 use ensogl::display;
-use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl::system::web::dom;
-use ensogl::Animation;
 use ensogl::DEPRECATED_Animation;
 use ensogl_hardcoded_theme::Theme;
 use ide_view_graph_editor::NodeSource;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+/// A time which must pass since last change of expression of node which is the searcher input
+/// to send `searcher_input_changed` event. The delay ensures we don't needlessly update Component
+/// Browser when user is quickly typing in the expression input.
+const INPUT_CHANGE_DELAY_MS: i32 = 200;
 
 
 
@@ -74,20 +83,25 @@ ensogl::define_endpoints! {
         undo(),
         /// Redo the last undone action.
         redo(),
-        /// Show the prompt informing about tab key if it is not disabled.
-        show_prompt(),
-        /// Disable the prompt. It will be hidden if currently visible.
-        disable_prompt(),
         // Enable Debug Mode of Graph Editor.
         enable_debug_mode(),
         // Disable Debug Mode of Graph Editor.
         disable_debug_mode(),
         /// A set of value updates has been processed and rendered.
         values_updated(),
+        /// Interrupt the running program.
+        execution_context_interrupt(),
+        /// Restart the program execution.
+        execution_context_restart(),
     }
 
     Output {
         searcher                       (Option<SearcherParams>),
+        /// The searcher input has changed and the Component Browser content should be refreshed.
+        /// Is **not** emitted with every graph's node expression change, only when
+        /// [`INPUT_CHANGE_DELAY_MS`] passes since last change, so we won't needlessly update the
+        /// Component Browser when user is quickly typing in the input.
+        searcher_input_changed         (ImString),
         is_searcher_opened             (bool),
         adding_new_node                (bool),
         old_expression_of_edited_node  (Expression),
@@ -105,30 +119,6 @@ ensogl::define_endpoints! {
 
 
 
-// ==============
-// === Shapes ===
-// ==============
-
-mod prompt_background {
-    use super::*;
-
-    ensogl::shape! {
-        (style:Style, color_rgba:Vector4<f32>) {
-            let width         = Var::<Pixels>::from("input_size.x");
-            let height        = Var::<Pixels>::from("input_size.y");
-
-            let corner_radius = style.get_number(ensogl_hardcoded_theme::graph_editor::prompt::background::corner_radius);
-            let shape         = Rect((&width,&height));
-            let shape         = shape.corners_radius(corner_radius.px());
-            let bg            = shape.fill(color_rgba);
-
-            bg.into()
-        }
-    }
-}
-
-
-
 // =============
 // === Model ===
 // =============
@@ -139,6 +129,7 @@ struct SearcherFrp {
     editing_committed: frp::Stream,
     is_visible:        frp::Stream<bool>,
     is_empty:          frp::Stream<bool>,
+    is_hovered:        frp::Stream<bool>,
 }
 
 /// A structure containing the Searcher View: the old Node Searcher of a new Component Browser.
@@ -162,12 +153,6 @@ impl SearcherVariant {
         }
     }
 
-    fn set_navigator(&self, navigator: Navigator) {
-        if let Self::ComponentBrowser(browser) = self {
-            browser.model().list.model().set_navigator(Some(navigator))
-        }
-    }
-
     fn frp(&self, project_view_network: &frp::Network) -> SearcherFrp {
         match self {
             SearcherVariant::ComponentBrowser(view) => {
@@ -181,9 +166,11 @@ impl SearcherVariant {
                     editing_committed,
                     is_visible: view.output.is_visible.clone_ref().into(),
                     is_empty: is_empty.into(),
+                    is_hovered: view.output.is_hovered.clone_ref().into(),
                 }
             }
             SearcherVariant::OldNodeSearcher(view) => {
+                let documentation = view.documentation();
                 frp::extend! {project_view_network
                     editing_committed <- view.editing_committed.constant(());
                 }
@@ -191,6 +178,7 @@ impl SearcherVariant {
                     editing_committed,
                     is_visible: view.output.is_visible.clone_ref().into(),
                     is_empty: view.output.is_empty.clone_ref().into(),
+                    is_hovered: documentation.frp.is_hovered.clone_ref().into(),
                 }
             }
         }
@@ -259,8 +247,6 @@ struct Model {
     searcher:               SearcherVariant,
     code_editor:            code_editor::View,
     fullscreen_vis:         Rc<RefCell<Option<visualization::fullscreen::Panel>>>,
-    prompt_background:      prompt_background::View,
-    prompt:                 ensogl_text::Text,
     open_dialog:            Rc<OpenDialog>,
     debug_mode_popup:       debug_mode_popup::View,
 }
@@ -272,11 +258,8 @@ impl Model {
         let display_object = display::object::Instance::new();
         let searcher = SearcherVariant::new(app);
         let graph_editor = app.new_view::<GraphEditor>();
-        searcher.set_navigator(graph_editor.model.navigator.clone_ref());
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
-        let prompt_background = prompt_background::View::new();
-        let prompt = ensogl_text::Text::new(app);
         let debug_mode_popup = debug_mode_popup::View::new(app);
         let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
@@ -287,16 +270,9 @@ impl Model {
         let window_control_buttons = Immutable(window_control_buttons);
         let open_dialog = Rc::new(OpenDialog::new(app));
 
-        prompt_background.add_child(&prompt);
-        prompt.set_content("Press the tab key to search for components.");
-        scene.layers.panel.add(&prompt_background);
-        scene.layers.main.remove(&prompt);
-        prompt.add_to_scene_layer(&scene.layers.panel_text);
-
         display_object.add_child(&graph_editor);
         display_object.add_child(&code_editor);
         display_object.add_child(&searcher);
-        display_object.add_child(&prompt_background);
         display_object.add_child(&debug_mode_popup);
         display_object.remove_child(&searcher);
 
@@ -311,8 +287,6 @@ impl Model {
             searcher,
             code_editor,
             fullscreen_vis,
-            prompt_background,
-            prompt,
             open_dialog,
             debug_mode_popup,
         }
@@ -496,7 +470,6 @@ impl View {
         let project_list = &model.open_dialog.project_list;
         let file_browser = &model.open_dialog.file_browser;
         let searcher_anchor = DEPRECATED_Animation::<Vector2<f32>>::new(network);
-        let prompt_visibility = Animation::new(network);
 
         // FIXME[WD]: Think how to refactor it, as it needs to be done before model, as we do not
         //   want shader recompilation. Model uses styles already.
@@ -504,9 +477,7 @@ impl View {
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
         app.themes.update();
-
-        let style_sheet = &scene.style_sheet;
-        let styles = StyleWatchFrp::new(style_sheet);
+        let input_change_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {
             let initial_size = &window_control_buttons.size.value();
@@ -631,6 +602,13 @@ impl View {
             frp.source.searcher <+ existing_node_edited.map(
                 |&node| Some(SearcherParams::new_for_edited_node(node))
             );
+            searcher_input_change_opt <- graph.node_expression_set.map2(&frp.searcher, |(node_id, expr), searcher| {
+                (searcher.as_ref()?.input == *node_id).then(|| expr.clone_ref())
+            });
+            searcher_input_change <- searcher_input_change_opt.filter_map(|expr| expr.clone());
+            input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
+            frp.source.searcher_input_changed <+ searcher_input_change.sample(&input_change_delay.on_expired);
+
 
 
             // === Searcher Position and Visibility ===
@@ -699,53 +677,13 @@ impl View {
                 }
             });
 
-
-            // === Prompt ===
-
             init <- source::<()>();
-            let prompt_bg_color_path   = ensogl_hardcoded_theme::graph_editor::prompt::background;
-            let prompt_bg_padding_path = ensogl_hardcoded_theme::graph_editor::prompt::background::padding;
-            let prompt_color_path      = ensogl_hardcoded_theme::graph_editor::prompt::text;
-            let prompt_size_path       = ensogl_hardcoded_theme::graph_editor::prompt::text::size;
-            let prompt_bg_color        = styles.get_color(prompt_bg_color_path);
-            prompt_bg_color            <- all(&prompt_bg_color,&init)._0();
-            let prompt_bg_padding      = styles.get_number(prompt_bg_padding_path);
-            prompt_bg_padding          <- all(&prompt_bg_padding,&init)._0();
-            let prompt_color           = styles.get_color(prompt_color_path);
-            prompt_color               <- all(&prompt_color,&init)._0();
-            let prompt_size            = styles.get_number(prompt_size_path);
-            prompt_size                <- all(&prompt_size,&init)._0();
-
-            disable_after_opening_searcher <- frp.searcher.filter_map(|s| s.map(|_| ()));
-            disable                        <- any(frp.disable_prompt,disable_after_opening_searcher);
-            disabled                       <- disable.constant(true);
-            show_prompt                    <- frp.show_prompt.gate_not(&disabled);
-
-            prompt_visibility.target <+ show_prompt.constant(1.0);
-            prompt_visibility.target <+ disable.constant(0.0);
-            _eval <- all_with4(&prompt_visibility.value,&prompt_bg_color,&prompt_color,&prompt_size,
-                f!([model](weight,bg_color,color,size) {
-                    let mut bg_color = *bg_color;
-                    bg_color.alpha  *= weight;
-                    let mut color    = *color;
-                    color.alpha     *= weight;
-                    model.prompt_background.color_rgba.set(bg_color.into());
-                    model.prompt.set_property(.., color);
-                    model.prompt.set_property_default(ensogl_text::Size(*size));
-                })
-            );
-            _eval <- all_with3(&model.prompt.width,&prompt_size,&prompt_bg_padding,
-                f!([model](width,size,padding) {
-                    model.prompt.set_x(- *width / 2.0);
-                    model.prompt_background.size.set(Vector2(*width + padding, *size + padding));
-                })
-            );
-
 
             // === Disabling Navigation ===
 
             let documentation = model.searcher.documentation();
-            disable_navigation           <- documentation.frp.is_selected || frp.open_dialog_shown;
+            searcher_active <- searcher.is_hovered || documentation.frp.is_selected;
+            disable_navigation <- searcher_active || frp.open_dialog_shown;
             graph.set_navigator_disabled <+ disable_navigation;
 
             // === Disabling Dropping ===
@@ -763,7 +701,6 @@ impl View {
         }
         model.searcher.setup_anchor(network, &searcher_anchor.value);
         init.emit(());
-        std::mem::forget(prompt_visibility);
 
         Self { model, frp }
     }
@@ -825,15 +762,14 @@ impl application::View for View {
             (Press, "!is_searcher_opened", "cmd o", "show_open_dialog"),
             (Press, "is_searcher_opened", "escape", "close_searcher"),
             (Press, "open_dialog_shown", "escape", "close_open_dialog"),
-            (Press, "", "tab", "disable_prompt"),
-            (Press, "", "cmd o", "disable_prompt"),
-            (Press, "", "space", "disable_prompt"),
             (Press, "", "cmd alt shift t", "toggle_style"),
             (Press, "", "cmd s", "save_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
+            (Press, "", "cmd shift t", "execution_context_interrupt"),
+            (Press, "", "cmd shift r", "execution_context_restart"),
         ]
         .iter()
         .map(|(a, b, c, d)| Self::self_shortcut_when(*a, *c, *d, *b))

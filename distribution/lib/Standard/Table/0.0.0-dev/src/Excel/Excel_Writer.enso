@@ -60,17 +60,17 @@ write_file file table on_existing_file section headers match_columns _ xls_forma
 ## PRIVATE
    Handle and map the Java errors when writing an Excel file
 handle_writer ~writer =
-    bad_location caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.cause.getCause)
+    bad_location caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.getCause)
     handle_bad_location = Panic.catch InvalidLocationException handler=bad_location
 
-    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded.Error caught_panic.payload.cause.getMessage)
+    throw_range_exceeded caught_panic = Error.throw (Range_Exceeded.Error caught_panic.payload.getMessage)
     handle_range_exceeded = Panic.catch RangeExceededException handler=throw_range_exceeded
 
-    throw_existing_data caught_panic = Error.throw (Existing_Data.Error caught_panic.payload.cause.getMessage)
+    throw_existing_data caught_panic = Error.throw (Existing_Data.Error caught_panic.payload.getMessage)
     handle_existing_data = Panic.catch ExistingDataException handler=throw_existing_data
 
     ## Should be impossible - occurs if no fallback serializer is provided.
-    throw_illegal_state caught_panic = Panic.throw (Illegal_State.Error caught_panic.payload.cause.getMessage)
+    throw_illegal_state caught_panic = Panic.throw (Illegal_State.Error caught_panic.payload.getMessage)
     handle_illegal_state = Panic.catch IllegalStateException handler=throw_illegal_state
 
     handle_illegal_state <| Column_Name_Mismatch.handle_java_exception <|

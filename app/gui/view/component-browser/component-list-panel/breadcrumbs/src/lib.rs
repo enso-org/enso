@@ -206,7 +206,7 @@ impl Model {
     /// fit into [`size`], it is cropped by the rectangular [`mask`] and shifted left. So that
     /// the user always sees the right (most important) part of the breadcrumbs.
     fn update_layout(&self, content_size: Vector2, size: Vector2) {
-        self.mask.size.set(size);
+        self.mask.set_size(size);
         let grid_view_center = Vector2(size.x / 2.0, -size.y / 2.0);
         self.mask.set_xy(grid_view_center);
         let offset = self.offset(content_size, size);

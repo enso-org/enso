@@ -219,7 +219,7 @@ impl View {
             // === Update DOM's size so CSS styles work correctly. ===
 
             let scene_size = app.display.default_scene.shape().clone_ref();
-            eval scene_size ((size) model.dom.set_size(Vector2::from(*size)));
+            eval scene_size ((size) model.dom.set_dom_size(Vector2::from(*size)));
         }
         frp::extend! { network
             // === Setup event handlers for all WelcomeScreen components. ===
