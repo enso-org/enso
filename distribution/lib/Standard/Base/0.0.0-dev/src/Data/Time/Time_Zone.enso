@@ -8,6 +8,7 @@ import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 
+polyglot java import java.lang.Exception as JException
 polyglot java import java.time.ZoneId
 polyglot java import java.time.ZoneOffset
 polyglot java import org.enso.base.Time_Utils
@@ -141,7 +142,7 @@ type Time_Zone
              example_parse = Time_Zone.parse "+03:02:01"
     parse : Text -> Time_Zone ! Time_Error
     parse text =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error.Error java_exception.getMessage)) <|
+        Panic.catch JException handler=(catch -> Error.throw (Time_Error.Error catch.payload.getMessage)) <|
             parse_builtin text
 
     ## Get the unique timezone ID.

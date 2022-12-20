@@ -362,8 +362,8 @@ macro_rules! fn_helper {
         #[allow(unused_variables)]
         fn $name(&self, $($arg : $arg_tp),*) {
             match self {
-                Self::Single ($this) => $($body1)*,
-                Self::Multi  ($this) => $($body2)*,
+                Self::Single ($this) => { $($body1)* }
+                Self::Multi  ($this) => { $($body2)* }
             }
         }
     )*};
@@ -392,7 +392,7 @@ impl PortShapeView {
     }
 
     fn_both! {
-        set_size            (this,t:Vector2)     {this.size.set(t)}
+        set_size            (this,t:Vector2)     {this.set_size(t);}
         set_size_multiplier (this,t:f32)         {this.size_multiplier.set(t)}
         set_color           (this,t:color::Rgba) {this.color_rgb.set(t.opaque.into())}
         set_opacity         (this,t:f32)         {this.opacity.set(t)}

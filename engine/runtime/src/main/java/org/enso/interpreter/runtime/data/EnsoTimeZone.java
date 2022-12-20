@@ -7,7 +7,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -38,7 +37,7 @@ public final class EnsoTimeZone implements TruffleObject {
       description = "Parse the ID producing a Time_Zone.",
       autoRegister = false)
   @Builtin.Specialize
-  @Builtin.WrapException(from = ZoneRulesException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = ZoneRulesException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone parse(String text) {
     return new EnsoTimeZone(ZoneId.of(text));
@@ -49,7 +48,7 @@ public final class EnsoTimeZone implements TruffleObject {
       description =
           "Obtains an instance of `Time_Zone` using an offset in hours, minutes and seconds from the UTC zone.",
       autoRegister = false)
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoTimeZone create(long hours, long minutes, long seconds) {
     return new EnsoTimeZone(

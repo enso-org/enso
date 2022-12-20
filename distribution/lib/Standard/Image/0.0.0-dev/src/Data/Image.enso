@@ -5,6 +5,7 @@ import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
 import project.Data.Matrix_Error.Matrix_Error
 
+polyglot java import java.lang.Exception as JException
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 polyglot java import org.enso.image.data.Image as Java_Image
 polyglot java import org.enso.image.Codecs as Java_Codecs
@@ -69,7 +70,7 @@ type Image
                 if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                     flags.map .to_integer . reduce (_.bit_or _)
             _ -> flags.to_integer
-        Panic.catch_java Any (Image.Value (Java_Codecs.read path read_flags)) _->
+        Panic.catch JException (Image.Value (Java_Codecs.read path read_flags)) _->
             Error.throw (File_Error.IO_Error (File.new path) 'Failed to read the file')
 
     ## UNSTABLE
@@ -100,7 +101,7 @@ type Image
             _ : Vector -> flags
             _ -> [flags]
         int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
-        Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
+        Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
             Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
 
     ## UNSTABLE

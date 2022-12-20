@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Error.Common.Polyglot_Error
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Time_Error.Time_Error
 
@@ -430,20 +429,20 @@ js_set_zone local_datetime =
     (datetime_with_tz + diff).date
 
 js_date year month=1 day=1 =
-    Panic.catch Any (js_set_zone (js_date_impl year month day)) (err -> Error.throw (Time_Error.Error err.payload.cause))
+    Panic.catch Any (js_set_zone (js_date_impl year month day)) (err -> Error.throw (Time_Error.Error err.payload))
 
 js_array_date year month=1 day=1 =
-    arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time_Error.Error err.payload.cause))
+    arr = Panic.catch Any (js_array_dateCreate year month day) (err -> Error.throw (Time_Error.Error err.payload))
     js_set_zone arr.at(0)
 
 java_parse date_text pattern=Nothing =
-    Panic.catch Polyglot_Error.Error handler=(err -> Error.throw (Time_Error.Error err.payload.cause.getMessage)) <|
+    Panic.catch Any handler=(err -> Error.throw (Time_Error.Error err.payload.getMessage)) <|
         if pattern.is_nothing then LocalDate.parse date_text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDate.parse date_text formatter
 
 java_date year month=1 day=1 =
-    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
+    Panic.catch Any (LocalDate.of year month day) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
 
 foreign js js_date_impl year month=1 day=1 = """
     if (month > 12) {

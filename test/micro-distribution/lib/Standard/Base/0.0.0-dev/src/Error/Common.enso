@@ -3,10 +3,6 @@ type Syntax_Error
     Error message
 
 @Builtin_Type
-type Polyglot_Error
-    Error cause
-
-@Builtin_Type
 type Arithmetic_Error
     Error message
 

@@ -27,4 +27,7 @@ pub mod code {
 
     /// Signals that requested file doesn’t exist.
     pub const FILE_NOT_FOUND: i64 = 1003;
+
+    /// Signals that requested project is already under version control.
+    pub const VCS_ALREADY_EXISTS: i64 = 1005;
 }

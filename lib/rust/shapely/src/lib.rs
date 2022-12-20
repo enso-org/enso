@@ -33,6 +33,13 @@ pub use generator::GeneratingIterator;
 
 
 
+/// A macro which passes its input to its output.
+#[macro_export]
+macro_rules! identity {
+    ($($ts:tt)*) => {$($ts)*}
+}
+
+
 /// Replaces the first argument with the second one. It is useful when creating macros which match
 /// a pattern and you want to generate as many repetitions of a token as there was matches. For
 /// example, when matching `$($name:ident)*`, you may want to generate as many empty tuples as
