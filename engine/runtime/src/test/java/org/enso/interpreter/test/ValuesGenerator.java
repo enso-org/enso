@@ -272,7 +272,7 @@ class ValuesGenerator {
 
     for (var v : collect) {
       assertFalse("It's not a number" + v, v.isNumber());
-      assertTrue("It's not a string" + v, v.isString());
+      assertTrue("It is a string" + v, v.isString());
     }
     return collect;
   }
