@@ -40,26 +40,26 @@ public class ArrayProxyBenchmarks {
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .build();
     var ctx = Context.newBuilder().engine(eng).allowIO(true).allowAllAccess(true).build();
-    var module =
-        ctx.eval(
-            "enso",
-            "import Standard.Base.Data.Vector\n" +
-            "from Standard.Base.Data.Array_Proxy import Array_Proxy\n" +
-            "sum arr =\n" +
-            "    go acc i = if i >= arr.length then acc else\n" +
-            "        @Tail_Call go (acc + arr.at i) i+1\n" +
-            "    go 0 0\n" +
-            "\n" +
-            "make_vector n =\n" +
-            "    Vector.new n (i -> 3 + 5*i)\n" +
-            "make_computing_proxy n =\n" +
-            "    Array_Proxy.new n (i -> 3 + 5*i)\n" +
-            "make_delegating_proxy n =\n" +
-            "    Array_Proxy.from_proxy_object (make_vector n)\n" +
-            "make_computing_vector n =\n" +
-            "    Vector.from_polyglot_array (make_computing_proxy n)\n" +
-            "make_delegating_vector n =\n" +
-            "    Vector.from_polyglot_array (make_delegating_proxy n)\n");
+    var code = """
+        import Standard.Base.Data.Vector.Vector
+        import Standard.Base.Data.Array_Proxy.Array_Proxy
+        sum arr =
+            go acc i = if i >= arr.length then acc else
+                @Tail_Call go (acc + arr.at i) i+1
+            go 0 0
+
+        make_vector n =
+            Vector.new n (i -> 3 + 5*i)
+        make_computing_proxy n =
+            Array_Proxy.new n (i -> 3 + 5*i)
+        make_delegating_proxy n =
+            Array_Proxy.from_proxy_object (make_vector n)
+        make_computing_vector n =
+            Vector.from_polyglot_array (make_computing_proxy n)
+        make_delegating_vector n =
+            Vector.from_polyglot_array (make_delegating_proxy n)
+        """;
+    var module = ctx.eval("enso", code);
 
     this.self = module.invokeMember("get_associated_type");
     Function<String, Value> getMethod = (name) -> module.invokeMember("get_method", self, name);

@@ -1,8 +1,9 @@
 ## This benchmark reproduces the benchmark from `engine/runtime/src/bench/java/org/enso/interpreter/bench/benchmarks/semantic/ArrayProxyBenchmarks.java`.
-import Standard.Base.Data.Vector
-from Standard.Base.Data.Array_Proxy import Array_Proxy
 from Standard.Base import all
 from Standard.Test import Bench
+
+import Standard.Base.Data.Vector.Vector
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 
 sum arr =
     go acc i = if i >= arr.length then acc else
@@ -24,7 +25,7 @@ vector_size = 10000
 iter_size = 100
 num_iterations = 10
 
-main =
+bench =
     vec = make_vector vector_size
     computing_proxy = make_computing_proxy vector_size
     delegating_proxy = make_delegating_proxy vector_size
@@ -36,3 +37,5 @@ main =
     Bench.measure (sum delegating_proxy) "Sum Delegating Proxy" iter_size num_iterations
     Bench.measure (sum computing_proxied_vec) "Sum Vector relying on Computing Proxy" iter_size num_iterations
     Bench.measure (sum delegating_proxied_vec) "Sum Vector relying on Delegating Proxy" iter_size num_iterations
+
+main = bench
