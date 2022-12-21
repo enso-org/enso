@@ -48,7 +48,7 @@ spec =
         Test.specify "should pretend to just be an Array" <|
             proxy = Array_Proxy.new 3 (ix -> ix + 10)
             ok_match = case proxy of
-                _ : Vector.Vector -> "Vector"
+                _ : Vector -> "Vector"
                 _ : Array -> "Array"
                 _ -> "other"
             ok_match . should_equal "Array"

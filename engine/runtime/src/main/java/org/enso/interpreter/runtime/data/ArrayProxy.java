@@ -32,7 +32,6 @@ public final class ArrayProxy implements TruffleObject {
   private final long length;
   private final Object at;
 
-  @Builtin.Method(description = "Creates an array backed by a proxy object.")
   public ArrayProxy(long length, Object at) {
     if (CompilerDirectives.inInterpreter()) {
       InteropLibrary interop = InteropLibrary.getUncached();
@@ -46,16 +45,17 @@ public final class ArrayProxy implements TruffleObject {
     if (length < 0) {
       CompilerDirectives.transferToInterpreter();
       InteropLibrary interop = InteropLibrary.getUncached();
-      throw new PanicException(
-          EnsoContext.get(interop)
-              .getBuiltins()
-              .error()
-              .makeIllegalArgument("Array_Proxy length cannot be negative."),
-          interop);
+      Exception exc = new IllegalArgumentException("Array_Proxy length cannot be negative.");
+      throw new PanicException(EnsoContext.get(interop).getEnvironment().asGuestValue(exc), interop);
     }
 
     this.length = length;
     this.at = at;
+  }
+
+  @Builtin.Method(name = "new_builtin", description = "Creates an array backed by a proxy object.")
+  public static ArrayProxy create(long length, Object at) {
+    return new ArrayProxy(length, at);
   }
 
   @ExportMessage
