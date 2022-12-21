@@ -108,6 +108,9 @@
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
   and Web versions of the IDE.
+- [Added Project State Icon/Spinner for Cloud Dashboard][3962]. Adds an interactive icon/spinner
+  that displays the current state (i.e. running, not running) of a project in the
+  Cloud Dashboard, and is used to start/stop projects.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 
