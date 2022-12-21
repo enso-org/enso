@@ -264,6 +264,7 @@
 - [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
+- [Enable Date, Time and DateTime to be read and written to Excel.][3997]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -415,6 +416,7 @@
 [3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
+[3997]: https://github.com/enso-org/enso/pull/3997
 
 #### Enso Compiler
 

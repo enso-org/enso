@@ -1,5 +1,6 @@
 //! Example scene showing a documentation panel of the component browser.
 
+use ensogl::display::shape::*;
 use ensogl::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -8,12 +9,12 @@ use crate::mock_suggestion_database;
 use crate::model::suggestion_database;
 use crate::model::suggestion_database::Entry;
 use crate::model::SuggestionDatabase;
+
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::shape::StyleWatchFrp;
-use ensogl::display::shape::*;
 use ensogl::frp;
 use ensogl::shape;
 use ensogl::system::web;

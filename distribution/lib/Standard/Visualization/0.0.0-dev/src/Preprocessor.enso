@@ -17,4 +17,7 @@ error_preprocessor x =
         stack_trace = x.get_stack_trace_text.if_nothing "" . split '\n'
         full_message = message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
         JS_Object.from_pairs [['kind', 'Dataflow'], ['message', full_message]] . to_json
-    if result.is_error then result.catch else ok
+
+    ## Workaround so that the JS String is converted to a Text
+       https://www.pivotaltracker.com/story/show/184061302
+    "" + if result.is_error then result.catch else ok

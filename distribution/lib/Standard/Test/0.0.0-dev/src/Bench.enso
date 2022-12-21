@@ -21,7 +21,7 @@ type Bench
                  Bench.measure Examples.get_boolean "foo" iter_size=2 num_iters=1
     measure : Any -> Text -> Integer -> Integer -> Nothing
     measure = ~act -> label -> iter_size -> num_iters  ->
-        dry_run = Environment.get_or_else "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
+        dry_run = Environment.get "ENSO_BENCHMARK_TEST_DRY_RUN" "False" == "True"
         result = Ref.new 0.0
         single_call = _ ->
             x1 = System.nano_time
