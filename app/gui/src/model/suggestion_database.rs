@@ -23,7 +23,6 @@ use language_server::types::SuggestionsDatabaseVersion;
 
 pub mod entry;
 pub mod example;
-#[cfg(test)]
 pub mod mock;
 
 pub use entry::Entry;
@@ -445,7 +444,6 @@ impl SuggestionDatabase {
 
     /// Put the entry to the database. Using this function likely breaks the synchronization between
     /// Language Server and IDE, and should be used only in tests.
-    #[cfg(test)]
     pub fn put_entry(&self, id: entry::Id, entry: Entry) {
         let mut qn_to_id_map = self.qualified_name_to_id_map.borrow_mut();
         qn_to_id_map.set_and_warn_if_existed(&entry.qualified_name(), id);

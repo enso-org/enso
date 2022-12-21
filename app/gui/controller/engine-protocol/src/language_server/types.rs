@@ -730,6 +730,13 @@ pub enum StackItem {
     LocalCall(LocalCall),
 }
 
+/// Expressions to invalidate when restarting the program.
+#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(missing_docs)]
+pub enum InvalidatedExpressions {
+    All,
+}
 
 // ==============================
 // === CapabilityRegistration ===

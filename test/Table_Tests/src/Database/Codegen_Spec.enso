@@ -30,15 +30,17 @@ spec =
     Test.group "[Codegen] JSON serialization" <|
         Test.specify "should serialize Tables and Columns to their SQL representation" <|
             q1 = t1.filter (t1.at "A" == 42) . to_json
-            part1 = Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
-            interp = Json.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
-            part2 = Json.from_pairs [["sql_interpolation", interp]]
-            part3 = Json.from_pairs [["sql_code", ")"]]
-            expected = Json.from_pairs [["query", Json.Array [part1, part2, part3]]]
+
+            part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
+            part2_sub = JS_Object.from_pairs [["value", 42], ["expected_sql_type", "INTEGER"]]
+            part2 = JS_Object.from_pairs [["sql_interpolation", part2_sub]]
+            part3 = JS_Object.from_pairs [["sql_code", ")"]]
+            expected = JS_Object.from_pairs [["query", [part1, part2, part3]]] . to_text
             q1.should_equal expected
 
             q2 = t1.at "A" . to_json
-            q2.should_equal (Json.from_pairs [["query", Json.Array [Json.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A" FROM "T1" AS "T1"']]]]])
+            expected_2 = JS_Object.from_pairs [["query", [JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A" FROM "T1" AS "T1"']]]]] . to_text
+            q2.should_equal expected_2
 
     Test.group "[Codegen] Basic Select" <|
         Test.specify "should select columns from a table" <|
@@ -61,7 +63,7 @@ spec =
 
         Test.specify "should work correctly when there are no columns" <|
             empty = t1.select_columns (Column_Selector.By_Name [])
-            json = Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
+            json = JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]] . to_text
             empty.to_json . should_equal json
             empty.column_count . should_equal 0
             empty.to_sql . should_fail_with Unsupported_Database_Operation.Error

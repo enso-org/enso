@@ -1951,6 +1951,10 @@ class RuntimeVisualizationsTest
   }
 
   it should "run internal IDE visualisation preprocessor catching error" in {
+    pending
+    // TODO [JD]: Disabled due to issue with context not allowing JS functions.
+    // https://www.pivotaltracker.com/story/show/184064564
+
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()

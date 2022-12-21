@@ -1,0 +1,43 @@
+from Standard.Base import all
+
+## PRIVATE
+   A type of GeoJSON object.
+type Object_Type
+    ## PRIVATE
+       A Geo JSON feature.
+    Feature
+
+    ## PRIVATE
+       A Geo JSON feature collection.
+    Feature_Collection
+
+    ## PRIVATE
+       Convert GeoJSON object type to Text.
+    to_text : Text
+    to_text self = case self of
+        Object_Type.Feature -> "Feature"
+        Object_Type.Feature_Collection -> "FeatureCollection"
+
+## PRIVATE
+   Get JS_Object of a Feature GeoJSON object with properties and geometry merged.
+get_feature_row : JS_Object -> JS_Object
+get_feature_row feature =
+    properties_row = feature.get "properties" . to_vector
+    geometry_row = get_geometry_row feature
+    JS_Object.from_pairs (geometry_row + properties_row)
+
+## PRIVATE
+   Get column key-value pairs of a feature's "geometry" object.
+get_geometry_row : JS_Object -> Any
+get_geometry_row feature =
+    geometry = feature.get "geometry"
+    if geometry.get "type" == "Point" then get_point_row geometry else []
+
+## PRIVATE
+   Get column key-value pairs of a "Point" geometry object.
+get_point_row : JS_Object -> Vector
+get_point_row value =
+    fields = ["longitude", "latitude", "elevation"]
+    case value.get "coordinates" of
+        vector : Vector -> fields.zip vector
+        _ -> []

@@ -56,7 +56,7 @@ const args = await yargs(process.argv.slice(2))
             default: Platform.current().toString(),
             coerce: (p: string) => Platform.fromString(p),
         },
-        targetOverride: {
+        target: {
             type: 'string',
             description: 'Overwrite the platform-default target',
         },
@@ -72,7 +72,7 @@ const config: Configuration = {
     artifactName: 'enso-${os}-${version}.${ext}',
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: (args.targetOverride as MacOsTargetName) ?? 'dmg',
+        target: (args.target as MacOsTargetName) ?? 'dmg',
         icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
@@ -90,12 +90,12 @@ const config: Configuration = {
     },
     win: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: args.targetOverride ?? 'nsis',
+        target: args.target ?? 'nsis',
         icon: `${args.iconsDist}/icon.ico`,
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        target: args.targetOverride ?? 'AppImage',
+        target: args.target ?? 'AppImage',
         icon: `${args.iconsDist}/png`,
         category: 'Development',
     },

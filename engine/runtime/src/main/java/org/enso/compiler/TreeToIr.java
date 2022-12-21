@@ -1,6 +1,7 @@
 package org.enso.compiler;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Literal$Sequence;
@@ -77,6 +78,8 @@ import scala.jdk.javaapi.CollectionConverters;
 
 final class TreeToIr {
   static final TreeToIr MODULE = new TreeToIr();
+  static final String SKIP_MACRO_IDENTIFIER = "SKIP";
+  static final String FREEZE_MACRO_IDENTIFIER = "FREEZE";
 
   private TreeToIr() {
   }
@@ -727,7 +730,15 @@ final class TreeToIr {
 
           sep = "_";
         }
-        var fn = new IR$Name$Literal(fnName.toString(), true, Option.empty(), meta(), diag());
+        var fullName = fnName.toString();
+        if (fullName.equals(FREEZE_MACRO_IDENTIFIER)) {
+          yield translateExpression(app.getSegments().get(0).getBody(), false);
+        } else if (fullName.equals(SKIP_MACRO_IDENTIFIER)) {
+          var body = app.getSegments().get(0).getBody();
+          var subexpression = Objects.requireNonNullElse(applySkip(body), body);
+          yield translateExpression(subexpression, false);
+        }
+        var fn = new IR$Name$Literal(fullName, true, Option.empty(), meta(), diag());
         checkArgs(args);
         yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
@@ -913,6 +924,71 @@ final class TreeToIr {
       }
       case Tree.Invalid __ -> translateSyntaxError(tree, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
       default -> throw new UnhandledEntity(tree, "translateExpression");
+    };
+  }
+
+  Tree applySkip(Tree tree) {
+    // Termination:
+    // Every iteration either breaks, or reduces [`tree`] to a substructure of [`tree`].
+    var done = false;
+    while (!done && tree != null) {
+      tree = switch (tree) {
+        case Tree.MultiSegmentApp app
+                when FREEZE_MACRO_IDENTIFIER.equals(app.getSegments().get(0).getHeader().codeRepr()) ->
+                app.getSegments().get(0).getBody();
+        case Tree.Invalid ignored -> null;
+        case Tree.BodyBlock ignored -> null;
+        case Tree.Number ignored -> null;
+        case Tree.Wildcard ignored -> null;
+        case Tree.AutoScope ignored -> null;
+        case Tree.ForeignFunction ignored -> null;
+        case Tree.Import ignored -> null;
+        case Tree.Export ignored -> null;
+        case Tree.TypeDef ignored -> null;
+        case Tree.TypeSignature ignored -> null;
+        case Tree.ArgumentBlockApplication app -> app.getLhs();
+        case Tree.OperatorBlockApplication app -> app.getLhs();
+        case Tree.OprApp app -> app.getLhs();
+        case Tree.Ident ident when ident.getToken().isTypeOrConstructor() -> null;
+        case Tree.Ident ignored -> {
+          done = true;
+          yield tree;
+        }
+        case Tree.Group ignored -> {
+          done = true;
+          yield tree;
+        }
+        case Tree.UnaryOprApp app -> app.getRhs();
+        case Tree.OprSectionBoundary section -> section.getAst();
+        case Tree.TemplateFunction function -> function.getAst();
+        case Tree.Annotated annotated -> annotated.getExpression();
+        case Tree.Documented documented -> documented.getExpression();
+        case Tree.Assignment assignment -> assignment.getExpr();
+        case Tree.TypeAnnotated annotated -> annotated.getExpression();
+        case Tree.DefaultApp app -> app.getFunc();
+        case Tree.App app when isApplication(app.getFunc()) -> app.getFunc();
+        case Tree.NamedApp app when isApplication(app.getFunc()) -> app.getFunc();
+        case Tree.App app -> Objects.requireNonNullElse(applySkip(app.getFunc()), app.getArg());
+        case Tree.NamedApp app -> Objects.requireNonNullElse(applySkip(app.getFunc()), app.getArg());
+        case Tree.MultiSegmentApp ignored -> null;
+        case Tree.TextLiteral ignored -> null;
+        case Tree.Function ignored -> null;
+        case Tree.Lambda ignored -> null;
+        case Tree.CaseOf ignored -> null;
+        case Tree.Array ignored -> null;
+        case Tree.Tuple ignored -> null;
+        default -> null;
+      };
+    }
+    return tree;
+  }
+
+  boolean isApplication(Tree tree) {
+    return switch (tree) {
+      case Tree.App ignored -> true;
+      case Tree.NamedApp ignored -> true;
+      case Tree.DefaultApp ignored -> true;
+      default -> false;
     };
   }
 

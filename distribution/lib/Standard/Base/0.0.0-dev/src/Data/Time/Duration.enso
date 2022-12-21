@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair
@@ -300,24 +300,23 @@ type Duration
     to_vector : Vector Integer
     to_vector self = [self.hours, self.minutes, self.seconds, self.milliseconds, self.nanoseconds]
 
-    ## A Duration to Json conversion.
+    ## Convert to a JavaScript Object representing a Duration.
 
        > Example
-         Convert a duration of 10 seconds to Json.
+         Convert a duration of 10 seconds to a JS_Object.
 
-             import Standard.Base.Data.Time.Duration
-
-             example_to_json = (Duration.new seconds=10).to_json
-    to_json : Json
-    to_json self =
-        b = Vector.new_builder
+             example_to_json = (Duration.new seconds=10).to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        b = Vector.new_builder 7
         b.append ["type", "Duration"]
+        b.append ["constructor", "new"]
         if self.hours==0 . not then b.append ["hours", self.hours]
         if self.minutes==0 . not then b.append ["minutes", self.minutes]
         if self.seconds==0 . not then b.append ["seconds", self.seconds]
         if self.milliseconds==0 . not then b.append ["milliseconds", self.milliseconds]
         if self.nanoseconds==0 . not then b.append ["nanoseconds", self.nanoseconds]
-        Json.from_pairs b.to_vector
+        JS_Object.from_pairs b.to_vector
 
     ## Check if this duration represents an empty time-span.
 
