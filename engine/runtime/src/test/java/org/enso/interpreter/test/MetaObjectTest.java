@@ -122,14 +122,12 @@ public class MetaObjectTest {
     var expecting = new LinkedHashSet<Value>();
     for (var t : g.allTypes()) {
       switch (t.getMetaSimpleName()) {
-        // type of Nothing isn't Nothing, but Nothing.type
-        case "Nothing" -> {}
         // represented as primitive values without meta object
         case "Decimal" -> {}
         // has no instances
         case "Array_Proxy" -> {}
         // how to construct these?
-        case "Warning", "Error", "Panic", "Managed_Resource" -> {}
+        case "Warning", "Error", "Panic" -> {}
         default -> expecting.add(t);
       }
     }

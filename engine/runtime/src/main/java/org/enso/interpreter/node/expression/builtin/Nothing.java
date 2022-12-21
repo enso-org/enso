@@ -6,6 +6,6 @@ import org.enso.interpreter.dsl.BuiltinType;
 public class Nothing extends Builtin {
   @Override
   protected boolean containsValues() {
-    return true;
+    return false;
   }
 }

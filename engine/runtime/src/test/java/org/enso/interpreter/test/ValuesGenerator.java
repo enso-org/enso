@@ -362,7 +362,8 @@ class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       collect.add(v(null, "import Standard.Base.Runtime.Ref.Ref", "Ref.new 10").type());
       collect.add(v(null, "import Standard.Base.System.File.File", "File.new '/'").type());
-      // collect.add(v(null, "import Standard.Base.Runtime.Managed_Resource", "Managed_Resource.register '/' (x -> x)").type());
+      collect.add(v(null, "import Standard.Base.Runtime.Managed_Resource.Managed_Resource", "Managed_Resource.register '/' (x -> x)").type());
+      collect.add(typeNothing());
     }
 
     if (languages.contains(Language.JAVA)) {

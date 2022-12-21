@@ -129,7 +129,11 @@ public class MetaIsATest {
     var g = ValuesGenerator.create(ctx);
     for (var v : g.allValues()) {
       var r = isACheck.execute(v, v);
-      assertFalse("Value " + v + " shall not be instance of itself", r.asBoolean());
+      if (v.equals(g.typeNothing())) {
+        assertTrue("Nothing is instance of itself", r.asBoolean());
+      } else {
+        assertFalse("Value " + v + " shall not be instance of itself", r.asBoolean());
+      }
     }
   }
 
@@ -142,8 +146,12 @@ public class MetaIsATest {
         continue;
       }
       var r = isACheck.execute(v, v);
-      if (r.asBoolean()) {
-        f.append("\nType ").append(v).append(" shall not be instance of itself");
+      if (v.equals(g.typeNothing())) {
+        assertTrue("Nothing is instance of itself", r.asBoolean());
+      } else {
+        if (r.asBoolean()) {
+          f.append("\nType ").append(v).append(" shall not be instance of itself");
+        }
       }
     }
     assertEquals(f.toString(), 0, f.length());
