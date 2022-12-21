@@ -73,7 +73,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
 /// Describe, which benchmarks should be run.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
 pub enum Benchmarks {
-    /// Run all SBT-exposed benchmarks. Does *not* including pure Enso benchmarks.
+    /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
     All,
     /// Run the runtime benchmark (from `sbt`).
     Runtime,
@@ -98,6 +98,9 @@ impl Benchmarks {
     }
 }
 
+/// Describes what should be done with the backend.
+///
+/// Basically a recipe of what to do with `sbt` and its artifacts.
 #[derive(Clone, Debug)]
 pub struct BuildConfigurationFlags {
     /// If true, repository shall be cleaned at the build start.
@@ -110,6 +113,11 @@ pub struct BuildConfigurationFlags {
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
     pub build_benchmarks:              bool,
+    /// Whether the Enso-written benchmarks should be checked whether they compile.
+    ///
+    /// Note that this does not benchmark, only ensures that they are buildable.
+    /// Also, this does nothing if `execute_benchmarks` contains `Benchmarks::Enso`.
+    pub check_enso_benchmarks:         bool,
     /// Which benchmarks should be run.
     pub execute_benchmarks:            BTreeSet<Benchmarks>,
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
@@ -149,16 +157,22 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
 
-        if config.test_standard_library {
+        // Check for components that require Enso Engine runner. Basically everything that needs to
+        // run pure Enso code.
+        if config.test_standard_library
+            || config.execute_benchmarks.contains(&Benchmarks::Enso)
+            || config.check_enso_benchmarks
+        {
             config.build_engine_package = true;
+        }
+
+        // If we are about to run pure Enso benchmarks, there is no reason to try them in dry run.
+        if config.execute_benchmarks.contains(&Benchmarks::Enso) {
+            config.check_enso_benchmarks = false;
         }
 
         if config.test_java_generated_from_rust {
             config.generate_java_from_rust = true;
-        }
-
-        if config.execute_benchmarks.contains(&Benchmarks::Enso) {
-            config.build_engine_package = true;
         }
 
         Self(config)
@@ -188,6 +202,7 @@ impl Default for BuildConfigurationFlags {
             test_scala:                    false,
             test_standard_library:         false,
             build_benchmarks:              false,
+            check_enso_benchmarks:         false,
             execute_benchmarks:            default(),
             execute_benchmarks_once:       false,
             build_js_parser:               false,

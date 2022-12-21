@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
@@ -242,16 +242,19 @@ type File
     resolve : (Text | File) -> File
     resolve self = @Builtin_Method "File.resolve"
 
-    ## A File to JSON conversion.
+    ## Convert the file descriptor to a JS_Object.
 
        > Example
-         Get a JSON representation of a file.
+         Convert a file to a JS_Object.
 
              import Standard.Examples
 
-             example_to_json = Examples.csv.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "File"], ["path", self.path]]
+             example_to_json = Examples.csv.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "File"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["path", self.path]]
 
     ## Checks whether the file exists.
 

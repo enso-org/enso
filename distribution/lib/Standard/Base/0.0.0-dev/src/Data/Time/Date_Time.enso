@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
@@ -595,16 +595,17 @@ type Date_Time
     to_text : Text
     to_text self = @Builtin_Method "Date_Time.to_text"
 
-    ## Convert the time to JSON.
+    ## Convert to a JavaScript Object representing a Date_Time.
 
        > Example
-         Convert the current time to JSON.
+         Convert the current time to a JS_Object.
 
-             from Standard.Base import Date_Time
-
-             example_to_json = Date_Time.now.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Date_Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
+             example_to_json = Date_Time.now.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Date_Time"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.
 

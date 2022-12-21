@@ -18,7 +18,7 @@ use ensogl::gui::cursor;
 use ensogl::DEPRECATED_Animation;
 use ensogl_component::text;
 use ensogl_component::text::formatting::Size as TextSize;
-use ensogl_hardcoded_theme as theme;
+use ensogl_hardcoded_theme::graph_editor::breadcrumbs as breadcrumbs_theme;
 
 
 
@@ -75,6 +75,8 @@ ensogl::define_endpoints! {
        /// Indicates the IDE is in edit mode. This means a click on some editable text should
        /// start editing it.
        ide_text_edit_mode (bool),
+       /// Set whether the project was changed since the last snapshot save.
+       set_project_changed(bool),
     }
 
     Output {
@@ -136,7 +138,7 @@ impl ProjectNameModel {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let style = StyleWatch::new(&scene.style_sheet);
-        let base_color = style.get_color(theme::graph_editor::breadcrumbs::transparent);
+        let base_color = style.get_color(breadcrumbs_theme::transparent);
         let text_size: TextSize = TEXT_SIZE.into();
         let text_field = app.new_view::<text::Text>();
         text_field.set_property_default(base_color);
@@ -250,9 +252,13 @@ impl ProjectName {
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
         let styles = StyleWatch::new(&scene.style_sheet);
-        let hover_color = styles.get_color(theme::graph_editor::breadcrumbs::hover);
-        let deselected_color = styles.get_color(theme::graph_editor::breadcrumbs::deselected::left);
-        let selected_color = styles.get_color(theme::graph_editor::breadcrumbs::selected);
+        let saved_hover_color = styles.get_color(breadcrumbs_theme::hover);
+        let saved_deselected_color = styles.get_color(breadcrumbs_theme::deselected::left);
+        let saved_selected_color = styles.get_color(breadcrumbs_theme::selected);
+        let unsaved_hover_color = styles.get_color(breadcrumbs_theme::unsaved::hover);
+        let unsaved_deselected_color =
+            styles.get_color(breadcrumbs_theme::unsaved::deselected::left);
+        let unsaved_selected_color = styles.get_color(breadcrumbs_theme::unsaved::selected);
         let animations = Animations::new(network);
 
         frp::extend! { network
@@ -264,16 +270,19 @@ impl ProjectName {
                                           &model.view.events.mouse_over);
             frp.source.mouse_down <+ model.view.events.mouse_down_primary;
 
-            not_selected               <- frp.output.selected.map(|selected| !selected);
-            mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
-            mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
-            eval_ mouse_over_if_not_selected(
-                animations.color.set_target_value(hover_color);
-            );
-            eval_ mouse_out_if_not_selected(
-                animations.color.set_target_value(deselected_color);
-            );
-            on_deselect <- not_selected.gate(&not_selected).constant(());
+            text_color <- all3(
+                &frp.output.selected,
+                &frp.source.is_hovered,
+                &frp.input.set_project_changed,
+            ).map(move |(selected, hovered, changed)| match (*selected, *hovered, *changed) {
+                (true, _, true) => unsaved_selected_color,
+                (true, _, false) => saved_selected_color,
+                (false, false, true) => unsaved_deselected_color,
+                (false, false, false) => saved_deselected_color,
+                (false, true, true) => unsaved_hover_color,
+                (false, true, false) => saved_hover_color,
+            });
+            eval text_color((&color) animations.color.set_target_value(color));
 
             edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
             start_editing <- any(edit_click,frp.input.start_editing);
@@ -307,19 +316,18 @@ impl ProjectName {
             eval commit_text((text) model.commit(text));
             on_commit <- commit_text.constant(());
 
+            not_selected <- frp.output.selected.map(|selected| !selected);
+            on_deselect <- not_selected.gate(&not_selected).constant(());
             frp.output.source.edit_mode <+ on_deselect.to_false();
 
 
             // === Selection ===
 
-            eval_ frp.select( animations.color.set_target_value(selected_color) );
             frp.output.source.selected <+ frp.select.to_true();
-
             set_inactive <- any(&frp.deselect,&on_commit);
-            eval_ set_inactive ([text,animations]{
+            eval_ set_inactive ([text] {
                 text.deprecated_set_focus(false);
                 text.remove_all_cursors();
-                animations.color.set_target_value(deselected_color);
             });
             frp.output.source.selected <+ set_inactive.to_false();
 
