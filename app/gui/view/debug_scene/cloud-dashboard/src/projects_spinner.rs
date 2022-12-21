@@ -609,11 +609,11 @@ impl View {
         let pause = &model.pause;
 
         frp::extend! { network
-            use theme::cloud_dashboard::play_button;
-            let non_toggled_color       = styles.get_color(play_button::non_toggled);
-            let toggled_color           = styles.get_color(play_button::toggled);
-            let hovered_color           = styles.get_color(play_button::hovered);
-            let toggled_hovered_color   = styles.get_color(play_button::toggled_hovered);
+            use theme::cloud_dashboard::button;
+            let non_toggled_color       = styles.get_color(button::non_toggled);
+            let toggled_color           = styles.get_color(button::toggled);
+            let hovered_color           = styles.get_color(button::hovered);
+            let toggled_hovered_color   = styles.get_color(button::toggled_hovered);
             init_color_scheme           <- source::<()>();
 
             hovered <- bool(&hover.events.mouse_out, &hover.events.mouse_over);
