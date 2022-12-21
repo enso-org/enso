@@ -189,7 +189,7 @@ impl<S: Shape> ShapeInstance<S> {
     pub(crate) fn swap(&self, other: &Self) {
         self.shape.as_ref().swap(other.shape.as_ref());
         self.sprite.swap(&other.sprite);
-        self.display_object.replace_children(other.display_object.remove_all_children());
+        self.display_object.add_children(other.display_object.remove_all_children());
         // This function is called during display object hierarchy update, before updating children
         // of this display object, but after updating its layout. Thus, we need to update the layout
         // of the new sprite. Please note, that changing layout in the middle of the display object
