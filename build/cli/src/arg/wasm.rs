@@ -10,6 +10,7 @@ use crate::IsWatchableSource;
 use clap::ArgEnum;
 use clap::Args;
 use clap::Subcommand;
+use enso_build::project::wasm::test::Browser;
 use enso_build::project::wasm::Wasm;
 use std::sync::OnceLock;
 
@@ -104,7 +105,7 @@ pub struct WatchInput {
 pub enum Command {
     /// Build the WASM package.
     Build(BuildJob<Wasm>),
-    /// Lint the coodebase.
+    /// Lint the codebase.
     Check,
     /// Get the WASM artifacts from arbitrary source (e.g. release).
     Get(Source<Wasm>),
@@ -118,6 +119,11 @@ pub enum Command {
         /// Skip the WASM Rust tests.
         #[clap(long)]
         no_wasm:   bool,
+        /// Which browsers should be used to run WASM tests.
+        ///
+        /// More than one browser can be specified.
+        #[clap(long, enso_env(), arg_enum, default_values_t = [Browser::Firefox])]
+        browser:   Vec<Browser>,
     },
 }
 

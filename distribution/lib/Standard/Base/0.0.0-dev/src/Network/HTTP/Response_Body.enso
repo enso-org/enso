@@ -1,6 +1,11 @@
+import project.Data.Boolean.Boolean
 import project.Data.Json.Json
+import project.Data.Json.JS_Object
+import project.Data.Numbers.Number
 import project.Data.Text.Extensions
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
 import project.System.File.File
 import project.System.File.Write_Extensions
 
@@ -23,17 +28,6 @@ type Response_Body
     to_text : Text
     to_text self = Text.from_utf_8 self.bytes
 
-    ## Convert response body to Json.
-
-       > Example
-         Convert a response to JSON. NOTE: This example makes a network request.
-
-             import Standard.Examples
-
-             example_to_text = Examples.get_geo_data.to_json
-    to_json : Json
-    to_json self = Json.parse self.to_text
-
     ## Write response body to a File.
 
        Arguments:
@@ -52,3 +46,14 @@ type Response_Body
     to_file self file =
         self.bytes.write_bytes file
         file
+
+    ## Convert response body from JSON to the Enso data types.
+
+       > Example
+         Convert a response from JSON. NOTE: This example makes a network request.
+
+             import Standard.Examples
+
+             example_to_text = Examples.get_geo_data.parse_json
+    parse_json : JS_Object | Boolean | Number | Nothing | Text | Vector
+    parse_json self = Json.parse self.to_text

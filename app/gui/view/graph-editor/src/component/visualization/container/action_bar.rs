@@ -196,7 +196,7 @@ impl Icons {
         self
     }
 
-    fn set_size(&self, size: Vector2) {
+    fn update_size(&self, size: Vector2) {
         self.display_object().set_size(size);
         self.icon_root.set_x(-size.x / 2.0);
         self.place_shape_in_slot(&self.drag_icon, 0);
@@ -291,7 +291,7 @@ impl Model {
         self.display_object().set_size(size);
         self.hover_area.set_size(size);
         self.background.set_size(size);
-        self.icons.set_size(size);
+        self.icons.update_size(size);
 
         let height = size.y;
         let width = size.x;

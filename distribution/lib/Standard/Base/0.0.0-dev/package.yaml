@@ -13,13 +13,13 @@ component-groups:
     - Input:
         exports:
           - Standard.Base.System.File.File.new
-          - Standard.Base.Data.read_file
-          - Standard.Base.Data.read_text_file
+          - Standard.Base.Data.read
+          - Standard.Base.Data.read_text
           - Standard.Base.Data.list_directory
     - Web:
         exports:
           - Standard.Base.Network.HTTP.HTTP.new
-          - Standard.Base.Network.HTTP.HTTP.fetch
+          - Standard.Base.Data.fetch
     - Parse:
         exports:
           - Standard.Base.Data.Json.Json.parse

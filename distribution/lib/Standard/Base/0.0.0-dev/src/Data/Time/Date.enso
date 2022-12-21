@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
@@ -539,14 +539,17 @@ type Date
             _ ->
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
-    ## A Date to Json conversion.
+    ## Convert to a JS_Object representing this Date.
 
        > Example
-         Convert the current date to JSON.
+         Convert the current date to a JS_Object.
 
-             example_to_json = Date.now.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
+             example_to_json = Date.now.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Date"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["day", self.day], ["month", self.month], ["year", self.year]]
 
     ## Format this date using the provided format specifier.
 

@@ -1,3 +1,5 @@
+import project.Data.Boolean.Boolean
+
 type HTTP_Status_Code
     ## 100 Continue.
     continue : HTTP_Status_Code
@@ -164,3 +166,7 @@ type HTTP_Status_Code
        Arguments:
        - code: The numeric representation of the code.
     Value code
+
+    ## Does the status code represent a successful response?
+    is_success : Boolean
+    is_success self = self.code >= 200 && self.code < 300

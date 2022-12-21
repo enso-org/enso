@@ -19,8 +19,8 @@ polyglot java import java.util.UUID
 type Foo
     Value x
 
-    to_json : Json
-    to_json self = Json.from_pairs [["x", self.x]]
+    to_js_object : JS_Object
+    to_js_object self = JS_Object.from_pairs [["x", self.x]]
 
 visualization_spec connection =
     t = connection.upload_table "T" <| Table.new [["A", ['a', 'a', 'a']], ["B", [2, 2, 3]], ["C", [3, 5, 6]]]
@@ -32,13 +32,13 @@ visualization_spec connection =
         p_ixes        = ["indices", ixes]
         p_ixes_header = ["indices_header", ixes_header]
         pairs    = [p_header, p_data, p_all_rows, p_ixes, p_ixes_header]
-        Json.from_pairs pairs . to_text
+        JS_Object.from_pairs pairs . to_text
 
     Test.group "Table Visualization" <|
         Test.specify "should wrap internal errors" <|
             bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
             vis = Visualization.prepare_visualization bad_table 2
-            json = Json.from_pairs [["error", "Method `meta_index` of Nothing could not be found."]]
+            json = JS_Object.from_pairs [["error", "Method `meta_index` of Nothing could not be found."]]
             vis . should_equal json.to_text
 
         Test.specify "should visualize database tables" <|
@@ -79,21 +79,21 @@ visualization_spec connection =
 
         Test.specify "should handle Vectors" <|
             vis = Visualization.prepare_visualization [1, 2, 3] 2
-            json = Json.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
+            json = JS_Object.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
             vis . should_equal json.to_text
 
             vis2 = Visualization.prepare_visualization [[1, 2], [3, 4]] 2
-            json2 = Json.from_pairs [["json", [[1, 2], [3, 4]]], ["all_rows_count", 2]]
+            json2 = JS_Object.from_pairs [["json", [[1, 2], [3, 4]]], ["all_rows_count", 2]]
             vis2 . should_equal json2.to_text
 
         Test.specify "should handle Arrays" <|
             vis = Visualization.prepare_visualization ([1, 2, 3] . to_array) 2
-            json = Json.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
+            json = JS_Object.from_pairs [["json", [1, 2]], ["all_rows_count", 3]]
             vis . should_equal json.to_text
 
         Test.specify "should handle other datatypes" <|
             vis = Visualization.prepare_visualization (Foo.Value 42) 2
-            json = Json.from_pairs [["json", (Foo.Value 42)]]
+            json = JS_Object.from_pairs [["json", (Foo.Value 42)]]
             vis . should_equal json.to_text
 
 spec =

@@ -1,6 +1,6 @@
 import project.Any.Any
 import project.Data.Boolean.Boolean
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Error.Common.Syntax_Error
 import project.Error.Error
@@ -28,7 +28,7 @@ type URI
        Parse a URI from text.
 
        Arguments:
-       - text: The text to parse as a URI.
+       - uri: The text to parse as a URI.
 
        Throws a Syntax_Error when the text cannot be parsed as a URI.
 
@@ -39,8 +39,8 @@ type URI
 
              example_parse = URI.parse "http://example.com"
     parse : Text -> URI ! Syntax_Error
-    parse text =
-        Panic.catch JException (URI.Value (Java_URI.create text)) caught_panic->
+    parse uri =
+        Panic.catch JException (URI.Value (Java_URI.create uri)) caught_panic->
             Error.throw (Syntax_Error.Error ("URI syntax error: " + caught_panic.payload.getMessage))
 
     ## PRIVATE
@@ -194,17 +194,20 @@ type URI
     to_text : Text
     to_text self = self.internal_uri.toString
 
-    ## Convert a URI to JSON.
+    ## Convert to a JavaScript Object representing this URI.
 
        > Example
-         Convert a URI to JSON.
+         Convert a URI to a JS_Object.
 
              import Standard.Base.Network.URI.URI
              import Standard.Examples
 
-             example_to_json = Examples.uri.to_json
-    to_json : Json
-    to_json self = Json.String self.to_text
+             example_to_json = Examples.uri.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "URI"]
+        cons_pair = ["constructor", "parse"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
 
     ## Check if this URI is equal to another URI.
 

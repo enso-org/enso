@@ -157,7 +157,7 @@ trait API {
 
     /// Restart the program execution.
     #[MethodInput=RecomputeInput, rpc_name="executionContext/recompute"]
-    fn recompute(&self, context_id: ContextId) -> ();
+    fn recompute(&self, context_id: ContextId, invalidated_expressions: InvalidatedExpressions) -> ();
 
     /// Obtain the full suggestions database.
     #[MethodInput=GetSuggestionsDatabaseInput, rpc_name="search/getSuggestionsDatabase"]

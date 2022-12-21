@@ -216,8 +216,8 @@ impl Model {
     fn reload_style(&self) {
         let size = self.size.get();
         let padding = (size.x.min(size.y) / 2.0).min(PADDING);
-        self.outer_dom.set_size(Vector2(size.x, size.y));
-        self.inner_dom.set_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
+        self.outer_dom.set_dom_size(Vector2(size.x, size.y));
+        self.inner_dom.set_dom_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
         self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding));
         self.inner_dom.dom().set_style_or_warn("padding-top", format!("{}px", PADDING_TOP));
     }
@@ -305,7 +305,7 @@ impl View {
 
             // === Size and position ===
 
-            eval visualization.set_size  ((size) model.set_size(*size));
+            eval visualization.set_size ((size) model.set_size(*size));
 
 
             // === Activation ===

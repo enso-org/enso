@@ -147,7 +147,7 @@ impl DomSymbol {
     }
 
     /// Size setter.
-    pub fn set_size(&self, size: Vector2<f32>) {
+    pub fn set_dom_size(&self, size: Vector2<f32>) {
         self.size.set(size);
         self.dom.set_style_or_warn("width", format!("{}px", size.x));
         self.dom.set_style_or_warn("height", format!("{}px", size.y));
