@@ -117,6 +117,16 @@ public class MetaObjectTest {
     checkAllTypesSatisfy(MetaObjectTest::checkIsInstance);
   }
 
+  @Test
+  public void warningIsTransparent() {
+    ValuesGenerator g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.warnings()) {
+      assertTrue("Warning is string: " + v, v.isString());
+      assertEquals("value", v.asString());
+      assertEquals("Warning " + v + " has type Text", g.typeText(), v.getMetaObject());
+    }
+  }
+
   private void checkAllTypesSatisfy(Check check) throws Exception {
     var g = ValuesGenerator.create(ctx);
     var expecting = new LinkedHashSet<Value>();
@@ -126,8 +136,10 @@ public class MetaObjectTest {
         case "Decimal" -> {}
         // has no instances
         case "Array_Proxy" -> {}
-        // how to construct these?
-        case "Warning", "Panic" -> {}
+        // Warning is transparent and invisible
+        case "Warning" -> {}
+        // how to construct this?
+        case "Panic" -> {}
         default -> expecting.add(t);
       }
     }

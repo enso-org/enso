@@ -388,6 +388,20 @@ class ValuesGenerator {
     return collect;
   }
 
+  public List<Value> warnings() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, """
+      import Standard.Base.Warning.Warning
+      """, "Warning.attach 'err' 'value'").type());
+    }
+
+    if (languages.contains(Language.JAVA)) {
+    }
+
+    return collect;
+  }
+
   public List<Value> allValues() throws Exception {
     var collect = new ArrayList<Value>();
     for (var m : getClass().getMethods()) {
