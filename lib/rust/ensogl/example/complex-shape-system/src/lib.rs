@@ -14,7 +14,6 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_core::display::scene;
 use ensogl_core::display::style::theme;
 
 
@@ -93,8 +92,7 @@ pub fn main() {
     view1.set_size((300.0, 300.0));
     view1.set_position(Vector3::new(50.0, 50.0, 0.0));
 
-    let mask_layer = scene::layer::Layer::new("MaskLayer");
-    scene.layers.node_searcher.set_mask(&mask_layer);
+    let mask_layer = scene.layers.main.create_mask_sublayer("MaskLayer");
 
     let mask = mask::View::new();
     mask.set_size((300.0, 300.0));
@@ -102,9 +100,9 @@ pub fn main() {
 
     // FIXME[WD]: scissor box should not be computed from the left screen border. It should be
     //     affected by the camera position.
-    let scissor_box =
-        scene::layer::ScissorBox::new_with_position_and_size(Vector2(0, 0), Vector2(1600, 1600));
-    scene.layers.main.set_scissor_box(Some(&scissor_box));
+    // let scissor_box =
+    //     scene::layer::ScissorBox::new_with_position_and_size(Vector2(0, 0), Vector2(1600, 1600));
+    // scene.layers.main.set_scissor_box(Some(&scissor_box));
 
     let view2 = shape::View::new();
     view2.set_size((300.0, 300.0));
@@ -125,6 +123,7 @@ pub fn main() {
             let _keep_alive = &navigator;
             let _keep_alive = &style_watch;
             let _keep_alive = &theme_manager;
+            let _keep_alive = &view1;
             if frame == 50 {
                 // These comments are left for easy debugging in the future.
                 // DEBUG!("---------------");
@@ -154,9 +153,7 @@ pub fn main() {
                 // DEBUG!("{scene.layers.mask:#?}");
                 // DEBUG!("{scene.layers.node_searcher_mask:#?}");
                 // DEBUG!("{scene.layers.viz:#?}");
-
-                scene.layers.node_searcher.add(&view1);
-                scene.layers.node_searcher.add(&view2);
+                scene.layers.main.set_mask(&mask_layer);
                 mask_layer.add(&mask);
             }
             if frame == 200 {
