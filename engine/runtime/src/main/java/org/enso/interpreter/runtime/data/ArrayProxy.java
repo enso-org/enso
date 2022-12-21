@@ -32,7 +32,7 @@ public final class ArrayProxy implements TruffleObject {
   private final long length;
   private final Object at;
 
-  private ArrayProxy(long length, Object at) throws IllegalArgumentException  {
+  private ArrayProxy(long length, Object at) throws IllegalArgumentException {
     if (CompilerDirectives.inInterpreter()) {
       InteropLibrary interop = InteropLibrary.getUncached();
       if (!interop.isExecutable(at)) {
