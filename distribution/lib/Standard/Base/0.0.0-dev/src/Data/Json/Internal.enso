@@ -300,13 +300,13 @@ into_helper fmt json = case fmt of
     _ : Vector -> case json of
         Json.Array items -> items.map (into_helper (fmt.at 0))
         _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
-    _ : Boolean -> case json of
+    Boolean -> case json of
         Json.Boolean v -> v
         _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
-    _ : Number -> case json of
+    Number -> case json of
         Json.Number v -> v
         _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
-    _ : Text -> case json of
+    Text -> case json of
         Json.String v -> v
         _ -> Panic.throw (Marshalling_Error.Type_Mismatch json fmt)
     _ ->

@@ -110,10 +110,9 @@ public abstract class IsValueOfTypeNode extends Node {
       guards = {
         "isArrayType(expectedType)",
         "interop.hasArrayElements(payload)",
-        "interop.hasMetaObject(payload)",
         "!types.hasType(payload)"
       })
-  public boolean doPolyglotArray(
+  boolean doArray(
       Object expectedType,
       Object payload,
       @CachedLibrary(limit = "3") InteropLibrary interop,
@@ -125,20 +124,25 @@ public abstract class IsValueOfTypeNode extends Node {
       guards = {
         "isArrayType(expectedType)",
         "interop.hasArrayElements(payload)",
-        "!interop.hasMetaObject(payload)",
         "types.hasType(payload)"
       })
-  public boolean doArray(
+  public boolean doArrayViaType(
       Object expectedType,
       Object payload,
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @CachedLibrary(limit = "3") TypesLibrary types) {
-    return true;
+    return EnsoContext.get(this).getBuiltins().array() == types.getType(payload);
   }
 
-  @Specialization(guards = {"interop.isMetaObject(expectedType)"})
+  @Specialization(guards = {
+    "interop.isMetaObject(expectedType)",
+    "!types.hasType(expectedType)"
+  })
   boolean doPolyglotType(
-      Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
+      Object expectedType,
+      Object payload,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") TypesLibrary types) {
     try {
       return interop.isMetaInstance(expectedType, payload);
     } catch (UnsupportedMessageException e) {

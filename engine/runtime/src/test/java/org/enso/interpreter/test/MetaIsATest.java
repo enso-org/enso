@@ -125,6 +125,16 @@ public class MetaIsATest {
   }
 
   @Test
+  public void checkArraysAreArrays() {
+    var g = ValuesGenerator.create(ctx);
+    for (var v : g.arrayLike()) {
+      var isVector = isACheck.execute(v, g.typeVector());
+      var isArray = isACheck.execute(v, g.typeArray());
+      assertTrue("Value " + v + " of type " + v.getMetaObject() + " should either be array (" + isArray + ") or vector (" + isVector + ")", isArray.asBoolean() ^ isVector.asBoolean());
+    }
+  }
+
+  @Test
   public void valuesAreNotInstancesOfThemselves() throws Exception {
     var g = ValuesGenerator.create(ctx);
     for (var v : g.allValues()) {
