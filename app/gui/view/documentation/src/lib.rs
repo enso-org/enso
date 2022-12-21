@@ -11,15 +11,9 @@
 //! output file. It means one can set `Tailwind` classes for any DOM element, and the stylesheet
 //! will automatically update with needed CSS rules.
 //!
-//! **The `build.rs` script would only run if the `RUN_TAILWIND` environment variable is defined.**
-//! We don't need to run the build script every time because the VCS tracks the resulting
-//! stylesheet. Only the developer currently working on updating the documentation look should set
-//! the `RUN_TAILWIND` environment variable to ensure the stylesheet is up-to-date.
-//!
 //! The build script runs `npx tailwindcss`, so one should have [Node.js] installed. Installing the
 //! `Tailwind` utility is not strictly required because the `npx` would download it
 //! automatically if needed.
-//!
 //!
 //! [`Tailwind CSS`]: https://tailwindcss.com/
 
