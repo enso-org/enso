@@ -134,10 +134,7 @@ public abstract class IsValueOfTypeNode extends Node {
     return EnsoContext.get(this).getBuiltins().array() == types.getType(payload);
   }
 
-  @Specialization(guards = {
-    "interop.isMetaObject(expectedType)",
-    "!types.hasType(expectedType)"
-  })
+  @Specialization(guards = {"interop.isMetaObject(expectedType)", "!types.hasType(expectedType)"})
   boolean doPolyglotType(
       Object expectedType,
       Object payload,
