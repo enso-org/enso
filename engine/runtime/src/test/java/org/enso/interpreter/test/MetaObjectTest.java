@@ -138,8 +138,6 @@ public class MetaObjectTest {
         case "Array_Proxy" -> {}
         // Warning is transparent and invisible
         case "Warning" -> {}
-        // how to construct this?
-        case "Panic" -> {}
         default -> expecting.add(t);
       }
     }

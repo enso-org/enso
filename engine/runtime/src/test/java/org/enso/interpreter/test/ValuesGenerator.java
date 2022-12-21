@@ -10,8 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -379,6 +381,18 @@ class ValuesGenerator {
       import Standard.Base.Any.Any
       import Standard.Base.Error.Error
       """, "Error.throw 'In error'").type());
+
+      try {
+        var noValue = v(null, """
+        import Standard.Base.Any.Any
+        import Standard.Base.Panic.Panic
+        """, "Panic.throw 'In panic'").type();
+        assertNull("Exception thrown instead", noValue);
+      } catch (PolyglotException ex) {
+        var panic = ex.getGuestObject();
+        assertTrue("Is exception", panic.isException());
+        collect.add(panic);
+      }
     }
 
     if (languages.contains(Language.JAVA)) {

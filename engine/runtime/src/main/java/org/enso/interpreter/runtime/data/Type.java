@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 import java.util.*;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
