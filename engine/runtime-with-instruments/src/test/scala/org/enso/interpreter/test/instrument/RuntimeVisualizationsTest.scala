@@ -2741,7 +2741,7 @@ class RuntimeVisualizationsTest
         ConstantsGen.INTEGER,
         Api.MethodPointer(
           warningModuleName.toString,
-          warningTypeName.toString,
+          warningTypeName.toString + ".type",
           "attach"
         )
       ),
