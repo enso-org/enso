@@ -127,7 +127,7 @@ public class MetaObjectTest {
         // has no instances
         case "Array_Proxy" -> {}
         // how to construct these?
-        case "Warning", "Error", "Panic" -> {}
+        case "Warning", "Panic" -> {}
         default -> expecting.add(t);
       }
     }

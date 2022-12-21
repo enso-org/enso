@@ -132,7 +132,7 @@ public class MetaIsATest {
       if (v.equals(g.typeNothing())) {
         assertTrue("Nothing is instance of itself", r.asBoolean());
       } else {
-        assertFalse("Value " + v + " shall not be instance of itself", r.asBoolean());
+        assertFalse("Value " + v + " shall not be instance of itself", r.isBoolean() && r.asBoolean());
       }
     }
   }
@@ -165,7 +165,7 @@ public class MetaIsATest {
       var typeCaseOf = g.withType(t);
 
       for (var v : g.allValues()) {
-        assertTypeAndValue(typeCaseOf, v, t, f);
+        assertTypeAndValue(typeCaseOf, v, t, f, g);
       }
     }
     if (f.length() > 0) {
@@ -173,9 +173,14 @@ public class MetaIsATest {
     }
   }
 
-  private void assertTypeAndValue(Value caseOf, Value v, Value t, StringBuilder f) {
+  private void assertTypeAndValue(Value caseOf, Value v, Value t, StringBuilder f, ValuesGenerator g) {
     var test = caseOf.execute(v);
-    assertTrue(test.isNumber());
+    if (test.isException()) {
+      assertEquals("DataFlowError in", g.typeError(), v.getMetaObject());
+      assertEquals("DataFlowError out", g.typeError(), test.getMetaObject());
+      return;
+    }
+    assertTrue("Expecting 0 or 1 result: " + test + " for " + v, test.isNumber());
     var testBool = test.asInt() == 1;
     var res = isACheck.execute(v, t);
     assertTrue(res.isBoolean());
