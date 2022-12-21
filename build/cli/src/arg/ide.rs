@@ -54,7 +54,7 @@ pub enum Command {
         ide_option: Vec<String>,
     },
     /// Builds Project Manager and runs it in the background. Builds GUI and runs it using
-    /// webpack's dev server.
+    /// GUI dev server.
     Watch {
         #[clap(flatten)]
         gui:             WatchJob<Gui>,
