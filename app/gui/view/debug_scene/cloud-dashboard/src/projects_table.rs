@@ -828,7 +828,8 @@ fn open_project(
     wasm_bindgen_futures::spawn_local(async move {
         let result = client.open_project(project_id).await;
         match result {
-            // FIXME [NP]: Bind the result back to the table.
+            // TODO [NP]: https://www.pivotaltracker.com/story/show/183909415
+            //            Bind the result back to the table.
             Ok(_) => {}
             // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909432
             //             Rather than pass these errors up, display the error in this view.
@@ -845,11 +846,11 @@ fn close_project(
     // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909482
     //             Replace `wasm_bindgen_futures` with the futures runtime used throughout the
     //             remainder of the project.
-    // FIXME [NP]: bind the future back
     wasm_bindgen_futures::spawn_local(async move {
         let result = client.close_project(project_id).await;
         match result {
-            // FIXME [NP]: Bind the result back to the table.
+            // TODO [NP]: https://www.pivotaltracker.com/story/show/183909415
+            //            Bind the result back to the table.
             Ok(_) => {}
             // FIXME [NP]: https://www.pivotaltracker.com/story/show/183909432
             //             Rather than pass these errors up, display the error in this view.
