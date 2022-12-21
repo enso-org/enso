@@ -19,7 +19,13 @@ const CSS_OUTPUT_PATH: &str = "assets/stylesheet.css";
 const TAILWIND_BINARY_NAME: &str = "tailwindcss";
 
 fn main() {
+    // We should rerun the tailwind on changes in our sources.
+    // Tailwind scans this directory to determine the used classes.
     println!("cargo:rerun-if-changed=src");
+    // We should rerun the tailwind on changes in the input CSS file.
+    // It may contain custom CSS rules.
+    println!("cargo:rerun-if-changed=assets/input.css");
+    println!("cargo:rerun-if-env-changed=RUN_TAILWIND");
 
     if std::env::var("RUN_TAILWIND").is_ok() {
         let output = Command::new("npx")
