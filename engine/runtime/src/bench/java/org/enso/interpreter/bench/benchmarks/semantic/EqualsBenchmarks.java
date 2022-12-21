@@ -26,8 +26,8 @@ import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * Benchmarks for `Any.==` method. This benchmark takes two vectors as input, and compares every
- * element with `==`.
+ * Benchmarks for `Any.==` method. This benchmark takes two vectors as input, and compares each
+ * pair of elements with `==`.
  */
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
@@ -38,6 +38,7 @@ import org.openjdk.jmh.infra.Blackhole;
 public class EqualsBenchmarks {
 
   private static final int primitiveVectorSize = 4_000;
+  private static final int stringsVectorSize = 3_000;
   /**
    * Maximum length of randomly generated strings.
    */
@@ -106,10 +107,25 @@ public class EqualsBenchmarks {
             .append(
                 generateVectorOfPrimitives(primitiveVectorSize, "vec1", 42, trueExpectedAt, random)
             )
-            .append("\n");
-        codeBuilder
+            .append("\n")
             .append(
                 generateVectorOfPrimitives(primitiveVectorSize, "vec2", 42, trueExpectedAt, random)
+            )
+            .append("\n");
+      }
+      case "equalsStrings" -> {
+        trueExpectedAt = Set.of(
+            treeVectorSize / 2,
+            treeVectorSize / 4,
+            treeVectorSize / 8
+        );
+        codeBuilder
+            .append(
+                generateVectorOfStrings(stringsVectorSize, "vec1", "AAA", trueExpectedAt, random)
+            )
+            .append("\n")
+            .append(
+                generateVectorOfStrings(stringsVectorSize, "vec2", "AAA", trueExpectedAt, random)
             )
             .append("\n");
       }
@@ -124,8 +140,7 @@ public class EqualsBenchmarks {
             .append(
                 generateVectorOfTrees(treeVectorSize, "vec1", maxTreeDepth, createNilNode(), trueExpectedAt, random)
             )
-            .append("\n");
-        codeBuilder
+            .append("\n")
             .append(
                 generateVectorOfTrees(treeVectorSize, "vec2", maxTreeDepth, createNilNode(), trueExpectedAt, random)
             )
@@ -168,6 +183,11 @@ public class EqualsBenchmarks {
   }
 
   @Benchmark
+  public void equalsStrings(Blackhole blackhole) {
+    performBenchmark(blackhole);
+  }
+
+  @Benchmark
   public void equalsTrees(Blackhole blackhole) {
     performBenchmark(blackhole);
   }
@@ -178,9 +198,9 @@ public class EqualsBenchmarks {
   }
 
   /**
-   * Generates source code for a vector of primitive values. The vector will contain integers,
-   * doubles, and strings. Count of elements of these different value types is equally distributed,
-   * i.e., there is exact same amount of integers, doubles, and strings. Vector is
+   * Generates source code for a vector of primitive values. The vector will contain integers and
+   * doubles. Count of elements of these different value types is equally distributed,
+   * i.e., there is exact same amount of integers and doubles. Vector is
    * shuffled, so that there should not be a long consecutive range of values of just one type.
    * <p>
    * Generates code of form {@code vecName = [...]}
@@ -194,16 +214,10 @@ public class EqualsBenchmarks {
    * @return Source of the generated vector
    */
   private static String generateVectorOfPrimitives(int totalSize, String vecName, Object identityElem, Collection<Integer> constantIdxs, Random random) {
-    var partSize = totalSize / 3;
+    var partSize = totalSize / 2;
     List<Object> primitiveValues = new ArrayList<>();
     random.ints(partSize).forEach(primitiveValues::add);
     random.doubles(partSize).forEach(primitiveValues::add);
-    for (int i = 0; i < partSize; i++) {
-      var stringSize = random.nextInt(maxStringSize);
-      primitiveValues.add(
-          randomString(stringSize, random)
-      );
-    }
     Collections.shuffle(primitiveValues, random);
     for (Integer constantIdx : constantIdxs) {
       primitiveValues.set(constantIdx, identityElem);
@@ -212,13 +226,24 @@ public class EqualsBenchmarks {
     var sb = new StringBuilder();
     sb.append(vecName).append(" = [");
     for (Object primitiveValue : primitiveValues) {
-      if (primitiveValue instanceof String str) {
-        sb.append("\"").append(str).append("\"").append(",");
-      } else if (primitiveValue instanceof Double dbl) {
+      if (primitiveValue instanceof Double dbl) {
         sb.append(String.format("%f", dbl)).append(",");
       } else {
         sb.append(primitiveValue).append(",");
       }
+    }
+    // Replace last comma
+    sb.setCharAt(sb.length() - 1, ']');
+    return sb.toString();
+  }
+
+  private static String generateVectorOfStrings(int size, String vecName, String identityElem, Collection<Integer> identityIdxs, Random random) {
+    var sb = new StringBuilder();
+    sb.append(vecName).append(" = [");
+    for (int i = 0; i < size; i++) {
+      var stringSize = random.nextInt(maxStringSize);
+      var str = identityIdxs.contains(i) ? identityElem : randomString(stringSize, random);
+      sb.append("\"").append(str).append("\"").append(",");
     }
     // Replace last comma
     sb.setCharAt(sb.length() - 1, ']');
