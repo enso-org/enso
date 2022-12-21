@@ -47,10 +47,10 @@ public final class ArrayProxy implements TruffleObject {
       CompilerDirectives.transferToInterpreter();
       InteropLibrary interop = InteropLibrary.getUncached();
       throw new PanicException(
-          Context.get(interop)
+          EnsoContext.get(interop)
               .getBuiltins()
               .error()
-              .makeIllegalArgumentError("Array_Proxy length cannot be negative."),
+              .makeIllegalArgument("Array_Proxy length cannot be negative."),
           interop);
     }
 

@@ -5,6 +5,7 @@ import project.Panic.Panic
 
 polyglot java import java.lang.IllegalArgumentException
 
+@Builtin_Type
 type Illegal_Argument
 
     ## UNSTABLE

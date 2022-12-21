@@ -6,7 +6,11 @@ import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
 import java.util.List;
 
 @BuiltinType
-public class IllegalArgumentError extends UniquelyConstructibleBuiltin {
+public class IllegalArgument extends UniquelyConstructibleBuiltin {
+  @Override
+  protected String getConstructorName() {
+    return "Error";
+  }
   @Override
   protected List<String> getConstructorParamNames() {
     return List.of("message", "cause");
