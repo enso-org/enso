@@ -136,10 +136,6 @@ pub enum Command {
 // === Shape ===
 // =============
 
-/// The number of milliseconds that it takes for the [`projects_spinner`] to complete one rotation.
-///
-/// [`projects_spinner`]: crate::projects_spinner
-const ROTATE_PERIOD: f32 = 1000.0;
 /// A constant representing a 90 degree angle in radians.
 const RIGHT_ANGLE: f32 = std::f32::consts::PI / 2.0;
 /// A constant representing a 180 degree angle in radians.
@@ -151,15 +147,10 @@ const RIGHT_ANGLE: f32 = std::f32::consts::PI / 2.0;
 const HALF_CIRCUMFERENCE: f32 = std::f32::consts::PI;
 /// A constant representing a 360 degree angle in radians.
 const CIRCUMFERENCE: f32 = std::f32::consts::PI * 2.0;
-/// Percentage of the circle that is *not* covered by the aperture of the [`projects_spinner`].
-///
-/// In this case, the aperture is 5% of the circle in total, so the remaining 95% is covered by the
-/// ring.
+/// Size of the [`projects_spinner`] icon, in pixels. This is both the height and the width of the
+/// icon, as the [`projects_spinner`] is meant to be a circle, so the ratio of the sides is 1:1.
 ///
 /// [`projects_spinner`]: crate::projects_spinner
-const SPINNER_RING_COVERAGE: f32 = 0.95;
-// Size of the [`spinner`] icon, in pixels. This is both the height and the width of the icon, as
-// the [`spinner`] is meant to be a circle, so the ratio of the sides is 1:1.
 pub const SPINNER_SIZE: f32 = 24.0;
 
 /// Spinner icon shape definition.
@@ -180,11 +171,13 @@ mod shape {
 
             // === Measurements ===
 
+            use theme::cloud_dashboard;
+            let rotate_period = style.get_number(cloud_dashboard::rotate_period);
             let unit = &width_abs * 0.5;
             let outer_circle_radius = &unit * 1.0;
             let outer_circle_thickness = &unit * 0.33;
-            let sampler = &time % ROTATE_PERIOD;
-            let rotate_angle = sampler.smoothstep(0.0, ROTATE_PERIOD);
+            let sampler = &time % rotate_period;
+            let rotate_angle = sampler.smoothstep(0.0, rotate_period);
 
 
             // === Ring With Aperture ===
@@ -195,7 +188,7 @@ mod shape {
             let start_angle = Var::from(HALF_CIRCUMFERENCE);
             let rgb = color_rgb;
             let color = format!("srgba({}.x,{}.y,{}.z,{})", rgb, rgb, rgb, alpha);
-            let shape = ring_with_aperture_base_shape(&radius,&width,&angle,&start_angle);
+            let shape = ring_with_aperture_base_shape(style, &radius,&width,&angle,&start_angle);
             let shape = shape.fill(color);
 
             shape.into()
@@ -206,14 +199,17 @@ mod shape {
 /// Creates a ring shape with the given radius and ring width, in pixels, then cuts out an
 /// aperture of the given `angle`, starting at the given `start_angle`.
 fn ring_with_aperture_base_shape(
+    style: &StyleWatch,
     radius: &Var<Pixels>,
     width: &Var<Pixels>,
     angle: &Var<f32>,
     start_angle: &Var<f32>,
 ) -> AnyShape {
+    use theme::cloud_dashboard;
+    let spinner_ring_coverage = style.get_number(cloud_dashboard::spinner_ring_coverage);
     let circumference: Var<f32> = CIRCUMFERENCE.into();
     let rotation = angle + start_angle;
-    let aperture_angle = circumference * SPINNER_RING_COVERAGE;
+    let aperture_angle = circumference * spinner_ring_coverage;
 
     let ring = ring_base_shape(radius, width);
 

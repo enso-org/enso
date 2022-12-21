@@ -709,6 +709,13 @@ define_themes! { [light:0, dark:1]
         }
     }
     cloud_dashboard {
+        // Number of milliseconds for the projects spinner to complete one rotation.
+        rotate_period = 1000.0, 1000.0;
+        // Percentage of the projects spinner ring that is *not* covered by the aperture.
+        //
+        // In this case, the aperture is 5% of the ring in total, so the remaining 95% is covered by
+        // the ring.
+        spinner_ring_coverage = 0.95, 0.95;
         button {
             non_toggled     = Lcha(0.0,0.0,0.0,0.3)  , Lcha(0.4,0.0,0.0,1.0);
             toggled         = Lcha(0.7,0.5,0.12,1.0) , Lcha(0.7,0.5,0.12,1.0);
