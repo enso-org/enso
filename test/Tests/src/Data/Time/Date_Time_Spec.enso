@@ -33,6 +33,12 @@ spec =
             d3 . should_equal d4
             d4 . should_equal d5
 
+        Test.specify "should provide equality operator" <|
+            (Date_Time.new 2022 zone=(Time_Zone.parse "CET")).should_not_equal (Date_Time.new 2022 zone=(Time_Zone.parse "UTC"))
+            (Date_Time.new 2022 zone=(Time_Zone.parse "CET")).should_equal (Date_Time.new 2022 zone=(Time_Zone.parse "CET"))
+            (Date_Time.new 2022 12 12).should_equal (Date_Time.new 2022 12 12)
+            (Date_Time.new 2022 12 12).should_not_equal (Date_Time.new 1996)
+
 spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
     Test.group name <|
 

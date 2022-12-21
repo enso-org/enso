@@ -170,14 +170,6 @@ public final class EnsoDuration implements TruffleObject {
     return duration.compareTo(interop.asDuration(durationObject));
   }
 
-  @Builtin.Method(name = "equals_builtin")
-  @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class)
-  public boolean equalsDuration(Object durationObject, InteropLibrary interop)
-      throws UnsupportedMessageException {
-    return duration.equals(interop.asDuration(durationObject));
-  }
-
   @ExportMessage
   public boolean isDuration() {
     return true;

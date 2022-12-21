@@ -199,69 +199,117 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   @Specialization(guards = {
-      "selfInterop.isDate(selfDateTime)",
-      "selfInterop.isTime(selfDateTime)",
-      "otherInterop.isDate(otherDateTime)",
-      "otherInterop.isTime(otherDateTime)"
+      "!selfInterop.isDate(selfTimeZone)",
+      "!selfInterop.isTime(selfTimeZone)",
+      "selfInterop.isTimeZone(selfTimeZone)",
+      "!otherInterop.isDate(otherTimeZone)",
+      "!otherInterop.isTime(otherTimeZone)",
+      "otherInterop.isTimeZone(otherTimeZone)"
   }, limit = "3")
-  boolean equalsDateTimes(Object selfDateTime, Object otherDateTime,
-      @CachedLibrary("selfDateTime") InteropLibrary selfInterop,
-      @CachedLibrary("otherDateTime") InteropLibrary otherInterop) {
-    LocalDateTime selfJavaDateTime;
-    LocalDateTime otherJavaDateTime;
+  boolean equalsTimeZones(Object selfTimeZone, Object otherTimeZone,
+      @CachedLibrary("selfTimeZone") InteropLibrary selfInterop,
+      @CachedLibrary("otherTimeZone") InteropLibrary otherInterop) {
     try {
-      selfJavaDateTime = LocalDateTime.of(
-          selfInterop.asDate(selfDateTime),
-          selfInterop.asTime(selfDateTime)
-      );
-      otherJavaDateTime = LocalDateTime.of(
-          otherInterop.asDate(otherDateTime),
-          otherInterop.asTime(otherDateTime)
+      return selfInterop.asTimeZone(selfTimeZone).equals(
+          otherInterop.asTimeZone(otherTimeZone)
       );
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return selfJavaDateTime.isEqual(otherJavaDateTime);
+  }
+
+  @Specialization(guards = {
+      "selfInterop.isDate(selfZonedDateTime)",
+      "selfInterop.isTime(selfZonedDateTime)",
+      "selfInterop.isTimeZone(selfZonedDateTime)",
+      "otherInterop.isDate(otherZonedDateTime)",
+      "otherInterop.isTime(otherZonedDateTime)",
+      "otherInterop.isTimeZone(otherZonedDateTime)"
+  }, limit = "3")
+  boolean equalsZonedDateTimes(Object selfZonedDateTime, Object otherZonedDateTime,
+      @CachedLibrary("selfZonedDateTime") InteropLibrary selfInterop,
+      @CachedLibrary("otherZonedDateTime") InteropLibrary otherInterop) {
+    try {
+      return ZonedDateTime.of(
+          selfInterop.asDate(selfZonedDateTime),
+          selfInterop.asTime(selfZonedDateTime),
+          selfInterop.asTimeZone(selfZonedDateTime)
+      ).isEqual(
+          ZonedDateTime.of(
+              otherInterop.asDate(otherZonedDateTime),
+              otherInterop.asTime(otherZonedDateTime),
+              otherInterop.asTimeZone(otherZonedDateTime)
+          )
+      );
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @Specialization(guards = {
+      "selfInterop.isDate(selfDateTime)",
+      "selfInterop.isTime(selfDateTime)",
+      "!selfInterop.isTimeZone(selfDateTime)",
+      "otherInterop.isDate(otherDateTime)",
+      "otherInterop.isTime(otherDateTime)",
+      "!otherInterop.isTimeZone(otherDateTime)"
+  }, limit = "3")
+  boolean equalsDateTimes(Object selfDateTime, Object otherDateTime,
+      @CachedLibrary("selfDateTime") InteropLibrary selfInterop,
+      @CachedLibrary("otherDateTime") InteropLibrary otherInterop) {
+    try {
+      return LocalDateTime.of(
+          selfInterop.asDate(selfDateTime),
+          selfInterop.asTime(selfDateTime)
+      ).isEqual(
+          LocalDateTime.of(
+              otherInterop.asDate(otherDateTime),
+              otherInterop.asTime(otherDateTime)
+          )
+      );
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Specialization(guards = {
       "selfInterop.isDate(selfDate)",
       "!selfInterop.isTime(selfDate)",
+      "!selfInterop.isTimeZone(selfDate)",
       "otherInterop.isDate(otherDate)",
-      "!otherInterop.isTime(otherDate)"
+      "!otherInterop.isTime(otherDate)",
+      "!otherInterop.isTimeZone(otherDate)"
   }, limit = "3")
   boolean equalsDates(Object selfDate, Object otherDate,
       @CachedLibrary("selfDate") InteropLibrary selfInterop,
       @CachedLibrary("otherDate") InteropLibrary otherInterop) {
-    LocalDate otherJavaDate;
-    LocalDate selfJavaDate;
     try {
-      otherJavaDate = otherInterop.asDate(otherDate);
-      selfJavaDate = selfInterop.asDate(selfDate);
+      return selfInterop.asDate(selfDate).isEqual(
+          otherInterop.asDate(otherDate)
+      );
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return selfJavaDate.isEqual(otherJavaDate);
   }
 
   @Specialization(guards = {
       "!selfInterop.isDate(selfTime)",
       "selfInterop.isTime(selfTime)",
+      "!selfInterop.isTimeZone(selfTime)",
       "!otherInterop.isDate(otherTime)",
-      "otherInterop.isTime(otherTime)"
+      "otherInterop.isTime(otherTime)",
+      "!otherInterop.isTimeZone(otherTime)"
   }, limit = "3")
   boolean equalsTimes(Object selfTime, Object otherTime,
       @CachedLibrary("selfTime") InteropLibrary selfInterop,
       @CachedLibrary("otherTime") InteropLibrary otherInterop) {
-    LocalTime selfJavaTime;
-    LocalTime otherJavaTime;
     try {
-      selfJavaTime = selfInterop.asTime(selfTime);
-      otherJavaTime = otherInterop.asTime(otherTime);
+      return selfInterop.asTime(selfTime).equals(
+          otherInterop.asTime(otherTime)
+      );
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return selfJavaTime.equals(otherJavaTime);
   }
 
   @Specialization(guards = {
@@ -271,15 +319,13 @@ public abstract class EqualsAnyNode extends Node {
   boolean equalsDuration(Object selfDuration, Object otherDuration,
       @CachedLibrary("selfDuration") InteropLibrary selfInterop,
       @CachedLibrary("otherDuration") InteropLibrary otherInterop) {
-    Duration selfJavaDuration;
-    Duration otherJavaDuration;
     try {
-      selfJavaDuration = selfInterop.asDuration(selfDuration);
-      otherJavaDuration = otherInterop.asDuration(otherDuration);
+      return selfInterop.asDuration(selfDuration).equals(
+          otherInterop.asDuration(otherDuration)
+      );
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
-    return selfJavaDuration.equals(otherJavaDuration);
   }
 
   /**

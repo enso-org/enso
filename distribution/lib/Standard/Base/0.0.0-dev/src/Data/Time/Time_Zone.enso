@@ -166,10 +166,3 @@ type Time_Zone
              example_to_json = Time_Zone.system.to_json
     to_json : Json
     to_json self = Json.from_pairs [["type", "Time_Zone"], ["id", self.zone_id]]
-
-    ## Compares two Zones for equality.
-    == : Time_Zone -> Boolean
-    == self that =
-        case that of
-            _ : Time_Zone -> Time_Utils.equals_zone self that
-            _ -> False

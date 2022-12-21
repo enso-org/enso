@@ -166,23 +166,6 @@ type Duration
             Panic.catch ArithmeticException (self.minus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
 
-    ## Check two durations for equality.
-
-       Arguments:
-       - that: The duration to compare against `self`.
-
-       > Examples
-         Check if 60 seconds and 1 minute are equal.
-
-             import Standard.Base.Data.Time.Duration
-
-             example_eq = (Duration.new seconds=60).total_minutes == (Duration.new minutes=1).total_minutes
-    == : Duration -> Boolean
-    == self that =
-        case that of
-            _ : Duration -> self.equals_builtin that
-            _ -> False
-
     ## Compares `self` to `that` to produce an ordering.
 
        Arguments:
