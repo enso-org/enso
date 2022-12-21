@@ -27,7 +27,7 @@ type Syntax_Error
 
        Arguments:
        - message: A description of the erroneous syntax.
-   Error message
+    Error message
 
 @Builtin_Type
 type Type_Error

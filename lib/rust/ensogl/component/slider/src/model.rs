@@ -235,13 +235,13 @@ impl Model {
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
         self.thumb.color.set(track_color.into());
-        self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
+        self.update_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
         self
     }
 
     /// Set the component size.
-    pub fn set_size(&self, size: Vector2<f32>) {
+    pub fn update_size(&self, size: Vector2<f32>) {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
         self.background.set_size(size + margin);
         self.track.set_size(size + margin);

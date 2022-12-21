@@ -504,7 +504,7 @@ impl NodeModel {
 
         let error_visualization = error::Container::new(app);
         let (x, y) = ERROR_VISUALIZATION_SIZE;
-        error_visualization.set_size.emit(Vector2(x, y));
+        error_visualization.frp.set_size.emit(Vector2(x, y));
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
@@ -629,7 +629,7 @@ impl NodeModel {
         self.background.set_size(padded_size);
         self.drag_area.set_size(padded_size);
         self.error_indicator.set_size(padded_size);
-        self.vcs_indicator.set_size(padded_size);
+        self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
         self.backdrop.set_x(x_offset_to_node_center);
         self.background.set_x(x_offset_to_node_center);

@@ -5,6 +5,8 @@ use ide_ci::programs::cargo;
 use ide_ci::programs::wasm_pack;
 use ide_ci::programs::WasmPack;
 
+
+
 /// Flag that tells wasm-pack which browser should be used to run tests.
 ///
 /// We use here Firefox rather than Chrome, because it is more stable. Chrome for some reason has

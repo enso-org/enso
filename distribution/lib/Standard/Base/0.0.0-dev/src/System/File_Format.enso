@@ -1,10 +1,16 @@
 import project.Any.Any
+import project.Data.Json.Json
 import project.Data.Text.Encoding.Encoding
+import project.Data.Text.Extensions
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Error.File_Error.File_Error
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Error.Unimplemented.Unimplemented
+import project.Function.Function
+import project.Network.HTTP.Response.Response
+import project.Network.URI.URI
 import project.Nothing.Nothing
 import project.System.File.File
 
@@ -15,6 +21,18 @@ polyglot java import org.enso.base.file_format.FileFormatSPI
 ## PRIVATE
 format_types : Vector
 format_types = Vector.from_polyglot_array (FileFormatSPI.get_types False)
+
+## PRIVATE
+   Gets the first format not returning Nothing from the callback
+get_format : Function -> Any | Nothing
+get_format callback =
+    reader idx =
+        if idx >= format_types.length then Nothing else
+            format = callback (format_types.at idx)
+            if format.is_nothing.not then format else
+                @Tail_Call reader (idx + 1)
+    reader 0
+
 
 type Auto_Detect
     ## PRIVATE
@@ -28,12 +46,13 @@ type Auto_Detect
     ## PRIVATE
     get_format : File -> Any | Nothing
     get_format file =
-        reader idx =
-            if idx >= format_types.length then Nothing else
-                format = format_types.at idx . for_file file
-                if format.is_nothing.not then format else
-                    @Tail_Call reader (idx + 1)
-        reader 0
+        get_format f-> f.for_file file
+
+    ## PRIVATE
+    get_web_parser : Text -> URI -> Any | Nothing
+    get_web_parser content_type uri =
+        get_format f-> f.for_web content_type uri
+
 
 type File_Format
     ## PRIVATE
@@ -52,11 +71,30 @@ type Plain_Text_Format
             ".log" -> Plain_Text_Format.Plain_Text
             _ -> Nothing
 
+    ## If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> URI -> Plain_Text_Format | Nothing
+    for_web content_type _ =
+        parts = content_type.split ";" . map .trim
+        case parts.first of
+            "text/plain" ->
+                charset_part = parts.find (x->x.starts_with "charset=")
+                encoding = if charset_part.is_error then Encoding.utf_8 else
+                    parsed = Encoding.from_name (charset_part.drop 8)
+                    if parsed.is_error then Encoding.utf_8 else parsed
+                Plain_Text_Format.Plain_Text encoding
+            _ -> Nothing
+
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems =
         file.read_text self.encoding on_problems
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_web : Response -> Any
+    read_web self response =
+        Text.from_bytes response.body.bytes self.encoding
 
 type Bytes
     ## If the File_Format supports reading from the file, return a configured instance.
@@ -66,11 +104,46 @@ type Bytes
             ".dat" -> Bytes
             _ -> Nothing
 
+    ## If the File_Format supports reading from the web response, return a configured instance.
+       As `Bytes`, does not support reading from the web returns `Nothing`.
+    for_web : Text -> URI -> Bytes | Nothing
+    for_web _ _ = Nothing
+
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file _ =
         file.read_bytes
+
+type JSON_File
+    ## If the File_Format supports reading from the file, return a configured instance.
+    for_file : File -> JSON_File | Nothing
+    for_file file =
+        case file.extension of
+            ".json" -> JSON_File
+            ".geojson" -> JSON_File
+            _ -> Nothing
+
+    ## If the File_Format supports reading from the web response, return a configured instance.
+    for_web : Text -> URI -> JSON_File | Nothing
+    for_web content_type _ =
+        first = content_type.split ';' . first . trim
+        case first of
+            "application/json" -> JSON_File
+            _ -> Nothing
+
+    ## PRIVATE
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file _ =
+        text = file.read_text
+        Json.parse text
+
+    ## PRIVATE
+       Implements the `Data.parse` for this `File_Format`
+    read_web : Response -> Any
+    read_web self response =
+        response.body.parse_json
 
 ## A setting to infer the default behaviour of some option.
 type Infer

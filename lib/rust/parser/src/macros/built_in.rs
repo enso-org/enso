@@ -27,6 +27,8 @@ fn expression() -> resolver::SegmentMap<'static> {
     macro_map.register(array());
     macro_map.register(tuple());
     macro_map.register(splice());
+    macro_map.register(skip());
+    macro_map.register(freeze());
     macro_map
 }
 
@@ -693,6 +695,26 @@ fn splice_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
 
 fn foreign<'s>() -> Definition<'s> {
     crate::macro_definition! {("foreign", everything()) foreign_body}
+}
+
+fn skip<'s>() -> Definition<'s> {
+    crate::macro_definition! {("SKIP", everything()) capture_expressions}
+}
+
+fn freeze<'s>() -> Definition<'s> {
+    crate::macro_definition! {("FREEZE", everything()) capture_expressions}
+}
+
+/// Macro body builder that just parses the tokens of each segment as expressions, and places them
+/// in a [`MultiSegmentApp`].
+fn capture_expressions(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
+    use syntax::tree::*;
+    Tree::multi_segment_app(segments.mapped(|s| {
+        let header = s.header;
+        let body = s.result.tokens();
+        let body = operator::resolve_operator_precedence_if_non_empty(body);
+        MultiSegmentAppSegment { header, body }
+    }))
 }
 
 fn foreign_body(segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree {
