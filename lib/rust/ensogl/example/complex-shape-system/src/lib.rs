@@ -14,7 +14,9 @@ use wasm_bindgen::prelude::*;
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::scene;
 use ensogl_core::display::style::theme;
+use ensogl_core::system::web;
 
 
 
@@ -98,12 +100,6 @@ pub fn main() {
     mask.set_size((300.0, 300.0));
     mask.set_position(Vector3::new(-50.0, 0.0, 0.0));
 
-    // FIXME[WD]: scissor box should not be computed from the left screen border. It should be
-    //     affected by the camera position.
-    // let scissor_box =
-    //     scene::layer::ScissorBox::new_with_position_and_size(Vector2(0, 0), Vector2(1600, 1600));
-    // scene.layers.main.set_scissor_box(Some(&scissor_box));
-
     let view2 = shape::View::new();
     view2.set_size((300.0, 300.0));
     view2.set_position(Vector3::new(50.0, 0.0, 0.0));
@@ -124,6 +120,17 @@ pub fn main() {
             let _keep_alive = &style_watch;
             let _keep_alive = &theme_manager;
             let _keep_alive = &view1;
+
+            // FIXME[WD]: scissor box should not be computed from the left screen border. It should
+            //            be affected by the camera position.
+            let screen_size: Vector2 = scene.camera().screen().into();
+            let screen_size = screen_size * web::window.device_pixel_ratio() as f32;
+            let scissor_box = scene::layer::ScissorBox::new_with_position_and_size(
+                Vector2(0, 0),
+                Vector2((screen_size.x / 2.0) as i32, screen_size.y as i32),
+            );
+            scene.layers.main.set_scissor_box(Some(&scissor_box));
+
             if frame == 50 {
                 // These comments are left for easy debugging in the future.
                 // DEBUG!("---------------");
