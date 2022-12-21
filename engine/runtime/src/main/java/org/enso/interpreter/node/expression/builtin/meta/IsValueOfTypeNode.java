@@ -107,16 +107,6 @@ public abstract class IsValueOfTypeNode extends Node {
     return false;
   }
 
-  @Specialization(guards = {"interop.isMetaObject(expectedType)"})
-  boolean doPolyglotType(
-      Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
-    try {
-      return interop.isMetaInstance(expectedType, payload);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
   @Specialization(
       guards = {
         "isArrayType(expectedType)",
@@ -147,6 +137,16 @@ public abstract class IsValueOfTypeNode extends Node {
     return true;
   }
 
+  @Specialization(guards = {"interop.isMetaObject(expectedType)"})
+  boolean doPolyglotType(
+      Object expectedType, Object payload, @CachedLibrary(limit = "3") InteropLibrary interop) {
+    try {
+      return interop.isMetaInstance(expectedType, payload);
+    } catch (UnsupportedMessageException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+  
   boolean isAnyType(Object expectedType) {
     return EnsoContext.get(this).getBuiltins().any() == expectedType;
   }
