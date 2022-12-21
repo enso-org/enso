@@ -17,6 +17,7 @@ const CSS_INPUT_PATH: &str = "assets/input.css";
 const CSS_OUTPUT_PATH: &str = "assets/stylesheet.css";
 /// The name of the Tailwind CLI utility. This name is provided to the `npx` utility.
 const TAILWIND_BINARY_NAME: &str = "tailwindcss";
+const ENV_VARIABLE_NAME: &str = "RUN_TAILWIND";
 
 fn main() {
     // We should rerun the tailwind on changes in our sources.
@@ -24,10 +25,10 @@ fn main() {
     println!("cargo:rerun-if-changed=src");
     // We should rerun the tailwind on changes in the input CSS file.
     // It may contain custom CSS rules.
-    println!("cargo:rerun-if-changed=assets/input.css");
-    println!("cargo:rerun-if-env-changed=RUN_TAILWIND");
+    println!("cargo:rerun-if-changed={CSS_INPUT_PATH}");
+    println!("cargo:rerun-if-env-changed={ENV_VARIABLE_NAME}");
 
-    if std::env::var("RUN_TAILWIND").is_ok() {
+    if std::env::var(ENV_VARIABLE_NAME).is_ok() {
         let output = Command::new("npx")
             .args([TAILWIND_BINARY_NAME, "-i", CSS_INPUT_PATH, "-o", CSS_OUTPUT_PATH])
             .stderr(std::process::Stdio::inherit())
