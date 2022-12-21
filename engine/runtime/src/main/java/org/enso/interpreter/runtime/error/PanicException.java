@@ -90,6 +90,7 @@ public class PanicException extends AbstractTruffleException {
       return Text.create(typeToDisplayTextNode.execute(payload));
     }
   }
+
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().panic();
