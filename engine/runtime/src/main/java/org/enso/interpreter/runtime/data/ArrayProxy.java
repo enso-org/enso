@@ -32,8 +32,7 @@ public final class ArrayProxy implements TruffleObject {
   private final long length;
   private final Object at;
 
-  @Builtin.Method(description = "Creates an array backed by a proxy object.")
-  public ArrayProxy(long length, Object at) {
+  private ArrayProxy(long length, Object at) throws IllegalArgumentException {
     if (CompilerDirectives.inInterpreter()) {
       InteropLibrary interop = InteropLibrary.getUncached();
       if (!interop.isExecutable(at)) {
@@ -43,8 +42,19 @@ public final class ArrayProxy implements TruffleObject {
       }
     }
 
+    if (length < 0) {
+      CompilerDirectives.transferToInterpreter();
+      throw new IllegalArgumentException("Array_Proxy length cannot be negative.");
+    }
+
     this.length = length;
     this.at = at;
+  }
+
+  @Builtin.Method(name = "new_builtin", description = "Creates an array backed by a proxy object.")
+  @Builtin.WrapException(from = IllegalArgumentException.class)
+  public static ArrayProxy create(long length, Object at) throws IllegalArgumentException {
+    return new ArrayProxy(length, at);
   }
 
   @ExportMessage
@@ -77,6 +87,17 @@ public final class ArrayProxy implements TruffleObject {
     } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException e) {
       throw UnsupportedMessageException.create(e);
     }
+  }
+
+  @ExportMessage
+  String toDisplayString(boolean b) {
+    return toString();
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String toString() {
+    return "(Array_Proxy " + length + " " + at + ")";
   }
 
   @ExportMessage
