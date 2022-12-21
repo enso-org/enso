@@ -422,11 +422,11 @@ impl Model {
 
     fn init_size(&self) {
         let size = Vector2(SPINNER_SIZE, SPINNER_SIZE);
-        self.ring.size.set(size);
-        self.spinner.size.set(size);
-        self.hover.size.set(size);
-        self.play.size.set(size);
-        self.pause.size.set(size);
+        self.ring.set_size(size);
+        self.spinner.set_size(size);
+        self.hover.set_size(size);
+        self.play.set_size(size);
+        self.pause.set_size(size);
     }
 
     fn init_transparency(&self) {
@@ -557,11 +557,11 @@ impl View {
         let pause = &model.pause;
 
         frp::extend! { network
-            eval frp.set_size ((size) hover.size.set(*size));
-            eval frp.set_size ((size) ring.size.set(*size));
-            eval frp.set_size ((size) spinner.size.set(*size));
-            eval frp.set_size ((size) play.size.set(*size));
-            eval frp.set_size ((size) pause.size.set(*size));
+            eval frp.set_size ([hover](size) { hover.set_size(*size); });
+            eval frp.set_size ([ring](size) { ring.set_size(*size); });
+            eval frp.set_size ([spinner](size) { spinner.set_size(*size); });
+            eval frp.set_size ([play](size) { play.set_size(*size); });
+            eval frp.set_size ([pause](size) { pause.set_size(*size); });
         }
     }
 
