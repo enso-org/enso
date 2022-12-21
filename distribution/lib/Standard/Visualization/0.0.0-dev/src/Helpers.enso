@@ -1,6 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+from Standard.Base.Data.Json import render
 
 from Standard.Table import Table, Column
+import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Storage.Storage
 
 import project.Id.Id
@@ -29,7 +32,7 @@ Any.default_visualization self = Id.json
 
          2.to_default_visualization_data
 Any.to_default_visualization_data : Text
-Any.to_default_visualization_data self = self.to_json.to_text
+Any.to_default_visualization_data self = self.to_json
 
 ## PRIVATE
 
@@ -78,7 +81,7 @@ Any.catch_ self ~val = self.catch Any (_-> val)
 
          example_display = Examples.throw_error.to_default_visualization_data
 Error.to_default_visualization_data : Text
-Error.to_default_visualization_data self = self.catch Any .to_default_visualization_data
+Error.to_default_visualization_data self = self.catch . to_default_visualization_data
 
 ## PRIVATE
 
@@ -121,7 +124,7 @@ recover_errors : Any -> Any
 recover_errors ~body =
     result = Panic.recover Any body
     result.catch Any err->
-        Json.from_pairs [["error", err.to_display_text]] . to_text
+        JS_Object.from_pairs [["error", err.to_display_text]] . to_text
 
 ## UNSTABLE
    ADVANCED
@@ -136,9 +139,18 @@ Vector.default_visualization self = Id.table
    Transform the vector into text for displaying as part of its default
    visualization.
 Vector.to_default_visualization_data : Text
-Vector.to_default_visualization_data self =
-    json = self.take 100 . to_json
-    json.to_text
+Vector.to_default_visualization_data self = render_vector self
+
+render_vector object depth=0 max_depth=5 max_length=100 =
+    case object of
+        _ : Vector -> if depth == max_depth then "[...]" else
+            result = object.take max_length . map (elem-> if elem.is_error then elem.to_json else render_vector elem (depth+1) max_depth max_length)
+            "[" + result.join ", " + "]"
+        _ : Array ->
+            proxy = Array_Proxy.new object.length object.at
+            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth max_depth max_length
+        _ : JS_Object -> render object depth max_depth max_length
+        _ -> object.to_default_visualization_data
 
 ## UNSTABLE
    ADVANCED
@@ -203,9 +215,66 @@ Table.default_visualization self =
         if cols.contains "x" && cols.contains "y" then Id.scatter_plot else
             Id.table
 
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this table in the IDE by default.
+
+   Returns a JSON object containing useful metadata and previews of column
+   values.
+Table.to_default_visualization_data : Text
+Table.to_default_visualization_data self =
+    max_size = 10
+    row_count = ['number_of_rows', self.row_count]
+    cols = self.columns.map c->
+        name = c.name
+        items = c.to_vector.take (First max_size)
+        JS_Object.from_pairs [['name', name], ['data', items]]
+    JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this Column.
+Column.default_visualization : Id
+Column.default_visualization self = Id.table
+
 ## PRIVATE
 
   Checks if the column stores numbers.
 Column.is_numeric : Boolean
 Column.is_numeric self =
     [Storage.Integer,Storage.Decimal].contains self.storage_type
+
+## UNSTABLE
+   ADVANCED
+
+   Shows a JSON serialization of a truncated version of this column, for the
+   benefit of visualization in the IDE.
+Column.to_default_visualization_data : Text
+Column.to_default_visualization_data self =
+    size = ['length', self.length]
+    name = ['name', self.name]
+    max_data = 100
+    data = ['data', self.to_vector.take (First max_data)]
+    JS_Object.from_pairs [size, name, data] . to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this Row.
+Row.default_visualization : Id
+Row.default_visualization self = Id.table
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this table in the IDE by default.
+
+   Returns a JSON object containing useful metadata and previews of column
+   values.
+Row.to_default_visualization_data : Text
+Row.to_default_visualization_data self =
+    self.to_vector.to_default_visualization_data

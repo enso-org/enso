@@ -110,7 +110,7 @@ type Error
 
              example_map_error =
                  map = Examples.map
-                 map.get 10 . map_error (_ -> "The element 10 was not found.")
+                 map.at 10 . map_error (_ -> "The element 10 was not found.")
     map_error : (Error -> Error) -> Any
     map_error self f = self.catch Any (x -> Error.throw (f x))
 

@@ -268,11 +268,11 @@ impl Model {
 
     fn update_style(&self, style: &AllStyles) {
         self.background.bg_color.set(style.panel.background_color.into());
-        self.background.size.set(style.background_sprite_size());
+        self.background.set_size(style.background_sprite_size());
         self.section_navigator.update_layout(style);
 
         self.breadcrumbs.set_xy(style.breadcrumbs_pos());
-        self.breadcrumbs.set_size(style.breadcrumbs_size());
+        self.breadcrumbs.frp().set_size(style.breadcrumbs_size());
         self.grid.set_xy(style.grid_pos());
     }
 
@@ -283,7 +283,7 @@ impl Model {
     // The `pos` is mouse position in Component List Panel space (the origin is in the middle of
     // the panel).
     fn is_hovered(&self, pos: Vector2) -> bool {
-        let size = self.background.size.get();
+        let size = self.background.computed_size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
     }

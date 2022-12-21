@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
@@ -23,6 +23,7 @@ polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.Instant
 polyglot java import java.time.LocalTime
 polyglot java import org.enso.base.Time_Utils
+polyglot java import java.lang.Exception as JException
 
 ## PRIVATE
 
@@ -100,8 +101,8 @@ type Time_Of_Day
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Of_Day ! Time_Error
     new (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch_java Any (new_builtin hour minute second total_nanoseconds) java_exception->
-            Error.throw (Time_Error.Error java_exception.getMessage)
+        Panic.catch JException (new_builtin hour minute second total_nanoseconds) caught_panic->
+            Error.throw (Time_Error.Error caught_panic.payload.getMessage)
 
     ## Obtains an instance of `Time_Of_Day` from a text such as "10:15".
 
@@ -166,7 +167,7 @@ type Time_Of_Day
              example_parse = Time_Of_Day.parse "4:30AM" "h:mma"
     parse : Text -> Text | Nothing -> Locale -> Time_Of_Day ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error.Error java_exception.getMessage)) <|
+        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
             case pattern of
                 Nothing -> parse_builtin text
                 _ : Text    -> Time_Utils.parse_time text pattern locale.java_locale
@@ -295,16 +296,17 @@ type Time_Of_Day
     to_text : Text
     to_text self = @Builtin_Method "Time_Of_Day.to_text"
 
-    ## A Time_Of_Day to Json conversion.
+    ## Convert to a JavaScript Object representing this Time_Of_Day.
 
        > Example
-         Convert the current time to JSON.
+         Convert the current time to a JS_Object.
 
-             from Standard.Base import Time_Of_Day
-
-             example_to_json = Time_Of_Day.now.to_text
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Time_Of_Day"], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
+             example_to_json = Time_Of_Day.now.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Time_Of_Day"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond]]
 
     ## Format this time of day using the provided formatter pattern.
 

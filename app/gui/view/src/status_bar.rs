@@ -222,7 +222,7 @@ impl Model {
             0.0
         };
         let bg_height = HEIGHT + 2.0 * MAGIC_SHADOW_MARGIN;
-        self.background.size.set(Vector2(bg_width, bg_height));
+        self.background.set_size(Vector2(bg_width, bg_height));
         self.background.set_y(-HEIGHT / 2.0);
     }
 

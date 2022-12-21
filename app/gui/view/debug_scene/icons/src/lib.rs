@@ -73,7 +73,7 @@ pub fn entry_point_searcher_icons() {
     let grid = DomSymbol::new(&grid_div);
     scene.dom.layers.back.manage(&grid);
     world.add_child(&grid);
-    grid.set_size(Vector2(1000.0, SIZE));
+    grid.set_dom_size(Vector2(1000.0, SIZE));
     mem::forget(grid);
 
 

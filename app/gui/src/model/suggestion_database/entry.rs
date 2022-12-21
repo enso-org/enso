@@ -13,6 +13,7 @@ use double_representation::name;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
+use engine_protocol::language_server::DocSection;
 use engine_protocol::language_server::FieldUpdate;
 use engine_protocol::language_server::SuggestionsDatabaseModification;
 use enso_text::Location;
@@ -239,6 +240,8 @@ pub struct Entry {
     pub reexported_in:      Option<QualifiedName>,
     /// A HTML documentation associated with object.
     pub documentation_html: Option<String>,
+    /// A list of documentation sections associated with object.
+    pub documentation:      Vec<DocSection>,
     /// A type of the "self" argument. This field is `None` for non-method suggestions.
     pub self_type:          Option<QualifiedName>,
     /// A flag set to true if the method is a static or module method.
@@ -272,6 +275,7 @@ impl Entry {
             is_static: false,
             reexported_in: None,
             documentation_html: None,
+            documentation: default(),
             self_type: None,
             scope: Scope::Everywhere,
             icon_name: None,
@@ -391,6 +395,18 @@ impl Entry {
     /// Takes self and returns it with new [`documentation_html`] value.
     pub fn with_documentation(mut self, html: impl Into<String>) -> Self {
         self.documentation_html = Some(html.into());
+        self
+    }
+
+    /// Takes self and returns it with new [`documentation`] value;
+    pub fn with_doc_sections(mut self, sections: Vec<DocSection>) -> Self {
+        self.documentation = sections;
+        self
+    }
+
+    /// Takes self and adds new [`documentation`] section.
+    pub fn with_doc_section(mut self, section: DocSection) -> Self {
+        self.documentation.push(section);
         self
     }
 
@@ -588,7 +604,7 @@ impl Entry {
             })
         }
 
-        let (documentation, icon_name) = match &mut entry {
+        let (documentation, icon_name, doc_sections) = match &mut entry {
             Type { documentation, documentation_html, documentation_sections, .. }
             | Constructor { documentation, documentation_html, documentation_sections, .. }
             | Method { documentation, documentation_html, documentation_sections, .. }
@@ -596,9 +612,9 @@ impl Entry {
                 let documentation =
                     Self::make_html_docs(mem::take(documentation), mem::take(documentation_html));
                 let icon_name = find_icon_name_in_doc_sections(&*documentation_sections);
-                (documentation, icon_name)
+                (documentation, icon_name, mem::take(documentation_sections))
             }
-            _ => (None, None),
+            _ => (None, None, default()),
         };
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
@@ -638,6 +654,7 @@ impl Entry {
             Module { module, .. } => Self::new_module(to_qualified_name(module)),
         };
         this.documentation_html = documentation;
+        this.documentation = doc_sections;
         this.icon_name = icon_name;
         this.reexported_in = reexported_in;
         this
@@ -851,8 +868,7 @@ pub fn to_span_tree_param(param_info: &Argument) -> span_tree::ArgumentInfo {
 // === Entry helpers ===
 
 fn find_icon_name_in_doc_sections<'a, I>(doc_sections: I) -> Option<IconName>
-where I: IntoIterator<Item = &'a language_server::types::DocSection> {
-    use language_server::types::DocSection;
+where I: IntoIterator<Item = &'a DocSection> {
     doc_sections.into_iter().find_map(|section| match section {
         DocSection::Keyed { key, body } if key == ICON_DOC_SECTION_KEY => {
             let icon_name = IconName::from_snake_case(body);

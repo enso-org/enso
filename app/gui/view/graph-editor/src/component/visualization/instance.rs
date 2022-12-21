@@ -225,7 +225,7 @@ impl Frp {
 #[allow(missing_docs)]
 pub struct Instance {
     display_object: display::object::Instance,
-    frp:            Frp,
+    pub frp:        Frp,
     network:        frp::Network,
     root_dom:       Immutable<Option<DomSymbol>>,
 }

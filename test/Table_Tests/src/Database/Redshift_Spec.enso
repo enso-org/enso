@@ -73,7 +73,7 @@ connect_via_json_config =
     msg = "Redshift connection is not set up. Please create a JSON file containing the credentials in `data/redshift_credentials.json`"
 
     if credentials.exists.not then msg else
-        creds = Json.parse credentials.read_text . unwrap
+        creds = Json.parse credentials.read_text
         access_key = creds.get 'access_key_id'
         secret_key = creds.get 'secret_access_key'
         uri = uri_parse (creds.get 'db_uri')

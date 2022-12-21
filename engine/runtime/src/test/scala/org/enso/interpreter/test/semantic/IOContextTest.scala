@@ -22,7 +22,7 @@ class DevelopmentContextTest extends InterpreterTest {
           |input_action : Integer -> Integer in Input
           |input_action i = i
           |
-          |main = Panic.catch_primitive (input_action 1) p-> p.payload.to_text
+          |main = Panic.catch Any (input_action 1) p-> p.payload.to_text
           |""".stripMargin
       eval(code) shouldEqual "(Forbidden_Operation_Data 'Input')"
     }
@@ -34,7 +34,7 @@ class DevelopmentContextTest extends InterpreterTest {
           |output_action : Integer -> Nothing in Output
           |output_action i = i
           |
-          |main = Panic.catch_primitive (output_action 1) p-> p.payload.to_text
+          |main = Panic.catch Any (output_action 1) p-> p.payload.to_text
           |""".stripMargin
       eval(code) shouldEqual "(Forbidden_Operation_Data 'Output')"
     }

@@ -25,12 +25,12 @@ spec =
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
         Test.specify "should be able to read a file as Bytes by method" <|
-            bytes = Data.read_file (sample_xxx) Bytes
+            bytes = Data.read (sample_xxx) Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
         Test.specify "should be able to read a file as Bytes by path" <|
             path = sample_xxx.path
-            bytes = Data.read_file path Bytes
+            bytes = Data.read path Bytes
             bytes.should_equal [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
 
     Test.group "Plain_Text" <|

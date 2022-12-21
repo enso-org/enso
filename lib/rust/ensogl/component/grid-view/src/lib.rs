@@ -464,8 +464,8 @@ pub struct GridViewTemplate<
 /// to the number of visible entries.
 ///
 /// After either method of resizing, each visible entry in the affected column will receive
-/// the [`EntryFrp::set_size`] event. It is up to the entry implementation to avoid loops between
-/// [`EntryFrp::set_size`] and [`EntryFrp::override_column_width`].
+/// the [`EntryFrp::set_size`] event. It is up to the entry implementation to avoid loops
+/// between [`EntryFrp::set_size`] and [`EntryFrp::override_column_width`].
 ///
 /// **Important**: The current implementation has performance implications for large amounts of
 /// entries. A more effective implementation is possible and may be implemented using a

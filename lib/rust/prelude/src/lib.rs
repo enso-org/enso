@@ -479,7 +479,7 @@ pub trait CellSetter: HasItem {
 
 /// Generalization of modify utilities for structures similar to [`Cell`].
 pub trait CellProperty: CellGetter + CellSetter + ItemClone {
-    /// Updates the contained value using a function and returns the new value.
+    /// Update the contained value using the provided function and return the new value.
     fn update<F>(&self, f: F) -> Self::Item
     where F: FnOnce(Self::Item) -> Self::Item {
         let new_val = f(self.get());
@@ -487,13 +487,25 @@ pub trait CellProperty: CellGetter + CellSetter + ItemClone {
         new_val
     }
 
-    /// Modifies the contained value using a function and returns the new value.
+    /// Modify the contained value using the provided function and return the new value.
     fn modify<F>(&self, f: F) -> Self::Item
     where F: FnOnce(&mut Self::Item) {
         let mut new_val = self.get();
         f(&mut new_val);
         self.set(new_val.clone());
         new_val
+    }
+
+    /// Update the contained value using the provided function without returning the new value.
+    fn update_<F>(&self, f: F)
+    where F: FnOnce(Self::Item) -> Self::Item {
+        self.update(f);
+    }
+
+    /// Modify the contained value using the provided function without returning the new value.
+    fn modify_<F>(&self, f: F)
+    where F: FnOnce(&mut Self::Item) {
+        self.modify(f);
     }
 }
 

@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Json.Json
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -216,7 +215,7 @@ type Request
 
              example_with_json =
                  Request.post (URI.parse "http://example.com") Request_Body.Empty |> _.with_json '{ "a": "b" }'
-    with_json : (Text | Json) -> Request
+    with_json : Text -> Request
     with_json self json_body =
         new_body = Request_Body.Json json_body
         Request.Value self.method self.uri self.headers new_body . with_headers [Header.application_json]

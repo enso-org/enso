@@ -259,7 +259,7 @@ impl DropDownMenu {
 
             icon_size <- all(frp.input.set_icon_size,frp.input.set_icon_padding);
             eval icon_size (((size,padding)) {
-                model.icon.size.set(size-2.0*padding);
+                model.icon.set_size(size-2.0*padding);
             });
 
             resize_menu <- all(model.selection_menu.size,frp.input.set_icon_size,frp.input.set_menu_offset_y);
@@ -281,7 +281,7 @@ impl DropDownMenu {
             overlay_size <- all(model.label.frp.width,frp.input.set_icon_size);
             eval overlay_size ([model]((text_width,icon_size)) {
                 let size = Vector2::new(text_width + icon_size.x,icon_size.y);
-                model.icon_overlay.size.set(size);
+                model.icon_overlay.set_size(size);
                 model.icon_overlay.set_x(-text_width/2.0);
             });
 

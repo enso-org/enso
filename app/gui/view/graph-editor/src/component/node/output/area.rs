@@ -214,7 +214,7 @@ impl Model {
         self.label.set_property_default(text::Size(input::area::TEXT_SIZE));
         self.label.remove_all_cursors();
 
-        self.label.mod_position(|t| t.y = input::area::TEXT_SIZE / 2.0);
+        self.label.set_y(input::area::TEXT_SIZE / 2.0);
 
         self
     }

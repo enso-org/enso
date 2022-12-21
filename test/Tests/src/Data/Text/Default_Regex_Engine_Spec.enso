@@ -501,14 +501,14 @@ spec =
         Test.specify "should return the results of all named groups" <|
             groups = match.named_groups
             groups.size . should_equal 2
-            groups.get "letters" . should_equal "abc a bc bcd"
-            groups.get "empty" . should_equal Nothing
+            groups.at "letters" . should_equal "abc a bc bcd"
+            groups.at "empty" . should_equal Nothing
 
         Test.specify "should replace unmatched groups by a user-specified value" <|
             groups = match.named_groups "UNMATCHED"
             groups.size . should_equal 2
-            groups.get "letters" . should_equal "abc a bc bcd"
-            groups.get "empty" . should_equal "UNMATCHED"
+            groups.at "letters" . should_equal "abc a bc bcd"
+            groups.at "empty" . should_equal "UNMATCHED"
 
     Test.group "Match.start" <|
         engine = Default_Engine.new
