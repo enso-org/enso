@@ -144,8 +144,12 @@ impl BackendTextProvider {
             preprocessor_update <+ update_preprocessor.map(|grid_window| {
                 let grid_posititon = grid_window.position.map(|value| value.max(0));
                 let grid_size = grid_window.size;
-                lazy_text_preprocessor(grid_posititon, grid_size)
-            });
+                if grid_size == GridSize::default() {
+                    None
+                } else {
+                    Some(lazy_text_preprocessor(grid_posititon, grid_size))
+                }
+            }).unwrap();
             grid_data_update <- receive_data.map(|data| {
                 LazyGridData::try_from(data.clone()).ok()
             });
@@ -153,7 +157,9 @@ impl BackendTextProvider {
             chunks_update <- grid_data_update.map(|grid_data| grid_data.chunks.clone());
             eval chunks_update([text_cache](chunks) {
                 for (pos, text) in chunks {
-                    text_cache.borrow_mut().add_item(*pos, text.clone());
+                    if let Some(text) = text {
+                        text_cache.borrow_mut().add_item(*pos, text.clone());
+                    }
                 }
             });
             output.line_count <+ grid_data_update.map(|grid_data| grid_data.line_count);
@@ -203,7 +209,7 @@ fn lazy_text_preprocessor(
 // === Lazy Grid Data Update ===
 // =============================
 
-type Chunk = (GridPosition, String);
+type Chunk = (GridPosition, Option<String>);
 
 /// Struct for deserialising the data sent from the engine.
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
@@ -218,8 +224,15 @@ impl TryFrom<visualization::Data> for LazyGridData {
 
     fn try_from(data: visualization::Data) -> Result<Self, Self::Error> {
         if let visualization::Data::Json { content } = data {
-            Ok(serde_json::from_value(content.deref().clone()).unwrap_or_else(|_| {
-                let data_str = serde_json::to_string_pretty(&*content);
+            Ok(serde_json::from_value(content.deref().clone()).unwrap_or_else(|e| {
+                let data_str = if content.is_string() {
+                    // We need to access the content `as_str` to preserve newlines. Just using
+                    // `content.to_string()` would turn them into the characters `\n` in the output.
+                    // The unwrap can never fail, as we just checked that the content is a string.
+                    Ok(content.as_str().map(|s| s.to_owned()).unwrap_or_default())
+                } else {
+                    serde_json::to_string_pretty(&*content)
+                };
                 let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}.>", e));
                 data_str.into()
             }))
@@ -240,7 +253,7 @@ impl From<String> for LazyGridData {
                 let chunks_with_position = numbered_chunks.map(move |(chunk_ix, chunk)| {
                     let chunk = chunk.collect::<String>();
                     let pos = GridPosition::new(chunk_ix as i32, line_ix as i32);
-                    (pos, chunk)
+                    (pos, Some(chunk))
                 });
                 chunks_with_position.collect_vec()
             })

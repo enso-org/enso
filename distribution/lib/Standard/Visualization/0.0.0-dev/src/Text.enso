@@ -42,7 +42,7 @@ get_lazy_visualisation_text_window text pos size chunk_width =
    Format a chunk of text and meta information for the lazy visualisation.
 make_grid_visualisation_response chunks lines max_line_length =
     message = Message.Value chunks lines max_line_length
-    message.to_json.to_text
+    message.to_json + ""
 
 ## PRIVATE
    Return a chunk of text from a string. The chunk is defined by a its size and a line/chunk index

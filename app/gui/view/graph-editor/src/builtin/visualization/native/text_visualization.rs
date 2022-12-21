@@ -160,7 +160,7 @@ impl<T: 'static> Model<T> {
         self.scroll_bar_vertical.set_length(size.y);
         self.scroll_bar_vertical.modify_x(|x| *x -= scrollbar_width / 2.0);
         let text_padding = Vector2::new(PADDING_TEXT, PADDING_TEXT);
-        self.clipping_div.set_size(size - 2.0 * text_padding);
+        self.clipping_div.set_dom_size(size - 2.0 * text_padding);
         self.size.set(size);
     }
 

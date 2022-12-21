@@ -262,8 +262,7 @@ make_lazy_visualisation_data text text_window_position text_window_size chunk_si
    Returns the data requested to render a lazy view of the default visualisation.
 Any.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Text
 Any.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
-    text = self.to_default_visualization_data
-    make_lazy_visualisation_data text text_window_position text_window_size chunk_size
+    make_lazy_visualisation_data self text_window_position text_window_size chunk_size
 
 ## UNSTABLE
    ADVANCED
