@@ -764,7 +764,6 @@ impl View {
             //
             // It is always safe to unwrap the client, since it is created during the `init` method
             // and never set to `None` again. It is a lazily-initialized field.
-            // FIXME [NP]: remove unwrap on selected_project_id somehow?
             eval selected_project_id ([client, input](selected_project_id) open_project(client.borrow().clone().unwrap(), input.clone_ref(), selected_project_id.unwrap()));
         }
     }
