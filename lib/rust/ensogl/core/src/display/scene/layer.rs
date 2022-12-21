@@ -24,6 +24,27 @@ use std::any::TypeId;
 
 
 
+// ==================
+// === LayerFlags ===
+// ==================
+
+bitflags::bitflags! {
+    /// A set of flags associated with each [`Layer`].
+    #[derive(Shrinkwrap)]
+    pub struct LayerFlags: u8 {
+        /// When layer is `MAIN_PASS_VISIBLE`, it will be rendered during standard color buffer
+        /// render pass. Layers without this flag are not rendered in main pass, but can still be
+        /// rendered in other passes, e.g. when used as mask layers.
+        const MAIN_PASS_VISIBLE = 1 << 0;
+        /// This layer's camera will be updated every time its parent camera is updated, or the
+        /// parent layer itself is changed. See [`LayerModel::set_camera`] for implementation of
+        /// camera inheritance.
+        const INHERIT_PARENT_CAMERA = 1 << 1;
+    }
+}
+
+
+
 // =============
 // === Layer ===
 // =============
@@ -876,27 +897,6 @@ impl AsRef<LayerModel> for Layer {
 impl std::borrow::Borrow<LayerModel> for Layer {
     fn borrow(&self) -> &LayerModel {
         &self.model
-    }
-}
-
-
-
-// ==================
-// === LayerFlags ===
-// ==================
-
-bitflags::bitflags! {
-    /// A set of flags associated with each [`Layer`].
-    #[derive(Shrinkwrap)]
-    pub struct LayerFlags: u8 {
-        /// When layer is `MAIN_PASS_VISIBLE`, it will be rendered during standard color buffer
-        /// render pass. Layers without this flag are not rendered in main pass, but can still be
-        /// rendered in other passes, e.g. when used as mask layers.
-        const MAIN_PASS_VISIBLE = 1 << 0;
-        /// This layer's camera will be updated every time its parent camera is updated, or the
-        /// parent layer itself is changed. See [`LayerModel::set_camera`] for implementation of
-        /// camera inheritance.
-        const INHERIT_PARENT_CAMERA = 1 << 1;
     }
 }
 
