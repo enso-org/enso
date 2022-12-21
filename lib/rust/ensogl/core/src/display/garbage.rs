@@ -85,7 +85,9 @@ impl Collector {
     #[profile(Debug)]
     pub fn mouse_events_handled(&self) {
         let mut garbage = self.garbage.borrow_mut();
-        drop(std::mem::take(&mut garbage.before_mouse_events));
+        let to_drop = std::mem::take(&mut garbage.before_mouse_events);
+        drop(garbage);
+        drop(to_drop);
     }
 }
 

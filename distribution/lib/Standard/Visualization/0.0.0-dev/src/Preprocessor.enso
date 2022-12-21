@@ -1,6 +1,5 @@
 from Standard.Base import all
 import project.Helpers
-from Standard.Visualization import all
 
 ## PRIVATE
    Default visualization preprocessor.

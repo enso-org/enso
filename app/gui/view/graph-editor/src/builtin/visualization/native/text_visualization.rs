@@ -63,6 +63,7 @@ const CHARS_PER_CHUNK: usize = 20;
 /// loaded in each direction around the visible grid. So a value of 5 with a base grid of 20x10 will
 /// load 25x15 grid.
 const CACHE_PADDING: u32 = 15;
+const PADDING_TEXT: f32 = 5.0;
 
 
 
@@ -154,11 +155,12 @@ impl<T: 'static> Model<T> {
         self.scroll_bar_horizontal.set_y(-size.y / 2.0);
         self.scroll_bar_horizontal.set_length(size.x);
         let scrollbar_width = scrollbar::WIDTH - scrollbar::PADDING;
-        self.scroll_bar_horizontal.mod_y(|y| y + scrollbar_width / 2.0);
+        self.scroll_bar_horizontal.modify_y(|y| *y += scrollbar_width / 2.0);
         self.scroll_bar_vertical.set_x(size.x / 2.0);
         self.scroll_bar_vertical.set_length(size.y);
-        self.scroll_bar_vertical.mod_x(|x| x - scrollbar_width / 2.0);
-        self.clipping_div.set_size(size);
+        self.scroll_bar_vertical.modify_x(|x| *x -= scrollbar_width / 2.0);
+        let text_padding = Vector2::new(PADDING_TEXT, PADDING_TEXT);
+        self.clipping_div.set_size(size - 2.0 * text_padding);
         self.size.set(size);
     }
 
@@ -330,8 +332,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                     let right = left +  vis_size.x;
 
                     // Set DOM element size.
-                    dom_entry_root.set_style_or_warn("top", format!("{}px", top));
-                    dom_entry_root.set_style_or_warn("left", format!("{}px", -left));
+                    dom_entry_root.set_style_or_warn("top", format!("{}px", top + PADDING_TEXT));
+                    dom_entry_root.set_style_or_warn("left", format!("{}px", -left + PADDING_TEXT));
 
                     // Output viewport.
                     let viewport = grid_view::Viewport {top, bottom, left, right};
