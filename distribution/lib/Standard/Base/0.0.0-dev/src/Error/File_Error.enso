@@ -43,7 +43,7 @@ type File_Error
        Utility method for running an action with Java exceptions mapping.
     handle_java_exceptions file ~action =
         Panic.catch IOException action caught_panic->
-            File_Error.wrap_io_exception file caught_panic.payload.cause
+            File_Error.wrap_io_exception file caught_panic.payload
 
     ## PRIVATE
 

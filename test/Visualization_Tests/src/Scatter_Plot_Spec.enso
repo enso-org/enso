@@ -12,11 +12,11 @@ import project
 spec =
     expect_text text axis_expected_text data_expected_text =
         json = Json.parse text
-        json.fields.keys.should_equal ['axis','data']
+        json.field_names.should_equal ['data', 'axis']
 
-        expected_axis_labels   = ['axis', Json.parse axis_expected_text]
-        expected_data_pair     = ['data', Json.parse data_expected_text]
-        expected_result        = Json.from_pairs [expected_axis_labels, expected_data_pair]
+        expect_text = '{"axis": ' + axis_expected_text + ', "data": ' + data_expected_text + '}'
+        expected_result = Json.parse expect_text
+
         json.should_equal expected_result
 
     expect value axis_expected_text data_expected_text =
@@ -24,8 +24,8 @@ spec =
         expect_text text axis_expected_text data_expected_text
 
     index = Scatter_Plot.index_name
-    axis label = Json.from_pairs [['label',label]]
-    labels x y = Json.from_pairs [['x', axis x], ['y', axis y]] . to_text
+    axis label = JS_Object.from_pairs [['label',label]]
+    labels x y = JS_Object.from_pairs [['x', axis x], ['y', axis y]] . to_text
     no_labels  = 'null'
 
     Test.group "Scatter Plot Visualization" <|
@@ -114,19 +114,18 @@ spec =
             vector = [0,10,20,30]
             text = Scatter_Plot.process_to_json_text vector limit=2
             json = Json.parse text
-            json.fields.keys.should_equal ['axis','data']
-            data = json.fields.get 'data'
-            data.unwrap.length . should_equal 2
-
+            json.field_names.should_equal ['data','axis']
+            data = json.get 'data'
+            data.length . should_equal 2
 
         Test.specify "limit the number of squared elements" <|
             vector = (-15).up_to 15 . map (x -> x * x)
             text = Scatter_Plot.process_to_json_text vector limit=10
             json = Json.parse text
-            json.fields.keys.should_equal ['axis','data']
-            data = (json.fields.get 'data') . unwrap
+            json.field_names.should_equal ['data','axis']
+            data = json.get 'data'
             data.length . should_equal 10
-            (data.take (First 3)).to_text . should_equal '[[[\'x\', 0], [\'y\', 225]], [[\'x\', 15], [\'y\', 0]], [[\'x\', 29], [\'y\', 196]]]'
+            (data.take (First 3)).to_text . should_equal '[{"x":0,"y":225}, {"x":15,"y":0}, {"x":29,"y":196}]'
 
         Test.specify "filter the elements" <|
             vector = [0,10,20,30]

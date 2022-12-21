@@ -10,14 +10,14 @@ import project.Helpers
 
    Arguments:
    - table: the Table to be visualized.
-json_from_table : Table -> Json
+json_from_table : Table -> JS_Object
 json_from_table table =
     names = ['label', 'latitude', 'longitude', 'radius', 'color']
     pairs = names.map <| name->
         column = table.lookup_ignore_case name
         column.when_valid ["df_" + name, column.to_vector] . catch Nothing
 
-    Json.from_pairs <| pairs.filter (x -> x.is_nothing.not)
+    JS_Object.from_pairs <| pairs.filter (x -> x.is_nothing.not)
 
 ## PRIVATE
 
@@ -29,7 +29,9 @@ json_from_table table =
 process_to_json_text : Any -> Text
 process_to_json_text value =
     json = case value of
-        Table.Value _ -> json_from_table value
+        Table.Value _ -> json_from_table value . to_text
         _ -> value.to_json
 
-    json.to_text
+    ## Workaround so that the JS String is converted to a Text
+       https://www.pivotaltracker.com/story/show/184061302
+    "" + json

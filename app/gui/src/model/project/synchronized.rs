@@ -14,7 +14,9 @@ use crate::transport::web::WebSocket;
 use double_representation::name::project;
 use engine_protocol::binary;
 use engine_protocol::binary::message::VisualisationContext;
+use engine_protocol::common::error::code;
 use engine_protocol::language_server;
+use engine_protocol::language_server::response;
 use engine_protocol::language_server::CapabilityRegistration;
 use engine_protocol::language_server::ContentRoot;
 use engine_protocol::language_server::ExpressionUpdates;
@@ -23,6 +25,7 @@ use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
+use json_rpc::error::RpcError;
 use parser_scala::Parser;
 
 
@@ -167,6 +170,32 @@ impl ContentRoots {
 }
 
 
+
+// ========================
+// === VCS status check ===
+// ========================
+
+/// Check whether the current state of the project differs from the most recent snapshot in the VCS,
+/// and emit a notification.
+#[profile(Detail)]
+async fn check_vcs_status_and_notify(
+    project_root_id: Uuid,
+    language_server: Rc<language_server::Connection>,
+    publisher: notification::Publisher<model::project::Notification>,
+) -> json_rpc::Result<response::VcsStatus> {
+    let path_segments: [&str; 0] = [];
+    let root_path = language_server::Path::new(project_root_id, &path_segments);
+    let status = language_server.vcs_status(&root_path).await;
+    let notify_status = match &status {
+        Ok(response::VcsStatus { dirty: true, .. }) | Err(_) => model::project::VcsStatus::Dirty,
+        Ok(response::VcsStatus { dirty: false, .. }) => model::project::VcsStatus::Clean,
+    };
+    publisher.notify(model::project::Notification::VcsStatusChanged(notify_status));
+    status
+}
+
+
+
 // =============
 // === Model ===
 // =============
@@ -306,6 +335,7 @@ impl Project {
         let json_rpc_handler = ret.json_event_handler();
         crate::executor::global::spawn(json_rpc_events.for_each(json_rpc_handler));
 
+        ret.initialize_vcs().await.map_err(|err| wrap(err.into()))?;
         ret.acquire_suggestion_db_updates_capability().await.map_err(|err| wrap(err.into()))?;
         Ok(ret)
     }
@@ -448,6 +478,8 @@ impl Project {
         //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
         //  See: https://github.com/enso-org/ide/issues/587
         let publisher = self.notifications.clone_ref();
+        let project_root_id = self.project_content_root_id();
+        let language_server = self.json_rpc().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
         let execution_update_handler = self.execution_update_handler();
@@ -465,7 +497,20 @@ impl Project {
             // Event Handling
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
-                Event::Notification(Notification::TextAutoSave(_)) => {}
+                Event::Notification(Notification::TextAutoSave(_)) => {
+                    let publisher = publisher.clone_ref();
+                    let language_server = language_server.clone_ref();
+                    executor::global::spawn(async move {
+                        let status = check_vcs_status_and_notify(
+                            project_root_id,
+                            language_server,
+                            publisher,
+                        );
+                        if let Err(err) = status.await {
+                            error!("Error while checking project VCS status: {err}");
+                        }
+                    });
+                }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
                     let execution_update = ExecutionUpdate::ExpressionUpdates(updates);
@@ -531,6 +576,25 @@ impl Project {
         let capability = CapabilityRegistration::create_receives_suggestions_database_updates();
         self.language_server_rpc
             .acquire_capability(&capability.method, &capability.register_options)
+    }
+
+    /// Initialize the VCS if it was not already initialized.
+    #[profile(Detail)]
+    async fn initialize_vcs(&self) -> json_rpc::Result<()> {
+        let project_root_id = self.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = language_server::Path::new(project_root_id, &path_segments);
+        let language_server = self.json_rpc().clone_ref();
+        let response = language_server.init_vcs(&root_path).await;
+        if let Err(RpcError::RemoteError(json_rpc::messages::Error {
+            code: code::VCS_ALREADY_EXISTS,
+            ..
+        })) = response
+        {
+            Ok(())
+        } else {
+            response
+        }
     }
 
     #[profile(Task)]
@@ -663,6 +727,7 @@ mod test {
     use engine_protocol::types::Sha3_224;
     use futures::SinkExt;
     use json_rpc::expect_call;
+    use std::assert_matches::assert_matches;
 
 
     #[allow(unused)]
@@ -687,16 +752,17 @@ mod test {
             binary_client.expect_event_stream().return_once(|| binary_events.boxed_local());
             let json_events_sender = json_client.setup_events();
 
-            let initial_suggestions_db = language_server::response::GetSuggestionDatabase {
-                entries:         vec![],
-                current_version: 0,
-            };
+            let initial_suggestions_db =
+                response::GetSuggestionDatabase { entries: vec![], current_version: 0 };
             expect_call!(json_client.get_suggestions_database() => Ok(initial_suggestions_db));
             let capability_reg =
                 CapabilityRegistration::create_receives_suggestions_database_updates();
             let method = capability_reg.method;
             let options = capability_reg.register_options;
             expect_call!(json_client.acquire_capability(method,options) => Ok(()));
+            let path_segments: [&str; 0] = [];
+            let root_path = language_server::Path::new(Uuid::default(), &path_segments);
+            expect_call!(json_client.init_vcs(root_path) => Ok(()));
 
             setup_mock_json(&mut json_client);
             setup_mock_binary(&mut binary_client);
@@ -837,5 +903,52 @@ mod test {
         let value_info = value_registry.get(&expression_id).unwrap();
         assert_eq!(value_info.typename, value_update.typename.clone().map(ImString::new));
         assert_eq!(value_info.method_call, value_update.method_pointer);
+    }
+
+
+    // === VCS status check ===
+
+    #[wasm_bindgen_test]
+    fn check_project_vcs_status() {
+        TestWithLocalPoolExecutor::set_up().run_task(async move {
+            let json_client = language_server::MockClient::default();
+            let path_segments: [&str; 0] = [];
+            let root_path = language_server::Path::new(Uuid::default(), &path_segments);
+
+            let vcs_status = response::VcsStatus::default();
+            let root_path_clone = root_path.clone();
+            expect_call!(json_client.vcs_status(root_path_clone) => Ok(vcs_status));
+
+            let vcs_status = response::VcsStatus { dirty: true, ..Default::default() };
+            expect_call!(json_client.vcs_status(root_path) => Ok(vcs_status));
+
+            let ls = language_server::Connection::new_mock_rc(json_client);
+            let publisher = notification::Publisher::default();
+            let mut subscriber = publisher.subscribe();
+
+            let result =
+                check_vcs_status_and_notify(Uuid::default(), ls.clone_ref(), publisher.clone_ref())
+                    .await;
+            let message = subscriber.next().await;
+            assert_matches!(result, Ok(response::VcsStatus { dirty: false, .. }));
+            assert_matches!(
+                message,
+                Some(model::project::Notification::VcsStatusChanged(
+                    model::project::VcsStatus::Clean
+                ))
+            );
+
+            let result =
+                check_vcs_status_and_notify(Uuid::default(), ls.clone_ref(), publisher.clone_ref())
+                    .await;
+            let message = subscriber.next().await;
+            assert_matches!(result, Ok(response::VcsStatus { dirty: true, .. }));
+            assert_matches!(
+                message,
+                Some(model::project::Notification::VcsStatusChanged(
+                    model::project::VcsStatus::Dirty
+                ))
+            );
+        });
     }
 }

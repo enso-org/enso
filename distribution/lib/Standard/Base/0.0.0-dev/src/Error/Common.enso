@@ -27,7 +27,7 @@ type Syntax_Error
 
        Arguments:
        - message: A description of the erroneous syntax.
-   Error message
+    Error message
 
 @Builtin_Type
 type Type_Error
@@ -107,15 +107,6 @@ type No_Such_Method
     method_name : Text
     method_name self =
         Meta.meta self.symbol . name
-
-@Builtin_Type
-type Polyglot_Error
-    ## PRIVATE
-       An error that occurred across a polyglot boundary.
-
-       Arguments:
-       - cause: A polyglot object corresponding to the original error.
-   Error cause
 
 ## An error that occurs when the enso_project function is called in a file
    that is not part of a project.

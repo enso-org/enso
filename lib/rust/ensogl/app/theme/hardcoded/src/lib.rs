@@ -587,10 +587,18 @@ define_themes! { [light:0, dark:1]
             full        = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
             transparent = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
             selected    = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
-            hover       = Lcha(0.0,0.0,0.0,0.7) , Lcha(1.0,0.0,0.0,0.7);
+            hover       = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
             deselected  {
-                left  = Lcha(0.0,0.0,0.0,0.5) , Lcha(1.0,0.0,0.0,0.5);
+                left  = Lcha(0.0,0.0,0.0,0.4) , Lcha(1.0,0.0,0.0,0.4);
                 right = Lcha(0.0,0.0,0.0,0.2) , Lcha(1.0,0.0,0.0,0.2);
+            }
+            unsaved {
+                selected    = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+                hover       = Lcha(0.0,0.0,0.0,1.0) , Lcha(1.0,0.0,0.0,1.0);
+                deselected  {
+                    left  = Lcha(0.0,0.0,0.0,0.8) , Lcha(1.0,0.0,0.0,0.8);
+                    right = Lcha(0.0,0.0,0.0,0.6) , Lcha(1.0,0.0,0.0,0.6);
+                }
             }
             background = application::background , application::background;
             background {
@@ -619,17 +627,6 @@ define_themes! { [light:0, dark:1]
             hovered         = graph_editor::node::actions::button::hovered
                 ,graph_editor::node::actions::button::hovered;
             toggled_hovered = Lcha(0.55,0.5,0.12,1.0) , Lcha(0.85,0.5,0.12,1.0);
-        }
-        prompt {
-            background = application::background, application::background;
-            background {
-                corner_radius = 14.0, 14.0;
-                padding       = 14.0, 14.0;
-            }
-            text       = Rgba(0.078,0.067,0.137,0.85) , Lcha(1.0,0.0,0.0,0.7);
-            text {
-                size = 20.0, 20.0;
-            }
         }
         add_node_button {
             margin = 14.0, 14.0;

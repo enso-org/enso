@@ -100,6 +100,11 @@ where
     pub fn model(&self) -> &M {
         self.widget.model()
     }
+
+    /// FRP accessor.
+    pub fn frp(&self) -> &F {
+        self.widget.frp()
+    }
 }
 
 impl<M: 'static, F: 'static> display::Object for ComponentView<M, F> {

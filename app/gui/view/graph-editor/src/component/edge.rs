@@ -582,7 +582,7 @@ macro_rules! define_line {
                 fn snap_local(&self, point: Vector2<f32>) -> Option<Vector2<f32>> {
                     // FIXME: These bounds check should not be required and should be removed once
                     // issue #689 is resolved.
-                    let height = self.size.get().y;
+                    let height = self.computed_size().y;
                     let y = point.y.clamp(-height / 2.0, height / 2.0);
                     Some(Vector2(0.0, y))
                 }
@@ -679,25 +679,25 @@ impl LayoutLine for front::line::View {
     fn layout_v(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
     fn layout_h(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
     fn layout_v_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
     fn layout_h_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
 }
@@ -706,25 +706,25 @@ impl LayoutLine for back::line::View {
     fn layout_v(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
     fn layout_h(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs() + LINE_SIDES_OVERLAP);
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
     fn layout_v_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x, start.y + len / 2.0);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
     fn layout_h_no_overlap(&self, start: Vector2<f32>, len: f32) {
         let pos = Vector2(start.x + len / 2.0, start.y);
         let size = Vector2(LINE_SHAPE_WIDTH, len.abs());
-        self.size.set(size);
+        self.set_size(size);
         self.set_xy(pos);
     }
 }
@@ -1305,10 +1305,10 @@ impl EdgeModelData {
         display_object.add_child(&back);
         display_object.add_child(&joint);
 
-        front.side_line.mod_rotation(|r| r.z = RIGHT_ANGLE);
-        back.side_line.mod_rotation(|r| r.z = RIGHT_ANGLE);
-        front.side_line2.mod_rotation(|r| r.z = RIGHT_ANGLE);
-        back.side_line2.mod_rotation(|r| r.z = RIGHT_ANGLE);
+        front.side_line.set_rotation_z(RIGHT_ANGLE);
+        back.side_line.set_rotation_z(RIGHT_ANGLE);
+        front.side_line2.set_rotation_z(RIGHT_ANGLE);
+        back.side_line2.set_rotation_z(RIGHT_ANGLE);
 
         let frp = Frp::new(network);
         let source_height = default();
@@ -1400,12 +1400,12 @@ impl EdgeModelData {
                     let joint_position = snap_data.position - self.display_object.position().xy();
                     self.joint.set_xy(joint_position);
                     let joint_size = LINE_WIDTH + PADDING;
-                    self.joint.size.set(Vector2(joint_size, joint_size));
+                    self.joint.set_size(Vector2(joint_size, joint_size));
                 }
             }
             _ => {
                 self.focus_none();
-                self.joint.size.set(Vector2::zero());
+                self.joint.set_size(Vector2::<f32>::zero());
             }
         }
 
@@ -1536,7 +1536,7 @@ impl EdgeModelData {
         let corner1_angle = (angle + angle_overlap) * side;
         let corner1_angle = if is_down { corner1_angle } else { side_right_angle };
 
-        bg.corner.size.set(corner1_size);
+        bg.corner.set_size(corner1_size);
         bg.corner.start_angle.set(corner1_start_angle);
         bg.corner.angle.set(corner1_angle);
         bg.corner.radius.set(corner1_radius);
@@ -1544,7 +1544,7 @@ impl EdgeModelData {
         bg.corner.set_xy(corner1);
         if !fully_attached {
             bg.corner.dim.set(Vector2(node_half_width, source_node_half_height));
-            fg.corner.size.set(corner1_size);
+            fg.corner.set_size(corner1_size);
             fg.corner.start_angle.set(corner1_start_angle);
             fg.corner.angle.set(corner1_angle);
             fg.corner.radius.set(corner1_radius);
@@ -1552,7 +1552,7 @@ impl EdgeModelData {
             fg.corner.dim.set(Vector2(node_half_width, source_node_half_height));
             fg.corner.set_xy(corner1);
         } else {
-            fg.corner.size.set(zero());
+            fg.corner.set_size(Vector2(0.0, 0.0));
             bg.corner.dim.set(Vector2(INFINITE, INFINITE));
         }
 
@@ -1574,7 +1574,7 @@ impl EdgeModelData {
         let bg_line_start = Vector2(side * bg_line_x, 0.0);
         if fully_attached {
             let bg_line_len = side * side_line_len;
-            fg.side_line.size.set(zero());
+            fg.side_line.set_size(Vector2(0.0, 0.0));
             bg.side_line.layout_h(bg_line_start, bg_line_len);
         } else {
             let bg_max_len = NODE_PADDING + side_line_shift;
@@ -1618,10 +1618,10 @@ impl EdgeModelData {
             } else if fully_attached {
                 let main_line_start_y = port_line_start.y + port_line_len;
                 let main_line_start = Vector2(port_line_start.x, main_line_start_y);
-                fg.main_line.size.set(zero());
+                fg.main_line.set_size(Vector2(0.0, 0.0));
                 bg.main_line.layout_v(main_line_start, main_line_len - port_line_len);
             } else {
-                bg.main_line.size.set(zero());
+                bg.main_line.set_size(Vector2(0.0, 0.0));
                 fg.main_line.layout_v(port_line_start, main_line_len);
             }
         }
@@ -1680,8 +1680,8 @@ impl EdgeModelData {
             let corner3_angle = if is_right_side { 0.0 } else { -RIGHT_ANGLE };
 
             if fully_attached {
-                fg.corner3.size.set(zero());
-                bg.corner3.size.set(corner3_size);
+                fg.corner3.set_size(Vector2(0.0, 0.0));
+                bg.corner3.set_size(corner3_size);
                 bg.corner3.start_angle.set(corner3_angle);
                 bg.corner3.angle.set(RIGHT_ANGLE);
                 bg.corner3.radius.set(corner3_radius);
@@ -1689,8 +1689,8 @@ impl EdgeModelData {
                 bg.corner3.dim.set(Vector2(INFINITE, INFINITE));
                 bg.corner3.set_xy(corner3);
             } else {
-                bg.corner3.size.set(zero());
-                fg.corner3.size.set(corner3_size);
+                bg.corner3.set_size(Vector2(0.0, 0.0));
+                fg.corner3.set_size(corner3_size);
                 fg.corner3.start_angle.set(corner3_angle);
                 fg.corner3.angle.set(RIGHT_ANGLE);
                 fg.corner3.radius.set(corner3_radius);
@@ -1704,8 +1704,8 @@ impl EdgeModelData {
             let corner2_angle = if is_right_side { -RIGHT_ANGLE } else { 0.0 };
 
             if fully_attached {
-                fg.corner2.size.set(zero());
-                bg.corner2.size.set(corner1_size);
+                fg.corner2.set_size(Vector2(0.0, 0.0));
+                bg.corner2.set_size(corner1_size);
                 bg.corner2.start_angle.set(corner2_angle);
                 bg.corner2.angle.set(RIGHT_ANGLE);
                 bg.corner2.radius.set(corner2_radius);
@@ -1713,8 +1713,8 @@ impl EdgeModelData {
                 bg.corner2.dim.set(Vector2(INFINITE, INFINITE));
                 bg.corner2.set_xy(corner2);
             } else {
-                bg.corner2.size.set(zero());
-                fg.corner2.size.set(corner1_size);
+                bg.corner2.set_size(Vector2(0.0, 0.0));
+                fg.corner2.set_size(corner1_size);
                 fg.corner2.start_angle.set(corner2_angle);
                 fg.corner2.angle.set(RIGHT_ANGLE);
                 fg.corner2.radius.set(corner2_radius);
@@ -1737,10 +1737,10 @@ impl EdgeModelData {
             let main_line_start = Vector2(side * corner1_target.x, corner1.y);
 
             if fully_attached {
-                fg.main_line.size.set(zero());
+                fg.main_line.set_size(Vector2(0.0, 0.0));
                 bg.main_line.layout_v(main_line_start, main_line_len);
             } else {
-                bg.main_line.size.set(zero());
+                bg.main_line.set_size(Vector2(0.0, 0.0));
                 fg.main_line.layout_v(main_line_start, main_line_len);
             }
 
@@ -1749,17 +1749,17 @@ impl EdgeModelData {
                 let arrow_pos = Vector2(main_line_start.x, arrow_y);
                 let arrow_size = Vector2(ARROW_SIZE_X, ARROW_SIZE_Y);
                 if fully_attached {
-                    fg.arrow.size.set(zero());
-                    bg.arrow.size.set(arrow_size);
+                    fg.arrow.set_size(Vector2(0.0, 0.0));
+                    bg.arrow.set_size(arrow_size);
                     bg.arrow.set_xy(arrow_pos);
                 } else {
-                    bg.arrow.size.set(zero());
-                    fg.arrow.size.set(arrow_size);
+                    bg.arrow.set_size(Vector2(0.0, 0.0));
+                    fg.arrow.set_size(arrow_size);
                     fg.arrow.set_xy(arrow_pos);
                 }
             } else {
-                bg.arrow.size.set(zero());
-                fg.arrow.size.set(zero());
+                bg.arrow.set_size(Vector2(0.0, 0.0));
+                fg.arrow.set_size(Vector2(0.0, 0.0));
             }
 
 
@@ -1773,23 +1773,23 @@ impl EdgeModelData {
             let side_line2_len = side * (corner3_x - corner2_x);
             let side_line2_start = Vector2(side * corner2_x, corner2_y + corner2_radius);
             if fully_attached {
-                fg.side_line2.size.set(zero());
+                fg.side_line2.set_size(Vector2(0.0, 0.0));
                 bg.side_line2.layout_h(side_line2_start, side_line2_len);
             } else {
-                bg.side_line2.size.set(zero());
+                bg.side_line2.set_size(Vector2(0.0, 0.0));
                 fg.side_line2.layout_h(side_line2_start, side_line2_len);
             }
 
             port_line_len = corner3_y - port_line_start.y;
         } else {
-            fg.arrow.size.set(zero());
-            bg.arrow.size.set(zero());
-            fg.corner3.size.set(zero());
-            bg.corner3.size.set(zero());
-            fg.corner2.size.set(zero());
-            bg.corner2.size.set(zero());
-            fg.side_line2.size.set(zero());
-            bg.side_line2.size.set(zero());
+            fg.arrow.set_size(Vector2(0.0, 0.0));
+            bg.arrow.set_size(Vector2(0.0, 0.0));
+            fg.corner3.set_size(Vector2(0.0, 0.0));
+            bg.corner3.set_size(Vector2(0.0, 0.0));
+            fg.corner2.set_size(Vector2(0.0, 0.0));
+            bg.corner2.set_size(Vector2(0.0, 0.0));
+            fg.side_line2.set_size(Vector2(0.0, 0.0));
+            bg.side_line2.set_size(Vector2(0.0, 0.0));
         }
 
 

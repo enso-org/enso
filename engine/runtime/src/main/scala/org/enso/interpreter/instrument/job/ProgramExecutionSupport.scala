@@ -271,11 +271,14 @@ object ProgramExecutionSupport {
     val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
     val message = error match {
       case _: ThreadInterruptedException =>
-        s"Execution of function $itemName interrupted."
+        val message = s"Execution of function $itemName interrupted."
+        ctx.executionService.getLogger.log(Level.WARNING, message)
+        message
       case _ =>
-        s"Execution of function $itemName failed ($reason)."
+        val message = s"Execution of function $itemName failed ($reason)."
+        ctx.executionService.getLogger.log(Level.WARNING, message, error)
+        message
     }
-    ctx.executionService.getLogger.log(Level.WARNING, message)
     executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
   }
 
@@ -555,7 +558,7 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   ): Option[Api.MethodPointer] =
     for {
-      call       <- Option(value.getCallInfo)
+      call       <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       moduleName <- Option(call.getModuleName)
       typeName   <- Option(call.getTypeName)
     } yield Api.MethodPointer(

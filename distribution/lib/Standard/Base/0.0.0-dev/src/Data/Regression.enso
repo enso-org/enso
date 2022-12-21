@@ -114,4 +114,4 @@ type Fit_Error
 
     ## PRIVATE
     handle_java_exception =
-        Panic.catch_java FitError handler=(java_exception-> Error.throw (Fit_Error.Error java_exception.getMessage))
+        Panic.catch FitError handler=(cause-> Error.throw (Fit_Error.Error cause.payload.getMessage))

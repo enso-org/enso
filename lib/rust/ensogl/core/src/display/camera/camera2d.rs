@@ -208,7 +208,7 @@ impl Camera2dData {
         let display_object = display::object::Instance::new();
         let zoom_update_registry = default();
         let screen_update_registry = default();
-        display_object.mod_position(|p| p.z = 1.0);
+        display_object.modify_position(|p| p.z = 1.0);
         dirty.projection.set();
         let network = frp::Network::new("Camera2d");
         frp::extend! { network
@@ -363,11 +363,11 @@ impl Camera2dData {
     }
 
     fn set_rotation(&mut self, yaw: f32, pitch: f32, roll: f32) {
-        self.display_object.mod_rotation(|r| *r = Vector3::new(yaw, pitch, roll))
+        self.display_object.modify_rotation(|r| *r = Vector3::new(yaw, pitch, roll))
     }
 
     fn mod_position_keep_zoom<F: FnOnce(&mut Vector3<f32>)>(&mut self, f: F) {
-        self.display_object.mod_position(f)
+        self.display_object.modify_position(f)
     }
 }
 

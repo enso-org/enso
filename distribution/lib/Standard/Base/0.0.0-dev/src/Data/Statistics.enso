@@ -59,7 +59,7 @@ type Rank_Method
             Rank_Method.Ordinal -> Rank.Method.ORDINAL
             Rank_Method.Dense -> Rank.Method.DENSE
 
-        report_nullpointer caught_panic = Error.throw (Illegal_Argument.Error caught_panic.payload.cause.getMessage)
+        report_nullpointer caught_panic = Error.throw (Illegal_Argument.Error caught_panic.payload.getMessage)
         handle_nullpointer = Panic.catch NullPointerException handler=report_nullpointer
         handle_classcast = Panic.catch ClassCastException handler=(_ -> Error.throw Incomparable_Values)
 

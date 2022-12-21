@@ -355,7 +355,7 @@ impl ContainerModel {
         preprocessor: &frp::Any<PreprocessorConfiguration>,
     ) {
         let size = self.size.get();
-        visualization.set_size.emit(size);
+        visualization.frp.set_size.emit(size);
         frp::new_network! { vis_frp_connection
             // We need an additional "copy" node here. We create a new network to manage lifetime of
             // connection between `visualization.on_preprocessor_change` and `preprocessor`.
@@ -389,26 +389,21 @@ impl ContainerModel {
         let size = size.into();
         self.size.set(size);
         if self.is_fullscreen.get() {
-            // self.fullscreen_view.background.shape.radius.set(CORNER_RADIUS);
-            // self.fullscreen_view.background.shape.sprite.size.set(size);
-            // self.view.background.shape.sprite.size.set(zero());
-            self.view.overlay.size.set(zero());
+            self.view.overlay.set_size(Vector2(0.0, 0.0));
             dom.set_style_or_warn("width", "0");
             dom.set_style_or_warn("height", "0");
             bg_dom.set_style_or_warn("width", format!("{}px", size[0]));
             bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
             self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
-            // self.view.background.shape.radius.set(CORNER_RADIUS);
             self.view.overlay.radius.set(CORNER_RADIUS);
             self.view.background.radius.set(CORNER_RADIUS);
-            self.view.overlay.size.set(size);
-            self.view.background.size.set(size + 2.0 * Vector2(PADDING, PADDING));
+            self.view.overlay.set_size(size);
+            self.view.background.set_size(size + 2.0 * Vector2(PADDING, PADDING));
             dom.set_style_or_warn("width", format!("{}px", size[0]));
             dom.set_style_or_warn("height", format!("{}px", size[1]));
             bg_dom.set_style_or_warn("width", "0");
             bg_dom.set_style_or_warn("height", "0");
-            // self.fullscreen_view.background.shape.sprite.size.set(zero());
 
             let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
             self.action_bar.frp.set_size.emit(action_bar_size);
@@ -417,7 +412,7 @@ impl ContainerModel {
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {
-            viz.set_size.emit(size);
+            viz.frp.set_size.emit(size);
         }
     }
 
@@ -651,7 +646,7 @@ impl Container {
         frp::extend! { network
             eval_ action_bar.on_container_reset_position(model.drag_root.set_xy(Vector2::zero()));
             drag_action <- app.cursor.frp.scene_position_delta.gate(&action_bar.container_drag_state);
-            eval drag_action ((mouse) model.drag_root.mod_xy(|pos| pos - mouse.xy()));
+            eval drag_action ((mouse) model.drag_root.update_xy(|pos| pos - mouse.xy()));
         }
 
         // FIXME[mm]: If we set the size right here, we will see spurious shapes in some

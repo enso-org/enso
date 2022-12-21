@@ -157,41 +157,24 @@ type Table
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
-    ## Converts this table to a JSON structure.
+    ## Converts this table into a JS_Object.
 
        > Example
-         Convert a table to a corresponding JSON representation.
+         Convert a table to a corresponding JavaScript JS_Object representation.
 
              import Standard.Examples
 
-             example_to_json = Examples.inventory_table.to_json
-    to_json : Json
-    to_json self =
+             example_to_json = Examples.inventory_table.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
         index_prep = case self.index.catch No_Index_Set_Error (_->Nothing) of
             Nothing -> []
             index -> [index]
         cols = index_prep + self.columns
         rows = 0.up_to self.row_count . map row->
             vals_kv = cols.map col-> [col.name, col.at row]
-            Json.from_pairs vals_kv
-        rows.to_json
-
-    ## UNSTABLE
-       ADVANCED
-
-       Returns a Text used to display this table in the IDE by default.
-
-       Returns a JSON object containing useful metadata and previews of column
-       values.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        max_size = 10
-        row_count = ['number_of_rows', self.row_count]
-        cols = self.columns.map c->
-            name = c.name
-            items = c.to_vector.take (First max_size)
-            Json.from_pairs [['name', name], ['data', items]]
-        Json.from_pairs [row_count, ['columns', cols]] . to_text
+            JS_Object.from_pairs vals_kv
+        rows
 
     ## Returns the column with the given name.
 
@@ -815,7 +798,7 @@ type Table
                 column
 
         new_columns = self.columns.map column->
-            is_selected = selected_names.get_or_else column.name False
+            is_selected = selected_names.get column.name False
             if is_selected then transform column else column
 
         result = Table.new new_columns
@@ -1237,7 +1220,7 @@ type Table
 
         selected_names = Map.from_vector (id_columns.map column-> [column.name, True])
 
-        data = columns_helper.internal_columns.filter column->(selected_names.get_or_else column.name False . not)
+        data = columns_helper.internal_columns.filter column->(selected_names.get column.name False . not)
         java_data = data.map .java_column
 
         java_id = id_columns.map .java_column
@@ -1362,7 +1345,7 @@ type Table
 
              example_to_json = Examples.inventory_table.write_json (enso_project.data / 'example.json')
     write_json : File -> Nothing
-    write_json self file = self.to_json.to_text.write file
+    write_json self file = self.to_json.write file
 
     ## This function writes a table from memory into a file.
 

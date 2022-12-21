@@ -235,17 +235,17 @@ impl Model {
         self.background.color.set(background_color.into());
         self.track.color.set(track_color.into());
         self.thumb.color.set(track_color.into());
-        self.set_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
+        self.update_size(Vector2(COMPONENT_WIDTH_DEFAULT, COMPONENT_HEIGHT_DEFAULT));
         self.value_text_dot.set_content(".");
         self
     }
 
     /// Set the component size.
-    pub fn set_size(&self, size: Vector2<f32>) {
+    pub fn update_size(&self, size: Vector2<f32>) {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
-        self.background.size.set(size + margin);
-        self.track.size.set(size + margin);
-        self.thumb.size.set(size + margin);
+        self.background.set_size(size + margin);
+        self.track.set_size(size + margin);
+        self.thumb.set_size(size + margin);
     }
 
     /// Set the color of the slider track or thumb.
@@ -299,8 +299,8 @@ impl Model {
     pub fn set_overflow_marker_shape(&self, (size, orientation): &(f32, SliderOrientation)) {
         let margin = Vector2(COMPONENT_MARGIN * 2.0, COMPONENT_MARGIN * 2.0);
         let size = Vector2(*size, *size) * OVERFLOW_MARKER_SIZE + margin;
-        self.overflow_lower.size.set(size);
-        self.overflow_upper.size.set(size);
+        self.overflow_lower.set_size(size);
+        self.overflow_upper.set_size(size);
         match orientation {
             SliderOrientation::Horizontal => {
                 self.overflow_lower.set_rotation_z(std::f32::consts::FRAC_PI_2);

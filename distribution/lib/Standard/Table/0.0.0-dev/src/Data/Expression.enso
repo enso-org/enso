@@ -21,7 +21,7 @@ type Expression
          Vector argument but which should be exposed with variable parameters.
     evaluate : Text -> (Text -> Any) -> (Any -> Any) -> Text -> Text -> Vector Text -> Any
     evaluate expression get_column make_constant module_name type_name var_args_functions =
-        handle_parse_error = Panic.catch_java ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.getMessage cause.getLine cause.getColumn))
+        handle_parse_error = Panic.catch ExpressionVisitorImpl.SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))
         handle_unsupported = handle_java_error UnsupportedOperationException Expression_Error.Unsupported_Operation
         handle_arguments = handle_java_error IllegalArgumentException Expression_Error.Argument_Mismatch
 
@@ -46,4 +46,4 @@ type Expression_Error
 
 ## PRIVATE
 handle_java_error java_type enso_constructor =
-    Panic.catch_java java_type handler=(cause-> Error.throw (enso_constructor cause.getMessage))
+    Panic.catch java_type handler=(cause-> Error.throw (enso_constructor cause.payload.getMessage))

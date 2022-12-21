@@ -1,7 +1,8 @@
 use crate::prelude::*;
 
 use crate::cache::goodie::Goodie;
-use crate::github::Repo;
+use crate::env::known::PATH;
+use crate::github::RepoRef;
 use crate::programs::java;
 use crate::programs::java::JAVA_HOME;
 use crate::programs::Java;
@@ -10,10 +11,7 @@ use crate::programs::Java;
 
 const PACKAGE_PREFIX: &str = "graalvm-ce";
 
-const GITHUB_ORGANIZATION: &str = "graalvm";
-
-const CE_BUILDS_REPOSITORY: &str = "graalvm-ce-builds";
-
+pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "graalvm", name: "graalvm-ce-builds" };
 
 crate::define_env_var! {
     /// Should be the same as `JAVA_HOME` for Graal-based Java distribution.
@@ -35,11 +33,6 @@ pub async fn find_graal_version() -> Result<Version> {
     graal_version_from_version_string(&text)
 }
 
-/// The repository that contains the GraalVM CE releases for download.
-pub fn ce_build_repository() -> Repo {
-    Repo { owner: GITHUB_ORGANIZATION.into(), name: CE_BUILDS_REPOSITORY.into() }
-}
-
 /// Description necessary to download and install GraalVM.
 #[derive(Clone, Debug)]
 pub struct GraalVM {
@@ -56,9 +49,8 @@ impl Goodie for GraalVM {
         let platform_string = self.platform_string();
         let graal_version = self.graal_version.clone();
         let client = self.client.clone();
-        let repo = ce_build_repository();
         async move {
-            let repo = repo.handle(&client);
+            let repo = CE_BUILDS_REPOSITORY.handle(&client);
             let release = repo.find_release_by_text(&graal_version.to_string()).await?;
             crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
         }
@@ -83,17 +75,17 @@ impl Goodie for GraalVM {
         .boxed()
     }
 
-    fn activate(&self, package_path: PathBuf) -> Result {
+    fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>> {
         let package_path = package_path.join(self.root_directory_name());
         let root = match TARGET_OS {
             OS::MacOS => package_path.join_iter(["Contents", "Home"]),
             _ => package_path,
         };
-
-        JAVA_HOME.set(&root)?;
-        GRAALVM_HOME.set(&root)?;
-        crate::env::prepend_to_path(root.join("bin"))?;
-        Ok(())
+        Ok(vec![
+            crate::env::Modification::set(&JAVA_HOME, &root)?,
+            crate::env::Modification::set(&GRAALVM_HOME, &root)?,
+            crate::env::Modification::prepend_path(&PATH, root.join("bin")),
+        ])
     }
 }
 
@@ -144,6 +136,7 @@ mod tests {
         graalvm.install_if_missing(&cache::Cache::new_default().await?).await?;
 
         Gu.require_present().await?;
+
         // let graalvm = graalvm.is_active().await?;
         // assert!(graalvm);
         Ok(())

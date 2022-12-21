@@ -1,5 +1,6 @@
 from Standard.Base import IO, Integer, Vector
 from Standard.Base.Data.Statistics import all
+import Standard.Base.Data.Range
 
 from Standard.Test import Bench, Faker
 

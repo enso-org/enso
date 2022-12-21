@@ -250,7 +250,7 @@ generate_expression dialect expr = case expr of
         dialect.wrap_identifier origin ++ '.' ++ dialect.wrap_identifier name
     SQL_Expression.Constant sql_type value -> SQL.interpolation sql_type value
     SQL_Expression.Operation kind arguments ->
-        op = dialect.operation_map.get_or_else kind (Error.throw <| Unsupported_Database_Operation.Error kind)
+        op = dialect.operation_map.get kind (Error.throw <| Unsupported_Database_Operation.Error kind)
         parsed_args = arguments.map (generate_expression dialect)
         op parsed_args
     query : Query -> generate_query dialect query
