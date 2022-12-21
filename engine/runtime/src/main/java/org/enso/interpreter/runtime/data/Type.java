@@ -184,12 +184,12 @@ public final class Type implements TruffleObject {
 
   @ExportMessage
   boolean hasMetaObject() {
-      return true;
+    return true;
   }
 
   @ExportMessage
   Type getMetaObject() {
-      return getType();
+    return getType();
   }
 
   @ExportMessage
@@ -198,7 +198,8 @@ public final class Type implements TruffleObject {
     return new Array(supertype);
   }
 
-  @ExportMessage boolean hasMetaParents() {
+  @ExportMessage
+  boolean hasMetaParents() {
     return supertype != null && supertype != this;
   }
 
@@ -209,11 +210,11 @@ public final class Type implements TruffleObject {
 
   @ExportMessage
   boolean isMetaObject() {
-      return true;
+    return true;
   }
 
   @ExportMessage
-  boolean isMetaInstance(Object instance, @CachedLibrary(limit="3") TypesLibrary lib) {
+  boolean isMetaInstance(Object instance, @CachedLibrary(limit = "3") TypesLibrary lib) {
     var b = EnsoContext.get(lib).getBuiltins();
     if (b.any() == this) {
       return true;
@@ -230,12 +231,12 @@ public final class Type implements TruffleObject {
 
   @ExportMessage
   String getMetaSimpleName() {
-      return getName();
+    return getName();
   }
 
   @ExportMessage
   String getMetaQualifiedName() {
-      return getQualifiedName().toString();
+    return getQualifiedName().toString();
   }
 
   @ExportMessage

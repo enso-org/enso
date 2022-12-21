@@ -271,7 +271,6 @@ public final class EnsoFile implements TruffleObject {
     return true;
   }
 
-
   @ExportMessage
   boolean hasType() {
     return true;

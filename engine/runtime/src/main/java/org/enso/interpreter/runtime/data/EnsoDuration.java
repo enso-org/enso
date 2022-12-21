@@ -49,7 +49,6 @@ public final class EnsoDuration implements TruffleObject {
     return true;
   }
 
-
   @Builtin.Method(
       name = "new_builtin",
       description =

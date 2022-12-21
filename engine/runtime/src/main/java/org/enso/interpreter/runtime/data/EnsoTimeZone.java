@@ -18,7 +18,10 @@ import java.time.zone.ZoneRulesException;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "date", name = "TimeZone", stdlibName = "Standard.Base.Data.Time.Time_Zone.Time_Zone")
+@Builtin(
+    pkg = "date",
+    name = "TimeZone",
+    stdlibName = "Standard.Base.Data.Time.Time_Zone.Time_Zone")
 public final class EnsoTimeZone implements TruffleObject {
   private final ZoneId zone;
 
@@ -90,7 +93,6 @@ public final class EnsoTimeZone implements TruffleObject {
   boolean hasMetaObject() {
     return true;
   }
-
 
   @ExportMessage
   boolean hasType() {

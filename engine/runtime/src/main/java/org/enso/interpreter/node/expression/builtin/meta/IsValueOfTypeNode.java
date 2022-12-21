@@ -54,7 +54,6 @@ public abstract class IsValueOfTypeNode extends Node {
     return true;
   }
 
-
   @Specialization
   boolean doLongCheck(Type expectedType, long payload) {
     var numbers = EnsoContext.get(this).getBuiltins().number();
@@ -75,7 +74,7 @@ public abstract class IsValueOfTypeNode extends Node {
 
   @ExplodeLoop
   private boolean checkParentTypes(Type actual, Type real) {
-    for (;;) {
+    for (; ; ) {
       if (actual == null) {
         return false;
       }
@@ -146,7 +145,7 @@ public abstract class IsValueOfTypeNode extends Node {
       throw new IllegalStateException(e);
     }
   }
-  
+
   boolean isAnyType(Object expectedType) {
     return EnsoContext.get(this).getBuiltins().any() == expectedType;
   }

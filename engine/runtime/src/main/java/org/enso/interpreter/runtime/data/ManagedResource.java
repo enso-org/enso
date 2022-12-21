@@ -85,7 +85,6 @@ public final class ManagedResource implements TruffleObject {
     return true;
   }
 
-
   @ExportMessage
   boolean hasType() {
     return true;
