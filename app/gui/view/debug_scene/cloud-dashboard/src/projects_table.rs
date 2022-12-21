@@ -736,7 +736,6 @@ impl View {
             selected_position <- table.entry_selected.filter_map(|position| *position);
             selected_position <- selected_position.map(|p| (*p).into());
             selected_index <- selected_position.map(f!((p) model.project_index_for_entry(*p)));
-            // FIXME [NP]: avoid clone?
             selected_project <- selected_index.map(f!([model](i) i.and_then(f!((i) model.projects.raw.borrow().get(i).cloned()))));
 
             // When a project is selected, get the state and ID of that project.
@@ -750,27 +749,16 @@ impl View {
             );
             // Apply the state change to the project's current state, then save the project's model to update the table.
             new_state <- state_change.map(|state_change| state_change.map(|sc| sc.new_state));
-            // FIXME [NP]: avoid clone?
-            project_and_state <- all_with(&selected_project, &new_state,
-                move |p, s| {
-                    let p = (*p).clone();
-                    p.and_then(move |p| s.map(|s| {
-                        (p, s)
-                    }))
+            new_project <- all_with(&selected_project, &new_state,
+                move |project, state| {
+                    let mut project = project.clone()?;
+                    let state = (*state)?;
+                    project.state = state;
+                    Some(project)
                 }
             );
-            new_project <- project_and_state.map(move |project_and_state| {
-                project_and_state.as_ref().map(move |(p, s)| {
-                    // FIXME [NP]: avoid clone?
-                    let mut p = p.clone();
-                    p.state = *s;
-                    p
-                })
-            });
-            new_project <- all(selected_index, new_project);
-            // FIXME [NP]: remove unwrap
-            // FIXME [NP]: remove clone
-            eval new_project (((selected_index, new_project)) model.set_project(new_project.clone().unwrap(), selected_index.unwrap()));
+            new_project_with_index <- all(selected_index, new_project);
+            eval new_project_with_index (((selected_index, new_project)) model.set_project(new_project.clone().unwrap(), selected_index.unwrap()));
 
             // # Safety
             //
