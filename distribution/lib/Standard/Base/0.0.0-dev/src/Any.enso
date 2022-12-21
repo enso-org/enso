@@ -299,7 +299,7 @@ type Any
 
              example_map_error =
                 my_map = Map.empty
-                error = my_map.get "x"
+                error = my_map.at "x"
                 error.map_error (_ -> Example_Error_Type "x is missing")
     map_error : (Error -> Error) -> Any
     map_error self _ = self

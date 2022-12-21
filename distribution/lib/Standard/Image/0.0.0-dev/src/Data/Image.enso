@@ -421,18 +421,18 @@ type Image
 
     ## UNSTABLE
 
-       Convert the image to Json.
+       Convert the image to a JS_Object.
 
        > Example
-         Convert an image to JSON.
+         Convert an image to a JavaScript object.
 
              import Standard.Examples
 
-             example_to_json = Examples.image.to_json
-    to_json : Json
-    to_json self =
+             example_to_json = Examples.image.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
         base64 = Java_Image.to_base64 self.opencv_mat
-        Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
+        JS_Object.from_pairs [["mediaType", "image/png"], ["base64", base64]]
 
     ## UNSTABLE
 

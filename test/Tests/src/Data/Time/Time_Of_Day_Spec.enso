@@ -41,7 +41,7 @@ specWith name create_new_time parse_time =
             time = create_new_time 1 2 3
             time.to_json.should_equal <|
                 time_pairs = [["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
-                Json.from_pairs ([["type", "Time_Of_Day"]] + time_pairs)
+                JS_Object.from_pairs ([["type", "Time_Of_Day"], ["constructor", "new"]] + time_pairs) . to_text
 
         Test.specify "should parse default time format" <|
             text = create_new_time 12 20 44 . to_text

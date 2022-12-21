@@ -130,7 +130,7 @@ public interface IdExecutionService {
           + "expressionId="
           + expressionId
           + ", value="
-          + new MaskedString(value.toString()).applyMasking()
+          + (value == null ? "null" : new MaskedString(value.toString()).applyMasking())
           + ", type='"
           + type
           + '\''
@@ -213,13 +213,12 @@ public interface IdExecutionService {
      */
     public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
       RootNode rootNode = call.getFunction().getCallTarget().getRootNode();
-      if (rootNode instanceof MethodRootNode) {
-        MethodRootNode methodNode = (MethodRootNode) rootNode;
+      if (rootNode instanceof MethodRootNode methodNode) {
         moduleName = methodNode.getModuleScope().getModule().getName();
         typeName = methodNode.getType().getQualifiedName();
         functionName = methodNode.getMethodName();
-      } else if (rootNode instanceof EnsoRootNode) {
-        moduleName = ((EnsoRootNode) rootNode).getModuleScope().getModule().getName();
+      } else if (rootNode instanceof EnsoRootNode ensoRootNode) {
+        moduleName = ensoRootNode.getModuleScope().getModule().getName();
         typeName = null;
         functionName = rootNode.getName();
       } else {

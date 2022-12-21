@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Error.Error
@@ -111,7 +111,7 @@ type Time_Zone
        This method parses the ID producing a `Time_Zone`.
 
        Arguments:
-       - text: The text representing a zone identifier.
+       - id: The text representing a zone identifier.
 
        > Example
          Get Central European Time.
@@ -141,9 +141,9 @@ type Time_Zone
 
              example_parse = Time_Zone.parse "+03:02:01"
     parse : Text -> Time_Zone ! Time_Error
-    parse text =
+    parse id =
         Panic.catch JException handler=(catch -> Error.throw (Time_Error.Error catch.payload.getMessage)) <|
-            parse_builtin text
+            parse_builtin id
 
     ## Get the unique timezone ID.
 
@@ -156,16 +156,19 @@ type Time_Zone
     zone_id : Text
     zone_id self = @Builtin_Method "Time_Zone.zone_id"
 
-    ## Convert the time zone to JSON.
+    ## Convert to a JavaScript Object representing this Time_Zone.
 
        > Example
-         Convert your system's current timezone to JSON.
+         Convert your system's current timezone to a JS_Object.
 
              from Standard.Base import Time_Zone
 
-             example_to_json = Time_Zone.system.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Time_Zone"], ["id", self.zone_id]]
+             example_to_json = Time_Zone.system.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Time_Zone"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["id", self.zone_id]]
 
     ## Compares two Zones for equality.
     == : Time_Zone -> Boolean

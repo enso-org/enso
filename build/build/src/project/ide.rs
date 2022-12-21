@@ -95,6 +95,7 @@ pub struct BuildInput {
     pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
     #[derivative(Debug = "ignore")]
     pub gui:             BoxFuture<'static, Result<crate::project::gui::Artifact>>,
+    pub electron_target: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -122,13 +123,15 @@ impl Ide {
         input: BuildInput,
         output_path: impl AsRef<Path> + Send + Sync + 'static,
     ) -> BoxFuture<'static, Result<Artifact>> {
-        let BuildInput { version, project_manager, gui } = input;
+        let BuildInput { version, project_manager, gui, electron_target } = input;
         let ide_desktop = ide_desktop_from_context(context);
         let target_os = self.target_os;
         let target_arch = self.target_arch;
         async move {
             let (gui, project_manager) = try_join!(gui, project_manager)?;
-            ide_desktop.dist(&gui, &project_manager, &output_path, target_os).await?;
+            ide_desktop
+                .dist(&gui, &project_manager, &output_path, target_os, electron_target)
+                .await?;
             Ok(Artifact::new(target_os, target_arch, &version, output_path))
         }
         .boxed()

@@ -78,12 +78,11 @@ type Table
 
     ## UNSTABLE
 
-       Converts this table into a JSON structure.
-    to_json : Json
-    to_json self = case self.internal_columns.is_empty of
-        True ->
-            Json.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
-        False -> self.to_sql.to_json
+       Converts this column to JS_Object representation.
+    to_js_object : JS_Object
+    to_js_object self = case self.internal_columns.is_empty of
+        True -> JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]]
+        False -> self.to_sql.to_js_object
 
     ## UNSTABLE
 
@@ -1216,9 +1215,9 @@ display_dataframe df indices_count all_rows_count format_terminal =
 combine_names left_names right_names left_suffix right_suffix =
     make_count_map names =
         map = names.fold Map.empty acc-> name->
-            count = acc.get_or_else name 0 + 1
+            count = acc.get name 0 + 1
             acc.insert name count
-        name-> map.get_or_else name 0
+        name-> map.get name 0
     original_names_count = make_count_map left_names+right_names
     add_suffix_if_necessary suffix name = case original_names_count name > 1 of
         True -> [name, name+suffix]

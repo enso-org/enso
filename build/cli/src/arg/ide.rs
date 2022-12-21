@@ -24,6 +24,10 @@ pub struct BuildInput {
     pub project_manager: Source<Backend>,
     #[clap(flatten)]
     pub output_path:     OutputPath<Target>,
+    /// Override the default target for electron-builder. E.g. pass `dir` for unpacked directory
+    /// (fastest). See <https://www.electron.build> for all supported targets.
+    #[clap(long, enso_env())]
+    pub electron_target: Option<String>,
 }
 
 #[derive(Subcommand, Clone, Debug)]

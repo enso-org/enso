@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
-from Standard.Base.Data.Json import Json_Parse_Error, No_Such_Field
+import Standard.Base.Error.No_Such_Key.No_Such_Key
+from Standard.Base.Data.Json import Invalid_JSON
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -17,7 +18,7 @@ Text.should_fail_parsing_with self expected =
     as_fail = case Json.parse self of
         _ -> Test_Result.Failure "Expected a parse error, but no error reported."
     result = as_fail.catch Any e-> case e of
-        Json_Parse_Error.Error msg ->
+        Invalid_JSON.Error msg ->
             if msg.contains expected then Test_Result.Success else
                 fail_msg = "The reported message " + msg.to_text + " did not contain " + expected.to_text + "."
                 Test_Result.Failure fail_msg
@@ -29,10 +30,10 @@ Text.should_fail_parsing_with self expected =
         _ -> Panic.throw result
 
 Text.should_parse_as self expected =
-    Json.parse self . should_equal expected.to_json
+    Json.parse self . should_equal expected
 
 Text.should_render_itself self =
-    Json.parse self . to_text . should_equal self
+    Json.parse self . to_json . should_equal self
 
 spec =
     Test.group "JSON Deserialization" <|
@@ -46,47 +47,24 @@ spec =
             "false".should_parse_as False
             "true".should_parse_as True
             "null".should_parse_as Nothing
-            "[null, null, true, false]".should_parse_as <|
-                [Nothing, Nothing, True, False]
+            "[null, null, true, false]".should_parse_as [Nothing, Nothing, True, False]
             "[]".should_parse_as []
-            '[[1, 3], [5 , "foo"], 7, 8]'.should_parse_as <|
-                [[1, 3], [5, 'foo'], 7, 8]
+            '[[1, 3], [5 , "foo"], 7, 8]'.should_parse_as [[1, 3], [5, 'foo'], 7, 8]
             '"foo"'.should_parse_as 'foo'
             '"foo\\n\\t\\u20AC\\u20AC"'.should_parse_as 'foo\n\t€€'
-            '["foo", "foo\\n\\u00aB", null, true]'.should_parse_as <|
-                ["foo", 'foo\n\u{AB}', Nothing, True]
-            object_json = '''
-                { "foo": "bar",
-                  "baz": ["foo", "x", false],
-                  "y": {"z": null, "w": null} }
+            '["foo", "foo\\n\\u00aB", null, true]'.should_parse_as ["foo", 'foo\n\u{AB}', Nothing, True]
+            object_json = '{"foo": "bar", "baz": ["foo", "x", false], "y": {"z": null, "w": null} }'
             object_json.should_parse_as <|
-                y_v = Json.from_pairs [["z", Nothing], ["w", Nothing]]
-                Json.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
+                y_v = JS_Object.from_pairs [["z", Nothing], ["w", Nothing]]
+                JS_Object.from_pairs [["foo", "bar"], ["baz", ["foo", "x", False]], ["y", y_v]]
 
         Test.specify "should report meaningful parsing errors" <|
-            "foo".should_fail_parsing_with "Expected a false"
-            "[,]".should_fail_parsing_with "Expected a start of a JSON value"
-            "{,}".should_fail_parsing_with "Expected a string"
-            deep_err = '''
-                { "foo": "bar",
-                  "baz": ["foo", "x"", false],
-                  "y": {"z": null, "w": null} }
-            deep_err.should_fail_parsing_with "Expected a comma"
-            "123 4".should_fail_parsing_with "Expected end of input"
-
-        Test.specify "should parse and convert JSON into domain model" <|
-            book_1 = Book.Value "Lord of the Rings" <|
-                Author.Value "J. R. R. Tolkien" 1892
-            book_2 = Book.Value "The Little Prince" <|
-                Author.Value "Antoine de Saint-Exupéry" 1900
-            book_3 = Book.Value "And Then There Were None" <|
-                Author.Value "Agatha Christie" 1890
-            books = [book_1, book_2, book_3]
-
-            json_string = (enso_project.data / "books.json").read_text
-            parsed = Json.parse json_string
-            domain = parsed.into (Vector.fill 1 (Book.Value title=Text (Author.Value name=Text year_of_birth=Number)))
-            domain.should_equal books
+            "foo".should_fail_parsing_with "Unexpected token f in JSON at position 0"
+            "[,]".should_fail_parsing_with "Unexpected token , in JSON at position 1"
+            "{,}".should_fail_parsing_with "Unexpected token , in JSON at position 1"
+            deep_err = '{ "foo": "bar", "baz": ["foo", "x"", false], "y": {"z": null, "w": null} }'
+            deep_err.should_fail_parsing_with "closing quote ] expected at position 34"
+            "123 4".should_fail_parsing_with "JSON cannot be fully parsed at position 4"
 
     Test.group "JSON Serialization" <|
         Test.specify "should print JSON structures to valid json" <|
@@ -106,66 +84,66 @@ spec =
             object_json.should_render_itself
 
         Test.specify "should convert arbitrary types to JSON" <|
-            1.to_json.should_equal (Json.Number 1)
-            1.54.to_json.should_equal (Json.Number 1.54)
-            ["foo", "bar", "baz"].to_json.should_equal <|
-                (Json.Array [Json.String "foo", Json.String "bar", Json.String "baz"])
+            1.to_json.should_equal "1"
+            1.54.to_json.should_equal "1.54"
+            ["foo", "bar", "baz"].to_json.should_equal '["foo","bar","baz"]'
             Author.Value "Tolkien" 1892 . to_json . should_equal <|
-                n = Json.String "Tolkien"
-                y = Json.Number 1892
-                t = Json.String "Value"
-                fields = Map.empty . insert "type" t . insert "name" n . insert "year_of_birth" y
-                Json.Object fields
+                '{"type":"Author","constructor":"Value","name":"Tolkien","year_of_birth":1892}'
 
         Test.specify "should render NaN and Infinity to null" <|
-            Number.nan.to_json.to_text . should_equal "null"
-            Number.positive_infinity.to_json.to_text . should_equal "null"
-            Number.negative_infinity.to_json.to_text . should_equal "null"
+            Number.nan.to_json . should_equal "null"
+            Number.positive_infinity.to_json . should_equal "null"
+            Number.negative_infinity.to_json . should_equal "null"
+
+    Test.group "JS_Object" <|
+        Test.specify "should be buildable from pairs" <|
+            JS_Object.from_pairs [["foo", "bar"]] . to_json . should_equal '{"foo":"bar"}'
+            JS_Object.from_pairs [["foo", "bar"], ["baz", Nothing]] . to_json . should_equal '{"foo":"bar","baz":null}'
+
+        Test.specify "should be handle equality on a key level" <|
+            JS_Object.from_pairs [["a", 42]] . should_equal <| Json.parse '{"a": 42}'
+            JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["a", 43]]
+            JS_Object.from_pairs [["a", 42]] . should_not_equal <| JS_Object.from_pairs [["b", 42]]
+
+            JS_Object.from_pairs [["a", 42], ["b", Nothing]] . should_equal <| JS_Object.from_pairs [["b", Nothing], ["a", 42]]
+            JS_Object.from_pairs [["a", 42], ["b", Nothing]] . should_not_equal <| JS_Object.from_pairs [["c", Nothing], ["a", 42]]
+
+            obj1 = JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",2]]]]
+            obj1 . should_equal <| JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",2]]]]
+            obj1 . should_equal <| JS_Object.from_pairs [["b", JS_Object.from_pairs [["d",2], ["c",1]]], ["a", 42]]
+            obj1 . should_not_equal <| JS_Object.from_pairs [["a", 43], ["b", 123]]
+            obj1 . should_not_equal <| JS_Object.from_pairs [["a", 42], ["b", JS_Object.from_pairs [["c",1], ["d",3]]]]
 
     Test.group "JSON" <|
         Test.specify "should allow getting object fields" <|
-            object = Json.parse '''
-                { "foo": "bar",
-                  "baz": ["foo", "x", false],
-                  "y": {"z": null, "w": null} }
-
-            object.get "foo" . should_equal (Json.String "bar")
-            object.get_or_else "foo" . should_equal (Json.String "bar")
-            object.get "bar" . should_fail_with No_Such_Field.Error
-            object.get_or_else "bar" . should_equal Json.Null
-            object.get_or_else "bar" 1 . should_equal 1
-            Json.Null.get "foo" . should_fail_with No_Such_Field.Error
-            Json.Null.get_or_else "foo" . should_equal Json.Null
-            Json.Null.get_or_else "foo" 1 . should_equal 1
+            object = Json.parse '{ "foo": "bar", "baz": ["foo", "x", false],"y": {"z": null, "w": null} }'
+            object.get "foo" . should_equal "bar"
+            object.get "bar" . should_equal Nothing
+            object.get "bar" 1 . should_equal 1
+            object.at "foo" . should_equal "bar"
+            object.at "bar" . should_fail_with No_Such_Key.Error
+            Json.parse "null" . get "foo" . should_equal Nothing
+            Json.parse "null" . get "foo" 1 . should_equal 1
 
         Test.specify "should be able to get field_names" <|
-            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["baz", "foo"]
+            Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . field_names . should_equal ["foo", "baz"]
             Json.parse '{}' . field_names . should_equal []
-            Json.parse 'null' . field_names . should_fail_with Illegal_Argument.Error
-            Json.parse '[1,2,3]' . field_names . should_fail_with Illegal_Argument.Error
 
         Test.specify "should be able to get a value by index" <|
-            Json.parse "[1, 2, 3, 4, 5]" . at 2 . should_equal (Json.Number 3)
-            Json.parse "[1, 2, 3, 4, 5]" . at -2 . should_equal (Json.Number 4)
+            Json.parse "[1, 2, 3, 4, 5]" . at 2 . should_equal 3
+            Json.parse "[1, 2, 3, 4, 5]" . at -2 . should_equal 4
             Json.parse "[1, 2, 3, 4, 5]" . at 5 . should_fail_with Index_Out_Of_Bounds.Error
-            Json.parse '"foo"' . at 0 . should_equal (Json.String "f")
-            Json.parse '"foo"' . at -1 . should_equal (Json.String "o")
-            Json.parse '"foo"' . at 3 . should_fail_with Index_Out_Of_Bounds.Error
-            Json.parse '{}' . at 1 . should_fail_with Illegal_Argument.Error
-
-        Test.specify "should be able to make empty objects and array" <|
-            Json.empty_object.should_equal (Json.Object Map.empty)
-            Json.empty_object.to_text.should_equal "{}"
-            Json.empty_array.should_equal (Json.Array [])
-            Json.empty_array.to_text.should_equal "[]"
+            Json.parse "[1, 2, 3, 4, 5]" . get 2 . should_equal 3
+            Json.parse "[1, 2, 3, 4, 5]" . get -2 . should_equal 4
+            Json.parse "[1, 2, 3, 4, 5]" . get 5 . should_equal Nothing
+            Json.parse "[1, 2, 3, 4, 5]" . get 5 "?" . should_equal "?"
 
         Test.specify "should be able to get length" <|
-            Json.empty_object.length.should_equal 0
-            Json.empty_array.length.should_equal 0
+            Json.parse "{}" . length . should_equal 0
+            Json.parse "[]" . length . should_equal 0
             Json.parse '{ "foo": "bar", "baz": ["foo", "x", false] }' . length . should_equal 2
             Json.parse '[1, 2, 3, 4, 5]' . length . should_equal 5
             Json.parse '"foo"' . length . should_equal 3
             Json.parse '""' . length . should_equal 0
-            Json.Null.length.should_fail_with Illegal_Argument.Error
 
 main = Test_Suite.run_main spec

@@ -4,7 +4,7 @@ from Standard.Table import Table
 
 import Standard.Visualization.Helpers
 
-from Standard.Test import Test
+from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Helpers
@@ -57,8 +57,8 @@ spec =
     Test.group "Table.rows" <|
         table = Table.new [["X", [1, 2, 3, 4]], ["Y", [5, 6, 7, 8]], ["Z", ["A", "B", "C", "D"]]]
         Test.specify "should visualize nicely" <|
-            table.rows . to_default_visualization_data . should_equal <|
-                '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
+            Json.parse (table.rows . to_default_visualization_data) . should_equal <|
+                Json.parse '[[1,5,"A"],[2,6,"B"],[3,7,"C"],[4,8,"D"]]'
 
             # We limit to at most 100 rows, in the future we should add some kind of 'and N more rows' to the visualization, like is done for Table - or just integrate the lazy vis.
             t2 = Table.new [["X", 0.up_to 200 . to_vector]]
@@ -77,39 +77,44 @@ spec =
             vec = Vector.fill 1000 0
             text = vec.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
+            json.should_equal <| Vector.fill 100 0
 
         Test.specify "should be able to visualize an Enso Array" <|
             arr = Vector.fill 1000 0 . to_array
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
+            json.should_equal <| Vector.fill 100 0
 
         Test.specify "should be able to visualize a Polyglot Array" pending="`to_default_visualization_data` does not work for polyglot arrays" <|
             arr = make_java_array (Vector.fill 1000 0)
             text = arr.to_default_visualization_data
             json = Json.parse text
-            as_vec = json.into (Vector.fill 1 Number)
-            as_vec.should_equal <| Vector.fill 100 0
+            json.should_equal <| Vector.fill 100 0
 
     Test.group "Dataflow Error Visualization" <|
         Test.specify "should be able to be shown in the default visualization" <|
             json = (Error.throw <| My_Type.Value "aaa").to_default_visualization_data
-            json . should_equal <| (Json.from_pairs [["foo", "aaa"], ["type", "Value"]]).to_text
+            Json.parse json . should_equal <|
+                JS_Object.from_pairs [["type", "My_Type"], ["constructor", "Value"], ["foo", "aaa"]]
 
         Test.specify "should be able to be shown in the default vector visualization" <|
             vec = [My_Type.Value "bar", Error.throw (My_Type.Value 42)]
             visualization_text = vec.to_default_visualization_data
-            expected_json = Json.parse '''
-                [
-                  { "foo":"bar",
-                    "type":"Value"
-                  },
-                  { "content":{ "foo":42, "type":"Value" },
-                    "message":"My_Type.Value",
-                    "type":"Error"
-                  }
-                ]
-            visualization_text.should_equal expected_json.to_text
+
+            Json.parse visualization_text . should_equal <|
+                expected_json = '''
+                    [
+                      {
+                        "type":"My_Type",
+                        "constructor":"Value",
+                        "foo":"bar"
+                      },
+                      {
+                        "type":"Error",
+                        "content":{ "type":"My_Type", "constructor":"Value", "foo":42 },
+                        "message":"My_Type.Value"
+                      }
+                    ]
+                Json.parse expected_json
+
+main = Test_Suite.run_main spec
