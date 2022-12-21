@@ -39,6 +39,7 @@ use enso_prelude::*;
 use enso_cloud_view as view;
 use headers::authorization;
 use model::Route;
+use serde::de;
 
 
 // ==============
@@ -103,8 +104,7 @@ impl Client {
     pub async fn list_projects(&self) -> Result<model::response::project::ListProjects, Error> {
         let route = Route::ListProjects;
         let response = self.try_request(route).await?;
-        let projects = response.json().await?;
-        Ok(projects)
+        Ok(response)
     }
 
     /// Changes the [`Project`]s state from [`Closed`] (or [`Created`]) to [`OpenInProgress`] (and
@@ -121,7 +121,6 @@ impl Client {
     ) -> Result<model::response::project::OpenProject, Error> {
         let route = Route::OpenProject(project_id);
         let response = self.try_request(route).await?;
-        let response = response.json().await?;
         Ok(response)
     }
 
@@ -137,7 +136,6 @@ impl Client {
     ) -> Result<model::response::project::CloseProject, Error> {
         let route = Route::CloseProject(project_id);
         let response = self.try_request(route).await?;
-        let response = response.json().await?;
         Ok(response)
     }
 }
@@ -146,7 +144,8 @@ impl Client {
 // === Internal `impl` ===
 
 impl Client {
-    /// Converts the [`Route`] into an HTTP [`Request`], executes it, and returns the [`Response`].
+    /// Converts the [`Route`] into an HTTP [`Request`], executes it, and returns the body of the
+    /// [`Response`], deserialized as a JSON struct.
     ///
     /// # Errors
     ///
@@ -154,10 +153,14 @@ impl Client {
     /// - the [`Request`] could not be built,
     /// - the [`Request`] could not be executed (e.g., due to a network error),
     /// - the [`Response`] did not have a successful (i.e., 2xx) HTTP status code,
+    /// - the [`Response`] could not be deserialized as a JSON struct.
     ///
     /// [`Request`]: ::reqwest::Request
     /// [`Response`]: ::reqwest::Response
-    async fn try_request(&self, route: Route) -> Result<reqwest::Response, Error> {
+    async fn try_request<T>(&self, route: Route) -> Result<T, Error>
+    where
+        T: de::DeserializeOwned,
+    {
         let method = route.method();
         let relative_path = route.to_string();
         let mut url = self.base_url.clone();
@@ -171,6 +174,8 @@ impl Client {
         if !response.status().is_success() {
             response = handle_error_response(response).await?;
         }
+
+        let response = response.json().await?;
 
         Ok(response)
     }

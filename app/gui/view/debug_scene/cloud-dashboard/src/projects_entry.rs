@@ -12,27 +12,8 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_grid_view as grid_view;
 use ensogl_grid_view::entry;
-use ensogl_grid_view::scrollable;
 use ensogl_text as text;
 
-
-
-// =====================
-// === ProjectsTable ===
-// =====================
-
-/// A table of [`Project`]s displayed in the Cloud dashboard.
-///
-/// The table contains information about the [`Project`]s (e.g. their names, their state, etc.) as
-/// well as components for interacting with the [`Project`]s (e.g. buttons to start/stop) the
-/// projects, etc.
-///
-/// Under the hood, we use a scrollable grid since the user may have more [`Project`]s than can fit
-/// on the screen. We use a grid with headers since the user needs to know which [`Project`]
-/// property each column represents.
-///
-/// [`Project`]: ::enso_cloud_view::project::Project
-pub type ProjectsTable = scrollable::SelectableGridViewWithHeaders<Entry, Entry>;
 
 
 

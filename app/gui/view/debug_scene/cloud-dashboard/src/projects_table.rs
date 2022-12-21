@@ -29,6 +29,7 @@ use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::frp;
 use ensogl_grid_view as grid_view;
+use ensogl_grid_view::scrollable;
 
 
 
@@ -137,6 +138,26 @@ const AWS_REGION: enso_cloud_http::AwsRegion = enso_cloud_http::AwsRegion::EuWes
 // TODO [NP]: https://www.pivotaltracker.com/story/show/183909294
 //            `"Home Screen" User` is authenticated using the browser-stored `Access Token`.
 const TOKEN: &str = "eyJraWQiOiJiVjd1ZExrWTkxU2lVUWRpWVhDSVByRitoSTRYVHlOYTQ2TXhJRDlmY3EwPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiJiMWM0MjkwNi1mMmMxLTRkMTEtYTU2Mi01MDUzNTYyYjBhODciLCJjb2duaXRvOmdyb3VwcyI6WyJldS13ZXN0LTFfOUt5Y3UyU2JEX0dpdGh1YiJdLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV85S3ljdTJTYkQiLCJ2ZXJzaW9uIjoyLCJjbGllbnRfaWQiOiI0ajliZnM4ZTc0MTVlcmY4MmwxMjl2MHFoZSIsIm9yaWdpbl9qdGkiOiJlODBhN2MyZi1iY2QwLTRlNjUtOTY2My1mMmM0ZWRmZjA5YWUiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzY29wZSI6Im9wZW5pZCBlbWFpbCIsImF1dGhfdGltZSI6MTY3MTYzMjIwNywiZXhwIjoxNjcxNjM1ODA3LCJpYXQiOjE2NzE2MzIyMDcsImp0aSI6IjJkZTMwZWJiLTA4MWMtNDFiYy1iMjMyLWI2MWM3NmFmN2U4NCIsInVzZXJuYW1lIjoiR2l0aHViXzY0MTU0NyJ9.nDmOR7NO89Ja_f-9goo0IK2MZMFSq3aldF7zaxHJXIY7aP4SnK0_eCkUIgEUB0v0GPBglGo7gp7qs-i6WjH-yJKyCZ9G1F7Qi4jJEMr7MbJbsDb3IYMrXxm3RWH1QyDyWAZ06hyIDVrvKvOhCY_EKssWHLw01I2FNhmEEC1Ke4M4BpwLc2ck5ZQGAxv8Jp5AWZJVBVbFi6PoCpVAO_xQ8tSLvpVTAgk6BdYxuU5kXReKoyDgdOSCBu0YWbmsTdbKUqQktrATQuqBT7mostYGIDPoj53yG-tx2qK9k3AxADGxj_v1DswS2FAFI9WGEmPWUJUXC51-oHxH5BtR9FM7Pg";
+
+
+
+// =====================
+// === ProjectsTable ===
+// =====================
+
+/// A table of [`Project`]s displayed in the Cloud dashboard.
+///
+/// The table contains information about the [`Project`]s (e.g. their names, their state, etc.) as
+/// well as components for interacting with the [`Project`]s (e.g. buttons to start/stop) the
+/// projects, etc.
+///
+/// Under the hood, we use a scrollable grid since the user may have more [`Project`]s than can fit
+/// on the screen. We use a grid with headers since the user needs to know which [`Project`]
+/// property each column represents.
+///
+/// [`Project`]: ::enso_cloud_view::project::Project
+pub type ProjectsTable = scrollable::SelectableGridViewWithHeaders<projects_entry::Entry, projects_entry::Entry>;
+
 
 
 
@@ -323,7 +344,7 @@ ensogl_core::define_endpoints_2! {
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     display_object: display::object::Instance,
-    projects_table: projects_entry::ProjectsTable,
+    projects_table: ProjectsTable,
     projects:       ide_view_graph_editor::SharedVec<view::project::Project>,
 }
 
@@ -333,7 +354,7 @@ struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let display_object = display::object::Instance::new();
-        let projects_table = projects_entry::ProjectsTable::new(app);
+        let projects_table = ProjectsTable::new(app);
         let projects = ide_view_graph_editor::SharedVec::new();
         display_object.add_child(&projects_table);
         Self { display_object, projects_table, projects }

@@ -540,7 +540,6 @@ impl View {
         self.init_mouse_interactions();
         self.init_state();
         let init_color_scheme = self.init_color_and_visibility(app);
-        self.init_event_tracing();
         init.emit(());
         init_color_scheme.emit(());
 
@@ -652,51 +651,6 @@ impl View {
 
             eval spinner_visible ((visible) spinner.alpha.set(if *visible { VISIBLE } else { INVISIBLE }));
             eval ring_visible ((visible) ring.alpha.set(if *visible { VISIBLE } else { INVISIBLE }));
-        }
-    }
-
-    fn init_event_tracing(&self) {
-        let frp = &self.frp;
-        let model = &self.model;
-        let hover = &model.hover;
-        let ring = &model.ring;
-        let spinner = &model.spinner;
-        let play = &model.play;
-        let pause = &model.pause;
-        let network = &frp.network;
-        let input = &frp.input;
-
-        frp::extend! { network
-            // === State ===
-
-            trace input.set_state;
-            trace frp.set_state;
-            trace frp.state;
-            trace frp.command;
-
-
-            // === Mouse Events ===
-
-            trace hover.events.mouse_over;
-            trace hover.events.mouse_out;
-            trace hover.events.mouse_down;
-            trace hover.events.mouse_up;
-            trace ring.events.mouse_over;
-            trace ring.events.mouse_out;
-            trace ring.events.mouse_down;
-            trace ring.events.mouse_up;
-            trace spinner.events.mouse_over;
-            trace spinner.events.mouse_out;
-            trace spinner.events.mouse_down;
-            trace spinner.events.mouse_up;
-            trace play.events.mouse_over;
-            trace play.events.mouse_over;
-            trace play.events.mouse_out;
-            trace play.events.mouse_down;
-            trace pause.events.mouse_up;
-            trace pause.events.mouse_out;
-            trace pause.events.mouse_down;
-            trace pause.events.mouse_up;
         }
     }
 }
