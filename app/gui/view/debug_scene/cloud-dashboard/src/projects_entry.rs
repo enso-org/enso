@@ -16,7 +16,6 @@ use ensogl_text as text;
 
 
 
-
 // ===================
 // === EntryParams ===
 // ===================

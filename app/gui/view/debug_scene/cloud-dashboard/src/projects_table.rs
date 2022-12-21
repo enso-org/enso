@@ -156,8 +156,8 @@ const TOKEN: &str = "eyJraWQiOiJiVjd1ZExrWTkxU2lVUWRpWVhDSVByRitoSTRYVHlOYTQ2TXh
 /// property each column represents.
 ///
 /// [`Project`]: ::enso_cloud_view::project::Project
-pub type ProjectsTable = scrollable::SelectableGridViewWithHeaders<projects_entry::Entry, projects_entry::Entry>;
-
+pub type ProjectsTable =
+    scrollable::SelectableGridViewWithHeaders<projects_entry::Entry, projects_entry::Entry>;
 
 
 

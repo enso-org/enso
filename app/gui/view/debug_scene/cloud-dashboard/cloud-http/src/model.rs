@@ -106,9 +106,9 @@ pub mod request {
         #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
         #[allow(missing_docs)]
         pub struct OpenProject {
-            /// Whether the Cloud instance (i.e., backing VM) that the [`Project`] runs on should be
-            /// created from scratch. Value is `true` if the [`Project`]'s AMI is different from the
-            /// default one.
+            /// Whether the Cloud instance (i.e., backing VM) that the [`Project`] runs on should
+            /// be created from scratch. Value is `true` if the [`Project`]'s AMI is
+            /// different from the default one.
             ///
             /// [`Project`]: ::enso_cloud_view::project::Project
             #[serde(default = "bool::default")]

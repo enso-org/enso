@@ -158,9 +158,7 @@ impl Client {
     /// [`Request`]: ::reqwest::Request
     /// [`Response`]: ::reqwest::Response
     async fn try_request<T>(&self, route: Route) -> Result<T, Error>
-    where
-        T: de::DeserializeOwned,
-    {
+    where T: de::DeserializeOwned {
         let method = route.method();
         let relative_path = route.to_string();
         let mut url = self.base_url.clone();
