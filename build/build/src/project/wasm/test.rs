@@ -1,11 +1,15 @@
 use crate::project::*;
 
-use anyhow::Context;
+use clap::ArgEnum;
 use ide_ci::programs::cargo;
 use ide_ci::programs::wasm_pack;
 use ide_ci::programs::WasmPack;
 
 
+
+// =================
+// === Constants ===
+// =================
 
 /// Flag that tells wasm-pack which browser should be used to run tests.
 ///
@@ -21,6 +25,42 @@ pub const WASM_TEST_ATTRIBUTES: [&str; 2] = ["#[wasm_bindgen_test]", "#[wasm_bin
 
 /// Subdirectories in the crate directory that contain sources for the crate.
 pub const SOURCE_SUBDIRECTORIES: [&str; 4] = ["src", "benches", "examples", "tests"];
+
+// ===============
+// === Browser ===
+// ===============
+
+/// Select which browser should be used to run wasm tests.
+///
+/// In principle, wasm-pack is fine with passing multiple ones in a single call.
+#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Browser {
+    /// Run tests in Chrome using `chromedriver`. <https://chromedriver.chromium.org/downloads>
+    Chrome,
+    /// Run tests in Edge using `msedgedriver`. <https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/>
+    Edge,
+    /// Run tests in Firefox using `geckodriver`.<https://github.com/mozilla/geckodriver/releases>
+    Firefox,
+    /// Run tests in Safari using `safaridriver`. It should come preinstalled on OSX.
+    Safari,
+}
+
+impl From<Browser> for wasm_pack::TestFlags {
+    fn from(browser: Browser) -> Self {
+        match browser {
+            Browser::Chrome => Self::Chrome,
+            // We treat Edge as Chrome, see: <https://github.com/rustwasm/wasm-pack/issues/1172>
+            Browser::Edge => Self::Chrome,
+            Browser::Firefox => Self::Firefox,
+            Browser::Safari => Self::Safari,
+        }
+    }
+}
+
+
+// =========================
+// === Package discovery ===
+// =========================
 
 /// Lists members of given Cargo.toml workspace.
 pub fn get_all_crates(repo_root: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
@@ -91,7 +131,13 @@ pub fn get_proc_macro(cargo_toml: toml::Value) -> Option<bool> {
     cargo_toml.get("lib")?.get("proc-macro")?.as_bool()
 }
 
-pub async fn test_all(repo_root: PathBuf) -> Result {
+// =====================
+// === Running tests ===
+// =====================
+
+/// Run wasm tests on all crates in the workspace.
+pub async fn test_all(repo_root: PathBuf, browsers: &[Browser]) -> Result {
+    let browser_flags = browsers.iter().copied().map_into::<wasm_pack::TestFlags>().collect_vec();
     // FIXME args
     //let wasm_pack_args = std::env::args().skip(1).collect::<Vec<_>>();
     let all_members = get_all_crates(&repo_root)?;
@@ -109,7 +155,7 @@ pub async fn test_all(repo_root: PathBuf) -> Result {
                 .current_dir(&repo_root)
                 .test()
                 .apply(&wasm_pack::TestFlags::Headless)
-                .apply(&BROWSER_FOR_WASM_TESTS)
+                .apply_iter(browser_flags.iter().copied())
                 .env("WASM_BINDGEN_TEST_TIMEOUT", "300")
                 // .args(&wasm_pack_args)
                 .arg(member.strip_prefix(&repo_root).with_context(|| {
