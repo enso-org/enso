@@ -1,10 +1,38 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+from Standard.Base.Data.Json import render
 
 from Standard.Table import Table, Column
+import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Storage.Storage
 
-import project.Id as Id_Module
 import project.Id.Id
+
+## UNSTABLE
+   ADVANCED
+
+   Specifies that the builtin JSON visualization should be used for any type,
+   unless specified otherwise.
+Any.default_visualization self = Id.json
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this value in the IDE.
+
+   The particular representation is left unspecified and subject to change in
+   the future. The current implementation uses JSON serialization as the
+   default.
+
+   Types defining their own versions of this method should ensure that the
+   result is reasonably small and that the operation is quick to compute.
+
+   > Example
+     Converting the number `2` into visualization data.
+
+         2.to_default_visualization_data
+Any.to_default_visualization_data : Text
+Any.to_default_visualization_data self = self.to_json
 
 ## PRIVATE
 
@@ -14,6 +42,46 @@ import project.Id.Id
    - val: a value that will be evaluated and returned if `self` is an error.
 Any.when_valid : Any -> Any
 Any.when_valid self ~val = self.map_valid (_-> val)
+
+## PRIVATE
+
+   Checks if the value is not an error.
+Any.is_valid : Any
+Any.is_valid self = self.is_error.not
+
+## PRIVATE
+
+   Maps over non-error value.
+
+   Arguments:
+   - f: a function that will be used to generate return value from a non-error
+        `self` value.
+Any.map_valid : Any -> Any
+Any.map_valid self f = f self
+
+## PRIVATE
+
+   Recovers from the error by returning the parameter value.
+
+   The error contents will be ignored.
+
+   Arguments:
+   - val: a value that will be evaluated and returned if `self` is an error.
+Any.catch_ : Any -> Any
+Any.catch_ self ~val = self.catch Any (_-> val)
+
+## UNSTABLE
+
+   Returns a display representation of the dataflow error on which it is called.
+
+   > Example
+     Displaying a dataflow error.
+
+         import Standard.Examples
+
+         example_display = Examples.throw_error.to_default_visualization_data
+Error.to_default_visualization_data : Text
+Error.to_default_visualization_data self = self.catch . to_default_visualization_data
 
 ## PRIVATE
 
@@ -27,24 +95,8 @@ Error.when_valid self ~val = self.map_valid (_-> val)
 ## PRIVATE
 
    Checks if the value is not an error.
-Any.is_valid : Any
-Any.is_valid self = self.is_error.not
-
-## PRIVATE
-
-   Checks if the value is not an error.
 Error.is_valid : Any
 Error.is_valid self = self.is_error.not
-
-## PRIVATE
-
-   Maps over non-error value.
-
-   Arguments:
-   - f: a function that will be used to generate return value from a non-error
-        `self` value.
-Any.map_valid : Any -> Any
-Any.map_valid self f = f self
 
 ## PRIVATE
 
@@ -64,17 +116,6 @@ Error.map_valid self _ = self
 
    Arguments:
    - val: a value that will be evaluated and returned if `self` is an error.
-Any.catch_ : Any -> Any
-Any.catch_ self ~val = self.catch Any (_-> val)
-
-## PRIVATE
-
-   Recovers from the error by returning the parameter value.
-
-   The error contents will be ignored.
-
-   Arguments:
-   - val: a value that will be evaluated and returned if `self` is an error.
 Error.catch_ : Any -> Any
 Error.catch_ self ~val = self.catch Any (_-> val)
 
@@ -83,7 +124,58 @@ recover_errors : Any -> Any
 recover_errors ~body =
     result = Panic.recover Any body
     result.catch Any err->
-        Json.from_pairs [["error", err.to_display_text]] . to_text
+        JS_Object.from_pairs [["error", err.to_display_text]] . to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this table.
+Vector.default_visualization : Id
+Vector.default_visualization self = Id.table
+
+## UNSTABLE
+
+   Transform the vector into text for displaying as part of its default
+   visualization.
+Vector.to_default_visualization_data : Text
+Vector.to_default_visualization_data self = render_vector self
+
+render_vector object depth=0 max_depth=5 max_length=100 =
+    case object of
+        _ : Vector -> if depth == max_depth then "[...]" else
+            result = object.take max_length . map (elem-> if elem.is_error then elem.to_json else render_vector elem (depth+1) max_depth max_length)
+            "[" + result.join ", " + "]"
+        _ : Array ->
+            proxy = Array_Proxy.new object.length object.at
+            @Tail_Call render_vector (Vector.from_polyglot_array proxy) depth max_depth max_length
+        _ : JS_Object -> render object depth max_depth max_length
+        _ -> object.to_default_visualization_data
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this table.
+Array.default_visualization : Id
+Array.default_visualization self = Id.table
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this value in the IDE.
+
+   The particular representation is left unspecified and subject to change in
+   the future. The current implementation uses JSON serialization as the
+   default.
+
+   > Example
+     Converting an array to its default visualization representation.
+
+         [1, 2, 3, 4].to_array.to_default_visualization_data
+Array.to_default_visualization_data : Text
+Array.to_default_visualization_data self =
+    Vector.from_polyglot_array self . to_default_visualization_data
 
 ## PRIVATE
 
@@ -119,9 +211,34 @@ Table.lookup_ignore_case self name =
 Table.default_visualization : Id
 Table.default_visualization self =
     cols = self.columns.map .name . map name-> name.to_case Case.Lower
-    if cols.contains "latitude" && cols.contains "longitude" then Id_Module.geo_map else
-        if cols.contains "x" && cols.contains "y" then Id_Module.scatter_plot else
-            Id_Module.table
+    if cols.contains "latitude" && cols.contains "longitude" then Id.geo_map else
+        if cols.contains "x" && cols.contains "y" then Id.scatter_plot else
+            Id.table
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this table in the IDE by default.
+
+   Returns a JSON object containing useful metadata and previews of column
+   values.
+Table.to_default_visualization_data : Text
+Table.to_default_visualization_data self =
+    max_size = 10
+    row_count = ['number_of_rows', self.row_count]
+    cols = self.columns.map c->
+        name = c.name
+        items = c.to_vector.take (First max_size)
+        JS_Object.from_pairs [['name', name], ['data', items]]
+    JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this Column.
+Column.default_visualization : Id
+Column.default_visualization self = Id.table
 
 ## PRIVATE
 
@@ -129,3 +246,35 @@ Table.default_visualization self =
 Column.is_numeric : Boolean
 Column.is_numeric self =
     [Storage.Integer,Storage.Decimal].contains self.storage_type
+
+## UNSTABLE
+   ADVANCED
+
+   Shows a JSON serialization of a truncated version of this column, for the
+   benefit of visualization in the IDE.
+Column.to_default_visualization_data : Text
+Column.to_default_visualization_data self =
+    size = ['length', self.length]
+    name = ['name', self.name]
+    max_data = 100
+    data = ['data', self.to_vector.take (First max_data)]
+    JS_Object.from_pairs [size, name, data] . to_text
+
+## UNSTABLE
+   ADVANCED
+
+   Guides the visualization system to display the most suitable graphical
+   representation for this Row.
+Row.default_visualization : Id
+Row.default_visualization self = Id.table
+
+## UNSTABLE
+   ADVANCED
+
+   Returns a Text used to display this table in the IDE by default.
+
+   Returns a JSON object containing useful metadata and previews of column
+   values.
+Row.to_default_visualization_data : Text
+Row.to_default_visualization_data self =
+    self.to_vector.to_default_visualization_data

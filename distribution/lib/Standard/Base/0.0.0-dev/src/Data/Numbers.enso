@@ -1,6 +1,7 @@
 import project.Data.Ordering.Ordering
 import project.Data.Text.Text
 import project.Data.Locale.Locale
+import project.Error.Common.Arithmetic_Error
 import project.Error.Error
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -345,6 +346,12 @@ type Number
     is_nan : Boolean
     is_nan self = case self of
         _ : Decimal -> Double.isNaN self
+        _ -> False
+
+    ## Checks if the given number is infinite.
+    is_infinite : Boolean
+    is_infinite self = case self of
+        _ : Decimal -> Double.isInfinite self
         _ -> False
 
     ## Returns the sign of the number.

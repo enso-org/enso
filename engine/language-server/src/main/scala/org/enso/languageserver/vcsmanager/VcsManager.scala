@@ -92,7 +92,7 @@ class VcsManager(
               (
                 status.isDirty,
                 status.changed.map(f => Path(repoRoot.rootId, f)).toList,
-                RepoCommit.unapply(status.lastCommit).get
+                status.lastCommit.flatMap(RepoCommit.unapply)
               )
             )
           )

@@ -211,7 +211,7 @@ impl<T: TextProvider> Model<T> {
         self.scroll_bar_vertical.set_x(size.x / 2.0);
         self.scroll_bar_vertical.set_length(size.y);
 
-        self.clipping_div.set_size(size);
+        self.clipping_div.set_dom_size(size);
         self.size.set(size);
     }
 
@@ -296,7 +296,7 @@ impl<T: 'static + TextProvider> TextGrid<T> {
 
             // === Visualisation API Inputs ===
 
-            eval frp.set_size  ((size) model.set_size(*size));
+            eval frp.set_size ((size) model.set_size(*size));
             eval frp.send_data ([frp,model](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));

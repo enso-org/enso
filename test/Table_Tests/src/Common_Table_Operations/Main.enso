@@ -39,7 +39,40 @@ type Test_Setup
          support particular features.
     Config prefix table empty_table table_builder materialize is_database test_selection aggregate_test_selection
 
+    ## Specifies if the given Table backend supports custom Enso types.
+
+       Currently, only the in-memory backend does.
+    supports_custom_objects : Boolean
+    supports_custom_objects self = self.is_database.not
+
 type Test_Selection
+    ## The configuration specifying what features are supported by a given
+       backend, driving what kind of test suites should be enabled.
+
+       Arguments:
+       - supports_case_sensitive_columns: Specifies if the backend supports
+         case-sensitive column names. If `False`, the backend will match column
+         names in a case insensitive way, so that "Foo" and "foo" will refer to
+         the same column.
+       - order_by: Specifies if the backend supports ordering operations.
+       - natural_ordering: Specifies if the backend supports natural ordering
+         operations.
+       - case_insensitive_ordering: Specifies if the backend supports case
+         insensitive ordering.
+       - order_by_unicode_normalization_by_default: Specifies if the backend
+         supports unicode normalization in its default ordering.
+       - case_insensitive_ascii_only:
+       - take_drop: Specifies if the backend supports take/drop operations.
+       - allows_mixed_type_comparisons: Specifies if mixed operations comparing
+         mixed types are allowed by a given backend. Some backends will allow
+         such comparisons, when mixed type storage is allowed or by coercing to
+         the target type; others will fail with a type error.
+       - supports_unicode_normalization: Specifies if the backend compares
+         strings taking Unicode Normalization into accout, i.e. whether
+         's\u0301' is considered equal to 'ś'.
+       - is_nan_and_nothing_distinct: Specifies if the backend is able to
+         distinguish between a decimal NaN value and a missing value (Enso's
+         Nothing, or SQL's NULL). If `False`, NaN is treated as a NULL.
     Config supports_case_sensitive_columns=True order_by=True natural_ordering=False case_insensitive_ordering=True order_by_unicode_normalization_by_default=False case_insensitive_ascii_only=False take_drop=True allows_mixed_type_comparisons=True supports_unicode_normalization=False is_nan_and_nothing_distinct=True
 
 spec setup =

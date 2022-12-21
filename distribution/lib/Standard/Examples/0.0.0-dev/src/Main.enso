@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
 
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Network.HTTP.Response_Body.Response_Body
@@ -98,12 +99,12 @@ json_text = """
     ]
 
 ## Example JSON for working with.
-json : Json
+json : Vector
 json = Json.parse json_text
 
 ## An example JSON object.
-json_object : Json
-json_object = json.items.head
+json_object : JS_Object
+json_object = json.first
 
 ## An example cons-list.
 list : List
@@ -117,7 +118,7 @@ map = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
 type No_Methods
 
 ## Returns a no_such_method_error as a value.
-no_such_method : No_Such_Method_Error
+no_such_method : No_Such_Method
 no_such_method = Panic.recover Any No_Methods.frobnicate . catch
 
 ## A simple error type for example purposes.
@@ -199,11 +200,11 @@ get_boolean : Boolean
 get_boolean = False
 
 ## A simple small piece of JSON that can easily be converted into a table.
-simple_table_json : Json
+simple_table_json : Text
 simple_table_json =
-    row_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
-    row_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
-    row_3 = Json.from_pairs [['baz', False], ['foo', 13]]
+    row_1 = JS_Object.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+    row_2 = JS_Object.from_pairs [['bar', 'xyz'], ['baz', True]]
+    row_3 = JS_Object.from_pairs [['baz', False], ['foo', 13]]
     [row_1, row_2, row_3].to_json
 
 ## The headers for the columns in the JSON table `simple_table_json`.
@@ -211,7 +212,7 @@ simple_table_json_headers : Vector Text
 simple_table_json_headers = ["foo", "bar", "baz"]
 
 ## Some simple GeoJSON.
-geo_json : Json
+geo_json : JS_Object
 geo_json = Json.parse <| '''
     {
       "type": "FeatureCollection",

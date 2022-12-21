@@ -30,10 +30,10 @@ make_inferred_builder initial_size = InferredBuilder.new initial_size
 
 ## PRIVATE
 make_column : Text -> Storage -> Column
-make_column name storage = Column.Column_Data (Java_Column.new name storage)
+make_column name storage = Column.Value (Java_Column.new name storage)
 
 ## PRIVATE
 make_table_without_columns : Integer -> Table
 make_table_without_columns row_count =
     index = DefaultIndex.new row_count
-    Table.Table_Data (Java_Table.new [].to_array index)
+    Table.Value (Java_Table.new [].to_array index)

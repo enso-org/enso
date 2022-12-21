@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Table import Sort_Column, Sort_Column_Selector
 import Standard.Table.Data.Value_Type.Value_Type
@@ -61,9 +63,9 @@ type Column
 
     ## UNSTABLE
 
-       Converts this column to JSON.
-    to_json : Json
-    to_json self = self.to_sql.to_json
+       Converts this column to JS_Object representation.
+    to_js_object : JS_Object
+    to_js_object self = self.to_sql.to_js_object
 
     ## UNSTABLE
 
@@ -730,7 +732,6 @@ type Column
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
     is_in : Column | Vector -> Column
     is_in self vector = case vector of
-        _ : Array -> self.is_in (Vector.from_polyglot_array vector)
         _ : Vector ->
             ## This is slightly hacky - we don't provide operand types as we want to
                allow any type to get through and currently we do not have a mapping
@@ -756,6 +757,7 @@ type Column
             case nulls.not_empty of
                 True -> is_in_not_null || self.is_missing
                 False -> is_in_not_null
+        _ : Array -> self.is_in (Vector.from_polyglot_array vector)
         column : Column -> if Helpers.check_connection self column . not then (Error.throw (Integrity_Error.Error "Column "+column.name)) else
             ## We slightly abuse the expression syntax putting a Query as one of
                the sub-expressions. Once type-checking is added, we may need to

@@ -4,6 +4,7 @@ import project.Data.Ordering.Ordering
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
@@ -121,7 +122,7 @@ type Array
          Get the last element of an array.
 
              [1,2,3].to_array.at -1
-    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at : Integer -> Any ! Index_Out_Of_Bounds
     at self index = @Builtin_Method "Array.at"
 
     ## Gets the length of the array this.
@@ -166,5 +167,5 @@ type Array
     == self that =
         if Meta.is_same_object Array self then Meta.is_same_object Array that else
             eq_at i = self.at i == that.at i
-            Panic.catch_primitive handler=(_ -> False)
+            Panic.catch Any handler=(_ -> False)
                 if self.length == that.length then 0.up_to self.length . all eq_at else False

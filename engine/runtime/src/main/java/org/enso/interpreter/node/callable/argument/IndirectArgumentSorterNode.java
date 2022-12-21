@@ -80,7 +80,8 @@ public abstract class IndirectArgumentSorterNode extends Node {
       executeArguments(mapping, arguments, state, thunkExecutorNode);
     }
     Object[] mappedAppliedArguments =
-        prepareArguments(preApplicationSchema, postApplicationSchema, mapping, function, arguments);
+        ArgumentSorterNode.prepareArguments(
+            preApplicationSchema, postApplicationSchema, mapping, function, arguments);
     Object[] oversaturatedArguments = null;
     if (postApplicationSchema.hasOversaturatedArgs()) {
       oversaturatedArguments =
@@ -88,22 +89,6 @@ public abstract class IndirectArgumentSorterNode extends Node {
               preApplicationSchema, postApplicationSchema, mapping, function, arguments);
     }
     return new ArgumentSorterNode.MappedArguments(mappedAppliedArguments, oversaturatedArguments);
-  }
-
-  private Object[] prepareArguments(
-      FunctionSchema preApplicationSchema,
-      FunctionSchema postApplicationSchema,
-      ArgumentMapping mapping,
-      Function function,
-      Object[] arguments) {
-    Object[] mappedAppliedArguments;
-    if (preApplicationSchema.hasAnyPreApplied()) {
-      mappedAppliedArguments = function.clonePreAppliedArguments();
-    } else {
-      mappedAppliedArguments = new Object[postApplicationSchema.getArgumentsCount()];
-    }
-    mapping.reorderAppliedArguments(arguments, mappedAppliedArguments);
-    return mappedAppliedArguments;
   }
 
   private Object[] generateOversaturatedArguments(

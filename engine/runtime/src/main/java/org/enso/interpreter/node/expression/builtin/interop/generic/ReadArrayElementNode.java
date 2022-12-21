@@ -37,7 +37,7 @@ public class ReadArrayElementNode extends Node {
     } catch (InvalidArrayIndexException e) {
       err.enter();
       Builtins builtins = EnsoContext.get(this).getBuiltins();
-      throw new PanicException(builtins.error().makeInvalidArrayIndexError(array, index), this);
+      throw new PanicException(builtins.error().makeInvalidArrayIndex(array, index), this);
     }
   }
 }

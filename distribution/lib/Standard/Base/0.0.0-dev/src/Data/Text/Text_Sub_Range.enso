@@ -5,13 +5,14 @@ import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Random
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Index_Out_Of_Bounds_Error, Illegal_Argument, Index_Out_Of_Bounds_Error_Data
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 import project.Data.Text.Span as Span_Module
@@ -154,7 +155,7 @@ find_sub_range_end text predicate =
     loop 0 0 iterator.next
 
 ## PRIVATE
-resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument.Error] <|
+resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds.Error, Illegal_Argument.Error] <|
     iterator = BreakIterator.getCharacterInstance
     iterator.setText text
     case descriptor of
@@ -163,7 +164,7 @@ resolve_index_or_range text descriptor = Panic.recover [Index_Out_Of_Bounds_Erro
                 iterator.last
             start = iterator.next descriptor
             end = iterator.next
-            if (start == -1) || (end == -1) then Error.throw (Index_Out_Of_Bounds_Error_Data descriptor text.length) else
+            if (start == -1) || (end == -1) then Error.throw (Index_Out_Of_Bounds.Error descriptor text.length) else
                 start.up_to end
         _ : Range ->
             len = text.length
@@ -202,7 +203,7 @@ character_ranges text =
     ranges.to_vector
 
 ## PRIVATE
-batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_Bounds_Error_Data, Illegal_Argument.Error] <|
+batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_Bounds.Error, Illegal_Argument.Error] <|
     ## This is pre-computing the ranges for all characters in the string, which
        may be much more than necessary, for example if all ranges reference only
        the beginning of the string. In the future we may want to replace this
@@ -225,7 +226,7 @@ batch_resolve_indices_or_ranges text descriptors = Panic.recover [Index_Out_Of_B
                             ranges.append (first_grapheme.start.up_to last_grapheme.end)
                         False ->
                             if true_range.start >= characters.length then
-                                Panic.throw (Index_Out_Of_Bounds_Error_Data true_range.start characters.length)
+                                Panic.throw (Index_Out_Of_Bounds.Error true_range.start characters.length)
                             true_range.to_vector.each ix->
                                 ranges.append (Panic.rethrow <| characters.at ix)
     Codepoint_Ranges.Value ranges.to_vector is_sorted_and_distinct=False
@@ -242,6 +243,6 @@ normalize_range range length =
     if (range.start < 0) || (range.end < 0) then
         Panic.throw (Illegal_Argument.Error "Ranges with negative indices are not supported for indexing.")
     if (range.start >= length) then
-        Panic.throw (Index_Out_Of_Bounds_Error_Data range.start length)
+        Panic.throw (Index_Out_Of_Bounds.Error range.start length)
     if range.end >= length then range.start.up_to length . with_step range.step else
         range

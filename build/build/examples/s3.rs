@@ -18,7 +18,7 @@ async fn main() -> Result {
         key_prefix: Some("enso".into()),
     };
 
-    // std::env::set_var("AWS_SECRET_ACCESS_KEY", std::env::var("AWS_SECRET_ACCESS_KEY")?.trim());
+    // crate::env::set_var("AWS_SECRET_ACCESS_KEY", std::env::var("AWS_SECRET_ACCESS_KEY")?.trim());
 
     let test_file = "test_file.exe";
     dbg!(

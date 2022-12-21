@@ -13,10 +13,8 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.join.JoinCondition;
-import org.enso.table.data.table.join.JoinResult;
-import org.enso.table.data.table.join.JoinStrategy;
-import org.enso.table.data.table.join.ScanJoin;
+import org.enso.table.data.table.join.*;
+import org.enso.table.data.table.join.scan.ScanJoin;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
@@ -24,6 +22,7 @@ import org.enso.table.operations.Distinct;
 import org.enso.table.util.NameDeduplicator;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -222,11 +221,10 @@ public class Table {
    * Creates an index for this table by using values from the specified columns.
    *
    * @param columns set of columns to use as an Index
-   * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
    * @return a table indexed by the proper column
    */
-  public MultiValueIndex indexFromColumns(Column[] columns, Comparator<Object> objectComparator) {
-    return new MultiValueIndex(columns, this.rowCount(), objectComparator);
+  public MultiValueIndex<?> indexFromColumns(Column[] columns) {
+    return MultiValueIndex.makeUnorderedIndex(columns, this.rowCount(), TextFoldingStrategy.unicodeNormalizedFold);
   }
 
   /**
@@ -238,7 +236,7 @@ public class Table {
    */
   public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
     int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
-    MultiValueIndex index = new MultiValueIndex(columns, this.rowCount(), directionInts, objectComparator);
+    MultiValueIndex<?> index = MultiValueIndex.makeOrderedIndex(columns, this.rowCount(), directionInts, objectComparator);
     OrderMask mask = new OrderMask(index.makeOrderMap(this.rowCount()));
     return this.applyMask(mask);
   }
@@ -288,14 +286,14 @@ public class Table {
    *
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
-  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix) {
+  public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
     // TODO adding prefix for right columns
     NameDeduplicator deduplicator = new NameDeduplicator();
 
-    JoinStrategy strategy = new ScanJoin();
     JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
     if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
+      JoinStrategy strategy = new IndexJoin(objectComparator, equalityFallback);
       joinResult = strategy.join(this, right, conditions);
     }
 
@@ -365,7 +363,8 @@ public class Table {
       }
     }
 
-    return new Table(newColumns.toArray(new Column[0]));
+    AggregatedProblems problems = joinResult != null ? joinResult.problems() : new AggregatedProblems();
+    return new Table(newColumns.toArray(new Column[0]), problems);
   }
 
   /**

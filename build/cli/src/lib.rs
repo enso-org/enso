@@ -312,8 +312,12 @@ impl Processor {
             arg::wasm::Command::Watch(job) => self.watch_and_wait(job),
             arg::wasm::Command::Build(job) => self.build(job).void_ok().boxed(),
             arg::wasm::Command::Check => Wasm.check().boxed(),
-            arg::wasm::Command::Test { no_wasm, no_native } =>
-                Wasm.test(self.repo_root.to_path_buf(), !no_wasm, !no_native).boxed(),
+            arg::wasm::Command::Test { no_wasm, no_native, browser } => {
+                let wasm_browsers =
+                    if no_wasm { default() } else { browser.into_iter().map_into().collect_vec() };
+                let root = self.repo_root.to_path_buf();
+                async move { Wasm.test(root, &wasm_browsers, !no_native).await }.boxed()
+            }
             arg::wasm::Command::Get(source) => self.get(source).void_ok().boxed(),
         }
     }
@@ -424,6 +428,7 @@ impl Processor {
                     build_benchmarks: true,
                     execute_benchmarks: once(Benchmarks::Runtime).collect(),
                     execute_benchmarks_once: true,
+                    check_enso_benchmarks: true,
                     build_js_parser: matches!(TARGET_OS, OS::Linux),
                     verify_packages: true,
                     generate_documentation: true,
@@ -567,11 +572,12 @@ impl Processor {
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput { gui, project_manager, output_path } = params;
+        let arg::ide::BuildInput { gui, project_manager, output_path, electron_target } = params;
         let input = ide::BuildInput {
-            gui:             self.get(gui),
+            gui: self.get(gui),
             project_manager: self.get(project_manager),
-            version:         self.triple.versions.version.clone(),
+            version: self.triple.versions.version.clone(),
+            electron_target,
         };
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
         let build_job = target.build(&self.context, input, output_path);

@@ -16,6 +16,7 @@ use double_representation::name::QualifiedName;
 // === Constants ===
 // =================
 
+/// Default type of the argument.
 pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 
 
@@ -244,6 +245,7 @@ macro_rules! mock_suggestion_database_entries {
 /// This macro takes a declaration of suggestion database entries in a kind of pseudo code:
 /// ```
 /// use enso_gui::mock_suggestion_database;
+/// use enso_gui::model::suggestion_database::entry;
 ///
 /// let db = mock_suggestion_database! {
 ///    Standard.Base {
@@ -321,6 +323,80 @@ macro_rules! mock_suggestion_database {
     }
 }
 
+/// This is a helper for [`mock_suggestion_database`] macro. See it's documentation for details.
+#[macro_export]
+macro_rules! doc_section_mark {
+    (!) => {
+        $crate::engine_protocol::language_server::Mark::Important
+    };
+    (>) => {
+        $crate::engine_protocol::language_server::Mark::Example
+    };
+    (?) => {
+        $crate::engine_protocol::language_server::Mark::Info
+    };
+}
+
+/// A helper macro for mocking entry's documentation.
+///
+/// ### [`DocSection::Paragrah`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!("Some text.");
+/// ```
+///
+/// ### [`DocSection::Tag`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!(@ "Tag name", "Tag body.");
+/// ```
+///
+/// ### [`DocSection::Keyed`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!("Key" => "Value");
+/// ```
+///
+/// ### [`DocSection::Marked`]
+/// ```
+/// # use enso_gui::doc_section;
+/// doc_section!(! "Marked as important");
+/// doc_section!(! "Optional header", "Marked as important");
+/// doc_section!(? "Marked as info");
+/// doc_section!(? "Optional header", "Marked as info");
+/// doc_section!(> "Marked as example");
+/// doc_section!(> "Optional header", "Marked as example");
+/// ```
+#[macro_export]
+macro_rules! doc_section {
+    (@ $tag:expr, $body:expr) => {
+        engine_protocol::language_server::DocSection::Tag { name: $tag.into(), body: $body.into() }
+    };
+    ($mark:tt $body:expr) => {
+        $crate::engine_protocol::language_server::DocSection::Marked {
+            mark:   $crate::doc_section_mark!($mark),
+            header: None,
+            body:   $body.into(),
+        }
+    };
+    ($mark:tt $header:expr, $body:expr) => {
+        $crate::engine_protocol::language_server::DocSection::Marked {
+            mark:   $crate::doc_section_mark!($mark),
+            header: Some($header.into()),
+            body:   $body.into(),
+        }
+    };
+    ($paragraph:expr) => {
+        engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
+    };
+    ($key:expr => $body:expr) => {
+        engine_protocol::language_server::DocSection::Keyed {
+            key:  $key.into(),
+            body: $body.into(),
+        }
+    };
+}
+
 
 
 // ========================
@@ -361,6 +437,7 @@ pub fn standard_db_mock() -> SuggestionDatabase {
 // === Tests ===
 // =============
 
+#[cfg(test)]
 mod tests {
     use super::*;
 

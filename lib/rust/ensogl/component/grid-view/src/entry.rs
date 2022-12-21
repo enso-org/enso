@@ -10,7 +10,6 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::geometry::compound::sprite;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::Attribute;
 
@@ -150,12 +149,9 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 // === ShapeWithEntryContour ===
 
 /// The trait implemented by all shapes sharing the contour of an entry.
-pub trait ShapeWithEntryContour {
+pub trait ShapeWithEntryContour: display::Object {
     /// Padding added to the shape to avoid antialiasing issues.
     const PADDING_PX: f32 = 5.0;
-
-    /// Get the size parameter.
-    fn size(&self) -> &ProxyParam<sprite::Size>;
 
     /// Get the corner radius parameter.
     fn corner_radius(&self) -> &ProxyParam<Attribute<f32>>;
@@ -163,7 +159,7 @@ pub trait ShapeWithEntryContour {
     /// Update shape's contour.
     fn set_contour(&self, contour: Contour) {
         let padding = Vector2(Self::PADDING_PX, Self::PADDING_PX) * 2.0;
-        self.size().set(contour.size + padding);
+        self.set_size(contour.size + padding);
         self.corner_radius().set(contour.corners_radius);
     }
 }
@@ -171,10 +167,6 @@ pub trait ShapeWithEntryContour {
 macro_rules! implement_shape_with_entry_contour {
     () => {
         impl ShapeWithEntryContour for View {
-            fn size(&self) -> &ProxyParam<sprite::Size> {
-                &self.size
-            }
-
             fn corner_radius(&self) -> &ProxyParam<Attribute<f32>> {
                 &self.corner_radius
             }

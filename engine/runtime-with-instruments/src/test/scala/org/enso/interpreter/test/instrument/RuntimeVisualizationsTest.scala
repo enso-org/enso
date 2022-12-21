@@ -1419,7 +1419,7 @@ class RuntimeVisualizationsTest
           Api.VisualisationConfiguration(
             contextId,
             Api.VisualisationExpression.Text(
-              "Standard.Visualization.Id",
+              "Standard.Visualization.Main",
               "x -> x.default_visualization.to_text"
             )
           )
@@ -1427,7 +1427,7 @@ class RuntimeVisualizationsTest
       )
     )
 
-    val attachVisualisationResponses = context.receiveN(6)
+    val attachVisualisationResponses = context.receiveN(8)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -1951,6 +1951,10 @@ class RuntimeVisualizationsTest
   }
 
   it should "run internal IDE visualisation preprocessor catching error" in {
+    pending
+    // TODO [JD]: Disabled due to issue with context not allowing JS functions.
+    // https://www.pivotaltracker.com/story/show/184064564
+
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()
@@ -2048,7 +2052,7 @@ class RuntimeVisualizationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty."}"""
+    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
   }
 
   it should "attach method pointer visualisation without arguments" in {

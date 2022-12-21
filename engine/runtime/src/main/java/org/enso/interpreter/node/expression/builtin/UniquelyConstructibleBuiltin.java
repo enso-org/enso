@@ -15,7 +15,11 @@ public abstract class UniquelyConstructibleBuiltin extends Builtin {
 
   @Override
   protected final List<Cons> getDeclaredConstructors() {
-    return List.of(new Cons(getName() + "_Data", getConstructorParamNames()));
+    return List.of(new Cons(getConstructorName(), getConstructorParamNames()));
+  }
+
+  protected String getConstructorName() {
+    return getName() + "_Data";
   }
 
   protected abstract List<String> getConstructorParamNames();

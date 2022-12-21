@@ -298,6 +298,8 @@ ensogl::define_endpoints_2! {
         set_disabled          (bool),
         set_input_connected   (span_tree::Crumbs,Option<Type>,bool),
         set_expression        (Expression),
+        set_skip_macro        (bool),
+        set_freeze_macro      (bool),
         set_comment           (Comment),
         set_error             (Option<Error>),
         /// Set the expression USAGE type. This is not the definition type, which can be set with
@@ -502,7 +504,7 @@ impl NodeModel {
 
         let error_visualization = error::Container::new(app);
         let (x, y) = ERROR_VISUALIZATION_SIZE;
-        error_visualization.set_size.emit(Vector2(x, y));
+        error_visualization.frp.set_size.emit(Vector2(x, y));
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
@@ -623,11 +625,11 @@ impl NodeModel {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + Vector2(PADDING, PADDING) * 2.0;
-        self.backdrop.size.set(padded_size);
-        self.background.size.set(padded_size);
-        self.drag_area.size.set(padded_size);
-        self.error_indicator.size.set(padded_size);
-        self.vcs_indicator.set_size(padded_size);
+        self.backdrop.set_size(padded_size);
+        self.background.set_size(padded_size);
+        self.drag_area.set_size(padded_size);
+        self.error_indicator.set_size(padded_size);
+        self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
         self.backdrop.set_x(x_offset_to_node_center);
         self.background.set_x(x_offset_to_node_center);
@@ -636,9 +638,8 @@ impl NodeModel {
         self.vcs_indicator.set_x(x_offset_to_node_center);
 
         let action_bar_width = ACTION_BAR_WIDTH;
-        self.action_bar.mod_position(|t| {
-            t.x = x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0;
-        });
+        self.action_bar
+            .set_x(x_offset_to_node_center + width / 2.0 + CORNER_RADIUS + action_bar_width / 2.0);
         self.action_bar.frp.set_size(Vector2::new(action_bar_width, ACTION_BAR_HEIGHT));
 
         let visualization_offset = visualization_offset(width);
@@ -781,6 +782,8 @@ impl Node {
             show_action_bar <- out.hover  && input.show_quick_action_bar_on_hover;
             eval show_action_bar ((t) action_bar.set_visibility(t));
             eval input.show_quick_action_bar_on_hover((value) action_bar.show_on_hover(value));
+            action_bar.set_action_freeze_state <+ input.set_freeze_macro;
+            action_bar.set_action_skip_state <+ input.set_skip_macro;
 
 
             // === View Mode ===

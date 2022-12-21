@@ -236,8 +236,8 @@ impl<E: Entry> Model<E> {
         let shadow = Vector2(2.0 * SHADOW_PX, 2.0 * SHADOW_PX);
         let entry_width = view.size.x - 2.0 * entry_padding;
         self.entries.set_x(-view.size.x / 2.0 + entry_padding);
-        self.background.size.set(view.size + padding + shadow + margin);
-        self.overlay.size.set(view.size + padding + shadow + margin);
+        self.background.set_size(view.size + padding + shadow + margin);
+        self.overlay.set_size(view.size + padding + shadow + margin);
         self.scrolled_area.set_y(view.size.y / 2.0 - view.position_y);
         self.entries.update_entries(visible_entries, entry_width, style_prefix);
     }
@@ -601,7 +601,7 @@ where E::Model: Default
             }));
             eval frp.selection_size ([model](size) {
                 let margin = Vector2(SHAPE_MARGIN, SHAPE_MARGIN);
-                model.selection.size.set(*size + 2.0 * margin)
+                model.selection.set_size(*size + 2.0 * margin);
             });
             eval_ frp.hide_selection (model.selection.unset_parent());
 

@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
@@ -13,7 +13,10 @@ import project.Data.Time.Period.Period
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
+import project.Error.Time_Error.Time_Error
 import project.Math
 import project.Meta
 import project.Nothing.Nothing
@@ -22,13 +25,14 @@ import project.Polyglot
 
 from project.Data.Boolean import Boolean, True, False
 from project.Data.Time.Date_Time import ensure_in_epoch
-from project.Error.Common import Type_Error_Data, Time_Error, Polyglot_Error, Illegal_Argument
 
-polyglot java import org.enso.base.Time_Utils
+polyglot java import java.lang.Exception as JException
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
 polyglot java import java.time.DateTimeException
 polyglot java import java.lang.ArithmeticException
+
+polyglot java import org.enso.base.Time_Utils
 
 ## PRIVATE
    Constructs a new Date from a year, month, and day.
@@ -127,8 +131,8 @@ type Date
 
     new : Integer -> Integer -> Integer -> Date ! Time_Error
     new year (month = 1) (day = 1) =
-        Panic.catch_java Any (new_builtin year month day) java_exception->
-            Error.throw (Time_Error.Error java_exception.getMessage)
+        Panic.catch JException (new_builtin year month day) caught->
+            Error.throw (Time_Error.Error caught.payload.getMessage)
 
     ## ALIAS Date from Text
 
@@ -199,7 +203,7 @@ type Date
             _ : Text -> parse_builtin text pattern
             _ -> Panic.throw (Time_Error.Error "An invalid pattern was provided.")
         result . map_error <| case _ of
-            Polyglot_Error.Polyglot_Error_Data err -> Time_Error.Error err.getMessage
+            err : JException -> Time_Error.Error err.getMessage
             ex -> ex
 
     ## Get the year field.
@@ -535,14 +539,17 @@ type Date
             _ ->
                 Error.throw (Illegal_Argument.Error "Illegal period argument")
 
-    ## A Date to Json conversion.
+    ## Convert to a JS_Object representing this Date.
 
        > Example
-         Convert the current date to JSON.
+         Convert the current date to a JS_Object.
 
-             example_to_json = Date.now.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Date"], ["day", self.day], ["month", self.month], ["year", self.year]]
+             example_to_json = Date.now.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Date"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["day", self.day], ["month", self.month], ["year", self.year]]
 
     ## Format this date using the provided format specifier.
 
@@ -596,7 +603,7 @@ type Date
         _ : Date ->
             sign = Time_Utils.compare_to_localdate self that
             Ordering.from_sign sign
-        _ -> Error.throw (Type_Error_Data Date that "that")
+        _ -> Error.throw (Type_Error.Error Date that "that")
 
     ## Compares two Dates for equality.
     == : Date -> Boolean

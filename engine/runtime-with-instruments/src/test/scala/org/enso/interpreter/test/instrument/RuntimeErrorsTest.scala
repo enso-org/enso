@@ -640,7 +640,7 @@ class RuntimeErrorsTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Arithmetic_Error_Data 'Cannot divide by zero.'))"
+      "(Error: (Arithmetic_Error.Error 'Cannot divide by zero.'))"
     )
 
     // Modify the file

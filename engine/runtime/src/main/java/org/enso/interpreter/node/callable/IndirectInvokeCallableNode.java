@@ -171,7 +171,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
-    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokableError(callable);
+    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
     throw new PanicException(error, this);
   }
 }

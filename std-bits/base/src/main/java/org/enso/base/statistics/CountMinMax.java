@@ -1,52 +1,35 @@
 package org.enso.base.statistics;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
+import org.graalvm.polyglot.Value;
 
 public class CountMinMax {
-  private static boolean isValid(Object v) {
-    return !(v == null || (v instanceof Double && Double.isNaN((Double) v)));
+  public long count;
+  public boolean comparatorError;
+  public Value minimum;
+  public Value maximum;
+
+  public CountMinMax() {
+    this.count = 0;
+    this.comparatorError = false;
+    this.minimum = Value.asValue(null);
+    this.maximum = Value.asValue(null);
   }
 
-  public static Stream<Object> toObjectStream(Object[] array) {
-    return Arrays.stream(array);
+  public void increment() {
+    this.count++;
   }
 
-  public final int count;
-  public final boolean comparatorError;
-  public final Object minimum;
-  public final Object maximum;
+  public void failComparator() {
+    this.comparatorError = true;
+    this.minimum = Value.asValue(null);
+    this.maximum = Value.asValue(null);
+  }
 
-  public CountMinMax(Stream<Object> values, Comparator<Object> objectComparator) {
-    int count = 0;
+  public void setMinimum(Value value) {
+    this.minimum = value;
+  }
 
-    boolean comparatorFailed = false;
-    Object minimum = null;
-    Object maximum = null;
-
-    Iterator<Object> iterator = values.filter(CountMinMax::isValid).iterator();
-    while (iterator.hasNext()) {
-      Object value = iterator.next();
-      count++;
-
-      if (!comparatorFailed) {
-        try {
-          minimum =
-              minimum == null || objectComparator.compare(minimum, value) > 0 ? value : minimum;
-          maximum =
-              maximum == null || objectComparator.compare(maximum, value) < 0 ? value : maximum;
-        } catch (ClassCastException e) {
-          comparatorFailed = true;
-        }
-      }
-    }
-
-    this.count = count;
-    this.comparatorError = comparatorFailed;
-    this.minimum = comparatorFailed ? null : minimum;
-    this.maximum = comparatorFailed ? null : maximum;
+  public void setMaximum(Value value) {
+    this.maximum = value;
   }
 }

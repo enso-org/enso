@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
@@ -10,6 +10,9 @@ import project.Data.Text.Text
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Error.Encoding_Error.Encoding_Error
+import project.Error.File_Error.File_Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Problem_Behavior.Problem_Behavior
 import project.Meta
 import project.Nothing.Nothing
@@ -21,7 +24,6 @@ import project.System.File_Format.File_Format
 import project.System.File.File_Permissions.File_Permissions
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Unsupported_File_Type, Illegal_Argument, File_Error, Encoding_Error
 
 polyglot java import org.enso.base.Encoding_Utils
 polyglot java import java.io.InputStream as Java_Input_Stream
@@ -161,7 +163,7 @@ type File
        - format: A `File_Format` object used to read file into memory.
          If `Auto_Detect` is specified; the provided file determines the specific
          type and configures it appropriately. If there is no matching type then
-         a `Unsupported_File_Type` error is returned.
+         a `File_Error.Unsupported_Type` error is returned.
        - on_problems: Specifies the behavior when a problem occurs during the
          function.
          By default, a warning is issued, but the operation proceeds.
@@ -184,7 +186,7 @@ type File
              import Standard.Examples
 
              example_xls_to_table = Examples.xls.read (Excel (Worksheet 'Dates'))
-    read : File_Format -> Problem_Behavior -> Any ! File_Error | Unsupported_File_Type
+    read : File_Format -> Problem_Behavior -> Any ! File_Error
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         format.read self on_problems
 
@@ -240,16 +242,19 @@ type File
     resolve : (Text | File) -> File
     resolve self = @Builtin_Method "File.resolve"
 
-    ## A File to JSON conversion.
+    ## Convert the file descriptor to a JS_Object.
 
        > Example
-         Get a JSON representation of a file.
+         Convert a file to a JS_Object.
 
              import Standard.Examples
 
-             example_to_json = Examples.csv.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "File"], ["path", self.path]]
+             example_to_json = Examples.csv.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "File"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["path", self.path]]
 
     ## Checks whether the file exists.
 

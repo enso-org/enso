@@ -1,4 +1,8 @@
 import project.Any.Any
+import project.Data.Numbers.Integer
+import project.Data.Vector.Vector
+import project.Error.Error
+import project.Error.Common.Index_Out_Of_Bounds
 
 ## A pair of elements.
 type Pair
@@ -30,3 +34,28 @@ type Pair
     map : (Any -> Any) -> Pair
     map self fun =
         Pair.new (fun self.first) (fun self.second)
+
+    ## UNSTABLE
+       Returns the length (2) of the Pair.
+    length : Integer
+    length self = 2
+
+    ## UNSTABLE
+       Returns the pair as a Vector.
+    to_vector : Vector
+    to_vector self = [self.first, self.second]
+
+    ## Gets an element from the pair at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the pair to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the pair, i.e. -1 will correspond to the last element.
+    at : Integer -> Any
+    at self index =
+        case index of
+            0 -> self.first
+            1 -> self.second
+            -1 -> self.second
+            -2 -> self.first
+            _ -> Error.throw (Index_Out_Of_Bounds.Error index self.length)
