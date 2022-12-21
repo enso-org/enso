@@ -424,6 +424,7 @@ impl Processor {
                     build_benchmarks: true,
                     execute_benchmarks: once(Benchmarks::Runtime).collect(),
                     execute_benchmarks_once: true,
+                    check_enso_benchmarks: true,
                     build_js_parser: matches!(TARGET_OS, OS::Linux),
                     verify_packages: true,
                     generate_documentation: true,
