@@ -224,7 +224,7 @@ impl TryFrom<visualization::Data> for LazyGridData {
 
     fn try_from(data: visualization::Data) -> Result<Self, Self::Error> {
         if let visualization::Data::Json { content } = data {
-            Ok(serde_json::from_value(content.deref().clone()).unwrap_or_else(|e| {
+            Ok(serde_json::from_value(content.deref().clone()).unwrap_or_else(|_| {
                 let data_str = if content.is_string() {
                     // We need to access the content `as_str` to preserve newlines. Just using
                     // `content.to_string()` would turn them into the characters `\n` in the output.
