@@ -23,6 +23,18 @@ pub use crate::display::scene::PointerTarget;
 
 
 
+pub trait AnyShapeView {
+    fn optimize_shader(&self) -> crate::system::gpu::shader::Code;
+}
+
+impl<S: Shape> AnyShapeView for ShapeView<S> {
+    fn optimize_shader(&self) -> crate::system::gpu::shader::Code {
+        self.sprite.borrow().symbol.shader().optimize_shader()
+    }
+}
+
+
+
 // =================
 // === ShapeView ===
 // =================

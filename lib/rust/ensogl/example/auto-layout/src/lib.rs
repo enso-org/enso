@@ -5,6 +5,8 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
+// FIXME: remove
+#![feature(local_key_cell_methods)]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
@@ -15,6 +17,7 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
+
 
 use naga;
 use naga::back::spv;
@@ -72,6 +75,8 @@ pub fn main() {
     let dis = rspirv::dr::load_words(spv_vec).expect("Produced invalid SPIR-V").disassemble();
     warn!("{}", dis);
 
+
+
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
     let camera = scene.camera().clone_ref();
@@ -93,6 +98,8 @@ pub fn main() {
     world.add_child(&root);
 
     warn!("rect1: {:?}", rect1.display_object());
+
+    scene.precompile_shaders();
 
     let r = rect1.clone_ref();
     let mut i = 0;

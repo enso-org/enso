@@ -216,6 +216,19 @@ pub fn scene() -> Scene {
 }
 
 
+// ============================
+// === Static Shape Systems ===
+// ============================
+
+type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+
+thread_local! {
+    /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
+    /// program execution, before the `main` function is called.
+    pub static STATIC_SHAPES: RefCell<Vec<ShapeCons>> = default();
+}
+
+
 
 // =================
 // === WorldData ===

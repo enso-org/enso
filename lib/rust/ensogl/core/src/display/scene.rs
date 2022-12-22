@@ -821,6 +821,17 @@ impl SceneData {
         self
     }
 
+    pub fn precompile_shaders(&self) {
+        let style_watch = display::shape::StyleWatch::new(&self.style_sheet);
+        display::world::STATIC_SHAPES.with(|shapes| {
+            for shape_cons in shapes.borrow().iter() {
+                let shape = shape_cons();
+                let code = shape.optimize_shader();
+                warn!("{}", code.vertex);
+            }
+        })
+    }
+
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {

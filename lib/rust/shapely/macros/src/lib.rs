@@ -4,6 +4,7 @@
 
 // === Features ===
 #![feature(exact_size_is_empty)]
+#![feature(proc_macro_span)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -22,6 +23,7 @@
 
 extern crate proc_macro;
 
+mod before_main;
 mod derive_clone_ref;
 mod derive_entry_point;
 mod derive_for_each_variant;
@@ -309,4 +311,22 @@ pub fn gen(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     gen::run(attr, input)
+}
+
+
+/// A macro allowing running functions after WASM initialization, before the main function. In order
+/// to run a function before main, simply use this attribute:
+///
+/// ```text
+/// #[before_main]
+/// fn any_name {
+///     println!("I'm running before main!");
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn before_main(
+    attr: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    before_main::run(attr, input)
 }

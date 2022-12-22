@@ -15,18 +15,24 @@ use std::collections::BTreeMap;
 // === ShaderConfig ===
 // ====================
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ShaderConfig {
-    pub precision:  ShaderPrecision,
-    pub outputs:    BTreeMap<String, AttributeQualifier>,
-    pub shared:     BTreeMap<String, AttributeQualifier>,
-    pub attributes: BTreeMap<String, AttributeQualifier>,
-    pub uniforms:   BTreeMap<String, UniformQualifier>,
+    pub glsl_version: glsl::Version,
+    pub precision:    ShaderPrecision,
+    pub outputs:      BTreeMap<String, AttributeQualifier>,
+    pub shared:       BTreeMap<String, AttributeQualifier>,
+    pub attributes:   BTreeMap<String, AttributeQualifier>,
+    pub uniforms:     BTreeMap<String, UniformQualifier>,
 }
 
 impl ShaderConfig {
-    pub fn new() -> Self {
-        default()
+    pub fn new(glsl_version: glsl::Version) -> Self {
+        let precision = default();
+        let outputs = default();
+        let shared = default();
+        let attributes = default();
+        let uniforms = default();
+        Self { glsl_version, precision, outputs, shared, attributes, uniforms }
     }
 
     pub fn add_attribute<S: Str, Q: Into<AttributeQualifier>>(&mut self, name: S, qual: Q) {
@@ -87,6 +93,43 @@ impl LocalVarQualifier {
 }
 
 
+#[derive(Clone, Copy, Debug)]
+pub struct ScopeLayoutManager {
+    location: Option<usize>,
+}
+
+impl ScopeLayoutManager {
+    pub fn new(enabled: bool) -> Self {
+        Self { location: enabled.as_some(0) }
+    }
+
+    pub fn place(&mut self, tp: &glsl::Type) -> Option<glsl::Layout> {
+        let location = self.location?;
+        self.location = Some(location + tp.layout_size());
+        Some(glsl::Layout { location })
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct LayoutManager {
+    pub vert_in:  ScopeLayoutManager,
+    pub vert_out: ScopeLayoutManager,
+    pub frag_in:  ScopeLayoutManager,
+    pub frag_out: ScopeLayoutManager,
+}
+
+impl LayoutManager {
+    pub fn new(enabled: bool) -> Self {
+        Self {
+            vert_in:  ScopeLayoutManager::new(enabled),
+            vert_out: ScopeLayoutManager::new(enabled),
+            frag_in:  ScopeLayoutManager::new(enabled),
+            frag_out: ScopeLayoutManager::new(enabled),
+        }
+    }
+}
+
+
 // === AttributeQualifier ===
 
 #[derive(Clone, Debug)]
@@ -104,29 +147,36 @@ impl AttributeQualifier {
     pub fn to_input_var<Name: Into<glsl::Identifier>>(
         &self,
         name: Name,
+        layout_manager: &mut ScopeLayoutManager,
         use_qual: bool,
     ) -> glsl::GlobalVar {
+        let layout = layout_manager.place(&self.typ);
         let mut storage = self.storage;
         if !use_qual {
             storage.interpolation = None;
         }
         glsl::GlobalVar {
-            layout:  None,
+            layout,
             storage: Some(glsl::GlobalVarStorage::InStorage(storage)),
-            prec:    self.prec,
-            typ:     self.typ.clone(),
-            ident:   name.into(),
+            prec: self.prec,
+            typ: self.typ.clone(),
+            ident: name.into(),
         }
     }
 
-    pub fn to_output_var<Name: Into<glsl::Identifier>>(&self, name: Name) -> glsl::GlobalVar {
+    pub fn to_output_var<Name: Into<glsl::Identifier>>(
+        &self,
+        name: Name,
+        layout_manager: &mut ScopeLayoutManager,
+    ) -> glsl::GlobalVar {
+        let layout = layout_manager.place(&self.typ);
         let storage = self.storage;
         glsl::GlobalVar {
-            layout:  None,
+            layout,
             storage: Some(glsl::GlobalVarStorage::OutStorage(storage)),
-            prec:    self.prec,
-            typ:     self.typ.clone(),
-            ident:   name.into(),
+            prec: self.prec,
+            typ: self.typ.clone(),
+            ident: name.into(),
         }
     }
 }
@@ -272,15 +322,19 @@ impl CodeTemplate {
 // === ShaderBuilder ===
 // =====================
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ShaderBuilder {
+    pub layout:   LayoutManager,
     pub vertex:   glsl::Module,
     pub fragment: glsl::Module,
 }
 
 impl ShaderBuilder {
-    pub fn new() -> Self {
-        default()
+    pub fn new(glsl_version: glsl::Version) -> Self {
+        let layout = LayoutManager::new(glsl_version.requires_layout());
+        let vertex = glsl::Module::new(glsl_version);
+        let fragment = glsl::Module::new(glsl_version);
+        Self { layout, vertex, fragment }
     }
 
     pub fn compute(
@@ -320,9 +374,9 @@ impl ShaderBuilder {
                 let vert_name = mk_vertex_name(name);
                 let frag_name = mk_fragment_name(name);
                 let sharing = glsl::Assignment::new(&frag_name, &vert_name);
-                self.vertex.add(qual.to_input_var(&vert_name, false));
-                self.vertex.add(qual.to_output_var(&frag_name));
-                self.fragment.add(qual.to_input_var(&frag_name, true));
+                self.vertex.add(qual.to_input_var(&vert_name, &mut self.layout.vert_in, false));
+                self.vertex.add(qual.to_output_var(&frag_name, &mut self.layout.vert_out));
+                self.fragment.add(qual.to_input_var(&frag_name, &mut self.layout.frag_in, true));
                 self.vertex.main.add(sharing);
             }
         }
@@ -330,31 +384,39 @@ impl ShaderBuilder {
 
     fn gen_shared_attributes_code(&mut self, cfg: &ShaderConfig) {
         if !cfg.shared.is_empty() {
+            let mut location = 0;
             for (name, qual) in &cfg.shared {
                 let frag_name = mk_fragment_name(name);
-                self.vertex.add(qual.to_output_var(&frag_name));
-                self.fragment.add(qual.to_input_var(&frag_name, true));
+                self.vertex.add(qual.to_output_var(&frag_name, &mut self.layout.vert_out));
+                self.fragment.add(qual.to_input_var(&frag_name, &mut self.layout.frag_in, true));
+                location += 1;
             }
         }
     }
 
     fn gen_uniforms_code(&mut self, cfg: &ShaderConfig) {
         if !cfg.uniforms.is_empty() {
+            let mut location = 0;
             for (name, qual) in &cfg.uniforms {
+                warn!("{:?}", name);
                 let name = mk_uniform_name(name);
-                self.vertex.add(qual.to_var(&name));
-                self.fragment.add(qual.to_var(&name));
+                let mut var = qual.to_var(&name);
+                if cfg.glsl_version > glsl::Version::V300 {
+                    var.layout = Some(glsl::Layout { location });
+                }
+                self.vertex.add(var.clone());
+                self.fragment.add(var);
+                location += 1;
             }
         }
     }
 
     fn gen_outputs_code(&mut self, cfg: &ShaderConfig) {
+        let mut layout = LayoutManager::new(true);
         if !cfg.outputs.is_empty() {
             cfg.outputs.iter().enumerate().for_each(|(loc, (name, qual))| {
                 let name = mk_out_name(name);
-                let mut var = qual.to_output_var(name);
-                var.layout = Some(glsl::Layout { location: loc });
-                self.fragment.add(var);
+                self.fragment.add(qual.to_output_var(name, &mut layout.frag_out));
             });
         }
     }

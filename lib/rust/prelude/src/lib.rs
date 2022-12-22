@@ -60,6 +60,7 @@ pub use data::*;
 pub use debug::*;
 pub use enso_shapely::clone_ref::*;
 pub use enso_shapely::impl_clone_ref_as_clone;
+pub use enso_shapely::before_main;
 pub use fail::*;
 pub use leak::Leak;
 pub use leak::*;

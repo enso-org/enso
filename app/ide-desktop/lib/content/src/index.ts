@@ -131,16 +131,39 @@ let main_entry_point = 'ide'
 /// Prefix name of each scene defined in the WASM binary.
 let wasm_entry_point_pfx = 'entry_point_'
 
-/// Displays a debug screen which allows the user to run one of predefined debug examples.
-function show_debug_screen(wasm: any, msg: string) {
-    API.remoteLog('show_debug_screen')
+/// Prefix name of each scene defined in the WASM binary.
+let wasm_before_main_pfx = 'before_main_'
+
+function wasm_functions(wasm: any): string[] {
+   return Object.getOwnPropertyNames(wasm)
+}
+
+function wasm_before_main_functions(wasm: any): string[] {
     let names = []
-    for (let fn of Object.getOwnPropertyNames(wasm)) {
+    for (let fn of wasm_functions(wasm)) {
+        if (fn.startsWith(wasm_before_main_pfx)) {
+            names.push(fn)
+        }
+    }
+    names.sort();
+    return names
+}
+
+function wasm_entry_points_stripped(wasm: any): string[] {
+    let names = []
+    for (let fn of wasm_functions(wasm)) {
         if (fn.startsWith(wasm_entry_point_pfx)) {
             let name = fn.replace(wasm_entry_point_pfx, '')
             names.push(name)
         }
     }
+    return names
+}
+
+/// Displays a debug screen which allows the user to run one of predefined debug examples.
+function show_debug_screen(wasm: any, msg: string) {
+    API.remoteLog('show_debug_screen')
+    let names = wasm_entry_points_stripped(wasm)
 
     if (msg === '' || msg === null || msg === undefined) {
         msg = ''
@@ -868,6 +891,21 @@ async function runEntryPoint(config: Config) {
         let fn_name = wasm_entry_point_pfx + entryTarget
         let fn = wasm[fn_name]
         if (fn) {
+            let before_main_fns = wasm_before_main_functions(wasm);
+            if(before_main_fns) {
+                console.log(`Running ${before_main_fns.length} before main functions.`);
+                const t_start = performance.now();
+                for (let before_main_fn_name of before_main_fns) {
+                    wasm[before_main_fn_name]()
+                }
+                const t_end = performance.now();
+                let ms = Math.round((t_end - t_start)*100)/100;
+                console.log(`Before main functions took ${ms} milliseconds to run.`);
+                if (ms > 30) {
+                    console.error(`Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`);
+                }
+            }
+            console.log(`Running the chosen entry point.`);
             // Loader will be removed by IDE after its initialization.
             // All other code paths need to call `loader.destroy()`.
             fn()

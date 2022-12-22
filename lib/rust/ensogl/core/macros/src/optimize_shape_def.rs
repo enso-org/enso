@@ -96,7 +96,7 @@ pub fn run(
     //     // context.files();
     //     // tt += &format!("{:?}", context.files());
     // }
-    let span = Span::call_site();
+    let span = proc_macro::Span::call_site();
     let source = span.source_file();
 
     panic!("{:#?}", span);

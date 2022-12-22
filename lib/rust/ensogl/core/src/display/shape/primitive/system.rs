@@ -414,7 +414,7 @@ impl ShapeSystemModel {
                 vec2 padded_size = input_size + padding2;
                 vec2 uv_scale = padded_size / input_size;
                 vec2 uv_offset = padding / input_size;
-                input_uv = vertex_uv * uv_scale - uv_offset;
+                input_uv = input_uv * uv_scale - uv_offset;
 
                 // We need to recompute the vertex position with the padding.
                 input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
@@ -810,7 +810,6 @@ macro_rules! _shape2 {
                     Self::GpuParams {$($gpu_param),*}
                 }
 
-                #[$crate::optimize_shape_def]
                 fn shape_def(__style_watch__: &display::shape::StyleWatch)
                 -> display::shape::primitive::def::AnyShape {
                     #[allow(unused_imports)]
@@ -834,6 +833,13 @@ macro_rules! _shape2 {
                 $(fn flavor(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
                     $flavor(data)
                 })?
+            }
+
+            #[before_main]
+            pub fn register_shape() {
+                $crate::display::world::STATIC_SHAPES.with_borrow_mut(|shapes| {
+                    shapes.push(Box::new(|| Box::new(View::new())));
+                });
             }
 
             /// An initialized, GPU-bound shape definition. All changed parameters are immediately
