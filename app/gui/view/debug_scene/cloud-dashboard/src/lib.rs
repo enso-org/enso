@@ -53,7 +53,7 @@ use std::mem;
 
 pub(crate) mod projects_entry;
 pub(crate) mod projects_spinner;
-pub(crate) mod projects_table;
+pub mod projects_table;
 
 
 
