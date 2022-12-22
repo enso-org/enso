@@ -342,10 +342,20 @@ impl MainLine {
         }
     }
 
-    /// Mutable AST of the node's expression. Maintains ID.
+    /// Set AST of the node's expression. Maintains ID.
     pub fn set_expression(&mut self, expression: Ast) {
         self.modify_expression(move |ast| {
             *ast = preserving_skip_and_freeze(ast, |ast| *ast = expression.clone());
+        });
+    }
+
+    /// Replace part of AST of the node's expression. Maintains IDs outside of replaced subtree.
+    pub fn set_nested_expression(&mut self, crumbs: &[ast::Crumb], expression: Ast) {
+        self.modify_expression(move |ast| {
+            *ast = preserving_skip_and_freeze(ast, |ast| {
+                let Ok(updated_ast) = ast.set_traversing(crumbs, expression) else { return };
+                *ast = updated_ast;
+            });
         });
     }
 
@@ -420,7 +430,7 @@ impl MainLine {
     }
 
     /// Modify expression, preserving the AST id.
-    fn modify_expression(&mut self, f: impl Fn(&mut Ast)) {
+    fn modify_expression(&mut self, f: impl FnOnce(&mut Ast)) {
         let id = self.id();
         match self {
             Self::Binding { infix, .. } => {

@@ -7,6 +7,8 @@ use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
 
+
+
 // ==================
 // === NodeWidget ===
 // ==================
@@ -116,12 +118,12 @@ impl SingleChoice {
         let input = &frp.input;
         let output = &frp.private.output;
         dropdown.set_y(-node_height);
-        dropdown.set_max_size(Vector2(300.0, 500.0));
+        dropdown.set_max_open_size(Vector2(300.0, 500.0));
 
         let activation_dot = dot::View::new();
         let color: color::Rgba = color::Lcha::new(0.56708, 0.23249, 0.71372, 1.0).into();
         activation_dot.color.set(color.into());
-        activation_dot.size.set(Vector2(15.0, 15.0));
+        activation_dot.set_size((15.0, 15.0));
         activation_dot.set_y(-node_height / 2.0);
         display_object.add_child(&activation_dot);
 

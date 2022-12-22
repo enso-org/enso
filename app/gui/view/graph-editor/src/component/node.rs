@@ -326,6 +326,7 @@ ensogl::define_endpoints_2! {
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
         expression               (ImString),
+        port_expression          (span_tree::Crumbs,ImString),
         comment                  (Comment),
         skip                     (bool),
         freeze                   (bool),
@@ -740,6 +741,7 @@ impl Node {
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
             out.expression                  <+ model.input.frp.expression;
+            out.port_expression             <+ model.input.frp.on_port_code_update;
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;

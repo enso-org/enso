@@ -10,6 +10,7 @@ use crate::presenter::graph::ViewNodeId;
 use bimap::BiMap;
 use bimap::Overwritten;
 use engine_protocol::language_server::ExpressionUpdatePayload;
+use enso_text::prelude::unit2::Bytes;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
@@ -457,7 +458,7 @@ impl<'a> ControllerChange<'a> {
         let displayed = nodes.get_mut_or_create(ast_id);
 
         if displayed.expression != new_displayed_expr {
-            debug!(
+            warn!(
                 "Setting node expression from controller: {} -> {}",
                 displayed.expression, new_displayed_expr
             );
@@ -735,9 +736,48 @@ impl<'a> ViewChange<'a> {
         let expression_has_changed = displayed.expression.code != expression;
         if expression_has_changed {
             let expression = node_view::Expression::new_plain(expression);
-            debug!("Setting node expression from view: {} -> {}", displayed.expression, expression);
+            warn!("Setting node expression from view: {} -> {}", displayed.expression, expression);
             displayed.expression = expression;
             Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Set the expression for input port of a node.
+    pub fn set_node_port_expression(
+        &self,
+        id: ViewNodeId,
+        port: &span_tree::Crumbs,
+        port_expression: &str,
+    ) -> Option<(AstNodeId, ast::Crumbs)> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        let port_ref = displayed.expression.input_span_tree.get_node(port).ok()?;
+        let span = port_ref.span();
+        let code = displayed.expression.code.as_str();
+        let code_before = code.slice(Bytes(0)..Bytes(span.start.into()));
+        let code_after = code.slice(Bytes(span.end.into())..);
+
+        let new_code = format!(
+            "{} {} {}",
+            code_before.trim_end(),
+            port_expression.trim(),
+            code_after.trim_start()
+        );
+        let expression_has_changed = displayed.expression.code != new_code;
+        if expression_has_changed {
+            let ast_crumbs = port_ref.ast_crumbs.clone();
+            // TODO[Frizi]: instead of generating new tree, we should update the existing one.
+            //              This also gets rid of the need to concat code.
+            let expression = node_view::Expression::new_plain(new_code);
+            debug!(
+                "Setting node port expression from view: {} -> {}",
+                displayed.expression, expression
+            );
+            displayed.expression = expression;
+            Some((ast_id, ast_crumbs))
         } else {
             None
         }

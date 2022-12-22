@@ -144,7 +144,35 @@ impl Model {
     /// Node expression was edited in the view. Should be called whenever the user changes the
     /// contents of a node during editing.
     fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
+        warn!("node_expression_set {id:?} {expression:?}");
         self.state.update_from_view().set_node_expression(id, expression);
+    }
+
+    /// Part of node expression was edited in the view. Should be called whenever the user changes
+    /// the contents of a node during editing.
+    fn node_port_expression_set(
+        &self,
+        id: ViewNodeId,
+        crumbs: &span_tree::Crumbs,
+        expression: ImString,
+    ) {
+        self.log_action(
+            || {
+                if let Some((node_id, ast_crumbs)) =
+                    self.state.update_from_view().set_node_port_expression(id, crumbs, &expression)
+                {
+                    //
+                    Some(self.controller.graph().set_nested_expression(
+                        node_id,
+                        &ast_crumbs,
+                        expression.as_str(),
+                    ))
+                } else {
+                    None
+                }
+            },
+            "update subexpression",
+        );
     }
 
     /// The user skipped the node by pressing on the "skip" button next to it.
@@ -620,6 +648,7 @@ impl Graph {
             eval view.nodes_collapsed(((nodes, _)) model.nodes_collapsed(nodes));
             eval view.enabled_visualization_path(((node_id, path)) model.node_visualization_changed(*node_id, path.clone()));
             eval view.node_expression_set(((node_id, expression)) model.node_expression_set(*node_id, expression.clone_ref()));
+            eval view.node_port_expression_set(((node_id, crumbs, expression)) model.node_port_expression_set(*node_id, crumbs, expression.clone_ref()));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
 

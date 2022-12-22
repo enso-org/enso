@@ -681,6 +681,7 @@ ensogl::define_endpoints_2! {
         node_position_set         ((NodeId,Vector2)),
         node_position_set_batched ((NodeId,Vector2)),
         node_expression_set       ((NodeId,ImString)),
+        node_port_expression_set  ((NodeId,span_tree::Crumbs,ImString)),
         node_comment_set          ((NodeId,String)),
         node_entered              (NodeId),
         node_exited               (),
@@ -1542,6 +1543,10 @@ impl GraphEditorModelWithNetwork {
                 ));
 
             eval node.expression((t) model.frp.private.output.node_expression_set.emit((node_id,t.into())));
+            eval node.port_expression([model]((crumbs,code)) {
+                let args = (node_id, crumbs.clone(), code.clone());
+                model.frp.private.output.node_port_expression_set.emit(args)
+            });
 
 
             // === Actions ===

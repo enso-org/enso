@@ -440,7 +440,7 @@ impl Model {
                     port_widget.set_current_value(Some(code.into()));
                     frp::extend! { port_network
                         area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
-                            f!([crumbs](v) (crumbs.clone_ref(), v.clone()))
+                            f!([crumbs](v) (crumbs.clone_ref(), v.as_ref().map_or_else(|| "".into(),|s| s.into())))
                         );
                     }
                 }
@@ -736,7 +736,7 @@ ensogl::define_endpoints! {
         on_port_press       (Crumbs),
         on_port_hover       (Switch<Crumbs>),
         on_port_type_change (Crumbs,Option<Type>),
-        on_port_code_update (Crumbs,Option<String>),
+        on_port_code_update (Crumbs,ImString),
         on_background_press (),
         view_mode           (view::Mode),
     }

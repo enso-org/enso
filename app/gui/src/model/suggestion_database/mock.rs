@@ -182,7 +182,7 @@ macro_rules! mock_suggestion_database_entry_argument {
             is_suspended: false,
             has_default: false,
             default_value: None,
-            tag_values:    None,
+            tag_values:    Vec::new(),
         }
     };
     ($name:ident: $($path:ident).*) => {
@@ -192,7 +192,7 @@ macro_rules! mock_suggestion_database_entry_argument {
             is_suspended: false,
             has_default: false,
             default_value: None,
-            tag_values:    None,
+            tag_values:    Vec::new(),
         }
     }
 }

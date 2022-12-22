@@ -870,6 +870,38 @@ impl Handle {
         Ok(())
     }
 
+    /// Sets the given's node expression.
+    #[profile(Debug)]
+    pub fn set_nested_expression(
+        &self,
+        id: ast::Id,
+        crumbs: &[ast::Crumb],
+        expression_text: impl Str,
+    ) -> FallibleResult {
+        info!(
+            "Setting node {id} nested expression at {crumbs:?} to `{}`",
+            expression_text.as_ref()
+        );
+        let new_expression_ast = self.parse_node_expression(expression_text)?;
+        self.set_nested_expression_ast(id, crumbs, new_expression_ast)
+    }
+
+    /// Sets the given's node expression.
+    #[profile(Debug)]
+    pub fn set_nested_expression_ast(
+        &self,
+        id: ast::Id,
+        crumbs: &[ast::Crumb],
+        expression: Ast,
+    ) -> FallibleResult {
+        self.update_definition_ast(|definition| {
+            let mut graph = GraphInfo::from_definition(definition);
+            graph.edit_node_nested(id, crumbs, expression)?;
+            Ok(graph.source)
+        })?;
+        Ok(())
+    }
+
     /// Set node's position.
     pub fn set_node_position(
         &self,

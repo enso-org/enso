@@ -1479,14 +1479,14 @@ pub trait TraversableAst: Sized {
 
 impl TraversableAst for Ast {
     fn set_traversing(&self, crumbs: &[Crumb], new_ast: Ast) -> FallibleResult<Self> {
-        let updated_ast = if let Some(first_crumb) = crumbs.first() {
-            let child = self.get(first_crumb)?;
-            let updated_child = child.set_traversing(&crumbs[1..], new_ast)?;
-            self.set(first_crumb, updated_child)?
-        } else {
-            new_ast
-        };
-        Ok(updated_ast)
+        match crumbs {
+            [] => Ok(new_ast),
+            [first_crumb, tail_crumbs @ ..] => {
+                let child = self.get(first_crumb)?;
+                let updated_child = child.set_traversing(tail_crumbs, new_ast)?;
+                self.set(first_crumb, updated_child)
+            }
+        }
     }
 
     fn get_traversing(&self, crumbs: &[Crumb]) -> FallibleResult<&Ast> {
