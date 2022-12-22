@@ -43,6 +43,21 @@ type Problem_Builder
 
         problems.to_vector
 
+    ## If there are any missing columns or out of bound indices, the
+       corresponding error is raised, otherwise, the provided action is executed
+       and its result is returned.
+    throw_unmatched_columns_as_error : Any -> Any
+    throw_unmatched_columns_as_error self ~action =
+         case self.missing_input_columns.not_empty of
+            True ->
+                err = Missing_Input_Columns.Error self.missing_input_columns.build
+                Error.throw err
+            False -> case self.oob_indices.not_empty of
+                True ->
+                    err = Column_Indexes_Out_Of_Range.Error self.oob_indices.build
+                    Error.throw err
+                False -> action
+
     ## Attaches gathered warnings to the result.
        Any errors from the `result` take precedence over the ones owned by this
        builder.

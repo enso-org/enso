@@ -69,8 +69,10 @@ type Join_Condition_Resolver
                 if left.is_nothing || right_lower.is_nothing || right_upper.is_nothing then Nothing else
                     self.make_between left right_lower right_upper
         short_circuited = if converted.contains Nothing then Nothing else converted
-        problem_builder.attach_problems_after on_problems <|
-            Join_Condition_Resolution.Result short_circuited redundant_names.to_vector
+
+        problem_builder.throw_unmatched_columns_as_error <|
+            problem_builder.attach_problems_after on_problems <|
+                Join_Condition_Resolution.Result short_circuited redundant_names.to_vector
 
 type Join_Condition_Resolution
     Result (conditions : Nothing | Vector Any) (redundant_column_names : Vector Text)
