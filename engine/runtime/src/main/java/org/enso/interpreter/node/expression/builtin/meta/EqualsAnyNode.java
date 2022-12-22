@@ -225,6 +225,7 @@ public abstract class EqualsAnyNode extends Node {
     }
   }
 
+  @TruffleBoundary
   @Specialization(guards = {
       "selfInterop.isDate(selfZonedDateTime)",
       "selfInterop.isTime(selfZonedDateTime)",
