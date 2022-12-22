@@ -68,6 +68,7 @@ pub struct CreationCtx<EntryParams> {
     pub entry_selected:        frp::Any<Option<(Row, Col)>>,
     pub entry_accepted:        frp::Any<(Row, Col)>,
     pub override_column_width: frp::Any<(Col, f32)>,
+    pub minimum_column_width:  frp::Any<(Col, f32)>,
 }
 
 impl<EntryParams> CreationCtx<EntryParams>
@@ -101,7 +102,7 @@ where EntryParams: frp::node::Data
                 contour <- all(init, entry_frp.contour)._1();
                 eval contour ((c) overlay.set_contour(*c));
                 contour_offset <- all(init, entry_frp.contour_offset)._1();
-                eval contour_offset ((off) overlay.set_position_xy(*off));
+                eval contour_offset ((off) overlay.set_xy(*off));
 
                 let events = &overlay.events;
                 let disabled = &entry_frp.disabled;
@@ -130,6 +131,10 @@ where EntryParams: frp::node::Data
                 self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
                 self.override_column_width <+ entry_frp.override_column_width.map2(
+                    &column,
+                    |width, col| (*col, *width)
+                );
+                self.minimum_column_width <+ entry_frp.minimum_column_width.map2(
                     &column,
                     |width, col| (*col, *width)
                 );
@@ -173,7 +178,7 @@ pub fn set_position<E: Entry>(
     column_widths: &ColumnWidths,
 ) {
     let pos = position(row, col, entry_size, column_widths);
-    entry.set_position_xy(pos);
+    entry.set_xy(pos);
     entry.frp().position_set(pos);
 }
 

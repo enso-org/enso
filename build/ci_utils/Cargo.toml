@@ -40,6 +40,7 @@ itertools = "0.10.1"
 lazy_static = "1.4.0"
 log = "0.4.14"
 mime = "0.3.16"
+multimap = "0.8.3"
 new_mime_guess = "4.0.0"
 nix = { workspace = true }
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
@@ -74,7 +75,7 @@ sysinfo = "0.26.2"
 tar = "0.4.37"
 tempfile = "3.2.0"
 tokio = { workspace = true }
-tokio-util = { version = "0.7.2", features = ["full"] }
+tokio-util = { workspace = true }
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }
 unicase = "2.6.0"

@@ -1,4 +1,4 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Vector.Vector
 
 ## A function is any type that represents a not-yet evaluated computation.
@@ -7,7 +7,6 @@ import project.Data.Vector.Vector
    the this argument.
 @Builtin_Type
 type Function
-
 
 ## An identity function which returns the provided argument.
 

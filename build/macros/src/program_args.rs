@@ -160,6 +160,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn foo() -> Result {
         let code = "enum Foo {
             #[arg]
@@ -169,10 +170,38 @@ mod tests {
             #[arg]
             Quux,
         }";
-        let token_stream = syn::parse_str::<TokenStream>(code)?;
+        let _token_stream = syn::parse_str::<TokenStream>(code)?;
+        Ok(())
+    }
 
+    /// Structure with AST of parenthesized sequence of assignments.
+    ///
+    /// For example, `(a = 1, b = ToString::to_string)`.
+    #[derive(Debug, Clone)]
+    pub struct Assignments {
+        pub paren_token: syn::token::Paren,
+        pub assignments: syn::punctuated::Punctuated<syn::ExprAssign, syn::Token![,]>,
+    }
 
-        dbg!(token_stream);
+    impl Parse for Assignments {
+        fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+            let content;
+            let paren_token = syn::parenthesized!(content in input);
+            let assignments = content.parse_terminated(syn::ExprAssign::parse)?;
+            Ok(Self { paren_token, assignments })
+        }
+    }
+
+    #[test]
+    #[ignore]
+    fn parse_attribute() -> Result {
+        let attribute = r#"(format = ToString :: to_string)"#;
+        let token_stream = syn::parse_str::<TokenStream>(attribute)?;
+        dbg!(&token_stream);
+        let foo = syn::parse2::<Assignments>(token_stream)?;
+        dbg!(foo);
+        // let attribute = syn::parse2::<syn::Attribute>(token_stream)?;
+        // dbg!(attribute);
         Ok(())
     }
 }

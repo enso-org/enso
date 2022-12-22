@@ -128,10 +128,10 @@ impl ProjectList {
             color      <- all(&color,&init)._0();
             label_size <- all(&label_size,&init)._0();
 
-            eval size       ((size)  background.size.set(*size));
+            eval size       ((size)  background.set_size(*size););
             eval list_size  ((size)  list.resize(*size));
-            eval list_y     ((y)     list.set_position_y(*y));
-            eval caption_xy ((xy)    caption.set_position_xy(*xy));
+            eval list_y     ((y)     list.set_y(*y));
+            eval caption_xy ((xy)    caption.set_xy(*xy));
             eval color      ((color) caption.set_property_default(color));
             eval label_size ((size)  caption.set_property_default(text::Size(*size)));
         };

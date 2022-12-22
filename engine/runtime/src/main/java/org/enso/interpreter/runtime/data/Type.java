@@ -10,12 +10,12 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.atom.ConstantNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode;
 import org.enso.interpreter.node.expression.atom.GetFieldWithMatchNode.GetterPair;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -121,7 +121,7 @@ public final class Type implements TruffleObject {
     return supertype;
   }
 
-  public void generateGetters(Language language) {
+  public void generateGetters(EnsoLanguage language) {
     if (gettersGenerated) return;
     gettersGenerated = true;
     var roots = new HashMap<String, RootNode>();
@@ -183,8 +183,60 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject() {
+    return getType();
+  }
+
+  @ExportMessage
+  Object getMetaParents() {
+    assert supertype != null;
+    return new Array(supertype);
+  }
+
+  @ExportMessage
+  boolean hasMetaParents() {
+    return supertype != null && supertype != this;
+  }
+
+  @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
     return name;
+  }
+
+  @ExportMessage
+  boolean isMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  boolean isMetaInstance(Object instance, @CachedLibrary(limit = "3") TypesLibrary lib) {
+    var b = EnsoContext.get(lib).getBuiltins();
+    if (b.any() == this) {
+      return true;
+    }
+    var type = lib.getType(instance);
+    while (type != null && type != b.any()) {
+      if (type == this) {
+        return true;
+      }
+      type = type.getSupertype();
+    }
+    return false;
+  }
+
+  @ExportMessage
+  String getMetaSimpleName() {
+    return getName();
+  }
+
+  @ExportMessage
+  String getMetaQualifiedName() {
+    return getQualifiedName().toString();
   }
 
   @ExportMessage
@@ -217,7 +269,7 @@ public final class Type implements TruffleObject {
 
   @ExportMessage
   boolean isNull(@CachedLibrary("this") InteropLibrary self) {
-    return this == Context.get(self).getBuiltins().nothing();
+    return this == EnsoContext.get(self).getBuiltins().nothing();
   }
 
   @Override

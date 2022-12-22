@@ -10,7 +10,6 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_core::display::geometry::compound::sprite;
 use ensogl_core::display::scene::Layer;
 use ensogl_core::display::Attribute;
 
@@ -106,6 +105,10 @@ ensogl_core::define_endpoints_2! { <Model: (frp::node::Data), Params: (frp::node
         /// Override column's width. If multiple entries from the same column emit this event,
         /// only the last one is applied. See [`crate::GridView`] documentation for more details.
         override_column_width(f32),
+        /// Similar to `override_column_width`, but only sets the new width value if it is greater
+        /// than the current column width. If multiple entries from the same column emit this event,
+        /// the maximum value is applied.
+        minimum_column_width(f32),
         selection_highlight_color(color::Lcha),
         hover_highlight_color(color::Lcha)
     }
@@ -150,20 +153,13 @@ pub trait Entry: CloneRef + Debug + display::Object + 'static {
 // === ShapeWithEntryContour ===
 
 /// The trait implemented by all shapes sharing the contour of an entry.
-pub trait ShapeWithEntryContour {
-    /// Padding added to the shape to avoid antialiasing issues.
-    const PADDING_PX: f32 = 5.0;
-
-    /// Get the size parameter.
-    fn size(&self) -> &ProxyParam<sprite::Size>;
-
+pub trait ShapeWithEntryContour: display::Object {
     /// Get the corner radius parameter.
     fn corner_radius(&self) -> &ProxyParam<Attribute<f32>>;
 
     /// Update shape's contour.
     fn set_contour(&self, contour: Contour) {
-        let padding = Vector2(Self::PADDING_PX, Self::PADDING_PX) * 2.0;
-        self.size().set(contour.size + padding);
+        self.set_size(contour.size);
         self.corner_radius().set(contour.corners_radius);
     }
 }
@@ -171,10 +167,6 @@ pub trait ShapeWithEntryContour {
 macro_rules! implement_shape_with_entry_contour {
     () => {
         impl ShapeWithEntryContour for View {
-            fn size(&self) -> &ProxyParam<sprite::Size> {
-                &self.size
-            }
-
             fn corner_radius(&self) -> &ProxyParam<Attribute<f32>> {
                 &self.corner_radius
             }
@@ -191,11 +183,8 @@ pub mod overlay {
 
     ensogl_core::shape! {
         (style:Style, corner_radius: f32) {
-            let shape_width  : Var<Pixels> = "input_size.x".into();
-            let shape_height : Var<Pixels> = "input_size.y".into();
-            let width = shape_width - 2.0.px() * View::PADDING_PX;
-            let height = shape_height - 2.0.px() * View::PADDING_PX;
-            Rect((width, height)).corners_radius(corner_radius.px()).fill(INVISIBLE_HOVER_COLOR).into()
+            let size = Var::canvas_size();
+            Rect(size).corners_radius(corner_radius.px()).fill(INVISIBLE_HOVER_COLOR).into()
         }
     }
 
@@ -213,11 +202,8 @@ pub mod shape {
     ensogl_core::shape! {
         below = [overlay, highlight::shape];
         (style:Style, corner_radius: f32, color: Vector4) {
-            let shape_width  : Var<Pixels> = "input_size.x".into();
-            let shape_height : Var<Pixels> = "input_size.y".into();
-            let width = shape_width - 2.0.px() * View::PADDING_PX;
-            let height = shape_height - 2.0.px() * View::PADDING_PX;
-            Rect((width, height)).corners_radius(corner_radius.px()).fill(color).into()
+            let size = Var::canvas_size();
+            Rect(size).corners_radius(corner_radius.px()).fill(color).into()
         }
     }
 

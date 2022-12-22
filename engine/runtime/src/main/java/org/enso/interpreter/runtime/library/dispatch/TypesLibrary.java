@@ -37,7 +37,7 @@ public abstract class TypesLibrary extends Library {
       LibraryFactory.resolve(TypesLibrary.class);
 
   /**
-   * Checks if the receiver supports Enso-style method dispatch
+   * Checks if the receiver supports Enso-style method dispatch.
    *
    * @param receiver the receiver to check
    * @return whether the receiver supports method dispatch through this library

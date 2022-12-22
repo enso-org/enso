@@ -1,16 +1,13 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.No_Such_Method
 
-import Standard.Base.Network.Http
-import Standard.Base.Network.Http.Response.Response as Http_Response
-import Standard.Base.System.Platform
-import Standard.Base.Network.URI
+import Standard.Base.Network.HTTP.Response.Response
+import Standard.Base.Network.HTTP.Response_Body.Response_Body
+
 import Standard.Base.Data.Text.Regex.Engine.Default as Default_Engine
 import Standard.Base.Data.Text.Regex.Engine.Default.Match as Default_Engine_Match
 
 from Standard.Table import Table, Column
-# TODO[DB] Fix composite types #183857386
-import Standard.Table.Data.Column.Column as Column_Type
-import Standard.Table.Data.Table.Table as Table_Type
 
 from Standard.Image import Image, Read_Flag, Matrix
 
@@ -45,7 +42,7 @@ xls =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xls"
     file = enso_project.data / 'spreadsheet.xls'
     if file.exists.not then
-        Http.fetch url . to_file file
+        HTTP.fetch url . to_file file
     file
 
 ## An example XLSX file for experimenting with Table and its APIs.
@@ -60,7 +57,7 @@ xlsx =
     url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsx"
     file = enso_project.data / 'spreadsheet.xlsx'
     if file.exists.not then
-        Http.fetch url . to_file file
+        HTTP.fetch url . to_file file
     file
 
 ## A file that is used for writing temporary data as part of tests.
@@ -102,12 +99,12 @@ json_text = """
     ]
 
 ## Example JSON for working with.
-json : Json
+json : Vector
 json = Json.parse json_text
 
 ## An example JSON object.
-json_object : Json
-json_object = json.items.head
+json_object : JS_Object
+json_object = json.first
 
 ## An example cons-list.
 list : List
@@ -121,7 +118,7 @@ map = Map.empty . insert 1 "one" . insert 3 "three" . insert 5 "five"
 type No_Methods
 
 ## Returns a no_such_method_error as a value.
-no_such_method : No_Such_Method_Error
+no_such_method : No_Such_Method
 no_such_method = Panic.recover Any No_Methods.frobnicate . catch
 
 ## A simple error type for example purposes.
@@ -146,20 +143,20 @@ geo_data_url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/Bus_Stop_Be
    ! Makes a Network Request
      Calling this method will cause Enso to make a network request to a data
      endpoint.
-get_response : Http_Response
-get_response = Http.get geo_data_url
+get_response : Response
+get_response = HTTP.fetch geo_data_url
 
 ## Gets HTTP data from a network endpoint.
 
    ! Makes a Network Request
      Calling this method will cause Enso to make a network request to a data
      endpoint.
-get_geo_data : Http.Response.Body
-get_geo_data = Http.fetch geo_data_url
+get_geo_data : Response_Body
+get_geo_data = HTTP.fetch geo_data_url
 
 ## A simple HTTP client for examples.
-http_client : Http
-http_client = Http.new (timeout = Duration.new seconds=30)
+http_client : HTTP
+http_client = HTTP.new (timeout = Duration.new seconds=30)
 
 ## A basic URI for examples.
 uri : URI
@@ -177,7 +174,7 @@ image_file =
     url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
     file = enso_project.data / "image.png"
     if file.exists.not then
-        Http.fetch url . to_file file
+        HTTP.fetch url . to_file file
     file
 
 ## A PNG image.
@@ -203,11 +200,11 @@ get_boolean : Boolean
 get_boolean = False
 
 ## A simple small piece of JSON that can easily be converted into a table.
-simple_table_json : Json
+simple_table_json : Text
 simple_table_json =
-    row_1 = Json.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
-    row_2 = Json.from_pairs [['bar', 'xyz'], ['baz', True]]
-    row_3 = Json.from_pairs [['baz', False], ['foo', 13]]
+    row_1 = JS_Object.from_pairs [['foo', 20], ['bar', 'baz'], ['baz', False]]
+    row_2 = JS_Object.from_pairs [['bar', 'xyz'], ['baz', True]]
+    row_3 = JS_Object.from_pairs [['baz', False], ['foo', 13]]
     [row_1, row_2, row_3].to_json
 
 ## The headers for the columns in the JSON table `simple_table_json`.
@@ -215,7 +212,7 @@ simple_table_json_headers : Vector Text
 simple_table_json_headers = ["foo", "bar", "baz"]
 
 ## Some simple GeoJSON.
-geo_json : Json
+geo_json : JS_Object
 geo_json = Json.parse <| '''
     {
       "type": "FeatureCollection",
@@ -234,41 +231,41 @@ geo_json = Json.parse <| '''
     }
 
 ## A small table column containing integers.
-integer_column : Column_Type
+integer_column : Column
 integer_column = Column.from_vector "Integer" [1, 4, 8, 2, 5]
 
 ## A small table column containing decimal numbers.
-decimal_column : Column_Type
+decimal_column : Column
 decimal_column = Column.from_vector "Decimal" [2.30, -2.1, Nothing, -10.1, 1.0]
 
 ## A small table column containing booleans.
-bool_column_1 : Column_Type
+bool_column_1 : Column
 bool_column_1 = Column.from_vector "Bools" [True, True, False, True, False]
 
 ## A small table column containing booleans.
-bool_column_2 : Column_Type
+bool_column_2 : Column
 bool_column_2 = Column.from_vector "Bools" [False, True, Nothing, True, True]
 
 ## A small table column containing text.
-text_column_1 : Column_Type
+text_column_1 : Column
 text_column_1 = Column.from_vector "Text" ["Hello,", "my", "name", "is", "Enso"]
 
 ## A small table column containing text.
-text_column_2 : Column_Type
+text_column_2 : Column
 text_column_2 = Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
 ## A simple table that contains basic shop inventory data for the food shop.
-inventory_table : Table_Type
+inventory_table : Table
 inventory_table = csv.read . set_index "item_id"
 
 ## A simple table that contains basic item popularity data for the food shop.
-popularity_table : Table_Type
+popularity_table : Table
 popularity_table =
     table = (enso_project.data / "food_shop_popularity.csv") . read
     table.set_index "item_id"
 
 ## A simple tablethat contains basic transaction data for the food shop.
-transactions_table : Table_Type
+transactions_table : Table
 transactions_table =
     (enso_project.data / "food_shop_transactions.csv") . read
 
@@ -277,4 +274,4 @@ match : Default_Engine_Match
 match =
     engine = Default_Engine.new
     pattern = engine.compile "(.. .. )(?<letters>.+)()??(?<empty>)??" []
-    pattern.match "aa ab abc a bc bcd" mode=Regex_Mode.First
+    pattern.match "aa ab abc a bc bcd" mode=Matching_Mode.First

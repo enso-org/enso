@@ -73,6 +73,12 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
+- [Added project snapshot saving on shortcut][3923]
+- [The color of the displayed project name indicates whether the project's
+  current state is saved in a snapshot.][3950] The project name is darker when
+  the project is changed from the last saved snapshot and lighter when the
+  snapshot matches the current project state.
+- [Added shortcut to interrupt the program][3967]
 
 #### EnsoGL (rendering engine)
 
@@ -96,6 +102,21 @@
   JavaScript DOM events][3863]. The events system implements very similar
   behavior to the one described here:
   https://javascript.info/bubbling-and-capturing.
+- [Added a new component: Slider][3852]. It allows adjusting a numeric value
+  with the mouse. The precision of these adjustments can be increased or
+  decreased.
+- [Slider component functionality improvements][3885]. The slider component now
+  supports multiple ways to handle out-of-range values. The slider's value can
+  be edited as text, and a new vertical slider layout is available.
+- [Added ProjectsGrid view for Cloud Dashboard][3857]. It provides the first
+  steps towards migrating the Cloud Dashboard from the existing React (web-only)
+  implementation towards a shared structure that can be used in both the Desktop
+  and Web versions of the IDE.
+- [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
+  suitable for single and multi-select scenarios.
+
+[3857]: https://github.com/enso-org/enso/pull/3857
+[3985]: https://github.com/enso-org/enso/pull/3985
 
 #### Enso Standard Library
 
@@ -242,6 +263,11 @@
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
+- [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
+- [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
+- [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
+  minor tweaks][3987]
+- [Enable Date, Time and DateTime to be read and written to Excel.][3997]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -384,7 +410,16 @@
 [3782]: https://github.com/enso-org/enso/pull/3782
 [3863]: https://github.com/enso-org/enso/pull/3863
 [3874]: https://github.com/enso-org/enso/pull/3874
+[3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
+[3885]: https://github.com/enso-org/enso/pull/3885
+[3919]: https://github.com/enso-org/enso/pull/3919
+[3923]: https://github.com/enso-org/enso/pull/3923
+[3950]: https://github.com/enso-org/enso/pull/3950
+[3964]: https://github.com/enso-org/enso/pull/3964
+[3967]: https://github.com/enso-org/enso/pull/3967
+[3987]: https://github.com/enso-org/enso/pull/3987
+[3997]: https://github.com/enso-org/enso/pull/3997
 
 #### Enso Compiler
 
@@ -444,11 +479,20 @@
 - [Accept Array-like object seamlessly in builtins][3817]
 - [Initialize Builtins at Native Image build time][3821]
 - [Split Atom suggestion entry to Type and Constructor][3835]
+- [Any number can be converted to double][3865]
 - [Update to GraalVM 22.3.0][3663]
 - [Connecting IGV 4 Enso with Engine sources][3810]
 - [Add the `Self` keyword referring to current type][3844]
 - [Support VCS for projects in Language Server][3851]
 - [Support multiple exports of the same module][3897]
+- [Import modules' extension methods only with unqualified imports][3906]
+- [Support expression evaluation in chromeinspector console][3941]
+- [Don't export polyglot symbols][3915]
+- [From/all import must not include module in name resolution][3931]
+- [Vector returns warnings of individual elements][3938]
+- [Enso.getMetaObject, Type.isMetaInstance and Meta.is_a consolidation][3949]
+- [Add executionContext/interrupt API command][3952]
+- [Simplify exception handling for polyglot exceptions][3981]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -511,11 +555,20 @@
 [3821]: https://github.com/enso-org/enso/pull/3821
 [3828]: https://github.com/enso-org/enso/pull/3828
 [3835]: https://github.com/enso-org/enso/pull/3835
+[3865]: https://github.com/enso-org/enso/pull/3865
 [3663]: https://github.com/enso-org/enso/pull/3663
 [3810]: https://github.com/enso-org/enso/pull/3810
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
 [3897]: https://github.com/enso-org/enso/pull/3897
+[3906]: https://github.com/enso-org/enso/pull/3906
+[3941]: https://github.com/enso-org/enso/pull/3941
+[3915]: https://github.com/enso-org/enso/pull/3915
+[3931]: https://github.com/enso-org/enso/pull/3931
+[3938]: https://github.com/enso-org/enso/pull/3938
+[3949]: https://github.com/enso-org/enso/pull/3949
+[3952]: https://github.com/enso-org/enso/pull/3952
+[3981]: https://github.com/enso-org/enso/pull/3981
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -1,5 +1,5 @@
-import project.Data.Any.Any
-import project.Data.Json.Json
+import project.Any.Any
+import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
@@ -14,18 +14,22 @@ import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Error.Common.Type_Error
+import project.Error.Error
+import project.Error.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
-import project.Warning
+import project.Panic.Panic
+import project.Warning.Warning
 
 from project.Data.Boolean import Boolean, True, False
-from project.Error.Common import Error, Panic, Time_Error, Time_Error_Data, Type_Error_Data
 
+polyglot java import java.lang.ArithmeticException
+polyglot java import java.lang.Exception as JException
+polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.format.DateTimeFormatter
 polyglot java import java.time.temporal.ChronoField
 polyglot java import java.time.temporal.IsoFields
-polyglot java import java.time.ZonedDateTime
-polyglot java import java.lang.ArithmeticException
 
 polyglot java import org.enso.base.Time_Utils
 
@@ -43,7 +47,7 @@ ensure_in_epoch date ~action =
     case Date_Time.enso_epoch_start <= datetime of
         True -> ret_value
         False ->
-            Warning.attach (Time_Error_Data ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
+            Warning.attach (Time_Error.Error ("Date time '" + datetime.to_text + "' start before Enso epoch")) ret_value
 
 ## PRIVATE
 
@@ -154,8 +158,8 @@ type Date_Time
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
     new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
-        Panic.catch_java Any (new_builtin year month day hour minute second total_nanoseconds zone) java_exception->
-            Error.throw (Time_Error_Data java_exception.getMessage)
+        Panic.catch JException (new_builtin year month day hour minute second total_nanoseconds zone) cause->
+            Error.throw (Time_Error.Error cause.payload.getMessage)
 
     ## ALIAS Time from Text
 
@@ -237,7 +241,7 @@ type Date_Time
                 Date_Time.parse "06 of May 2020 at 04:30AM" "dd 'of' MMMM yyyy 'at' hh:mma"
     parse : Text -> Text | Nothing -> Locale -> Date_Time ! Time_Error
     parse text pattern=Nothing locale=Locale.default =
-        Panic.catch_java Any handler=(java_exception -> Error.throw (Time_Error_Data java_exception.getMessage)) <|
+        Panic.catch JException handler=(cause -> Error.throw (Time_Error.Error cause.payload.getMessage)) <|
             case pattern of
                 Nothing -> parse_builtin text
                 _ : Text -> Time_Utils.parse_datetime_format text pattern locale.java_locale
@@ -509,7 +513,7 @@ type Date_Time
     + self amount =
         case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
+                Panic.catch ArithmeticException (self.plus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.PLUS period.internal_period
 
@@ -575,7 +579,7 @@ type Date_Time
     - self amount =
         result = case amount of
             duration : Duration ->
-                Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error_Data err.getMessage))
+                Panic.catch ArithmeticException (self.minus_builtin duration) (err -> Error.throw (Time_Error.Error err.getMessage))
             period : Period ->
                 Time_Utils.datetime_adjust self Time_Utils.AdjustOp.MINUS period.internal_period
         ensure_in_epoch result result
@@ -591,16 +595,17 @@ type Date_Time
     to_text : Text
     to_text self = @Builtin_Method "Date_Time.to_text"
 
-    ## Convert the time to JSON.
+    ## Convert to a JavaScript Object representing a Date_Time.
 
        > Example
-         Convert the current time to JSON.
+         Convert the current time to a JS_Object.
 
-             from Standard.Base import Date_Time
-
-             example_to_json = Date_Time.now.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Date_Time"], ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
+             example_to_json = Date_Time.now.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Date_Time"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["year", self.year], ["month", self.month], ["day", self.day], ["hour", self.hour], ["minute", self.minute], ["second", self.second], ["nanosecond", self.nanosecond], ["zone", self.zone]]
 
     ## Format this time as text using the specified format specifier.
 
@@ -695,7 +700,7 @@ type Date_Time
         _ : Date_Time ->
             sign = Time_Utils.compare_to_zoneddatetime self that
             Ordering.from_sign sign
-        _ -> Error.throw (Type_Error_Data Date_Time that "that")
+        _ -> Error.throw (Type_Error.Error Date_Time that "that")
 
     ## Compares two Date_Time for equality.
     == : Date_Time -> Boolean

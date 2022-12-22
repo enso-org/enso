@@ -28,14 +28,13 @@ type Update
     ## PRIVATE
 
        Generate JSON that can be consumed by the visualization.
-    to_json : Json
-    to_json self =
-        data = ['data', Json.from_pairs [['values', self.values]]]
-        axis = ['axis', Json.from_pairs [['x', Json.from_pairs [['label', self.label]]]]]
+    to_js_object : JS_Object
+    to_js_object self =
+        data = ['data', JS_Object.from_pairs [['values', self.values]]]
         ret_pairs = case self.label of
             Nothing -> [data]
-            _       -> [axis,data]
-        Json.from_pairs ret_pairs
+            _ -> [['axis', JS_Object.from_pairs [['x', JS_Object.from_pairs [['label', self.label]]]]], data]
+        JS_Object.from_pairs ret_pairs
 
 ## PRIVATE
 from_table : Table -> Update
@@ -69,5 +68,6 @@ from_value value =
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
 process_to_json_text value =
-    update = from_value value
-    update.to_json.to_text
+    ## Workaround so that the JS String is converted to a Text
+       https://www.pivotaltracker.com/story/show/184061302
+    "" + (from_value value . to_json)

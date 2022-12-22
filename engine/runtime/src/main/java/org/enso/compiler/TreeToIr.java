@@ -1,5 +1,7 @@
 package org.enso.compiler;
 
+import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.IR$Application$Literal$Sequence;
@@ -22,6 +24,7 @@ import org.enso.compiler.core.IR$Error$Syntax$EmptyParentheses$;
 import org.enso.compiler.core.IR$Error$Syntax$InvalidImport$;
 import org.enso.compiler.core.IR$Error$Syntax$Reason;
 import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
+import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.compiler.core.IR$Expression$Binding;
 import org.enso.compiler.core.IR$Expression$Block;
 import org.enso.compiler.core.IR$Foreign$Definition;
@@ -75,6 +78,8 @@ import scala.jdk.javaapi.CollectionConverters;
 
 final class TreeToIr {
   static final TreeToIr MODULE = new TreeToIr();
+  static final String SKIP_MACRO_IDENTIFIER = "SKIP";
+  static final String FREEZE_MACRO_IDENTIFIER = "FREEZE";
 
   private TreeToIr() {
   }
@@ -87,6 +92,76 @@ final class TreeToIr {
     */
   IR.Module translate(Tree ast) {
     return translateModule(ast);
+  }
+
+  /**
+   * Translates an inline program expression represented in the parser {@link Tree}
+   * to the compiler's {@link IR} representation.
+   *
+   * Inline expressions must <b>only</b> be expressions, and may not contain any
+   * type of definition.
+   *
+   * @param ast The tree representing the expression to translate.
+   * @return The {@link IR} representation of the given ast if it is valid, otherwise
+   *  {@link Option#empty()}.
+   */
+  Option<IR.Expression> translateInline(Tree ast) {
+    return switch(ast) {
+      case Tree.BodyBlock b -> {
+        List<IR.Expression> expressions = nil();
+        java.util.List<IR.IdentifiedLocation> locations = new ArrayList<>();
+        for (Line statement : b.getStatements()) {
+          Tree exprTree = statement.getExpression();
+          IR.Expression expr = switch (exprTree) {
+            case Tree.Export x -> null;
+            case Tree.Import x -> null;
+            case Tree.Invalid x -> null;
+            case null -> null;
+            default -> translateExpression(exprTree);
+          };
+          if (expr != null) {
+            expressions = cons(expr, expressions);
+            if (expr.location().isDefined()) {
+              locations.add(expr.location().get());
+            }
+          }
+        }
+        if (expressions.size() == 0) {
+          yield Option.empty();
+        } else if (expressions.size() == 1) {
+          yield Option.apply(expressions.apply(0));
+        } else {
+          Option<IdentifiedLocation> combinedLocation;
+          if (locations.isEmpty()) {
+            combinedLocation = Option.empty();
+          } else {
+            combinedLocation = Option.apply(
+                new IdentifiedLocation(
+                    new Location(
+                      locations.get(1).start(),
+                      locations.get(locations.size() - 1).end()
+                    ),
+                    Option.empty()
+                )
+            );
+          }
+
+          yield Option.apply(
+              new IR$Expression$Block(
+                  expressions,
+                  expressions.last(),
+                  combinedLocation,
+                  false,
+                  meta(),
+                  diag()
+              )
+          );
+        }
+      }
+      default -> {
+        throw new IllegalStateException();
+      }
+    };
   }
 
   /** Translate a top-level Enso module into [[IR]].
@@ -168,7 +243,8 @@ final class TreeToIr {
         var body = translateExpression(fn.getBody());
 
         if (body == null) {
-            throw new NullPointerException();
+            var error = translateSyntaxError(inputAst, new IR$Error$Syntax$UnsupportedSyntax("Block without body"));
+            yield cons(error, appendTo);
         }
         var binding = new IR$Module$Scope$Definition$Method$Binding(
           methodRef,
@@ -563,6 +639,9 @@ final class TreeToIr {
           case "->" -> {
             // Old-style lambdas; this syntax will be eliminated after the parser transition is complete.
             var arg = app.getLhs();
+            if (arg == null) {
+              yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+            }
             var isSuspended = new boolean[1];
             if (arg instanceof Tree.UnaryOprApp susApp && "~".equals(susApp.getOpr().codeRepr())) {
                 arg = susApp.getRhs();
@@ -651,7 +730,15 @@ final class TreeToIr {
 
           sep = "_";
         }
-        var fn = new IR$Name$Literal(fnName.toString(), true, Option.empty(), meta(), diag());
+        var fullName = fnName.toString();
+        if (fullName.equals(FREEZE_MACRO_IDENTIFIER)) {
+          yield translateExpression(app.getSegments().get(0).getBody(), false);
+        } else if (fullName.equals(SKIP_MACRO_IDENTIFIER)) {
+          var body = app.getSegments().get(0).getBody();
+          var subexpression = Objects.requireNonNullElse(applySkip(body), body);
+          yield translateExpression(subexpression, false);
+        }
+        var fn = new IR$Name$Literal(fullName, true, Option.empty(), meta(), diag());
         checkArgs(args);
         yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
@@ -840,10 +927,76 @@ final class TreeToIr {
     };
   }
 
+  Tree applySkip(Tree tree) {
+    // Termination:
+    // Every iteration either breaks, or reduces [`tree`] to a substructure of [`tree`].
+    var done = false;
+    while (!done && tree != null) {
+      tree = switch (tree) {
+        case Tree.MultiSegmentApp app
+                when FREEZE_MACRO_IDENTIFIER.equals(app.getSegments().get(0).getHeader().codeRepr()) ->
+                app.getSegments().get(0).getBody();
+        case Tree.Invalid ignored -> null;
+        case Tree.BodyBlock ignored -> null;
+        case Tree.Number ignored -> null;
+        case Tree.Wildcard ignored -> null;
+        case Tree.AutoScope ignored -> null;
+        case Tree.ForeignFunction ignored -> null;
+        case Tree.Import ignored -> null;
+        case Tree.Export ignored -> null;
+        case Tree.TypeDef ignored -> null;
+        case Tree.TypeSignature ignored -> null;
+        case Tree.ArgumentBlockApplication app -> app.getLhs();
+        case Tree.OperatorBlockApplication app -> app.getLhs();
+        case Tree.OprApp app -> app.getLhs();
+        case Tree.Ident ident when ident.getToken().isTypeOrConstructor() -> null;
+        case Tree.Ident ignored -> {
+          done = true;
+          yield tree;
+        }
+        case Tree.Group ignored -> {
+          done = true;
+          yield tree;
+        }
+        case Tree.UnaryOprApp app -> app.getRhs();
+        case Tree.OprSectionBoundary section -> section.getAst();
+        case Tree.TemplateFunction function -> function.getAst();
+        case Tree.Annotated annotated -> annotated.getExpression();
+        case Tree.Documented documented -> documented.getExpression();
+        case Tree.Assignment assignment -> assignment.getExpr();
+        case Tree.TypeAnnotated annotated -> annotated.getExpression();
+        case Tree.DefaultApp app -> app.getFunc();
+        case Tree.App app when isApplication(app.getFunc()) -> app.getFunc();
+        case Tree.NamedApp app when isApplication(app.getFunc()) -> app.getFunc();
+        case Tree.App app -> Objects.requireNonNullElse(applySkip(app.getFunc()), app.getArg());
+        case Tree.NamedApp app -> Objects.requireNonNullElse(applySkip(app.getFunc()), app.getArg());
+        case Tree.MultiSegmentApp ignored -> null;
+        case Tree.TextLiteral ignored -> null;
+        case Tree.Function ignored -> null;
+        case Tree.Lambda ignored -> null;
+        case Tree.CaseOf ignored -> null;
+        case Tree.Array ignored -> null;
+        case Tree.Tuple ignored -> null;
+        default -> null;
+      };
+    }
+    return tree;
+  }
+
+  boolean isApplication(Tree tree) {
+    return switch (tree) {
+      case Tree.App ignored -> true;
+      case Tree.NamedApp ignored -> true;
+      case Tree.DefaultApp ignored -> true;
+      default -> false;
+    };
+  }
+
   // The `insideTypeAscription` argument replicates an AstToIr quirk. Once the parser
   // transition is complete, we should eliminate it, keeping only the `false` branches.
   IR.Expression translateType(Tree tree, boolean insideTypeAscription) {
     return switch (tree) {
+      case null -> null;
       case Tree.App app -> translateTypeApplication(app);
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
@@ -855,6 +1008,9 @@ final class TreeToIr {
           case "->" -> {
             var literal = translateType(app.getLhs(), insideTypeAscription);
             var body = translateType(app.getRhs(), insideTypeAscription);
+            if (body == null) {
+              yield new IR$Error$Syntax(getIdentifiedLocation(app).get(), IR$Error$Syntax$UnexpectedExpression$.MODULE$, meta(), diag());
+            }
             var args = switch (body) {
               case IR$Type$Function fn -> {
                 body = fn.result();
@@ -935,6 +1091,10 @@ final class TreeToIr {
         var fnAsArg = translateCallArgument(fn.getArg());
         yield translateAnnotation(ir, fn.getFunc(), cons(fnAsArg, callArgs));
       }
+      case Tree.NamedApp fn -> {
+        var fnAsArg = translateCallArgument(fn);
+        yield translateAnnotation(ir, fn.getFunc(), cons(fnAsArg, callArgs));
+      }
       case Tree.ArgumentBlockApplication fn -> {
         var fnAsArg = translateCallArgument(fn.getLhs());
         var arg = translateCallArgument(expr);
@@ -1006,6 +1166,7 @@ final class TreeToIr {
             sb.appendCodePoint(val);
           }
         }
+        case TextElement.Newline n -> sb.append('\n');
         default -> throw new UnhandledEntity(t, "buildTextConstant");
       }
     }
@@ -1131,6 +1292,18 @@ final class TreeToIr {
         new IR$Pattern$Literal(translateLiteral(lit), getIdentifiedLocation(lit), meta(), diag());
       case Tree.Number num ->
         new IR$Pattern$Literal((IR.Literal) translateNumber(num), getIdentifiedLocation(num), meta(), diag());
+      case Tree.UnaryOprApp num when num.getOpr().codeRepr().equals("-") -> {
+        var n = (IR$Literal$Number) translateExpression(num.getRhs());
+        var t = n.copy(
+          n.copy$default$1(),
+          "-" + n.copy$default$2(),
+          n.copy$default$3(),
+          n.copy$default$4(),
+          n.copy$default$5(),
+          n.copy$default$6()
+        );
+        yield new IR$Pattern$Literal(t, getIdentifiedLocation(num), meta(), diag());
+      }
       case Tree.TypeAnnotated anno -> {
         var type = buildNameOrQualifiedName(maybeManyParensed(anno.getType()));
         var expr = buildNameOrQualifiedName(maybeManyParensed(anno.getExpression()));

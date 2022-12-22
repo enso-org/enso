@@ -57,6 +57,10 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+
+
+extern crate core;
+
 use prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -79,12 +83,15 @@ pub mod test;
 pub mod transport;
 
 pub use crate::ide::*;
+pub use engine_protocol;
 pub use ide_view as view;
 
 
 
 #[cfg(test)]
 mod tests;
+
+mod documentation_debug_scene;
 
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {

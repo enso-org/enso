@@ -8,11 +8,12 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
-ensogl-selector = { path = "../../component/selector" }
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+ensogl-slider = { path = "../../component/slider" }
+wasm-bindgen = { workspace = true }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
 [package.metadata.wasm-pack.profile.release]

@@ -5,8 +5,8 @@
 
 use crate::prelude::*;
 
-use crate::display::object::class::Instance;
-use crate::display::object::class::WeakInstance;
+use crate::display::object::instance::Instance;
+use crate::display::object::instance::WeakInstance;
 
 
 
@@ -47,8 +47,8 @@ pub struct SomeEvent {
 
 impl SomeEvent {
     /// Constructor.
-    pub fn new<Host: 'static, T: 'static>(target: Option<&Instance<Host>>, payload: T) -> Self {
-        let event = Event::new(target.map(|t| t.downgrade()), payload);
+    pub fn new<T: 'static>(target: Option<WeakInstance>, payload: T) -> Self {
+        let event = Event::new(target, payload);
         let state = event.state.clone_ref();
         let captures = Rc::new(Cell::new(true));
         let bubbles = Rc::new(Cell::new(true));
@@ -68,7 +68,7 @@ impl SomeEvent {
 
 impl Default for SomeEvent {
     fn default() -> Self {
-        Self::new::<(), ()>(None, ())
+        Self::new::<()>(None, ())
     }
 }
 
@@ -93,23 +93,23 @@ impl Default for SomeEvent {
 #[derivative(Clone(bound = ""))]
 #[derivative(Debug(bound = "T: Debug"))]
 #[derivative(Default(bound = "T: Default"))]
-pub struct Event<Host: 'static, T> {
-    data: Rc<EventData<Host, T>>,
+pub struct Event<T> {
+    data: Rc<EventData<T>>,
 }
 
 /// Internal representation of [`Event`].
 #[derive(Deref, Derivative)]
 #[derivative(Debug(bound = "T: Debug"))]
 #[derivative(Default(bound = "T: Default"))]
-pub struct EventData<Host: 'static, T> {
+pub struct EventData<T> {
     #[deref]
     payload: T,
-    target:  Option<WeakInstance<Host>>,
+    target:  Option<WeakInstance>,
     state:   Rc<Cell<State>>,
 }
 
-impl<Host, T> Event<Host, T> {
-    fn new(target: Option<WeakInstance<Host>>, payload: T) -> Self {
+impl<T> Event<T> {
+    fn new(target: Option<WeakInstance>, payload: T) -> Self {
         let state = default();
         let data = Rc::new(EventData { payload, target, state });
         Self { data }
@@ -130,7 +130,7 @@ impl<Host, T> Event<Host, T> {
     /// A reference to the object onto which the event was dispatched.
     ///
     /// See: https://developer.mozilla.org/en-US/docs/Web/API/Event/target.
-    pub fn target(&self) -> Option<Instance<Host>> {
+    pub fn target(&self) -> Option<Instance> {
         self.data.target.as_ref().and_then(|t| t.upgrade())
     }
 }

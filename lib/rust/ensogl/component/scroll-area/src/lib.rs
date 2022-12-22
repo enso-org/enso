@@ -24,7 +24,6 @@ use enso_frp as frp;
 use ensogl_core::application::Application;
 use ensogl_core::control::io::mouse;
 use ensogl_core::display;
-use ensogl_core::display::camera::Camera2d;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::scene::layer;
 use ensogl_core::display::shape;
@@ -199,14 +198,14 @@ struct Model {
 
 impl Model {
     fn resize(&self, size: Vector2) {
-        self.h_scrollbar.set_position_y(-size.y + scrollbar::WIDTH / 2.0);
+        self.h_scrollbar.set_y(-size.y + scrollbar::WIDTH / 2.0);
         let scrollbar_y = size.x - scrollbar::WIDTH / 2.0 + scrollbar::PADDING / 2.0 + 1.0;
-        self.v_scrollbar.set_position_x(scrollbar_y);
-        self.h_scrollbar.set_position_x(size.x / 2.0);
-        self.v_scrollbar.set_position_y(-size.y / 2.0);
-        self.mask.size.set(size);
-        self.mask.set_position_x(size.x / 2.0);
-        self.mask.set_position_y(-size.y / 2.0);
+        self.v_scrollbar.set_x(scrollbar_y);
+        self.h_scrollbar.set_x(size.x / 2.0);
+        self.v_scrollbar.set_y(-size.y / 2.0);
+        self.mask.set_size(size);
+        self.mask.set_x(size.x / 2.0);
+        self.mask.set_y(-size.y / 2.0);
     }
 }
 
@@ -335,8 +334,8 @@ impl ScrollArea {
             frp.source.scroll_position_target_x <+ model.h_scrollbar.thumb_position_target.map(|x| -x);
             frp.source.scroll_position_target_y <+ model.v_scrollbar.thumb_position_target;
 
-            eval frp.scroll_position_x((&pos) model.content.set_position_x(pos));
-            eval frp.scroll_position_y((&pos) model.content.set_position_y(pos));
+            eval frp.scroll_position_x((&pos) model.content.set_x(pos));
+            eval frp.scroll_position_y((&pos) model.content.set_y(pos));
 
             scroll_position <- all(&frp.scroll_position_x, &frp.scroll_position_y);
             scroll_position <- scroll_position.map(|(x,y)| Vector2::new(*x,*y));
@@ -403,16 +402,6 @@ impl ScrollArea {
     pub fn mask_layer(&self) -> &layer::Layer {
         &self.model.display_object.layer.mask_layer
     }
-
-    /// Set camera in the every layer handled by this Scroll Area.
-    pub fn set_camera(&self, camera: impl Into<Camera2d>) {
-        let camera = camera.into();
-        self.model.display_object.layer.masked_layer.set_camera(camera.clone_ref());
-        self.model.display_object.layer.mask_layer.set_camera(camera.clone_ref());
-        self.model.ui_layer.set_camera(camera.clone_ref());
-        self.model.content_layer.set_camera(camera.clone_ref());
-    }
-
 
     /// Return whether some object with the given position and size is visible in the scoll area.
     pub fn is_visible(&self, pos: Vector2, size: Vector2) -> bool {

@@ -1,0 +1,71 @@
+import project.Data.Numbers.Integer
+import project.Data.Text.Text
+import project.System.File.File
+
+from project.Data.Boolean import Boolean, True, False
+
+## ADVANCED
+   UNSTABLE
+   Represents a source location in Enso code. Contains information about the
+   source file and code position within it.
+type Source_Location
+    ## PRIVATE
+    Value prim_location
+
+    ## UNSTABLE
+       Pretty prints the location.
+    to_text : Text
+    to_text self =
+        '(Source_Location ' + self.formatted_coordinates + ')'
+
+    ## UNSTABLE
+
+       Returns the 1-based line index of the start of this code range.
+    start_line : Integer
+    start_line self = self.prim_location.getStartLine
+
+    ## UNSTABLE
+
+       Returns the 1-based line index of the end of this code range.
+    end_line : Integer
+    end_line self = self.prim_location.getEndLine
+
+    ## UNSTABLE
+
+       Returns the 1-based column index of the start of this code range.
+    start_column : Integer
+    start_column self = self.prim_location.getStartColumn
+
+    ## UNSTABLE
+
+       Returns the 1-based column index of the end of this code range.
+    end_column : Integer
+    end_column self = self.prim_location.getEndColumn
+
+    ## UNSTABLE
+
+       Returns a pretty-printed location (file and line info).
+    formatted_coordinates : Text
+    formatted_coordinates self =
+        start_line = self.start_line
+        end_line = self.end_line
+        indices = case start_line == end_line of
+            True ->
+                row = start_line.to_text
+                start = self.start_column.to_text
+                end = self.end_column.to_text
+                row + ":" + start + "-" + end
+            False ->
+                start_line.to_text + '-' + end_line.to_text
+        cwd = File.current_directory
+        file = self.file.absolute
+        formatted_file = case file.is_child_of cwd of
+            True -> cwd.relativize file . path
+            _ -> file.path
+        formatted_file + ":" + indices
+
+    ## UNSTABLE
+
+       Return the source file corresponding to this location.
+    file : File
+    file self = File.new self.prim_location.getSource.getPath

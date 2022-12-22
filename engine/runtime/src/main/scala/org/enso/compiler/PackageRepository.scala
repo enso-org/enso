@@ -9,7 +9,7 @@ import org.enso.editions.{DefaultEdition, Editions, LibraryName, LibraryVersion}
 import org.enso.interpreter.instrument.NotificationHandler
 import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.util.TruffleFileSystem
-import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.interpreter.runtime.{EnsoContext, Module}
 import org.enso.librarymanager.resolved.LibraryRoot
 import org.enso.librarymanager.{
   DefaultLibraryProvider,
@@ -159,7 +159,7 @@ object PackageRepository {
     */
   class Default(
     libraryProvider: ResolvingLibraryProvider,
-    context: Context,
+    context: EnsoContext,
     builtins: Builtins,
     notificationHandler: NotificationHandler
   ) extends PackageRepository {
@@ -655,7 +655,7 @@ object PackageRepository {
     editionOverride: Option[String],
     distributionManager: DistributionManager,
     resourceManager: ResourceManager,
-    context: Context,
+    context: EnsoContext,
     builtins: Builtins,
     notificationHandler: NotificationHandler
   ): PackageRepository = {

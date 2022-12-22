@@ -126,24 +126,24 @@ impl Borders {
                 }
             });
             eval area.height ([borders](h) {
-                borders.right.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
-                borders.left.size.set(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
-                borders.right.set_position_y(-h/2.0);
-                borders.left.set_position_y(-h/2.0);
+                borders.right.set_size(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
+                borders.left.set_size(Vector2(BORDER_WIDTH + BORDER_PADDING * 2.0, *h));
+                borders.right.set_y(-h/2.0);
+                borders.left.set_y(-h/2.0);
 
                 borders.bottom_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.bottom.color_rgba.set(RED);
-                borders.bottom.set_position_y(-*h);
+                borders.bottom.set_y(-*h);
             });
             eval area.width ([borders](w) {
-                borders.top.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
-                borders.bottom.size.set(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
-                borders.top.set_position_x(w/2.0);
-                borders.bottom.set_position_x(w/2.0);
+                borders.top.set_size(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
+                borders.bottom.set_size(Vector2(*w, BORDER_WIDTH + BORDER_PADDING * 2.0));
+                borders.top.set_x(w/2.0);
+                borders.bottom.set_x(w/2.0);
 
                 borders.right_changed_frame_hold.set(DEBUG_FRAME_HOLD);
                 borders.right.color_rgba.set(RED);
-                borders.right.set_position_x(*w);
+                borders.right.set_x(*w);
             });
         }
         mem::forget(frp);
@@ -212,8 +212,8 @@ fn init(app: Application) {
     let scene = scene.clone_ref();
     let handler = app.display.on.before_frame.add(move |_time| {
         let shape = scene.dom.shape();
-        div.set_style_or_warn("left", &format!("{}px", shape.width / 2.0));
-        div.set_style_or_warn("top", &format!("{}px", shape.height / 2.0 - 0.5));
+        div.set_style_or_warn("left", format!("{}px", shape.width / 2.0));
+        div.set_style_or_warn("top", format!("{}px", shape.height / 2.0 - 0.5));
     });
 
     mem::forget(handler);
@@ -315,7 +315,10 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                     if event.shift_key() {
                         area.set_property_default(formatting::Size(16.0));
                     } else {
-                        area.mod_property(buffer::RangeLike::Selections, formatting::SizeDiff(2.0));
+                        area.mod_property(
+                            buffer::RangeLike::Selections,
+                            formatting::FontSizeDiff(2.0),
+                        );
                     }
                 } else if key == "Minus" {
                     if event.shift_key() {
@@ -323,7 +326,7 @@ fn init_debug_hotkeys(scene: &Scene, area: &Rc<RefCell<Option<Text>>>, div: &web
                     } else {
                         area.mod_property(
                             buffer::RangeLike::Selections,
-                            formatting::SizeDiff(-2.0),
+                            formatting::FontSizeDiff(-2.0),
                         );
                     }
                 } else if key == "ArrowUp" {

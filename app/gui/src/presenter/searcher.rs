@@ -59,7 +59,7 @@ fn title_for_docs(suggestion: &model::suggestion_database::Entry) -> String {
         Kind::Local => format!("Node {}", suggestion.name),
         Kind::Method => {
             let preposition = if suggestion.self_type.is_some() { " of " } else { "" };
-            let self_type = suggestion.self_type.as_ref().map_or("", |tp| &tp.name);
+            let self_type = suggestion.self_type.as_ref().map_or("", |tp| tp.name());
             format!("Method {}{}{}", suggestion.name, preposition, self_type)
         }
         Kind::Module => format!("Module {}", suggestion.name),
@@ -342,11 +342,7 @@ impl Searcher {
         let graph = &model.view.graph().frp;
 
         frp::extend! { network
-            eval graph.node_expression_set ([model]((changed_node, expr)) {
-                if *changed_node == input_view {
-                    model.input_changed(expr);
-                }
-            });
+            eval model.view.searcher_input_changed ((expr) model.input_changed(expr));
 
             action_list_changed <- source::<()>();
             select_entry <- action_list_changed.filter(f_!(model.should_auto_select_first_action()));

@@ -62,7 +62,7 @@ mod background {
             let width              = Var::<Pixels>::from("input_size.x");
             let height             = Var::<Pixels>::from("input_size.y");
             let radius             = node::RADIUS.px() ;
-            let background_rounded = Rect((&width,&height)).corners_radius(&radius);
+            let background_rounded = Rect((&width,&height)).corners_radius(radius);
             let background_sharp   = Rect((&width,&height/2.0)).translate_y(-&height/4.0);
             let background         = background_rounded + background_sharp;
             let color_path         = theme::graph_editor::visualization::action_bar::background;
@@ -181,8 +181,8 @@ impl Icons {
     fn place_shape_in_slot<S: Shape>(&self, view: &ShapeView<S>, index: usize) {
         let icon_size = self.icon_size();
         let index = index as f32;
-        view.mod_position(|p| p.x = index * icon_size.x + node::CORNER_RADIUS);
-        view.size.set(icon_size)
+        view.set_x(index * icon_size.x + node::CORNER_RADIUS);
+        view.set_size(icon_size);
     }
 
     fn icon_size(&self) -> Vector2 {
@@ -196,9 +196,9 @@ impl Icons {
         self
     }
 
-    fn set_size(&self, size: Vector2) {
-        self.size.set(size);
-        self.icon_root.set_position_x(-size.x / 2.0);
+    fn update_size(&self, size: Vector2) {
+        self.display_object().set_size(size);
+        self.icon_root.set_x(-size.x / 2.0);
         self.place_shape_in_slot(&self.drag_icon, 0);
         self.place_shape_in_slot(&self.reset_position_icon, 1);
     }
@@ -288,17 +288,17 @@ impl Model {
     }
 
     fn set_size(&self, size: Vector2) {
-        self.size.set(size);
-        self.hover_area.size.set(size);
-        self.background.size.set(size);
-        self.icons.set_size(size);
+        self.display_object().set_size(size);
+        self.hover_area.set_size(size);
+        self.background.set_size(size);
+        self.icons.update_size(size);
 
         let height = size.y;
         let width = size.x;
         let right_padding = height / 2.0;
         self.visualization_chooser.frp.set_icon_size(Vector2::new(height, height));
         self.visualization_chooser.frp.set_icon_padding(Vector2::new(height / 3.0, height / 3.0));
-        self.visualization_chooser.set_position_x((width / 2.0) - right_padding);
+        self.visualization_chooser.set_x((width / 2.0) - right_padding);
         self.visualization_chooser.frp.set_menu_offset_y(MENU_GAP);
     }
 

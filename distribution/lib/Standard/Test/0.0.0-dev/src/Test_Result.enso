@@ -17,8 +17,20 @@ type Test_Result
        - reason: Text describing why the test is pending.
     Pending reason
 
+    ## Checks if the Test_Result is pending.
+    is_pending : Boolean
+    is_pending self = case self of
+        Test_Result.Pending _ -> True
+        _ -> False
+
     ## Checks if the Test_Result is a failure.
     is_fail : Boolean
     is_fail self = case self of
         Test_Result.Failure _ _ -> True
+        _ -> False
+
+    ## Checks if the Test_Result is a success.
+    is_success : Boolean
+    is_success self = case self of
+        Test_Result.Success -> True
         _ -> False

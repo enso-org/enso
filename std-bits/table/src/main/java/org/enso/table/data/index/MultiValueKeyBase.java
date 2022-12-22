@@ -1,6 +1,10 @@
 package org.enso.table.data.index;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** The base class for keys used for sorting/grouping rows by a set of columns. */
 public abstract class MultiValueKeyBase {
@@ -28,8 +32,8 @@ public abstract class MultiValueKeyBase {
 
   /** Checks if all cells in the current row are missing. */
   public boolean areAllNull() {
-    for (Storage<?> value : storages) {
-      if (!value.isNa(rowIndex)) {
+    for (Storage<?> storage : storages) {
+      if (!storage.isNa(rowIndex)) {
         return false;
       }
     }
@@ -49,17 +53,28 @@ public abstract class MultiValueKeyBase {
     return hasFloatValues;
   }
 
-  protected boolean isFloatingPoint(Object value) {
-    return value instanceof Double || value instanceof Float;
-  }
-
   private boolean findFloats() {
     for (int i = 0; i < storages.length; i++) {
       Object value = this.get(i);
-      if (isFloatingPoint(value)) {
+      if (NumericConverter.isDecimalLike(value)) {
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * Finds which columns contain a float value at this index position and returns their positions in
+   * this index.
+   */
+  public List<Integer> floatColumnPositions() {
+    List<Integer> result = new ArrayList<>();
+    for (int i = 0; i < storages.length; i++) {
+      Object value = this.get(i);
+      if (NumericConverter.isDecimalLike(value)) {
+        result.add(i);
+      }
+    }
+    return result;
   }
 }

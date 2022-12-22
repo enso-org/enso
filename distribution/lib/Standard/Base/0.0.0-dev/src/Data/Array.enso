@@ -1,14 +1,15 @@
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
+import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Common.Panic
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, False
-from project.Data.Range import all
 
 ## The type of primitive mutable arrays.
 @Builtin_Type
@@ -121,7 +122,7 @@ type Array
          Get the last element of an array.
 
              [1,2,3].to_array.at -1
-    at : Integer -> Any ! Index_Out_Of_Bounds_Error
+    at : Integer -> Any ! Index_Out_Of_Bounds
     at self index = @Builtin_Method "Array.at"
 
     ## Gets the length of the array this.
@@ -166,22 +167,5 @@ type Array
     == self that =
         if Meta.is_same_object Array self then Meta.is_same_object Array that else
             eq_at i = self.at i == that.at i
-            Panic.catch_primitive handler=(_ -> False)
+            Panic.catch Any handler=(_ -> False)
                 if self.length == that.length then 0.up_to self.length . all eq_at else False
-
-    ## UNSTABLE
-       ADVANCED
-
-       Returns a Text used to display this value in the IDE.
-
-       The particular representation is left unspecified and subject to change in
-       the future. The current implementation uses JSON serialization as the
-       default.
-
-       > Example
-         Converting an array to its default visualization representation.
-
-             [1, 2, 3, 4].to_array.to_default_visualization_data
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        Vector.from_polyglot_array self . to_default_visualization_data

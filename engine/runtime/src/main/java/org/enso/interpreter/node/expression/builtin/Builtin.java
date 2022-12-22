@@ -1,7 +1,7 @@
 package org.enso.interpreter.node.expression.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.Type;
@@ -50,7 +50,7 @@ public abstract class Builtin {
     return List.of();
   }
 
-  public final void initialize(Language language, ModuleScope scope, Map<Class<? extends Builtin>, Builtin> builtins) {
+  public final void initialize(EnsoLanguage language, ModuleScope scope, Map<Class<? extends Builtin>, Builtin> builtins) {
     if (type == null) {
       Type supertype = null;
       if (getSuperType() != null) {
@@ -58,9 +58,9 @@ public abstract class Builtin {
         s.initialize(language, scope, builtins);
         supertype = s.getType();
       }
-      type = getDeclaredConstructors().size() == 0 ?
-          Type.createSingleton(name, scope, supertype, true) :
-          Type.create(name, scope, supertype, builtins.get(Any.class).getType(), true);
+      type = containsValues() ?
+          Type.create(name, scope, supertype, builtins.get(Any.class).getType(), true) :
+          Type.createSingleton(name, scope, supertype, true);
     }
     if (constructors == null) {
       var conses = getDeclaredConstructors();
@@ -73,6 +73,10 @@ public abstract class Builtin {
     }
     type.generateGetters(language);
     postInitialize();
+  }
+
+  protected boolean containsValues() {
+    return getDeclaredConstructors().size() > 0;
   }
 
   protected void postInitialize() {}

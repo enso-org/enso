@@ -44,9 +44,9 @@ class InteropTest extends InterpreterTest {
 
     "work with oversaturated calls on unresolved methods returned from functions" in {
       val code =
-        """from Standard.Base.Data.Any import all
+        """import Standard.Base.Any.Any
           |
-          |Any.Any.method self = self
+          |Any.method self = self
           |
           |main = x -> .method
           |""".stripMargin
@@ -61,7 +61,7 @@ class InteropTest extends InterpreterTest {
           |from Standard.Base.Data.Text import all
           |
           |Number.add self x = x + self
-          |Text.Text.add self x = self + x
+          |Text.add self x = self + x
           |
           |main = .add
           |""".stripMargin

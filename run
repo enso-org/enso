@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e # Exit on error.
 
 # Get the directory of the script, as per https://stackoverflow.com/a/246128

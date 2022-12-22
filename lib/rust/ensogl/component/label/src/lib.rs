@@ -47,7 +47,7 @@ mod background {
             let width      = width  - padding.px() * 2.0;
             let height     = height - padding.px() * 2.0;
             let radius     = &height / 2.0;
-            let base_shape = Rect((&width,&height)).corners_radius(&radius);
+            let base_shape = Rect((&width,&height)).corners_radius(radius);
             let shape      = base_shape.fill(Var::<color::Rgba>::from(bg_color.clone()));
             let alpha      = Var::<f32>::from(format!("({0}.w)",bg_color));
             let shadow     = shadow::from_shape_with_alpha(base_shape.into(),&alpha,style);
@@ -133,9 +133,9 @@ impl Model {
         let height = self.height();
         let size = Vector2(width, height);
         let padded_size = size + padding * 2.0;
-        self.background.size.set(padded_size);
+        self.background.set_size(padded_size);
         let text_origin = Vector2(text_offset - size.x / 2.0, text_size / 2.0);
-        self.label.set_position_xy(text_origin);
+        self.label.set_xy(text_origin);
         padded_size
     }
 

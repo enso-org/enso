@@ -15,8 +15,8 @@ import java.io.File;
 import java.util.Collection;
 import java.util.Optional;
 import org.enso.compiler.PackageRepository;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.EnsoLanguage;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Array;
@@ -131,14 +131,15 @@ public final class TopLevelScope implements TruffleObject {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
+    private static Module createModule(TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
       return Module.empty(QualifiedName.simpleName(moduleName), null, context);
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)
+    private static Module registerModule(
+        TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       Types.Pair<String, String> args =
           Types.extractArguments(arguments, String.class, String.class);
@@ -150,19 +151,20 @@ public final class TopLevelScope implements TruffleObject {
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static Object unregisterModule(TopLevelScope scope, Object[] arguments, Context context)
+    private static Object unregisterModule(
+        TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(arguments, String.class);
       scope.packageRepository.deregisterModule(name);
       return context.getNothing();
     }
 
-    private static Object leakContext(Context context) {
+    private static Object leakContext(EnsoContext context) {
       return context.getEnvironment().asGuestValue(context);
     }
 
     @CompilerDirectives.TruffleBoundary
-    private static Object compile(Object[] arguments, Context context)
+    private static Object compile(Object[] arguments, EnsoContext context)
         throws UnsupportedTypeException, ArityException {
       boolean shouldCompileDependencies = Types.extractArguments(arguments, Boolean.class);
       context.getCompiler().compile(shouldCompileDependencies);
@@ -177,15 +179,15 @@ public final class TopLevelScope implements TruffleObject {
         case MethodNames.TopScope.GET_MODULE:
           return getModule(scope, arguments);
         case MethodNames.TopScope.CREATE_MODULE:
-          return createModule(scope, arguments, Context.get(null));
+          return createModule(scope, arguments, EnsoContext.get(null));
         case MethodNames.TopScope.REGISTER_MODULE:
-          return registerModule(scope, arguments, Context.get(null));
+          return registerModule(scope, arguments, EnsoContext.get(null));
         case MethodNames.TopScope.UNREGISTER_MODULE:
-          return unregisterModule(scope, arguments, Context.get(null));
+          return unregisterModule(scope, arguments, EnsoContext.get(null));
         case MethodNames.TopScope.LEAK_CONTEXT:
-          return leakContext(Context.get(null));
+          return leakContext(EnsoContext.get(null));
         case MethodNames.TopScope.COMPILE:
-          return compile(arguments, Context.get(null));
+          return compile(arguments, EnsoContext.get(null));
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -254,8 +256,8 @@ public final class TopLevelScope implements TruffleObject {
    * @return the language with which this value is associated
    */
   @ExportMessage
-  final Class<Language> getLanguage() {
-    return Language.class;
+  final Class<EnsoLanguage> getLanguage() {
+    return EnsoLanguage.class;
   }
 
   /**

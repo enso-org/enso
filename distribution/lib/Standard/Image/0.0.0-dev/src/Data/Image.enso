@@ -1,9 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
 
 import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
 import project.Data.Matrix_Error.Matrix_Error
 
+polyglot java import java.lang.Exception as JException
 polyglot java import org.enso.image.data.Histogram as Java_Histogram
 polyglot java import org.enso.image.data.Image as Java_Image
 polyglot java import org.enso.image.Codecs as Java_Codecs
@@ -58,18 +60,18 @@ type Image
        > Example
          Read the image and convert it to grayscale.
              Image.read "image.png" Read_Flag.Grayscale
-    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File.IO_Error
+    read : (Text | File) -> (Read_Flag | Vector) -> Image ! File_Error
     read location flags=[] =
         path = case location of
-            _ : File.File -> location.path
+            _ : File -> location.path
             _ -> location
         read_flags = case flags of
             _ : Vector ->
                 if flags.is_empty then Java_Codecs.READ_FLAG_EMPTY else
                     flags.map .to_integer . reduce (_.bit_or _)
             _ -> flags.to_integer
-        Panic.catch_java Any (Image.Value (Java_Codecs.read path read_flags)) _->
-            Error.throw (File.IO_Error (File.new path) 'Failed to read the file')
+        Panic.catch JException (Image.Value (Java_Codecs.read path read_flags)) _->
+            Error.throw (File_Error.IO_Error (File.new path) 'Failed to read the file')
 
     ## UNSTABLE
 
@@ -90,17 +92,17 @@ type Image
        > Example
          Write the image with applying several flags.
              image.write path image [Write_Flag.JPEG_Quality 40, Write_Flag.JPEG_Progressive]
-    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File.IO_Error
+    write : (Text | File)  -> (Write_Flag | Vector) -> Nothing ! File_Error
     write self location flags=[] =
         path = case location of
-            _ : File.File -> location.path
+            _ : File -> location.path
             _ -> location
         write_flags = case flags of
             _ : Vector -> flags
             _ -> [flags]
         int_flags = MatOfInt.new (write_flags.flat_map x-> [x.to_integer, x.value]).to_array
-        Panic.catch_java Any (Java_Codecs.write path self.opencv_mat int_flags) _->
-            Error.throw (File.IO_Error (File.new path) 'Failed to write to the file')
+        Panic.catch JException (Java_Codecs.write path self.opencv_mat int_flags) _->
+            Error.throw (File_Error.IO_Error (File.new path) 'Failed to write to the file')
 
     ## UNSTABLE
 
@@ -169,8 +171,8 @@ type Image
              example_get = Examples.image.get 10 10
     get : Integer -> Integer -> Vector ! Matrix_Error
     get self row column =
-        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns row) else
-            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds_Error self.rows self.columns column) else
+        if (row < 0) || (row >= self.rows) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns row) else
+            if (column < 0) || (column >= self.columns) then Error.throw (Matrix_Error.Index_Out_Of_Bounds self.rows self.columns column) else
                 arr = Java_Image.get self.opencv_mat row column
                 Vector.from_polyglot_array arr
 
@@ -419,18 +421,18 @@ type Image
 
     ## UNSTABLE
 
-       Convert the image to Json.
+       Convert the image to a JS_Object.
 
        > Example
-         Convert an image to JSON.
+         Convert an image to a JavaScript object.
 
              import Standard.Examples
 
-             example_to_json = Examples.image.to_json
-    to_json : Json
-    to_json self =
+             example_to_json = Examples.image.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
         base64 = Java_Image.to_base64 self.opencv_mat
-        Json.from_pairs [["mediaType", "image/png"], ["base64", base64]]
+        JS_Object.from_pairs [["mediaType", "image/png"], ["base64", base64]]
 
     ## UNSTABLE
 

@@ -598,6 +598,8 @@ ensogl::define_endpoints_2! {
         edit_node                    (NodeId),
         collapse_nodes               ((Vec<NodeId>,NodeId)),
         set_node_expression          ((NodeId,node::Expression)),
+        set_node_skip                ((NodeId,bool)),
+        set_node_freeze              ((NodeId,bool)),
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
@@ -1468,11 +1470,10 @@ impl GraphEditorModelWithNetwork {
     ) -> (NodeId, Option<NodeSource>, bool) {
         let position = new_node_position::new_node_position(self, way, mouse_position);
         let node = self.new_node(ctx);
-        node.set_position_xy(position);
+        node.set_xy(position);
         let should_edit = !matches!(way, WayOfCreatingNode::AddNodeEvent);
         if should_edit {
             node.view.set_expression(node::Expression::default());
-            node.show_preview();
         }
         let source = self.data_source_for_new_node(way);
         (node.id(), source, should_edit)
@@ -1742,8 +1743,8 @@ impl GraphEditorModel {
         self.add_child(&self.breadcrumbs);
         let x_offset = MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET;
         let y_offset = MACOS_TRAFFIC_LIGHTS_VERTICAL_CENTER + component::breadcrumbs::HEIGHT / 2.0;
-        self.breadcrumbs.set_position_x(x_offset);
-        self.breadcrumbs.set_position_y(y_offset);
+        self.breadcrumbs.set_x(x_offset);
+        self.breadcrumbs.set_y(y_offset);
         self.breadcrumbs.gap_width(traffic_lights_gap_width());
         self.scene().add_child(&self.tooltip);
         self.add_child(&self.profiling_button);
@@ -1897,6 +1898,20 @@ impl GraphEditorModel {
         }
         for edge_id in self.node_out_edges(node_id) {
             self.refresh_edge_source_size(edge_id);
+        }
+    }
+
+    fn set_node_skip(&self, node_id: impl Into<NodeId>, skip: &bool) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_skip_macro(*skip);
+        }
+    }
+
+    fn set_node_freeze(&self, node_id: impl Into<NodeId>, freeze: &bool) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            node.set_freeze_macro(*freeze);
         }
     }
 
@@ -2070,7 +2085,7 @@ impl GraphEditorModel {
     pub fn set_node_position(&self, node_id: impl Into<NodeId>, position: Vector2) {
         let node_id = node_id.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.mod_position(|t| {
+            node.modify_position(|t| {
                 t.x = position.x;
                 t.y = position.y;
             });
@@ -2170,7 +2185,7 @@ impl GraphEditorModel {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
-                    edge.mod_position(|p| {
+                    edge.modify_position(|p| {
                         p.x = node.position().x + node.model().width() / 2.0;
                         p.y = node.position().y;
                     });
@@ -2633,11 +2648,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         disable_navigator <- any_(&set_navigator_false,&some_vis_selected);
         enable_navigator  <- any_(&set_navigator_true,&no_vis_selected);
 
-        eval_ disable_navigator ( model.navigator.disable() );
-        eval_ enable_navigator  ( model.navigator.enable()  );
+        model.navigator.frp.set_enabled <+ bool(&disable_navigator,&enable_navigator);
 
-        out.navigator_active <+ inputs.set_navigator_disabled
-                                    || out.some_visualisation_selected;
+        out.navigator_active <+ model.navigator.frp.enabled;
     }
 
 
@@ -2950,6 +2963,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         }));
         out.node_added <+ new_node.map(|&(id, src, should_edit)| (id, src, should_edit));
         node_to_edit_after_adding <- new_node.filter_map(|&(id,_,cond)| cond.as_some(id));
+                eval new_node ([model](&(id, _, should_edit)) {
+            if should_edit {
+                if let Some(node) = model.nodes.get_cloned_ref(&id) {
+                    node.show_preview();
+                }
+            }
+        });
     }
 
 
@@ -2980,13 +3000,13 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         eval out.node_editing_started ([model] (id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_started");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.set_edit_mode(true);
+                node.model().input.set_editing(true);
             }
         });
         eval out.node_editing_finished ([model](id) {
             let _profiler = profiler::start_debug!(profiler::APP_LIFETIME, "node_editing_finished");
             if let Some(node) = model.nodes.get_cloned_ref(id) {
-                node.model().input.set_edit_mode(false);
+                node.model().input.set_editing(false);
             }
         });
     }
@@ -3072,6 +3092,14 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     set_node_expression_string  <- inputs.set_node_expression.map(|(id,expr)| (*id,expr.code.clone()));
     out.node_expression_set <+ set_node_expression_string;
 
+    }
+
+
+    // === Set Node SKIP and FREEZE macros ===
+
+    frp::extend! { network
+        eval inputs.set_node_skip(((id, skip)) model.set_node_skip(id, skip));
+        eval inputs.set_node_freeze(((id, freeze)) model.set_node_freeze(id, freeze));
     }
 
 
@@ -3258,7 +3286,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                 edge.view.frp.source_height.emit(cursor::DEFAULT_RADIUS);
                 edge.view.frp.target_position.emit(-position.xy());
                 edge.view.frp.redraw.emit(());
-                edge.mod_position(|p| {
+                edge.modify_position(|p| {
                     p.x = position.x;
                     p.y = position.y;
                 });
@@ -3279,7 +3307,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
                     edge.view.frp.source_height.emit(node_height);
                     edge.view.frp.target_position.emit(-node_pos.xy());
                     edge.view.frp.redraw.emit(());
-                    edge.mod_position(|p| {
+                    edge.modify_position(|p| {
                         p.x = node_pos.x + node_width/2.0;
                         p.y = node_pos.y;
                     });
@@ -3871,7 +3899,7 @@ mod tests {
         camera_pos: Vector2,
     ) {
         let camera = &scene.camera();
-        camera.set_position_xy(camera_pos);
+        camera.set_xy(camera_pos);
         camera.update(scene);
         click_add_node_button(editor);
     }
@@ -3935,12 +3963,12 @@ mod tests {
         // Create 2nd node below the 1st one and move it slightly to the right.
         graph_editor.nodes().select(node_1_id);
         let (node_2_id, node_2) = graph_editor.add_node_by(&press_add_node_shortcut);
-        node_2.mod_position_x(|x| x + 16.0);
+        node_2.update_x(|x| x + 16.0);
 
         // Create 3rd node below the 2nd one and move it slightly down and far to the right.
         graph_editor.nodes().select(node_2_id);
         let (_, node_3) = graph_editor.add_node_by(&press_add_node_shortcut);
-        node_2.mod_position_xy(|pos| pos + Vector2(800.0, -7.0));
+        node_2.update_xy(|pos| pos + Vector2(800.0, -7.0));
 
         // Create 4th node by clicking (+) button when camera is roughly centered at the 1st node.
         let small_displacement = Vector2(8.0, 9.0);
@@ -3981,7 +4009,7 @@ mod tests {
         fn add_node_by_api_at_pos(&self, position: Vector2) -> (NodeId, Node) {
             let (node_id, node) = self.add_node_by_api();
             self.stop_editing();
-            node.set_position_xy(position);
+            node.set_xy(position);
             (node_id, node)
         }
 

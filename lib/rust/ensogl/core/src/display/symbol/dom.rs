@@ -116,15 +116,23 @@ impl DomSymbol {
         dom.set_style_or_warn("position", "absolute");
         dom.set_style_or_warn("width", "0px");
         dom.set_style_or_warn("height", "0px");
+        dom.set_style_or_warn("display", "none");
         dom.append_or_warn(content);
         let display_object = display::object::Instance::new();
+        let weak_display_object = display_object.downgrade();
+        let network = &display_object.network;
+        frp::extend! { network
+            eval_ display_object.on_show (dom.set_style_or_warn("display", ""));
+            eval_ display_object.on_hide (dom.set_style_or_warn("display", "none"));
+            eval_ display_object.on_updated ([dom] {
+                if let Some(display_object) = weak_display_object.upgrade() {
+                    let mut transform = inverse_y_translation(display_object.transformation_matrix());
+                    transform.iter_mut().for_each(|a| *a = eps(*a));
+                    set_object_transform(&dom, &transform);
+                }
+            });
+        }
         let guard = Rc::new(Guard::new(&display_object, &dom));
-        display_object.set_on_updated(enclose!((dom) move |t| {
-            let mut transform = inverse_y_translation(t.matrix());
-            transform.iter_mut().for_each(|a| *a = eps(*a));
-            set_object_transform(&dom,&transform);
-        }));
-
         Self { dom, display_object, size, guard }
     }
 
@@ -139,7 +147,7 @@ impl DomSymbol {
     }
 
     /// Size setter.
-    pub fn set_size(&self, size: Vector2<f32>) {
+    pub fn set_dom_size(&self, size: Vector2<f32>) {
         self.size.set(size);
         self.dom.set_style_or_warn("width", format!("{}px", size.x));
         self.dom.set_style_or_warn("height", format!("{}px", size.y));

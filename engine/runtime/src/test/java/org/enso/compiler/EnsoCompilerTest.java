@@ -136,7 +136,7 @@ public class EnsoCompilerTest {
   @Test
   public void testImport() throws Exception {
     parseTest("""
-    from Standard.Base.Data.Any import all
+    import Standard.Base.Any.Any
     import project.IO
     import Standard.Base as Enso_List
     from Standard.Base import all hiding Number, Boolean, Decimal, Any
@@ -564,7 +564,7 @@ public class EnsoCompilerTest {
   public void testEmptyGroup() throws Exception {
     parseTest("""
     main =
-        x = Panic.catch_primitive () .convert_to_dataflow_error
+        x = Panic.catch Any () .convert_to_dataflow_error
         x.catch_primitive err->
             case err of
                 Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
@@ -942,7 +942,7 @@ public class EnsoCompilerTest {
     ansi_bold enabled txt =
         case Platform.os of
             ## Output formatting for Windows is not currently supported.
-            Platform.Windows -> txt
+            Platform.OS.Windows -> txt
             _ -> if enabled then Nothing
     """);
   }
@@ -1191,6 +1191,47 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Test
+  public void testNPE183892665() throws Exception {
+    parseTest("""
+    foo : Integer ->
+    """);
+  }
+
+  @Test
+  public void testNamedDefaultedArguments183953473() throws Exception {
+    parseTest("""
+    main = @Tail_Call summator (current = 0) (acc = 1)
+    """);
+  }
+
+  @Test
+  public void testFreeze() throws Exception {
+    equivalenceTest("a = x", "a = FREEZE x");
+    equivalenceTest("a = x+1", "a = FREEZE x+1");
+    equivalenceTest("a = x + 1", "a = FREEZE x + 1");
+    equivalenceTest("a = x.f 1", "a = FREEZE x.f 1");
+  }
+
+  @Test
+  public void testSkip() throws Exception {
+    equivalenceTest("a = x", "a = SKIP x");
+    equivalenceTest("a = x", "a = SKIP x+1");
+    equivalenceTest("a = x", "a = SKIP x + 1");
+    equivalenceTest("a = x", "a = SKIP x");
+    equivalenceTest("a = x", "a = SKIP x+y");
+    equivalenceTest("a = x", "a = SKIP x + y");
+    equivalenceTest("a = x", "a = SKIP x.f y");
+    equivalenceTest("a = x", "a = SKIP Std.foo x");
+    equivalenceTest("a = x", "a = SKIP Std.foo x.f");
+    equivalenceTest("a = (Std.bar x)", "a = SKIP Std.foo (Std.bar x)");
+    equivalenceTest("a = x", "a = SKIP FREEZE x");
+    equivalenceTest("a = x", "a = SKIP FREEZE x + y");
+    equivalenceTest("a = x", "a = SKIP FREEZE x.f");
+    equivalenceTest("a = x", "a = SKIP FREEZE x.f y");
+
+  }
+
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {
@@ -1253,15 +1294,12 @@ public class EnsoCompilerTest {
 
   @SuppressWarnings("unchecked")
   private static void parseTest(String code, boolean noIds, boolean noLocations, boolean lessDocs) throws IOException {
-    var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
-    var ir = ensoCompiler.compile(src);
-    assertNotNull("IR was generated", ir);
+    var ir = compile(code);
 
-    var oldAst = new Parser().runWithIds(src.getCharacters().toString());
+    var oldAst = new Parser().runWithIds(code);
     var oldIr = AstToIr.translate((ASTOf<Shape>)(Object)oldAst);
 
     Function<IR, String> filter = (f) -> simplifyIR(f, noIds, noLocations, lessDocs);
-
     var old = filter.apply(oldIr);
     var now = filter.apply(ir);
     if (!old.equals(now)) {
@@ -1271,6 +1309,26 @@ public class EnsoCompilerTest {
       Files.writeString(home.resolve(name + ".now") , now, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
       assertEquals("IR for " + code + " shall be equal", old, now);
     }
+  }
+
+  private static void equivalenceTest(String code1, String code2) throws IOException {
+    Function<IR, String> filter = (f) -> simplifyIR(f, true, true, false);
+    var ir1 = filter.apply(compile(code1));
+    var ir2 = filter.apply(compile(code2));
+    if (!ir1.equals(ir2)) {
+      var name = findTestMethodName();
+      var home = new File(System.getProperty("user.home")).toPath();
+      Files.writeString(home.resolve(name + ".1") , ir1, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      Files.writeString(home.resolve(name + ".2") , ir2, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+      assertEquals("IR for " + code1 + " shall be equal to IR for " + code2, ir1, ir2);
+    }
+  }
+
+  private static IR.Module compile(String code) {
+    var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
+    var ir = ensoCompiler.compile(src);
+    assertNotNull("IR was generated", ir);
+    return ir;
   }
 
   private static String findTestMethodName() {

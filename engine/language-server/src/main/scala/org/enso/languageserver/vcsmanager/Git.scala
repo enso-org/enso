@@ -1,7 +1,7 @@
 package org.enso.languageserver.vcsmanager
 
 import java.io.{FileNotFoundException, IOException}
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import org.enso.languageserver.effect.BlockingIO
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.api.ResetCommand.ResetType
@@ -19,8 +19,7 @@ import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
   AuthorName,
-  DefaultGitRepoDir,
-  MasterRef,
+  HeadRef,
   RepoExists
 }
 
@@ -28,13 +27,19 @@ import scala.jdk.CollectionConverters._
 import zio.blocking.effectBlocking
 
 import java.time.Instant
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-private class Git extends VcsApi[BlockingIO] {
+private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
-  private def repository(path: Path): Repository = {
+  private val gitDir = ensoDataDirectory
+    .map(_.resolve(VcsApi.DefaultRepoDir))
+    .getOrElse(Path.of(VcsApi.DefaultRepoDir))
+
+  private def repository(root: Path): Repository = {
     val builder = new FileRepositoryBuilder()
     builder
-      .setGitDir(path.resolve(Git.DefaultGitRepoDir).toFile)
+      .setWorkTree(root.toFile)
+      .setGitDir(root.resolve(gitDir).toFile)
       .setMustExist(true)
       .build()
   }
@@ -45,16 +50,51 @@ private class Git extends VcsApi[BlockingIO] {
       if (!rootFile.exists()) {
         throw new FileNotFoundException("unable to find project repo: " + root)
       }
-      val repoLocation = root.resolve(DefaultGitRepoDir)
+
+      val repoLocation = root.resolve(gitDir)
       if (repoLocation.toFile.exists()) {
         throw new RepoExists()
       }
 
+      if (!repoLocation.getParent.toFile.exists()) {
+        if (!repoLocation.getParent.toFile.mkdirs()) {
+          throw new FileNotFoundException(
+            "unable to create project repository at " + repoLocation
+          )
+        }
+      }
+
       val jgit = JGit
         .init()
-        .setDirectory(rootFile)
+        .setGitDir(repoLocation.toFile)
+        .setDirectory(root.toFile)
         .setBare(false)
         .call()
+
+      ensoDataDirectory.foreach { _ =>
+        // When `gitDir` is set, JGit **always** creates a .git file (not a directory!) that points at the real
+        // directory that has the repository.
+        // The presence of the `.git` file is unnecessary and may be confusing to the users;
+        // all operations specify explicitly the location of Git metadata directory.
+        val dotGit = root.resolve(".git").toFile
+        if (dotGit.exists() && dotGit.isFile) {
+          dotGit.delete()
+        }
+      }
+
+      val isDataDir =
+        ensoDataDirectory.contains _
+      val filesToAdd =
+        listDirectoryFiles(root, Set(gitDir))
+          .filterNot(isDataDir)
+          .map(ensureUnixPathSeparator)
+      if (filesToAdd.nonEmpty) {
+        filesToAdd
+          .foldLeft(jgit.add()) { case (cmd, filePath) =>
+            cmd.addFilepattern(filePath)
+          }
+          .call()
+      }
 
       jgit
         .commit()
@@ -67,6 +107,13 @@ private class Git extends VcsApi[BlockingIO] {
     }.mapError(errorHandling)
   }
 
+  private def ensureUnixPathSeparator(path: Path): String =
+    ensureUnixPathSeparator(path.toString)
+
+  // AddCommand.addFilePattern always expects `/` separator
+  private def ensureUnixPathSeparator(path: String): String =
+    path.replaceAll("\\\\", "/")
+
   override def commit(
     root: Path,
     named: Option[String]
@@ -76,11 +123,32 @@ private class Git extends VcsApi[BlockingIO] {
 
       val commitName = named.getOrElse(Instant.now().toString)
       val jgit       = new JGit(repo)
-      // Add all modified and new files to the index
+
+      // Include files that already are/were in the index
       jgit
         .add()
         .addFilepattern(".")
+        .setUpdate(true)
         .call()
+
+      val status      = jgit.status.call()
+      val untracked   = status.getUntracked().asScala.map(ensureUnixPathSeparator)
+      val unixGitDir  = ensureUnixPathSeparator(gitDir)
+      val unixDataDir = ensoDataDirectory.map(ensureUnixPathSeparator)
+      val isDataDir =
+        (x: String) => unixDataDir.map(dataDir => dataDir == x).getOrElse(false)
+      val filesToAdd = untracked.flatMap { file =>
+        if (!file.startsWith(unixGitDir) && !isDataDir(file)) {
+          Some(file)
+        } else None
+      }
+      if (!filesToAdd.isEmpty) {
+        val addCmd = jgit.add()
+        filesToAdd.foreach(filePath =>
+          addCmd.addFilepattern(ensureUnixPathSeparator(filePath))
+        )
+        addCmd.call()
+      }
 
       val revCommit = jgit
         .commit()
@@ -141,25 +209,31 @@ private class Git extends VcsApi[BlockingIO] {
 
   override def status(root: Path): BlockingIO[VcsFailure, RepoStatus] = {
     effectBlocking {
-      val repo      = repository(root)
-      val jgit      = new JGit(repo)
-      val statusCmd = jgit.status()
-      val status    = statusCmd.call()
+      val repo       = repository(root)
+      val jgit       = new JGit(repo)
+      val statusCmd  = jgit.status()
+      val status     = statusCmd.call()
+      val unixGitDir = ensureUnixPathSeparator(gitDir)
       val changed =
         status.getModified().asScala.toList ++
-        status.getUntracked().asScala.toList ++
+        status
+          .getUntracked()
+          .asScala
+          .toList
+          .map(ensureUnixPathSeparator)
+          .filterNot(_.startsWith(unixGitDir)) ++
         status.getRemoved().asScala.toList
       val changedPaths = changed.map(name => Path.of(name)).toSet
       val logCmd       = jgit.log()
       val last =
-        Option(repo.resolve(MasterRef)) flatMap (_ => {
+        Option(repo.resolve(HeadRef)) flatMap (_ => {
           val logs = logCmd.setMaxCount(1).call().iterator()
           if (logs.hasNext()) {
             val log = logs.next()
             Option(RepoCommit(log.getName, log.getShortMessage()))
           } else None
-        }) getOrElse null
-      RepoStatus(!status.isClean(), changedPaths, last)
+        })
+      RepoStatus(changed.nonEmpty, changedPaths, last)
     }.mapError(errorHandling)
   }
 
@@ -188,21 +262,58 @@ private class Git extends VcsApi[BlockingIO] {
     case _: RepoExists                   => RepoAlreadyExists
     case ex                              => GenericVcsFailure(ex.getMessage)
   }
+
+  private def listDirectoryFiles(
+    rootDir: Path,
+    excludeDirs: Set[Path]
+  ): List[Path] = {
+    listDirectoryFiles(rootDir, rootDir, excludeDirs)
+  }
+  private def listDirectoryFiles(
+    rootDir: Path,
+    dir: Path,
+    excludeDirs: Set[Path]
+  ): List[Path] = {
+    val stream = Files.newDirectoryStream(dir)
+    try {
+      stream
+        .iterator()
+        .asScala
+        .flatMap { absolutePath =>
+          val relativePath = rootDir.relativize(absolutePath)
+          if (absolutePath.toFile.isDirectory) {
+            if (excludeDirs.forall(!relativePath.startsWith(_))) {
+              relativePath :: listDirectoryFiles(
+                rootDir,
+                absolutePath,
+                excludeDirs
+              )
+            } else Nil
+          } else {
+            List(relativePath)
+          }
+        }
+        .toList
+    } finally {
+      if (stream != null) stream.close()
+    }
+  }
 }
 
 object Git {
-  private val DefaultGitRepoDir = ".git"
-  private val MasterRef         = "refs/heads/master"
-  private val AuthorName        = "Enso VCS"
-  private val AuthorEmail       = "vcs@enso.io"
+  private val HeadRef     = "HEAD"
+  private val AuthorName  = "Enso VCS"
+  private val AuthorEmail = "vcs@enso.io"
 
   private class RepoExists extends Exception
 
   /** Returns a Git implementation of VcsApi that ignores gitconfig file in
     * user's home directory.
     */
-  def withEmptyUserConfig(): VcsApi[BlockingIO] = {
+  def withEmptyUserConfig(
+    dataDir: Option[Path]
+  ): VcsApi[BlockingIO] = {
     SystemReader.setInstance(new EmptyUserConfigReader)
-    new Git()
+    new Git(dataDir)
   }
 }

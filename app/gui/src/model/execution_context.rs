@@ -2,13 +2,11 @@
 
 use crate::prelude::*;
 
-use crate::model::module;
-use crate::model::suggestion_database::entry as suggestion;
 use crate::notification::Publisher;
 
 use double_representation::identifier::Identifier;
-use double_representation::project;
-use double_representation::tp;
+use double_representation::name::project;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server;
 use engine_protocol::language_server::ExpressionUpdate;
 use engine_protocol::language_server::ExpressionUpdatePayload;
@@ -226,20 +224,17 @@ pub struct LocalCall {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QualifiedMethodPointer {
     /// A module name containing the method.
-    pub module:          module::QualifiedName,
+    pub module:          QualifiedName,
     /// A type on which the method is defined.
-    pub defined_on_type: tp::QualifiedName,
+    pub defined_on_type: QualifiedName,
     /// A method name.
     pub name:            Identifier,
 }
 
 impl QualifiedMethodPointer {
     /// Create a method pointer representing a module method.
-    pub fn module_method(
-        module: module::QualifiedName,
-        name: Identifier,
-    ) -> QualifiedMethodPointer {
-        QualifiedMethodPointer { module: module.clone(), defined_on_type: module.into(), name }
+    pub fn module_method(module: QualifiedName, name: Identifier) -> QualifiedMethodPointer {
+        QualifiedMethodPointer { module: module.clone(), defined_on_type: module, name }
     }
     /// Tries to create a new method pointer from string components.
     pub fn from_qualified_text(
@@ -377,7 +372,7 @@ pub struct ComponentGroup {
     pub name:       ImString,
     /// An optional color to use when displaying the component group.
     pub color:      Option<color::Rgb>,
-    pub components: Vec<suggestion::QualifiedName>,
+    pub components: Vec<QualifiedName>,
 }
 
 impl ComponentGroup {
@@ -388,8 +383,9 @@ impl ComponentGroup {
         let project = group.library.try_into()?;
         let name = group.name.into();
         let color = group.color.as_ref().and_then(|c| color::Rgb::from_css_hex(c));
-        let components = group.exports.into_iter().map(|e| e.name.into()).collect();
-        Ok(ComponentGroup { project, name, color, components })
+        let components: FallibleResult<Vec<_>> =
+            group.exports.into_iter().map(|e| e.name.try_into()).collect();
+        Ok(ComponentGroup { project, name, color, components: components? })
     }
 }
 
@@ -497,6 +493,14 @@ pub trait API: Debug {
         let detach_actions = visualizations.into_iter().map(move |v| self.detach_visualization(v));
         futures::future::join_all(detach_actions).boxed_local()
     }
+
+    /// Interrupt the program execution.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn interrupt<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
+
+    /// Restart the program execution.
+    #[allow(clippy::needless_lifetimes)] // Note: Needless lifetimes
+    fn restart<'a>(&'a self) -> BoxFuture<'a, FallibleResult>;
 }
 
 // Note: Needless lifetimes
@@ -585,7 +589,7 @@ mod tests {
 
         // Set two errors. One of old values is overridden
         let update1 = value_update_with_dataflow_error(expr2);
-        let update2 = value_update_with_dataflow_panic(expr3, &error_msg);
+        let update2 = value_update_with_dataflow_panic(expr3, error_msg);
         registry.apply_updates(vec![update1, update2]);
         assert_eq!(registry.get(&expr1).unwrap().typename, Some(typename1.into()));
         assert!(matches!(registry.get(&expr1).unwrap().payload, ExpressionUpdatePayload::Value));

@@ -123,7 +123,6 @@ impl<InnerGridView> GridViewTemplate<InnerGridView> {
         E: Entry,
         InnerGridView: AsRef<crate::GridView<E>> + display::Object, {
         let area = ScrollArea::new(app);
-        area.set_camera(app.display.default_scene.layers.node_searcher.camera());
         let base_grid = inner_grid.as_ref();
         area.content().add_child(&inner_grid);
         let base_network = base_grid.network();

@@ -1,19 +1,21 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 import java.lang.ref.PhantomReference;
 
 /** A runtime representation of a managed resource. */
+@ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Resource.Managed_Resource")
+@Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
 public final class ManagedResource implements TruffleObject {
   private final Object resource;
   private PhantomReference<ManagedResource> phantomReference;
@@ -51,7 +53,7 @@ public final class ManagedResource implements TruffleObject {
       description =
           "Makes an object into a managed resource, automatically finalized when the returned object is garbage collected.")
   @Builtin.Specialize
-  public static ManagedResource register(Context context, Object resource, Function function) {
+  public static ManagedResource register(EnsoContext context, Object resource, Function function) {
     return context.getResourceManager().register(resource, function);
   }
 
@@ -60,7 +62,7 @@ public final class ManagedResource implements TruffleObject {
           "Takes the value held by the managed resource and removes the finalization callbacks,"
               + " effectively making the underlying resource unmanaged again.")
   @Builtin.Specialize
-  public Object take(Context context) {
+  public Object take(EnsoContext context) {
     context.getResourceManager().take(this);
     return this.getResource();
   }
@@ -69,8 +71,18 @@ public final class ManagedResource implements TruffleObject {
       name = "finalize",
       description = "Finalizes a managed resource, even if it is still reachable.")
   @Builtin.Specialize
-  public void close(Context context) {
+  public void close(EnsoContext context) {
     context.getResourceManager().close(this);
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().managedResource();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage
@@ -80,6 +92,6 @@ public final class ManagedResource implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().managedResource();
+    return EnsoContext.get(thisLib).getBuiltins().managedResource();
   }
 }

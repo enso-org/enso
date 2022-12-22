@@ -133,6 +133,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/push`](#executioncontextpush)
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
+  - [`executionContext/interrupt`](#executioncontextinterrupt)
   - [`executionContext/getComponentGroups`](#executioncontextgetcomponentgroups)
   - [`executionContext/expressionUpdates`](#executioncontextexpressionupdates)
   - [`executionContext/executionFailed`](#executioncontextexecutionfailed)
@@ -428,16 +429,18 @@ The argument of a [`SuggestionEntry`](#suggestionentry).
 ```typescript
 // The argument of a constructor, method or function suggestion.
 interface SuggestionEntryArgument {
-  // The argument name
+  /** The argument name. */
   name: string;
-  // The argument type. String 'Any' is used to specify generic types
+  /** The argument type. String 'Any' is used to specify generic types. */
   type: string;
-  // Indicates whether the argument is lazy
+  /** Indicates whether the argument is lazy. */
   isSuspended: bool;
-  // Indicates whether the argument has default value
+  /** Indicates whether the argument has default value. */
   hasDefault: bool;
-  // Optional default value
+  /** Optional default value. */
   defaultValue?: string;
+  /** Optional list of possible values that this argument takes. */
+  tagValues?: string[];
 }
 ```
 
@@ -1887,6 +1890,7 @@ destroying the context.
 
 - [`executionContext/destroy`](#executioncontextdestroy)
 - [`executionContext/recompute`](#executioncontextrecompute)
+- [`executionContext/interrupt`](#executioncontextinterrupt)
 - [`executionContext/push`](#executioncontextpush)
 - [`executionContext/pop`](#executioncontextpop)
 - [`executionContext/executeExpression`](#executioncontextexecuteexpression)
@@ -2751,7 +2755,7 @@ project includes:
 - `dirtty` flag, indicating if any of the project files has been modified, added
   or deleted
 - list of paths to the modified files, if any
-- the metadata of a last save
+- the metadata of a last save, if any
 
 #### Parameters
 
@@ -3727,6 +3731,35 @@ null;
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
+
+### `executionContext/interrupt`
+
+Sent from the client to the server to interrupt the program execution in the
+provided execution context.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
 
 ### `executionContext/getComponentGroups`
 

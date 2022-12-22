@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use ast::crumbs::Located;
 use std::cmp::Ordering;
 
 
@@ -88,11 +87,6 @@ impl Identifier {
         } else {
             Err(OperatorCantBeMadeIntoVar(name.to_owned()))
         }
-    }
-
-    /// Get a normalized version of this identifier.
-    pub fn normalized(&self) -> NormalizedName {
-        NormalizedName::new(self.name())
     }
 
     /// Get the identifier's node with a newly assigned, unique id.
@@ -190,171 +184,6 @@ impl Hash for Identifier {
 
 
 
-// ====================
-// === ReferentName ===
-// ====================
-
-// === Errors ===
-
-/// Happens if a given string does not fulfill requirements of the referent name;
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "The `{}` is not a valid referent name.", _0)]
-pub struct NotReferentName(String);
-
-
-// === Definition ===
-
-/// The name segment is a string that starts with an upper-cased character.
-///
-/// It is used for naming modules, module path segments and projects.
-///
-/// This value corresponds to contents of the `Cons` AST shape.
-#[derive(Clone, Debug, Display, Shrinkwrap, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ReferentName(String);
-
-impl ReferentName {
-    /// Check if the given text would be a valid referent name;
-    pub fn validate(name: impl AsRef<str>) -> Result<(), NotReferentName> {
-        let name = name.as_ref();
-        let first_char = name.chars().next();
-        match first_char {
-            Some(c) if c.is_uppercase() => Ok(()),
-            _ => Err(NotReferentName(name.into())),
-        }
-    }
-
-    /// Try interpreting given string as a referent name.
-    ///
-    /// Referent name is an identifier starting with an upper-cased letter, like `Maybe`.
-    ///
-    /// Fails if the given string is not a valid referent name (e.g. an empty string or lower-cased
-    /// string).
-    pub fn new(name: impl Str) -> Result<ReferentName, NotReferentName> {
-        Self::validate(name.as_ref()).map(|_| ReferentName(name.into()))
-    }
-
-    /// Convert given string into a referent name.
-    ///
-    /// First letter of each "word" (underscore-separated segment) will be capitalized. All other
-    /// letters will be turned into lower case.
-    ///
-    /// Fails if the given string is empty.
-    pub fn from_identifier_text(name: impl Str) -> Result<Self, NotReferentName> {
-        let name = name.as_ref();
-        if name.is_empty() {
-            return Err(NotReferentName(name.into()));
-        }
-        let name = name.split('_').map(str::to_lowercase).map(capitalize_first).join("_");
-        Ok(Self(name))
-    }
-
-    /// Get a normalized version of this identifier.
-    pub fn normalized(&self) -> NormalizedName {
-        NormalizedName::new(self)
-    }
-}
-
-
-// === Implementations ===
-
-impl AsRef<str> for ReferentName {
-    fn as_ref(&self) -> &str {
-        self.0.as_ref()
-    }
-}
-
-impl TryFrom<&str> for ReferentName {
-    type Error = NotReferentName;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::new(value)
-    }
-}
-
-impl TryFrom<String> for ReferentName {
-    type Error = NotReferentName;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(value)
-    }
-}
-
-impl From<ReferentName> for String {
-    fn from(name: ReferentName) -> Self {
-        name.0
-    }
-}
-
-impl From<&ReferentName> for String {
-    fn from(name: &ReferentName) -> Self {
-        name.0.clone()
-    }
-}
-
-impl PartialEq<String> for ReferentName {
-    fn eq(&self, other: &String) -> bool {
-        &self.0 == other
-    }
-}
-
-impl PartialEq<&str> for ReferentName {
-    fn eq(&self, other: &&str) -> bool {
-        &self.0 == other
-    }
-}
-
-
-
-// ======================
-// === NormalizedName ===
-// ======================
-
-// === Definition ===
-
-/// The identifier name normalized to a lower-case (as the comparisons are case-insensitive).
-/// Implements case-insensitive compare with AST.
-#[derive(Clone, Debug, Display, Hash, PartialEq, Eq)]
-#[derive(Shrinkwrap)]
-pub struct NormalizedName(String);
-
-impl NormalizedName {
-    /// Wraps given string into the normalized name.
-    pub fn new(name: impl AsRef<str>) -> NormalizedName {
-        let name = name.as_ref().to_lowercase();
-        NormalizedName(name)
-    }
-
-    /// If the given AST is an identifier, returns its normalized name.
-    pub fn try_from_ast(ast: &Ast) -> Option<NormalizedName> {
-        ast::identifier::name(ast).map(NormalizedName::new)
-    }
-
-    /// Is the given string a prefix of this name.
-    pub fn starts_with(&self, name: impl AsRef<str>) -> bool {
-        let prefix = NormalizedName::new(name);
-        self.0.starts_with(prefix.0.as_str())
-    }
-}
-
-
-// === Implementations ===
-
-/// Tests if Ast is identifier that might reference the same name (case insensitive match).
-impl PartialEq<Ast> for NormalizedName {
-    fn eq(&self, other: &Ast) -> bool {
-        NormalizedName::try_from_ast(other).contains_if(|other_name| other_name == self)
-    }
-}
-
-impl From<NormalizedName> for String {
-    fn from(name: NormalizedName) -> Self {
-        name.0
-    }
-}
-
-/// Case-insensitive identifier with its ast crumb location (relative to the node's ast).
-pub type LocatedName = Located<NormalizedName>;
-
-
-
 // =================
 // === Utilities ===
 // =================
@@ -364,53 +193,17 @@ pub type LocatedName = Located<NormalizedName>;
 /// The name is generated by taking `base` string and appending subsequent integers.
 pub fn generate_name(
     base: impl AsRef<str>,
-    unavailable: impl IntoIterator<Item = NormalizedName>,
+    unavailable: impl IntoIterator<Item = String>,
 ) -> FallibleResult<Identifier> {
     let base = base.as_ref();
-    let is_relevant = |name: &NormalizedName| name.starts_with(base);
+    let is_relevant = |name: &String| name.starts_with(base);
     let unavailable = unavailable.into_iter().filter(is_relevant).collect::<HashSet<_>>();
     let name = (1..)
         .find_map(|i| {
-            let candidate = NormalizedName::new(iformat!("{base}{i}"));
+            let candidate = iformat!("{base}{i}");
             let available = !unavailable.contains(&candidate);
             available.as_some(candidate)
         })
         .unwrap(); // It never yields `None`, as we iterate infinite sequence until we find match.
     Identifier::from_text(name)
-}
-
-/// Capitalize the first letter of the passed string.
-fn capitalize_first(string: String) -> String {
-    let mut chars = string.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first_char) => first_char.to_uppercase().to_string() + chars.as_str(),
-    }
-}
-
-
-
-// =============
-// === Tests ===
-// =============
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn referent_name_from_identifier_text() {
-        let cases = [
-            ("identifier", "Identifier"),
-            ("project_1", "Project_1"),
-            ("muLti_Word_iDenTiFier", "Multi_Word_Identifier"),
-        ];
-        for (input, expected) in cases {
-            let referent_name =
-                ReferentName::from_identifier_text(input).expect("ReferentName creation failed");
-            assert_eq!(referent_name, expected);
-        }
-
-        assert!(ReferentName::from_identifier_text("").is_err());
-    }
 }

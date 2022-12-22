@@ -15,6 +15,7 @@ use crate::display;
 use crate::display::camera::Camera2d;
 use crate::display::render;
 use crate::display::scene::dom::DomScene;
+use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
@@ -122,6 +123,7 @@ pub struct Mouse {
     pub mouse_manager: MouseManager,
     pub last_position: Rc<Cell<Vector2<i32>>>,
     pub position:      Uniform<Vector2<i32>>,
+    pub click_count:   Uniform<i32>,
     pub hover_rgba:    Uniform<Vector4<u32>>,
     pub target:        Rc<Cell<PointerTargetId>>,
     pub handles:       Rc<[callback::Handle; 4]>,
@@ -135,47 +137,69 @@ impl Mouse {
         root: &web::dom::WithKnownShape<web::HtmlDivElement>,
         variables: &UniformScope,
         current_js_event: &CurrentJsEvent,
+        display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
     ) -> Self {
         let scene_frp = scene_frp.clone_ref();
         let target = PointerTargetId::default();
         let last_position = Rc::new(Cell::new(Vector2::new(0, 0)));
         let position = variables.add_or_panic("mouse_position", Vector2(0, 0));
+        let click_count = variables.add_or_panic("mouse_click_count", 0);
         let hover_rgba = variables.add_or_panic("mouse_hover_ids", Vector4(0, 0, 0, 0));
         let target = Rc::new(Cell::new(target));
         let mouse_manager = MouseManager::new_separated(&root.clone_ref().into(), &web::window);
         let frp = frp::io::Mouse::new();
         let on_move = mouse_manager.on_move.add(current_js_event.make_event_handler(
-            f!([frp,scene_frp,position,last_position] (event:&mouse::OnMove) {
-                    let shape       = scene_frp.shape.value();
-                    let pixel_ratio = shape.pixel_ratio;
-                    let screen_x    = event.client_x();
-                    let screen_y    = event.client_y();
+            f!([frp, scene_frp, position, last_position] (event: &mouse::OnMove) {
+                let shape = scene_frp.shape.value();
+                let pixel_ratio = shape.pixel_ratio;
+                let screen_x = event.client_x();
+                let screen_y = event.client_y();
 
-                    let new_pos     = Vector2::new(screen_x,screen_y);
-                    let pos_changed = new_pos != last_position.get();
-                    if pos_changed {
-                        last_position.set(new_pos);
-                        let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
-                        position.set(new_canvas_position);
-                        let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
-                        frp.position.emit(position);
-                    }
+                let new_pos = Vector2::new(screen_x,screen_y);
+                let pos_changed = new_pos != last_position.get();
+                if pos_changed {
+                    last_position.set(new_pos);
+                    let new_canvas_position = new_pos.map(|v| (v as f32 *  pixel_ratio) as i32);
+                    position.set(new_canvas_position);
+                    let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
+                    frp.position.emit(position);
                 }
-            ),
+            }),
         ));
-        let on_down = mouse_manager.on_down.add(
-            current_js_event
-                .make_event_handler(f!((event:&mouse::OnDown) frp.down.emit(event.button()))),
-        );
-        let on_up = mouse_manager.on_up.add(
-            current_js_event
-                .make_event_handler(f!((event:&mouse::OnUp) frp.up.emit(event.button()))),
-        );
-        let on_wheel = mouse_manager
-            .on_wheel
-            .add(current_js_event.make_event_handler(f_!(frp.wheel.emit(()))));
+        let on_down = mouse_manager.on_down.add(current_js_event.make_event_handler(
+            f!([frp, click_count, display_mode] (event:&mouse::OnDown) {
+                click_count.modify(|v| *v += 1);
+                if display_mode.get().allow_mouse_events() {
+                    frp.down.emit(event.button());
+                }
+            }),
+        ));
+        let on_up = mouse_manager.on_up.add(current_js_event.make_event_handler(
+            f!([frp, display_mode] (event:&mouse::OnUp) {
+                if display_mode.get().allow_mouse_events() {
+                    frp.up.emit(event.button())
+                }
+            }),
+        ));
+        let on_wheel = mouse_manager.on_wheel.add(current_js_event.make_event_handler(
+            f_!([frp, display_mode] {
+                if display_mode.get().allow_mouse_events() {
+                    frp.wheel.emit(())
+                }
+            }),
+        ));
         let handles = Rc::new([on_move, on_down, on_up, on_wheel]);
-        Self { mouse_manager, last_position, position, hover_rgba, target, handles, frp, scene_frp }
+        Self {
+            mouse_manager,
+            last_position,
+            position,
+            click_count,
+            hover_rgba,
+            target,
+            handles,
+            frp,
+            scene_frp,
+        }
     }
 
     /// Re-emits FRP mouse changed position event with the last mouse position value.
@@ -519,7 +543,6 @@ pub struct HardcodedLayers {
     pub tooltip:            Layer,
     pub tooltip_text:       Layer,
     pub cursor:             Layer,
-    pub mask:               Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -531,48 +554,37 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new() -> Self {
+        let main_cam = Camera2d::new();
+        let node_searcher_cam = Camera2d::new();
+        let panel_cam = Camera2d::new();
+        let edited_node_cam = Camera2d::new();
+        let port_selection_cam = Camera2d::new();
+        let cursor_cam = Camera2d::new();
+
         #[allow(non_snake_case)]
         let DETACHED = Layer::new("DETACHED");
-        let root = Layer::new("root");
-        let main = Layer::new("main");
-        let main_cam = &main.camera();
-        let viz = Layer::new_with_cam("viz", main_cam);
-        let below_main = Layer::new_with_cam("below_main", main_cam);
-        let port_selection = Layer::new("port_selection");
-        let label = Layer::new_with_cam("label", main_cam);
-        let above_nodes = Layer::new_with_cam("above_nodes", main_cam);
-        let above_nodes_text = Layer::new_with_cam("above_nodes_text", main_cam);
-        let panel = Layer::new("panel");
-        let panel_text = Layer::new("panel_text");
-        let node_searcher = Layer::new("node_searcher");
-        let node_searcher_cam = node_searcher.camera();
-        let node_searcher_text = Layer::new_with_cam("node_searcher_text", &node_searcher_cam);
-        let edited_node = Layer::new("edited_node");
-        let edited_node_cam = edited_node.camera();
-        let edited_node_text = Layer::new_with_cam("edited_node_text", &edited_node_cam);
-        let tooltip = Layer::new_with_cam("tooltip", main_cam);
-        let tooltip_text = Layer::new_with_cam("tooltip_text", main_cam);
-        let cursor = Layer::new("cursor");
+        let root = Layer::new_with_camera("root", &main_cam);
 
-        let mask = Layer::new_with_cam("mask", main_cam);
-        root.set_sublayers(&[
-            &viz,
-            &below_main,
-            &main,
-            &port_selection,
-            &label,
-            &above_nodes,
-            &above_nodes_text,
-            &panel,
-            &panel_text,
-            &node_searcher,
-            &node_searcher_text,
-            &edited_node,
-            &edited_node_text,
-            &tooltip,
-            &tooltip_text,
-            &cursor,
-        ]);
+        let viz = root.create_sublayer("viz");
+        let below_main = root.create_sublayer("below_main");
+        let main = root.create_sublayer("main");
+        let port_selection =
+            root.create_sublayer_with_camera("port_selection", &port_selection_cam);
+        let label = root.create_sublayer("label");
+        let above_nodes = root.create_sublayer("above_nodes");
+        let above_nodes_text = root.create_sublayer("above_nodes_text");
+        let panel = root.create_sublayer_with_camera("panel", &panel_cam);
+        let panel_text = root.create_sublayer_with_camera("panel_text", &panel_cam);
+        let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
+        let node_searcher_text =
+            root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
+        let edited_node = root.create_sublayer_with_camera("edited_node", &edited_node_cam);
+        let edited_node_text =
+            root.create_sublayer_with_camera("edited_node_text", &edited_node_cam);
+        let tooltip = root.create_sublayer("tooltip");
+        let tooltip_text = root.create_sublayer("tooltip_text");
+        let cursor = root.create_sublayer_with_camera("cursor", &cursor_cam);
+
         Self {
             DETACHED,
             root,
@@ -592,7 +604,6 @@ impl HardcodedLayers {
             tooltip,
             tooltip_text,
             cursor,
-            mask,
         }
     }
 }
@@ -688,7 +699,7 @@ pub struct UpdateStatus {
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct SceneData {
-    pub display_object: display::object::Instance,
+    pub display_object: display::object::Root,
     pub dom: Dom,
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
@@ -710,17 +721,22 @@ pub struct SceneData {
     pub frp: Frp,
     pub pointer_position_changed: Rc<Cell<bool>>,
     pub shader_compiler: shader::compiler::Controller,
+    display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
     extensions: Extensions,
     disable_context_menu: Rc<EventListenerHandle>,
 }
 
 impl SceneData {
     /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        stats: &Stats,
+        on_mut: OnMut,
+        display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+    ) -> Self {
         debug!("Initializing.");
+        let display_mode = display_mode.clone_ref();
         let dom = Dom::new();
-        let display_object = display::object::Instance::new();
-        display_object.force_set_visibility(true);
+        let display_object = display::object::Root::new_named("Scene");
         let variables = UniformScope::new();
         let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;
@@ -734,7 +750,7 @@ impl SceneData {
         let style_sheet = style::Sheet::new();
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
-        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event);
+        let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, &display_mode);
         let disable_context_menu = Rc::new(web::ignore_context_menu(&dom.root));
         let keyboard = Keyboard::new(&current_js_event);
         let network = &frp.network;
@@ -759,6 +775,7 @@ impl SceneData {
         let shader_compiler = default();
         Self {
             display_object,
+            display_mode,
             dom,
             context,
             context_lost_handler,
@@ -872,12 +889,10 @@ impl SceneData {
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
-        let sublayer_was_dirty = Rc::new(Cell::new(false));
         self.layers.iter_sublayers_and_masks_nested(|layer| {
             let dirty = layer.camera().update(scene);
-            sublayer_was_dirty.set(sublayer_was_dirty.get() || dirty);
+            was_dirty = was_dirty || dirty;
         });
-        was_dirty = was_dirty || sublayer_was_dirty.get();
 
         was_dirty
     }
@@ -892,8 +907,8 @@ impl SceneData {
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
         debug_span!("Resized to {screen.width}px x {screen.height}px.").in_scope(|| {
-            self.dom.layers.canvas.set_attribute_or_warn("width", &width.to_string());
-            self.dom.layers.canvas.set_attribute_or_warn("height", &height.to_string());
+            self.dom.layers.canvas.set_attribute_or_warn("width", width.to_string());
+            self.dom.layers.canvas.set_attribute_or_warn("height", height.to_string());
             if let Some(context) = &*self.context.borrow() {
                 context.viewport(0, 0, width, height);
             }
@@ -927,10 +942,10 @@ impl SceneData {
         screen_pos: Vector2,
     ) -> Vector2 {
         let origin_world_space = Vector4(0.0, 0.0, 0.0, 1.0);
-        let layer = object.display_layer().and_then(|t| t.upgrade());
+        let layer = object.display_layer();
         let camera = layer.map_or(self.camera(), |l| l.camera());
         let origin_clip_space = camera.view_projection_matrix() * origin_world_space;
-        let inv_object_matrix = object.transform_matrix().try_inverse().unwrap();
+        let inv_object_matrix = object.transformation_matrix().try_inverse().unwrap();
 
         let shape = camera.screen();
         let clip_space_z = origin_clip_space.z;
@@ -1017,8 +1032,12 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new<OnMut: Fn() + Clone + 'static>(stats: &Stats, on_mut: OnMut) -> Self {
-        let no_mut_access = SceneData::new(stats, on_mut);
+    pub fn new<OnMut: Fn() + Clone + 'static>(
+        stats: &Stats,
+        on_mut: OnMut,
+        display_mode: &Rc<Cell<glsl::codes::DisplayModes>>,
+    ) -> Self {
+        let no_mut_access = SceneData::new(stats, on_mut, display_mode);
         let this = Self { no_mut_access };
         this
     }

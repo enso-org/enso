@@ -1,0 +1,41 @@
+## This benchmark reproduces the benchmark from `engine/runtime/src/bench/java/org/enso/interpreter/bench/benchmarks/semantic/ArrayProxyBenchmarks.java`.
+from Standard.Base import all
+from Standard.Test import Bench
+
+import Standard.Base.Data.Vector.Vector
+import Standard.Base.Data.Array_Proxy.Array_Proxy
+
+sum arr =
+    go acc i = if i >= arr.length then acc else
+        @Tail_Call go (acc + arr.at i) i+1
+    go 0 0
+
+make_vector n =
+    Vector.new n (i -> 3 + 5*i)
+make_computing_proxy n =
+    Array_Proxy.new n (i -> 3 + 5*i)
+make_delegating_proxy n =
+    Array_Proxy.from_proxy_object (make_vector n)
+make_computing_vector n =
+    Vector.from_polyglot_array (make_computing_proxy n)
+make_delegating_vector n =
+    Vector.from_polyglot_array (make_delegating_proxy n)
+
+vector_size = 10000
+iter_size = 100
+num_iterations = 10
+
+bench =
+    vec = make_vector vector_size
+    computing_proxy = make_computing_proxy vector_size
+    delegating_proxy = make_delegating_proxy vector_size
+    computing_proxied_vec = make_computing_vector vector_size
+    delegating_proxied_vec = make_delegating_vector vector_size
+
+    Bench.measure (sum vec) "Sum Vector" iter_size num_iterations
+    Bench.measure (sum computing_proxy) "Sum Computing Proxy" iter_size num_iterations
+    Bench.measure (sum delegating_proxy) "Sum Delegating Proxy" iter_size num_iterations
+    Bench.measure (sum computing_proxied_vec) "Sum Vector relying on Computing Proxy" iter_size num_iterations
+    Bench.measure (sum delegating_proxied_vec) "Sum Vector relying on Delegating Proxy" iter_size num_iterations
+
+main = bench

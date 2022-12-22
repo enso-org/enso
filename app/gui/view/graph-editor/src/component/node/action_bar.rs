@@ -59,6 +59,8 @@ ensogl::define_endpoints! {
         set_size                    (Vector2),
         set_visibility              (bool),
         set_action_visibility_state (bool),
+        set_action_skip_state       (bool),
+        set_action_freeze_state     (bool),
         show_on_hover               (bool),
     }
 
@@ -99,8 +101,8 @@ impl Icons {
         // are used again, uncomment the below code to make the already implemented icons
         // functional again.
         //
-        // display_object.add_child(&freeze);
-        // display_object.add_child(&skip);
+        display_object.add_child(&freeze);
+        display_object.add_child(&skip);
         Self { display_object, freeze, visibility, skip }
     }
 
@@ -170,7 +172,7 @@ impl Model {
         let index = index as f32;
         let padding = BUTTON_PADDING;
         let offset = BUTTON_OFFSET;
-        button.mod_position(|p| p.x = ((1.0 + padding) * index + offset) * icon_size.x);
+        button.set_x(((1.0 + padding) * index + offset) * icon_size.x);
         button.frp.set_size(icon_size);
     }
 
@@ -189,15 +191,15 @@ impl Model {
             button_width * (button_count + hover_padding + offset + padding) + HOVER_EXTENSION_X;
         let hover_height = button_width * 2.0;
         let hover_ara_size = Vector2::new(hover_width, hover_height);
-        self.hover_area.size.set(hover_ara_size);
+        self.hover_area.set_size(hover_ara_size);
         let center_offset = -size.x / 2.0 + hover_ara_size.x / 2.0;
         let padding_offset = -0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
-        self.hover_area.set_position_x(center_offset + padding_offset);
+        self.hover_area.set_x(center_offset + padding_offset);
     }
 
     fn set_size(&self, size: Vector2) {
         self.size.set(size);
-        self.icons.set_position_x(-size.x / 2.0);
+        self.icons.set_x(-size.x / 2.0);
 
         // Note: Disabled for https://github.com/enso-org/ide/issues/1397
         // Should be re-enabled when https://github.com/enso-org/ide/issues/862 as been implemented.
@@ -206,11 +208,11 @@ impl Model {
         // are used again, uncomment the below code to make the already implemented icons
         // functional again.
         self.place_button_in_slot(&self.icons.visibility, 0);
-        // self.place_button_in_slot(&self.icons.skip       , 1);
-        // self.place_button_in_slot(&self.icons.freeze     , 2);
+        self.place_button_in_slot(&self.icons.skip, 1);
+        self.place_button_in_slot(&self.icons.freeze, 2);
 
         // Note: needs increasing to 3 when re-enabling the above buttons.
-        self.layout_hover_area_to_cover_buttons(1);
+        self.layout_hover_area_to_cover_buttons(3);
 
         // The appears smaller than the other ones, so this is an aesthetic adjustment.
         self.icons.visibility.set_scale_xy(Vector2::new(1.2, 1.2));
@@ -272,6 +274,8 @@ impl ActionBar {
             eval frp.set_size                    ((size)  model.set_size(*size));
             eval frp.set_visibility              ((t)     model.icons.set_visibility(*t));
             eval frp.set_action_visibility_state ((state) model.icons.visibility.set_state(state));
+            eval frp.set_action_skip_state ((state) model.icons.skip.set_state(state));
+            eval frp.set_action_freeze_state ((state) model.icons.freeze.set_state(state));
 
 
             // === Mouse Interactions ===

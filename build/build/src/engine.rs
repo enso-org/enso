@@ -1,3 +1,7 @@
+//! Top-level module for dealing with Enso Engine and its components.
+//!
+//! The reasonable entry point is the [`context::RunContext`] type.
+
 use crate::prelude::*;
 
 use crate::get_graal_version;
@@ -24,9 +28,13 @@ pub use context::RunContext;
 
 
 
+/// Version of `flatc` (the FlatBuffers compiler) that we require.
 const FLATC_VERSION: Version = Version::new(1, 12, 0);
+
+/// Whether pure Enso tests should be run in parallel.
 const PARALLEL_ENSO_TESTS: AsyncPolicy = AsyncPolicy::Sequential;
 
+/// Download template projects from GitHub.
 pub async fn download_project_templates(client: reqwest::Client, enso_root: PathBuf) -> Result {
     // Download Project Template Files
     let output_base = enso_root.join("lib/scala/pkg/src/main/resources/");
@@ -62,10 +70,15 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
     Ok(())
 }
 
+/// Describe, which benchmarks should be run.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
 pub enum Benchmarks {
+    /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
     All,
+    /// Run the runtime benchmark (from `sbt`).
     Runtime,
+    /// Run benchmarks written in pure Enso.
+    Enso,
 }
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ArgEnum)]
@@ -76,28 +89,40 @@ pub enum Tests {
 }
 
 impl Benchmarks {
-    pub fn sbt_task(self) -> &'static str {
+    pub fn sbt_task(self) -> Option<&'static str> {
         match self {
-            Benchmarks::All => "bench",
-            Benchmarks::Runtime => "runtime/bench",
+            Benchmarks::All => Some("bench"),
+            Benchmarks::Runtime => Some("runtime/bench"),
+            Benchmarks::Enso => None,
         }
     }
 }
 
+/// Describes what should be done with the backend.
+///
+/// Basically a recipe of what to do with `sbt` and its artifacts.
 #[derive(Clone, Debug)]
 pub struct BuildConfigurationFlags {
     /// If true, repository shall be cleaned at the build start.
     ///
     /// Makes sense given that incremental builds with SBT are currently broken.
     pub test_scala:                    bool,
+    /// Whether the Enso standard library should be tested.
     pub test_standard_library:         bool,
     /// Whether benchmarks are compiled.
     ///
     /// Note that this does not run the benchmarks, only ensures that they are buildable.
     pub build_benchmarks:              bool,
+    /// Whether the Enso-written benchmarks should be checked whether they compile.
+    ///
+    /// Note that this does not benchmark, only ensures that they are buildable.
+    /// Also, this does nothing if `execute_benchmarks` contains `Benchmarks::Enso`.
+    pub check_enso_benchmarks:         bool,
+    /// Which benchmarks should be run.
     pub execute_benchmarks:            BTreeSet<Benchmarks>,
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once:       bool,
+    /// Whether the Scala-based parser should be compiled into JS.
     pub build_js_parser:               bool,
     pub build_engine_package:          bool,
     pub build_launcher_package:        bool,
@@ -132,8 +157,18 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
 
-        if config.test_standard_library {
+        // Check for components that require Enso Engine runner. Basically everything that needs to
+        // run pure Enso code.
+        if config.test_standard_library
+            || config.execute_benchmarks.contains(&Benchmarks::Enso)
+            || config.check_enso_benchmarks
+        {
             config.build_engine_package = true;
+        }
+
+        // If we are about to run pure Enso benchmarks, there is no reason to try them in dry run.
+        if config.execute_benchmarks.contains(&Benchmarks::Enso) {
+            config.check_enso_benchmarks = false;
         }
 
         if config.test_java_generated_from_rust {
@@ -167,6 +202,7 @@ impl Default for BuildConfigurationFlags {
             test_scala:                    false,
             test_standard_library:         false,
             build_benchmarks:              false,
+            check_enso_benchmarks:         false,
             execute_benchmarks:            default(),
             execute_benchmarks_once:       false,
             build_js_parser:               false,

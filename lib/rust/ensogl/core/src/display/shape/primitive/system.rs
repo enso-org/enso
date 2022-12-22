@@ -64,10 +64,10 @@ use crate::prelude::*;
 use crate::system::gpu::types::*;
 
 use crate::display;
+use crate::display::object::instance::GenericLayoutApi;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
-use crate::display::symbol::geometry::compound::sprite;
 use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::geometry::SpriteSystem;
 use crate::display::symbol::material;
@@ -101,17 +101,16 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type InstanceParams: Debug + InstanceParamsTrait;
     type GpuParams: Debug;
     type SystemData: CustomSystemData<Self>;
-    type ShapeData: Debug + ShapeSystemFlavorProvider;
+    type ShapeData: Debug;
     fn pointer_events() -> bool;
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
-    fn new_instance_params(
-        sprite: &Sprite,
-        gpu_params: &Self::GpuParams,
-        id: InstanceIndex,
-    ) -> ShapeWithSize<Self>;
+    fn new_instance_params(gpu_params: &Self::GpuParams, id: InstanceIndex) -> Self;
     fn new_gpu_params(shape_system: &ShapeSystemModel) -> Self::GpuParams;
     fn shape_def(style_watch: &display::shape::StyleWatch) -> def::AnyShape;
+    fn flavor(_data: &Self::ShapeData) -> ShapeSystemFlavor {
+        ShapeSystemFlavor { flavor: 0 }
+    }
 }
 
 /// An alias for [`Shape]` where [`Shape::ShapeData`] is [`Default`].
@@ -150,53 +149,16 @@ impl<S: Shape> CustomSystemData<S> for () {
 /// This is what happens with fonts. For each font family, a separate glyph atlas is created, and
 /// thus, a shape system needs to be created for each used font family. The [`ShapeSystemFlavor`] is
 /// used to differentiate such shape systems. You do not need to care about it in most cases.
+///
+/// The flavor for given shape definition is specified in the [`shape!`] macro using `flavor =
+/// path::to::function` syntax. The flavor function or method should take a reference to
+/// [`ShapeData`] and return a [`ShapeSystemFlavor`]. If not specified, the default static value of
+/// 0 is used.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct ShapeSystemFlavor {
     /// The flavor of the shape system. In most cases, it is computed as a hash of some value, like
     /// a hash of font family name.
     pub flavor: u64,
-}
-
-/// Provider of a shape system flavor. Read docs of [`ShapeSystemFlavor`] for more information.
-#[allow(missing_docs)]
-pub trait ShapeSystemFlavorProvider {
-    fn flavor(&self) -> ShapeSystemFlavor;
-}
-
-impl<T> ShapeSystemFlavorProvider for T {
-    default fn flavor(&self) -> ShapeSystemFlavor {
-        ShapeSystemFlavor { flavor: 0 }
-    }
-}
-
-
-
-// =====================
-// === ShapeWithSize ===
-// =====================
-
-/// A shape with its size parameter.
-#[allow(missing_docs)]
-#[derive(Debug, Deref)]
-pub struct ShapeWithSize<S> {
-    #[deref]
-    shape:    S,
-    pub size: ProxyParam<sprite::Size>,
-}
-
-impl<S> ShapeWithSize<S> {
-    /// Constructor.
-    pub fn new(shape: S, size: ProxyParam<sprite::Size>) -> Self {
-        Self { shape, size }
-    }
-}
-
-impl<S: Shape> ShapeWithSize<S> {
-    /// Swap in-place the shape definition with another one.
-    pub(crate) fn swap(&self, other: &ShapeWithSize<S>) {
-        self.size.swap(&other.size);
-        self.shape.as_ref().swap(other.shape.as_ref());
-    }
 }
 
 
@@ -206,11 +168,11 @@ impl<S: Shape> ShapeWithSize<S> {
 // =====================
 
 /// A visible shape instance, bound to a particular [`ShapeSystem`].
-#[allow(missing_docs)]
 #[derive(Deref, Debug)]
+#[allow(missing_docs)]
 pub struct ShapeInstance<S> {
     #[deref]
-    pub shape:      ShapeWithSize<S>,
+    shape:          S,
     pub sprite:     RefCell<Sprite>,
     display_object: display::object::Instance,
 }
@@ -225,11 +187,22 @@ impl<S> ShapeInstance<S> {
 impl<S: Shape> ShapeInstance<S> {
     /// Swap in-place the shape definition with another one.
     pub(crate) fn swap(&self, other: &Self) {
-        self.shape.swap(&other.shape);
+        self.shape.as_ref().swap(other.shape.as_ref());
         self.sprite.swap(&other.sprite);
-        for child in other.display_object.remove_all_children() {
-            self.display_object.add_child(&child);
-        }
+        // After we swap the sprites between shape instances, we need to update their parents to
+        // the corresponding display object of each instance. It is important to not swap all other
+        // children, as they might have been added externally directly to the instance's display
+        // object (by calling `add_child` on the shape).
+        self.display_object.add_child(&*self.sprite.borrow());
+        other.display_object.add_child(&*other.sprite.borrow());
+        // This function is called during display object hierarchy update, before updating children
+        // of this display object, but after updating its layout. Thus, we need to update the layout
+        // of the new sprite. Please note, that changing layout in the middle of the display object
+        // refresh could lead to wrong results if the new child layout is different than the
+        // old one (for example, if the parent display object resizing mode wa set to "hug"
+        // and the new child has bigger size, the parent would also need to be updated).
+        // However, we control the layout of the sprite, so we know it did not change.
+        self.display_object.refresh_layout();
     }
 }
 
@@ -301,14 +274,18 @@ impl<S: Shape> ShapeSystem<S> {
         Self { data }.init_refresh_on_style_change()
     }
 
+    // FIXME: the following 2 fns look similar
     /// Constructor of a new shape instance.
     #[profile(Debug)]
     pub fn new_instance(&self) -> ShapeInstance<S> {
         let sprite = self.model.sprite_system.new_instance();
+        sprite.allow_grow();
         let id = sprite.instance_id;
-        let shape = S::new_instance_params(&sprite, &self.gpu_params, id);
-        let display_object = display::object::Instance::new();
+        let shape = S::new_instance_params(&self.gpu_params, id);
+        let display_object = display::object::Instance::new_named("ShapeSystem");
         display_object.add_child(&sprite);
+        // FIXME: workaround:
+        // display_object.use_auto_layout();
         let sprite = RefCell::new(sprite);
         ShapeInstance { sprite, shape, display_object }
     }
@@ -316,11 +293,14 @@ impl<S: Shape> ShapeSystem<S> {
     #[profile(Debug)]
     pub(crate) fn instantiate(&self) -> (ShapeInstance<S>, symbol::GlobalInstanceId) {
         let sprite = self.model.sprite_system.new_instance();
+        sprite.allow_grow();
         let instance_id = sprite.instance_id;
         let global_id = sprite.global_instance_id;
-        let shape = S::new_instance_params(&sprite, &self.gpu_params, instance_id);
-        let display_object = display::object::Instance::new();
+        let shape = S::new_instance_params(&self.gpu_params, instance_id);
+        let display_object = display::object::Instance::new_named("ShapeSystem");
         display_object.add_child(&sprite);
+        // FIXME: workaround:
+        // display_object.use_auto_layout();
         let sprite = RefCell::new(sprite);
         let shape = ShapeInstance { sprite, shape, display_object };
         (shape, global_id)
@@ -349,6 +329,7 @@ pub struct ShapeSystemModel {
     pub sprite_system: SpriteSystem,
     pub shape: Rc<RefCell<def::AnyShape>>,
     pub material: Rc<RefCell<Material>>,
+    pub geometry_material: Rc<RefCell<Material>>,
     /// Enables or disables pointer events on this shape system. All shapes of a shape system which
     /// have pointer events disabled will be completely transparent for the mouse (they will pass
     /// through all mouse events to shapes behind them).
@@ -366,10 +347,18 @@ impl ShapeSystemModel {
     pub fn new(shape: def::AnyShape, pointer_events: bool) -> Self {
         let sprite_system = SpriteSystem::new();
         let material = Rc::new(RefCell::new(Self::default_material()));
+        let geometry_material = Rc::new(RefCell::new(Self::default_geometry_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
-        Self { sprite_system, shape, material, pointer_events, do_not_use_shape_definition }
+        Self {
+            sprite_system,
+            shape,
+            material,
+            geometry_material,
+            pointer_events,
+            do_not_use_shape_definition,
+        }
     }
 
     fn init(&self) {
@@ -384,8 +373,60 @@ impl ShapeSystemModel {
         material.add_input("pixel_ratio", 1.0);
         material.add_input("z_zoom_1", 1.0);
         material.add_input("time", 0.0);
+        material.add_input_def::<Vector2<i32>>("mouse_position");
+        material.add_input_def::<i32>("mouse_click_count");
         material.add_input("display_mode", 0);
         material.add_output("id", Vector4::<f32>::zero());
+        material
+    }
+
+    fn default_geometry_material() -> Material {
+        let mut material = SpriteSystem::default_geometry_material();
+        material.set_before_main(shader::builder::glsl_prelude_and_codes());
+        // The GLSL vertex shader implementing automatic shape padding for anti-aliasing. See the
+        // docs of [`aa_side_padding`] to learn more about the concept of shape padding.
+        //
+        // First, we are computing the vertex position without shape padding. This is required to
+        // make the function [`aa_side_padding`] work, as it uses [`zoom`], which uses the
+        // [`input_local.z`] value. The depth of the vertex can be computed only after the
+        // [`model_view_projection`] matrix is applied.
+        //
+        // Please note that this method is not guaranteed to always provide correct results. If
+        // there is a big angle between the camera and the shape normal axes (e.g. when the shape is
+        // significantly rotated around its Y-axis), the padding might be too small. To correct it,
+        // we might take normal axes into account, but it will require more computations, and we do
+        // not need it currently.
+        //
+        // Also, please note that we are first using the [`input_uv`] variable, and then we are
+        // changing it. It's because the unchanged value is the incoming UV in range 0..1, and then
+        // we are scaling it to a bigger range, so the padded area UV is not contained within 0..1.
+        material.set_main(
+            "
+                mat4 model_view_projection = input_view_projection * input_transform;
+
+                // Computing the vertex position without shape padding.
+                vec3 input_local_no_padding = vec3((input_uv - input_alignment) * input_size, 0.0);
+                vec4 position_no_padding = model_view_projection * vec4(input_local_no_padding, 1.0);
+                input_local.z = position_no_padding.z;
+
+                // We are now able to compute the padding and grow the canvas by its value.
+                vec2 padding = vec2(aa_side_padding());
+                if (input_display_mode == DISPLAY_MODE_DEBUG_SPRITE_OVERVIEW) {
+                    padding = vec2(float(input_mouse_position.y) / 10.0);
+                }
+
+                vec2 padding2 = 2.0 * padding;
+                vec2 padded_size = input_size + padding2;
+                vec2 uv_scale = padded_size / input_size;
+                vec2 uv_offset = padding / input_size;
+                input_uv = vertex_uv * uv_scale - uv_offset;
+
+                // We need to recompute the vertex position with the padding.
+                input_local = vec3((input_uv - input_alignment) * input_size, 0.0);
+                gl_Position = model_view_projection * vec4(input_local,1.0);
+                input_local.z = gl_Position.z;
+            ",
+        );
         material
     }
 
@@ -419,6 +460,7 @@ impl ShapeSystemModel {
     #[profile(Detail)]
     fn reload_material(&self) {
         self.sprite_system.set_material(&*self.material.borrow());
+        self.sprite_system.set_geometry_material(&*self.geometry_material.borrow());
     }
 }
 
@@ -489,6 +531,7 @@ macro_rules! shape {
     (
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -497,6 +540,7 @@ macro_rules! shape {
         $crate::_shape! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
@@ -511,6 +555,7 @@ macro_rules! _shape {
     (
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
+        $(flavor = [$flavor:path];)?
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
@@ -536,7 +581,6 @@ macro_rules! _shape {
             use $crate::display::shape::PixelDistance;
             use $crate::display::shape::system::ProxyParam;
             use $crate::system::gpu::data::InstanceIndex;
-            use $crate::display::shape::ShapeWithSize;
             use $crate::display::shape::system::*;
 
 
@@ -577,15 +621,12 @@ macro_rules! _shape {
                 }
 
                 fn new_instance_params(
-                    sprite: &Sprite,
                     gpu_params:&Self::GpuParams,
                     id: InstanceIndex
-                ) -> ShapeWithSize<Shape> {
-                    let size = ProxyParam::new(sprite.size.clone_ref());
+                ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
                     let params = Self::InstanceParams { $($gpu_param),* };
-                    let shape = Shape { params };
-                    ShapeWithSize::new(shape, size)
+                    Shape { params }
                 }
 
                 fn new_gpu_params(
@@ -611,13 +652,17 @@ macro_rules! _shape {
                     // Silencing warnings about not used style.
                     let _unused = &$style;
                     $(
-                        let $gpu_param : display::shape::primitive::def::Var<$gpu_param_type> =
+                        let $gpu_param : $crate::display::shape::primitive::def::Var<$gpu_param_type> =
                             concat!("input_",stringify!($gpu_param)).into();
                         // Silencing warnings about not used shader input variables.
                         let _unused = &$gpu_param;
                     )*
                     $($body)*
                 }
+
+                $(fn flavor(data: &Self::ShapeData) -> $crate::display::shape::system::ShapeSystemFlavor {
+                    $flavor(data)
+                })?
             }
 
             /// An initialized, GPU-bound shape definition. All changed parameters are immediately

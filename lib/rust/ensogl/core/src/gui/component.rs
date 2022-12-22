@@ -11,7 +11,6 @@ use crate::display::scene::layer::WeakLayer;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
-use crate::display::shape::primitive::system::ShapeSystemFlavorProvider;
 use crate::display::symbol;
 use crate::frp;
 
@@ -59,11 +58,16 @@ impl<S: Shape> ShapeView<S> {
 
     fn init_on_scene_layer_changed(&self) {
         let weak_model = Rc::downgrade(&self.model);
-        self.display_object().set_on_scene_layer_changed(move |scene, old_layer, new_layer| {
-            if let Some(model) = weak_model.upgrade() {
-                model.on_scene_layer_changed(scene, old_layer, new_layer)
-            }
-        });
+        let display_object = self.display_object();
+        let network = &display_object.network;
+        frp::extend! { network
+            eval display_object.on_layer_change([] ((scene, old_layer, new_layer)) {
+                let scene = scene.as_ref().unwrap();
+                if let Some(model) = weak_model.upgrade() {
+                    model.on_scene_layer_changed(scene, old_layer.as_ref(), new_layer.as_ref());
+                }
+            });
+        }
     }
 }
 
@@ -140,11 +144,11 @@ impl<S: Shape> ShapeViewModel<S> {
     }
 
     fn remove_from_scene_layer(&self, old_layer: &WeakLayer) {
-        let flavor = self.data.borrow().flavor();
+        let flavor = S::flavor(&self.data.borrow());
         if let Some(layer) = old_layer.upgrade() {
-            let (instance_count, shape_system_id, _) =
+            let (no_more_instances, shape_system_id, _) =
                 layer.shape_system_registry.drop_instance::<S>(flavor);
-            if instance_count == 0 {
+            if no_more_instances {
                 layer.remove_shape_system(shape_system_id);
             }
         }
@@ -298,7 +302,7 @@ impl<Model: 'static, Frp: 'static> Widget<Model, Frp> {
 }
 
 impl<Model: 'static, Frp: 'static> display::Object for Widget<Model, Frp> {
-    fn display_object(&self) -> &display::object::Instance<Scene> {
+    fn display_object(&self) -> &display::object::Instance {
         &self.data.display_object
     }
 }

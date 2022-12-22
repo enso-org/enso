@@ -13,13 +13,13 @@ enso-types = { path = "../../../../../../types" }
 failure = { version = "0.1.6" }
 js-sys = { version = "0.3" }
 nalgebra = { version = "0.26.1" }
-wasm-bindgen = { version = "0.2.78" }
+wasm-bindgen = { workspace = true }
 serde = { version = "1", features = ["rc", "derive"] }
 owned_ttf_parser = "0.15.1"
 enso-web = { path = "../../../../../../web" }
 
 [dev-dependencies]
-wasm-bindgen-test = { version = "0.3.8" }
+wasm-bindgen-test = { workspace = true }
 futures = { version = "0.3.1" }
 ensogl-text-embedded-fonts = { path = "../../../src/font/embedded" }
 ensogl-text-font-family = { path = "../../../src/font/family" }

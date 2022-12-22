@@ -227,12 +227,12 @@ impl<Shape: ColorableShape + 'static> ToggleButton<Shape> {
 
              // === Input Processing ===
 
-            eval frp.set_size ((size) model.icon.size.set(*size));
+            eval frp.set_size ((size) model.icon.set_size(*size););
 
 
             // === State ===
 
-            toggle <- any_(frp.toggle,icon.mouse_down_primary);
+            toggle <- any_(frp.toggle, icon.mouse_down_primary);
             frp.source.state <+ frp.state.not().sample(&toggle);
             frp.source.state <+ frp.set_state;
 

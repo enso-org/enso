@@ -24,7 +24,7 @@ pub mod shape {
             let size        = Var::canvas_size();
             let radius      = Min::min(size.x(),size.y()) / 2.0;
             let round       = &radius / 6.0;
-            let rect        = Rect((&radius,&radius)).corners_radius(&round);
+            let rect        = Rect((&radius,&radius)).corners_radius(round);
             let strip_sizes = (&radius * 2.0 / 9.0, &radius*2.0);
             let strip       = Rect(strip_sizes).rotate(Radians::from(45.0.degrees()));
             let icon        = rect - strip;

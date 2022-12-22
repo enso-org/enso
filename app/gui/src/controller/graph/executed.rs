@@ -14,7 +14,7 @@ use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 
-use double_representation::module;
+use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use span_tree::generate::context::CalledMethodInfo;
 use span_tree::generate::context::Context;
@@ -279,6 +279,18 @@ impl Handle {
         Ok(())
     }
 
+    /// Interrupt the program execution.
+    pub async fn interrupt(&self) -> FallibleResult {
+        self.execution_ctx.interrupt().await?;
+        Ok(())
+    }
+
+    /// Restart the program execution.
+    pub async fn restart(&self) -> FallibleResult {
+        self.execution_ctx.restart().await?;
+        Ok(())
+    }
+
     /// Get the current call stack frames.
     pub fn call_stack(&self) -> Vec<LocalCall> {
         self.execution_ctx.stack_items().collect()
@@ -293,10 +305,7 @@ impl Handle {
 
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
-    pub fn module_qualified_name(
-        &self,
-        project: &dyn model::project::API,
-    ) -> module::QualifiedName {
+    pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {
         self.graph().module.path().qualified_module_name(project.qualified_name())
     }
 
