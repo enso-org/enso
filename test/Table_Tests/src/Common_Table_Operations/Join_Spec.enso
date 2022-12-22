@@ -338,7 +338,7 @@ spec setup =
             test Value_Type.Integer Value_Type.Char <|
                 t1.join t2 on=(Join_Condition.Between "Y" "Z" "W")
 
-        Test.specify "should warn when joining on equality of Decimal columns" pending=db_todo <|
+        Test.specify "should warn when joining on equality of Decimal columns" <|
             t1 = table_builder [["X", [1.5, 2.0, 2.00000000001]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["Z", [2.0, 1.5, 2.0]], ["W", [1, 2, 3]]]
 

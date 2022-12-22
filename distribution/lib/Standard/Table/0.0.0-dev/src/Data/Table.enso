@@ -1497,9 +1497,9 @@ slice_ranges table ranges =
 
 ## PRIVATE
 make_join_helpers left_table right_table =
-    make_equals left right = Java_Join_Equals.new left.java_column right.java_column
-    make_equals_ignore_case left right locale =
+    make_equals _ left right = Java_Join_Equals.new left.java_column right.java_column
+    make_equals_ignore_case _ left right locale =
         Java_Join_Equals_Ignore_Case.new left.java_column right.java_column locale.java_locale
-    make_between left right_lower right_upper =
+    make_between _ left right_lower right_upper =
         Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
