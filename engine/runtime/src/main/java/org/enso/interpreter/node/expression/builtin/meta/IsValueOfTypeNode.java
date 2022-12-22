@@ -73,12 +73,12 @@ public abstract class IsValueOfTypeNode extends Node {
   }
 
   @ExplodeLoop
-  private boolean checkParentTypes(Type actual, Type real) {
+  private boolean checkParentTypes(Type actual, Type expected) {
     for (; ; ) {
       if (actual == null) {
         return false;
       }
-      if (actual == real) {
+      if (actual == expected) {
         return true;
       }
       actual = actual.getSupertype();
