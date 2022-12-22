@@ -120,6 +120,17 @@ spec =
             four_field = FourFieldType.Value 1 2 3 4
             rect.should_not_equal four_field
 
+        Test.specify "should handle `==` on types" pending="Blocked by https://www.pivotaltracker.com/story/show/184092284" <|
+            Child.should_equal Child
+            Child.should_not_equal Point
+            Point.should_not_equal Child
+            HashMap.should_not_equal Child
+            Child.should_not_equal HashMap
+            Boolean.should_not_equal Any
+            Any.should_not_equal Boolean
+            Any.should_equal Any
+            Boolean.should_equal Boolean
+
         Test.specify "should dispatch to overriden `==` in vectors" <|
             [(Child.Value 1)].should_equal [(Child.Value 101)]
             [(Child.Value 1)].should_not_equal [(Child.Value 2)]
