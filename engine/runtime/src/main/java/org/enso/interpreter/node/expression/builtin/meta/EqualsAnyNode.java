@@ -463,82 +463,55 @@ public abstract class EqualsAnyNode extends Node {
     return nodes;
   }
 
-  static InvokeEqualsNode[] createInvokeEqualsNodes(int size) {
-    InvokeEqualsNode[] nodes = new InvokeEqualsNode[size];
-    Arrays.fill(nodes, InvokeEqualsNode.build());
-    return nodes;
-  }
-
   @Specialization
   boolean equalsAtoms(Atom self, Atom other,
       @Cached LoopConditionProfile loopProfile,
       @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsAnyNode[] fieldEqualsNodes,
-      @Cached(value = "createInvokeEqualsNodes(equalsNodeCountForFields)", allowUncached = true) InvokeEqualsNode[] fieldInvokeEqualsNodes,
       @Cached InvokeEqualsNode atomInvokeEqualsNode,
       @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
-      @Cached ConditionProfile fieldsSizeNotEqualProfile,
       @Cached ConditionProfile constructorsNotEqualProfile) {
-    if (fieldsSizeNotEqualProfile.profile(
-        self.getFields().length != other.getFields().length
-    )) {
-      return false;
-    }
     if (constructorsNotEqualProfile.profile(
         self.getConstructor() != other.getConstructor()
     )) {
       return false;
     }
+    assert self.getFields().length == other.getFields().length;
 
-    if (self instanceof Atom selfAtom
-        && other instanceof Atom otherAtom
-        && atomOverridesEquals(selfAtom)) {
-      return atomInvokeEqualsNode.execute(selfAtom, otherAtom);
+    if (atomOverridesEquals(self)) {
+      return atomInvokeEqualsNode.execute(self, other);
     }
 
-    assert self.getFields().length == other.getFields().length;
     int fieldsSize = self.getFields().length;
     if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
       loopProfile.profileCounted(fieldsSize);
       for (int i = 0; loopProfile.inject(i < fieldsSize); i++) {
-        boolean areFieldsSame;
-        // Note that otherFieldAtom does not have to override `==` method, it is sufficient if
-        // selfFieldAtom overrides `==` method.
-        Object selfField = self.getFields()[i];
-        Object otherField = other.getFields()[i];
-        if (selfField instanceof Atom selfFieldAtom
-            && otherField instanceof Atom otherFieldAtom
-            && atomOverridesEquals(selfFieldAtom)
-        ) {
-          areFieldsSame =
-              fieldInvokeEqualsNodes[i].execute(selfFieldAtom, otherFieldAtom);
-        } else {
-          areFieldsSame = fieldEqualsNodes[i].execute(
-              selfField,
-              otherField
-          );
-        }
-        if (!areFieldsSame) {
+        if (!fieldEqualsNodes[i].execute(
+            self.getFields()[i],
+            other.getFields()[i]
+        )) {
           return false;
         }
       }
     } else {
-      // If there are more fields than equalsNodeCountForFields, just bailout and use
-      // uncached variant of EqualsAnyNode and InvokeEqualsNode
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      for (int i = 0; i < fieldsSize; i++) {
-        Object selfField = self.getFields()[i];
-        Object otherField = other.getFields()[i];
-        boolean areFieldsSame;
-        if (selfField instanceof Atom selfFieldAtom
-            && otherField instanceof Atom otherFieldAtom
-            && atomOverridesEquals(selfFieldAtom)) {
-          areFieldsSame = InvokeEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
-        } else {
-          areFieldsSame = EqualsAnyNodeGen.getUncached().execute(selfField, otherField);
-        }
-        if (!areFieldsSame) {
-          return false;
-        }
+      return equalsAtomsFieldsUncached(self.getFields(), other.getFields());
+    }
+    return true;
+  }
+
+  @TruffleBoundary
+  private static boolean equalsAtomsFieldsUncached(Object[] selfFields, Object[] otherFields) {
+    assert selfFields.length == otherFields.length;
+    for (int i = 0; i < selfFields.length; i++) {
+      boolean areFieldsSame;
+      if (selfFields[i] instanceof Atom selfFieldAtom
+          && otherFields[i] instanceof Atom otherFieldAtom
+          && atomOverridesEquals(selfFieldAtom)) {
+        areFieldsSame = InvokeEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
+      } else {
+        areFieldsSame = EqualsAnyNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
+      }
+      if (!areFieldsSame) {
+        return false;
       }
     }
     return true;
@@ -579,6 +552,7 @@ public abstract class EqualsAnyNode extends Node {
       }
     }
 
+    @TruffleBoundary
     @Specialization(replaces = "invokeEqualsCachedAtomCtor")
     boolean invokeEqualsUncached(Atom selfAtom, Atom otherAtom,
         @Cached ExecuteCallNode executeCallNode) {
