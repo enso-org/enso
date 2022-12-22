@@ -151,7 +151,7 @@ impl Button {
         let button = ToggleButton::<icon::Shape>::new();
         scene.layers.panel.add(&button);
         button.set_visibility(true);
-        button.set_size(Vector2(32.0, 32.0));
+        button.frp.set_size(Vector2(32.0, 32.0));
 
         frp::extend! { network
 

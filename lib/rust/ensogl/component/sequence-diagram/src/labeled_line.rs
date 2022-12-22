@@ -98,7 +98,7 @@ impl component::Model for Model {
 
 impl Model {
     fn set_size(&self, size: Vector2) {
-        self.line.size.set(size + Vector2::new(CAP_WIDTH + HOVER_PADDING, 0.0));
+        self.line.set_size(size + Vector2::new(CAP_WIDTH + HOVER_PADDING, 0.0));
     }
 
     fn set_color(&self, color: Lcha) {

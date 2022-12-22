@@ -105,8 +105,14 @@ public class BuiltinsProcessor extends AbstractProcessor {
       out.println();
       String stdLib = stdLibName.map(n -> "(name = \"" + n + "\")").orElse("");
       out.println("@BuiltinType" + stdLib);
-      out.println("public class " + builtinType.name() + " extends Builtin {}");
-      out.println();
+      out.println("public class " + builtinType.name() + " extends Builtin {");
+      out.println("""
+        @Override
+        protected boolean containsValues() {
+          return true;
+        }
+      }
+      """);
     }
   }
 

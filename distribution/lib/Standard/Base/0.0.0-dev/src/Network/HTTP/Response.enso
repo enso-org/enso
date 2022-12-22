@@ -1,4 +1,4 @@
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Vector.Vector
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
@@ -54,15 +54,17 @@ type Response
     code : HTTP_Status_Code
     code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
 
-    ## Convert the response to JSON.
+    ## Convert to a JavaScript Object representing this Response.
 
        > Example
-         Convert a response to JSON. NOTE that this example will make a network
-         request.
+         Convert a response to JS_Object.
+         NOTE that this example will make a network request.
 
              import Standard.Examples
 
-             example_to_json = Examples.get_response.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "Response"], ["headers", self.headers], ["body", self.body], ["code", self.code]]
-
+             example_to_json = Examples.get_response.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "Response"]
+        cons_pair = ["constructor", "Value"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["headers", self.headers], ["body", self.body], ["code", self.code]]

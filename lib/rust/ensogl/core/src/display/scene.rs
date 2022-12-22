@@ -749,7 +749,7 @@ impl SceneData {
         debug!("Initializing.");
         let display_mode = display_mode.clone_ref();
         let dom = Dom::new();
-        let display_object = display::object::Root::new();
+        let display_object = display::object::Root::new_named("Scene");
         let variables = UniformScope::new();
         let dirty = Dirty::new(on_mut);
         let symbols_dirty = &dirty.symbols;

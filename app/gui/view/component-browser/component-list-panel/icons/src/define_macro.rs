@@ -84,7 +84,7 @@ macro_rules! define_icons {
                 match self {$(
                     Self::$variant => {
                         let view = $name::View::new();
-                        view.size.set(size);
+                        view.set_size(size);
                         let color_fn = Box::new(f!([view]()
                             color::Lcha::from(color::Rgba::from(view.color.get()))
                         ));

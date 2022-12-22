@@ -247,7 +247,7 @@ type Column_Count_Mismatch
     ## PRIVATE
     handle_java_exception =
         throw_column_count_mismatch caught_panic =
-            cause = caught_panic.payload.cause
+            cause = caught_panic.payload
             Error.throw (Column_Count_Mismatch.Error cause.getExpected cause.getActual)
         Panic.catch ColumnCountMismatchException handler=throw_column_count_mismatch
 
@@ -262,7 +262,7 @@ type Column_Name_Mismatch
     ## PRIVATE
     handle_java_exception =
         throw_column_name_mismatch caught_panic =
-            cause = caught_panic.payload.cause
+            cause = caught_panic.payload
             Error.throw (Column_Name_Mismatch.Error (Vector.from_polyglot_array cause.getMissing) (Vector.from_polyglot_array cause.getExtras) cause.getMessage)
         Panic.catch ColumnNameMismatchException handler=throw_column_name_mismatch
 

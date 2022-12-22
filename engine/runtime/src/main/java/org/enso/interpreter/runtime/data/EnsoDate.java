@@ -11,7 +11,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.time.LocalTime;
 
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -23,7 +22,7 @@ import java.time.format.DateTimeParseException;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date")
+@Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date.Date")
 public final class EnsoDate implements TruffleObject {
   private final LocalDate date;
 
@@ -39,7 +38,7 @@ public final class EnsoDate implements TruffleObject {
 
   @Builtin.Method(name = "parse_builtin", description = "Constructs a new Date from text with optional pattern", autoRegister = false)
   @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeParseException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate parse(Text text, Object noneOrPattern) {
     var str = text.toString();
@@ -52,7 +51,7 @@ public final class EnsoDate implements TruffleObject {
   }
 
   @Builtin.Method(name = "new_builtin", description = "Constructs a new Date from a year, month, and day", autoRegister = false)
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDate create(long year, long month, long day) {
     return new EnsoDate(LocalDate.of(Math.toIntExact(year), Math.toIntExact(month), Math.toIntExact(day)));
@@ -97,6 +96,16 @@ public final class EnsoDate implements TruffleObject {
   @ExportMessage
   LocalTime asTime() throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().date();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage

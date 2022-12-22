@@ -1,6 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Numbers.Integer
+import project.Error.Illegal_Argument.Illegal_Argument
 
 ## A helper type used for creating an array from a length and a callback
    providing its elements.
@@ -25,7 +26,17 @@ type Array_Proxy
 
              Vector.from_polyglot_array (Array_Proxy.new 10000000 (i -> i))
     new : Integer -> (Integer -> Any) -> Array
-    new length at = @Builtin_Method "Array_Proxy.new"
+    new length at = Illegal_Argument.handle_java_exception <|
+        Array_Proxy.new_builtin length at
+
+    ## PRIVATE
+       The builtin cannot throw `Illegal_Argument` as that type cannot be a
+       builtin, because they do not support default arguments in constructors.
+       So a wrapper is used which will translate a Java exception into the Enso
+       one. This indirection may be removed once the following story is done:
+       https://www.pivotaltracker.com/n/projects/2539304/stories/183817602
+    new_builtin : Integer -> (Integer -> Any) -> Array
+    new_builtin length at = @Builtin_Method "Array_Proxy.new_builtin"
 
     ## ADVANCED
        UNSTABLE

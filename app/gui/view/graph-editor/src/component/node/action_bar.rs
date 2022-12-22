@@ -172,7 +172,7 @@ impl Model {
         let index = index as f32;
         let padding = BUTTON_PADDING;
         let offset = BUTTON_OFFSET;
-        button.mod_position(|p| p.x = ((1.0 + padding) * index + offset) * icon_size.x);
+        button.set_x(((1.0 + padding) * index + offset) * icon_size.x);
         button.frp.set_size(icon_size);
     }
 
@@ -191,7 +191,7 @@ impl Model {
             button_width * (button_count + hover_padding + offset + padding) + HOVER_EXTENSION_X;
         let hover_height = button_width * 2.0;
         let hover_ara_size = Vector2::new(hover_width, hover_height);
-        self.hover_area.size.set(hover_ara_size);
+        self.hover_area.set_size(hover_ara_size);
         let center_offset = -size.x / 2.0 + hover_ara_size.x / 2.0;
         let padding_offset = -0.5 * hover_padding * button_width - HOVER_EXTENSION_X / 2.0;
         self.hover_area.set_x(center_offset + padding_offset);

@@ -1240,6 +1240,29 @@ fn multiline_annotations() {
 }
 
 
+// === SKIP and FREEZE ===
+
+#[test]
+fn freeze() {
+    test!("FREEZE x", (MultiSegmentApp #(((Ident FREEZE) (Ident x)))));
+    test!("FREEZE x + y", (MultiSegmentApp
+                           #(((Ident FREEZE) (OprApp (Ident x) (Ok "+") (Ident y))))));
+    test!("FREEZE x.f", (MultiSegmentApp
+                         #(((Ident FREEZE) (OprApp (Ident x) (Ok ".") (Ident f))))));
+    test!("FREEZE x.f y", (MultiSegmentApp #(((Ident FREEZE)
+                           (App (OprApp (Ident x) (Ok ".") (Ident f)) (Ident y))))));
+}
+
+#[test]
+fn skip() {
+    test!("SKIP x", (MultiSegmentApp #(((Ident SKIP) (Ident x)))));
+    test!("SKIP x + y", (MultiSegmentApp #(((Ident SKIP) (OprApp (Ident x) (Ok "+") (Ident y))))));
+    test!("SKIP x.f", (MultiSegmentApp #(((Ident SKIP) (OprApp (Ident x) (Ok ".") (Ident f))))));
+    test!("SKIP x.f y", (MultiSegmentApp #(((Ident SKIP)
+                         (App (OprApp (Ident x) (Ok ".") (Ident f)) (Ident y))))));
+}
+
+
 
 // ==========================
 // === Syntax Error Tests ===

@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Vector.Vector
 import project.Error.Error
-import project.Error.Common.Polyglot_Error
 import project.Meta
 import project.Runtime
 
@@ -45,20 +44,6 @@ type Panic
                  other_panic -> Panic.throw other_panic
     throw : Any -> Panic
     throw payload = @Builtin_Method "Panic.throw"
-
-    ## PRIVATE
-       Executes the provided action and if any panic was thrown, calls the
-       provided callback.
-
-       If action executes successfully, the result of `Panic.catch Any` is the
-       result of that action. Otherwise, it is the result of the provided
-       handler callback, executed with the caught panic as its first argument.
-
-       Arguments:
-       - action: The code to execute that potentially panics.
-       - handler: The callback to handle any panics.
-    catch_primitive : Any -> (Caught_Panic -> Any) -> Any
-    catch_primitive ~action handler = @Builtin_Method "Panic.catch_primitive"
 
     ## PRIVATE
 
@@ -110,8 +95,7 @@ type Panic
 
        Arguments:
        - panic_type: The expected panic type. It can either be an Enso type or a
-         Java class. If the Java class is provided, `Polyglot_Error` containing a
-         Java exception of this class will be matched.
+         Java class.
        - action: The code to execute that potentially panics.
        - handler: The callback to handle the panics. The callback will be provided
          with a `Caught_Panic` instance encapsulating the `payload` of the caught
@@ -137,50 +121,9 @@ type Panic
              polyglot java import java.lang.NumberFormatException
              parse str =
                  Panic.catch NumberFormatException (Long.parseLong str) caught_panic->
-                     Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.cause.getMessage)
+                     Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+caught_panic.payload.getMessage)
     catch : Any -> Any -> (Caught_Panic -> Any) -> Any
-    catch panic_type ~action handler =
-        Panic.catch_primitive action caught_panic->
-            case Meta.get_polyglot_language panic_type == "java" of
-                False -> case caught_panic.payload.is_a panic_type of
-                    True -> handler caught_panic
-                    False -> Panic.throw caught_panic
-                True -> case caught_panic.payload of
-                    Polyglot_Error.Error java_exception ->
-                        case java_exception.is_a panic_type of
-                            True -> handler caught_panic
-                            False -> Panic.throw caught_panic
-                    _ -> Panic.throw caught_panic
-
-    ## Executes the provided action and if a Java exception matching the provided type was
-       thrown, calls the provided callback.
-
-       Normally, Java exceptions are wrapped in a `Polyglot_Error` instance, so
-       using a `Panic.catch` requires unwrapping the error by calling
-       `caught_panic.payload.cause`. This helper function allows the handler to
-       work with the Java exception directly. The downside is that if the Java
-       exception is rethrown, it will be rethrown as a Java exception object
-       wrapped in an Enso panic. So if the handler needs to rethrow the original
-       exception preserving its shape and stacktrace, `Panic.catch` should still
-       be preferred.`
-
-       > Example
-         Convert a string to an integer, catching the Java `NumberFormatException`
-         and converting it to a more Enso-friendly dataflow error.
-
-             polyglot java import java.lang.Long
-             polyglot java import java.lang.NumberFormatException
-             parse str =
-                 Panic.catch_java NumberFormatException (Long.parseLong str) java_exception->
-                     Error.throw (Illegal_Argument.Error "The provided string is not a valid number: "+java_exception.getMessage)
-    catch_java : Any -> Any -> (Throwable -> Any) -> Any
-    catch_java panic_type ~action handler =
-        Panic.catch_primitive action caught_panic-> case caught_panic.payload of
-            Polyglot_Error.Error java_exception ->
-                case (panic_type == Any) || (java_exception.is_a panic_type) of
-                    True -> handler java_exception
-                    False -> Panic.throw caught_panic
-            _ -> Panic.throw caught_panic
+    catch panic_type ~action handler = @Builtin_Method "Panic.catch"
 
     ## Executes the provided action and converts a possible panic matching any of
        the provided types into a dataflow Error.
@@ -241,9 +184,7 @@ type Caught_Panic
        Arguments:
        - payload: the payload carried by the error.
        - internal_original_exception (private): the original Java exception that is
-         the source of this panic. Only for internal use. To get the Java exception
-         from polyglot exceptions, match the `payload` on `Polyglot_Error` and
-         extract the Java object from there.
+         the source of this panic. Only for internal use.
     Panic payload internal_original_exception
 
     ## Converts this caught panic into a dataflow error containing the same

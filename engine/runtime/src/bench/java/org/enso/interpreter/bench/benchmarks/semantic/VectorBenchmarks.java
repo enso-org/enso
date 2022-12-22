@@ -51,7 +51,7 @@ public class VectorBenchmarks {
 
         avg arr =
             sum acc i = if i == arr.length then acc else
-                sum (acc + arr.at i) i+1
+                @Tail_Call sum (acc + arr.at i) i+1
             (sum 0 0) / arr.length
 
         fibarr size modulo =

@@ -12,8 +12,25 @@ use ide_ci::programs::docker::ContainerId;
 
 
 
+#[derive(Copy, Clone, Debug, strum::Display, strum::EnumString)]
+pub enum Boolean {
+    True,
+    False,
+}
+
+impl From<bool> for Boolean {
+    fn from(value: bool) -> Self {
+        if value {
+            Self::True
+        } else {
+            Self::False
+        }
+    }
+}
+
 ide_ci::define_env_var! {
     ENSO_JVM_OPTS, String;
+    ENSO_BENCHMARK_TEST_DRY_RUN, Boolean;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -37,6 +54,11 @@ impl AsRef<OsStr> for IrCaches {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct BenchmarkOptions {
+    pub dry_run: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct BuiltEnso {
     pub paths: Paths,
@@ -48,9 +70,10 @@ impl BuiltEnso {
         self.paths.engine.dir.join_iter(["bin", &filename])
     }
 
-    pub async fn run_benchmarks(&self) -> Result {
+    pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
         self.cmd()?
             .with_args(["--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
             .run_ok()
             .await
     }

@@ -197,7 +197,17 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType() {
+  public Type getType() {
     return getConstructor().getType();
+  }
+
+  @ExportMessage
+  Type getMetaObject() {
+      return getType();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+      return true;
   }
 }

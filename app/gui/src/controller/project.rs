@@ -8,12 +8,10 @@ use crate::controller::ide::StatusNotificationPublisher;
 use double_representation::import;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
-use engine_protocol::common::error::code;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::language_server::Path;
 use enso_frp::web::platform;
 use enso_frp::web::platform::Platform;
-use json_rpc::error::RpcError;
 use parser_scala::Parser;
 
 
@@ -245,18 +243,7 @@ impl Project {
         let root_path = Path::new(project_root_id, &path_segments);
         let language_server = self.model.json_rpc();
         async move {
-            let response = language_server.save_vcs(&root_path, &None).await;
-            if let Err(RpcError::RemoteError(json_rpc::messages::Error {
-                code: error_code, ..
-            })) = response
-            {
-                if error_code == code::FILE_NOT_FOUND {
-                    language_server.init_vcs(&root_path).await?;
-                    language_server.save_vcs(&root_path, &None).await?;
-                    return Ok(());
-                }
-            }
-            response?;
+            language_server.save_vcs(&root_path, &None).await?;
             Ok(())
         }
     }
@@ -322,65 +309,29 @@ mod tests {
 
     // === Project Snapshotting ===
 
-    /// Structure that keeps track of whether the VCS is initialized and how many commits are made.
+    /// Structure that keeps track of how many commits are made.
     struct VcsMockState {
-        init:         Cell<bool>,
         commit_count: Cell<usize>,
     }
 
     /// Mock project that updates a VcsMockState on relevant language server API calls.
     fn setup_mock_project(vcs: Rc<VcsMockState>) -> model::Project {
         let json_client = language_server::MockClient::default();
-        let project_root_id = crate::test::mock::data::ROOT_ID;
         let path_segments: [&str; 0] = [];
-        let root_path = Path::new(project_root_id, &path_segments);
-        let vcs_entry = language_server::response::SaveVcs {
-            commit_id: "commit_id".into(),
-            message:   "message".into(),
-        };
-        let vcs_err = RpcError::RemoteError(json_rpc::messages::Error {
-            code:    code::FILE_NOT_FOUND,
-            message: "VCS is not initialized.".into(),
-            data:    None,
-        });
+        let root_path = Path::new(Uuid::default(), &path_segments);
 
-        let vcs_clone = vcs.clone();
-        let root_path_clone = root_path.clone();
-        json_client.expect.init_vcs(move |path| {
-            assert_eq!(path, &root_path_clone);
-            assert!(!vcs_clone.init.get(), "VCS is already initialized.");
-            vcs_clone.init.set(true);
-            Ok(())
-        });
-
-        let vcs_clone = vcs.clone();
-        let root_path_clone = root_path.clone();
-        let vcs_entry_clone = vcs_entry.clone();
-        json_client.expect.save_vcs(move |path, name| {
-            assert_eq!(path, &root_path_clone);
-            assert_eq!(name, &None);
-            if vcs_clone.init.get() {
-                let count = vcs_clone.commit_count.get();
-                vcs_clone.commit_count.set(count + 1);
-                Ok(vcs_entry_clone)
-            } else {
-                Err(vcs_err)
-            }
-        });
-
-        // Expect a 2nd call to `write_vcs` if the first failed because the VCS was not initialized.
+        let vcs_entry = language_server::response::SaveVcs::default();
         json_client.expect.save_vcs(move |path, name| {
             assert_eq!(path, &root_path);
             assert_eq!(name, &None);
-            assert!(vcs.init.get(), "VCS is not initialized.");
             let count = vcs.commit_count.get();
             vcs.commit_count.set(count + 1);
             Ok(vcs_entry)
         });
 
-        let ls = engine_protocol::language_server::Connection::new_mock_rc(json_client);
+        let ls = language_server::Connection::new_mock_rc(json_client);
         let mut project = model::project::MockAPI::new();
-        model::project::test::expect_root_id(&mut project, project_root_id);
+        model::project::test::expect_root_id(&mut project, Uuid::default());
         project.expect_json_rpc().returning_st(move || ls.clone_ref());
         Rc::new(project)
     }
@@ -388,30 +339,12 @@ mod tests {
     #[wasm_bindgen_test]
     fn save_project_snapshot() {
         TestWithLocalPoolExecutor::set_up().run_task(async move {
-            let vcs =
-                Rc::new(VcsMockState { init: Cell::new(true), commit_count: Cell::new(2) });
+            let vcs = Rc::new(VcsMockState { commit_count: Cell::new(2) });
             let project = setup_mock_project(vcs.clone());
             let project_controller = controller::Project::new(project, default());
             let result = project_controller.save_project_snapshot().await;
             assert_matches!(result, Ok(()));
-            assert!(vcs.init.get(), "VCS is not initialized.");
             assert_eq!(vcs.commit_count.get(), 3);
-        });
-    }
-
-    #[wasm_bindgen_test]
-    fn save_project_snapshot_vcs_not_init() {
-        TestWithLocalPoolExecutor::set_up().run_task(async move {
-            let vcs = Rc::new(VcsMockState {
-                init:         Cell::new(false),
-                commit_count: Cell::new(0),
-            });
-            let project = setup_mock_project(vcs.clone());
-            let project_controller = controller::Project::new(project, default());
-            let result = project_controller.save_project_snapshot().await;
-            assert_matches!(result, Ok(()));
-            assert!(vcs.init.get(), "VCS is not initialized.");
-            assert_eq!(vcs.commit_count.get(), 1);
         });
     }
 }

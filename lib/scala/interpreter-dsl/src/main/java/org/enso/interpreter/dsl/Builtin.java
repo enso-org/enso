@@ -209,7 +209,7 @@ public @interface Builtin {
    * <pre>
    * class Foo {
    * {@link Builtin.Method @Builtin.Method}
-   * {@link Builtin.WrapException @Builtin.WrapException}(from=IOException.class, to=PolyglotError.class, propagate=true)
+   * {@link Builtin.WrapException @Builtin.WrapException}(from=IOException.class, to=PanicException.class, propagate=true)
    *   public Object create(Object path) throws java.io.IOException {
    *       // ...
    *   }
@@ -226,8 +226,7 @@ public @interface Builtin {
    *     try {
    *       return self.create(path)
    *     } catch (java.io.IOException e) {
-   *       Builtins builtins = EnsoContext.get(this).getBuiltins();
-   *       throw new PanicException(builtins.error().makePolyglotError(e), this);
+   *       throw new PanicException(EnsoContext.get(this).getEnvironment().asGuestValue(e), this);"
    *     }
    *   }
    * }
@@ -237,8 +236,11 @@ public @interface Builtin {
   @interface WrapException {
     /** @return Class of the potential exception to be caught during the execution of the method. */
     Class<? extends Exception> from();
-    /** @return Class of Enso's builtin (error) type to throw instead. */
-    Class<?> to();
+    /**
+     * @return Class of Enso's builtin (error) type to throw instead. If omitted, will default to
+     *     PanicException.
+     */
+    Class<?> to() default Class.class;
   }
 
   /**
@@ -246,8 +248,8 @@ public @interface Builtin {
    * Instead, use multiple {@link WrapException}:
    *
    * <pre>
-   *     {@link Builtin.WrapException @Builtin.WrapException}(from=FooException.class, to=PolyglotError.class, propagate=true)
-   *     {@link Builtin.WrapException @Builtin.WrapException}(from=BarException.class, to=PolyglotError.class, propagate=true)
+   *     {@link Builtin.WrapException @Builtin.WrapException}(from=FooException.class, to=PanicException.class, propagate=true)
+   *     {@link Builtin.WrapException @Builtin.WrapException}(from=BarException.class, to=PanicException.class, propagate=true)
    *     Object foo(Object item) {
    *         // ...
    *     }
