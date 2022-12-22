@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::model::module::MethodId;
+use crate::model::suggestion_database::documentation_ir::EntryDocumentation;
 use crate::model::suggestion_database::entry::Kind;
 use crate::model::suggestion_database::entry::ModuleSpan;
 use crate::notification;
@@ -21,6 +22,7 @@ use language_server::types::SuggestionsDatabaseVersion;
 // === Export ===
 // ==============
 
+pub mod documentation_ir;
 pub mod entry;
 pub mod example;
 pub mod mock;
@@ -175,9 +177,6 @@ impl HierarchyIndex {
     /// Get all "children" of the entry with the given id. Returns a set of Methods and Constructors
     /// of the Type entry, or a set of Types defined in the Module entry. Returns [`None`] for
     /// other entries.
-    ///
-    /// TODO: Use this getter as part of the https://www.pivotaltracker.com/story/show/184012434.
-    #[allow(dead_code)]
     pub fn get(&self, id: &entry::Id) -> Option<&HashSet<entry::Id>> {
         self.inner.get(id)
     }
@@ -426,6 +425,24 @@ impl SuggestionDatabase {
             let is_defined_for_module = entry.has_self_type(module);
             is_method && is_defined_for_module && entry.matches_name(name.as_ref())
         })
+    }
+
+    /// Lookup hierarchy index for given id. See [`HierarchyIndex`] for more information.
+    pub fn lookup_hierarchy(&self, id: entry::Id) -> Result<HashSet<entry::Id>, NoSuchEntry> {
+        let hierarchy = self.hierarchy_index.borrow();
+        let children = hierarchy.get(&id).cloned().ok_or(NoSuchEntry(id))?;
+        Ok(children)
+    }
+
+    /// Lookup documentation of the given entry.
+    pub fn documentation_for_entry(&self, id: entry::Id) -> EntryDocumentation {
+        match EntryDocumentation::new(self, &id) {
+            Ok(docs) => docs,
+            Err(err) => {
+                error!("Error when generating documentation for entry {id}: {}", err);
+                default()
+            }
+        }
     }
 
     /// An iterator over all examples gathered from suggestions.
