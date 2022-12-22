@@ -1,7 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.ibm.icu.text.Normalizer;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -17,13 +16,10 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
-import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
@@ -57,8 +53,19 @@ public abstract class EqualsAnyNode extends Node {
 
   /** Primitive values **/
 
+
+  @Specialization
+  boolean equalsBoolean(boolean self, boolean other) {
+    return self == other;
+  }
+
   @Specialization
   boolean equalsLong(long self, long other) {
+    return self == other;
+  }
+
+  @Specialization
+  boolean equalsDouble(double self, double other) {
     return self == other;
   }
 
@@ -83,13 +90,13 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   @Specialization
-  boolean equalsBoolean(boolean self, boolean other) {
-    return self == other;
+  boolean equalsIntDouble(int self, double other) {
+    return (double) self == other;
   }
 
   @Specialization
-  boolean equalsDouble(double self, double other) {
-    return self == other;
+  boolean equalsDoubleInt(double self, int other) {
+    return self == (double) other;
   }
 
   @Specialization
