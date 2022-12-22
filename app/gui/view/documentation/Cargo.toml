@@ -23,5 +23,5 @@ version = "0.3.4"
 features = []
 
 [build-dependencies]
-ide-ci = { path = "../../../../build/ci_utils"}
-tokio = { workspace = true}
+ide-ci = { path = "../../../../build/ci_utils" }
+tokio = { workspace = true }
