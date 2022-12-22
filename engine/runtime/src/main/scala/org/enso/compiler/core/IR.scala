@@ -5709,6 +5709,7 @@ object IR {
       *
       * @param scrutinee the expression whose value is being matched on
       * @param branches the branches of the case expression
+      * @param isNested if true, the flag indicates that the expr represents a desugared nested case
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -5716,6 +5717,7 @@ object IR {
     sealed case class Expr(
       scrutinee: Expression,
       branches: Seq[Branch],
+      isNested: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -5723,10 +5725,21 @@ object IR {
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
+      def this(
+        scrutinee: Expression,
+        branches: Seq[Branch],
+        location: Option[IdentifiedLocation],
+        passData: MetadataStorage,
+        diagnostics: DiagnosticStorage
+      ) = {
+        this(scrutinee, branches, false, location, passData, diagnostics)
+      }
+
       /** Creates a copy of `this`.
         *
         * @param scrutinee the expression whose value is being matched on
         * @param branches the branches of the case expression
+        * @param isNested if true, the flag indicates that the expr represents a desugared nested case
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -5736,13 +5749,14 @@ object IR {
       def copy(
         scrutinee: Expression                = scrutinee,
         branches: Seq[Branch]                = branches,
+        isNested: Boolean                    = isNested,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Expr = {
         val res =
-          Expr(scrutinee, branches, location, passData, diagnostics)
+          Expr(scrutinee, branches, isNested, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -5769,6 +5783,7 @@ object IR {
               keepIdentifiers
             )
           ),
+          isNested = isNested,
           location = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
@@ -5795,6 +5810,7 @@ object IR {
         |IR.Case.Expr(
         |scrutinee = $scrutinee,
         |branches = $branches,
+        |isNested = $isNested,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -5817,10 +5833,34 @@ object IR {
       }
     }
 
+    object Expr {
+      def apply(
+        scrutinee: Expression,
+        branches: Seq[Branch],
+        location: Option[IdentifiedLocation]
+      ): Expr =
+        apply(
+          scrutinee,
+          branches,
+          location,
+          new MetadataStorage(),
+          new DiagnosticStorage()
+        )
+
+      def apply(
+        scrutinee: Expression,
+        branches: Seq[Branch],
+        location: Option[IdentifiedLocation],
+        passData: MetadataStorage,
+        diagnostics: DiagnosticStorage
+      ): Expr = new Expr(scrutinee, branches, location, passData, diagnostics)
+    }
+
     /** A branch in a case statement.
       *
       * @param pattern the pattern that attempts to match against the scrutinee
       * @param expression the expression that is executed if the pattern matches
+      * @param terminalBranch the flag indicating whether the branch represents the final pattern to be checked
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -5828,12 +5868,23 @@ object IR {
     sealed case class Branch(
       pattern: Pattern,
       expression: Expression,
+      terminalBranch: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Case
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
+
+      def this(
+        pattern: Pattern,
+        expression: Expression,
+        location: Option[IdentifiedLocation],
+        passData: MetadataStorage,
+        diagnostics: DiagnosticStorage
+      ) = {
+        this(pattern, expression, true, location, passData, diagnostics)
+      }
 
       /** Creates a copy of `this`.
         *
@@ -5848,12 +5899,20 @@ object IR {
       def copy(
         pattern: Pattern                     = pattern,
         expression: Expression               = expression,
+        terminalBranch: Boolean              = terminalBranch,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Branch = {
-        val res = Branch(pattern, expression, location, passData, diagnostics)
+        val res = Branch(
+          pattern,
+          expression,
+          terminalBranch,
+          location,
+          passData,
+          diagnostics
+        )
         res.id = id
         res
       }
@@ -5878,7 +5937,8 @@ object IR {
             keepDiagnostics,
             keepIdentifiers
           ),
-          location = if (keepLocations) location else None,
+          terminalBranch = terminalBranch,
+          location       = if (keepLocations) location else None,
           passData =
             if (keepMetadata) passData.duplicate else MetadataStorage(),
           diagnostics =
@@ -5901,6 +5961,7 @@ object IR {
         |IR.Case.Branch(
         |pattern = $pattern,
         |expression = $expression,
+        |terminalBranch = $terminalBranch,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -5921,6 +5982,30 @@ object IR {
         }
         s"${pattern.showCode(indent)} -> $bodyStr"
       }
+    }
+
+    object Branch {
+      def apply(
+        pattern: Pattern,
+        expression: Expression,
+        location: Option[IdentifiedLocation]
+      ): Branch =
+        apply(
+          pattern,
+          expression,
+          location,
+          new MetadataStorage(),
+          new DiagnosticStorage()
+        )
+
+      def apply(
+        pattern: Pattern,
+        expression: Expression,
+        location: Option[IdentifiedLocation],
+        passData: MetadataStorage,
+        diagnostics: DiagnosticStorage
+      ): Branch =
+        new Branch(pattern, expression, location, passData, diagnostics)
     }
   }
 

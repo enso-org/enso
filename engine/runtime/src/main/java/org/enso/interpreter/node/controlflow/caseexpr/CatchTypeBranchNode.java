@@ -15,8 +15,8 @@ public class CatchTypeBranchNode extends BranchNode {
   private @Child IsValueOfTypeNode isValueOfTypeNode = IsValueOfTypeNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  CatchTypeBranchNode(Type tpe, RootCallTarget functionNode) {
-    super(functionNode);
+  CatchTypeBranchNode(Type tpe, RootCallTarget functionNode, boolean terminalBranch) {
+    super(functionNode, terminalBranch);
     this.expectedType = tpe;
   }
 
@@ -27,8 +27,9 @@ public class CatchTypeBranchNode extends BranchNode {
    * @param functionNode the function to execute in this case
    * @return a catch-all node
    */
-  public static CatchTypeBranchNode build(Type tpe, RootCallTarget functionNode) {
-    return new CatchTypeBranchNode(tpe, functionNode);
+  public static CatchTypeBranchNode build(
+      Type tpe, RootCallTarget functionNode, boolean terminalBranch) {
+    return new CatchTypeBranchNode(tpe, functionNode, terminalBranch);
   }
 
   public void execute(VirtualFrame frame, Object state, Object value) {
