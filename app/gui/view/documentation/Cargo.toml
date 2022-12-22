@@ -21,3 +21,7 @@ serde_json = { version = "1.0" }
 [dependencies.web-sys]
 version = "0.3.4"
 features = []
+
+[build-dependencies]
+ide-ci = { path = "../../../../build/ci_utils"}
+tokio = { workspace = true}

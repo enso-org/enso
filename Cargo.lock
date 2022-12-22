@@ -4040,8 +4040,10 @@ dependencies = [
  "ensogl",
  "ensogl-component",
  "ensogl-hardcoded-theme",
+ "ide-ci",
  "ide-view-graph-editor",
  "serde_json",
+ "tokio",
  "wasm-bindgen",
  "web-sys",
 ]

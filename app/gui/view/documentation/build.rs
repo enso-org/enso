@@ -3,19 +3,15 @@
 //!
 //! See crate documentation to learn more.
 
-use std::process::Command;
-
-
+use ide_ci::prelude::*;
+use ide_ci::programs::Npm;
 
 /// The path to the input file. One can define arbitrary CSS rules there and they will be copied
 /// in the output file.
 const CSS_INPUT_PATH: &str = "assets/input.css";
-/// The path to the output file.
-const CSS_OUTPUT_PATH: &str = "assets/stylesheet.css";
-/// The name of the Tailwind CLI utility. This name is provided to the `npx` utility.
-const TAILWIND_BINARY_NAME: &str = "tailwindcss";
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result {
     // We should rerun the tailwind on changes in our sources.
     // Tailwind scans this directory to determine the used classes.
     println!("cargo:rerun-if-changed=src");
@@ -23,12 +19,13 @@ fn main() {
     // It may contain custom CSS rules.
     println!("cargo:rerun-if-changed={CSS_INPUT_PATH}");
 
-    let output = Command::new("npx")
-        .args([TAILWIND_BINARY_NAME, "-i", CSS_INPUT_PATH, "-o", CSS_OUTPUT_PATH])
-        .stderr(std::process::Stdio::inherit())
-        .output()
-        .expect("Failed to execute TailwindCSS");
-    if !output.status.success() {
-        panic!("TailwindCSS failed with status code {:?}. Is it installed?", output.status.code());
-    }
+    install_and_run_tailwind().await?;
+    Ok(())
+}
+
+async fn install_and_run_tailwind() -> Result {
+    let no_args: [&str; 0] = [];
+    Npm.cmd()?.install().run_ok().await?;
+    Npm.cmd()?.run("generate", no_args).run_ok().await?;
+    Ok(())
 }
