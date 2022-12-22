@@ -246,6 +246,21 @@ impl List {
         let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
         top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         let favorites = self.build_favorites_and_add_to_all_components();
+
+        // Separate module groups by namespace.
+        let mut module_groups_by_namespace: HashMap<
+            ImString,
+            HashMap<component::Id, component::ModuleGroups>,
+        > = HashMap::new();
+        for (id, group) in self.module_groups.clone() {
+            let namespace = group.qualified_name.project().namespace.clone();
+            module_groups_by_namespace
+                .entry(namespace)
+                .or_insert(default())
+                .insert(id, group.build());
+        }
+        let module_groups_by_namespace = Rc::new(module_groups_by_namespace);
+
         component::List {
             all_components: Rc::new(self.all_components),
             top_modules: top_mdl_bld.build(),
@@ -253,6 +268,7 @@ impl List {
             module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
+            module_groups_by_namespace,
             local_scope: self.local_scope,
             filtered: default(),
             favorites,
