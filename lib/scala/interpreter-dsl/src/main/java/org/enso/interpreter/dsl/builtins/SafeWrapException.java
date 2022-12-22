@@ -31,7 +31,6 @@ public record SafeWrapException(Attribute.Class from, Optional<Attribute.Class> 
             return List.of(
                 "  } catch (" + from + " e) {",
                 "    com.oracle.truffle.api.CompilerDirectives.transferToInterpreter();",
-                "    Builtins builtins = EnsoContext.get(this).getBuiltins();",
                 "    throw new PanicException(e.getMessage(), this);"
             );
         } else if (toPanicExcpetion) {

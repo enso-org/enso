@@ -1123,7 +1123,8 @@ class RuntimeServerTest
       TestMessages
         .pending(
           contextId,
-          fooX
+          fooX,
+          mainFoo
         ),
       TestMessages
         .update(
@@ -1136,9 +1137,7 @@ class RuntimeServerTest
           contextId,
           mainFoo,
           ConstantsGen.INTEGER,
-          Api
-            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
-          fromCache = true
+          Api.MethodPointer(moduleName, moduleName, "foo")
         ),
       context.executionComplete(contextId)
     )

@@ -51,7 +51,7 @@ class RuntimeVisualizationsTest
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
-        .newBuilder(LanguageInfo.ID)
+        .newBuilder()
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
@@ -783,6 +783,215 @@ class RuntimeVisualizationsTest
         data
     }
     data1.sameElements("45".getBytes) shouldBe true
+  }
+
+  it should "emit visualisation update when frame popped" in {
+    val contents   = context.Main.code
+    val moduleName = "Enso_Test.Test.Main"
+    val mainFile   = context.writeMain(contents)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // open files
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code
+        )
+      )
+    )
+    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainZ,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "encode"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receiveN(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId = context.Main.idMainZ
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "50"
+
+    // push foo call
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idFooZ,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "encode"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses2 = context.receiveN(2)
+    attachVisualisationResponses2 should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId2 = context.Main.idFooZ
+    val Some(data2) = attachVisualisationResponses2.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId2`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data2) shouldEqual "45"
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(10, 15), model.Position(10, 16)),
+              "5"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+
+    val editFileResponse = context.receiveNIgnorePendingExpressionUpdates(4)
+    editFileResponse should contain allOf (
+      TestMessages.update(contextId, context.Main.idFooY, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, context.Main.idFooZ, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+    val Some(data3) = editFileResponse.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId2`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data3) shouldEqual "55"
+
+    // pop foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    val popContextResponses = context.receiveNIgnorePendingExpressionUpdates(
+      5
+    )
+    popContextResponses should contain allOf (
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    val Some(data4) = popContextResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data4) shouldEqual "60"
   }
 
   it should "be able to modify visualisations" in {
