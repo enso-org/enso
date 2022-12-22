@@ -382,49 +382,6 @@ public abstract class EqualsAnyNode extends Node {
     }
   }
 
-  /**
-   * Behind truffle boundary, because comparing exceptions is not expected to be on fast path.
-   * @return True if the givne exceptions are the same
-   */
-  @TruffleBoundary
-  @Specialization(guards = {
-      "selfInterop.isException(selfException)",
-      "otherInterop.isException(otherException)",
-  }, limit = "3")
-  boolean equalsExceptions(Object selfException, Object otherException,
-      @CachedLibrary("selfException") InteropLibrary selfInterop,
-      @CachedLibrary("otherException") InteropLibrary otherInterop,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
-    try {
-      boolean sameExceptionTypes =
-          selfInterop.getExceptionType(selfException) == otherInterop.getExceptionType(otherException);
-
-      String selfMessage = null;
-      if (selfInterop.hasExceptionMessage(selfException)) {
-        selfMessage = interop.asString(
-            selfInterop.getExceptionMessage(selfException)
-        );
-      }
-      String otherMessage = null;
-      if (otherInterop.hasExceptionMessage(otherException)) {
-        otherMessage = interop.asString(
-            otherInterop.getExceptionMessage(otherException)
-        );
-      }
-      boolean sameMessages = Objects.equals(selfMessage, otherMessage);
-
-      Object selfCause =
-          selfInterop.hasExceptionCause(selfException) ? selfInterop.getExceptionCause(selfException) : null;
-      Object otherCause =
-          otherInterop.hasExceptionCause(otherException) ? otherInterop.getExceptionCause(otherException) : null;
-      boolean sameCauses = Objects.equals(selfCause, otherCause);
-
-      return sameExceptionTypes && sameMessages && sameCauses;
-    } catch (UnsupportedMessageException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   /** Equals for Atoms and AtomConstructors */
 
   @Specialization
