@@ -4,6 +4,7 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
+import Standard.Table.Data.Join_Kind.Join_Kind
 
 import project.Data.SQL
 import project.Data.SQL_Statement.SQL_Statement
@@ -12,6 +13,7 @@ import project.Internal.Base_Generator
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
+import project.Internal.Common.Join_Helper
 
 from project.Data.SQL import code
 from project.Errors import Unsupported_Database_Operation
@@ -73,6 +75,21 @@ type SQLite_Dialect
                             Order_Descriptor.Value internal_column.expression sort_direction collation="NOCASE"
         False ->
             Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
+
+    ## PRIVATE
+       Prepares a join operation, returning a new table instance encapsulating a
+       proper query.
+    prepare_join : Connection -> Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector ->
+    prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions columns_to_select = case join_kind of
+        Join_Kind.Right_Outer ->
+            # We just do a left join with swapped order of tables, while keeping the original order of columns.
+            Join_Helper.default_prepare_join connection Join_Kind.Left_Outer new_table_name right_subquery left_subquery on_expressions columns_to_select
+        Join_Kind.Full ->
+            # TODO workaround for full joins by left outer + right-anti union
+            Error.throw (Unsupported_Database_Operation.Error "Full outer joins are not YET supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
+        _ ->
+            # Other kinds of joins just fall back to the default logic.
+            Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions columns_to_select
 
 ## PRIVATE
 make_internal_generator_dialect =

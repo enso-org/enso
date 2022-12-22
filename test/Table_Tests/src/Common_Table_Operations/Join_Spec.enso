@@ -45,7 +45,7 @@ spec setup =
 
         Test.specify "should allow Full join" <|
             t3 = t1.join t2 join_kind=Join_Kind.Full |> materialize |> _.order_by ["X", "W"]
-            case setup.test_selection.supports_right_join of
+            case setup.test_selection.supports_full_join of
                 True ->
                     expect_column_names ["X", "Y", "Z", "W"] t3
                     t3.at "X" . to_vector . should_equal [Nothing, 1, 2, 2, 3]
@@ -66,15 +66,11 @@ spec setup =
 
         Test.specify "should allow Right Outer join" <|
             t5 = t1.join t2 join_kind=Join_Kind.Right_Outer |> materialize |> _.order_by ["X", "W"]
-            case setup.test_selection.supports_right_join of
-                True ->
-                    expect_column_names ["X", "Y", "Z", "W"] t5
-                    t5.at "X" . to_vector . should_equal [Nothing, 2, 2, 3]
-                    t5.at "Y" . to_vector . should_equal [Nothing, 5, 5, 6]
-                    t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
-                    t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
-                False ->
-                    t5.should_fail_with Unsupported_Database_Operation.Error
+            expect_column_names ["X", "Y", "Z", "W"] t5
+            t5.at "X" . to_vector . should_equal [Nothing, 2, 2, 3]
+            t5.at "Y" . to_vector . should_equal [Nothing, 5, 5, 6]
+            t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
+            t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
 
         Test.specify "should allow to perform anti-joins" pending=db_todo <|
             t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive |> materialize |> _.order_by ["X"]
@@ -269,7 +265,7 @@ spec setup =
             t2.at "A_1" . to_vector . should_equal ["B", "C", "C", "D"]
 
             t3 = t1.join t1 join_kind=Join_Kind.Full on=(Join_Condition.Equals left="X" right="Y") |> materialize |> _.order_by ["X", "Y", "X_1"]
-            case setup.test_selection.supports_right_join of
+            case setup.test_selection.supports_full_join of
                 True ->
                     expect_column_names ["X", "Y", "A", "X_1", "Y_1", "A_1"] t3
                     t3.at "X" . to_vector . should_equal [Nothing, Nothing, 0, 1, 2, 2, 3]

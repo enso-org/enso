@@ -34,7 +34,6 @@ import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Join_Kind.Join_Kind as Internal_Join_Kind
 import project.Internal.IR.Query.Query
 
 from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
@@ -797,14 +796,6 @@ type Table
 
             # TODO proper equality of nulls in join conditions
             # TODO all-null rows
-            # TODO anti-joins
-            internal_kind = case join_kind of
-                Join_Kind.Inner           -> Internal_Join_Kind.Inner
-                Join_Kind.Left_Outer      -> Internal_Join_Kind.Left
-                Join_Kind.Right_Outer     -> Internal_Join_Kind.Right
-                Join_Kind.Full            -> Internal_Join_Kind.Full
-                Join_Kind.Left_Exclusive  -> Unimplemented.throw "anti-joins not implemented yet"
-                Join_Kind.Right_Exclusive -> Unimplemented.throw "anti-joins not implemented yet"
 
             on_expressions = case join_resolution.conditions of
                 # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
@@ -813,11 +804,7 @@ type Table
                     Panic.throw (Unsupported_Database_Operation.Error "Some join conditions failed to resolve, so the join cannot be performed. In the future this wil return an empty result?")
                 on_expressions -> on_expressions
 
-            new_from = From_Spec.Join internal_kind left_subquery right_subquery on_expressions
-            new_limit = Nothing
-            new_ctx = Context.Value new_from [] [] [] [] new_limit
-
-            Table.Value new_table_name self.connection new_columns new_ctx
+            self.connection.dialect.prepare_join self.connection join_kind new_table_name left_subquery right_subquery on_expressions columns_to_select=new_columns
 
     ## ALIAS group, summarize
 
