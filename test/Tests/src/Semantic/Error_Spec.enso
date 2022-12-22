@@ -250,7 +250,7 @@ spec =
             catch_any . should_equal "Any: [1]"
 
             catch_vector = Panic.catch Any handler=(handle_panic prefix="Any") <|
-              Panic.catch Array handler=handle_panic <|
+              Panic.catch Vector handler=handle_panic <|
                 (Panic.throw (Vector.new 1 (i -> i + 1)))
             catch_vector . should_equal "[1]"
 

@@ -41,7 +41,7 @@ foreign js make_str x = """
 foreign js call_function fn arg_1 = """
     return fn(arg_1, "a string");
 
-Number.foo = "foo called"
+Number.foo self = "foo called"
 
 spec =
     Test.group "Conversion" <|
@@ -95,7 +95,7 @@ spec =
                 _ -> False
             is_symbol.should_be_true
 
-            .from . is_a Meta.Unresolved_Symbol . should_be_true
+            .from . to_text . should_equal "UnresolvedConversion"
 
             meta_from.name.should_equal "from"
 

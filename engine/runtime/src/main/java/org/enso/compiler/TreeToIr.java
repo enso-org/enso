@@ -152,8 +152,8 @@ final class TreeToIr {
                   expressions.last(),
                   combinedLocation,
                   false,
-                  null,
-                  null
+                  meta(),
+                  diag()
               )
           );
         }
