@@ -41,7 +41,7 @@ Any.should_fail_with self matcher frames_to_skip=0 =
 Error.should_fail_with : Any -> Integer -> Test_Result
 Error.should_fail_with self matcher frames_to_skip=0 =
     caught = self.catch
-    if caught.is_a matcher then Nothing else
+    if caught == matcher || caught.is_a matcher then Nothing else
         loc = Meta.get_source_location 2+frames_to_skip
         Test.fail ("Expected error "+matcher.to_text+", but error " + caught.to_text + " has been returned (at " + loc + ").")
 

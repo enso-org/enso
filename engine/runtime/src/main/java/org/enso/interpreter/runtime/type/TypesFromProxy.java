@@ -23,8 +23,7 @@ public class TypesFromProxy {
    *     builtins can be referenced from
    * @param typeName the fully qualified type name as defined in {@link Constants} or {@link
    *     ConstantsGen}
-   * @return the associated {@link org.enso.interpreter.runtime.callable.atom.Atom} if it exists,
-   *     and {@code null} otherwise
+   * @return the associated {@link Type} if it exists and {@code null} otherwise
    */
   public static Type fromTypeSystem(Builtins builtins, String typeName) {
     switch (typeName) {
@@ -38,6 +37,8 @@ public class TypesFromProxy {
         return builtins.date();
       case ConstantsGen.DATE_TIME:
         return builtins.dateTime();
+      case ConstantsGen.DURATION:
+        return builtins.duration();
       case ConstantsGen.DECIMAL:
         return builtins.number().getDecimal();
       case ConstantsGen.ERROR:
@@ -67,7 +68,7 @@ public class TypesFromProxy {
       case ConstantsGen.VECTOR:
         return builtins.vector();
       default:
-        throw new CompilerError("Invalid builtin type " + typeName);
+        return null;
     }
   }
 }

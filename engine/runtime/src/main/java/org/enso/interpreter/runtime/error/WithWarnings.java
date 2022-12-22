@@ -5,14 +5,15 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.library.Message;
+import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(WarningsLibrary.class)
+@ExportLibrary(ReflectionLibrary.class)
 public final class WithWarnings implements TruffleObject {
   private final ArrayRope<Warning> warnings;
   private final Object value;
@@ -96,6 +97,12 @@ public final class WithWarnings implements TruffleObject {
     } else {
       return new WithWarnings(target, warnings);
     }
+  }
+
+  @ExportMessage
+  Object send(Message message, Object[] args, @CachedLibrary(limit = "3") ReflectionLibrary lib)
+      throws Exception {
+    return lib.send(value, message, args);
   }
 
   @ExportMessage

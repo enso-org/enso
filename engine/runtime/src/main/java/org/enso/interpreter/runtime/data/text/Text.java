@@ -172,6 +172,16 @@ public final class Text implements TruffleObject {
     return "'" + replaced + "'";
   }
 
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().text();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
   private void setContents(String contents) {
     assert length == -1 || length == contents.length();
     this.contents = contents;

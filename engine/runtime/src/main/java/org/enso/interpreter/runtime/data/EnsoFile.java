@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -27,6 +28,7 @@ import java.util.Set;
  * A wrapper for {@link TruffleFile} objects exposed to the language. For methods documentation
  * please refer to {@link TruffleFile}.
  */
+@ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "io", name = "File", stdlibName = "Standard.Base.System.File.File")
 public final class EnsoFile implements TruffleObject {
@@ -257,6 +259,16 @@ public final class EnsoFile implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public String toString() {
     return "(File " + truffleFile.getPath() + ")";
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().file();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage
