@@ -2476,6 +2476,7 @@ name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
  "ensogl-button",
+ "ensogl-drop-down",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
@@ -2498,6 +2499,7 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "bit_field",
+ "bitflags",
  "code-builder",
  "console_error_panic_hook",
  "enso-callback",
@@ -2538,6 +2540,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "ensogl-drop-down"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
 ]
 
 [[package]]
@@ -2608,6 +2622,19 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "nalgebra",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-drop-down"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-drop-down",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2789,6 +2816,7 @@ dependencies = [
  "ensogl-example-complex-shape-system",
  "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",
+ "ensogl-example-drop-down",
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",
  "ensogl-example-focus-management",
