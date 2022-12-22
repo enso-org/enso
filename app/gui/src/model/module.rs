@@ -655,6 +655,8 @@ pub trait API: Debug + model::undo_redo::Aware {
 
     /// Returns self as any. Used for casting down the [`Module`] object.
     fn as_any(&self) -> &dyn Any;
+
+    fn remove_temporary_expressions(&self);
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.

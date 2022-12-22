@@ -260,6 +260,24 @@ impl model::module::API for Module {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn remove_temporary_expressions(&self) -> FallibleResult {
+        self.update_content(NotificationKind::Invalidate, |content| {
+            let mut info = double_representation::module::Info::from(content.ast.clone_ref());
+            let imports_md = content.metadata.ide.import.iter();
+            let temp_imports =
+                imports_md.filter_map(|(id, import)| import.is_temporary.then_some(*id));
+            let removing_imports_result: FallibleResult =
+                temp_imports.map(|temp_import| info.remove_import_by_id(temp_import)).collect();
+
+            let nodes_md = content.metadata.ide.node.iter();
+            let
+            content.ast.
+            for (id, node_md) in nodes_md {
+                let
+            }
+        })
+    }
 }
 
 impl model::undo_redo::Aware for Module {
