@@ -190,6 +190,18 @@ impl From<glsl::Type> for AttributeQualifier {
                 interpolation: Some(glsl::InterpolationStorage::Flat),
                 ..default()
             },
+            glsl::PrimType::IVec2 => glsl::LinkageStorage {
+                interpolation: Some(glsl::InterpolationStorage::Flat),
+                ..default()
+            },
+            glsl::PrimType::IVec3 => glsl::LinkageStorage {
+                interpolation: Some(glsl::InterpolationStorage::Flat),
+                ..default()
+            },
+            glsl::PrimType::IVec4 => glsl::LinkageStorage {
+                interpolation: Some(glsl::InterpolationStorage::Flat),
+                ..default()
+            },
             _ => default(),
         };
         Self { storage, prec, typ }

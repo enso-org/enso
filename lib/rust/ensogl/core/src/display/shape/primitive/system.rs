@@ -102,6 +102,7 @@ pub trait Shape: 'static + Sized + AsRef<Self::InstanceParams> {
     type GpuParams: Debug;
     type SystemData: CustomSystemData<Self>;
     type ShapeData: Debug;
+    fn definition_path() -> &'static str;
     fn pointer_events() -> bool;
     fn always_above() -> Vec<ShapeSystemId>;
     fn always_below() -> Vec<ShapeSystemId>;
@@ -260,7 +261,7 @@ impl<S: Shape> ShapeSystem<S> {
         let style_watch = display::shape::StyleWatch::new(&scene.style_sheet);
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
-        let model = display::shape::ShapeSystemModel::new(shape_def, events);
+        let model = display::shape::ShapeSystemModel::new(shape_def, events, S::definition_path());
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
         let user = CustomSystemData::<S>::new(scene, &standard, shape_data);
@@ -334,18 +335,20 @@ pub struct ShapeSystemModel {
     /// code. For example, the text system uses this field, as its material fully describes how to
     /// render glyphs.
     pub do_not_use_shape_definition: Rc<Cell<bool>>,
+    pub definition_path: Rc<Cell<&'static str>>,
 }
 
 impl ShapeSystemModel {
     /// Constructor.
     #[profile(Detail)]
-    pub fn new(shape: def::AnyShape, pointer_events: bool) -> Self {
+    pub fn new(shape: def::AnyShape, pointer_events: bool, definition_path: &'static str) -> Self {
         let sprite_system = SpriteSystem::new();
         let material = Rc::new(RefCell::new(Self::default_material()));
         let geometry_material = Rc::new(RefCell::new(Self::default_geometry_material()));
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
+        let definition_path = Rc::new(Cell::new(definition_path));
         Self {
             sprite_system,
             shape,
@@ -353,6 +356,7 @@ impl ShapeSystemModel {
             geometry_material,
             pointer_events,
             do_not_use_shape_definition,
+            definition_path,
         }
     }
 
@@ -434,9 +438,18 @@ impl ShapeSystemModel {
 
     /// Generates the shape again. It is called on shape definition change, e.g. after theme update.
     fn reload_shape(&self) {
-        if !self.do_not_use_shape_definition.get() {
-            let code = shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
-            self.material.borrow_mut().set_code(code);
+        if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
+            .with_borrow(|map| map.get(self.definition_path.get()).cloned())
+        {
+            self.material
+                .borrow_mut()
+                .set_code(crate::display::shader::builder::CodeTemplate::new("", shader, ""));
+        } else {
+            if !self.do_not_use_shape_definition.get() {
+                let code =
+                    shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
+                self.material.borrow_mut().set_code(code);
+            }
         }
         self.reload_material();
     }
@@ -624,6 +637,11 @@ macro_rules! _shape {
                 type GpuParams = GpuParams;
                 type SystemData = ($($system_data)?);
                 type ShapeData = ($($shape_data)?);
+
+                fn definition_path() -> &'static str {
+                    definition_path!()
+                }
+
                 fn pointer_events() -> bool {
                     let _out = true;
                     $(let _out = $pointer_events;)?
@@ -774,6 +792,11 @@ macro_rules! _shape2 {
                 type GpuParams = GpuParams;
                 type SystemData = ($($system_data)?);
                 type ShapeData = ($($shape_data)?);
+
+                fn definition_path() -> &'static str {
+                    definition_path!()
+                }
+
                 fn pointer_events() -> bool {
                     let _out = true;
                     $(let _out = $pointer_events;)?

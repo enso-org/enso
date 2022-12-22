@@ -5,6 +5,7 @@
 // === Features ===
 #![feature(exact_size_is_empty)]
 #![feature(proc_macro_span)]
+#![feature(proc_macro_def_site)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -24,6 +25,7 @@
 extern crate proc_macro;
 
 mod before_main;
+mod definition_path;
 mod derive_clone_ref;
 mod derive_entry_point;
 mod derive_for_each_variant;
@@ -329,4 +331,9 @@ pub fn before_main(
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     before_main::run(attr, input)
+}
+
+#[proc_macro]
+pub fn definition_path(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    definition_path::run(input)
 }
