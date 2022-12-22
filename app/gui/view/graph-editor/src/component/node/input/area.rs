@@ -340,7 +340,7 @@ impl Model {
 
                 port_shape.set_x(unit * index as f32);
                 if DEBUG {
-                    port_shape.set_y(DEBUG_PORT_OFFSET)
+                    port_shape.set_y(DEBUG_PORT_OFFSET);
                 }
 
                 if is_header {

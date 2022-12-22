@@ -151,7 +151,7 @@ impl Frp {
             thumb_position.hard_change_by <+ frp.scroll_by.gate_not(&overshoot_enabled);
             thumb_position.hard_change_to <+ any(&frp.scroll_to,&frp.jump_to);
             thumb_position.set_max_bound <+ all_with(&frp.set_thumb_size, &frp.set_max,
-                |thumb_size, max| max - thumb_size);
+                |thumb_size, max| (max - thumb_size).max(0.0));
             thumb_position.skip <+_ frp.jump_to;
 
             frp.source.thumb_position_target <+ thumb_position.target;
@@ -229,7 +229,7 @@ impl Frp {
             normalized_size     <- all_with(&frp.set_thumb_size,&frp.set_max,|&size,&max|
                 size / max);
             // Minimum thumb size in normalized units
-            min_visual_size     <- inner_length.map(|&length| MIN_THUMB_SIZE / length);
+            min_visual_size     <- inner_length.map(|&length| MIN_THUMB_SIZE / length.max(MIN_THUMB_SIZE));
             // The size at which we render the thumb on screen, in normalized units. Can differ from
             // the actual thumb size if the thumb is smaller than the min.
             visual_size         <- all_with(&normalized_size,&min_visual_size,|&size,&min|
