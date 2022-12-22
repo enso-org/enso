@@ -119,7 +119,7 @@ public abstract class CaseNode extends ExpressionNode {
       }
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
-      return isNested ? e.getBranchResult() : e.getBranchResult().getResult();
+      return isNested ? e.getBranchResult() : e.getBranchResult().result();
     }
   }
 
