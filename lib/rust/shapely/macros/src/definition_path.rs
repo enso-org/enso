@@ -6,6 +6,9 @@ use crate::prelude::*;
 // === Main entry point ===
 // ========================
 
+// FIXME!!!!!!!!!!!!!!!!!!!!
+// FIXME: fix the unwraps and parents
+
 /// Functions exposed in WASM have to have unique names. This utility creates a name based on the
 /// location (module path, line number, column number) the function was defined.
 fn definition_path() -> String {
