@@ -356,26 +356,6 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   @Specialization(guards = {
-      "selfInterop.isExecutable(selfFunction)",
-      "otherInterop.isExecutable(otherFunction)",
-      "selfInterop.isMemberInvocable(selfFunction, EQUALS_MEMBER_NAME)",
-      "otherInterop.isMemberInvocable(otherFunction, EQUALS_MEMBER_NAME)",
-  }, limit = "3")
-  boolean equalsFunctions(Object selfFunction, Object otherFunction,
-      @CachedLibrary("selfFunction") InteropLibrary selfInterop,
-      @CachedLibrary("otherFunction") InteropLibrary otherInterop,
-      @CachedLibrary(limit = "3") InteropLibrary retValueInterop) {
-    Object ret;
-    try {
-      ret = selfInterop.invokeMember(selfFunction, MethodNames.Function.EQUALS, otherFunction);
-      return retValueInterop.asBoolean(ret);
-    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
-             UnsupportedTypeException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Specialization(guards = {
       "selfInterop.hasArrayElements(selfArray)",
       "otherInterop.hasArrayElements(otherArray)"
   }, limit = "3")
