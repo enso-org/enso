@@ -30,25 +30,25 @@ import scala.annotation.unused
   *   # Desugar Nil in first branch
   *   case x of
   *       Cons (Cons a b) y -> case y of
-  *           Nil -> a + b
+  *           Nil -> a + b ## fallthrough on failed match ##
   *       Cons a Nil -> a
   *       _ -> 0
   *
   *   # Desuar `Cons a b` in the first branch
   *   case x of
   *       Cons w y -> case w of
-  *           Cons a b -> case y of
-  *               Nil -> a + b
+  *           Cons a b -> case y of ## fallthrough on failed match ##
+  *               Nil -> a + b ## fallthrough on failed match ##
   *       Cons a Nil -> a
   *       _ -> 0
   *
   *   # Desugar `Cons a Nil` in the second branch
   *   case x of
   *       Cons w y -> case w of
-  *           Cons a b -> case y of
-  *               Nil -> a + b
+  *           Cons a b -> case y of ## fallthrough on failed match ##
+  *               Nil -> a + b ## fallthrough on failed match ##
   *       Cons a z -> case z of
-  *           Nil -> a
+  *           Nil -> a ## fallthrough on failed match ##
   *       _ -> 0
   * }}}
   *
