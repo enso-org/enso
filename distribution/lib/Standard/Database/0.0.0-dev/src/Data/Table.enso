@@ -797,13 +797,7 @@ type Table
             # TODO proper equality of nulls in join conditions
             # TODO all-null rows
 
-            on_expressions = case join_resolution.conditions of
-                # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
-                Nothing ->
-                    # TODO return an empty result or just rethrow the original error, depending on how we want to be handling such errors: discuss with James
-                    Panic.throw (Unsupported_Database_Operation.Error "Some join conditions failed to resolve, so the join cannot be performed. In the future this wil return an empty result?")
-                on_expressions -> on_expressions
-
+            on_expressions = join_resolution.conditions
             self.connection.dialect.prepare_join self.connection join_kind new_table_name left_subquery right_subquery on_expressions columns_to_select=new_columns
 
     ## ALIAS group, summarize

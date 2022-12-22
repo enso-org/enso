@@ -48,13 +48,13 @@ type Problem_Builder
        and its result is returned.
     throw_unmatched_columns_as_error : Any -> Any
     throw_unmatched_columns_as_error self ~action =
-         case self.missing_input_columns.not_empty of
+         case self.missing_input_columns.get.not_empty of
             True ->
-                err = Missing_Input_Columns.Error self.missing_input_columns.build
+                err = Missing_Input_Columns.Error self.missing_input_columns.get.build
                 Error.throw err
-            False -> case self.oob_indices.not_empty of
+            False -> case self.oob_indices.get.not_empty of
                 True ->
-                    err = Column_Indexes_Out_Of_Range.Error self.oob_indices.build
+                    err = Column_Indexes_Out_Of_Range.Error self.oob_indices.get.build
                     Error.throw err
                 False -> action
 

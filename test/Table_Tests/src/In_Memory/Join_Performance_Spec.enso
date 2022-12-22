@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-from Standard.Table import Table
+from Standard.Table import all
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -17,10 +17,10 @@ spec =
             t3 = Table.new [["X", vec.reverse], ["Z", vec2]]
 
             r1 = Duration.time_execution <|
-                materialize <| t1.join t2 on=(Join_Condition.Equals "Y" "B")
+                t1.join t2 on=(Join_Condition.Equals "Y" "B")
 
             r2 = Duration.time_execution <|
-                materialize <| t1.join t3 on="X"
+                t1.join t3 on="X"
             t4 = r2.second . order_by ["X"]
             t4.at "X" . to_vector . should_equal <| vec
             t4.at "Z" . to_vector . should_equal <| vec2.reverse
@@ -40,10 +40,10 @@ spec =
             secondary_conditions = [Join_Condition.Equals_Ignore_Case "A", Join_Condition.Between "B" "l" "u"]
 
             r1 = Duration.time_execution <|
-                materialize <| t1.join t2 on=secondary_conditions+[Join_Condition.Equals "Y" "B"]
+                t1.join t2 on=secondary_conditions+[Join_Condition.Equals "Y" "B"]
 
             r2 = Duration.time_execution <|
-                materialize <| t1.join t3 on=secondary_conditions+[Join_Condition.Equals "X" "X"]
+                t1.join t3 on=secondary_conditions+[Join_Condition.Equals "X" "X"]
             t4 = r2.second . order_by ["X"]
             t4.at "X" . to_vector . should_equal <| vec
             t4.at "Z" . to_vector . should_equal <| vec2.reverse
@@ -66,11 +66,11 @@ spec =
             secondary_conditions = [Join_Condition.Equals "A", Join_Condition.Between "B" "l" "u"]
 
             r1 = Duration.time_execution <|
-                materialize <| t1.join t2 on=[Join_Condition.Equals_Ignore_Case "Y" "B"]+secondary_conditions
+                t1.join t2 on=[Join_Condition.Equals_Ignore_Case "Y" "B"]+secondary_conditions
             r1.second.row_count . should_equal (n + n/2)
 
             r2 = Duration.time_execution <|
-                materialize <| t1.join t3 on=[Join_Condition.Equals_Ignore_Case "X" "X"]+secondary_conditions
+                t1.join t3 on=[Join_Condition.Equals_Ignore_Case "X" "X"]+secondary_conditions
             t4 = r2.second . order_by "N"
             t4.row_count . should_equal n
             t4.at "X" . to_vector . should_equal lowers
@@ -95,11 +95,11 @@ spec =
             conditions = [Join_Condition.Equals_Ignore_Case "A", Join_Condition.Between "X" "l" "u", Join_Condition.Equals "B"]
 
             r1 = Duration.time_execution <|
-                materialize <| t1.join t2 on=conditions
+                t1.join t2 on=conditions
             r1.second.row_count . should_equal (2*n - 1)
 
             r2 = Duration.time_execution <|
-                materialize <| t1.join t3 on=conditions
+                t1.join t3 on=conditions
             t4 = r2.second . order_by ["X", "l"]
             t4.row_count . should_equal (2*n - 1)
 
