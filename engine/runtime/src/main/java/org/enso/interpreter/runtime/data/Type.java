@@ -182,8 +182,60 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject() {
+    return getType();
+  }
+
+  @ExportMessage
+  Object getMetaParents() {
+    assert supertype != null;
+    return new Array(supertype);
+  }
+
+  @ExportMessage
+  boolean hasMetaParents() {
+    return supertype != null && supertype != this;
+  }
+
+  @ExportMessage
   String toDisplayString(boolean allowSideEffects) {
     return name;
+  }
+
+  @ExportMessage
+  boolean isMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  boolean isMetaInstance(Object instance, @CachedLibrary(limit = "3") TypesLibrary lib) {
+    var b = EnsoContext.get(lib).getBuiltins();
+    if (b.any() == this) {
+      return true;
+    }
+    var type = lib.getType(instance);
+    while (type != null && type != b.any()) {
+      if (type == this) {
+        return true;
+      }
+      type = type.getSupertype();
+    }
+    return false;
+  }
+
+  @ExportMessage
+  String getMetaSimpleName() {
+    return getName();
+  }
+
+  @ExportMessage
+  String getMetaQualifiedName() {
+    return getQualifiedName().toString();
   }
 
   @ExportMessage

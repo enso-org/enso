@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -12,8 +13,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import java.lang.ref.PhantomReference;
 
 /** A runtime representation of a managed resource. */
+@ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Resource.Managed_Resource")
+@Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
 public final class ManagedResource implements TruffleObject {
   private final Object resource;
   private PhantomReference<ManagedResource> phantomReference;
@@ -71,6 +73,16 @@ public final class ManagedResource implements TruffleObject {
   @Builtin.Specialize
   public void close(EnsoContext context) {
     context.getResourceManager().close(this);
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().managedResource();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage

@@ -1451,7 +1451,7 @@ class RuntimeServerTest
         |pie = 3
         |uwu = 7
         |hie = "hie!"
-        |Number.x y = y
+        |Number.x self y = y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1737,8 +1737,8 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.overloaded arg = arg + 1
-        |Number.overloaded arg = arg + 2
+        |Text.overloaded self arg = arg + 1
+        |Number.overloaded self arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)

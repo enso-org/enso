@@ -94,6 +94,16 @@ public final class ArrayProxy implements TruffleObject {
     return toString();
   }
 
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().array();
+  }
+
   @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
