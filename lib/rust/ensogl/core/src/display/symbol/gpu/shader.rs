@@ -120,7 +120,10 @@ impl {
     }
 
     pub fn optimize_shader(&self) -> crate::system::gpu::shader::Code {
-        let bindings = self.collect_variables();
+        let bindings = self.collect_variables().into_iter().map(|mut binding| {
+            binding.scope = Some(ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance));
+            binding
+        }).collect_vec();
         self.gen_gpu_code(glsl::Version::V310, &bindings)
     }
 
@@ -201,8 +204,7 @@ impl {
         let mut out = vec![];
         let vars = self.geometry_material.inputs().iter().chain(self.surface_material.inputs());
         for (name,decl) in vars {
-                // FIXME!!!!!!!!!!!!!!!!
-            out.push(VarBinding::new(name.clone(), decl.clone(), Some(ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance))));
+            out.push(VarBinding::new(name.clone(), decl.clone(), None));
         }
         out
     }
