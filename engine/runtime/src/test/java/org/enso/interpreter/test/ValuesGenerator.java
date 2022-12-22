@@ -330,6 +330,9 @@ class ValuesGenerator {
       collect.add(v(null, "", "[1, 2, 3].to_array").type());
       collect.add(v(null, "", "['a', 'b'].to_array").type());
       collect.add(v(null, "", "[].to_array").type());
+      collect.add(v(null, """
+      import Standard.Base.Data.Array_Proxy.Array_Proxy
+      """, "Array_Proxy.new 10 (x -> 2 * x)").type());
     }
 
     if (languages.contains(Language.JAVA)) {

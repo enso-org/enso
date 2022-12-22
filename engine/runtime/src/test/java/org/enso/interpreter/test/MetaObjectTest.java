@@ -127,6 +127,16 @@ public class MetaObjectTest {
     }
   }
 
+  @Test
+  public void checkArraysAreArrays() {
+    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
+    for (var v : g.arrayLike()) {
+      var isVector = v.getMetaObject().equals(g.typeVector());
+      var isArray = v.getMetaObject().equals(g.typeArray());
+      assertTrue("Value " + v + " of type " + v.getMetaObject() + " should either be array or vector (" + isVector + ")", isArray ^ isVector);
+    }
+  }
+
   private void checkAllTypesSatisfy(Check check) throws Exception {
     var g = ValuesGenerator.create(ctx);
     var expecting = new LinkedHashSet<Value>();
