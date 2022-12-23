@@ -71,7 +71,7 @@ spec setup =
             t5.at "Z" . to_vector . should_equal [4, 2, 2, 3]
             t5.at "W" . to_vector . should_equal [7, 4, 6, 5]
 
-        Test.specify "should allow to perform anti-joins" pending=db_todo <|
+        Test.specify "should allow to perform anti-joins" <|
             t6 = t1.join t2 join_kind=Join_Kind.Left_Exclusive |> materialize |> _.order_by ["X"]
             t6.columns.map .name . should_equal ["X", "Y"]
             t6.at "X" . to_vector . should_equal [1]

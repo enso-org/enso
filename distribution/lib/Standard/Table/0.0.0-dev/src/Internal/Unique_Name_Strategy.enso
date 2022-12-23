@@ -72,3 +72,8 @@ type Unique_Name_Strategy
        - names: The column names to make unique.
     make_all_unique : Vector Text -> Vector Text
     make_all_unique self names = names.map self.make_unique
+
+    ## Takes a list of names and marks them as used, so that any further names
+       clashing with those will have a prefix added.
+    mark_used : Vector Text -> Nothing
+    mark_used self names = names.each (self.deduplicator.markUsed _)

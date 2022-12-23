@@ -748,47 +748,30 @@ type Table
             if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. You need to upload the table in-memory table before joining it with a database one, or materialize this table.") else
                 True
         if can_proceed then
-            ## TODO [RW] We may be able to avoid creating subqueries if there
-               are no groups, orders or wheres, so it may be worth optimizing
-               that here. However, for now always creating a subquery is the
-               simplest way of ensuring correctness.
             left = self
             new_table_name = left.name + "_" + right.name
-            ## If a self-join, make sure we are able to distinguish the left and
-               right tables.
-            aliases = case left.name == right.name of
-                True -> [left.name+"_left", right.name+"_right"]
-                False -> [left.name, right.name]
-            left_alias = aliases.first
-            right_alias = aliases.second
 
-            # Create subqueries that encapsulate the original queries and provide needed columns.
-            # The generated new sets of columns refer to the encapsulated expressions within the subquery and are
-            # valid in contexts whose from_spec is this subquery directly or it is a join containing this subquery.
-            # TODO [RW] Not all of these included columns are actually usable from the external context, so
-            # in the future we may consider pruning some of them as additional optimization and simplification of the query.
-            left_config = self.context.as_subquery left_alias [left.internal_columns]
-            right_config = right.context.as_subquery right_alias [right.internal_columns]
-            left_subquery = left_config.first
-            left_new_columns = left_config.second.at 0
-            right_subquery = right_config.first
-            right_new_columns = right_config.second.at 0
+            needed_indicators = case join_kind of
+                Join_Kind.Left_Exclusive  -> Pair.new False True
+                Join_Kind.Right_Exclusive -> Pair.new True False
+                _ -> Pair.new False False
+            subquery_setups = Database_Join_Helper.prepare_subqueries left right needed_indicators.first needed_indicators.second
+            left_setup = subquery_setups.first
+            right_setup = subquery_setups.second
 
-            left_column_mapping = Map.from_vector <|
-                left.internal_columns.zip left_new_columns old-> new-> [old.name, new]
-            right_column_mapping = Map.from_vector <|
-                right.internal_columns.zip right_new_columns old-> new-> [old.name, new]
-            join_resolution = Database_Join_Helper.make_join_helpers left right left_column_mapping right_column_mapping . resolve on on_problems
-
-            new_columns = Database_Join_Helper.select_columns_for_join join_kind left_new_columns right_new_columns join_resolution.redundant_column_names right_prefix
+            join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
+            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns join_resolution.redundant_column_names right_prefix
 
             # TODO proper equality of nulls in join conditions
             on_expressions = join_resolution.conditions
 
             where_expressions = case join_kind of
-                # TODO
-                Join_Kind.Left_Exclusive  -> []
-                Join_Kind.Right_Exclusive -> []
+                Join_Kind.Left_Exclusive  ->
+                    is_right_missing = SQL_Expression.Operation "IS_NULL" [right_setup.indicator_column.expression]
+                    [is_right_missing]
+                Join_Kind.Right_Exclusive ->
+                    is_left_missing = SQL_Expression.Operation "IS_NULL" [left_setup.indicator_column.expression]
+                    [is_left_missing]
                 _ -> []
 
             internal_kind = case join_kind of
@@ -799,7 +782,7 @@ type Table
                 Join_Kind.Left_Exclusive  -> Internal_Join_Kind.Left
                 Join_Kind.Right_Exclusive -> Internal_Join_Kind.Right
 
-            self.connection.dialect.prepare_join self.connection internal_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select=new_columns
+            self.connection.dialect.prepare_join self.connection internal_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
 
     ## ALIAS group, summarize
 

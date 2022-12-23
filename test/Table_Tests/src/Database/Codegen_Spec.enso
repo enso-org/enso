@@ -127,7 +127,6 @@ spec =
     # TODO these tests will soon be out of date, superseded by Common_Table_Spec
     Test.group "[Codegen] Joining Tables" <|
         t2 = test_connection.query (SQL_Query.Table_Name "T2")
-        t3 = test_connection.query (SQL_Query.Table_Name "T3")
         Test.specify "should allow joining tables on equality" <|
             r1 = t1.join t2 on=(Join_Condition.Equals "A" "D")
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T2"."D" AS "D", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1" INNER JOIN (SELECT "T2"."D" AS "D", "T2"."E" AS "E", "T2"."F" AS "F" FROM "T2" AS "T2") AS "T2" ON ("T1"."A" = "T2"."D")', []]
