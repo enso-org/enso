@@ -38,7 +38,7 @@ import org.enso.polyglot.MethodNames;
 
 @BuiltinMethod(
     type = "Any",
-    name = "equals_builtin",
+    name = "==",
     description = "Implementation of Any.=="
 )
 @GenerateUncached
