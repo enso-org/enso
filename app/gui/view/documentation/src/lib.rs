@@ -170,7 +170,7 @@ impl Model {
 
     /// Add `<style>` tag with the stylesheet to the `outer_dom`.
     fn load_css_stylesheet(&self) {
-        let stylesheet = include_str!("../assets/stylesheet.css");
+        let stylesheet = include_str!(concat!(env!("OUT_DIR"), "/stylesheet.css"));
         let element = web::document.create_element_or_panic("style");
         element.set_inner_html(stylesheet);
         self.outer_dom.append_or_warn(&element);

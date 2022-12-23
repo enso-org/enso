@@ -12,6 +12,8 @@ use ide_ci::programs::Npm;
 /// The path to the input file. One can define arbitrary CSS rules there and they will be copied
 /// in the output file.
 const CSS_INPUT_PATH: &str = "assets/input.css";
+/// The filename of the resulting CSS stylesheet. It will be generated inside `OUT_DIR`.
+const CSS_OUTPUT_FILENAME: &str = "stylesheet.css";
 
 #[tokio::main]
 async fn main() -> Result {
@@ -27,8 +29,9 @@ async fn main() -> Result {
 }
 
 async fn install_and_run_tailwind() -> Result {
-    let no_args: [&str; 0] = [];
     Npm.cmd()?.install().run_ok().await?;
-    Npm.cmd()?.run("generate", no_args).run_ok().await?;
+    let out_path = PathBuf::from(std::env::var("OUT_DIR").unwrap()).join(CSS_OUTPUT_FILENAME);
+    let args: &[&str] = &["--", "-i", CSS_INPUT_PATH, "-o", out_path.as_str()];
+    Npm.cmd()?.run("generate", args).run_ok().await?;
     Ok(())
 }
