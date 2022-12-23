@@ -543,7 +543,6 @@ pub struct HardcodedLayers {
     pub tooltip:            Layer,
     pub tooltip_text:       Layer,
     pub cursor:             Layer,
-    pub mask:               Layer,
 }
 
 impl Deref for HardcodedLayers {
@@ -555,48 +554,37 @@ impl Deref for HardcodedLayers {
 
 impl HardcodedLayers {
     pub fn new() -> Self {
+        let main_cam = Camera2d::new();
+        let node_searcher_cam = Camera2d::new();
+        let panel_cam = Camera2d::new();
+        let edited_node_cam = Camera2d::new();
+        let port_selection_cam = Camera2d::new();
+        let cursor_cam = Camera2d::new();
+
         #[allow(non_snake_case)]
         let DETACHED = Layer::new("DETACHED");
-        let root = Layer::new("root");
-        let main = Layer::new("main");
-        let main_cam = &main.camera();
-        let viz = Layer::new_with_cam("viz", main_cam);
-        let below_main = Layer::new_with_cam("below_main", main_cam);
-        let port_selection = Layer::new("port_selection");
-        let label = Layer::new_with_cam("label", main_cam);
-        let above_nodes = Layer::new_with_cam("above_nodes", main_cam);
-        let above_nodes_text = Layer::new_with_cam("above_nodes_text", main_cam);
-        let panel = Layer::new("panel");
-        let panel_text = Layer::new("panel_text");
-        let node_searcher = Layer::new("node_searcher");
-        let node_searcher_cam = node_searcher.camera();
-        let node_searcher_text = Layer::new_with_cam("node_searcher_text", &node_searcher_cam);
-        let edited_node = Layer::new("edited_node");
-        let edited_node_cam = edited_node.camera();
-        let edited_node_text = Layer::new_with_cam("edited_node_text", &edited_node_cam);
-        let tooltip = Layer::new_with_cam("tooltip", main_cam);
-        let tooltip_text = Layer::new_with_cam("tooltip_text", main_cam);
-        let cursor = Layer::new("cursor");
+        let root = Layer::new_with_camera("root", &main_cam);
 
-        let mask = Layer::new_with_cam("mask", main_cam);
-        root.set_sublayers(&[
-            &viz,
-            &below_main,
-            &main,
-            &port_selection,
-            &label,
-            &above_nodes,
-            &above_nodes_text,
-            &panel,
-            &panel_text,
-            &node_searcher,
-            &node_searcher_text,
-            &edited_node,
-            &edited_node_text,
-            &tooltip,
-            &tooltip_text,
-            &cursor,
-        ]);
+        let viz = root.create_sublayer("viz");
+        let below_main = root.create_sublayer("below_main");
+        let main = root.create_sublayer("main");
+        let port_selection =
+            root.create_sublayer_with_camera("port_selection", &port_selection_cam);
+        let label = root.create_sublayer("label");
+        let above_nodes = root.create_sublayer("above_nodes");
+        let above_nodes_text = root.create_sublayer("above_nodes_text");
+        let panel = root.create_sublayer_with_camera("panel", &panel_cam);
+        let panel_text = root.create_sublayer_with_camera("panel_text", &panel_cam);
+        let node_searcher = root.create_sublayer_with_camera("node_searcher", &node_searcher_cam);
+        let node_searcher_text =
+            root.create_sublayer_with_camera("node_searcher_text", &node_searcher_cam);
+        let edited_node = root.create_sublayer_with_camera("edited_node", &edited_node_cam);
+        let edited_node_text =
+            root.create_sublayer_with_camera("edited_node_text", &edited_node_cam);
+        let tooltip = root.create_sublayer("tooltip");
+        let tooltip_text = root.create_sublayer("tooltip_text");
+        let cursor = root.create_sublayer_with_camera("cursor", &cursor_cam);
+
         Self {
             DETACHED,
             root,
@@ -616,7 +604,6 @@ impl HardcodedLayers {
             tooltip,
             tooltip_text,
             cursor,
-            mask,
         }
     }
 }
@@ -902,12 +889,10 @@ impl SceneData {
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
-        let sublayer_was_dirty = Rc::new(Cell::new(false));
         self.layers.iter_sublayers_and_masks_nested(|layer| {
             let dirty = layer.camera().update(scene);
-            sublayer_was_dirty.set(sublayer_was_dirty.get() || dirty);
+            was_dirty = was_dirty || dirty;
         });
-        was_dirty = was_dirty || sublayer_was_dirty.get();
 
         was_dirty
     }
