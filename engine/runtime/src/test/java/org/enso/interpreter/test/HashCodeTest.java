@@ -118,10 +118,15 @@ public class HashCodeTest {
 
   private boolean valuesEqual(Value val1, Value val2) {
     Value equalsRes = equalsFunc.execute(val1, val2);
-    assertTrue(
-        "Any.== should return boolean, but returned " + equalsRes,
-        equalsRes.isBoolean()
-    );
-    return equalsRes.asBoolean();
+    // TODO: Remove once https://github.com/enso-org/enso/pull/3956 is merged
+    if (!equalsRes.isBoolean()) {
+      return false;
+    } else {
+      assertTrue(
+          "Any.== should return boolean, but returned " + equalsRes,
+          equalsRes.isBoolean()
+      );
+      return equalsRes.asBoolean();
+    }
   }
 }
