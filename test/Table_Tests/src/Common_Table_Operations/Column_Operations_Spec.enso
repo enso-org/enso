@@ -36,6 +36,15 @@ spec setup =
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
             ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
 
+        Test.specify "Between should return null if any of the values are null" pending="TODO" <|
+            a = [2, 3, Nothing, 7,       5,       Nothing]
+            b = [0, 5, 7,       Nothing, 7,       Nothing]
+            c = [9, 8, 7,       7,       Nothing, Nothing]
+            r = [True, False, Nothing, Nothing, Nothing, Nothing]
+
+            t = table_builder [["A", a], ["B", b], ["C", c]]
+            ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r
+
         Test.specify "iif" <|
             t = table_builder [["X", [True, False, Nothing, True]]]
             t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]

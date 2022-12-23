@@ -462,17 +462,21 @@ spec setup =
                 r3.at 4 . should_equal [2, 3, 2, 5]
 
             t4 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Full
-            expect_column_names ["A", "B", "C", "D"] t4
-            r4 = materialize t4 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
-            within_table t4 <|
-                r4.length . should_equal 7
-                r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
-                r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
-                r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
-                r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
-                r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
-                r4.at 5 . should_equal [1, 7, Nothing, Nothing]
-                r4.at 6 . should_equal [2, 3, 2, 5]
+            case setup.test_selection.supports_full_join of
+                True ->
+                    expect_column_names ["A", "B", "C", "D"] t4
+                    r4 = materialize t4 . order_by ["A", "B", "D", "C"] . rows . map .to_vector
+                    within_table t4 <|
+                        r4.length . should_equal 7
+                        r4.at 0 . should_equal [Nothing, Nothing, Nothing, Nothing]
+                        r4.at 1 . should_equal [Nothing, Nothing, 4, Nothing]
+                        r4.at 2 . should_equal [Nothing, Nothing, Nothing, 6]
+                        r4.at 3 . should_equal [Nothing, 4, Nothing, Nothing]
+                        r4.at 4 . should_equal [Nothing, 4, Nothing, 6]
+                        r4.at 5 . should_equal [1, 7, Nothing, Nothing]
+                        r4.at 6 . should_equal [2, 3, 2, 5]
+                False ->
+                    (materialize t4) . should_fail_with Unsupported_Database_Operation.Error
 
             t4_2 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Left_Outer
             expect_column_names ["A", "B", "C", "D"] t4_2
