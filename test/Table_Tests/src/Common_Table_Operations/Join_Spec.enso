@@ -444,6 +444,7 @@ spec setup =
             t1.join error . should_fail_with Illegal_State.Error
             t1.join t2 on=[error, "X"] . should_fail_with Illegal_State.Error
 
+        # TODO this not only needs correct anti-joins but also null-equality for the test to work
         Test.specify "should correctly handle all null rows" pending=db_todo <|
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
             t2 = table_builder [["C", [Nothing, 2, Nothing, 4]], ["D", [Nothing, 5, 6, Nothing]]]
