@@ -347,6 +347,19 @@ class ValuesGenerator {
     return collect;
   }
 
+  public List<Value> vectors() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      collect.add(v(null, "", "[1,2,3]").type());
+      collect.add(v(null, "", "[]").type());
+      collect.add(v(null, "", "['a', 2, 0]").type());
+      collect.add(v(null, "", "['a', 'b', 'c']").type());
+      collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, Nothing]").type());
+      collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, 'fff', 0, Nothing]").type());
+    }
+    return collect;
+  }
+
   public List<Value> functions() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {

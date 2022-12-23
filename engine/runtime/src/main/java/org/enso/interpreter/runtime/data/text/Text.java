@@ -2,7 +2,9 @@ package org.enso.interpreter.runtime.data.text;
 
 import com.ibm.icu.text.BreakIterator;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -205,6 +207,23 @@ public final class Text implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().text();
+  }
+
+  @ExportMessage
+  @TruffleBoundary
+  TriState isIdenticalOrUndefined(Object other) {
+    if (other instanceof Text otherText) {
+      return toString().hashCode() == otherText.toString().hashCode() ?
+          TriState.TRUE : TriState.FALSE;
+    } else {
+      return TriState.FALSE;
+    }
+  }
+
+  @ExportMessage
+  @TruffleBoundary
+  int identityHashCode() {
+    return toString().hashCode();
   }
 
   /**

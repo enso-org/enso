@@ -11,7 +11,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicMap;
@@ -109,6 +109,6 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage(library = TypesLibrary.class)
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().vector();
+    return EnsoContext.get(thisLib).getBuiltins().vector();
   }
 }

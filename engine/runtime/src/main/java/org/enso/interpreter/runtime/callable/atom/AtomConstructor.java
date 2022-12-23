@@ -3,8 +3,6 @@ package org.enso.interpreter.runtime.callable.atom;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -262,27 +260,17 @@ public final class AtomConstructor implements TruffleObject {
   }
 
   @ExportMessage
-  int identityHashCode() {
-    throw new UnsupportedOperationException("unimplemented");
-  }
-
-  @ExportMessage
-  static class IsIdenticalOrUndefined {
-    @Specialization(limit = "3")
-    static TriState isIdenticalOrUndefined(
-        AtomConstructor thisAtomCtor,
-        AtomConstructor otherAtomCtor) {
-      throw new UnsupportedOperationException("unimplemented");
-    }
-
-    @Fallback
-    static TriState fallBack(AtomConstructor thisAtomCtor, Object other) {
+  TriState isIdenticalOrUndefined(Object other) {
+    if (other instanceof AtomConstructor otherCtor) {
+      return this == otherCtor ? TriState.TRUE : TriState.FALSE;
+    } else {
       return TriState.FALSE;
     }
   }
 
-  static int computeIdentityHashCode(AtomConstructor atomConstructor) {
-    throw new UnsupportedOperationException("unimplemented");
+  @ExportMessage
+  int identityHashCode() {
+    return System.identityHashCode(this);
   }
 
   @ExportMessage
