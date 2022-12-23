@@ -3994,6 +3994,7 @@ dependencies = [
  "ensogl-text",
  "ensogl-text-msdf",
  "ide-view-component-browser",
+ "ide-view-documentation",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
@@ -4076,6 +4077,24 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "failure",
+]
+
+[[package]]
+name = "ide-view-documentation"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-logger",
+ "enso-prelude",
+ "ensogl",
+ "ensogl-component",
+ "ensogl-hardcoded-theme",
+ "ide-ci",
+ "ide-view-graph-editor",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
