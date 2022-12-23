@@ -25,9 +25,8 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
  * Hashing contract:
  * Whenever two objects are equal ({@code EqualsAnyNode} returns {@code true}), their hashcode
  * should equal.
- * Note that instances of different types are always not equal, but they might have same hashcode.
  * More formally:
- * {@code For all types T, for all instances i1, i2 of type T it holds: i1 == i2 iff hash(i1) == hash(i2)}
+ * {@code For all objects o1, o2: if o1 == o2 then hash(o1) == hash(o2)}
  */
 @BuiltinMethod(
     type = "Any",
