@@ -133,6 +133,15 @@ impl Network {
         self.register(OwnedIter::new(label, event))
     }
 
+    /// On every incoming `input`, add it to the current batch. Once `event` fires, emit the batch.
+    /// If batch is empty when `event` fires, nothing is emitted.
+    pub fn batch<T1, T2>(&self, label: Label, input: &T1, event: &T2) -> Stream<Vec<Output<T1>>>
+    where
+        T1: EventOutput,
+        T2: EventOutput, {
+        self.register(OwnedBatch::new(label, input, event))
+    }
+
     /// Fold the incoming value using [`Monoid`] implementation.
     pub fn fold<T1, X>(&self, label: Label, event: &T1) -> Stream<X>
     where
@@ -2131,6 +2140,76 @@ where
     fn on_event(&self, stack: CallStack, event: &Output<T>) {
         if let Some(t) = event {
             self.emit_event(stack, t)
+        }
+    }
+}
+
+
+
+// =============
+// === Batch ===
+// =============
+
+#[derive(Debug)]
+pub struct BatchData<T1: HasOutput, T2> {
+    batch_collector: Rc<BatchCollector<T1>>,
+    _event:          T2,
+}
+
+pub type OwnedBatch<T1, T2> = stream::Node<BatchData<T1, T2>>;
+pub type Batch<T1, T2> = stream::WeakNode<BatchData<T1, T2>>;
+
+impl<T1: HasOutput, T2> HasOutput for BatchData<T1, T2> {
+    type Output = Vec<Output<T1>>;
+}
+
+impl<T1: EventOutput, T2: EventOutput> OwnedBatch<T1, T2> {
+    /// Constructor.
+    pub fn new(label: Label, input: &T1, event: &T2) -> Self {
+        let batch_collector = Rc::new(BatchCollector {
+            _input:          input.clone_ref(),
+            collected_batch: default(),
+        });
+        let weak_collector = Rc::downgrade(&batch_collector);
+        input.register_target(stream::EventInput::new(Rc::new(weak_collector)));
+
+        let definition = BatchData { _event: event.clone_ref(), batch_collector };
+        Self::construct_and_connect(label, event, definition)
+    }
+}
+
+impl<T1: EventOutput, T2: EventOutput> stream::EventConsumer<Output<T2>> for OwnedBatch<T1, T2> {
+    fn on_event(&self, stack: CallStack, _: &Output<T2>) {
+        let batch = std::mem::take(&mut *self.batch_collector.collected_batch.borrow_mut());
+        if !batch.is_empty() {
+            self.emit_event(stack, &batch);
+        }
+    }
+}
+
+impl<T1: EventOutput, T2> stream::InputBehaviors for BatchData<T1, T2> {
+    fn input_behaviors(&self) -> Vec<Link> {
+        vec![]
+    }
+}
+
+#[derive(Debug)]
+struct BatchCollector<T: HasOutput> {
+    _input:          T,
+    collected_batch: RefCell<Vec<Output<T>>>,
+}
+
+impl<T: HasOutput> stream::WeakEventConsumer<Output<T>> for Weak<BatchCollector<T>> {
+    fn is_dropped(&self) -> bool {
+        self.strong_count() == 0
+    }
+    fn on_event_if_exists(&self, _stack: CallStack, value: &Output<T>) -> bool {
+        match self.upgrade() {
+            Some(collector) => {
+                collector.collected_batch.borrow_mut().push(value.clone());
+                true
+            }
+            None => false,
         }
     }
 }

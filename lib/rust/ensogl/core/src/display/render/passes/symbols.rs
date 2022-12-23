@@ -157,23 +157,24 @@ impl SymbolsRenderPass {
             );
         } else if let Some(mask) = layer_mask {
             framebuffers.mask.bind();
-            let arr = vec![0.0, 0.0, 0.0, 0.0];
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
+            let black_transparent = [0.0, 0.0, 0.0, 0.0];
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &black_transparent);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &black_transparent);
             self.render_layer(instance, &mask, scissor_stack, was_ever_masked);
 
             let framebuffers = self.framebuffers.as_ref().unwrap();
             framebuffers.layer.bind();
-            let arr = vec![0.0, 0.0, 0.0, 0.0];
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &arr);
-            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 0, &black_transparent);
+            instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &black_transparent);
         }
 
         self.symbol_registry.set_camera(&layer.camera());
         self.symbol_registry.render_symbols(&layer.symbols());
-        for sublayer in layer.sublayers().iter() {
-            self.render_layer(instance, sublayer, scissor_stack, was_ever_masked);
-        }
+        layer.for_each_sublayer(|sublayer| {
+            if sublayer.flags.contains(layer::LayerFlags::MAIN_PASS_VISIBLE) {
+                self.render_layer(instance, &sublayer, scissor_stack, was_ever_masked);
+            }
+        });
 
         if is_masked {
             let framebuffers = self.framebuffers.as_ref().unwrap();

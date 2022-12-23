@@ -102,8 +102,8 @@ impl Shape {
         let viz = viz::View::new();
 
         let width_padded = size.x + 2.0 * PADDING_X;
-        hover.set_size(Vector2::new(width_padded, hover_height));
-        viz.set_size(Vector2::new(width_padded, size.y));
+        hover.set_size((width_padded, hover_height));
+        viz.set_size((width_padded, size.y));
         hover.set_x(size.x / 2.0);
         viz.set_x(size.x / 2.0);
         viz.color.set(color::Rgba::transparent().into());

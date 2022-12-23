@@ -55,6 +55,12 @@ pub trait Frp<Model>: Default + API {
         style: &StyleWatchFrp,
     );
 
+    /// Frp default input initialization. Should emit the initial values for all inputs where they
+    /// don't match the value from `Default` trait.
+    fn init_inputs(frp: &<Self as ensogl_core::application::frp::API>::Public) {
+        let _ = frp;
+    }
+
     /// Set of default shortcuts to be used in the `CommandApi`. See
     /// `lib/rust/ensogl/core/src/application/command.rs` for more details.
     fn default_shortcuts() -> Vec<shortcut::Shortcut> {
@@ -88,6 +94,7 @@ where
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         F::init(frp.network(), frp.private(), app, &model, &style);
+        F::init_inputs(frp.public());
         let display_object = model.display_object().clone_ref();
         let widget = Widget::new(app, frp, model, display_object);
         Self { widget, logger }
