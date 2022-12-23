@@ -262,7 +262,16 @@ make_lazy_visualisation_data text text_window_position text_window_size chunk_si
    Returns the data requested to render a lazy view of the default visualisation.
 Any.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Text
 Any.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
-    make_lazy_visualisation_data self.to_default_visualization_data text_window_position text_window_size chunk_size
+    ## Workaround so that the JS String is converted to a Text
+       https://www.pivotaltracker.com/story/show/184061302
+    "" + make_lazy_visualisation_data self.to_default_visualization_data text_window_position text_window_size chunk_size
+
+## UNSTABLE
+   ADVANCED
+   Returns the data requested to render a lazy view of the default visualisation.
+Text.to_default_visualization_data : Vector Integer -> Vector Integer -> Text
+Text.to_default_visualization_data self text_window_position=[0,0] text_window_size=[10,10] chunk_size=20 =
+    self.to_lazy_visualization_data text_window_position text_window_size chunk_size
 
 ## UNSTABLE
    ADVANCED
@@ -270,8 +279,10 @@ Any.to_lazy_visualization_data self text_window_position text_window_size chunk_
 Text.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Text
 Text.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
     min_length_for_laziness = chunk_size * (text_window_size.first) * (text_window_size.second)
-    if self.length < min_length_for_laziness then self.to_default_visualization_data else
-        get_lazy_visualisation_text_window self text_window_position text_window_size chunk_size
+    if self.length < min_length_for_laziness then "" + self.to_json else
+        ## Workaround so that the JS String is converted to a Text
+               https://www.pivotaltracker.com/story/show/184061302
+        "" + get_lazy_visualisation_text_window self text_window_position text_window_size chunk_size
 
 ## UNSTABLE
    ADVANCED

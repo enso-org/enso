@@ -346,6 +346,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
         // === Style ===
 
+        let fonts_loaded = on_fonts_loaded_event(&network);
+
         frp::extend! { network
 
             theme_update <- all(init, font_name, font_size);
@@ -356,14 +358,12 @@ impl<T: TextProvider + 'static> TextGrid<T> {
                     dom_entry_root.set_style_or_warn("font-size", format!("{}px", *font_size as u32));
 
                     let parent = Some(dom_entry_root.clone_ref());
-                    let font_name = font_name.clone();
-                    let font_size = *font_size;
-                    grid_view_entry::Params { parent, font_name, font_size}
+                    grid_view_entry::Params { parent }
                 })
             );
 
-            item_width_update <- all(init, font_name, font_size);
-            item_width <- item_width_update.map(f!([]((_, font_name, font_size)) {
+            item_width_update <- all(init, fonts_loaded, font_name, font_size);
+            item_width <- item_width_update.map(f!([]((_, _, font_name, font_size)) {
                 let font_size = *font_size;
                 let char_width = measure_character_width(font_name, font_size);
                 CHARS_PER_CHUNK as f32 * char_width
@@ -411,15 +411,36 @@ fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
     let canvas = web::document.create_canvas_or_panic();
     let context = canvas.get_context("2d").unwrap().unwrap();
     let context: CanvasRenderingContext2d = context.dyn_into().unwrap();
-    context.set_font(&format!("{}px {}", font_size as u32, font_name));
-    context.fill_text(sample_text, 0.0, 0.0).unwrap();
+    let font = format!("{font_size}px {font_name}");
+    context.set_font(&font);
     let text_metrics = context.measure_text(sample_text).unwrap();
-    let width = text_metrics.actual_bounding_box_right() + text_metrics.actual_bounding_box_left();
-
-    2.4 * width as f32 / sample_text.len() as f32
+    let text_length = sample_text.chars().count() as f32;
+    let width = text_metrics.width();
+    let result = width as f32 / text_length as f32;
+    result
 }
 
+fn on_fonts_loaded_event(network: &frp::Network) -> frp::Source {
+    frp::extend! { network
+            on_font_loaded <- source::<()>();
+    }
 
+    let closure = web::Closure::new(f_!(on_font_loaded.emit(())));
+    match web::document.fonts().ready() {
+        Ok(promise) => {
+            promise.then(&closure);
+        }
+        Err(e) => {
+            warn!("Could not set up font loading event because of error: {:?}.", e);
+        }
+    }
+    // This extends the lifetime of the closure which is what we want here. Otherwise, the closure
+    // would be destroyed and the callback cannot be called.
+    #[allow(clippy::forget_non_drop)]
+    mem::forget(closure);
+
+    on_font_loaded
+}
 
 // ===========================
 // === Visualisation Types ===

@@ -96,7 +96,7 @@ fn init(app: &Application) {
         let navigator = Navigator::new(scene, &camera);
 
         let sample_text_data = sample_text();
-        let text_source = text_provider::StringTextProvider::new(sample_text_data, 15);
+        let text_source = text_provider::StringTextProvider::new(sample_text_data);
 
         let grid = TextGrid::new(app.clone_ref());
         grid.set_text_provider(text_source);
