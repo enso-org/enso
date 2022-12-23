@@ -1,16 +1,18 @@
 package org.enso.interpreter.node.expression.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.GenerateNodeFactory;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.NodeFactory;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 public abstract class UnboxingAtom extends Atom {
     private final Layout layout;
+
+    public static final long DOUBLE_MASK = 0b10;
+    public static final long LONG_MASK = 0b01;
+    public static final long UNBOXED_MASK = DOUBLE_MASK | LONG_MASK;
 
     public UnboxingAtom(AtomConstructor constructor, Layout layout) {
         super(constructor);
@@ -55,7 +57,7 @@ public abstract class UnboxingAtom extends Atom {
             int lastUnboxed = 0;
             int lastBoxed = numUnboxed;
             for (int cur = 0; cur < arity; cur++) {
-                if ((typeFlags & (0b11L << 2 * cur)) != 0) {
+                if ((typeFlags & (UNBOXED_MASK << (2 * cur))) != 0) {
                     fieldToStorage[cur] = lastUnboxed++;
                 } else {
                     fieldToStorage[cur] = lastBoxed++;
@@ -67,7 +69,7 @@ public abstract class UnboxingAtom extends Atom {
             var getterFactories = new NodeFactory[arity];
 
             for (int i = 0; i < arity; i++) {
-                var isDouble = (typeFlags & (0b01L << 2 * i)) != 0;
+                var isDouble = (typeFlags & (DOUBLE_MASK << (2 * i))) != 0;
                 getterFactories[i] = switch (numUnboxed) {
                     case 0 -> switch (numBoxed) {
                         case 2 -> Atom_0_2.getFieldGetterNodeFactory(fieldToStorage[i], isDouble);
@@ -221,27 +223,100 @@ public abstract class UnboxingAtom extends Atom {
     }
 
 
-    static class ComputeDigest2Node extends Node {
+    static class ComputeDigestNode extends Node {
 
     }
 
-    abstract static class CreateLayoutInstanceNode extends Node {
-
+    static abstract class ArgumentSorterNode extends Node {
+        public abstract Object[] execute(Object[] args);
     }
 
-    abstract static class CreateInstance2Node extends InstantiateNode.CreateInstanceNode {
-        @Children
-        CreateLayoutInstanceNode[] layouts;
+    static abstract class InstantiatorNode extends Node {
+        public abstract Atom execute(Object[] args);
+    }
 
-        final AtomConstructor constructor;
+    static class DirectCreateLayoutInstanceNode extends Node {
+        private final Layout layout;
+        private @Child ArgumentSorterNode sorter;
+        private @Child InstantiatorNode instantiator;
 
-        CreateInstance2Node(AtomConstructor constructor) {
-            this.constructor = constructor;
+        public DirectCreateLayoutInstanceNode(Layout layout) {
+            this.layout = layout;
+            this.sorter = layout.buildArgumentSorterNode();
+            this.instantiator = layout.buildInstantiatorNode();
         }
 
-        @Specialization
-        Object doExecute(Object[] arguments) {
-            return constructor.newInstance(arguments);
+        public Atom execute(Object[] args) {
+            return instantiator.execute(sorter.execute(args));
+        }
+    }
+
+
+    public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {
+        @Child
+        DirectCreateLayoutInstanceNode boxedLayout;
+        @Children
+        UnboxingAtom.DirectCreateLayoutInstanceNode[] unboxedLayouts;
+        private final int arity;
+        private @CompilerDirectives.CompilationFinal boolean constructorAtCapacity;
+
+        private final AtomConstructor constructor;
+
+        CreateUnboxedInstanceNode(AtomConstructor constructor) {
+            this.constructor = constructor;
+            this.arity = constructor.getArity();
+        }
+
+        @Override
+        @ExplodeLoop
+        Object execute(Object[] arguments) {
+            var flags = computeFlags(arguments);
+            if (flags == 0) {
+                return boxedLayout.execute(arguments);
+            }
+            for (int i = 0; i < arity; i++) {
+                if (unboxedLayouts[i].layout.inputFlags == flags) {
+                    return unboxedLayouts[i].execute(arguments);
+                }
+            }
+            if (!constructorAtCapacity) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                var lock = constructor.getLayoutsLock();
+                lock.lock();
+                try {
+                    var layouts = constructor.getUnboxingLayouts();
+                    if (layouts.length != this.unboxedLayouts.length) {
+                        // Layouts changed since we last tried;
+
+                    }
+                    
+                    if (layouts.length == arity) {
+                        constructorAtCapacity = true;
+                    } else {
+                        var newLayouts = Arrays.copyOf(layouts, layouts.length + 1);
+                        newLayouts[layouts.length] = new Layout(flags);
+                        constructor.setLayouts(newLayouts);
+                        unboxedLayouts = Arrays.copyOf(unboxedLayouts, unboxedLayouts.length + 1);
+                        unboxedLayouts[unboxedLayouts.length - 1] = new UnboxingAtom.DirectCreateLayoutInstanceNode(newLayouts[layouts.length]);
+                    }
+                } finally {
+                    lock.unlock();
+                }
+            }
+
+        }
+
+        @ExplodeLoop
+        long computeFlags(Object[] arguments) {
+            long flags = 0;
+            for (int i = 0; i < arity; i++) {
+                if (arguments[i] instanceof Double) {
+                    flags |= DOUBLE_MASK << (i * 2);
+                } else if (arguments[i] instanceof Long) {
+                    flags |= LONG_MASK << (i * 2);
+                }
+            }
+            return flags;
         }
     }
 }
