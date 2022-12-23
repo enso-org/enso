@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
@@ -279,6 +280,7 @@ public abstract class UnboxingAtom extends Atom {
                     return unboxedLayouts[i].execute(arguments);
                 }
             }
+
             if (!constructorAtCapacity) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 var lock = constructor.getLayoutsLock();
@@ -286,24 +288,34 @@ public abstract class UnboxingAtom extends Atom {
                 try {
                     var layouts = constructor.getUnboxingLayouts();
                     if (layouts.length != this.unboxedLayouts.length) {
-                        // Layouts changed since we last tried;
+                        // Layouts changed since we last tried; Update & try again
+                        updateFromConstructor();
+                        return execute(arguments);
+                    }
 
-                    }
-                    
-                    if (layouts.length == arity) {
-                        constructorAtCapacity = true;
-                    } else {
-                        var newLayouts = Arrays.copyOf(layouts, layouts.length + 1);
-                        newLayouts[layouts.length] = new Layout(flags);
-                        constructor.setLayouts(newLayouts);
-                        unboxedLayouts = Arrays.copyOf(unboxedLayouts, unboxedLayouts.length + 1);
-                        unboxedLayouts[unboxedLayouts.length - 1] = new UnboxingAtom.DirectCreateLayoutInstanceNode(newLayouts[layouts.length]);
-                    }
+                    // Layouts didn't change; just create a new one and register it
+                    var newLayout = Layout.create(arity, flags);
+                    constructor.addLayout(newLayout);
+                    updateFromConstructor();
+                    return unboxedLayouts[unboxedLayouts.length - 1].execute(arguments);
                 } finally {
                     lock.unlock();
                 }
             }
 
+            return boxedLayout.execute(arguments);
+        }
+
+        void updateFromConstructor() {
+            var layouts = constructor.getUnboxingLayouts();
+            var newLayouts = new DirectCreateLayoutInstanceNode[layouts.length];
+            System.arraycopy(unboxedLayouts, 0, newLayouts, 0, unboxedLayouts.length);
+            for (int i = unboxedLayouts.length; i < newLayouts.length; i++) {
+                newLayouts[i] = new DirectCreateLayoutInstanceNode(layouts[i]);
+            }
+            if (layouts.length == Context.get(this).getMaxUnboxingLayouts()) {
+                constructorAtCapacity = true;
+            }
         }
 
         @ExplodeLoop

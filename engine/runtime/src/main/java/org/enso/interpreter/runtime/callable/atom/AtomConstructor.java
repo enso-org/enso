@@ -243,6 +243,13 @@ public final class AtomConstructor implements TruffleObject {
         return unboxingLayouts;
     }
 
+    public void addLayout(UnboxingAtom.Layout layout) {
+        var newLayouts = new UnboxingAtom.Layout[unboxingLayouts.length + 1];
+        System.arraycopy(unboxingLayouts, 0, newLayouts, 0, unboxingLayouts.length);
+        newLayouts[unboxingLayouts.length] = layout;
+        unboxingLayouts = newLayouts;
+    }
+
     /**
      * Marks this object as instantiable through the polyglot APIs.
      *

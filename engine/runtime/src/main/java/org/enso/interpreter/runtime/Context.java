@@ -485,4 +485,8 @@ public class Context {
   public State emptyState() {
     return State.create(this);
   }
+
+  public int getMaxUnboxingLayouts() {
+    return 10;
+  }
 }
