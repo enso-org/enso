@@ -13,6 +13,8 @@ use ensogl_core::data::color;
 
 // === SectionId ===
 
+type NamespaceId = usize;
+
 /// A Component Groups List Section identifier.
 #[derive(Copy, Clone, Debug, Default, Eq, Hash, PartialEq)]
 #[repr(usize)]
@@ -24,6 +26,8 @@ pub enum SectionId {
     LocalScope,
     /// The "Sub-Modules" section.
     SubModules,
+    /// A section defined by its namespace ID.
+    ModuleNamespace(NamespaceId),
 }
 
 impl SectionId {
@@ -33,6 +37,7 @@ impl SectionId {
             Self::Popular => "Popular",
             Self::LocalScope => "Local",
             Self::SubModules => "Modules",
+            Self::ModuleNamespace(_) => "Namespace",
         }
     }
 }

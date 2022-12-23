@@ -99,6 +99,7 @@ impl Colors {
             SectionId::Popular => self.popular,
             SectionId::LocalScope => self.local_scope,
             SectionId::SubModules => self.submodules,
+            SectionId::ModuleNamespace(_) => self.submodules,
         }
     }
 }
@@ -109,6 +110,7 @@ fn section_id_to_icon_id(section: SectionId) -> icon::Id {
         SectionId::Popular => icon::Id::Star,
         SectionId::LocalScope => icon::Id::LocalScope,
         SectionId::SubModules => icon::Id::SubModules,
+        SectionId::ModuleNamespace(_) => icon::Id::SubModules,
     }
 }
 
@@ -125,6 +127,7 @@ fn section_id_to_grid_loc(id: SectionId) -> (Row, Col) {
         SectionId::Popular => (1, COLUMN),
         SectionId::LocalScope => (2, COLUMN),
         SectionId::SubModules => (0, COLUMN),
+        SectionId::ModuleNamespace(id) => (id + 3, COLUMN),
     }
 }
 
@@ -136,10 +139,11 @@ fn loc_to_section_id(&(row, _): &(Row, Col)) -> SectionId {
         0 => highest,
         1 => SectionId::Popular,
         2 => SectionId::LocalScope,
-        _ => {
-            error!("Tried to create SectionId from too high Navigator List row ({}).", row);
-            highest
-        }
+        n => SectionId::ModuleNamespace(n - 3),
+        // _ => {
+        //     error!("Tried to create SectionId from too high Navigator List row ({}).", row);
+        //     highest
+        // }
     }
 }
 
