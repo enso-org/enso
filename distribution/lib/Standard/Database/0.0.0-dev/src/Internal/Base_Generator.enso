@@ -307,11 +307,13 @@ simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a
 
 ## PRIVATE
 make_equals a b =
-    a.paren ++ " IS NOT DISTINCT FROM " ++ b.paren
+    # a.paren ++ " IS NOT DISTINCT FROM " ++ b.paren
+    a.paren ++ " = " ++ b.paren
 
 ## PRIVATE
 make_not_equals a b =
-    a.paren ++ " IS DISTINCT FROM " ++ b.paren
+    # a.paren ++ " IS DISTINCT FROM " ++ b.paren
+    a.paren ++ " != " ++ b.paren
 
 ## PRIVATE
 

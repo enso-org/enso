@@ -13,8 +13,8 @@ spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
     Test.group prefix+"Column Operations" <|
-        inmem_todo = if setup.is_database.not then "New Null-equality is not yet implemented in In-memory backend."
-        Test.specify "Column equality should handle nulls correctly" pending=inmem_todo <|
+        #inmem_todo = if setup.is_database.not then "New Null-equality is not yet implemented in In-memory backend."
+        Test.specify "Column equality should handle nulls correctly" pending="TODO" <|
             a = [2, 3, Nothing, Nothing]
             b = [2, 4, Nothing, 5]
             r = [True, False, True, False]
@@ -23,7 +23,7 @@ spec setup =
             t = table_builder [["A", a], ["B", b]]
             ((t.at "A") == (t.at "B")) . to_vector . should_equal r
 
-        Test.specify "Text Column equality (including case-insensitive) should handle nulls correctly" pending=inmem_todo <|
+        Test.specify "Text Column equality (including case-insensitive) should handle nulls correctly" pending="TODO" <|
             a = ["Z", "a", "b", Nothing, Nothing]
             b = ["Z", "A", "C", Nothing, "d"]
             r_sensitive   = [True, False, False, True, False]

@@ -28,7 +28,7 @@ spec =
         Fake_Test_Connection.make Dialect.sqlite tables
     t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
-        Test.specify "should serialize Tables and Columns to their SQL representation" <|
+        Test.specify "should serialize Tables and Columns to their SQL representation" pending="TODO: decide on how we handle ==" <|
             q1 = t1.filter (t1.at "A" == 42) . to_json
 
             part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
@@ -93,14 +93,6 @@ spec =
             contains.to_sql.prepare . should_equal ['SELECT instr("T1"."B", ?) > 0 AS "B" FROM "T1" AS "T1"', [["inf", str]]]
 
     Test.group "[Codegen] Masking Tables and Columns" <|
-        Test.specify "should allow filtering table rows based on a boolean expression" <|
-            t2 = t1.filter (t1.at "A" == 42)
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ?)', [[42, int]]]
-
-        Test.specify "should allow selecting column rows based on a boolean expression" <|
-            c2 = t1.filter (t1.at "A" == t1.at "C") . at "B"
-            c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
-
         Test.specify "should generate a single BETWEEN expression" <|
             t2 = t1.filter "A" (Filter_Condition.Between 10 20)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [[10, int], [20, int]]]
@@ -123,17 +115,6 @@ spec =
 
             t5 = t1.filter "A" (Filter_Condition.Is_In [Nothing])
             t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ((FALSE) OR ("T1"."A" IS NULL))', []]
-
-    # TODO these tests will soon be out of date, superseded by Common_Table_Spec
-    Test.group "[Codegen] Joining Tables" <|
-        t2 = test_connection.query (SQL_Query.Table_Name "T2")
-        Test.specify "should allow joining tables on equality" <|
-            r1 = t1.join t2 on=(Join_Condition.Equals "A" "D")
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T2"."D" AS "D", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1" INNER JOIN (SELECT "T2"."D" AS "D", "T2"."E" AS "E", "T2"."F" AS "F" FROM "T2" AS "T2") AS "T2" ON ("T1"."A" = "T2"."D")', []]
-
-        Test.specify "should correctly handle self-joins" <|
-            r1 = t1.join t1 on=(Join_Condition.Equals "B" "A")
-            r1.to_sql.prepare . should_equal ['SELECT "T1_left"."A" AS "A", "T1_left"."B" AS "B", "T1_left"."C" AS "C", "T1_right"."A" AS "A_1", "T1_right"."B" AS "B_1", "T1_right"."C" AS "C_1" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1_left" INNER JOIN (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1") AS "T1_right" ON ("T1_left"."B" = "T1_right"."A")', []]
 
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_missing should allow to replace missing values in a column with a constant" <|
