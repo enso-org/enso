@@ -152,10 +152,13 @@ class NestedPatternMatchTest extends CompilerTest {
     val catchAllBranch           = ir.branches(4)
 
     "desugar nested constructors to simple patterns" in {
+      ir.isNested shouldBe false
+
       consANilBranch.expression shouldBe an[IR.Expression.Block]
       consANilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consANilBranch.pattern) shouldEqual false
+      consANilBranch.terminalBranch shouldBe false
 
       val nestedCase = consANilBranch.expression
         .asInstanceOf[IR.Expression.Block]
@@ -164,6 +167,7 @@ class NestedPatternMatchTest extends CompilerTest {
 
       nestedCase.scrutinee shouldBe an[IR.Name.Literal]
       nestedCase.branches.length shouldEqual 1
+      nestedCase.isNested shouldBe true
 
       val nilBranch = nestedCase.branches(0)
 
@@ -174,6 +178,7 @@ class NestedPatternMatchTest extends CompilerTest {
         .name shouldEqual "Nil"
       nilBranch.expression shouldBe an[IR.Name.Literal]
       nilBranch.expression.asInstanceOf[IR.Name].name shouldEqual "a"
+      nilBranch.terminalBranch shouldBe true
     }
 
     "desugar deeply nested patterns to simple patterns" in {
@@ -181,6 +186,7 @@ class NestedPatternMatchTest extends CompilerTest {
       consConsNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consConsNilBranch.pattern) shouldEqual false
+      consConsNilBranch.terminalBranch shouldBe false
 
       val nestedCase = consConsNilBranch.expression
         .asInstanceOf[IR.Expression.Block]
@@ -189,6 +195,7 @@ class NestedPatternMatchTest extends CompilerTest {
 
       nestedCase.scrutinee shouldBe an[IR.Name.Literal]
       nestedCase.branches.length shouldEqual 1
+      nestedCase.isNested shouldBe true
 
       val consBranch = nestedCase.branches(0)
 
@@ -215,6 +222,7 @@ class NestedPatternMatchTest extends CompilerTest {
       consConsOneNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
         .containsNestedPatterns(consConsOneNilBranch.pattern) shouldEqual false
+      consConsOneNilBranch.terminalBranch shouldBe false
 
       val nestedCase = consConsOneNilBranch.expression
         .asInstanceOf[IR.Expression.Block]
@@ -223,10 +231,12 @@ class NestedPatternMatchTest extends CompilerTest {
 
       nestedCase.scrutinee shouldBe an[IR.Name.Literal]
       nestedCase.branches.length shouldEqual 1
+      nestedCase.isNested shouldBe true
 
       val consBranch = nestedCase.branches(0)
 
       consBranch.expression shouldBe an[IR.Expression.Block]
+      consBranch.terminalBranch shouldBe false
 
       val consBranchBody = consBranch.expression
         .asInstanceOf[IR.Expression.Block]
@@ -243,6 +253,8 @@ class NestedPatternMatchTest extends CompilerTest {
       NestedPatternMatch.containsNestedPatterns(
         consBranchBody.branches.head.pattern
       ) shouldEqual false
+      consBranchBody.isNested shouldBe true
+      consBranchBody.branches.head.terminalBranch shouldBe true
     }
 
     "desugar deeply nested patterns with type pattern to simple patterns" in {
@@ -252,6 +264,7 @@ class NestedPatternMatchTest extends CompilerTest {
         .containsNestedPatterns(
           consConsIntegerNilBranch.pattern
         ) shouldEqual false
+      consConsIntegerNilBranch.terminalBranch shouldBe false
 
       val nestedCase = consConsIntegerNilBranch.expression
         .asInstanceOf[IR.Expression.Block]
@@ -260,10 +273,12 @@ class NestedPatternMatchTest extends CompilerTest {
 
       nestedCase.scrutinee shouldBe an[IR.Name.Literal]
       nestedCase.branches.length shouldEqual 1
+      nestedCase.isNested shouldBe true
 
       val consBranch = nestedCase.branches(0)
 
       consBranch.expression shouldBe an[IR.Expression.Block]
+      consBranch.terminalBranch shouldBe false
 
       val consBranchBody = consBranch.expression
         .asInstanceOf[IR.Expression.Block]
@@ -274,6 +289,7 @@ class NestedPatternMatchTest extends CompilerTest {
       consBranchBody.branches.head.expression shouldBe an[IR.Expression.Block]
       val tpePattern = consBranchBody.branches.head.pattern
         .asInstanceOf[Pattern.Type]
+      consBranchBody.branches.head.terminalBranch shouldBe true
 
       tpePattern.name
         .asInstanceOf[IR.Name.Literal]
@@ -295,17 +311,21 @@ class NestedPatternMatchTest extends CompilerTest {
 
     "work recursively" in {
       catchAllBranch.expression shouldBe an[IR.Expression.Block]
+      catchAllBranch.terminalBranch shouldBe true
+      val consANilCase = catchAllBranch.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+
+      consANilCase.isNested shouldBe false
+
       val consANilBranch2 =
-        catchAllBranch.expression
-          .asInstanceOf[IR.Expression.Block]
-          .returnValue
-          .asInstanceOf[IR.Case.Expr]
-          .branches
-          .head
+        consANilCase.branches.head
 
       NestedPatternMatch.containsNestedPatterns(
         consANilBranch2.pattern
       ) shouldEqual false
+      consANilBranch2.terminalBranch shouldBe false
       consANilBranch2.expression shouldBe an[IR.Expression.Block]
       val consANilBranch2Expr =
         consANilBranch2.expression
@@ -313,11 +333,13 @@ class NestedPatternMatchTest extends CompilerTest {
           .returnValue
           .asInstanceOf[IR.Case.Expr]
 
+      consANilBranch2Expr.isNested shouldBe true
       consANilBranch2Expr.branches.length shouldEqual 1
       consANilBranch2Expr.branches.head.pattern
         .asInstanceOf[Pattern.Constructor]
         .constructor
         .name shouldEqual "Nil"
+      consANilBranch2Expr.branches.head.terminalBranch shouldBe true
     }
   }
 }

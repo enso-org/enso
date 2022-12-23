@@ -59,7 +59,7 @@ public class NestedPatternCompilationBenchmarks {
                     List.Cons a (List.Cons b List.Nil) -> a+b
                     List.Cons a (List.Cons b (List.Cons c List.Nil)) -> a+b+c
                     List.Cons a (List.Cons b (List.Cons c (List.Cons d List.Nil))) -> a+b+c+d
-                    List.Cons a (List.Cons b (List.Cons c (List.Cons d (List.Cons e List.Nil)))) ->a+b+c+d+e
+                    List.Cons a (List.Cons b (List.Cons c (List.Cons d (List.Cons e List.Nil)))) -> a+b+c+d+e
                     List.Cons a (List.Cons b (List.Cons c (List.Cons d (List.Cons e (List.Cons f List.Nil))))) -> a+b+c+d+e+f
 
             list_of_6 =
