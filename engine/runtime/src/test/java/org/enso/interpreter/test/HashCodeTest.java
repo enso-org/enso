@@ -1,11 +1,14 @@
 package org.enso.interpreter.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.enso.polyglot.MethodNames.Module;
@@ -62,13 +65,35 @@ public class HashCodeTest {
 
   @Test
   public void testPrimitives() {
-    checkHashContract(valGenerator.booleans());
-    checkHashContract(valGenerator.numbers());
-    checkHashContract(valGenerator.textual());
+    for (var primitiveValues : Arrays.asList(
+        valGenerator.booleans(),
+        valGenerator.numbers(),
+        valGenerator.textual()
+    )) {
+      checkHashContract(primitiveValues);
+    }
   }
   @Test
   public void testVectors() {
     checkHashContract(valGenerator.vectors());
+  }
+
+  @Test
+  public void testArrayLikeValues() {
+    checkHashContract(valGenerator.arrayLike());
+    checkHashContract(valGenerator.vectors());
+  }
+
+  @Test
+  public void testTimesAndDates() {
+    for (var dateTimeValues : Arrays.asList(
+        valGenerator.timesAndDates(),
+        valGenerator.timeZones(),
+        valGenerator.durations(),
+        valGenerator.periods()
+    )) {
+      checkHashContract(dateTimeValues);
+    }
   }
 
   private void checkHashContract(List<Value> values) {
