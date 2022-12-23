@@ -382,7 +382,7 @@ spec setup =
                 problems3 = [Floating_Point_Grouping.Error "Z", Floating_Point_Grouping.Error "X"]
                 Problems.test_problem_handling action3 problems3 tester3
 
-        Test.specify "should correctly handle nulls in equality conditions" pending=db_todo <|
+        Test.specify "should correctly handle nulls in equality conditions" <|
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
             t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
 
@@ -392,7 +392,7 @@ spec setup =
             r1.at "Y" . to_vector . should_equal [1, 1, 2, 3, 3]
             r1.at "Z" . to_vector . should_equal [20, 30, 10, 20, 30]
 
-        Test.specify "should correctly handle nulls in case-insensitive equality conditions" pending=db_todo <|
+        Test.specify "should correctly handle nulls in case-insensitive equality conditions" <|
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
             t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
 
@@ -403,7 +403,7 @@ spec setup =
             r1.at "Y" . to_vector . should_equal [0, 1, 1, 2, 3, 3]
             r1.at "Z" . to_vector . should_equal [10, 20, 30, 10, 20, 30]
 
-        Test.specify "should correctly handle nulls in Between conditions" pending=db_todo <|
+        Test.specify "should correctly handle nulls in Between conditions" <|
             t1 = table_builder [["X", [1, Nothing, 2, Nothing]], ["Y", [0, 1, 2, 3]]]
             t2 = table_builder [["l", [Nothing, 0, 1]], ["u", [100, 10, Nothing]], ["Z", [10, 20, 30]]]
 
@@ -444,8 +444,7 @@ spec setup =
             t1.join error . should_fail_with Illegal_State.Error
             t1.join t2 on=[error, "X"] . should_fail_with Illegal_State.Error
 
-        # TODO this not only needs correct anti-joins but also null-equality for the test to work
-        Test.specify "should correctly handle all null rows" pending=db_todo <|
+        Test.specify "should correctly handle all null rows" <|
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
             t2 = table_builder [["C", [Nothing, 2, Nothing, 4]], ["D", [Nothing, 5, 6, Nothing]]]
 

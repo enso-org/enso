@@ -172,7 +172,9 @@ base_dialect =
 
     arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["^", make_function "POWER"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["TRUE", make_constant "TRUE"], ["FALSE", make_constant "FALSE"]]
-    compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
+    eq = lift_binary_op "=" make_equals
+    neq = lift_binary_op "!=" make_not_equals
+    compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
@@ -299,8 +301,17 @@ generate_from_part dialect from_spec = case from_spec of
 
 ## PRIVATE
 simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
-    res = code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
-    res.paren
+    eq = code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
+    nulls = code "(" ++ a ++ " IS NULL) AND (" ++ b ++ " IS NULL)"
+    code "COALESCE(" ++ eq ++ ", " ++ nulls ++ ")"
+
+## PRIVATE
+make_equals a b =
+    a.paren ++ " IS NOT DISTINCT FROM " ++ b.paren
+
+## PRIVATE
+make_not_equals a b =
+    a.paren ++ " IS DISTINCT FROM " ++ b.paren
 
 ## PRIVATE
 
