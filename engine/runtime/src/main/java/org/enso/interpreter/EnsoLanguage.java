@@ -337,4 +337,13 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   public Optional<IdExecutionService> getIdExecutionService() {
     return idExecutionInstrument;
   }
+
+  /** Conversions of primitive values */
+  protected Object getLanguageView(EnsoContext context, Object value) {
+    if (value instanceof Boolean b ) {
+      var bool = context.getBuiltins().bool();
+      return b ? bool.getTrue().newInstance() : bool.getFalse().newInstance();
+    }
+    return null;
+  }
 }

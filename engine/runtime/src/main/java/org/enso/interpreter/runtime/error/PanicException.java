@@ -11,10 +11,14 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** An exception type for user thrown panic exceptions. */
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "payload")
+@ExportLibrary(TypesLibrary.class)
 public class PanicException extends AbstractTruffleException {
   final Object payload;
 
@@ -85,6 +89,26 @@ public class PanicException extends AbstractTruffleException {
         | UnknownIdentifierException e) {
       return Text.create(typeToDisplayTextNode.execute(payload));
     }
+  }
+
+  @ExportMessage
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().panic();
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().panic();
+  }
+
+  @ExportMessage
+  boolean hasType() {
+    return true;
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage

@@ -14,6 +14,7 @@ use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
 use crate::engine::FLATC_VERSION;
 use crate::engine::PARALLEL_ENSO_TESTS;
+use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
 use crate::enso::IrCaches;
 use crate::paths::cache_directory;
@@ -301,7 +302,8 @@ impl RunContext {
                 debug!("No SBT tasks to run.");
             }
         } else {
-            // Compile
+            // If we are run on a weak machine (like GH-hosted runner), we need to build things one
+            // by one.
             sbt.call_arg("compile").await?;
 
             // Build the Runner & Runtime Uberjars
@@ -345,8 +347,11 @@ impl RunContext {
 
         let enso = BuiltEnso { paths: self.paths.clone() };
         if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
-            enso.run_benchmarks().await?;
+            enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
+        } else if self.config.check_enso_benchmarks {
+            enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
         }
+
 
         // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {

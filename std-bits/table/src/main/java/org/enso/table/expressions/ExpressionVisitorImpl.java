@@ -112,7 +112,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     var metaObject = value.getMetaObject();
-    return metaObject != null && metaObject.asHostObject() instanceof Class<?>
+    return metaObject != null && metaObject.isHostObject() && metaObject.asHostObject() instanceof Class<?>
         ? makeConstantColumn.apply(value)
         : value;
   }

@@ -340,4 +340,9 @@ public final class ModuleScope implements TruffleObject {
         imports,
         exports);
   }
+
+  @Override
+  public String toString() {
+    return "Scope" + module;
+  }
 }

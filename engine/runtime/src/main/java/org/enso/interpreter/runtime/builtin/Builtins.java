@@ -350,8 +350,8 @@ public class Builtins {
                   if (builtinName.length != 2) {
                     throw new CompilerError("Invalid builtin metadata in : " + line);
                   }
-                  boolean isStatic = builtinMeta.length == 3 ? java.lang.Boolean.valueOf(builtinMeta[2]) : false;
-                  boolean isAutoRegister = builtinMeta.length == 4 && java.lang.Boolean.valueOf(builtinMeta[3]);
+                  boolean isStatic = java.lang.Boolean.valueOf(builtinMeta[2]);
+                  boolean isAutoRegister = java.lang.Boolean.valueOf(builtinMeta[3]);
 
                   try {
                     @SuppressWarnings("unchecked")

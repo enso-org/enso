@@ -44,6 +44,7 @@ public record TypeWithKind(String baseType, TypeKind kind) {
                     "org.enso.interpreter.runtime.data.Array",
                     "org.enso.interpreter.runtime.data.Vector",
                     "org.enso.interpreter.runtime.data.ArrayOverBuffer",
+                    "org.enso.interpreter.runtime.data.ArrayProxy",
                     "org.enso.interpreter.runtime.data.EnsoFile",
                     "org.enso.interpreter.runtime.data.EnsoDate",
                     "org.enso.interpreter.runtime.data.EnsoDateTime",

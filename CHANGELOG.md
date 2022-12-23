@@ -112,8 +112,11 @@
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
   and Web versions of the IDE.
+- [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
+  suitable for single and multi-select scenarios.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
+[3985]: https://github.com/enso-org/enso/pull/3985
 
 #### Enso Standard Library
 
@@ -264,6 +267,7 @@
 - [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
+- [Enable Date, Time and DateTime to be read and written to Excel.][3997]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -415,6 +419,7 @@
 [3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
+[3997]: https://github.com/enso-org/enso/pull/3997
 
 #### Enso Compiler
 
@@ -485,6 +490,7 @@
 - [Don't export polyglot symbols][3915]
 - [From/all import must not include module in name resolution][3931]
 - [Vector returns warnings of individual elements][3938]
+- [Enso.getMetaObject, Type.isMetaInstance and Meta.is_a consolidation][3949]
 - [Add executionContext/interrupt API command][3952]
 - [Simplify exception handling for polyglot exceptions][3981]
 
@@ -560,6 +566,7 @@
 [3915]: https://github.com/enso-org/enso/pull/3915
 [3931]: https://github.com/enso-org/enso/pull/3931
 [3938]: https://github.com/enso-org/enso/pull/3938
+[3949]: https://github.com/enso-org/enso/pull/3949
 [3952]: https://github.com/enso-org/enso/pull/3952
 [3981]: https://github.com/enso-org/enso/pull/3981
 

@@ -8,4 +8,9 @@ public class Any extends Builtin {
   public Class<? extends Builtin> getSuperType() {
     return null;
   }
+
+  @Override
+  protected boolean containsValues() {
+    return false;
+  }
 }

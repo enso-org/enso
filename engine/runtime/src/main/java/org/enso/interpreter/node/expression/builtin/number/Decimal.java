@@ -9,4 +9,9 @@ public class Decimal extends Builtin {
   protected Class<? extends Builtin> getSuperType() {
     return Number.class;
   }
+
+  @Override
+  protected boolean containsValues() {
+    return true;
+  }
 }
