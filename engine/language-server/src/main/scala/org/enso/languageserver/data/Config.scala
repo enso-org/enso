@@ -74,7 +74,7 @@ object ExecutionContextConfig {
     */
   def apply(): ExecutionContextConfig =
     ExecutionContextConfig(
-      requestTimeout = 5.seconds
+      requestTimeout = 50.seconds
     )
 }
 
