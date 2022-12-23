@@ -84,23 +84,16 @@ public class HashCodeTest {
   private void checkHashContract(List<Value> firstVals, List<Value> secondVals) {
     for (Value firstVal : firstVals) {
       for (Value secondVal : secondVals) {
-        long firstHash = valueHash(firstVal);
-        long secondHash = valueHash(secondVal);
-        if (firstHash == secondHash) {
-          assertTrue(
+        if (valuesEqual(firstVal, secondVal)) {
+          long firstHash = valueHash(firstVal);
+          long secondHash = valueHash(secondVal);
+          assertEquals(
               String.format("""
-              If hash codes of two objects are same, they should be equal:
+              If two objects are same, they should have same hash codes:
                 firstVal = %s, secondVal = %s, firstHash = %d, secondHash = %d
               """, firstVal, secondVal, firstHash, secondHash),
-              valuesEqual(firstVal, secondVal)
-          );
-        } else {
-          assertFalse(
-              String.format("""
-              If hash codes of two objects are different, they should not be equal:
-                firstVal = %s, secondVal = %s, firstHash = %d, secondHash = %d
-              """, firstVal, secondVal, firstHash, secondHash),
-              valuesEqual(firstVal, secondVal)
+              firstHash,
+              secondHash
           );
         }
       }
