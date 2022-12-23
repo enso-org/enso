@@ -172,14 +172,6 @@ spec =
             Problems.test_problem_handling action problems tester
 
     Test.group "Helpers" <|
-        Test.specify "combine_names should combine lists of names" <|
-            v1 = ["A", "B"]
-            v2 = ["A", "C"]
-            combined = combine_names v1 v2 "_1" "_2"
-            combined.first . should_equal ["A_1", "B"]
-            combined.second . should_equal ["A_2", "C"]
-
-            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State.Error
         Test.specify "fresh_names should provide fresh names" <|
             used_names = ["A", "A_1"]
             preferred_names = ["A", "A", "B"]

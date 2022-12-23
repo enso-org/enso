@@ -14,26 +14,26 @@ import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
-import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Aggregate_Column_Helper
-import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column, Floating_Point_Grouping
+from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Internal.Helpers
 import project.Internal.Aggregate_Helper
+import project.Internal.Common.Join_Helper as Database_Join_Helper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.Join_Kind.Join_Kind as Internal_Join_Kind
 import project.Internal.IR.Query.Query
 
 from Standard.Database.Errors import Unsupported_Database_Operation, Integrity_Error
@@ -778,27 +778,28 @@ type Table
                 left.internal_columns.zip left_new_columns old-> new-> [old.name, new]
             right_column_mapping = Map.from_vector <|
                 right.internal_columns.zip right_new_columns old-> new-> [old.name, new]
-            join_resolution = make_join_helpers left right left_column_mapping right_column_mapping . resolve on on_problems
-            right_columns_to_drop = join_resolution.redundant_column_names
+            join_resolution = Database_Join_Helper.make_join_helpers left right left_column_mapping right_column_mapping . resolve on on_problems
 
-            ## TODO Here we will later need to add the logic for adding a prefix
-               before adding the deduplicator numbers. Related to:
-               https://www.pivotaltracker.com/story/show/183901439
-            _ = right_prefix
-            renamer = Unique_Name_Strategy.new
-            left_new_columns_names = renamer.make_all_unique <| left_new_columns.map .name
-            right_new_kept_columns = right_new_columns.filter c-> right_columns_to_drop.contains c.name . not
-            right_new_kept_columns_names = renamer.make_all_unique <| right_new_kept_columns.map .name
-
-            left_renamed_columns = internal_rename_columns left_new_columns left_new_columns_names
-            right_renamed_kept_columns = internal_rename_columns right_new_kept_columns right_new_kept_columns_names
-            new_columns = left_renamed_columns + right_renamed_kept_columns
+            new_columns = Database_Join_Helper.select_columns_for_join join_kind left_new_columns right_new_columns join_resolution.redundant_column_names right_prefix
 
             # TODO proper equality of nulls in join conditions
-            # TODO all-null rows
-
             on_expressions = join_resolution.conditions
-            self.connection.dialect.prepare_join self.connection join_kind new_table_name left_subquery right_subquery on_expressions columns_to_select=new_columns
+
+            where_expressions = case join_kind of
+                # TODO
+                Join_Kind.Left_Exclusive  -> []
+                Join_Kind.Right_Exclusive -> []
+                _ -> []
+
+            internal_kind = case join_kind of
+                Join_Kind.Inner           -> Internal_Join_Kind.Inner
+                Join_Kind.Left_Outer      -> Internal_Join_Kind.Left
+                Join_Kind.Right_Outer     -> Internal_Join_Kind.Right
+                Join_Kind.Full            -> Internal_Join_Kind.Full
+                Join_Kind.Left_Exclusive  -> Internal_Join_Kind.Left
+                Join_Kind.Right_Exclusive -> Internal_Join_Kind.Right
+
+            self.connection.dialect.prepare_join self.connection internal_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select=new_columns
 
     ## ALIAS group, summarize
 
@@ -1224,47 +1225,6 @@ display_dataframe df indices_count all_rows_count format_terminal =
 
 ## PRIVATE
 
-   Creates a list of non-colliding names by merging the two lists and
-   appending suffixes if necessary.
-
-   Arguments:
-   - left_names: The names on the left.
-   - right_names: The names on the right.
-   - left_suffix: The suffix to apply to colliding names on the left.
-   - right_suffix: The suffix to apply to colliding names on the right.
-
-   If even after appending the suffixes it is impossible to have unique names,
-   it throws a panic. It returns two vectors, one for each input. It assumes
-   that the names within each argument itself are unique.
-combine_names left_names right_names left_suffix right_suffix =
-    make_count_map names =
-        map = names.fold Map.empty acc-> name->
-            count = acc.get name 0 + 1
-            acc.insert name count
-        name-> map.get name 0
-    original_names_count = make_count_map left_names+right_names
-    add_suffix_if_necessary suffix name = case original_names_count name > 1 of
-        True -> [name, name+suffix]
-        False -> [name, name]
-    left_pairs = left_names.map <| add_suffix_if_necessary left_suffix
-    right_pairs = right_names.map <| add_suffix_if_necessary right_suffix
-
-    new_names_count = make_count_map (left_pairs+right_pairs . map .second)
-    catch_ambiguity pairs = pairs.each pair->
-        original_name = pair.first
-        new_name = pair.second
-        case new_name!=original_name && (new_names_count new_name > 1) of
-            True ->
-                Panic.throw <| Illegal_State.Error "Duplicate column "+original_name+" was about to be renamed to "+new_name+" to disambiguate column names, but a column with name "+new_name+" already exists too. Please rename the columns before joining to avoid ambiguity."
-            False -> Nothing
-    catch_ambiguity left_pairs
-    catch_ambiguity right_pairs
-    new_left_names = left_pairs.map .second
-    new_right_names = right_pairs.map .second
-    [new_left_names, new_right_names]
-
-## PRIVATE
-
    Transforms `preferred_names` names in such a way to not collide with
    `used_names`.
 
@@ -1289,19 +1249,6 @@ fresh_names used_names preferred_names =
 
 ## PRIVATE
 
-   Transforms the vector of columns, changing names of each column to the
-   corresponding name from the second vector.
-
-   Arguments:
-   - columns: A vector of columns to rename.
-   - new_names: The new names for the columns.
-internal_rename_columns : Vector Internal_Column -> Vector Text -> Vector Internal_Column
-internal_rename_columns columns new_names =
-    columns.zip new_names col-> name->
-        col.rename name
-
-## PRIVATE
-
    Ensures that the provided columns do not clash with the vector of names
    provided as first argument.
 
@@ -1314,28 +1261,4 @@ internal_rename_columns columns new_names =
 freshen_columns : Vector Text -> Vector Internal_Column -> Vector Internal_Column
 freshen_columns used_names columns =
     new_names = fresh_names used_names (columns.map .name)
-    internal_rename_columns columns new_names
-
-## PRIVATE
-make_join_helpers left_table right_table left_column_mapping right_column_mapping =
-    ## Resolves the column in the original table and finds the expression
-       corresponding to it in the subquery.
-    resolve_target_expression column_mapping column =
-        new_column = column_mapping.get column.name if_missing=(Panic.throw (Illegal_State.Error "Impossible. Could not find column "+column.name+" in the mapping. This is a bug in the Database library."))
-        new_column.expression
-    resolve_left = resolve_target_expression left_column_mapping
-    resolve_right = resolve_target_expression right_column_mapping
-
-    make_equals problem_builder left right =
-        if left.sql_type.is_definitely_double then
-            problem_builder.report_other_warning (Floating_Point_Grouping.Error left.name)
-        if right.sql_type.is_definitely_double then
-            problem_builder.report_other_warning (Floating_Point_Grouping.Error right.name)
-        SQL_Expression.Operation "=" [resolve_left left, resolve_right right]
-    make_equals_ignore_case _ left right locale =
-        Helpers.assume_default_locale locale <|
-            SQL_Expression.Operation "equals_ignore_case" [resolve_left left, resolve_right right]
-    make_between _ left right_lower right_upper =
-        args = [resolve_left left, resolve_right right_lower, resolve_right right_upper]
-        SQL_Expression.Operation "BETWEEN" args
-    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+    Helpers.rename_internal_columns columns new_names

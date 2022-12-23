@@ -75,3 +75,16 @@ assume_default_locale locale ~action =
         False ->
             msg = "Custom locales are not supported for operations in the Database backend. If you want to use them, you need to materialize the table first."
             Error.throw (Unsupported_Database_Operation.Error msg)
+
+## PRIVATE
+
+   Transforms the vector of columns, changing names of each column to the
+   corresponding name from the second vector.
+
+   Arguments:
+   - columns: A vector of columns to rename.
+   - new_names: The new names for the columns.
+rename_internal_columns : Vector Internal_Column -> Vector Text -> Vector Internal_Column
+rename_internal_columns columns new_names =
+    columns.zip new_names col-> name->
+        col.rename name
