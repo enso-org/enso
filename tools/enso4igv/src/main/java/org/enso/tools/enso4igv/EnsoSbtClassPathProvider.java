@@ -47,7 +47,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     @Override
     public ClassPath findClassPath(FileObject file, String type) {
         for (var i : sources) {
-            if (i.contains(file)) {
+            if (i.controlsSource(file)) {
                 return switch (type) {
                     case SOURCE -> i.srcCp;
                     case COMPILE -> i.cp;
@@ -175,7 +175,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     @Override
     public SourceLevelQueryImplementation2.Result getSourceLevel(FileObject fo) {
         for (var i : sources) {
-            if (i.contains(fo)) {
+            if (i.controlsSource(fo)) {
                 return new SourceLevelQueryImplementation2.Result() {
                     @Override
                     public String getSourceLevel() {
@@ -198,7 +198,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     @Override
     public CompilerOptionsQueryImplementation.Result getOptions(FileObject fo) {
         for (var i : sources) {
-            if (i.contains(fo)) {
+            if (i.controlsSource(fo)) {
                 return new CompilerOptionsQueryImplementation.Result() {
                     @Override
                     public List<? extends String> getArguments() {
@@ -235,7 +235,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     public EnsoSources findBinaryRoots2(URL url) {
         var fo = URLMapper.findFileObject(url);
         for (var i : sources) {
-          if (i.contains(fo)) {
+          if (i.outputsTo(fo) || i.controlsSource(fo)) {
             return i;
           }
         }
@@ -244,7 +244,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
 
     @Override
     public URL[] computeRoots(EnsoSources result) {
-        throw new UnsupportedOperationException();
+        return new URL[] { result.output().toURL() };
     }
 
     @Override
@@ -333,6 +333,24 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
 
         @Override
         public void removePropertyChangeListener(PropertyChangeListener pl) {
+        }
+
+        private boolean controlsSource(FileObject fo) {
+            return contains(fo) || srcCp.contains(fo);
+        }
+
+        private boolean outputsTo(FileObject fo) {
+            if (fo == null || output() == null) {
+                return false;
+            }
+            if (fo.equals(output())) {
+                return true;
+            }
+            return FileUtil.isParentOf(output(), fo);
+        }
+
+        public String toString() {
+          return "EnsoSources[name=" + getName() + ",output=" + output() + "]";
         }
     }
 }
