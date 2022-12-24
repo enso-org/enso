@@ -93,10 +93,10 @@ object FrgaalJavaCompiler {
     // searching for $shared/src/main/java or
     // $shared/src/test/java or
     // $shared/src/bench/java or etc.
-    def findThreeUnder(dir : Path): Path = {
+    def findUnder(depth : Int, dir : Path): Path = {
       var d = dir
-      while (d.getNameCount() > 3) {
-        val threeUp = d.subpath(0, d.getNameCount() - 3)
+      while (d.getNameCount() > depth) {
+        val threeUp = d.subpath(0, d.getNameCount() - depth)
         val relShare = shared.subpath(0, shared.getNameCount())
         if (relShare.equals(threeUp)) {
           return d
@@ -105,18 +105,26 @@ object FrgaalJavaCompiler {
         }
       }
       throw new IllegalArgumentException(
-        "Cannot findThreeUnder for " + dir + " and " + shared +
+        "Cannot findUnder for " + dir + " and " + shared +
         "\nout: " + out + "\nsources: " + sources
       )
     }
-    val noTarget = sources0.filter(x => {
+    def checkTarget(x : Any) = {
       val p = asPath(x)
       val namesCheck = for (i <- 0 to p.getNameCount - 1)
         yield "target".equals(p.getName(i).toString())
       val inATargetDir = namesCheck.exists(x => x)
-      !inATargetDir
-    })
-    var in = findThreeUnder(noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
+      inATargetDir
+    }
+
+    val noTarget = sources0.filter(x => !checkTarget(x))
+    val withTarget = sources0.filter(checkTarget)
+    var in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
+    var generated = if (withTarget.isEmpty) {
+      None
+    } else {
+      Some(findUnder(4, withTarget.tail.fold(asPath(withTarget.head))(asCommon).asInstanceOf[Path]))
+    }
 
     if (shared.toFile().exists()) {
       val ensoMarker = new File(shared.toFile(), ENSO_SOURCES)
@@ -128,6 +136,9 @@ object FrgaalJavaCompiler {
       }
 
       ensoProperties.setProperty("input", in.toString())
+      if (generated.isDefined) {
+        ensoProperties.setProperty("generated", generated.get.toString())
+      }
       ensoProperties.setProperty("output", out.toString())
       storeArray("options", options)
       source.foreach(v => ensoProperties.setProperty("source", v))

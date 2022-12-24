@@ -137,6 +137,10 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                 var inputSrc = p.getProperty("input");
                 var inputDir = inputSrc != null ? FileUtil.toFileObject(new File(inputSrc)) : null;
                 if (inputDir != null) {
+                  if (inputDir.getNameExt().equals("org")) {
+                    // lib/rust/parser doesn't follow typical project conventions
+                    inputDir = inputDir.getParent();
+                  }
                   srcRoots.add(inputDir);
                 } else {
                   // fallback to pick all
@@ -156,7 +160,13 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                 srcRoots.addAll(generatedSources);
 
                 var outputSrc = p.getProperty("output");
-                var outputDir = outputSrc != null ? FileUtil.toFileObject(new File(inputSrc)) : null;
+                var outputDir = outputSrc != null ? FileUtil.toFileObject(new File(outputSrc)) : null;
+
+                var generatedSrc = p.getProperty("generated");
+                var generatedDir = generatedSrc != null ? FileUtil.toFileObject(new File(generatedSrc)) : null;
+                if (generatedDir != null) {
+                  srcRoots.add(generatedDir);
+                }
 
 
                 var cp = ClassPathSupport.createClassPath(roots.toArray(new FileObject[0]));
@@ -263,7 +273,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
             return null;
         }
         for (var i : sources) {
-            if (fo.equals(i.output())) {
+            if (i.outputsTo(fo) || i.controlsSource(fo)) {
                 return new SourceForBinaryQueryImplementation2.Result() {
                     @Override
                     public boolean preferSources() {
@@ -272,7 +282,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
 
                     @Override
                     public FileObject[] getRoots() {
-                        return new FileObject[] { i.getRootFolder() };
+                        return i.getRoots();
                     }
 
                     @Override
@@ -302,6 +312,10 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
         @Override
         public FileObject getRootFolder() {
             return srcCp.getRoots()[0];
+        }
+
+        private FileObject[] getRoots() {
+            return srcCp.getRoots();
         }
 
         @Override
@@ -350,7 +364,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
         }
 
         public String toString() {
-          return "EnsoSources[name=" + getName() + ",output=" + output() + "]";
+            return "EnsoSources[name=" + getName() + ",root=" + getRootFolder() + ",output=" + output() + "]";
         }
     }
 }
