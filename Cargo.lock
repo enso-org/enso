@@ -2825,6 +2825,7 @@ name = "ensogl-example-auto-layout"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "js-sys",
  "naga",
  "rspirv",
  "wasm-bindgen",

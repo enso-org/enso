@@ -827,7 +827,7 @@ impl SceneData {
             for shape_cons in shapes.borrow().iter() {
                 let shape = shape_cons();
                 let code = shape.optimize_shader();
-                warn!("{}", code.fragment);
+                warn!("{}", code.vertex);
             }
         })
     }

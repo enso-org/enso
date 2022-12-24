@@ -20,11 +20,13 @@ use ensogl_core::display::object::ObjectOps;
 
 
 use naga;
-use naga::back::spv;
+use naga::back::glsl as glsl_out;
+use naga::back::spv as spv_out;
 use naga::front::glsl::Options;
 use naga::front::glsl::Parser;
 use naga::ShaderStage;
 use rspirv::binary::Disassemble;
+use wasm_bindgen::JsCast;
 
 
 // ==============
@@ -44,6 +46,13 @@ mod rectangle {
     }
 }
 
+#[wasm_bindgen(module = "/spirv-tools.js")]
+#[wasm_bindgen(inline_js = "exports.Module = Module")]
+extern "C" {
+    pub fn test();
+    #[wasm_bindgen(js_namespace = Module)]
+    pub fn optimize_me(t: JsValue) -> JsValue;
+}
 
 
 // ===================
@@ -55,28 +64,81 @@ mod rectangle {
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {
+    test();
+    test();
+    test();
+    test();
+
     warn!("{:?}", rectangle::Shape::definition_path());
     let glsl = r#"
         #version 450 core
-    
-        void main() {}
+
+void main () {}
     "#;
 
     let mut parser = Parser::default();
     let options = Options::from(ShaderStage::Vertex);
     let module = parser.parse(&options, glsl).unwrap();
-    warn!("{:?}", module);
+    warn!("{:#?}", module);
 
-    let capabilities = naga::valid::Capabilities::empty();
-    let info = naga::valid::Validator::new(naga::valid::ValidationFlags::all(), capabilities)
+    let capabilities = naga::valid::Capabilities::all();
+    let info = naga::valid::Validator::new(naga::valid::ValidationFlags::empty(), capabilities)
         .validate(&module)
         .expect("Naga module validation failed");
 
-    let spv_vec = spv::write_vec(&module, &info, &spv::Options::default(), None).unwrap();
-    let dis = rspirv::dr::load_words(spv_vec).expect("Produced invalid SPIR-V").disassemble();
-    warn!("{}", dis);
+    let mut spv_vec =
+        spv_out::write_vec(&module, &info, &spv_out::Options::default(), None).unwrap();
+    // let dis = rspirv::dr::load_words(spv_vec).expect("Produced invalid SPIR-V").disassemble();
+    // let spv_vec_js = js_sys::Uint32Array::from(&spv_vec[..]);
+    // let spv_vec_js = JsValue::from(spv_vec_js);
+    // warn!("{}", dis);
 
+    let spv_vec8 = unsafe {
+        let ratio = mem::size_of::<u32>() / mem::size_of::<u8>();
 
+        let length = spv_vec.len() * ratio;
+        let capacity = spv_vec.capacity() * ratio;
+        let ptr = spv_vec.as_mut_ptr() as *mut u8;
+
+        // Don't run the destructor for vec32
+        mem::forget(spv_vec);
+
+        // Construct new Vec
+        Vec::from_raw_parts(ptr, length, capacity)
+    };
+
+    let v: Vec<u8> = vec![];
+    let spv_vec_js = js_sys::Uint8Array::from(&spv_vec8[..]);
+    let spv_vec_js = JsValue::from(spv_vec_js);
+
+    let out = optimize_me(spv_vec_js);
+    let out = out.unchecked_into::<js_sys::Uint32Array>();
+    let out = out.to_vec();
+    // warn!("OUT: {:?}", out);
+    let dis = rspirv::dr::load_words(out).expect("Produced invalid SPIR-V").disassemble();
+    // let spv_vec_js = js_sys::Uint32Array::from(&spv_vec[..]);
+    // let spv_vec_js = JsValue::from(spv_vec_js);
+    warn!("DIS: {}", dis);
+
+    let mut glsl_out = String::new();
+    let glsl_out_opts = glsl_out::Options::default();
+    let glsl_out_pipeline_opts = glsl_out::PipelineOptions {
+        shader_stage: naga::ShaderStage::Vertex,
+        entry_point:  "main".to_string(),
+        multiview:    None,
+    };
+    let mut glsl_writer = glsl_out::Writer::new(
+        &mut glsl_out,
+        &module,
+        &info,
+        &glsl_out_opts,
+        &glsl_out_pipeline_opts,
+        naga::proc::index::BoundsCheckPolicies::default(),
+    )
+    .unwrap();
+    glsl_writer.write().unwrap();
+
+    warn!("GLSL: {}", glsl_out);
 
     let world = World::new().displayed_in("root");
     let scene = &world.default_scene;
