@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.callable.atom.unboxing;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -22,8 +23,9 @@ public abstract class UnboxingAtom extends Atom {
   }
 
   @ExportMessage
-  Object getField(int i) {
-    return null;
+  Object getField(int i, @CachedLibrary("this") StructsLibrary structs) {
+    // TODO NOPEEEEE
+    return structs.getFields(this)[i];
   }
 
   @ExportMessage(name = "getFields")
