@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.callable.atom.unboxing;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeFactory;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -128,6 +129,7 @@ public class Layout {
             this.instantiator = layout.instantiatorFactory.createNode();
         }
 
+        @ExplodeLoop
         public Atom execute(Object[] args) {
             var arguments = new Object[argReaderNodes.length];
             for (int i = 0; i < argReaderNodes.length; i++) {
