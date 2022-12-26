@@ -6,7 +6,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(StructsLibrary.class)
-@ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 public class BoxingAtom extends Atom {
   private final Object[] fields;

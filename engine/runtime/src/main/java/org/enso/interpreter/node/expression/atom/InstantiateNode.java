@@ -10,7 +10,8 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.atom.AtomLO;
+import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
+import org.enso.interpreter.runtime.callable.atom.unboxing.UnboxingAtom;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WithWarnings;
@@ -96,12 +97,16 @@ public abstract class InstantiateNode extends ExpressionNode {
     }
 
     @ReportPolymorphism
-    abstract static class CreateInstanceNode extends Node {
+    public abstract static class CreateInstanceNode extends Node {
         static CreateInstanceNode create(AtomConstructor constructor) {
-            return FallbackCreateInstanceNode.create(constructor);
+            if (Layout.isAritySupported(constructor.getArity())) {
+                return UnboxingAtom.CreateUnboxedInstanceNode.create(constructor);
+            } else {
+                return FallbackCreateInstanceNode.create(constructor);
+            }
         }
 
-        abstract Object execute(Object[] arguments);
+        public abstract Object execute(Object[] arguments);
     }
 
     static class FallbackCreateInstanceNode extends CreateInstanceNode {
@@ -116,7 +121,7 @@ public abstract class InstantiateNode extends ExpressionNode {
         }
 
         @Override
-        Object execute(Object[] arguments) {
+        public Object execute(Object[] arguments) {
             return constructor.newInstance(arguments);
         }
 

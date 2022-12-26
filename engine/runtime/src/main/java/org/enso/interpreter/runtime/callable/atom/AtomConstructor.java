@@ -16,7 +16,7 @@ import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
-import org.enso.interpreter.node.expression.atom.UnboxingAtom;
+import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -44,8 +44,8 @@ public final class AtomConstructor implements TruffleObject {
     private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
     private final Lock layoutsLock = new ReentrantLock();
-    private @CompilerDirectives.CompilationFinal UnboxingAtom.Layout boxedLayout;
-    private UnboxingAtom.Layout[] unboxingLayouts = new UnboxingAtom.Layout[0];
+    private @CompilerDirectives.CompilationFinal Layout boxedLayout;
+    private Layout[] unboxingLayouts = new Layout[0];
 
 
     private final Type type;
@@ -125,7 +125,7 @@ public final class AtomConstructor implements TruffleObject {
         if (args.length != 2) {
             boxedLayout = null;
         } else {
-            boxedLayout = UnboxingAtom.Layout.create(args.length, 0);
+            boxedLayout = Layout.create(args.length, 0);
         }
         return this;
     }
@@ -239,12 +239,12 @@ public final class AtomConstructor implements TruffleObject {
         return layoutsLock;
     }
 
-    public UnboxingAtom.Layout[] getUnboxingLayouts() {
+    public Layout[] getUnboxingLayouts() {
         return unboxingLayouts;
     }
 
-    public void addLayout(UnboxingAtom.Layout layout) {
-        var newLayouts = new UnboxingAtom.Layout[unboxingLayouts.length + 1];
+    public void addLayout(Layout layout) {
+        var newLayouts = new Layout[unboxingLayouts.length + 1];
         System.arraycopy(unboxingLayouts, 0, newLayouts, 0, unboxingLayouts.length);
         newLayouts[unboxingLayouts.length] = layout;
         unboxingLayouts = newLayouts;
