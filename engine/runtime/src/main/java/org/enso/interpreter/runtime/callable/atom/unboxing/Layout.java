@@ -26,6 +26,7 @@ public class Layout {
         this.instantiatorFactory = instantiatorFactory;
         for (int i = 0; i < fieldGetterFactories.length; i++) {
             this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
+            assert this.uncachedFieldGetters[i] != null;
         }
     }
 
