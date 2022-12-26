@@ -2,19 +2,52 @@ package org.enso.interpreter.runtime.callable.atom.unboxing;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
+@ExportLibrary(StructsLibrary.class)
 public abstract class UnboxingAtom extends Atom {
     protected final Layout layout;
 
     public UnboxingAtom(AtomConstructor constructor, Layout layout) {
         super(constructor);
         this.layout = layout;
+    }
+
+    @ExportMessage
+    Object getField(int i) {
+        return null;
+    }
+
+    @ExportMessage(name = "getFields")
+    static class GetFields {
+        @Specialization(guards = "cachedLayout == atom.layout", limit = "10")
+        @ExplodeLoop
+        static Object[] doCached(UnboxingAtom atom, @Cached("atom.layout") Layout cachedLayout, @Cached(value = "cachedLayout.buildGetters()") FieldGetterNode[] getters) {
+            Object[] result = new Object[getters.length];
+            for (int i = 0; i < getters.length; i++) {
+                result[i] = getters[i].execute(atom);
+            }
+            return result;
+        }
+
+        @Specialization(replaces = "doCached")
+        static Object[] doUncached(UnboxingAtom atom) {
+            var getters = atom.layout.getUncachedFieldGetters();
+            var result = new Object[getters.length];
+            for (int i = 0; i < getters.length; i++) {
+                result[i] = getters[i].execute(atom);
+            }
+            return result;
+        }
+
     }
 
     @GenerateNodeFactory
@@ -42,6 +75,9 @@ public abstract class UnboxingAtom extends Atom {
         CreateUnboxedInstanceNode(AtomConstructor constructor) {
             this.constructor = constructor;
             this.arity = constructor.getArity();
+            this.boxedLayout = new Layout.DirectCreateLayoutInstanceNode(constructor, constructor.getBoxedLayout());
+            unboxedLayouts = new Layout.DirectCreateLayoutInstanceNode[0];
+            updateFromConstructor();
         }
 
         public static CreateUnboxedInstanceNode create(AtomConstructor constructor) {
@@ -55,7 +91,7 @@ public abstract class UnboxingAtom extends Atom {
             if (flags == 0) {
                 return boxedLayout.execute(arguments);
             }
-            for (int i = 0; i < arity; i++) {
+            for (int i = 0; i < unboxedLayouts.length; i++) {
                 if (unboxedLayouts[i].layout.inputFlags == flags) {
                     return unboxedLayouts[i].execute(arguments);
                 }
@@ -96,6 +132,7 @@ public abstract class UnboxingAtom extends Atom {
             if (layouts.length == Context.get(this).getMaxUnboxingLayouts()) {
                 constructorAtCapacity = true;
             }
+            unboxedLayouts = newLayouts;
         }
 
         @ExplodeLoop

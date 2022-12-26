@@ -115,8 +115,7 @@ public final class AtomConstructor implements TruffleObject {
             ExpressionNode[] varReads,
             ArgumentDefinition... args) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
-        generateQualifiedAccessor();
+
         if (args.length == 0) {
             cachedInstance = new BoxingAtom(this);
         } else {
@@ -127,6 +126,8 @@ public final class AtomConstructor implements TruffleObject {
         } else {
             boxedLayout = Layout.create(args.length, 0);
         }
+        this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
+        generateQualifiedAccessor();
         return this;
     }
 
@@ -241,6 +242,10 @@ public final class AtomConstructor implements TruffleObject {
 
     public Layout[] getUnboxingLayouts() {
         return unboxingLayouts;
+    }
+
+    public Layout getBoxedLayout() {
+        return boxedLayout;
     }
 
     public void addLayout(Layout layout) {

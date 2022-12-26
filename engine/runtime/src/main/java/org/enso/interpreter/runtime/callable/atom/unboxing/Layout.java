@@ -91,6 +91,18 @@ public class Layout {
         return new Layout(typeFlags, fieldToStorage, getterFactories, instantiatorFactory);
     }
 
+    public UnboxingAtom.FieldGetterNode[] getUncachedFieldGetters() {
+        return uncachedFieldGetters;
+    }
+
+    public UnboxingAtom.FieldGetterNode[] buildGetters() {
+        var getters = new UnboxingAtom.FieldGetterNode[fieldGetterFactories.length];
+        for (int i = 0; i < fieldGetterFactories.length; i++) {
+            getters[i] = fieldGetterFactories[i].createNode();
+        }
+        return getters;
+    }
+
     public boolean isDoubleAt(int fieldIndex) {
         return (inputFlags & (DOUBLE_MASK << (2 * fieldIndex))) != 0;
     }
