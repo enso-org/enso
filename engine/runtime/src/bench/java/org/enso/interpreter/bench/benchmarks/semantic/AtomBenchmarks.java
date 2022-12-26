@@ -39,7 +39,7 @@ public class AtomBenchmarks {
 
   @Benchmark
   public void benchReverseList() {
-    benchOnList(fixtures.reverseList());
+    benchOnList(fixtures.reverseListMethods());
   }
 //
 //  @Benchmark

@@ -18,7 +18,6 @@ public abstract class UnboxingAtom extends Atom {
   protected final Layout layout;
 
   public UnboxingAtom(AtomConstructor constructor, Layout layout) {
-    super(constructor);
     this.layout = layout;
   }
 
@@ -50,6 +49,11 @@ public abstract class UnboxingAtom extends Atom {
       return result;
     }
 
+  }
+
+  @ExportMessage
+  AtomConstructor getConstructor() {
+    return layout.getConstructor();
   }
 
   @GenerateNodeFactory
@@ -112,7 +116,7 @@ public abstract class UnboxingAtom extends Atom {
           }
 
           // Layouts didn't change; just create a new one and register it
-          var newLayout = Layout.create(arity, flags);
+          var newLayout = Layout.create(constructor, flags);
           constructor.addLayout(newLayout);
           updateFromConstructor();
           return unboxedLayouts[unboxedLayouts.length - 1].execute(arguments);

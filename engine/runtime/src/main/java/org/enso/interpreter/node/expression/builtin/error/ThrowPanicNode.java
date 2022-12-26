@@ -12,6 +12,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -31,11 +32,12 @@ public abstract class ThrowPanicNode extends Node {
 
   @Specialization(
       guards = {
-        "payload.getConstructor().getType() == getContext().getBuiltins().caughtPanic().getType()"
+        "structs.getConstructor(payload).getType() == getContext().getBuiltins().caughtPanic().getType()"
       })
   Object doCaughtPanic(
       Atom payload,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
+      @CachedLibrary(limit = "5") StructsLibrary structs,
       @Cached BranchProfile typeErrorProfile) {
     // Note [Original Exception Type]
     Object originalException = payload.getFields()[1];

@@ -244,9 +244,7 @@ public final class AtomConstructor implements TruffleObject {
         return unboxingLayouts;
     }
 
-    public Layout getBoxedLayout() {
-        return boxedLayout;
-    }
+
 
     public void addLayout(Layout layout) {
         var newLayouts = new Layout[unboxingLayouts.length + 1];
