@@ -111,16 +111,15 @@ object FrgaalJavaCompiler {
     }
     def checkTarget(x : Any) = {
       val p = asPath(x)
-      val namesCheck = for (i <- 0 to p.getNameCount - 1)
+      val namesCheck = for (i <- 0 until p.getNameCount)
         yield "target".equals(p.getName(i).toString())
       val inATargetDir = namesCheck.exists(x => x)
       inATargetDir
     }
 
-    val noTarget = sources0.filter(x => !checkTarget(x))
-    val withTarget = sources0.filter(checkTarget)
-    var in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
-    var generated = if (withTarget.isEmpty) {
+    val (withTarget, noTarget) = sources0.partition(checkTarget)
+    val in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
+    val generated = if (withTarget.isEmpty) {
       None
     } else {
       Some(findUnder(4, withTarget.tail.fold(asPath(withTarget.head))(asCommon).asInstanceOf[Path]))
