@@ -80,7 +80,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
         var platform = JavaPlatform.getDefault();
         var roots = new LinkedHashSet<>();
         var generatedSources = new LinkedHashSet<>();
-        var source = "11";
+        var source = "19";
         var options = new ArrayList<String>();
         for (FileObject ch : prj.getProjectDirectory().getChildren()) {
             if (ch.getNameExt().startsWith(".enso-sources-")) {
