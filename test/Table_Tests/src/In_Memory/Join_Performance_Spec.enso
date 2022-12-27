@@ -111,8 +111,4 @@ spec =
             if runtime_ms > expected_max_time_ms then
                 Test.fail "Expected a join of "+n.to_text+"x"+n.to_text+" with linear result size to be efficient, but it took "+runtime_ms.to_text+"ms while a join of 2x"+n.to_text+" with the same result size took "+expected_max_time_ms.to_text+"ms."
 
-        # TODO
-        Test.specify "should efficiently compute mixed joins where all kinds of conditions have big intersection sizes" <|
-            Nothing
-
 main = Test_Suite.run_main spec
