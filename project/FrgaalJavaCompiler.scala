@@ -118,7 +118,7 @@ object FrgaalJavaCompiler {
     }
 
     val (withTarget, noTarget) = sources0.partition(checkTarget)
-    var in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
+    val in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
     val generated = if (withTarget.isEmpty) {
       None
     } else {
