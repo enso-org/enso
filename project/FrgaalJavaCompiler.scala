@@ -111,7 +111,7 @@ object FrgaalJavaCompiler {
     }
     def checkTarget(x : Any) = {
       val p = asPath(x)
-      val namesCheck = for (i <- 0 to p.getNameCount - 1)
+      val namesCheck = for (i <- 0 until p.getNameCount)
         yield "target".equals(p.getName(i).toString())
       val inATargetDir = namesCheck.exists(x => x)
       inATargetDir
