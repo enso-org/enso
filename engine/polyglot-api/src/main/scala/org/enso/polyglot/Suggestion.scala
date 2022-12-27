@@ -142,6 +142,7 @@ object Suggestion {
     * @param isSuspended is the argument lazy
     * @param hasDefault does the argument have a default
     * @param defaultValue optional default value
+    * @param tagValues optional list of possible values
     */
   case class Argument(
     name: String,
@@ -160,6 +161,8 @@ object Suggestion {
       s"isSuspended=$isSuspended," +
       s"hasDefault=$hasDefault,defaultValue=" +
       (if (shouldMask) defaultValue.map(_ => STUB) else defaultValue) +
+      s",tagValues=" +
+      (if (shouldMask) tagValues.map(_ => STUB) else tagValues) +
       ")"
   }
 

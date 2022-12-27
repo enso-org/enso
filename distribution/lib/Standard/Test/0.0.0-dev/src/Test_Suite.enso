@@ -38,6 +38,9 @@ type Test_Suite
     run_main ~specs =
         config = Suite_Config.from_environment
         r = Test_Suite.run specs config
+        IO.println r.tests_succeeded.to_text+" tests succeeded."
+        IO.println r.tests_failed.to_text+" tests failed."
+        IO.println r.tests_pending.to_text+" tests skipped."
         code = if r.is_fail then 1 else 0
         System.exit code
 
@@ -71,3 +74,12 @@ type Test_Suite
        Checks if the suite contains any failures, and hence fails itself.
     is_fail : Boolean
     is_fail self = self.specs.any .is_fail
+
+    tests_succeeded : Integer
+    tests_succeeded self = self.specs.map .tests_succeeded . to_vector . compute Statistic.Sum . floor
+
+    tests_failed : Integer
+    tests_failed self = self.specs.map .tests_failed . to_vector . compute Statistic.Sum . floor
+
+    tests_pending : Integer
+    tests_pending self = self.specs.map .tests_pending . to_vector . compute Statistic.Sum . floor

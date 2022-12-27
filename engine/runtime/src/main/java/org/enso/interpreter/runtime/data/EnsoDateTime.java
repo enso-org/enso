@@ -18,15 +18,16 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.error.PolyglotError;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.text.Text;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "date", name = "DateTime", stdlibName = "Standard.Base.Data.Time.Date_Time")
+@Builtin(
+    pkg = "date",
+    name = "DateTime",
+    stdlibName = "Standard.Base.Data.Time.Date_Time.Date_Time")
 public final class EnsoDateTime implements TruffleObject {
   private final ZonedDateTime dateTime;
 
@@ -68,7 +69,7 @@ public final class EnsoDateTime implements TruffleObject {
       description = "Constructs a new DateTime from text with optional pattern",
       autoRegister = false)
   @Builtin.Specialize
-  @Builtin.WrapException(from = DateTimeParseException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeParseException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime parse(String text) {
     TemporalAccessor time = TIME_FORMAT.parseBest(text, ZonedDateTime::from, LocalDateTime::from);
@@ -84,7 +85,7 @@ public final class EnsoDateTime implements TruffleObject {
       name = "new_builtin",
       description = "Constructs a new Date from a year, month, and day",
       autoRegister = false)
-  @Builtin.WrapException(from = DateTimeException.class, to = PolyglotError.class)
+  @Builtin.WrapException(from = DateTimeException.class)
   @CompilerDirectives.TruffleBoundary
   public static EnsoDateTime create(
       long year,
@@ -156,7 +157,7 @@ public final class EnsoDateTime implements TruffleObject {
 
   @Builtin.Method(name = "plus_builtin", description = "Adds a duration to this date time")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime plus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
@@ -165,7 +166,7 @@ public final class EnsoDateTime implements TruffleObject {
 
   @Builtin.Method(name = "minus_builtin", description = "Subtracts a duration from this date time")
   @Builtin.Specialize
-  @Builtin.WrapException(from = UnsupportedMessageException.class, to = PanicException.class)
+  @Builtin.WrapException(from = UnsupportedMessageException.class)
   @CompilerDirectives.TruffleBoundary
   public EnsoDateTime minus(Object durationObject, InteropLibrary interop)
       throws UnsupportedMessageException {
@@ -236,13 +237,23 @@ public final class EnsoDateTime implements TruffleObject {
   }
 
   @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().dateTime();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
   boolean hasType() {
     return true;
   }
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().dateTime();
+    return EnsoContext.get(thisLib).getBuiltins().dateTime();
   }
 
   @ExportMessage

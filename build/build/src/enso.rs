@@ -1,6 +1,8 @@
 use crate::prelude::*;
 
 use crate::paths::Paths;
+use crate::paths::ENSO_META_TEST_ARGS;
+use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration;
 use crate::postgres::Postgresql;
@@ -10,8 +12,25 @@ use ide_ci::programs::docker::ContainerId;
 
 
 
+#[derive(Copy, Clone, Debug, strum::Display, strum::EnumString)]
+pub enum Boolean {
+    True,
+    False,
+}
+
+impl From<bool> for Boolean {
+    fn from(value: bool) -> Self {
+        if value {
+            Self::True
+        } else {
+            Self::False
+        }
+    }
+}
+
 ide_ci::define_env_var! {
     ENSO_JVM_OPTS, String;
+    ENSO_BENCHMARK_TEST_DRY_RUN, Boolean;
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -35,6 +54,11 @@ impl AsRef<OsStr> for IrCaches {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct BenchmarkOptions {
+    pub dry_run: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct BuiltEnso {
     pub paths: Paths,
@@ -42,11 +66,20 @@ pub struct BuiltEnso {
 
 impl BuiltEnso {
     pub fn wrapper_script_path(&self) -> PathBuf {
-        self.paths.engine.dir.join("bin").join("enso")
+        let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
+        self.paths.engine.dir.join_iter(["bin", &filename])
+    }
+
+    pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {
+        self.cmd()?
+            .with_args(["--run", self.paths.repo_root.test.benchmarks.as_str()])
+            .set_env(ENSO_BENCHMARK_TEST_DRY_RUN, &Boolean::from(opt.dry_run))?
+            .run_ok()
+            .await
     }
 
     pub fn run_test(&self, test: impl AsRef<Path>, ir_caches: IrCaches) -> Result<Command> {
-        let test_path = self.paths.stdlib_test(test);
+        let test_path = self.paths.repo_root.test.join(test);
         let mut command = self.cmd()?;
         command
             .arg(ir_caches)
@@ -81,12 +114,17 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
     ) -> Result {
         let paths = &self.paths;
+        // Environment for meta-tests. See:
+        // https://github.com/enso-org/enso/tree/develop/test/Meta_Test_Suite_Tests
+        ENSO_META_TEST_COMMAND.set(&self.wrapper_script_path())?;
+        ENSO_META_TEST_ARGS.set(&format!("{} --run", ir_caches.flag()))?;
+
         // Prepare Engine Test Environment
         if let Ok(gdoc_key) = std::env::var("GDOC_KEY") {
             let google_api_test_data_dir =
                 paths.repo_root.join("test").join("Google_Api_Test").join("data");
             ide_ci::fs::create_dir_if_missing(&google_api_test_data_dir)?;
-            ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), &gdoc_key)?;
+            ide_ci::fs::write(google_api_test_data_dir.join("secret.json"), gdoc_key)?;
         }
 
         let _httpbin = crate::httpbin::get_and_spawn_httpbin_on_free_port(sbt).await?;
@@ -99,7 +137,7 @@ impl BuiltEnso {
                 // GH-hosted runners are named like "GitHub Actions 10". Spaces are not allowed in
                 // the container name.
                 let container_name =
-                    iformat!("postgres-for-{runner_context_string}").replace(' ', "_");
+                    format!("postgres-for-{runner_context_string}").replace(' ', "_");
                 let config = postgres::Configuration {
                     postgres_container: ContainerId(container_name),
                     database_name:      "enso_test_db".to_string(),

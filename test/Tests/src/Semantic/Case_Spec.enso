@@ -10,8 +10,8 @@ polyglot java import java.util.AbstractList
 polyglot java import java.util.ArrayList
 polyglot java import java.util.List as JList
 
-
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 spec = Test.group "Pattern Matches" <|
     Test.specify "should be able to match on the Boolean type" <|
@@ -58,26 +58,26 @@ spec = Test.group "Pattern Matches" <|
             _ : Number -> Nothing
             _ -> Test.fail "Expected a number to match."
         case Number of
-            _ : Number -> Nothing
-            _ -> Test.fail "Expected the Number constructor to match."
+            _ : Number -> Test.fail "Type cannot match the Number type"
+            _ -> Nothing
         case Number of
             Number -> Nothing
             _ -> Test.fail "Expected the Number constructor to match."
         case Integer of
-            _ : Number -> Nothing
-            _ -> Test.fail "Expected the Integer constructor to match."
+            _ : Number -> Test.fail "Integer type isn't instance of Number type"
+            _ -> Nothing
         case Decimal of
-            _ : Number -> Nothing
-            _ -> Test.fail "Expected the Decimal constructor to match."
+            _ : Number -> Test.fail "Decimal type isn't instance of Number type"
+            _ -> Nothing
     Test.specify "should be able to match on the Text type" <|
         case "foo" of
             Text -> Test.fail "Expected a text type to match."
             _ : Text -> Nothing
             _ -> Test.fail "Expected a text type to match."
         case Text of
-            _ : Text -> Nothing
+            _ : Text -> Test.fail "Text type isn't instance of Text type"
             Text_Module -> Test.fail "Expected the Text constructor to match4."
-            Text -> Test.fail "Expected the Text constructor to match4."
+            Text -> Nothing
             _ -> Test.fail "Expected the Text constructor to matc5h."
         case Text_Module of
             _ : Text -> Test.fail "Expected the Text module to match4."
@@ -85,15 +85,23 @@ spec = Test.group "Pattern Matches" <|
             Text_Module -> Nothing
             _ -> Test.fail "Expected the Text module to matc5h."
     Test.specify "should be able to match on the Array type" <|
-        case [].to_array of
+        case [1].to_array of
             Array -> Test.fail "Expected an array type to match."
             _ : Array -> Nothing
-            _ -> Test.fail "Expected an array type  to match."
+            _ -> Test.fail "Expected an array type to match."
+        case [1] of
+            _ : Array -> Test.fail "Expected an vector type to match."
+            _ : Vector -> Nothing
+            _ -> Test.fail "Expected an vector type to match."
+        case [1] of
+            _ : Vector -> Nothing
+            _ : Array -> Test.fail "Expected an vector type to match."
+            _ -> Test.fail "Expected an vector type to match."
         case Array of
-            Array_Module -> Test.fail "Expected the Array type to match."
-            _ : Array -> Nothing
-            Array -> Test.fail "Expected the Array type to match."
-            _ -> Test.fail "Expected the Array Type to match."
+            Array_Module -> "Expected to match on Array type."
+            _ : Array -> "Expected to match on Array type."
+            Array -> Nothing
+            _ -> Test.fail "Expected to match on Array type."
         case Array_Module of
             _ : Array -> Test.fail "Expected the Array module to match."
             Array -> Test.fail "Expected the Array module to match."
@@ -262,6 +270,16 @@ spec = Test.group "Pattern Matches" <|
             Class -> Test.fail "Expected to match on a polyglot symbol."
             _ -> Test.fail "Expected to match on a polyglot symbol."
 
+        # Tests a bug where array matching a polyglot Object[] array would fail if the same branch mis-matched earlier.
+        foo x = case x of
+            _ : Array -> "array"
+            _ : Vector -> "vector"
+            _ : Text -> "text"
+            _ -> "invalid" + x.to_text
+        v = ["X", list.toArray, list]
+        u = v.map foo
+        u.should_equal ["text", "array", "array"]
+
     Test.specify "should correctly pattern match on supertype" <|
         case 1 of
             _ : Any -> Nothing
@@ -279,5 +297,8 @@ spec = Test.group "Pattern Matches" <|
             _ : JList -> Nothing
             _ -> Test.fail "Expected to match on java.lang.Object type."
 
+        case ArrayList.new of
+            _ : Any -> Nothing
+            _ -> Test.fail "Expected to match on Any."
 
 main = Test_Suite.run_main spec

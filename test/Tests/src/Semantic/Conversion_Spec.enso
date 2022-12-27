@@ -4,6 +4,7 @@ import project.Semantic.Conversion.Methods
 import project.Semantic.Conversion.Types
 
 from Standard.Test import Test
+import Standard.Test.Extensions
 
 type Foo
     Value foo
@@ -40,7 +41,7 @@ foreign js make_str x = """
 foreign js call_function fn arg_1 = """
     return fn(arg_1, "a string");
 
-Number.foo = "foo called"
+Number.foo self = "foo called"
 
 spec =
     Test.group "Conversion" <|
@@ -90,11 +91,11 @@ spec =
         Test.specify "should support the meta functions" <|
             meta_from = Meta.meta .from
             is_symbol = case meta_from of
-                Meta.Unresolved_Symbol_Data _ -> True
+                _ : Meta.Unresolved_Symbol -> True
                 _ -> False
             is_symbol.should_be_true
 
-            .from . is_a Meta.Unresolved_Symbol . should_be_true
+            .from . to_text . should_equal "UnresolvedConversion"
 
             meta_from.name.should_equal "from"
 

@@ -1,8 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Error.File_Error.File_Error
 
 from Standard.Image import Image, Read_Flag, Write_Flag
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 polyglot java import java.lang.System as Java_System
 

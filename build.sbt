@@ -1387,9 +1387,6 @@ lazy val runtime = (project in file("engine/runtime"))
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(
-      Defaults.compilersSetting
-    ), // Compile benchmarks with javac, due to jmh issues
     Benchmark / javacOptions --= Seq(
       "-source",
       frgaalSourceLevel,
@@ -1632,7 +1629,7 @@ lazy val `engine-runner` = project
     rebuildNativeImage := NativeImage
       .buildNativeImage(
         "runner",
-        staticOnLinux = true,
+        staticOnLinux = false,
         additionalOptions = Seq(
           "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
           "-H:IncludeResources=.*Main.enso$",
@@ -1648,7 +1645,8 @@ lazy val `engine-runner` = project
         initializeAtRuntime = Seq(
           // Note [WSLoggerManager Shutdown Hook]
           "org.enso.loggingservice.WSLoggerManager$",
-          "io.methvin.watchservice.jna.CarbonAPI"
+          "io.methvin.watchservice.jna.CarbonAPI",
+          "org.enso.syntax2.Parser"
         )
       )
       .dependsOn(installNativeImage)

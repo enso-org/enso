@@ -9,6 +9,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @GenerateUncached
@@ -49,12 +50,7 @@ public abstract class TypeToDisplayTextNode extends Node {
     } else if (TypesGen.isFunction(value)) {
       return "Function";
     } else if (value instanceof Atom atom) {
-      var cons = atom.getConstructor();
-      if (cons.getName().equals("Value")) {
-        return cons.getType().getName() + "." + cons.getName();
-      } else {
-        return cons.getName();
-      }
+      return atom.getConstructor().getDisplayName();
     } else if (value instanceof AtomConstructor cons) {
       return cons.getType().getName() + "." + cons.getName() + " (Constructor)";
     } else if (TypesGen.isType(value)) {
@@ -76,7 +72,10 @@ public abstract class TypeToDisplayTextNode extends Node {
         throw new IllegalStateException("Receiver declares a meta object, but does not return it.");
       }
     } else {
-      return "a polyglot object";
+      // In case we forgot to handle some of the builtin types, the following
+      // piece of code will handle that.
+      String typeName = Types.getName(value);
+      return typeName != null ? typeName : "a polyglot object";
     }
   }
 }

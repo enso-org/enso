@@ -28,6 +28,7 @@ enso-types = { path = "../../types" }
 enso-web = { path = "../../web" }
 ensogl-text-embedded-fonts = { path = "../component/text/src/font/embedded" }
 bit_field = { version = "0.10.0" }
+bitflags = { version = "1.3.2" }
 console_error_panic_hook = { version = "0.1.6" }
 enum_dispatch = { version = "0.3.6" }
 failure = { version = "0.1.5" }
@@ -45,7 +46,7 @@ smallvec = { version = "1.0.0" }
 typenum = { version = "1.11.2" }
 # We require exact version of wasm-bindgen because we do patching final js in our build process,
 # and this is vulnerable to any wasm-bindgen version change.
-wasm-bindgen = { version = "=0.2.78", features = ["nightly"] }
+wasm-bindgen = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"
@@ -87,4 +88,4 @@ features = [
 ]
 
 [dev-dependencies]
-wasm-bindgen-test = { version = "0.3.8" }
+wasm-bindgen-test = { workspace = true }

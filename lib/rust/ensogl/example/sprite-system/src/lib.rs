@@ -54,8 +54,8 @@ pub fn main() {
             let _keep_alive = &sprite2;
             let _keep_alive = &sprite_system;
             if i <= 100 {
-                sprite1.mod_position(|p| p.x += 1.0);
-                sprite2.mod_position(|p| p.y += 1.0);
+                sprite1.modify_position(|p| p.x += 1.0);
+                sprite2.modify_position(|p| p.y += 1.0);
             }
         })
         .forget();

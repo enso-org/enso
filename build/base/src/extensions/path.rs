@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::extensions::os_str::OsStrExt;
+
 use serde::de::DeserializeOwned;
 
 
@@ -16,14 +18,17 @@ pub trait PathExt: AsRef<Path> {
     }
 
     /// Strips the leading `\\?\` prefix from Windows paths if present.
-    fn without_verbatim_prefix(&self) -> &Path {
+    fn without_verbatim_prefix(&self) -> &Path
+    where Self: AsRef<std::ffi::OsStr> {
         self.as_str().strip_prefix(r"\\?\").map_or(self.as_ref(), Path::new)
     }
 
     /// Appends a new extension to the file.
     ///
-    /// Does not try to replace previous extension, unlike `set_extension`.
+    /// Does not try to replace previous extension, unlike [`PathBuf::set_extension`].
     /// Does nothing when given extension string is empty.
+    ///
+    /// # Examples
     ///
     /// ```
     /// use enso_build_base::extensions::path::PathExt;
@@ -79,9 +84,8 @@ pub trait PathExt: AsRef<Path> {
     /// This will panic if the path contains invalid UTF-8 characters. Non-UTF-8 paths are not
     /// something that we want to spend time on supporting right now.
     fn as_str(&self) -> &str {
-        self.as_ref()
-            .to_str()
-            .unwrap_or_else(|| panic!("Path is not valid UTF-8: {:?}", self.as_ref()))
+        let os_str: &OsStr = self.as_ref().as_ref();
+        os_str.as_str()
     }
 
     /// Split path to components and collect them into a new PathBuf.
@@ -141,7 +145,20 @@ pub trait PathExt: AsRef<Path> {
 
 impl<T: AsRef<Path>> PathExt for T {}
 
-/// A method that displays a value using `Display` trait.
+/// A method that outputs a path to a formatter using [`Path::display`].
+///
+/// This is useful in combination with macros like `Derivative`, as demonstrated in the example
+/// below.
+///
+/// # Example
+/// ```ignore
+/// #[derive(Derivative)]
+/// #[derivative(Debug)]
+/// pub struct Foo {
+///    #[derivative(Debug(format_with = "display_fmt"))]
+///    path: PathBuf,
+/// }
+/// ```
 pub fn display_fmt(path: &Path, f: &mut Formatter) -> std::fmt::Result {
     std::fmt::Display::fmt(&path.display(), f)
 }

@@ -455,7 +455,7 @@ impl Data {
         edited_node_id: ast::Id,
     ) -> FallibleResult<Self> {
         let edited_node = graph.node(edited_node_id)?;
-        let input = ParsedInput::new_from_ast(edited_node.info.expression());
+        let input = ParsedInput::new_from_ast(&edited_node.info.expression());
         let actions = default();
         let components = default();
         let intended_method = edited_node.metadata.and_then(|md| md.intended_method);
@@ -1395,6 +1395,7 @@ impl Searcher {
                 defined_in:         module.clone(),
                 arguments:          vec![],
                 return_type:        "Standard.Base.System.File.File".try_into().unwrap(),
+                documentation:      vec![],
                 documentation_html: None,
                 self_type:          Some(self_type.clone()),
                 is_static:          true,
@@ -2540,7 +2541,7 @@ pub mod test {
         let Fixture { test: _test, mut searcher, .. } = Fixture::new();
         let graph = searcher.graph.graph();
         let node = graph.nodes().unwrap().last().unwrap().clone();
-        let initial_node_expression = node.main_line.expression().clone();
+        let initial_node_expression = node.main_line.expression();
         let node_id = node.info.id();
         searcher.mode = Immutable(Mode::EditNode { node_id });
         searcher.node_edit_guard =
@@ -2579,7 +2580,7 @@ pub mod test {
         // Verify the node was reverted.
 
         let node = graph.nodes().unwrap().last().unwrap().clone();
-        let final_node_expression = node.main_line.expression().clone();
+        let final_node_expression = node.main_line.expression();
         assert_eq!(initial_node_expression.to_string(), final_node_expression.to_string());
     }
 
@@ -2602,7 +2603,7 @@ pub mod test {
         // Verify the node is not reverted after the searcher is dropped.
         drop(searcher);
         let node = graph.nodes().unwrap().last().unwrap().clone();
-        let final_node_expression = node.main_line.expression().clone();
+        let final_node_expression = node.main_line.expression();
         assert_eq!(final_node_expression.to_string(), new_expression);
     }
 }

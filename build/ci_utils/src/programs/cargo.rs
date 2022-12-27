@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use crate::env::new::Separated;
+use crate::env::accessor::Separated;
 use crate::program::command::Manipulator;
 
 

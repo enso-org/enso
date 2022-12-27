@@ -10,6 +10,7 @@ polyglot java import java.util.Random
 polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 type My_Type
     Value foo bar baz
@@ -30,34 +31,40 @@ spec = Test.group "Meta-Value Manipulation" <|
     Test.specify "should allow manipulating atoms" <|
         atom = My_Type.Value 1 "foo" Nothing
         meta_atom = Meta.meta atom
-        meta_atom.constructor.should_equal My_Type.Value
+        meta_atom.constructor.value.should_equal My_Type.Value
         meta_atom.fields.should_equal [1, "foo", Nothing]
-        Meta.meta (meta_atom.constructor) . new [1, "foo", Nothing] . should_equal atom
+        Meta.meta (meta_atom.constructor.value) . new [1, "foo", Nothing] . should_equal atom
+    Test.specify "should allow getting a value's constructor's name" <|
+        Meta.meta List.Nil . constructor . name . should_equal "Nil"
+        Meta.meta (List.Cons 1 List.Nil) . constructor . name . should_equal "Cons"
+    Test.specify "should allow getting a value's constructor's fields" <|
+        Meta.meta List.Nil . constructor . fields . should_equal []
+        Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
     Test.specify "should allow creating atoms from atom constructors" <|
         atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
-        (Meta.meta atom_1).constructor . should_equal My_Type.Value
+        (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
         atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
-        (Meta.meta atom_2).constructor . should_equal My_Type.Value
+        (Meta.meta atom_2).constructor.value . should_equal My_Type.Value
     Test.specify "should correctly return representations of different classes of objects" <|
-        Meta.meta 1 . should_equal (Meta.Primitive_Data 1)
-        Meta.meta "foo" . should_equal (Meta.Primitive_Data "foo")
+        Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
+        Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
     Test.specify "should allow manipulation of error values" <|
         err = Error.throw "My Error"
         meta_err = Meta.meta err
-        meta_err.is_a Meta.Error_Data . should_be_true
+        meta_err.is_a Meta.Error.Value . should_be_true
         meta_err.value . should_equal "My Error"
     Test.specify "should allow checking if a value is of a certain type" <|
         1.is_a Any . should_be_true
         1.2.is_a Any . should_be_true
         (My_Type.Value 1 "foo" Nothing).is_a Any . should_be_true
         
-        Array.is_a Array . should_be_true
+        Array.is_a Array . should_be_false
         [].to_array.is_a Array . should_be_true
         [].to_array.is_a Decimal . should_be_false
         [1,2,3].is_a Vector . should_be_true
         [1,2,3].is_a Array . should_be_false
 
-        Boolean.is_a Boolean . should_be_true
+        Boolean.is_a Boolean . should_be_false
         True.is_a Boolean . should_be_true
         False.is_a Boolean . should_be_true
         True.is_a Integer . should_be_false
@@ -77,7 +84,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         1.0.is_a Text . should_be_false
 
         random_gen = Random.new
-        Meta.is_a random_gen Polyglot.Polyglot . should_be_true
+        Meta.is_a random_gen Random . should_be_true
         Meta.is_a random_gen Integer . should_be_false
 
         (My_Type.Value 1 "foo" Nothing).is_a My_Type.Value . should_be_true
@@ -147,8 +154,8 @@ spec = Test.group "Meta-Value Manipulation" <|
 
     Test.specify "should correctly handle Java values" <|
         java_meta = Meta.meta Random.new
-        java_meta . should_be_a Meta.Polyglot_Data
-        java_meta . get_language . should_equal Meta.Java
+        java_meta . should_be_a Meta.Polyglot.Value
+        java_meta . get_language . should_equal Meta.Language.Java
 
     Test.specify "should correctly handle equality of Java values" <|
         a = JavaLocale.new "en"

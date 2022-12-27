@@ -111,7 +111,6 @@ fn init(app: &Application) {
     // === Scroll Area ===
 
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_camera(scene.camera());
     app.display.add_child(&scroll_area);
     scroll_area.resize(Vector2(200.0, 200.0));
     scroll_area.set_content_width(300.0);
@@ -124,7 +123,7 @@ fn init(app: &Application) {
     let background = background::View::new();
     scroll_area.add_child(&background);
     scene.layers.below_main.add(&background);
-    background.size.set(Vector2::new(200.0, 200.0));
+    background.set_size(Vector2::new(200.0, 200.0));
     background.set_x(100.0);
     background.set_y(-100.0);
     std::mem::forget(background);
@@ -134,7 +133,7 @@ fn init(app: &Application) {
 
     let content = content::View::new();
     scroll_area.content().add_child(&content);
-    content.size.set(Vector2::new(300.0, 1000.0));
+    content.set_size(Vector2::new(300.0, 1000.0));
     content.set_x(150.0);
     content.set_y(-500.0);
     std::mem::forget(content);

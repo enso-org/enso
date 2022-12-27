@@ -1,6 +1,6 @@
 ## Utilities for working with Java polyglot objects.
 
-import project.Data.Any.Any
+import project.Any.Any
 import project.Data.Boolean.Boolean
 import project.Data.Text.Text
 import project.Nothing.Nothing

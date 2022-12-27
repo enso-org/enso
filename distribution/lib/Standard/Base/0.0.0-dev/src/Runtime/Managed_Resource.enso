@@ -1,6 +1,6 @@
 ## An API for manual resource management.
 
-import project.Data.Any.Any
+import project.Any.Any
 import project.Nothing.Nothing
 
 ## Resource provides an API for manual management of computation resources.

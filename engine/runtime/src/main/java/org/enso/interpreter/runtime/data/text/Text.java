@@ -11,7 +11,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
@@ -172,6 +172,16 @@ public final class Text implements TruffleObject {
     return "'" + replaced + "'";
   }
 
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().text();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
   private void setContents(String contents) {
     assert length == -1 || length == contents.length();
     this.contents = contents;
@@ -194,7 +204,7 @@ public final class Text implements TruffleObject {
 
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return Context.get(thisLib).getBuiltins().text();
+    return EnsoContext.get(thisLib).getBuiltins().text();
   }
 
   /**

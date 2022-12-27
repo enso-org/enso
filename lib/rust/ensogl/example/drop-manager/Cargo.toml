@@ -12,7 +12,7 @@ enso-frp = { path = "../../../frp" }
 ensogl-core = { path = "../../core" }
 ensogl-drop-manager = { path = "../../component/drop-manager" }
 enso-prelude = { path = "../../../prelude" }
-wasm-bindgen = { version = "0.2.78", features = ["nightly"] }
+wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { version = "0.4.8" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.

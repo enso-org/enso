@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime.builtin;
 
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.builtin.special.*;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -11,7 +11,7 @@ public class Special {
   private final Function runThread;
   private final Function joinThread;
 
-  public Special(Language language) {
+  public Special(EnsoLanguage language) {
     newRef = NewRefMethodGen.makeFunction(language);
     readRef = ReadRefMethodGen.makeFunction(language);
     writeRef = WriteRefMethodGen.makeFunction(language);

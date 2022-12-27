@@ -46,6 +46,16 @@ pub trait TryFutureExt: TryFuture {
         self.map_err(|err| err.into().context(context)).boxed()
     }
 
+    /// Convert the error type of this future to [`anyhow::Error`] and add the context.
+    fn with_context<F, C>(self, context: F) -> BoxFuture<'static, Result<Self::Ok>>
+    where
+        Self: Sized + Send + 'static,
+        std::result::Result<Self::Ok, Self::Error>: anyhow::Context<Self::Ok, Self::Error>,
+        F: FnOnce() -> C + Send + Sync + 'static,
+        C: Display + Send + Sync + 'static, {
+        self.into_future().map(|res| res.with_context(context)).boxed()
+    }
+
     /// Convert the error type of this future to [`anyhow::Error`].
     fn anyhow_err(self) -> MapErr<Self, fn(Self::Error) -> anyhow::Error>
     where

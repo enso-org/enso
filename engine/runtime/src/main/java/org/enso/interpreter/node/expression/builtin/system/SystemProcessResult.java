@@ -8,6 +8,11 @@ import java.util.List;
 @BuiltinType
 public class SystemProcessResult extends UniquelyConstructibleBuiltin {
   @Override
+  protected String getConstructorName() {
+    return "Result";
+  }
+
+  @Override
   protected List<String> getConstructorParamNames() {
     return List.of("exit_code", "stdout", "stderr");
   }

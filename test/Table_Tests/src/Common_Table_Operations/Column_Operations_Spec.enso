@@ -1,0 +1,20 @@
+from Standard.Base import all
+
+from Standard.Table.Errors import all
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    Test.group prefix+"Column Operations" <|
+        Test.specify "iif" <|
+            t = table_builder [["X", [True, False, Nothing, True]]]
+            t.at "X" . iif 22 33 . to_vector . should_equal [22, 33, Nothing, 22]
+
+        Test.specify "iif on Columns" pending="Not implemented yet." Nothing

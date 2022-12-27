@@ -145,7 +145,9 @@ case class BindingsMap(
   private def importMatchesName(imp: ResolvedImport, name: String): Boolean = {
     imp.importDef.onlyNames
       .map(_ => imp.importDef.rename.exists(_.name == name))
-      .getOrElse(imp.importDef.getSimpleName.name == name)
+      .getOrElse(
+        !imp.importDef.isAll && imp.importDef.getSimpleName.name == name
+      )
   }
 
   private def findExportedCandidatesInImports(

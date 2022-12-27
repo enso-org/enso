@@ -1,5 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Illegal_State.Illegal_State
+
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
 import project.Data.Table.Table
@@ -11,8 +16,6 @@ from project.Errors import No_Index_Set_Error
 
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
-
-from project.Data.Column.Column import Column_Data
 
 type Column
     ## Creates a new column given a name and a vector of elements.
@@ -29,7 +32,16 @@ type Column
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
-    from_vector name items = Column_Data (Java_Column.fromItems name items.to_array)
+    from_vector name items = Column.Value (Java_Column.fromItems name items.to_array)
+
+    ## Creates a new column given a name and a vector of elements repeated over and over.
+
+       Arguments:
+       - name: The name of the column to create.
+       - items: The elements to contain in the column.
+       - repeats: The number of times to repeat the vector.
+    from_vector_repeated : Text -> Vector -> Integer -> Column
+    from_vector_repeated name items repeats = Column.Value (Java_Column.fromRepeatedItems name items.to_array repeats)
 
     ## PRIVATE
 
@@ -37,7 +49,7 @@ type Column
 
        Arguments:
        - java_column: The internal representation of the column.
-    Column_Data java_column
+    Value java_column
 
     ## Returns a text containing an ASCII-art table displaying this data.
 
@@ -531,8 +543,8 @@ type Column
                 _ -> when_false
 
             rs = s.iif true_val false_val
-            Column.Column_Data (Java_Column.new "Result" ix rs)
-        _ -> Error.throw (Illegal_Argument_Error "`iif` can only be used with boolean columns.")
+            Column.Value (Java_Column.new "Result" ix rs)
+        _ -> Error.throw (Illegal_Argument.Error "`iif` can only be used with boolean columns.")
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
        `values` list.
@@ -667,13 +679,13 @@ type Column
         index = self.java_column.getIndex
         name = self.java_column.getName
         new_st = case default of
-            Column_Data java_col ->
+            Column.Value java_col ->
                 other_storage = java_col.getStorage
                 storage.fillMissingFrom other_storage
             _ ->
                 storage.fillMissing default
         col = Java_Column.new name index new_st
-        Column_Data col
+        Column.Value col
 
     ## Checks for each element of the column if it starts with `other`.
 
@@ -770,7 +782,7 @@ type Column
              example_contains = Examples.text_column_1.like "F%."
     like : Column | Text -> Column
     like self pattern =
-        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State_Error "The `Like` operation should only be used on Text columns.")) pattern
+        run_vectorized_binary_op self "like" (_ -> _ -> Error.throw (Illegal_State.Error "The `Like` operation should only be used on Text columns.")) pattern
 
     ## Checks for each element of the column if it is contained within the
        provided vector or column.
@@ -793,10 +805,10 @@ type Column
         case self.java_column.getStorage.isOpVectorized op_name of
             True ->
                 fallback_fn _ _ =
-                    Panic.throw (Illegal_State_Error_Data "Impossible: This is a bug in the Standard.Table library.")
+                    Panic.throw (Illegal_State.Error "Impossible: This is a bug in the Standard.Table library.")
                 true_vector = case vector of
-                    _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector -> vector
+                    _ : Array -> Vector.from_polyglot_array vector
                     column : Column -> column.to_vector
                 run_vectorized_binary_op self op_name fallback_fn true_vector skip_nulls=False new_name=result_name
             False ->
@@ -807,8 +819,8 @@ type Column
                    against the whole other column, instead of just the
                    corresponding row - so we need to go around a bit.
                 true_vector = case vector of
-                    _ : Array -> Vector.from_polyglot_array vector
                     _ : Vector -> vector
+                    _ : Array -> Vector.from_polyglot_array vector
                     ## This does no copying, as `Column.to_vector` just returns
                        a view of the storage.
                     column : Column -> column.to_vector
@@ -839,7 +851,7 @@ type Column
         index = self.java_column.getIndex
         new_st = storage.map Nothing function on_missing
         col = Java_Column.new "Result" index new_st
-        Column_Data col
+        Column.Value col
 
     ## ALIAS Transform Columns
 
@@ -869,7 +881,7 @@ type Column
         ix = self.java_column.getIndex
         s2 = that.java_column.getStorage
         rs = s1.zip Nothing function s2 skip_missing
-        Column_Data (Java_Column.new "Result" ix rs)
+        Column.Value (Java_Column.new "Result" ix rs)
 
     ## ALIAS Rename Column
 
@@ -886,7 +898,7 @@ type Column
 
              example_rename = Examples.integer_column.rename "My Numbers"
     rename : Text -> Column
-    rename self name = Column_Data (self.java_column.rename name)
+    rename self name = Column.Value (self.java_column.rename name)
 
     ## Returns the name of this column.
 
@@ -945,7 +957,7 @@ type Column
     index : Column ! No_Index_Set_Error
     index self = case self.java_column.getIndex.toColumn of
         Nothing -> Error.throw No_Index_Set_Error
-        i -> Column_Data i
+        i -> Column.Value i
 
     ## Sets the index of this column, using the provided column.
 
@@ -960,7 +972,7 @@ type Column
              example_set_index =
                 Examples.decimal_column.set_index Examples.integer_column
     set_index : Column -> Column
-    set_index self index = Column_Data (self.java_column.setIndex index.java_column)
+    set_index self index = Column.Value (self.java_column.setIndex index.java_column)
 
     ## Returns the value contained in this column at the given index.
 
@@ -968,7 +980,7 @@ type Column
        - index: The index in the column from which to get the value.
 
        If the value is an NA then this method returns nothing. If the index is
-       not an index in the column it returns an `Index_Out_Of_Bounds_Error`.
+       not an index in the column it returns an `Index_Out_Of_Bounds`.
 
        > Example
          Get the first element from a column.
@@ -976,10 +988,10 @@ type Column
              import Standard.Examples
 
              example_at = Examples.integer_column.at 0
-    at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds_Error
+    at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
     at self index =
         valid_index = (index >= 0) && (index < self.length)
-        if valid_index.not then Error.throw (Index_Out_Of_Bounds_Error_Data index self.length) else
+        if valid_index.not then Error.throw (Index_Out_Of_Bounds.Error index self.length) else
             storage = self.java_column.getStorage
             if storage.isNa index then Nothing else
                 storage.getItem index
@@ -1017,8 +1029,8 @@ type Column
     storage_type : Storage
     storage_type self =
         tp = self.java_column.getStorage.getType
-        Storage.types.at tp . catch Index_Out_Of_Bounds_Error _->
-            Panic.throw (Illegal_State_Error "Unknown storage type: "+tp.to_text)
+        Storage.types.at tp . catch Index_Out_Of_Bounds.Error _->
+            Panic.throw (Illegal_State.Error "Unknown storage type: "+tp.to_text)
 
     ## UNSTABLE TODO this is a prototype that will be revisited later on
     value_type : Value_Type
@@ -1034,28 +1046,21 @@ type Column
 
     ## UNSTABLE
 
-       Converts this column to JSON.
+       Converts this column to JS_Object representation.
 
        > Example
-         Get a JSON representation of the column.
+         Get a JavaScript representation of the column.
 
              import Standard.Examples
 
-             example_to_json = Examples.integer_column.to_json
-    to_json : Json
-    to_json self =
-        col = self.java_column
-        name = col.getName
-        storage = col.getStorage
-        json_factory = case self.storage_type of
-            Storage.Text -> Json.String
-            Storage.Integer -> Json.Number
-            Storage.Decimal -> Json.Number
-            Storage.Boolean -> Json.Boolean
-            _ -> .to_json
-        storage_json = Json.Array (storage_to_json storage json_factory)
-        fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
-        Json.Object fields
+             example_to_json = Examples.integer_column.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        name = self.java_column.getName
+        storage = self.java_column.getStorage
+        storage_proxy = Array_Proxy.new storage.size i-> storage.getItem i
+        storage_json = Vector.from_polyglot_array storage_proxy
+        JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
     ## Efficiently joins two tables based on either the index or the specified
        key column.
@@ -1095,20 +1100,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table : Table
-    to_table self = Table.Table_Data self.java_column.toTable
-
-    ## UNSTABLE
-       ADVANCED
-
-       Shows a JSON serialization of a truncated version of this column, for the
-       benefit of visualization in the IDE.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        size = ['length', self.length]
-        name = ['name', self.name]
-        max_data = 100
-        data = ['data', self.to_vector.take (First max_data)]
-        Json.from_pairs [size, name, data] . to_text
+    to_table self = Table.Value self.java_column.toTable
 
     ## UNSTABLE
 
@@ -1158,7 +1150,7 @@ type Column
         rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
         mask = OrderBuilder.buildOrderMask [rule].to_array
         new_col = self.java_column.applyMask mask
-        Column_Data new_col
+        Column.Value new_col
 
     ## Creates a new Column with the specified range of rows from the input
        Column.
@@ -1185,7 +1177,7 @@ type Column
         length = self.length
         offset = Math.max (Math.min start length) 0
         limit = Math.max (Math.min (end - offset) (length - offset)) 0
-        Column_Data (self.java_column.slice offset limit)
+        Column.Value (self.java_column.slice offset limit)
 
     ## UNSTABLE
 
@@ -1201,7 +1193,7 @@ type Column
 
              example_first = Examples.integer_column.first
     first : Any ! Empty_Error
-    first self = self.at 0 . catch Index_Out_Of_Bounds_Error_Data (_ -> Error.throw Empty_Error)
+    first self = self.at 0 . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1217,7 +1209,7 @@ type Column
 
              example_last = Examples.integer_column.last
     last : Any ! Empty_Error
-    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds_Error_Data (_ -> Error.throw Empty_Error)
+    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
 
     ## UNSTABLE
 
@@ -1233,7 +1225,7 @@ type Column
     reverse : Column
     reverse self =
         mask = OrderBuilder.buildReversedMask self.length
-        Column_Data <| self.java_column.applyMask mask
+        Column.Value (self.java_column.applyMask mask)
 
     ## UNSTABLE
 
@@ -1247,7 +1239,7 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
-    duplicate_count self = Column_Data self.java_column.duplicateCount
+    duplicate_count self = Column.Value self.java_column.duplicateCount
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
@@ -1287,7 +1279,7 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
                 case operand of
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
                     _ -> current.bimap name fallback_fn operand skip_nulls
-            Column.Column_Data (Java_Column.new new_name column.java_column.getIndex folded)
+            Column.Value (Java_Column.new new_name column.java_column.getIndex folded)
         _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
         _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
 
@@ -1307,17 +1299,17 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
    - new_name: The name of the column created as the result of this operation.
 run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Boolean -> Text -> Column
 run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
-    Column.Column_Data col2 ->
+    Column.Value col2 ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         s2 = col2.getStorage
         rs = s1.zip name fallback_fn s2 skip_nulls
-        Column.Column_Data (Java_Column.new new_name ix rs)
+        Column.Value (Java_Column.new new_name ix rs)
     _ ->
         s1 = column.java_column.getStorage
         ix = column.java_column.getIndex
         rs = s1.bimap name fallback_fn operand skip_nulls
-        Column.Column_Data (Java_Column.new new_name ix rs)
+        Column.Value (Java_Column.new new_name ix rs)
 
 ## PRIVATE
 
@@ -1335,20 +1327,7 @@ run_vectorized_unary_op column name fallback_fn on_missing=Nothing =
     s = column.java_column.getStorage
     ix = column.java_column.getIndex
     rs = s.map name fallback_fn on_missing
-    Column.Column_Data (Java_Column.new "Result" ix rs)
-
-## PRIVATE
-
-   A helper function for converting a column storage to JSON.
-
-   Arguments:
-   - storage: The storage to convert to JSON.
-   - factory: The factory function for converting the storage.
-storage_to_json : Storage -> (Any -> Json) -> Json
-storage_to_json storage factory =
-    Vector.new storage.size ix->
-        if storage.isNa ix then Json.Null else
-            factory (storage.getItem ix)
+    Column.Value (Java_Column.new "Result" ix rs)
 
 ## PRIVATE
 
@@ -1372,4 +1351,4 @@ get_item_string column ix =
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
-    Column_Data (column.java_column.slice normalized.to_array)
+    Column.Value (column.java_column.slice normalized.to_array)

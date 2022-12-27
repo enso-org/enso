@@ -1,0 +1,46 @@
+from Standard.Base import all
+
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
+
+type Setup
+    Config command args
+
+make_expected_output_regex expected_output =
+    parts = expected_output.split "???" . map Regex.escape
+    Regex.compile (parts.join ".+") dot_matches_newline=True
+
+spec setup =
+    run_test source_path =
+        args = setup.args + [source_path.absolute.normalize.to_text]
+        builder = Process.new_builder setup.command args
+        builder.create
+
+    tests = enso_project.data.list . filter (f-> f.is_directory) . sort on=(.name)
+    tests.each test_dir->
+        Test.group test_dir.name <|
+            description_path = test_dir / "test_description.txt"
+            description = description_path.read_text.trim
+            source_path = test_dir / "Main.enso"
+            expected_output_path = test_dir / "stdout.txt"
+            expected_output = expected_output_path.read_text
+            Test.specify description <|
+                result = run_test source_path
+                regex = make_expected_output_regex expected_output
+                if regex.matches result.stdout . not then
+                    message = 'The program output did not match the expected output, stored at ['+expected_output_path.to_text+'].'
+                    line = '-'*20 + '\n'
+                    details = 'The STDOUT was:\n' + line + result.stdout + line
+                    Test.fail message details
+
+main =
+    setup = case Environment.get "ENSO_META_TEST_COMMAND" of
+        Nothing ->
+            IO.println "No test command specified, using the default setup relying on the `enso` launcher being available on system PATH. If you want to use a different setup specify the command with `ENSO_META_TEST_COMMAND` environment variable. If the run is supposed to take any arguments, they can be set by overriding the `ENSO_META_TEST_ARGS` environment variable. The arguments will be split on spaces. The path to the tested file will always be appended as a last argument."
+            Setup.Config "enso" ["run"]
+        command : Text ->
+            args = case Environment.get "ENSO_META_TEST_ARGS" of
+                Nothing -> []
+                text : Text -> text.split " "
+            Setup.Config command args
+    Test_Suite.run_main (spec setup)

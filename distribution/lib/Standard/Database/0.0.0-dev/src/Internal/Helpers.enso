@@ -3,6 +3,8 @@ from Standard.Base import all
 import project.Data.Table.Table
 import project.Data.Column.Column
 
+from project.Errors import Unsupported_Name
+
 polyglot java import java.util.regex.Pattern
 
 ## PRIVATE
@@ -46,26 +48,6 @@ unify_vector_singleton x = case x of
     _ : Vector -> x
     _ -> [x]
 
-## UNSTABLE
-
-   Signals that a name for a column or table is not supported.
-
-   Arguments:
-   - text: The name that is not supported.
-
-   Currently the names can only include ASCII letters, numbers and the
-   underscore. This is a temporary limitation simplifying name handling. It will
-   be removed in a future version.
-type Unsupported_Name
-    Error text
-
-    ## PRIVATE
-
-       Creates a human-readable representation of the unsupported name error.
-    to_display_text : Text
-    to_display_text self =
-        "The name " + self.text + " is not currently supported by the Database library."
-
 ## PRIVATE
 
    This is used to check if the new name is safe for use in SQL queries.
@@ -78,7 +60,7 @@ type Unsupported_Name
    SQL-safe names for columns.
 
    # TODO [RW] better name handling in Tables (#1513)
-ensure_name_is_sane : Text -> Boolean ! Unsupported_Name_Error
+ensure_name_is_sane : Text -> Boolean ! Unsupported_Name
 ensure_name_is_sane name =
     is_safe =
         Pattern.matches "[A-Za-z_0-9]+" name

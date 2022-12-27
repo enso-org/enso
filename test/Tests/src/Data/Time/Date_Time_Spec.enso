@@ -1,6 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Time_Error.Time_Error
 
 from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 import project.Data.Time.Date_Part_Spec
 
@@ -9,6 +12,7 @@ polyglot java import java.time.ZonedDateTime
 polyglot java import java.time.LocalDateTime
 polyglot java import java.time.ZoneOffset
 polyglot java import java.time.format.DateTimeFormatter
+polyglot java import java.lang.Exception as JException
 
 spec =
     spec_with "Date_Time" enso_datetime Date_Time.parse
@@ -63,7 +67,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time.to_json.should_equal <|
                 zone_pairs = [["zone", Time_Zone.utc]]
                 time_pairs = [["year", time.year], ["month", time.month], ["day", time.day], ["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
-                Json.from_pairs ([["type", "Date_Time"]] + time_pairs + zone_pairs)
+                JS_Object.from_pairs ([["type", "Date_Time"], ["constructor", "new"]] + time_pairs + zone_pairs) . to_text
 
         Test.specify "should parse default time format" <|
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text
@@ -314,12 +318,12 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time_1<time_2 . should_be_false
 
             tod = Time_Of_Day.new 4 0 10
-            time_1.compare_to tod . should_fail_with Type_Error_Data
-            time_1<tod . should_fail_with Type_Error_Data
+            time_1.compare_to tod . should_fail_with Type_Error.Error
+            time_1<tod . should_fail_with Type_Error.Error
             time_1==tod . should_be_false
 
             date = Date.new 2021 1 1
-            time_1.compare_to date . should_fail_with Type_Error_Data
+            time_1.compare_to date . should_fail_with Type_Error.Error
             time_1==date . should_be_false
 
         Test.specify "simple computations before Enso epoch should produce a warning" <|
@@ -476,7 +480,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             d2_start . should_equal (Date_Time.new 2022 3 27 3 zone=tz)
             d2_end . should_equal (Date_Time.new 2022 3 27 3 59 59 nanosecond=max_nanos zone=tz)
 
-        dst_overlap_message = "We cannot correctly migrate the datetime inside of the timeline overlap through the polyglot boundar - as due to polyglot conversion limitation, always the earlier one is chosen. See the bug report: https://github.com/oracle/graal/issues/4918"
+        dst_overlap_message = "We cannot correctly migrate the datetime inside of the timeline overlap through the polyglot boundary - as due to polyglot conversion limitation, always the earlier one is chosen. See the bug report: https://github.com/oracle/graal/issues/4918"
         Test.specify "should find start/end of a Date_Period or Time_Period containing the current datetime correctly near the autumn DST switch" pending=dst_overlap_message <|
             d3 = create_new_datetime 2022 10 30 2 30 15 0 tz
             d4 = d3 + (Duration.new hours=1)
@@ -594,7 +598,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
     Date_Part_Spec.spec name create_new_datetime
 
 js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error err.payload.cause))
+    Panic.catch Any (js_datetime_with_zone year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error err.payload))
 
 # This ensures that date returned by javascript has the right timezone specified by the zone parameter.
 # Javascript's toLocaleString will accept the timezone but it will just adapt the datetime while keeping the local timezone.
@@ -617,7 +621,7 @@ js_parse text format=Nothing =
     js_datetime d.year d.month d.day d.hour d.minute d.second d.nanosecond d.zone
 
 js_array_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload.cause))
+    arr = Panic.catch Any (js_array_datetimeCreate year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload))
     js_set_zone arr.at(0) zone
 
 foreign js js_array_datetimeCreate year month day hour minute second nanosecond = """
@@ -630,14 +634,14 @@ enso_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time
     Date_Time.new year month day hour minute second nanosecond=nanosecond zone=zone
 
 java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 zone=Time_Zone.system =
-    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error <| err.payload.to_display_text.drop (First 16)))
+    Panic.catch Any (ZonedDateTime.of year month day hour minute second nanosecond zone) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
 
 maybe_parse_java_zoned text pattern=Nothing =
     if pattern == Nothing then ZonedDateTime.parse text else
         ZonedDateTime.parse text pattern
 
 parse_java_local original_error text pattern=Nothing =
-    Panic.catch Polyglot_Error_Data handler=(_ -> Error.throw (Time_Error.Error original_error.payload.cause.getMessage)) <|
+    Panic.catch Any handler=(_ -> Error.throw (Time_Error.Error original_error.getMessage)) <|
         if pattern.is_nothing then LocalDateTime.parse text else
             formatter = DateTimeFormatter.ofPattern pattern
             LocalDateTime.parse text (formatter.withLocale Locale.default.java_locale)
@@ -645,8 +649,8 @@ parse_java_local original_error text pattern=Nothing =
 java_parse date_text_raw pattern=Nothing =
   utc_replaced = date_text_raw.replace "[UTC]" "Z"
   date_text = if utc_replaced.ends_with "ZZ" then date_text_raw else utc_replaced
-  if pattern == Nothing then Panic.catch Polyglot_Error_Data (maybe_parse_java_zoned date_text) (err -> parse_java_local err date_text pattern) else
+  if pattern == Nothing then Panic.catch Any (maybe_parse_java_zoned date_text) (cause -> parse_java_local cause.payload date_text pattern) else
       formatter = DateTimeFormatter.ofPattern(pattern)
-      Panic.catch Polyglot_Error_Data (maybe_parse_java_zoned date_text formatter) (err -> parse_java_local err date_text pattern)
+      Panic.catch Any (maybe_parse_java_zoned date_text formatter) (cause -> parse_java_local cause.payload date_text pattern)
 
 main = Test_Suite.run_main spec

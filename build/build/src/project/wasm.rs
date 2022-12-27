@@ -3,7 +3,6 @@
 use crate::prelude::*;
 
 use crate::paths::generated::RepoRootDistWasm;
-use crate::project::wasm::js_patcher::patch_js_glue_in_place;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
@@ -33,7 +32,6 @@ use tokio::process::Child;
 // ==============
 
 pub mod env;
-pub mod js_patcher;
 pub mod test;
 
 
@@ -225,7 +223,6 @@ impl IsTarget for Wasm {
             command.run_ok().await?;
 
             Self::finalize_wasm(wasm_opt_options, *skip_wasm_opt, *profile, &temp_dist).await?;
-            patch_js_glue_in_place(&temp_dist.wasm_glue)?;
 
             ide_ci::fs::create_dir_if_missing(&destination)?;
             let ret = RepoRootDistWasm::new_root(&destination);
@@ -333,6 +330,8 @@ impl IsWatchable for Wasm {
             }
             if let Some(wasm_size_limit) = wasm_size_limit {
                 watch_cmd.args(["--wasm-size-limit", wasm_size_limit.to_string().as_str()]);
+            } else {
+                watch_cmd.args(["--wasm-size-limit", "0"]);
             }
 
             // === cargo-watch options ===
@@ -392,7 +391,7 @@ impl Wasm {
             .await
     }
 
-    pub async fn test(&self, repo_root: PathBuf, wasm: bool, native: bool) -> Result {
+    pub async fn test(&self, repo_root: PathBuf, wasm: &[test::Browser], native: bool) -> Result {
         async fn maybe_run<Fut: Future<Output = Result>>(
             name: &str,
             enabled: bool,
@@ -422,7 +421,7 @@ impl Wasm {
         })
         .await?;
 
-        maybe_run("wasm", wasm, || test::test_all(repo_root.clone())).await?;
+        maybe_run("wasm", !wasm.is_empty(), || test::test_all(repo_root.clone(), wasm)).await?;
         Ok(())
     }
 
@@ -443,9 +442,9 @@ impl Wasm {
                 env::WASM_BINDGEN_TEST_TIMEOUT,
                 wasm_timeout.map(|d| d.as_secs()).as_ref(),
             )?
-            .arg("test")
+            .test()
             .apply_opt(headless.then_some(&Headless))
-            .apply(&Chrome)
+            .apply(&test::BROWSER_FOR_WASM_TESTS)
             .arg("integration-test")
             .arg("--profile=integration-test")
             .args(additional_options)

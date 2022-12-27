@@ -72,7 +72,7 @@ def_unit!(SdfWeight(f32) = 0.0);
 macro_rules! with_formatting_properties {
     ($macro_name:ident) => {
         $macro_name! {
-            size       : Size,
+            font_size       : Size,
             color      : color::Lcha,
             weight     : Weight,
             width      : Width,
@@ -445,7 +445,7 @@ impl<T: Copy + Debug> Spanned<T> {
 macro_rules! with_formatting_property_diffs {
     ($macro_name:ident) => {
         $macro_name! {
-            Size: f32 = 0.0,
+            FontSize: f32 = 0.0,
             Weight: i32 = 0,
             Width: i32 = 0,
             SdfWeight: f32 = 0.0,
@@ -502,8 +502,8 @@ pub trait PropertyDiffApply<Diff> {
     fn apply_diff(&self, diff: Diff) -> Self;
 }
 
-impl PropertyDiffApply<SizeDiff> for Size {
-    fn apply_diff(&self, diff: SizeDiff) -> Self {
+impl PropertyDiffApply<FontSizeDiff> for Size {
+    fn apply_diff(&self, diff: FontSizeDiff) -> Self {
         let value = self.value + diff.value;
         let value = if value < 0.0 { 0.0 } else { value };
         Size { value }

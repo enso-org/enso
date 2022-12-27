@@ -1,22 +1,69 @@
 use crate::project::*;
 
-use anyhow::Context;
+use clap::ArgEnum;
 use ide_ci::programs::cargo;
+use ide_ci::programs::wasm_pack;
 use ide_ci::programs::WasmPack;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+/// Flag that tells wasm-pack which browser should be used to run tests.
+///
+/// We use here Firefox rather than Chrome, because it is more stable. Chrome for some reason has
+/// been randomly failing tests, both locally and on CI.
+pub const BROWSER_FOR_WASM_TESTS: wasm_pack::TestFlags = wasm_pack::TestFlags::Firefox;
+
 /// List of crates that should not be tested by wasm-pack test.
-const PACKAGE_BLACKLIST: [&str; 1] = ["integration-test"];
+pub const PACKAGE_BLACKLIST: [&str; 1] = ["integration-test"];
 
 /// Attributes that denote WASM tests.
-const WASM_TEST_ATTRIBUTES: [&str; 2] = ["#[wasm_bindgen_test]", "#[wasm_bindgen_test(async)]"];
+pub const WASM_TEST_ATTRIBUTES: [&str; 2] = ["#[wasm_bindgen_test]", "#[wasm_bindgen_test(async)]"];
 
 /// Subdirectories in the crate directory that contain sources for the crate.
-const SOURCE_SUBDIRECTORIES: [&str; 4] = ["src", "benches", "examples", "tests"];
+pub const SOURCE_SUBDIRECTORIES: [&str; 4] = ["src", "benches", "examples", "tests"];
+
+// ===============
+// === Browser ===
+// ===============
+
+/// Select which browser should be used to run wasm tests.
+///
+/// In principle, wasm-pack is fine with passing multiple ones in a single call.
+#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Browser {
+    /// Run tests in Chrome using `chromedriver`. <https://chromedriver.chromium.org/downloads>
+    Chrome,
+    /// Run tests in Edge using `msedgedriver`. <https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/>
+    Edge,
+    /// Run tests in Firefox using `geckodriver`.<https://github.com/mozilla/geckodriver/releases>
+    Firefox,
+    /// Run tests in Safari using `safaridriver`. It should come preinstalled on OSX.
+    Safari,
+}
+
+impl From<Browser> for wasm_pack::TestFlags {
+    fn from(browser: Browser) -> Self {
+        match browser {
+            Browser::Chrome => Self::Chrome,
+            // We treat Edge as Chrome, see: <https://github.com/rustwasm/wasm-pack/issues/1172>
+            Browser::Edge => Self::Chrome,
+            Browser::Firefox => Self::Firefox,
+            Browser::Safari => Self::Safari,
+        }
+    }
+}
+
+
+// =========================
+// === Package discovery ===
+// =========================
 
 /// Lists members of given Cargo.toml workspace.
-fn get_all_crates(repo_root: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
+pub fn get_all_crates(repo_root: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let pattern = repo_root.as_ref().join("**/Cargo.toml");
     let all_paths =
         glob::glob(pattern.as_str()).context(format!("Globbing {} failed", pattern.display()))?;
@@ -32,12 +79,12 @@ fn get_all_crates(repo_root: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
 }
 
 ///  Check if the given line of source code is an attribute denoting wasm test.
-fn is_wasm_test_attribute(line: &str) -> bool {
+pub fn is_wasm_test_attribute(line: &str) -> bool {
     WASM_TEST_ATTRIBUTES.contains(&line.trim())
 }
 
 /// Check if the given workspace member contains any wasm tests in the sources.
-fn has_wasm_tests(member: &Path) -> bool {
+pub fn has_wasm_tests(member: &Path) -> bool {
     if let Some(member) = member.to_str() {
         // We go over selected subdirectories only to avoid entering into sources of other crates
         // that are nested within this crate subtree.
@@ -61,30 +108,36 @@ fn has_wasm_tests(member: &Path) -> bool {
 }
 
 /// Parses file under given path as TOML value.
-fn parse_toml(path: impl AsRef<Path>) -> toml::Value {
+pub fn parse_toml(path: impl AsRef<Path>) -> toml::Value {
     let path = path.as_ref();
     let data = ide_ci::fs::read_to_string(path).unwrap();
     data.parse().unwrap()
 }
 
 /// Checks if the given member is blacklisted from running the tests.
-fn blacklisted(memeber: &Path) -> bool {
+pub fn blacklisted(memeber: &Path) -> bool {
     PACKAGE_BLACKLIST.iter().any(|blacklisted| memeber.ends_with(blacklisted))
 }
 
 /// Checks if given workspace member is a proc-macro crate.
-fn is_proc_macro_crate(member: &Path) -> bool {
+pub fn is_proc_macro_crate(member: &Path) -> bool {
     let cargo_toml_path = member.join("Cargo.toml");
     let cargo_toml_root = parse_toml(cargo_toml_path);
     get_proc_macro(cargo_toml_root).contains(&true)
 }
 
 /// Retrieve a `lib.proc-macro` field from Cargo.toml
-fn get_proc_macro(cargo_toml: toml::Value) -> Option<bool> {
+pub fn get_proc_macro(cargo_toml: toml::Value) -> Option<bool> {
     cargo_toml.get("lib")?.get("proc-macro")?.as_bool()
 }
 
-pub async fn test_all(repo_root: PathBuf) -> Result {
+// =====================
+// === Running tests ===
+// =====================
+
+/// Run wasm tests on all crates in the workspace.
+pub async fn test_all(repo_root: PathBuf, browsers: &[Browser]) -> Result {
+    let browser_flags = browsers.iter().copied().map_into::<wasm_pack::TestFlags>().collect_vec();
     // FIXME args
     //let wasm_pack_args = std::env::args().skip(1).collect::<Vec<_>>();
     let all_members = get_all_crates(&repo_root)?;
@@ -100,12 +153,18 @@ pub async fn test_all(repo_root: PathBuf) -> Result {
             WasmPack
                 .cmd()?
                 .current_dir(&repo_root)
-                .arg("test")
-                .arg("--headless")
-                .arg("--chrome")
+                .test()
+                .apply(&wasm_pack::TestFlags::Headless)
+                .apply_iter(browser_flags.iter().copied())
                 .env("WASM_BINDGEN_TEST_TIMEOUT", "300")
                 // .args(&wasm_pack_args)
-                .arg(member.strip_prefix(&repo_root).unwrap())
+                .arg(member.strip_prefix(&repo_root).with_context(|| {
+                    format!(
+                        "Failed to strip prefix {} from {}. Is the test part of the repository?",
+                        repo_root.display(),
+                        member.display()
+                    )
+                })?)
                 .apply(&cargo::Color::Always)
                 .run_ok()
                 .await?;
@@ -115,35 +174,3 @@ pub async fn test_all(repo_root: PathBuf) -> Result {
     }
     Ok(())
 }
-
-// /// Call wasm-pack test for each workspace member
-// ///
-// /// This function reads workspace members list from `Cargo.toml` in current directory, and call
-// /// `wasm-pack test` each member. All script arguments are passed to `wasm-pack` process.
-// fn main() {
-//     let wasm_pack_args = std::env::args().skip(1).collect::<Vec<_>>();
-//     let all_members = get_all_crates();
-//
-//     for member in all_members {
-//         let member_str = member.to_string_lossy();
-//         if blacklisted(&member) {
-//             println!("Skipping blacklisted crate {}", member_str);
-//         } else if is_proc_macro_crate(&member) {
-//             println!("Skipping proc-macro crate {}", member_str);
-//         } else if has_wasm_tests(&member) {
-//             println!("Running tests for {}", member_str);
-//             let mut command = std::process::Command::new("wasm-pack");
-//             command.arg("test").args(&wasm_pack_args).arg(&member);
-//             println!("{:?}", command);
-//             let status = command.status().unwrap();
-//             if !status.success() {
-//                 panic!("Process for {} failed!{}", member_str, match status.code() {
-//                     Some(code) => format!(" Code: {}", code),
-//                     None => String::new(),
-//                 });
-//             }
-//         } else {
-//             println!("No wasm tests in {}", member_str);
-//         }
-//     }
-// }

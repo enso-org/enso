@@ -4,7 +4,6 @@ use crate::paths::TargetTriple;
 
 use derivative::Derivative;
 use ide_ci::github;
-use ide_ci::programs::git;
 use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
 
@@ -29,12 +28,16 @@ pub struct BuildContext {
 }
 
 impl BuildContext {
+    /// Get the current commit hash.
+    ///
+    /// If there is GITHUB_SHA environment variable, it is used. Otherwise, the current commit hash
+    /// is determined using `git` command.
     pub fn commit(&self) -> BoxFuture<'static, Result<String>> {
-        let root = self.repo_root.to_path_buf();
+        let git = self.git();
         async move {
             match ide_ci::actions::env::GITHUB_SHA.get() {
                 Ok(commit) => Ok(commit),
-                Err(_e) => git::Context::new(root).await?.head_hash().await,
+                Err(_e) => git.await?.head_hash().await,
             }
         }
         .boxed()
@@ -57,11 +60,9 @@ impl BuildContext {
                     tag => repository.find_release_by_text(tag).await?,
                 }
             };
-            Ok(release)
+            Result::Ok(release)
         }
-        .map_err(move |e: anyhow::Error| {
-            e.context(format!("Failed to resolve release designator `{designator_cp}`."))
-        })
+        .with_context(move || format!("Failed to resolve release designator `{}`", designator_cp))
         .boxed()
     }
 

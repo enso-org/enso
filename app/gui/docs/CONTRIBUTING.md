@@ -62,9 +62,9 @@ setup:
   In addition, some custom CLI programs need to be installed manually:
 
   ```bash
-  rustup toolchain install stable                  # Stable toolchain required for the following tools.
-  cargo +stable install wasm-pack --version 0.10.2 # Install the wasm-pack toolkit.
-  cargo +stable install cargo-watch                # To enable `./run wasm watch` utility
+  rustup toolchain install stable   # Stable toolchain required for the following tools.
+  cargo +stable install wasm-pack   # Install the wasm-pack toolkit.
+  cargo +stable install cargo-watch # To enable `./run wasm watch` utility
   ```
 
   Make sure that your `PATH` environment variable is set up correctly, so that

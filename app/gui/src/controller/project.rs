@@ -232,6 +232,24 @@ impl Project {
 }
 
 
+// === Project Snapshotting ===
+
+impl Project {
+    /// Saves a snapshot of the current state of the project to the VCS.
+    #[profile(Detail)]
+    pub fn save_project_snapshot(&self) -> impl Future<Output = FallibleResult> {
+        let project_root_id = self.model.project_content_root_id();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(project_root_id, &path_segments);
+        let language_server = self.model.json_rpc();
+        async move {
+            language_server.save_vcs(&root_path, &None).await?;
+            Ok(())
+        }
+    }
+}
+
+
 
 // =============
 // === Tests ===
@@ -242,6 +260,8 @@ mod tests {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use engine_protocol::language_server;
+    use std::assert_matches::assert_matches;
 
     #[test]
     fn parse_supported_engine_version() {
@@ -284,5 +304,47 @@ mod tests {
         };
         expect_intact("main = 5");
         expect_intact(&format!("{}.main = 5", module_name));
+    }
+
+
+    // === Project Snapshotting ===
+
+    /// Structure that keeps track of how many commits are made.
+    struct VcsMockState {
+        commit_count: Cell<usize>,
+    }
+
+    /// Mock project that updates a VcsMockState on relevant language server API calls.
+    fn setup_mock_project(vcs: Rc<VcsMockState>) -> model::Project {
+        let json_client = language_server::MockClient::default();
+        let path_segments: [&str; 0] = [];
+        let root_path = Path::new(Uuid::default(), &path_segments);
+
+        let vcs_entry = language_server::response::SaveVcs::default();
+        json_client.expect.save_vcs(move |path, name| {
+            assert_eq!(path, &root_path);
+            assert_eq!(name, &None);
+            let count = vcs.commit_count.get();
+            vcs.commit_count.set(count + 1);
+            Ok(vcs_entry)
+        });
+
+        let ls = language_server::Connection::new_mock_rc(json_client);
+        let mut project = model::project::MockAPI::new();
+        model::project::test::expect_root_id(&mut project, Uuid::default());
+        project.expect_json_rpc().returning_st(move || ls.clone_ref());
+        Rc::new(project)
+    }
+
+    #[wasm_bindgen_test]
+    fn save_project_snapshot() {
+        TestWithLocalPoolExecutor::set_up().run_task(async move {
+            let vcs = Rc::new(VcsMockState { commit_count: Cell::new(2) });
+            let project = setup_mock_project(vcs.clone());
+            let project_controller = controller::Project::new(project, default());
+            let result = project_controller.save_project_snapshot().await;
+            assert_matches!(result, Ok(()));
+            assert_eq!(vcs.commit_count.get(), 3);
+        });
     }
 }

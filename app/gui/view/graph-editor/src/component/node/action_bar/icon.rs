@@ -23,7 +23,7 @@ pub mod visibility {
             let outer_radius = &unit*5.0;
             let pupil        = Circle(&unit * 1.0);
             let inner_circle = Circle(&unit * 3.0);
-            let outer_circle = Circle(&outer_radius);
+            let outer_circle = Circle(outer_radius);
             let right_edge   = Triangle(&unit * 7.9, &unit * 4.6);
             let right_edge   = right_edge.rotate(right_angle);
             let right_edge   = right_edge.translate_x(&unit * 5.3);
@@ -82,8 +82,8 @@ fn make_ring<T: Into<Var<Pixels>>, U: Into<Var<Pixels>>>(
     outer_radius: T,
     inner_radius: U,
 ) -> AnyShape {
-    let outer_circle = Circle(&outer_radius.into());
-    let inner_circle = Circle(&inner_radius.into());
+    let outer_circle = Circle(outer_radius.into());
+    let inner_circle = Circle(inner_radius.into());
     let ring = outer_circle - inner_circle;
     ring.into()
 }

@@ -8,13 +8,13 @@ import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.enso.languageserver.boot.ProfilingConfig
 import org.enso.languageserver.data._
+import org.enso.languageserver.vcsmanager.VcsApi
 import org.enso.testkit.RetrySpec
 
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.time.{Clock, LocalDate}
-
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
@@ -35,7 +35,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
   }
 
   "Initializing project" must {
-    "create a repository" taggedAs Retry in {
+    "create a repository" in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -83,7 +83,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
       testContentRoot.file.toPath.resolve(".git").toFile shouldNot exist
       testContentRoot.file.toPath
         .resolve(".enso")
-        .resolve(".git")
+        .resolve(".vcs")
         .toFile should exist
     }
 
@@ -428,14 +428,14 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
                   "rootId" : $testContentRootId,
                   "segments" : [
                     "src",
-                    "Foo.enso"
+                    "Bar.enso"
                   ]
                 },
                 {
                   "rootId" : $testContentRootId,
                   "segments" : [
                     "src",
-                    "Bar.enso"
+                    "Foo.enso"
                   ]
                 }
               ],
@@ -834,10 +834,13 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
   }
 
   def withCleanRoot[T](test: WsTestClient => T): T = {
+
     FileUtils.deleteQuietly(testContentRoot.file)
     val path = testContentRoot.file
     val vcsRepoPath =
-      path.toPath.resolve(config.vcsManager.dataDirectory).resolve(".git")
+      path.toPath
+        .resolve(config.vcsManager.dataDirectory)
+        .resolve(VcsApi.DefaultRepoDir)
     val jgit =
       JGit
         .init()
@@ -848,13 +851,15 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
 
     path.toPath.resolve(".git").toFile.delete() shouldBe true
 
-    Files.write(
-      path.toPath.resolve(".gitignore"),
-      config.vcsManager.dataDirectory.toString.getBytes(StandardCharsets.UTF_8)
-    )
-
     val client = getInitialisedWsClient()
-    jgit.add().addFilepattern(".").call()
+    jgit
+      .add()
+      .addFilepattern(
+        ensureUnixPathSeparator(
+          config.vcsManager.dataDirectory.resolve("suggestions.db")
+        )
+      )
+      .call()
     jgit
       .commit()
       .setAllowEmpty(true)
@@ -865,11 +870,20 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     test(client)
   }
 
+  private def ensureUnixPathSeparator(path: Path): String =
+    ensureUnixPathSeparator(path.toString)
+
+  private def ensureUnixPathSeparator(path: String): String =
+    path.replaceAll("\\\\", "/")
+
   private def repository(path: Path): Repository = {
     val builder = new FileRepositoryBuilder();
     builder
       .setGitDir(
-        path.resolve(config.vcsManager.dataDirectory).resolve(".git").toFile
+        path
+          .resolve(config.vcsManager.dataDirectory)
+          .resolve(VcsApi.DefaultRepoDir)
+          .toFile
       )
       .setMustExist(true)
       .build()
@@ -890,7 +904,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     paths.forall(path =>
       try {
         val relativePath = root.toPath.relativize(path)
-        jgit.add().addFilepattern(relativePath.toString).call()
+        jgit.add().addFilepattern(ensureUnixPathSeparator(relativePath)).call()
         true
       } catch {
         case _: Throwable => false
@@ -901,7 +915,17 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
   def isClean(root: File): Boolean = {
     val jgit   = new JGit(repository(root.toPath))
     val status = jgit.status().call()
-    status.isClean
+    val changed =
+      (status.getUntracked().asScala
+      ++ status.getModified().asScala
+      ++ status.getRemoved().asScala)
+    val gitDir = ensureUnixPathSeparator(
+      config.vcsManager.dataDirectory.resolve(VcsApi.DefaultRepoDir)
+    )
+    changed.toList
+      .map(ensureUnixPathSeparator)
+      .filterNot(file => file.startsWith(gitDir))
+      .isEmpty
   }
 
 }

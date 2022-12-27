@@ -65,7 +65,7 @@ mod status_indicator_shape {
             let height = height - node::PADDING.px() * 2.0;
             let radius = node::RADIUS.px();
 
-            let base = Rect((&width,&height)).corners_radius(&radius);
+            let base = Rect((&width,&height)).corners_radius(radius);
             let outer = base.grow(INDICATOR_WIDTH_OUTER.px());
             let inner = base.grow(INDICATOR_WIDTH_INNER.px());
 
@@ -173,7 +173,7 @@ impl StatusIndicator {
             );
 
             eval frp.input.set_size ((size)
-                model.shape.size.set(*size);
+                model.shape.set_size(*size);
             );
 
             has_status <- frp.status.map(|status| status.is_some());

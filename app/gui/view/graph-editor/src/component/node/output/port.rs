@@ -102,7 +102,7 @@ impl AllPortsShape {
         let port_area_height = &inner_height + (&port_area_size - &shrink) * 2.0;
         let outer_radius = &inner_radius + &port_area_size;
         let shape = Rect((&port_area_width, &port_area_height));
-        let shape = shape.corners_radius(&outer_radius);
+        let shape = shape.corners_radius(outer_radius);
         let shape = shape - &top_mask;
         let corner_radius = &port_area_size / 2.0;
         let corner_offset = &port_area_width / 2.0 - &corner_radius;
@@ -115,7 +115,7 @@ impl AllPortsShape {
         // === Hover Area ===
 
         let hover_radius = &inner_radius + &HOVER_AREA_PADDING.px();
-        let hover = Rect((canvas_width, canvas_height)).corners_radius(&hover_radius);
+        let hover = Rect((canvas_width, canvas_height)).corners_radius(hover_radius);
         let hover = (hover - &top_mask).into();
 
         AllPortsShape { inner_radius, inner_width, shape, hover }
@@ -362,8 +362,8 @@ macro_rules! fn_helper {
         #[allow(unused_variables)]
         fn $name(&self, $($arg : $arg_tp),*) {
             match self {
-                Self::Single ($this) => $($body1)*,
-                Self::Multi  ($this) => $($body2)*,
+                Self::Single ($this) => { $($body1)* }
+                Self::Multi  ($this) => { $($body2)* }
             }
         }
     )*};
@@ -392,7 +392,7 @@ impl PortShapeView {
     }
 
     fn_both! {
-        set_size            (this,t:Vector2)     {this.size.set(t)}
+        set_size            (this,t:Vector2)     {this.set_size(t);}
         set_size_multiplier (this,t:f32)         {this.size_multiplier.set(t)}
         set_color           (this,t:color::Rgba) {this.color_rgb.set(t.opaque.into())}
         set_opacity         (this,t:f32)         {this.opacity.set(t)}
@@ -621,12 +621,5 @@ impl Model {
         color.target.emit(type_coloring::compute_for_code(None, styles));
 
         self.frp = Some(frp);
-    }
-
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
-    pub fn set_size(&self, size: Vector2) {
-        if let Some(frp) = &self.frp {
-            frp.set_size(size);
-        }
     }
 }

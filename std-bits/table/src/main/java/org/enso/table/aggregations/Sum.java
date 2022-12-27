@@ -1,5 +1,6 @@
 package org.enso.table.aggregations;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -25,13 +26,13 @@ public class Sum extends Aggregator {
           current = 0L;
         }
 
-        Long lCurrent = CastToLong(current);
-        Long lValue = CastToLong(value);
+        Long lCurrent = NumericConverter.tryConvertingToLong(current);
+        Long lValue = NumericConverter.tryConvertingToLong(value);
         if (lCurrent != null && lValue != null) {
           current = lCurrent + lValue;
         } else {
-          Double dCurrent = CastToDouble(current);
-          Double dValue = CastToDouble(value);
+          Double dCurrent = NumericConverter.tryConvertingToDouble(current);
+          Double dValue = NumericConverter.tryConvertingToDouble(value);
           if (dCurrent != null && dValue != null) {
             current = dCurrent + dValue;
           } else {

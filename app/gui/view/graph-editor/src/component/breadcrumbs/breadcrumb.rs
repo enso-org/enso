@@ -349,13 +349,13 @@ impl BreadcrumbModel {
         let height = self.height();
         let offset = SEPARATOR_MARGIN + SEPARATOR_SIZE / 2.0;
 
-        self.view.size.set(Vector2::new(width, height));
+        self.view.set_size(Vector2::new(width, height));
         self.fade_in(0.0);
         let separator_size = (SEPARATOR_SIZE + PADDING * 2.0).max(0.0);
         let icon_size = (ICON_SIZE + PADDING * 2.0).max(0.0);
-        self.separator.size.set(Vector2::new(separator_size, separator_size));
+        self.separator.set_size(Vector2::new(separator_size, separator_size));
         self.separator.set_x((offset - width / 2.0).round());
-        self.icon.size.set(Vector2::new(icon_size, icon_size));
+        self.icon.set_size(Vector2::new(icon_size, icon_size));
         let x_position = offset + PADDING + ICON_SIZE / 2.0 + LEFT_MARGIN + ICON_LEFT_MARGIN;
         self.icon.set_x(x_position.round());
 

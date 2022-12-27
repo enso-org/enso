@@ -102,6 +102,19 @@ object ExecutionApi {
     }
   }
 
+  case object ExecutionContextInterrupt
+      extends Method("executionContext/interrupt") {
+
+    case class Params(contextId: ContextId)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextInterrupt.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case object ExecutionContextGetComponentGroups
       extends Method("executionContext/getComponentGroups") {
 

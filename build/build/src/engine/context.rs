@@ -5,6 +5,7 @@ use crate::engine::bundle::Bundle;
 use crate::engine::download_project_templates;
 use crate::engine::env;
 use crate::engine::sbt::SbtCommandProvider;
+use crate::engine::Benchmarks;
 use crate::engine::BuildConfigurationResolved;
 use crate::engine::BuiltArtifacts;
 use crate::engine::ComponentPathExt;
@@ -13,6 +14,7 @@ use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
 use crate::engine::FLATC_VERSION;
 use crate::engine::PARALLEL_ENSO_TESTS;
+use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
 use crate::enso::IrCaches;
 use crate::paths::cache_directory;
@@ -88,7 +90,6 @@ impl RunContext {
 
         // Other programs.
         ide_ci::programs::Git.require_present().await?;
-        ide_ci::programs::Go.require_present().await?;
         ide_ci::programs::Cargo.require_present().await?;
         ide_ci::programs::Node.require_present().await?;
         ide_ci::programs::Npm.require_present().await?;
@@ -96,7 +97,7 @@ impl RunContext {
         let prepare_simple_library_server = {
             if self.config.test_scala {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
-                ide_ci::programs::git::Context::new(simple_server_path)
+                ide_ci::programs::git::new(simple_server_path)
                     .await?
                     .cmd()?
                     .clean()
@@ -167,18 +168,12 @@ impl RunContext {
         graalvm.install_if_missing(&self.cache).await?;
         graal::Gu.require_present().await?;
 
-        // Make sure that Graal has installed the optional components that we need.
-        // Some are not supported on Windows, in part because their runtime (Sulong) is not.
-        // See e.g. https://github.com/oracle/graalpython/issues/156
-        let conditional_components: &[graal::Component] = if graal::sulong_supported() {
-            &[graal::Component::Python, graal::Component::R]
-        } else {
-            &[]
-        };
-
-        let required_components =
-            once(graal::Component::NativeImage).chain(conditional_components.iter().copied());
-        graal::install_missing_components(required_components).await?;
+        let required_components = [graal::ComponentId::NativeImage];
+        // Some GraalVM components depend on Sulong and are not available on all platforms (like
+        // Windows or M1 macOS). Thus, we treat them as optional. See e.g.
+        // https://github.com/oracle/graalpython/issues/156
+        let optional_components = [graal::ComponentId::Python, graal::ComponentId::R];
+        graal::install_missing_components(required_components, optional_components).await?;
         prepare_simple_library_server.await??;
         Ok(())
     }
@@ -299,16 +294,16 @@ impl RunContext {
                 ]);
             }
 
-            for benchmark in &self.config.execute_benchmarks {
-                tasks.push(benchmark.sbt_task());
-            }
-
+            tasks.extend(self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task()));
             if !tasks.is_empty() {
                 let build_stuff = Sbt::concurrent_tasks(tasks);
                 sbt.call_arg(build_stuff).await?;
+            } else {
+                debug!("No SBT tasks to run.");
             }
         } else {
-            // Compile
+            // If we are run on a weak machine (like GH-hosted runner), we need to build things one
+            // by one.
             sbt.call_arg("compile").await?;
 
             // Build the Runner & Runtime Uberjars
@@ -344,9 +339,19 @@ impl RunContext {
             }
 
             for benchmark in &self.config.execute_benchmarks {
-                sbt.call_arg(benchmark.sbt_task()).await?;
+                if let Some(task) = benchmark.sbt_task() {
+                    sbt.call_arg(task).await?;
+                }
             }
         }
+
+        let enso = BuiltEnso { paths: self.paths.clone() };
+        if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
+            enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
+        } else if self.config.check_enso_benchmarks {
+            enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
+        }
+
 
         // If we were running any benchmarks, they are complete by now. Upload the report.
         if is_in_env() {
@@ -389,7 +394,6 @@ impl RunContext {
         }
 
 
-        let enso = BuiltEnso { paths: self.paths.clone() };
         if self.config.test_standard_library {
             enso.run_tests(IrCaches::No, &sbt, PARALLEL_ENSO_TESTS).await?;
         }

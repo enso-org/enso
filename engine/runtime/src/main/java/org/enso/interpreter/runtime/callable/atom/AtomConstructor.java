@@ -17,7 +17,7 @@ import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -187,14 +187,24 @@ public final class AtomConstructor implements TruffleObject {
         return name;
     }
 
-    /**
-     * Gets the scope in which this constructor was defined.
-     *
-     * @return the scope in which this constructor was defined
-     */
-    public ModuleScope getDefinitionScope() {
-        return definitionScope;
-    }
+  /**
+   * Gets the display name of the constructor. If the name is Value or Error will include the type
+   * name as well.
+   *
+   * @return the name to display of the Atom constructor
+   */
+  public String getDisplayName() {
+    return name.equals("Value") || name.equals("Error") ? type.getName() + "." + name : name;
+  }
+
+  /**
+   * Gets the scope in which this constructor was defined.
+   *
+   * @return the scope in which this constructor was defined
+   */
+  public ModuleScope getDefinitionScope() {
+    return definitionScope;
+  }
 
     /**
      * Gets the number of arguments expected by the constructor.
@@ -323,8 +333,8 @@ public final class AtomConstructor implements TruffleObject {
         return true;
     }
 
-    @ExportMessage
-    Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-        return Context.get(thisLib).getBuiltins().function();
-    }
+  @ExportMessage
+  Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().function();
+  }
 }

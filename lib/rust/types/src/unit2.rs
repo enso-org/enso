@@ -21,7 +21,9 @@ pub mod traits {
     pub use super::BytesStrOps;
     pub use super::DurationNumberOps;
     pub use super::DurationOps;
+    pub use super::FractionOps;
     pub use super::IntoUncheckedRawRange;
+    pub use super::PercentOps;
     pub use super::UncheckedFrom;
 }
 
@@ -39,6 +41,7 @@ mod ops {
 /// Unchecked unit conversion. You should use it only for unit conversion definition, never in
 /// unit-usage code.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait UncheckedFrom<T> {
     fn unchecked_from(t: T) -> Self;
 }
@@ -58,6 +61,7 @@ impl<V, R> const UncheckedFrom<R> for UnitData<V, R> {
 
 /// Unchecked unit conversion. See [`UncheckedFrom`] to learn more.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait UncheckedInto<T> {
     fn unchecked_into(self) -> T;
 }
@@ -326,11 +330,13 @@ impl<V, R> IntoUncheckedRawRange for ops::RangeFrom<UnitData<V, R>> {
 macro_rules! gen_ops {
     ($rev_trait:ident, $trait:ident, $op:ident) => {
         #[allow(missing_docs)]
+        #[const_trait]
         pub trait $trait<T> {
             type Output;
         }
 
         #[allow(missing_docs)]
+        #[const_trait]
         pub trait $rev_trait<T> {
             type Output;
         }
@@ -693,6 +699,7 @@ define_ops![
 
 /// Methods of the [`Duration`] unit.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait DurationOps {
     fn ms(t: f32) -> Duration;
     fn s(t: f32) -> Duration;
@@ -734,6 +741,7 @@ impl const DurationOps for Duration {
 
 /// Methods of the [`Duration`] unit as extensions for numeric types.
 #[allow(missing_docs)]
+#[const_trait]
 pub trait DurationNumberOps {
     fn ms(self) -> Duration;
     fn s(self) -> Duration;
@@ -871,5 +879,79 @@ impl<'t> BytesCowOps<'t, ops::RangeFrom<Bytes>> for Cow<'t, str> {
             Cow::Borrowed(t) => Cow::Borrowed(t.slice(range)),
             Cow::Owned(t) => Cow::Owned(t.slice(range).to_owned()),
         }
+    }
+}
+
+
+
+// ================
+// === Fraction ===
+// ================
+
+define! {
+    /// A fraction of the leftover space, for example in the grid container. It is used in auto
+    /// layouts, similar to the CSS `fr` unit: https://www.w3.org/TR/css3-grid-layout/#fr-unit.
+    Fraction: f32 = 0.0
+}
+define_ops![
+    Fraction [+,-] Fraction = Fraction,
+    Fraction * f32 = Fraction,
+    f32 * Fraction = Fraction,
+];
+
+/// Constructors.
+#[allow(missing_docs)]
+pub trait FractionOps {
+    fn fr(&self) -> Fraction;
+}
+
+impl FractionOps for f32 {
+    fn fr(&self) -> Fraction {
+        Fraction::unchecked_from(*self)
+    }
+}
+
+impl FractionOps for i32 {
+    fn fr(&self) -> Fraction {
+        (*self as f32).fr()
+    }
+}
+
+impl From<f32> for Fraction {
+    fn from(t: f32) -> Self {
+        Fraction::unchecked_from(t)
+    }
+}
+
+
+// ===============
+// === Percent ===
+// ===============
+
+define! {
+    /// A percentage value.
+    Percent: f32 = 0.0
+}
+define_ops![
+    Percent [+,-] Percent = Percent,
+    Percent * f32 = Percent,
+    f32 * Percent = Percent,
+];
+
+/// Constructors.
+#[allow(missing_docs)]
+pub trait PercentOps {
+    fn pc(&self) -> Percent;
+}
+
+impl PercentOps for f32 {
+    fn pc(&self) -> Percent {
+        Percent::unchecked_from(*self)
+    }
+}
+
+impl PercentOps for i32 {
+    fn pc(&self) -> Percent {
+        (*self as f32).pc()
     }
 }

@@ -7,6 +7,7 @@ use crate::prelude::*;
 
 use crate::notification;
 
+use double_representation::name::project;
 use mockall::automock;
 use parser_scala::Parser;
 
@@ -134,7 +135,7 @@ pub trait ManagingProjectAPI {
     ///
     /// `template` is an optional project template name. Available template names are defined in
     /// `lib/scala/pkg/src/main/scala/org/enso/pkg/Template.scala`.
-    fn create_new_project(&self, template: Option<String>) -> BoxFuture<FallibleResult>;
+    fn create_new_project(&self, template: Option<project::Template>) -> BoxFuture<FallibleResult>;
 
     /// Return a list of existing projects.
     fn list_projects(&self) -> BoxFuture<FallibleResult<Vec<ProjectMetadata>>>;

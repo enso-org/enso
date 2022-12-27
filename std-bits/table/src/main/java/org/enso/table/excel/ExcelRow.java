@@ -5,6 +5,9 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+
 /** Wrapper class to handle Excel rows. */
 public class ExcelRow {
   private final Row row;
@@ -34,10 +37,19 @@ public class ExcelRow {
     CellType cellType = getCellType(cell);
     switch (cellType) {
       case NUMERIC:
-        if (DateUtil.isCellDateFormatted(cell)) {
-          return cell.getLocalDateTimeCellValue().toLocalDate();
+        double dblValue = cell.getNumericCellValue();
+        if (DateUtil.isCellDateFormatted(cell) && DateUtil.isValidExcelDate(dblValue)) {
+          var dateTime = DateUtil.getLocalDateTime(dblValue);
+          if (dateTime.isBefore(LocalDateTime.of(1900, 1, 2, 0, 0))) {
+            // Excel stores times as if they are on the 1st January 1900.
+            // Due to the 1900 leap year bug might be 31st December 1899.
+            return dateTime.toLocalTime();
+          }
+          if (dateTime.getHour() == 0 && dateTime.getMinute() == 0 && dateTime.getSecond() == 0) {
+            return dateTime.toLocalDate();
+          }
+          return dateTime.atZone(ZoneId.systemDefault());
         } else {
-          double dblValue = cell.getNumericCellValue();
           if (dblValue == (long) dblValue) {
             return (long) dblValue;
           } else {
