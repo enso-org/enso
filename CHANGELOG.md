@@ -490,6 +490,7 @@
 - [Enso.getMetaObject, Type.isMetaInstance and Meta.is_a consolidation][3949]
 - [Add executionContext/interrupt API command][3952]
 - [Simplify exception handling for polyglot exceptions][3981]
+- [IGV can jump to JMH sources & more][4008]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -566,6 +567,7 @@
 [3949]: https://github.com/enso-org/enso/pull/3949
 [3952]: https://github.com/enso-org/enso/pull/3952
 [3981]: https://github.com/enso-org/enso/pull/3981
+[4008]: https://github.com/enso-org/enso/pull/4008
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
