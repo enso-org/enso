@@ -96,7 +96,8 @@ order: 7
    something wrong.
 10. Avoid
     [deoptimizations](https://www.graalvm.org/22.2/graalvm-as-a-platform/language-implementation-framework/Optimizing/#debugging-deoptimizations).
-    Understanding IGV graphs can be a very time-consuming and complex process.
+    Understanding IGV graphs can be a very time-consuming and complex process
+    (even with the help of [Enso tooling for IGV](../tools/enso4igv/README.md)).
     Sometimes it is sufficient to only look at the compilation traces to
     discover repeated or unnecessary deoptimizations which can significantly
     affect overall performance of your program. You can tell runner to generate
