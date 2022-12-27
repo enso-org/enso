@@ -961,36 +961,6 @@ type Column
     count : Integer
     count self = self.length - self.count_missing
 
-    ## Returns the index of this column, as a column (indexed by itself).
-
-       Throws `No_Index_Set_Error` if there is no index set.
-
-       > Example
-         Get the index from a column.
-
-             import Standard.Examples
-
-             example_index = Examples.decimal_column.index
-    index : Column ! No_Index_Set_Error
-    index self = case self.java_column.getIndex.toColumn of
-        Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Value i
-
-    ## Sets the index of this column, using the provided column.
-
-       Arguments:
-       - index: The column to use as the index to this column.
-
-       > Example
-         Index the decimal column by the integer column.
-
-             import Standard.Examples
-
-             example_set_index =
-                Examples.decimal_column.set_index Examples.integer_column
-    set_index : Column -> Column
-    set_index self index = Column.Value (self.java_column.setIndex index.java_column)
-
     ## Returns the value contained in this column at the given index.
 
        Arguments:

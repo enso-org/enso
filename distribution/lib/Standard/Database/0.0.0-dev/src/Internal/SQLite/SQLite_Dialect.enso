@@ -98,9 +98,9 @@ make_internal_generator_dialect =
     stats = [agg_stddev_pop, agg_stddev_samp]
 
     # TODO these may be problematic as they may break indexes, double-check query plans!
-    eq = Base_Generator.lift_binary_op "=" (a-> b-> a.paren ++ " IS " ++ b.paren)
-    neq = Base_Generator.lift_binary_op "!=" (a-> b-> a.paren ++ " IS NOT " ++ b.paren)
-    bool = [bool_or, eq, neq]
+    #eq = Base_Generator.lift_binary_op "=" (a-> b-> a.paren ++ " IS " ++ b.paren)
+    #neq = Base_Generator.lift_binary_op "!=" (a-> b-> a.paren ++ " IS NOT " ++ b.paren)
+    bool = [bool_or]
     my_mappings = text + counts + stats + bool
     Base_Generator.base_dialect . extend_with my_mappings
 

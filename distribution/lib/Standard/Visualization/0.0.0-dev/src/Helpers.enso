@@ -178,17 +178,13 @@ Array.to_default_visualization_data self =
     Vector.from_polyglot_array self . to_default_visualization_data
 
 ## PRIVATE
+   DEPRECATED - Not really needed anymore.
 
    Returns all the columns in the table, including indices.
 
    Index columns are placed before other columns.
 Table.all_columns : Vector
-Table.all_columns self =
-    index = self.index.catch_ []
-    index_columns = case index of
-        _ : Vector -> index
-        a -> [a]
-    index_columns + self.columns
+Table.all_columns self = self.columns
 
 ## PRIVATE
 

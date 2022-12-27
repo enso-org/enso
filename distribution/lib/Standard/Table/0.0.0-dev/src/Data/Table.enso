@@ -167,10 +167,7 @@ type Table
              example_to_json = Examples.inventory_table.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        index_prep = case self.index.catch No_Index_Set_Error (_->Nothing) of
-            Nothing -> []
-            index -> [index]
-        cols = index_prep + self.columns
+        cols = self.columns
         rows = 0.up_to self.row_count . map row->
             vals_kv = cols.map col-> [col.name, col.at row]
             JS_Object.from_pairs vals_kv
@@ -989,39 +986,6 @@ type Table
         proxy = Rows_View.Value table
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
-    ## Sets the index of this table, using the column with the provided name.
-
-       Arguments:
-       - index: The name of the column to use as the index in this table, or the
-         column itself to use.
-
-       > Example
-         Set the index of the inventory table to be the item name.
-
-             import Standard.Examples
-
-             example_set_index = Examples.inventory_table.set_index "item_name"
-    set_index : Text | Column -> Table
-    set_index self index = case index of
-        _ : Text -> Table.Value (self.java_table.indexFromColumn index)
-        Column.Value c -> Table.Value (self.java_table.indexFromColumn c)
-
-    ## Returns the index of this table, as a column that is indexed by itself.
-
-       Throws `No_Index_Set_Error` if there is no index set in the table it is
-       being called on.
-
-       > Example
-         Get the column that is used as the index for a table.
-
-             import Standard.Examples
-
-             example_index = Examples.inventory_table.index
-    index : Column ! No_Index_Set_Error
-    index self = case self.java_table.getIndex.toColumn of
-        Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Value i
-
     ## Joins two tables according to the specified join conditions.
 
        Arguments:
@@ -1149,7 +1113,7 @@ type Table
     info : Table
     info self =
         cols = self.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
+        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
 
     ## UNSTABLE
 

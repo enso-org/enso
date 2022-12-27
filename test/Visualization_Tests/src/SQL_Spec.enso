@@ -16,7 +16,7 @@ visualization_spec connection =
             vis = Visualization.prepare_visualization q
             int_param = JS_Object.from_pairs [["value", 2], ["actual_type", "Standard.Base.Data.Numbers.Integer"], ["expected_sql_type", "INTEGER"], ["expected_enso_type", "Standard.Base.Data.Numbers.Integer"]]
             str_param = JS_Object.from_pairs [["value", True], ["actual_type", "Standard.Base.Data.Boolean.Boolean"], ["expected_sql_type", "VARCHAR"], ["expected_enso_type", "Standard.Base.Data.Text.Text"]]
-            code = 'SELECT "T"."C" AS "C" FROM "T" AS "T" WHERE (("T"."B" = ?) AND ("T"."A" = ?))'
+            code = 'SELECT "T"."C" AS "C" FROM "T" AS "T" WHERE (("T"."B") = (?) AND ("T"."A") = (?))'
             json = JS_Object.from_pairs [["dialect", "SQLite"], ["code", code], ["interpolations", [int_param, str_param]]]
             vis . should_equal json.to_text
 spec =

@@ -66,7 +66,7 @@ type Point_Data
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column self table = case self of
-        Point_Data.X -> table.index.catch_ <| Point_Data.iota table.row_count
+        Point_Data.X -> Point_Data.iota table.row_count
         Point_Data.Y ->
             x_column = Point_Data.X.lookup_in table
             candidates = table.all_columns

@@ -65,10 +65,9 @@ type Table
          - format_terminal: whether ANSI-terminal formatting should be used
     display : Integer -> Boolean -> Text
     display self show_rows=10 format_terminal=False =
-        df = self.reset_index.read max_rows=show_rows
-        indices_count = self.context.meta_index.length
+        df = self.read max_rows=show_rows
         all_rows_count = self.row_count
-        display_dataframe df indices_count all_rows_count format_terminal
+        display_dataframe df indices_count=0 all_rows_count format_terminal
 
     ## UNSTABLE
 
@@ -553,41 +552,6 @@ type Table
     rows self max_rows=1000 =
         self.read max_rows=max_rows . rows
 
-    ## UNSTABLE
-
-       Sets the index of this table, using the column with the provided name.
-
-       Arguments:
-       - index: The column to use as the index of the table.
-    set_index : Text | Column | Vector Text -> Table
-    set_index self index = Panic.recover Any <|
-        new_index = (Helpers.unify_vector_singleton index).map ((self.at _) >> .as_internal)
-        new_ctx = self.context.set_index new_index
-        new_cols = self.internal_columns.filter col->
-            turned_into_index = new_index.exists i-> i.name == col.name
-            turned_into_index.not
-        self.updated_context new_ctx . updated_columns new_cols
-
-    ## UNSTABLE
-
-       Returns the (possibly empty) list of indices for this table.
-    indices : Vector Column
-    indices self =
-        self.context.meta_index.map self.make_column
-
-    ## UNSTABLE
-
-       Returns the index (or indexes) of this table, as a column (indexed by
-       itself).
-
-       Throws `No_Index_Set_Error` if there is no index set.
-    index : Column | Vector Column ! No_Index_Set_Error
-    index self =
-        ixes = self.indices
-        len = ixes.length
-        if len == 0 then Error.throw No_Index_Set_Error else
-            if len == 1 then ixes.at 0 else ixes
-
     ## Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
@@ -954,31 +918,14 @@ type Table
          available rows are fetched.
     read : (Integer | Nothing) -> Materialized_Table
     read self max_rows=Nothing =
-        case self.context.meta_index.length > 1 of
-            True -> Error.throw <| Illegal_State.Error "Multi-indexes are not implemented in the dataframes, if you want to materialize such a Table, remove the index first using `set_index`."
+        preprocessed = self.limit max_rows
+        case preprocessed.internal_columns.is_empty of
+            True ->
+                Java_Exports.make_table_without_columns self.row_count
             False ->
-                preprocessed = self.reset_index.limit max_rows
-                case preprocessed.internal_columns.is_empty of
-                    True ->
-                        Java_Exports.make_table_without_columns self.row_count
-                    False ->
-                        sql = preprocessed.to_sql
-                        expected_types = preprocessed.internal_columns.map .sql_type
-                        table = self.connection.read_statement sql expected_types
-                        case self.context.meta_index.length == 1 of
-                            False -> table
-                            True ->
-                                ix_col_name = table.columns.first.name
-                                table.set_index ix_col_name
-
-    ## PRIVATE
-
-       Brings the index back as columns.
-    reset_index : Table
-    reset_index self =
-        new_cols = self.internal_columns_with_index
-        new_ctx = self.context.set_index []
-        self.updated_context new_ctx . updated_columns new_cols
+                sql = preprocessed.to_sql
+                expected_types = preprocessed.internal_columns.map .sql_type
+                self.connection.read_statement sql expected_types
 
     ## UNSTABLE
 
@@ -1013,7 +960,7 @@ type Table
         count_table = self.connection.read_statement count_query
         counts = if cols.is_empty then [] else count_table.columns.map c-> c.at 0
         types = cols.map c-> c.sql_type.name
-        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]] . set_index "Column"
+        Materialized_Table.new [["Column", cols.map .name], ["Items Count", counts], ["SQL Type", types]]
 
     ## PRIVATE
 
@@ -1023,12 +970,7 @@ type Table
        - internal: The internal column to use for creating a column.
     make_column : Internal_Column -> Column
     make_column self internal =
-        # TODO [RW] Many places assume that index names are distinct from column names, so when creating a column from
-        # index we need to ensure that the names do not collide. In the future we may consider trying to get rid of
-        # these distinctness assumptions, to avoid this renaming.
-        ixes = freshen_columns [internal.name] self.context.meta_index
-        new_ctx = self.context.set_index ixes
-        Column.Value internal.name self.connection internal.sql_type internal.expression new_ctx
+        Column.Value internal.name self.connection internal.sql_type internal.expression self.context
 
     ## PRIVATE
     columns_helper : Table_Column_Helper

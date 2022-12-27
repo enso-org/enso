@@ -30,27 +30,6 @@ spec prefix connection =
         Test.specify "should allow to materialize columns directly into a Vector" <|
             v = t1.at 'a' . to_vector
             v . should_equal [1, 4]
-        Test.specify "should preserve indexes when materializing tables" <|
-            # TODO add multi indexes when implemented
-            df = t1.set_index 'a' . read
-            df.at 'b' . to_vector . should_equal [2, 5]
-            df.columns.map .name . should_equal ['b', 'c']
-            ix = df.index
-            ix.name . should_equal 'a'
-            ix.to_vector . should_equal [1, 4]
-        Test.specify "should preserve indexes when materializing columns" <|
-            # TODO add multi indexes when implemented
-            b = t1.set_index 'a' . at 'b'
-            col = b . read
-            col.to_vector . should_equal [2, 5]
-
-            ix = col.index
-            ix.name . should_equal 'a'
-            ix.to_vector . should_equal [1, 4]
-
-            ix2 = b.to_table.index
-            ix2.name . should_equal 'a'
-            ix2.to_vector . should_equal [1, 4]
         Test.specify "should work correctly when there are no columns" <|
             empty = t1.select_columns []
             empty.read.column_count . should_equal 0
@@ -195,20 +174,6 @@ spec prefix connection =
 
             r_2 = c.sort order=Sort_Direction.Descending
             r_2.to_vector.should_equal [7.3, 3.0, 3.0, 2.2, Nothing, Nothing]
-
-    Test.group prefix+"Index" <|
-        t0 = upload "Tix" <|
-            Table.new [["ix", [1,2,3]], ["c1", [4,5,6]]]
-        t = t0.set_index 'ix'
-        Test.specify "should be accessible by `at` like other columns" <|
-            t.at 'ix' . to_vector . should_equal t.index.to_vector
-        Test.specify "treated as a column indexed by itself should still correctly compute values" <|
-            col = t.index+10
-            vec = [11, 12, 13]
-            col.to_vector . should_equal vec
-            df_col = col.read
-            df_col.to_vector . should_equal vec
-            df_col.index.to_vector . should_equal [1, 2, 3]
 
     Test.group prefix+"Aggregation" <|
         builders = [Vector.new_builder,Vector.new_builder,Vector.new_builder]

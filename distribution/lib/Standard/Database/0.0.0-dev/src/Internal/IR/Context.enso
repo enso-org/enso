@@ -68,16 +68,6 @@ type Context
 
     ## PRIVATE
 
-       Returns a copy of the context with changed `meta_index`.
-
-       Arguments:
-       - new_index: The new index to set in the query.
-    set_index : Vector Internal_Column -> Context
-    set_index self new_index =
-        Context.Value self.from_spec self.where_filters self.orders self.groups new_index self.limit
-
-    ## PRIVATE
-
        Returns a copy of the context with changed `where_filters`.
 
        Arguments:

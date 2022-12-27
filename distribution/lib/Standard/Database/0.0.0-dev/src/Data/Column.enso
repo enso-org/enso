@@ -90,10 +90,7 @@ type Column
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
-        ## We remove the index to avoid fetching index data that will not be
-           used anyway when constructing the raw Vector.
-        without_ix = self.to_table.set_index []
-        without_ix . read  . at self.name . to_vector
+        self.to_table.read . at self.name . to_vector
 
     ## UNSTABLE TODO this is a very early prototype that will be revisited later
        This implementation is really just so that we can use the types in
