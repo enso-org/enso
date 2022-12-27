@@ -25,13 +25,11 @@ public class AtomBenchmarks {
     main.mainFunction().value().execute(fixtures.million());
   }
 
-
-//
-//  @Benchmark
-//  public void benchGenerateListQualified() {
-//    DefaultInterpreterRunner.MainMethod main = fixtures.generateListQualified();
-//    main.mainFunction().value().execute(fixtures.million());
-//  }
+  @Benchmark
+  public void benchGenerateListQualified() {
+    DefaultInterpreterRunner.MainMethod main = fixtures.generateListQualified();
+    main.mainFunction().value().execute(fixtures.million());
+  }
 
   private void benchOnList(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(fixtures.millionElementList());
@@ -41,39 +39,39 @@ public class AtomBenchmarks {
   public void benchReverseList() {
     benchOnList(fixtures.reverseList());
   }
-//
-//  @Benchmark
-//  public void benchReverseListMethods() {
-//    benchOnList(fixtures.reverseListMethods());
-//  }
+
+  @Benchmark
+  public void benchReverseListMethods() {
+    benchOnList(fixtures.reverseListMethods());
+  }
 
   @Benchmark
   public void benchSumList() {
     benchOnList(fixtures.sumList());
   }
-//
-//  @Benchmark
-//  public void sumListLeftFold() {
-//    benchOnList(fixtures.sumListLeftFold());
-//  }
-//
-//  @Benchmark
-//  public void benchSumListFallback() {
-//    benchOnList(fixtures.sumListFallback());
-//  }
-//
-//  @Benchmark
-//  public void benchSumListMethods() {
-//    benchOnList(fixtures.sumListMethods());
-//  }
+
+  @Benchmark
+  public void sumListLeftFold() {
+    benchOnList(fixtures.sumListLeftFold());
+  }
+
+  @Benchmark
+  public void benchSumListFallback() {
+    benchOnList(fixtures.sumListFallback());
+  }
+
+  @Benchmark
+  public void benchSumListMethods() {
+    benchOnList(fixtures.sumListMethods());
+  }
 
   @Benchmark
   public void benchMapReverseList() {
     benchOnList(fixtures.mapReverseList());
   }
-//
-//  @Benchmark
-//  public void benchMapReverseCurryList() {
-//    benchOnList(fixtures.mapReverseListCurry());
-//  }
+
+  @Benchmark
+  public void benchMapReverseCurryList() {
+    benchOnList(fixtures.mapReverseListCurry());
+  }
 }
