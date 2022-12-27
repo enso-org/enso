@@ -8,15 +8,12 @@ import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
-import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
 import org.enso.table.data.table.join.*;
-import org.enso.table.data.table.join.scan.ScanJoin;
 import org.enso.table.data.table.problems.AggregatedProblems;
-import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
 import org.enso.table.util.NameDeduplicator;
@@ -498,17 +495,7 @@ public class Table {
 
   private static Index concatIndexes(List<Index> indexes) {
     int resultSize = indexes.stream().mapToInt(Index::size).sum();
-    if (indexes.stream().allMatch(ix -> ix instanceof DefaultIndex)) {
-      return new DefaultIndex(resultSize);
-    } else {
-      InferredBuilder builder = new InferredBuilder(resultSize);
-      for (var index : indexes) {
-        for (int i = 0; i < index.size(); i++) {
-          builder.appendNoGrow(index.iloc(i));
-        }
-      }
-      return HashIndex.fromStorage(indexes.get(0).getName(), builder.seal());
-    }
+    return new DefaultIndex(resultSize);
   }
 
   private Table hconcat(Table other, String lsuffix, String rsuffix) {
