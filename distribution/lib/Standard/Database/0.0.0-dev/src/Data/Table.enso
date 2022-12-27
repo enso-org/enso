@@ -98,8 +98,7 @@ type Table
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ : Text ->
-            candidates = self.internal_columns + self.context.meta_index
-            internal_column = candidates.find (p -> p.name == selector) . map_error (_ -> No_Such_Column.Error selector)
+            internal_column = self.internal_columns.find (p -> p.name == selector) . map_error (_ -> No_Such_Column.Error selector)
             self.make_column internal_column
 
     ## Returns the number of columns in the table.
@@ -502,21 +501,17 @@ type Table
     set self name column on_problems=Report_Warning = on_problems.handle_errors fallback=self <|
         case Helpers.ensure_name_is_sane name of
             True ->
-                is_used_in_index = self.context.meta_index.exists i-> i.name == name
-                case is_used_in_index of
-                    True -> Error.throw <| Illegal_State.Error "Cannot override column "+name+", because it is used as an index. Remove the index or use a different name."
+                resolved = case column of
+                    _ : Text -> self.evaluate column
+                    _ -> column
+                new_col = Internal_Column.Value name resolved.sql_type resolved.expression
+                replace = self.internal_columns.exists (c -> c.name == name)
+                case replace of
+                    True ->
+                        new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
+                        self.updated_columns new_cols
                     False ->
-                        resolved = case column of
-                            _ : Text -> self.evaluate column
-                            _ -> column
-                        new_col = Internal_Column.Value name resolved.sql_type resolved.expression
-                        replace = self.internal_columns.exists (c -> c.name == name)
-                        case replace of
-                            True ->
-                                new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
-                                self.updated_columns new_cols
-                            False ->
-                                self.updated_columns (self.internal_columns + [new_col])
+                        self.updated_columns (self.internal_columns + [new_col])
 
     ## PRIVATE
     evaluate : Text -> Column
@@ -1004,15 +999,6 @@ type Table
        - internal_columns: The new columns to include in the table.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
     updated_context_and_columns self ctx internal_columns = Table.Value self.name self.connection internal_columns ctx
-
-    ## PRIVATE
-
-       Returns a vector that contains first the internal representations of all
-       indices and then all columns.
-    internal_columns_with_index : Vector Internal_Column
-    internal_columns_with_index self =
-        self.context.meta_index + self.internal_columns
-
 
     ## PRIVATE
 
