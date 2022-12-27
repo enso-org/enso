@@ -39,7 +39,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
       Object state,
       Atom target,
       @CachedLibrary(limit = "10") StructsLibrary structs) {
-    if (profile.profile(matcher == target.getConstructor())) {
+    if (profile.profile(matcher == structs.getConstructor(target))) {
       accept(frame, state, structs.getFields(target));
     }
   }

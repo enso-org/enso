@@ -38,8 +38,7 @@ public class Layout {
         return arity == 2;
     }
 
-    public static Layout create(AtomConstructor constructor, long typeFlags) {
-        var arity = constructor.getArity();
+    public static Layout create(AtomConstructor constructor, int arity, long typeFlags) {
         if (arity > 32) {
             throw new IllegalArgumentException("Too many fields in unboxed atom");
         }

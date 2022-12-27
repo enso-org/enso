@@ -9,6 +9,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.Type;
@@ -38,6 +39,7 @@ public class GetFieldWithMatchNode extends RootNode {
   private final Text nameText;
   private final Type type;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) GetterPair[] getterPairs;
+  private @Child StructsLibrary structs = StructsLibrary.getFactory().createDispatched(10);
 
   /**
    * Creates a new instance of this node.
@@ -58,7 +60,7 @@ public class GetFieldWithMatchNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     // this is safe, as only Atoms will ever get here through method dispatch.
     Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-    var constructor = atom.getConstructor();
+    var constructor = structs.getConstructor(atom);
     for (int i = 0; i < getterPairs.length; i++) {
       var getter = getterPairs[i];
       if (getter.target == constructor) {

@@ -5,10 +5,12 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
@@ -26,11 +28,11 @@ public abstract class AnyToTextNode extends Node {
   public abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom at) {
+  Text doAtom(Atom at, @CachedLibrary(limit = "3") StructsLibrary structs) {
     if (at.getFields().length == 0) {
-      return consName(at.getConstructor());
+      return consName(structs.getConstructor(at));
     } else {
-      return doComplexAtom(at);
+      return doComplexAtom(at, structs);
     }
   }
 
@@ -54,8 +56,8 @@ public abstract class AnyToTextNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Text doComplexAtom(Atom atom) {
-    Text res = Text.create("(", consName(atom.getConstructor()));
+  private Text doComplexAtom(Atom atom, StructsLibrary structs) {
+    Text res = Text.create("(", consName(structs.getConstructor(atom)));
     res = Text.create(res, " ");
     try {
       res = Text.create(res, showObject(atom.getFields()[0]));

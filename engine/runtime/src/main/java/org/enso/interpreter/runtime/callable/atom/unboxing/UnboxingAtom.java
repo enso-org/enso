@@ -52,8 +52,16 @@ public abstract class UnboxingAtom extends Atom {
   }
 
   @ExportMessage
-  AtomConstructor getConstructor() {
-    return layout.getConstructor();
+  static class GetConstructor {
+    @Specialization(guards = "cachedLayout == atom.layout", limit = "10")
+    static AtomConstructor doCached(UnboxingAtom atom, @Cached("atom.layout") Layout cachedLayout, @Cached("cachedLayout.getConstructor()") AtomConstructor constructor) {
+      return constructor;
+    }
+
+    @Specialization(replaces = "doCached")
+    static AtomConstructor doUncached(UnboxingAtom atom) {
+      return atom.layout.getConstructor();
+    }
   }
 
   @GenerateNodeFactory
@@ -116,7 +124,7 @@ public abstract class UnboxingAtom extends Atom {
           }
 
           // Layouts didn't change; just create a new one and register it
-          var newLayout = Layout.create(constructor, flags);
+          var newLayout = Layout.create(constructor, constructor.getArity(), flags);
           constructor.addLayout(newLayout);
           updateFromConstructor();
           return unboxedLayouts[unboxedLayouts.length - 1].execute(arguments);
