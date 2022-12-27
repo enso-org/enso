@@ -12,8 +12,6 @@ public class Layout {
     public static final long LONG_MASK = 0b01;
     public static final long UNBOXED_MASK = DOUBLE_MASK | LONG_MASK;
 
-    final AtomConstructor constructor;
-
     // this will work until 32 fields, then we need to fall back to all-unboxed
     final long inputFlags;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) int[] fieldToStorage;
@@ -21,8 +19,7 @@ public class Layout {
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldGetterNode[] uncachedFieldGetters;
     private final @CompilerDirectives.CompilationFinal NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory;
 
-    public Layout(AtomConstructor constructor, long inputFlags, int[] fieldToStorage, NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories, NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory) {
-        this.constructor = constructor;
+    public Layout(long inputFlags, int[] fieldToStorage, NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories, NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory) {
         this.inputFlags = inputFlags;
         this.fieldToStorage = fieldToStorage;
         this.fieldGetterFactories = fieldGetterFactories;
@@ -38,7 +35,7 @@ public class Layout {
         return arity == 2;
     }
 
-    public static Layout create(AtomConstructor constructor, int arity, long typeFlags) {
+    public static Layout create(int arity, long typeFlags) {
         if (arity > 32) {
             throw new IllegalArgumentException("Too many fields in unboxed atom");
         }
@@ -93,7 +90,7 @@ public class Layout {
             default -> throw new IllegalArgumentException("Unsupported arity");
         };
 
-        return new Layout(constructor, typeFlags, fieldToStorage, getterFactories, instantiatorFactory);
+        return new Layout(typeFlags, fieldToStorage, getterFactories, instantiatorFactory);
     }
 
     public UnboxingAtom.FieldGetterNode[] getUncachedFieldGetters() {
@@ -114,10 +111,6 @@ public class Layout {
 
     public int arity() {
         return fieldToStorage.length;
-    }
-
-    public AtomConstructor getConstructor() {
-        return constructor;
     }
 
     static class DirectCreateLayoutInstanceNode extends Node {

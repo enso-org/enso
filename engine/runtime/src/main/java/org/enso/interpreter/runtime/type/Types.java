@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.*;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.*;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.data.TypeGraph;
@@ -124,7 +123,7 @@ public class Types {
     } else if (TypesGen.isFunction(value)) {
       return ConstantsGen.FUNCTION;
     } else if (value instanceof Atom atom) {
-      return TypesLibrary.getUncached().getType(atom).getQualifiedName().toString();
+      return atom.getConstructor().getQualifiedTypeName().toString();
     } else if (value instanceof AtomConstructor cons) {
       return cons.getQualifiedName().toString();
     } else if (value instanceof Type t) {

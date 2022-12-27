@@ -9,10 +9,9 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 @ExportLibrary(TypesLibrary.class)
 public class BoxingAtom extends Atom {
   private final Object[] fields;
-  private final AtomConstructor constructor;
 
   public BoxingAtom(AtomConstructor constructor, Object... fields) {
-    this.constructor = constructor;
+    super(constructor);
     this.fields = fields;
   }
 
@@ -24,10 +23,5 @@ public class BoxingAtom extends Atom {
   @ExportMessage
   Object getField(int index) {
     return fields[index];
-  }
-
-  @ExportMessage
-  AtomConstructor getConstructor() {
-    return constructor;
   }
 }

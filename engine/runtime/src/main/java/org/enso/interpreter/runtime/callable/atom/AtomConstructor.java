@@ -121,10 +121,10 @@ public final class AtomConstructor implements TruffleObject {
         } else {
             cachedInstance = null;
         }
-        if (!Layout.isAritySupported(args.length)) {
+        if (args.length != 2) {
             boxedLayout = null;
         } else {
-            boxedLayout = Layout.create(this, args.length, 0);
+            boxedLayout = Layout.create(args.length, 0);
         }
         this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
         generateQualifiedAccessor();
@@ -205,10 +205,6 @@ public final class AtomConstructor implements TruffleObject {
         return constructorFunction.getSchema().getArgumentsCount();
     }
 
-    public Layout getBoxedLayout() {
-        return boxedLayout;
-    }
-
     /**
      * Creates a new runtime instance of the Atom represented by this constructor.
      *
@@ -248,7 +244,9 @@ public final class AtomConstructor implements TruffleObject {
         return unboxingLayouts;
     }
 
-
+    public Layout getBoxedLayout() {
+        return boxedLayout;
+    }
 
     public void addLayout(Layout layout) {
         var newLayouts = new Layout[unboxingLayouts.length + 1];
