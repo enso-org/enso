@@ -142,20 +142,19 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                     inputDir = inputDir.getParent();
                   }
                   srcRoots.add(inputDir);
-                } else {
-                  // fallback to pick all
-                  var srcDir = prj.getProjectDirectory().getFileObject("src");
-                  if (srcDir != null) {
-                      for (var group : srcDir.getChildren()) {
-                          if (group.isFolder()) {
-                              for (var child : group.getChildren()) {
-                                  if (child.isFolder()) {
-                                      srcRoots.add(child);
-                                  }
-                              }
-                          }
-                      }
-                  }
+                }
+
+                var srcDir = prj.getProjectDirectory().getFileObject("src");
+                if (srcDir != null) {
+                    for (var group : srcDir.getChildren()) {
+                        if (group.isFolder()) {
+                            for (var child : group.getChildren()) {
+                                if (child.isFolder()) {
+                                    srcRoots.add(child);
+                                }
+                            }
+                        }
+                    }
                 }
                 srcRoots.addAll(generatedSources);
 
