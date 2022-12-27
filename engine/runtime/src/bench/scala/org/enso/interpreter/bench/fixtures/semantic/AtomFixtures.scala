@@ -6,13 +6,13 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val million: Long = 1000000
 
   val millionElementList = eval(
-    s"""|import Standard.Base.Data.List.List
-        |
-        |main =
-        |    generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
-        |    res = generator (acc -> x -> List.Cons x acc) List.Nil 1 $million
-        |    res
-        |""".stripMargin)
+    s"""import Standard.Base.Data.List.List
+       |
+       |main =
+       |    generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+       |    res = generator (acc -> x -> List.Cons x acc) List.Nil 1 $million
+       |    res
+       |""".stripMargin)
 
   val generateListCode =
     """import Standard.Base.Data.List.List
