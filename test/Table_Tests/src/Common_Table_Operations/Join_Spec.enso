@@ -392,7 +392,6 @@ spec setup =
             r1.at "Y" . to_vector . should_equal [1, 1, 2, 3, 3]
             r1.at "Z" . to_vector . should_equal [20, 30, 10, 20, 30]
 
-        # TODO add a test for case-insensitive full join - it will currently fail on Postgres
         Test.specify "should correctly handle nulls in case-insensitive equality conditions" pending=db_todo <|
             t1 = table_builder [["X", ["A", Nothing, "a", Nothing, "ą"]], ["Y", [0, 1, 2, 3, 4]]]
             t2 = table_builder [["X", ["a", Nothing, Nothing]], ["Z", [10, 20, 30]]]
@@ -558,17 +557,64 @@ spec setup =
                 r12.length . should_equal 1
                 r12.at 0 . should_equal [3, 5]
 
-        Test.specify "should work correctly when composing multiple join operations" pending="TODO" <|
-            ta = table_builder [["id", [0, 1]], ["name", ["Foo", "Hmm"]]]
-            tb = table_builder [["id", [2, 0]], ["name", ["Bar", "Hmm"]]]
-            tc = table_builder [["id_a", [0, 1]], ["id_b", [2, 0]]]
-            ta_2 = ta.set_index "id"
-            tb_2 = tb.set_index "id"
-            res = (tc.join ta_2 on="id_a") . join tb_2 on="id_b" left_suffix="_a" right_suffix="_b"
-            sel = res.select_columns (Column_Selector.By_Name ["name_a", "name_b"])
-            df = sel.read . order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "name_a"])
-            df . at "name_a" . to_vector . should_equal ["Foo", "Hmm"]
-            df . at "name_b" . to_vector . should_equal ["Bar", "Hmm"]
+        Test.specify "should work correctly when composing multiple join operations" <|
+            ta = table_builder [["id", [0, 1]], ["name", ["Foo", "X"]]]
+            tb = table_builder [["id", [2, 0]], ["name", ["Bar", "Y"]]]
+            tc = table_builder [["id_a", [0, 1]], ["id_b", [0, 2]]]
+            # TODO prefixes once they work, it will be much clearer
+            res = (tc.join ta on=(Join_Condition.Equals "id_a" "id")) . join tb on=(Join_Condition.Equals "id_b" "id")
+            sel = res.select_columns (Column_Selector.By_Name ["name", "name_1"])
+            r = materialize sel . order_by "name" . rows . map .to_vector
+            r.length . should_equal 2
+            r.at 0 . should_equal ["Foo", "Y"]
+            r.at 1 . should_equal ["X", "Bar"]
 
-        Test.specify "should work correctly when the join is performed on a transformed table" pending="TODO" <|
-            Nothing
+        Test.specify "should work correctly when the join is performed on a transformed table" <|
+            t1 = table_builder [["X", [1, 2, 3]]]
+
+            t1_2 = t1.set "A" "10*[X]+1"
+            t1_3 = t1.set "B" "[X]+20"
+
+            t2 = t1_2.join t1_3 on=(Join_Condition.Equals "A" "B")
+            t2.at "A" . to_vector . should_equal [21]
+            t2.at "X" . to_vector . should_equal [2]
+            t2.at "B" . to_vector . should_equal [21]
+            t2.at "X_1" . to_vector . should_equal [1]
+
+            t4 = table_builder [["X", [1, 2, 3]], ["Y", [10, 20, 30]]]
+            t5 = table_builder [["X", [5, 7, 1]], ["Z", [100, 200, 300]]]
+
+            t4_2 = t4.set "C" "2*[X]+1"
+            t6 = t4_2.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Inner
+            expect_column_names ["X", "Y", "C", "X_1", "Z"] t6
+            r2 = materialize t6 . order_by ["Y"] . rows . map .to_vector
+            r2.length . should_equal 2
+            r2.at 0 . should_equal [2, 20, 5, 5, 100]
+            r2.at 1 . should_equal [3, 30, 7, 7, 200]
+
+        # This is marked as pending as currently will not work neither on Postgres (because complex condition Full joins do not work there) nor SQLite (as no Full joins work there).
+        Test.specify "should allow full joins with more complex join conditions" pending=db_todo <|
+            t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [10, 20, 30]]]
+            t2 = table_builder [["X", ["Ć", "A", "b"]], ["Z", [100, 200, 300]]]
+
+            t3 = t1.join t2 on=(Join_Condition.Equals_Ignore_Case "X") join_kind=Join_Kind.Full
+            expect_column_names ["X", "Y", "X_1", "Z"] t3
+            r = materialize t3 . order_by ["Y"] . rows . map .to_vector
+            r.length . should_equal 4
+            r.at 0 . should_equal [Nothing, Nothing, "Ć", 100]
+            r.at 1 . should_equal ["a", 10, "A", 200]
+            r.at 2 . should_equal ["b", 20, "b", 300]
+            r.at 3 . should_equal ["c", 30, Nothing, Nothing]
+
+            t4 = table_builder [["X", [1, 2, 3]], ["Y", [10, 20, 30]]]
+            t5 = table_builder [["X", [5, 7, 1]], ["Z", [100, 200, 300]]]
+
+            t4_2 = t4.set "C" "2*[X]+1"
+            t6 = t4_2.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
+            expect_column_names ["X", "Y", "C", "X_1", "Z"] t6
+            r2 = materialize t6 . order_by ["Y"] . rows . map .to_vector
+            r2.length . should_equal 4
+            r2.at 0 . should_equal [Nothing, Nothing, Nothing, 1, 300]
+            r2.at 1 . should_equal [1, 10, 3, Nothing, Nothing]
+            r2.at 2 . should_equal [2, 20, 5, 5, 100]
+            r2.at 3 . should_equal [3, 30, 7, 7, 200]
