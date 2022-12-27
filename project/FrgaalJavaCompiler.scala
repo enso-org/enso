@@ -117,8 +117,7 @@ object FrgaalJavaCompiler {
       inATargetDir
     }
 
-    val noTarget = sources0.filter(x => !checkTarget(x))
-    val withTarget = sources0.filter(checkTarget)
+    val (withTarget, noTarget) = sources0.partition(checkTarget)
     var in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
     var generated = if (withTarget.isEmpty) {
       None
