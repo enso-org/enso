@@ -184,40 +184,6 @@ public class Table {
   }
 
   /**
-   * Reindexes this table by using values from the column with the given name.
-   *
-   * @param col the column to use as index
-   * @return a table indexed by the proper column
-   */
-  public Table indexFromColumn(Column col) {
-    Storage<?> storage = col.getStorage();
-    Index ix = HashIndex.fromStorage(col.getName(), storage);
-    List<Column> newColumns = new ArrayList<>();
-    Column indexCol = index.toColumn();
-    if (indexCol != null) {
-      newColumns.add(indexCol.withIndex(ix));
-    }
-    for (Column column : columns) {
-      if (!Text_Utils.equals(column.getName(), col.getName())) {
-        newColumns.add(column.withIndex(ix));
-      }
-    }
-    return new Table(newColumns.toArray(new Column[0]), ix);
-  }
-
-  /**
-   * Reindexes this table by using values from the column with the given name.
-   *
-   * @param name the column name to use as index
-   * @return a table indexed by the proper column
-   */
-  public Table indexFromColumn(String name) {
-    Column col = getColumnByName(name);
-    if (col == null) throw new NoSuchColumnException(name);
-    return indexFromColumn(col);
-  }
-
-  /**
    * Creates an index for this table by using values from the specified columns.
    *
    * @param columns set of columns to use as an Index
