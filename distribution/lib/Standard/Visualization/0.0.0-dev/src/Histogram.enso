@@ -7,7 +7,7 @@ import project.Helpers
 
    Get first numeric column of the table.
 Table.first_numeric : Table -> Column ! Nothing
-Table.first_numeric self = self.all_columns.find _.is_numeric
+Table.first_numeric self = self.columns.find _.is_numeric
 
 ## PRIVATE
 
