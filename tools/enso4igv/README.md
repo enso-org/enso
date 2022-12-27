@@ -145,7 +145,7 @@ environment. Switch to this directory and invoke:
 ```bash
 enso/tools/enso4igv$ mvn clean install
 enso/tools/enso4igv$ ls target/*.nbm
-target/enso4igv-1.0-SNAPSHOT.nbm
+target/enso4igv-*-SNAPSHOT.nbm
 ```
 
 an NBM file is generated which can be installed into IGV, NetBeans or any other
