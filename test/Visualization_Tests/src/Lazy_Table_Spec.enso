@@ -32,20 +32,30 @@ spec = Test.group "Lazy Table Visualization" <|
 
     Test.specify "Should return correct update" <|
         update = TableVis.compute_table_update sample_table [0,0] [0,0] [3,2] 5
-        ##update.chunks.contains [[[0,0], [0,0]], "12345"] . should_be_true
-        ##update.chunks.contains [[[0,0], [1,0]], "6789"] . should_be_true
-        ## update.chunks.contains [[[0, 1], [0, 0]], "23456"] . should_be_true
-        ## update.chunks.contains [[[0, 1], [0, 0]], "789"] . should_be_true
-        ## update.chunks.contains [[[1, 0], [0, 0]], "4"] . should_be_true
-        ## update.chunks.contains [[[1, 1], [0, 0]], "5"] . should_be_true
-        update.should_equal []
+        update.chunks.contains [[[0,0], [0,0]], "12345"] . should_be_true
+        update.chunks.contains [[[0,0], [1,0]], "6789"] . should_be_true
+        update.chunks.contains [[[0, 1], [0, 0]], "23456"] . should_be_true
+        update.chunks.contains [[[0, 1], [1, 0]], "789"] . should_be_true
+        update.chunks.contains [[[1, 0], [0, 0]], "4"] . should_be_true
+        update.chunks.contains [[[1, 1], [0, 0]], "5"] . should_be_true
+
+    Test.specify "Should return correct update" <|
+        update = TableVis.compute_table_update sample_table [0,0] [1,0] [3,2] 5
+        ## update.should_equal []
+        update.chunks.contains [[[0,0], [1,0]], "6789"] . should_be_true
+        update.chunks.contains [[[0, 1], [1, 0]], "789"] . should_be_true
+        update.chunks.contains [[[1, 0], [0, 0]], "4"] . should_be_true
+        update.chunks.contains [[[1, 1], [0, 0]], "5"] . should_be_true
+        update.chunks.contains [[[2, 0], [0, 0]], "7"] . should_be_true
+        update.chunks.contains [[[2, 1], [0, 0]], "8"] . should_be_true
+
 
     Test.specify "Find end column helper should return correct column index" <|
-        (TableVis.find_end_column sample_table 0 0).should_equal 0
-        (TableVis.find_end_column sample_table 0 2).should_equal 0
-        (TableVis.find_end_column sample_table 0 12).should_equal 3
-        (TableVis.find_end_column sample_table 1 4).should_equal 3
-        (TableVis.find_end_column sample_table 0 9999).should_equal 6
+        (TableVis.find_end_column sample_table 0 0 1).should_equal 0
+        (TableVis.find_end_column sample_table 0 2 1).should_equal 0
+        (TableVis.find_end_column sample_table 0 3 5).should_equal 2
+        (TableVis.find_end_column sample_table 1 4 5).should_equal 5
+        (TableVis.find_end_column sample_table 0 9999 5).should_equal 6
 
     Test.specify "Find end row helper should return correct row index" <|
         (TableVis.find_end_row sample_table 1 4).should_equal 2
@@ -57,9 +67,9 @@ spec = Test.group "Lazy Table Visualization" <|
 
 
     Test.specify "Get column width helper should return correct colum width" <|
-        (TableVis.get_column_width (sample_table.columns.at 0).to_vector).should_equal 9
-        (TableVis.get_column_width (sample_table.columns.at 1).to_vector).should_equal 1
-        (TableVis.get_column_width (sample_table.columns.at 3).to_vector).should_equal 2
+        (TableVis.get_column_width (sample_table.columns.at 0)).should_equal 9
+        (TableVis.get_column_width (sample_table.columns.at 1)).should_equal 1
+        (TableVis.get_column_width (sample_table.columns.at 3)).should_equal 2
 
     Test.specify "Get row height helper should return correct row height" <|
         (TableVis.get_row_height sample_table 0).should_equal 1
@@ -72,13 +82,13 @@ spec = Test.group "Lazy Table Visualization" <|
         (TableVis.find_first_over_cum_sum [1,2,3] 2).should_equal 1
         (TableVis.find_first_over_cum_sum [1,1,1,1,1,1,1,1] 4).should_equal 4
 
-
     Test.specify "Get enumerate helper should return correct result" <|
         (TableVis.enumerate ["A","B","C"]).should_equal [[0, "A"],[1,"B"],[2,"C"]]
 
-    Test.specify "get_row_iter helper should return correct result" <|
-        (TableVis.get_row_line_indices sample_table [1,1] [0,0] [1, 4]).should_equal [[1, 0],[2, 0]]
-
     Test.specify "get_chunks_for_row helper should return correct result" <|
-        (TableVis.get_chunks_for_row sample_table 0 0 (1.up_to 4) 5 3).should_equal [[[1,0], "4"], [[2,0], "7"], [[3,0], "10"]]
-        (TableVis.get_chunks_for_row sample_table 0 0 (0.up_to 4) 5 3).should_equal [[[0, 0], "12345"], [[0,1], "6789"], [[1,0], "4"]]
+        (TableVis.get_chunks_for_row sample_table 0 0 0 (1.up_to 4) 5 3).should_equal [[[1,0], "4"], [[2,0], "7"], [[3,0], "10"]]
+        (TableVis.get_chunks_for_row sample_table 0 0 0 (0.up_to 4) 5 3).should_equal [[[0, 0], "12345"], [[0,1], "6789"], [[1,0], "4"]]
+
+    Test.specify "compute_vertical_indices helper should return correct result" <|
+        (TableVis.compute_vertical_indices sample_table 0 2 0 2).should_equal [[0, 0], [1, 0]]
+        (TableVis.compute_vertical_indices sample_table 0 2 1 2).should_equal [[1, 0], [2, 0]]
