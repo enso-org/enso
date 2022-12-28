@@ -32,6 +32,9 @@ type Unique_Name_Strategy
        It returns a new list where each new name corresponds to a name from the
        second list.
 
+       It assumes that names on both lists should be unique. The behavior is
+       unspecified if they are not.
+
        The names are renamed using the following strategy:
        - if the name does not collide with any name from the first list, it will
          always be kept as-is,
