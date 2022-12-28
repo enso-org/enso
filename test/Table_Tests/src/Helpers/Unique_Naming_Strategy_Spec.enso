@@ -10,6 +10,8 @@ spec =
         Test.specify 'should change an empty name to "Column"' <|
             strategy = Unique_Name_Strategy.new
             strategy.make_valid_name "" . should_equal "Column"
+            strategy.make_valid_name "FOO" . should_equal "FOO"
+            strategy.make_valid_name "Column" . should_equal "Column"
             strategy.invalid_names.length . should_equal 1
 
         Test.specify 'should change Nothing to "Column"' <|
@@ -42,19 +44,23 @@ spec =
             strategy.renames.length . should_equal 2
             strategy.invalid_names.length . should_equal 0
 
-        Test.specify 'should work as in examples' <|
+        Test.specify "should always add a counter when renaming invalid names" <|
             strategy = Unique_Name_Strategy.new
-            strategy.make_valid_name "" . should_equal "Column"
-            strategy.make_valid_name 1 . should_equal "1"
-            strategy.make_valid_name "Hello" . should_equal "Hello"
+            strategy.make_unique "" . should_equal "Column_1"
+            strategy.make_unique "" . should_equal "Column_2"
+            strategy.make_unique Nothing . should_equal "Column_3"
+            strategy.make_unique "Foo" . should_equal "Foo"
+            strategy.make_unique "Column" . should_equal "Column"
+            strategy.make_unique "" . should_equal "Column_4"
 
+        Test.specify 'should work as in examples' <|
             unique_name_strategy = Unique_Name_Strategy.new
             unique_names = ["A", "B", "A", ""] . map unique_name_strategy.make_unique
             duplicates = unique_name_strategy.renames
             invalid = unique_name_strategy.invalid_names
             duplicates.should_equal ["A"]
             invalid.should_equal [""]
-            unique_names.should_equal ["A", "B", "A_1", "Column"]
+            unique_names.should_equal ["A", "B", "A_1", "Column_1"]
 
             strategy_1 = Unique_Name_Strategy.new
             strategy_1.make_unique "A" . should_equal "A"
