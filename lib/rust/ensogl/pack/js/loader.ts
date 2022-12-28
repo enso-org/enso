@@ -9,16 +9,24 @@ import * as svg from './svg.js'
 
 let bg_color = 'rgb(249,250,251)'
 let loader_color = '#303030'
-let top_layer_index = 1000
+let top_layer_index = '1000'
 
+type Config = { use_loader: boolean; loader_download_to_init_ratio: number }
 /// Visual representation of the loader.
 export class ProgressIndicator {
-    constructor(cfg) {
+    dom: HTMLDivElement
+    progress_indicator: HTMLElement
+    progress_indicator_mask: HTMLElement
+    progress_indicator_corner: HTMLElement
+    initialized: Promise<void>
+    destroyed: boolean
+
+    constructor(cfg: Config) {
         this.dom = html_utils.new_top_level_div()
         this.dom.id = 'loader'
         this.dom.style.position = 'fixed'
-        this.dom.style.top = 0
-        this.dom.style.left = 0
+        this.dom.style.top = '0'
+        this.dom.style.left = '0'
         // In the Cloud UI, all layers are stacked, and the progress
         // indicator must be placed at the top layer.
         this.dom.style.zIndex = top_layer_index
@@ -92,34 +100,34 @@ export class ProgressIndicator {
 
     /// Destroys the component. Removes it from the stage and destroys attached callbacks.
     destroy() {
-        html_utils.remove_node(this.dom)
+        this.dom.parentNode.removeChild(this.dom)
         this.destroyed = true
     }
 
     /// Set the value of the loader [0..1].
-    set(value) {
+    set(value: number) {
         let min_angle = 0
         let max_angle = 359
         let angle_span = max_angle - min_angle
         let mask_angle = (1 - value) * angle_span - min_angle
         let corner_pos = math.polar_to_cartesian(54, -mask_angle)
         this.progress_indicator_mask.setAttribute('d', svg.arc(128, -mask_angle))
-        this.progress_indicator_corner.setAttribute('cx', corner_pos.x)
-        this.progress_indicator_corner.setAttribute('cy', corner_pos.y)
+        this.progress_indicator_corner.setAttribute('cx', `${corner_pos.x}`)
+        this.progress_indicator_corner.setAttribute('cy', `${corner_pos.y}`)
     }
 
     /// Set the opacity of the loader.
-    set_opacity(val) {
-        this.progress_indicator.setAttribute('opacity', val)
+    set_opacity(val: number) {
+        this.progress_indicator.setAttribute('opacity', `${val}`)
     }
 
     /// Set the rotation of the loader (angles).
-    set_rotation(val) {
+    set_rotation(val: number) {
         this.progress_indicator.setAttribute('transform', `rotate(${val},0,0)`)
     }
 
     /// Start show animation. It is used after the loader is created.
-    animate_show() {
+    animate_show(): Promise<void> {
         let indicator = this
         return new Promise(function (resolve, reject) {
             let alpha = 0
@@ -143,7 +151,7 @@ export class ProgressIndicator {
     animate_rotation() {
         let indicator = this
         let rotation = 0
-        function rotate_step(timestamp) {
+        function rotate_step(timestamp: DOMHighResTimeStamp) {
             indicator.set_rotation(rotation)
             rotation += 6
             if (!indicator.destroyed) {
@@ -160,7 +168,16 @@ export class ProgressIndicator {
 
 /// The main loader class. It connects to the provided fetch responses and tracks their status.
 export class Loader {
-    constructor(resources, cfg) {
+    indicator: ProgressIndicator
+    total_bytes: number
+    received_bytes: number
+    download_speed: number
+    last_receive_time: number
+    initialized: Promise<void>
+    cap_progress_at: number
+    done: Promise<void>
+    done_resolve: (value: void | PromiseLike<void>) => void
+    constructor(resources: Response[], cfg: Config) {
         this.indicator = new ProgressIndicator(cfg)
         this.total_bytes = 0
         this.received_bytes = 0
@@ -208,7 +225,7 @@ export class Loader {
     }
 
     /// Callback run on every new received byte stream.
-    on_receive(new_bytes) {
+    on_receive(new_bytes: number) {
         this.received_bytes += new_bytes
         let time = performance.now()
         let time_diff = time - this.last_receive_time

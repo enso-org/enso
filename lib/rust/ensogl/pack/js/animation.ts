@@ -5,14 +5,14 @@
 // === Animation ===
 // =================
 
-export function ease_in_out_cubic(t) {
+export function ease_in_out_cubic(t: number): number {
     return t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) * (-2 * t + 2) * (-2 * t + 2)) / 2
 }
 
-export function ease_in_out_quad(t) {
+export function ease_in_out_quad(t: number): number {
     return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) * (-2 * t + 2)) / 2
 }
 
-export function ease_out_quart(t) {
+export function ease_out_quart(t: number): number {
     return 1 - --t * t * t * t
 }

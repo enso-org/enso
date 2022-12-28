@@ -2,12 +2,8 @@
 /// user with a visual representation of this process (welcome screen). It also implements a view
 /// allowing to choose a debug rendering test from.
 
-// @ts-ignore
 import * as loader_module from './loader'
-// @ts-ignore
 import * as html_utils from './html_utils'
-// @ts-ignore
-import assert from 'assert'
 
 import host from './host'
 import Task from './task'
@@ -124,7 +120,7 @@ async function load_wasm(config: Config) {
 
         let download_size = loader.show_total_bytes()
         let download_info = `Downloading WASM binary and its dependencies (${download_size}).`
-        let wasm = await html_utils.log_group_collapsed(download_info, async () => {
+        let wasm = await Logger.asyncWithCollapsed(download_info, async () => {
             let snippets_code = await snippets_fetch.text()
             return await init_wasm(snippets_code, wasm_fetch)
         })
@@ -206,7 +202,7 @@ function show_debug_screen(wasm: any, msg: string) {
     let newContent = document.createTextNode(msg + 'Available entry points:')
     let ul = document.createElement('ul')
     debug_screen_div.style.position = 'absolute'
-    debug_screen_div.style.zIndex = 1
+    debug_screen_div.style.zIndex = '1'
     newDiv.appendChild(newContent)
     debug_screen_div.appendChild(newDiv)
     newDiv.appendChild(ul)

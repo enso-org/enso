@@ -49,6 +49,16 @@ export default class Logger {
         Logger.indent_lvl += 1
     }
 
+    /** Start a group and log a message. */
+    static groupCollapsed(...args: any[]) {
+        if (host.browser) {
+            console.groupCollapsed(...args)
+        } else {
+            console.log(`${Logger.indent()}╭`, ...args)
+        }
+        Logger.indent_lvl += 1
+    }
+
     /** Log a message and end the last opened group. */
     static groupEnd(...args: any[]) {
         if (Logger.indent_lvl > 0) {
@@ -64,5 +74,33 @@ export default class Logger {
         } else {
             Logger.log(...args)
         }
+    }
+
+    static with<T>(message: string, f: () => T): T {
+        Logger.group(message)
+        let out = f()
+        Logger.groupEnd()
+        return out
+    }
+
+    static withCollapsed<T>(message: string, f: () => T): T {
+        Logger.groupCollapsed(message)
+        let out = f()
+        Logger.groupEnd()
+        return out
+    }
+
+    static async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
+        Logger.group(message)
+        let out = await f()
+        Logger.groupEnd()
+        return out
+    }
+
+    static async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
+        Logger.groupCollapsed(message)
+        let out = await f()
+        Logger.groupEnd()
+        return out
     }
 }

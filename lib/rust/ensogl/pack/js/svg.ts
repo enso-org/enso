@@ -7,7 +7,7 @@ import * as math from './math.js'
 // ===========
 
 /// Defines a new SVG with the provided source.
-export function new_svg(width, height, str) {
+export function new_svg(width: number, height: number, str: string): string {
     return `
     <svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg"
          xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -17,7 +17,7 @@ export function new_svg(width, height, str) {
 }
 
 /// Returns SVG code for an arc with a defined radius and angle.
-export function arc(radius, end_angle) {
+export function arc(radius: number, end_angle: number): string {
     let start_angle = 0
     if (end_angle < 0) {
         start_angle = end_angle
