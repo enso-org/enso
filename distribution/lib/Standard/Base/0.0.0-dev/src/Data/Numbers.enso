@@ -955,7 +955,7 @@ type Integer
          Parse the text "20220216" into an integer number.
 
             Integer.parse "20220216"
-    parse : Text -> Text -> Integer ! Parse_Error
+    parse : Text -> Text -> Integer ! Number_Parse_Error
     parse text (radix=10) = Integer.parse_builtin text radix
 
     ## PRIVATE
