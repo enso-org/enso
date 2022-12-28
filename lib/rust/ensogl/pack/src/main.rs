@@ -2,6 +2,7 @@ use manifest_dir_macros::path;
 use std::env;
 use std::ffi::OsStr;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 use tempfile::tempdir;
 
@@ -50,6 +51,18 @@ pub fn modify_arg_1(
     old_value
 }
 
+fn workspace_dir() -> PathBuf {
+    let output = std::process::Command::new(env!("CARGO"))
+        .arg("locate-project")
+        .arg("--workspace")
+        .arg("--message-format=plain")
+        .output()
+        .unwrap()
+        .stdout;
+    let cargo_path = Path::new(std::str::from_utf8(&output).unwrap().trim());
+    cargo_path.parent().unwrap().to_path_buf()
+}
+
 pub fn root_dir() -> &'static Path {
     let current_cargo_path = Path::new(path!("Cargo.toml"));
     current_cargo_path.parent().unwrap()
@@ -64,7 +77,7 @@ fn with_pwd<T>(path: &Path, f: impl FnOnce() -> T) -> T {
 }
 
 fn compile_js(main: &str, out: &Path) {
-    println!("Compiling: {main}");
+    println!("Compiling {main}.");
     execute("npx", &[
         "--yes",
         "esbuild",
@@ -76,17 +89,24 @@ fn compile_js(main: &str, out: &Path) {
     ]);
 }
 
+fn compile_ts(main: &str, out: &Path) {
+    println!("Type checking TypeScript sources.");
+    execute("npx", &["tsc", "-noEmit"]);
+    compile_js(main, out);
+}
+
 fn main() {
     let mut args: Vec<String> = env::args().skip(1).collect();
     let is_build = args.contains(&"build".to_string());
-    println!("{:?}", is_build);
+    println!("{:?}", workspace_dir());
     if is_build {
         let current_cargo_path = Path::new(path!("Cargo.toml"));
         let root_dir = current_cargo_path.parent().unwrap();
         println!("{:?}", root_dir);
 
         // let build_dir = tempdir().expect("Failed to create temporary directory");
-        let build_dir = Path::new("/Users/wdanilo/Dev/tmp");
+        let workspace_dir = workspace_dir();
+        let build_dir = workspace_dir.join("target").join("ensogl-pack");
         let dist_dir = build_dir.join("dist");
 
         let out_dir =
@@ -98,8 +118,8 @@ fn main() {
         let out_dir = out_dir.unwrap();
         let out_name = out_name.unwrap();
 
-        with_pwd(&root_dir.join("js"), || compile_js("index.ts", &dist_dir.join("index.js")));
-        with_pwd(build_dir, || compile_js("pkg.js", &dist_dir.join("snippets.js")));
+        with_pwd(&root_dir.join("js"), || compile_ts("index.ts", &dist_dir.join("index.js")));
+        with_pwd(&build_dir, || compile_js("pkg.js", &dist_dir.join("snippets.js")));
 
         // FIXME: change it to move
         std::fs::copy(build_dir.join("pkg.wasm"), dist_dir.join(&format!("main.wasm")));

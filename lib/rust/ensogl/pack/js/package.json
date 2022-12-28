@@ -18,8 +18,7 @@
     "build": "esbuild index.ts --bundle --outfile=dist/ensogl-runner.js"
   },
   "dependencies": {
-    "esbuild": "0.16.10",
-    "node-fetch": "^3.3.0"
+    "esbuild": "0.16.10"
   },
   "devDependencies": {
     "ts-node": "^10.9.1",

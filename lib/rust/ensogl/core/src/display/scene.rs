@@ -710,12 +710,16 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    fn register_get_shaders_fn(closure: &Closure<dyn FnMut()>);
+    fn register_get_shaders_fn(closure: &Closure<dyn FnMut() -> JsValue>);
 }
 
 #[before_main]
 pub fn register_get_shaders() {
-    let closure = Closure::wrap(Box::new(|| {}) as Box<dyn FnMut()>);
+    let closure = Closure::wrap(Box::new(|| {
+        let map = js_sys::Map::new();
+        map.set(&"hello".into(), &"world".into());
+        map.into()
+    }) as Box<dyn FnMut() -> JsValue>);
     register_get_shaders_fn(&closure);
     mem::forget(closure);
 }
