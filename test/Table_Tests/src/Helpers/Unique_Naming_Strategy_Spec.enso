@@ -49,11 +49,12 @@ spec =
             strategy.make_valid_name "Hello" . should_equal "Hello"
 
             unique_name_strategy = Unique_Name_Strategy.new
-            unique_names = ["A","B","A",""] . map unique_name_strategy.make_unique
+            unique_names = ["A", "B", "A", ""] . map unique_name_strategy.make_unique
             duplicates = unique_name_strategy.renames
             invalid = unique_name_strategy.invalid_names
             duplicates.should_equal ["A"]
             invalid.should_equal [""]
+            unique_names.should_equal ["A", "B", "A_1", "Column"]
 
             strategy_1 = Unique_Name_Strategy.new
             strategy_1.make_unique "A" . should_equal "A"
@@ -70,7 +71,7 @@ spec =
             first = ["A", "B"]
             second = ["B", "A", "C"]
             r = Unique_Name_Strategy.combine_with_prefix first second ""
-            r . should_equal ["B_1", "A_1", "B_2", "C"]
+            r . should_equal ["B_1", "A_1", "C"]
 
         Test.specify "should work for empty input" <|
             Unique_Name_Strategy.combine_with_prefix [] [] "" . should_equal []
@@ -99,10 +100,10 @@ spec =
             r . should_equal ["B_3", "A_1", "B_1", "C", "B_2", "B_4"]
 
             r2 = Unique_Name_Strategy.combine_with_prefix first second "P_"
-            r2 . should_equal ["P_B", "P_A", "B_1", "C"]
+            r2 . should_equal ["P_B", "P_A", "B_1", "C", "B_2", "B_4"]
 
             third = ["B", "A", "P_B", "X", "P_B_1", "P_B_2"]
-            r3 = Unique_Name_Strategy.combine_with_prefix first second "P_"
+            r3 = Unique_Name_Strategy.combine_with_prefix first third "P_"
             r3 . should_equal ["P_B_3", "P_A", "P_B", "X", "P_B_1", "P_B_2"]
 
 main = Test_Suite.run_main spec

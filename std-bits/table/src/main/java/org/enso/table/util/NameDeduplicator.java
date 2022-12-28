@@ -47,7 +47,7 @@ public class NameDeduplicator {
    * Makes a name unique.
    *
    * <p>If a name has been used, it will suffixed with `_n` where n is the first integer greater
-   * than 1 such that the name is unique.
+   * than or equal to 1 such that the name is unique.
    *
    * <p>An invalid name will be replaced with {@code invalidNameReplacement}. The suffix will always
    * be added to invalid names. For example: Column_1.
@@ -72,6 +72,10 @@ public class NameDeduplicator {
 
     usedNames.add(currentName);
     return currentName;
+  }
+
+  public boolean isUnique(String name) {
+    return !usedNames.contains(name);
   }
 
   private static String getName(String name, int index) {

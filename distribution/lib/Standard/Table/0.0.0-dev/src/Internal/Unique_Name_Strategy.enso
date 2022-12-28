@@ -32,8 +32,9 @@ type Unique_Name_Strategy
        It returns a new list where each new name corresponds to a name from the
        second list.
 
-       It assumes that names on both lists should be unique. The behavior is
-       unspecified if they are not.
+       It assumes that names on each list are unique within that list and that
+       all of the provided names are already valid. The behavior is unspecified
+       if they are not.
 
        The names are renamed using the following strategy:
        - if the name does not collide with any name from the first list, it will
@@ -57,8 +58,18 @@ type Unique_Name_Strategy
              unique_second == ["second_A_2", "second_B", "second_A_1", "C"]
     combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
     combine_with_prefix first second second_prefix =
-        # TODO
-        []
+        unique_name_strategy = Unique_Name_Strategy.new
+        unique_name_strategy.mark_used first
+        first_pass = second.map name->
+            u = unique_name_strategy.is_unique name
+            if u then unique_name_strategy.mark_used [name]
+            [name, u]
+        second_pass = first_pass.map p->
+            name = p.first
+            was_unique = p.second
+            if was_unique then name else
+                unique_name_strategy.make_unique second_prefix+name
+        second_pass
 
     ## Vector of any duplicates renamed
     renames : Vector
@@ -99,6 +110,14 @@ type Unique_Name_Strategy
              strategy.make_unique "A" # returns "A_1"
     make_unique : Text -> Text
     make_unique self name = self.deduplicator.makeUnique name
+
+    ## PRIVATE
+       Tells if the given name has not yet been encountered.
+
+       It does not use up the name - it needs to be marked with `mark_used` if
+       needed.
+    is_unique : Text -> Boolean
+    is_unique self name = self.deduplicator.isUnique name
 
     ## Takes a list of names and gets a list of unique versions.
 
