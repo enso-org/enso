@@ -1,10 +1,8 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.distribution.FileSystem
+import org.apache.commons.io.FileUtils
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.ConstantsGen
-import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
@@ -27,12 +25,6 @@ class RuntimeVisualizationsTest
     with Matchers
     with BeforeAndAfterEach {
 
-  // === Test Timer ===========================================================
-
-  class TestTimer extends Timer {
-    override def getTime(): Long = 0
-  }
-
   // === Test Utilities =======================================================
 
   var context: TestContext = _
@@ -40,7 +32,7 @@ class RuntimeVisualizationsTest
   class TestContext(packageName: String) extends InstrumentTestContext {
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
+    sys.addShutdownHook(FileUtils.deleteQuietly(tmpDir.toFile))
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
@@ -59,6 +51,7 @@ class RuntimeVisualizationsTest
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .option(
@@ -74,24 +67,7 @@ class RuntimeVisualizationsTest
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
     )
-    println(executionContext.context.getEngine.getLanguages)
-//    println(
-//      org.graalvm.polyglot.Context
-//        .newBuilder()
-//        .allowExperimentalOptions(true)
-//        .build()
-//        .getEngine()
-//        .getLanguages()
-//    )
     executionContext.context.initialize(LanguageInfo.ID)
-
-    val languageContext = executionContext.context
-      .getBindings(LanguageInfo.ID)
-      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-      .asHostObject[EnsoContext]
-    languageContext.getLanguage.getIdExecutionService.ifPresent(
-      _.overrideTimer(new TestTimer)
-    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -2169,10 +2145,6 @@ class RuntimeVisualizationsTest
   }
 
   it should "run internal IDE visualisation preprocessor catching error" in {
-    pending
-    // TODO [JD]: Disabled due to issue with context not allowing JS functions.
-    // https://www.pivotaltracker.com/story/show/184064564
-
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()
@@ -2217,8 +2189,9 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses = context.receiveNIgnorePendingExpressionUpdates(3)
-    pushContextResponses should contain allOf (
+    //val pushContextResponses = context.receiveNIgnorePendingExpressionUpdates(3)
+    val pushContextResponses = context.receiveNIgnoreStdLib(3)
+    pushContextResponses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2251,7 +2224,6 @@ class RuntimeVisualizationsTest
     )
     val attachVisualisationResponses =
       context.receiveNIgnoreExpressionUpdates(3)
-    println(attachVisualisationResponses)
     attachVisualisationResponses should contain allOf (
       Api.Response(requestId, Api.VisualisationAttached()),
       context.executionComplete(contextId)
@@ -2271,7 +2243,7 @@ class RuntimeVisualizationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
+    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
   }
 
   it should "attach method pointer visualisation without arguments" in {

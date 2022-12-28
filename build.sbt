@@ -1596,10 +1596,10 @@ lazy val `runtime-with-polyglot` =
         // Note [Classpath Separation]
         val runtimeClasspath =
           (LocalProject("runtime") / Compile / fullClasspath).value
-        val runtimeServerClasspath =
-          (LocalProject("runtime-instrument-runtime-server") / Compile / fullClasspath).value
+        val runtimeInstrumentsClasspath =
+          (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value
         val appendClasspath =
-          (runtimeClasspath ++ runtimeServerClasspath)
+          (runtimeClasspath ++ runtimeInstrumentsClasspath)
             .map(_.data)
             .mkString(File.pathSeparator)
         Seq(
@@ -1612,7 +1612,6 @@ lazy val `runtime-with-polyglot` =
       ),
       libraryDependencies ++= Seq(
         "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
-        "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion     % "provided",
         "org.graalvm.truffle" % "truffle-api"           % graalVersion     % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % "provided"
       ),
@@ -1620,9 +1619,7 @@ lazy val `runtime-with-polyglot` =
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
-    .dependsOn(`runtime-instrument-id-execution`)
-    .dependsOn(`runtime-instrument-repl-debugger`)
-    .dependsOn(`runtime-instrument-runtime-server`)
+    .dependsOn(`runtime-with-instruments`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
