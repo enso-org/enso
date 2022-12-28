@@ -9,41 +9,28 @@ import * as html_utils from './html_utils'
 // @ts-ignore
 import assert from 'assert'
 
+import host from './host'
+import Task from './task'
+import Logger from './logger'
+
 // import * as fs from 'fs'
 let fs = require('fs')
-
-// ================================
-// === Node and browser support ===
-// ================================
-
-/** Resolves to `true` if we are running the script in the browser. If it's node, resolves to
- * `false`. */
-const browser = typeof window !== 'undefined'
-
-/** The global object. In case of a browser, this is the window. In case of node, it's the built-in
- * `global` object. */
-// const global = {}
-global ??= window
 
 // =============
 // === Utils ===
 // =============
 
-/// Check whether the value is a string with value `"true"`/`"false"`, if so, return the
-// appropriate boolean instead. Otherwise, return the original value.
-function parseBooleanOrLeaveAsIs(value: any): any {
-    if (value === 'true') {
-        return true
+/** Parses the provided value as boolean. If it was a boolean value, it is left intact. If it was
+ * a string 'true' or 'false', it is converted to a boolean value. Otherwise, null is returned. */
+// prettier-ignore
+function parseBoolean(value: any): boolean | null {
+    switch(value) {
+        case true: return true
+        case false: return false
+        case 'true': return true
+        case 'false': return false
+        default: return null
     }
-    if (value === 'false') {
-        return false
-    }
-    return value
-}
-
-function tryAsBoolean(value: any): boolean | null {
-    value = parseBooleanOrLeaveAsIs(value)
-    return typeof value == 'boolean' ? value : null
 }
 
 // ==============
@@ -74,19 +61,24 @@ class Config {
             let selfVal = self[key]
             if (otherVal != null) {
                 if (typeof selfVal === 'boolean') {
-                    let val = tryAsBoolean(otherVal)
-                    if (val === null) {
-                        console.error(
-                            `Invalid value for ${key}: ${otherVal}. Expected boolean. Reverting to the default value of `
-                        )
+                    let val = parseBoolean(otherVal)
+                    if (val == null) {
+                        this.printValueUpdateError(key, selfVal, otherVal)
                     } else {
                         self[key] = val
                     }
                 } else {
-                    self[key] = tryAsString(otherVal)
+                    self[key] = otherVal.toString()
                 }
             }
         }
+    }
+
+    printValueUpdateError(key: string, selfVal: any, otherVal: any) {
+        console.error(
+            `The provided value for Config.${key} is invalid. Expected boolean, got '${otherVal}'. \
+            Using the default value '${selfVal}' instead.`
+        )
     }
 }
 
@@ -96,10 +88,13 @@ class Config {
 
 class PublicApi {
     async run(inputConfig: Object): Promise<void> {
+        let task
+        if (host.node) task = Task.start('Running the program.')
         const config = new Config()
         config.updateFromObject(inputConfig)
         config.updateFromObject(urlParams())
         await runEntryPoint(config)
+        if (host.node) task.end()
     }
 
     log(event: string, data?: any) {}
@@ -111,35 +106,18 @@ const API = new PublicApi()
 // === Content Download ===
 // ========================
 
-let incorrect_mime_type_warning = `
-'WebAssembly.instantiateStreaming' failed because your server does not serve wasm with
-'application/wasm' MIME type. Falling back to 'WebAssembly.instantiate' which is slower.
-`
-
-async function wasm_instantiate_streaming(
-    resource: Response,
-    imports: WebAssembly.Imports
-): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
-    try {
-        return WebAssembly.instantiateStreaming(resource, imports)
-    } catch (e) {
-        if (resource.headers.get('Content-Type') !== 'application/wasm') {
-            console.warn(`${incorrect_mime_type_warning} Original error:\n`, e)
-            const buffer = await resource.arrayBuffer()
-            return WebAssembly.instantiate(buffer, imports)
-        } else {
-            throw "Server not configured to serve WASM with 'application/wasm' mime type."
-        }
-    }
-}
-
-/// Downloads the WASM binary and its dependencies. Displays loading progress bar unless provided
-/// with `{use_loader:false}` option.
-async function download_content(config: { snippets_url: RequestInfo; wasm_url: RequestInfo }) {
-    if (browser) {
-        let wasm_glue_fetch = await fetch(config.snippets_url)
+/** Loads the WASM binary and its dependencies. If it's run in the browser, the files will be
+ * downloaded from a server and a loading progress indicator will be shown. If it's run in node, the
+ * files will be read from disk. After the files are fetched, the WASM module is compiled and
+ * initialized. */
+async function load_wasm(config: { snippets_url: RequestInfo; wasm_url: RequestInfo }) {
+    if (host.browser) {
+        let task = Task.start(
+            `Downloading WASM from ${config.snippets_url} and ${config.wasm_url}.`
+        )
+        let snippets_fetch = await fetch(config.snippets_url)
         let wasm_fetch = await fetch(config.wasm_url)
-        let loader = new loader_module.Loader([wasm_glue_fetch, wasm_fetch], config)
+        let loader = new loader_module.Loader([snippets_fetch, wasm_fetch], config)
 
         // TODO [mwu]
         // Progress indication for WASM loading is hereby capped at 30%.
@@ -151,37 +129,39 @@ async function download_content(config: { snippets_url: RequestInfo; wasm_url: R
 
         loader.done.then(() => {
             console.groupEnd()
-            console.log('Download finished. Finishing WASM compilation.')
+            task.end()
         })
 
         let download_size = loader.show_total_bytes()
         let download_info = `Downloading WASM binary and its dependencies (${download_size}).`
         let wasm = await html_utils.log_group_collapsed(download_info, async () => {
-            let wasm_glue_js = await wasm_glue_fetch.text()
-            let wasm_glue = Function('let module = {};' + wasm_glue_js + '; return module')()
-            console.log('WASM dependencies loaded.')
-            console.log('Starting online WASM compilation.')
-
-            // @ts-ignore
-            return await wasm_glue.init(wasm_fetch)
+            let snippets_code = await snippets_fetch.text()
+            return await init_wasm(snippets_code, wasm_fetch)
         })
-        console.log('WASM Compiled.')
-
         await loader.initialized
+        return { wasm, loader }
+    } else {
+        let message = `Reading files '${config.snippets_url}' and '${config.wasm_url}'.`
+        const { snippets_code, wasm_main } = Task.with(message, () => {
+            let snippets_code = fs.readFileSync(config.snippets_url, 'utf8')
+            let wasm_main = fs.readFileSync(config.wasm_url)
+            return { snippets_code, wasm_main }
+        })
+        let wasm = await init_wasm(snippets_code, wasm_main)
+        let loader = null
+        return { wasm, loader }
     }
+}
 
-    let wasm_glue_js = fs.readFileSync(config.snippets_url, 'utf8')
-    let wasm_glue = Function(
-        'let module = {};' +
-            wasm_glue_js +
-            '; module.exports.init = pkg_default; return module.exports'
-    )()
-    let wasm_main = fs.readFileSync(config.wasm_url)
-    let wasm = await wasm_glue.init(wasm_main)
-    console.log(wasm_glue)
-
-    let loader = {}
-    return { wasm, loader }
+async function init_wasm(snippets_code: string, wasm_main: any): Promise<any> {
+    return await Task.with('Wasm sompilation.', () => {
+        let snippets_fn = Function(
+            'let module = {};' +
+                snippets_code +
+                '; module.exports.init = pkg_default; return module.exports'
+        )()
+        return snippets_fn.init(wasm_main)
+    })
 }
 
 // ====================
@@ -536,10 +516,6 @@ function disableContextMenu() {
     })
 }
 
-function tryAsString(value: any): string {
-    return value.toString()
-}
-
 export function register_get_shaders_fn(fn: any) {
     console.log('!!!!!!!!!!!!!!!!!!!')
     let out = fn()
@@ -547,7 +523,7 @@ export function register_get_shaders_fn(fn: any) {
 }
 
 // @ts-ignore
-global.register_get_shaders_fn = register_get_shaders_fn
+host.global.register_get_shaders_fn = register_get_shaders_fn
 
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function runEntryPoint(config: Config) {
@@ -566,7 +542,7 @@ async function runEntryPoint(config: Config) {
     // API.log('git_status', { status })
 
     //initCrashHandling()
-    if (browser) {
+    if (host.browser) {
         style_root()
         printScamWarning()
         disableContextMenu()
@@ -578,12 +554,12 @@ async function runEntryPoint(config: Config) {
     let entryTarget = config.entry != null ? config.entry : main_entry_point
     config.use_loader = config.use_loader && entryTarget === main_entry_point
 
-    if (browser) {
+    if (host.browser) {
         API.log('window_show_animation')
         await windowShowAnimation()
     }
-    API.log('download_content')
-    let { wasm, loader } = await download_content(config)
+    API.log('load_wasm')
+    let { wasm, loader } = await load_wasm(config)
     API.log('wasm_loaded')
     if (entryTarget) {
         let fn_name = wasm_entry_point_pfx + entryTarget
@@ -640,7 +616,7 @@ async function runEntryPoint(config: Config) {
 }
 
 function urlParams(): any {
-    if (browser) {
+    if (host.browser) {
         const urlParams = new URLSearchParams(window.location.search)
         return Object.fromEntries(urlParams.entries())
     } else {
