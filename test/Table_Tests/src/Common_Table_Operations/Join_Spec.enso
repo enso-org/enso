@@ -431,13 +431,7 @@ spec setup =
             t5 = table_builder [["Right_X", [2, 1]], ["X", [2, 2]], ["Y", [2, 2]], ["Right_Y", [2, 2]], ["Right_Y_1", [2, 2]], ["Right_Y_4", [2, 2]]]
 
             t6 = t4.join t5 on=(Join_Condition.Equals "X" "Y")
-            # TODO specify how we really want to handle collisions, this is just a temporary solution
-            expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_X_1", "X_1", "Y_1", "Right_Y", "Right_Y_1", "Right_Y_4"] t6
-            # Possible solutions:
-            # All existing ones have precedence over renamed ones (regardless of ordering)
-            # expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y", "Right_Y_1", "Right_Y_3", "Right_Y_4"] t6
-            # Renames happen in the order of appearance of columns
-            # expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y", "Right_Y_1", "Right_Y_1_1", "Right_Y_4"] t6
+            expect_column_names ["Right_X", "X", "Y", "Right_Y_2"]+["Right_Right_X", "Right_X_1", "Right_Y_3", "Right_Y", "Right_Y_1", "Right_Y_4"] t6
 
         Test.specify "should pass dataflow errors through" <|
             error = Error.throw (Illegal_State.Error "FOO")
