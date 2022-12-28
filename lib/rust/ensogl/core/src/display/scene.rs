@@ -706,6 +706,54 @@ pub struct UpdateStatus {
 
 
 
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern "C" {
+    fn register_get_shaders_fn(closure: &Closure<dyn FnMut()>);
+}
+
+#[before_main]
+pub fn register_get_shaders() {
+    let closure = Closure::wrap(Box::new(|| {}) as Box<dyn FnMut()>);
+    register_get_shaders_fn(&closure);
+    mem::forget(closure);
+}
+
+// #[wasm_bindgen]
+// pub struct Interval {
+//     closure: Closure<dyn FnMut()>,
+//     token: f64,
+// }
+//
+// impl Interval {
+//     pub fn new<F: 'static>(millis: u32, f: F) -> Interval
+//         where
+//             F: FnMut()
+//     {
+//         // Construct a new closure.
+//         let closure = Closure::new(f);
+//
+//         // Pass the closure to JS, to run every n milliseconds.
+//         let token = setInterval(&closure, millis);
+//
+//         Interval { closure, token }
+//     }
+// }
+//
+// // When the Interval is destroyed, cancel its `setInterval` timer.
+// impl Drop for Interval {
+//     fn drop(&mut self) {
+//         cancelInterval(self.token);
+//     }
+// }
+//
+// // Keep logging "hello" every second until the resulting `Interval` is dropped.
+// #[wasm_bindgen]
+// pub fn hello() -> Interval {
+//     Interval::new(1_000, || log("hello"))
+// }
+
 // =================
 // === SceneData ===
 // =================

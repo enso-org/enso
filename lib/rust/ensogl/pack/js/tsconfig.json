@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "inlineSourceMap": true,
+    "noImplicitAny": true,
+    "target": "ES2019",
+    "module": "ESNext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
+  },
+  "ts-node": {
+    "esm": true
+  }
+}

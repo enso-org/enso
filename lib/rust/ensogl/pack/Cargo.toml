@@ -1,0 +1,12 @@
+[package]
+name = "ensogl-pack"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+manifest-dir-macros = "0.1.16"
+tempfile = "3"

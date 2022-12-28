@@ -3130,6 +3130,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ensogl-pack"
+version = "0.1.0"
+dependencies = [
+ "manifest-dir-macros",
+ "tempfile",
+]
+
+[[package]]
 name = "ensogl-scroll-area"
 version = "0.1.0"
 dependencies = [
@@ -4924,6 +4932,18 @@ dependencies = [
  "time 0.3.14",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "manifest-dir-macros"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f08150cf2bab1fc47c2196f4f41173a27fcd0f684165e5458c0046b53a472e2f"
+dependencies = [
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
