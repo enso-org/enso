@@ -49,6 +49,10 @@ class Config {
     /** Controls whether the visual loader should be visible on the screen when downloading and
      * compiling WASM sources. */
     public use_loader: boolean = true
+    /** The (time needed for WASM download) / (total time including WASM download and WASM app
+     * initialization). In case of small WASM apps, this can be set to 1.0. In case of bigger WASM
+     * apps, it's desired to show the progress bar growing up to e.g. 70% and leaving the last 30% for WASM app init. */
+    public loader_download_to_init_ratio: number = 0.7
     /** Controls whether the application should be run in the debug mode. In this mode all logs are
      * printed to the console. Otherwise, the logs are hidden unless explicitly shown by calling
      * `showLogs`. */
@@ -110,27 +114,13 @@ const API = new PublicApi()
  * downloaded from a server and a loading progress indicator will be shown. If it's run in node, the
  * files will be read from disk. After the files are fetched, the WASM module is compiled and
  * initialized. */
-async function load_wasm(config: { snippets_url: RequestInfo; wasm_url: RequestInfo }) {
+async function load_wasm(config: Config) {
     if (host.browser) {
-        let task = Task.start(
-            `Downloading WASM from ${config.snippets_url} and ${config.wasm_url}.`
-        )
+        let task = Task.start(`Downloading files ${config.snippets_url} and ${config.wasm_url}.`)
         let snippets_fetch = await fetch(config.snippets_url)
         let wasm_fetch = await fetch(config.wasm_url)
         let loader = new loader_module.Loader([snippets_fetch, wasm_fetch], config)
-
-        // TODO [mwu]
-        // Progress indication for WASM loading is hereby capped at 30%.
-        // The remaining 70% is meant for IDE initialization. Currently we have no means of tracking
-        // it, so we keep spinner running at 30% to denote ongoing initialization.
-        // See https://github.com/enso-org/ide/issues/1237 for an immediate reason.
-        // See https://github.com/enso-org/ide/issues/1105 for a broader context.
-        loader.cap_progress_at = 0.3
-
-        loader.done.then(() => {
-            console.groupEnd()
-            task.end()
-        })
+        loader.done.then(() => task.end())
 
         let download_size = loader.show_total_bytes()
         let download_info = `Downloading WASM binary and its dependencies (${download_size}).`
