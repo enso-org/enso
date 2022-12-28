@@ -285,6 +285,7 @@ lazy val enso = (project in file("."))
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
     `runtime-with-instruments`,
+    `runtime-with-polyglot`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
@@ -1534,35 +1535,18 @@ lazy val `runtime-with-instruments` =
         frgaalSourceLevel,
         "--enable-preview"
       ),
-      // Test / javaOptions ++= Seq(
-      //   "-Dgraalvm.locatorDisabled=true",
-      //   s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
-      // ),
-      Test / javaOptions ++= {
-        // Note [Classpath Separation]
-        val rClasspath =
-          (LocalProject("runtime") / Compile / fullClasspath).value
-            .map(_.data)
-            //.mkString(File.pathSeparator)
-        val rsClasspath =
-          (LocalProject("runtime-instrument-runtime-server") / Compile / fullClasspath).value
-            .map(_.data)
-        //.mkString(File.pathSeparator)
-        val runtimeClasspath = (rClasspath ++ rsClasspath).mkString(File.pathSeparator)
-        Seq(
-          //"-Dgraalvm.locatorDisabled=true",
-          s"-Dtruffle.class.path.append=$runtimeClasspath"
-        )
-      },
+      Test / javaOptions ++= Seq(
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
+      ),
       Test / fork := true,
       Test / envVars ++= distributionEnvironmentOverrides ++ Map(
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion     % "provided",
         "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
-        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % "provided"
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % Test,
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % Test
       ),
       // Note [Unmanaged Classpath]
       Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
@@ -1580,6 +1564,60 @@ lazy val `runtime-with-instruments` =
           MergeStrategy.concat
         case _ => MergeStrategy.first
       }
+    )
+    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
+    .dependsOn(`runtime-instrument-id-execution`)
+    .dependsOn(`runtime-instrument-repl-debugger`)
+    .dependsOn(`runtime-instrument-runtime-server`)
+
+/* runtime-with-polyglot
+ * ~~~~~~~~~~~~~~~~~~~~~
+ * A project that allows loading polyglot languages by not disabling
+ * the GraalVM locator explicitly with `-Dgraalvm.locatorDisabled=true` like the
+ * `runtime-with-instruments` project does. It means that the test classes and
+ * runtime classes are loaded using different classloaders, and the test code
+ * cannot access the `EnsoContext`.
+ */
+
+lazy val `runtime-with-polyglot` =
+  (project in file("engine/runtime-with-polyglot"))
+    .configs(Benchmark)
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
+      commands += WithDebugCommand.withDebug,
+      Benchmark / javacOptions --= Seq(
+        "-source",
+        frgaalSourceLevel,
+        "--enable-preview"
+      ),
+      Test / javaOptions ++= {
+        // Note [Classpath Separation]
+        val runtimeClasspath =
+          (LocalProject("runtime") / Compile / fullClasspath).value
+        val runtimeServerClasspath =
+          (LocalProject("runtime-instrument-runtime-server") / Compile / fullClasspath).value
+        val appendClasspath =
+          (runtimeClasspath ++ runtimeServerClasspath)
+            .map(_.data)
+            .mkString(File.pathSeparator)
+        Seq(
+          s"-Dtruffle.class.path.append=$appendClasspath"
+        )
+      },
+      Test / fork := true,
+      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+        "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
+        "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion     % "provided",
+        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % "provided",
+        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % "provided"
+      ),
+      // Note [Unmanaged Classpath]
+      Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
     .dependsOn(`runtime-instrument-id-execution`)
