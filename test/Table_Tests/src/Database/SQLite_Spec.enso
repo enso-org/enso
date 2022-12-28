@@ -71,7 +71,7 @@ sqlite_specific_spec connection =
 
             action = connection.read (SQL_Query.Raw_SQL "SELECT A FROM undefined_table")
             action . should_fail_with SQL_Error.Error
-            action.catch.to_text . should_equal "There was an SQL error: '[SQLITE_ERROR] SQL error or missing database (no such table: undefined_table)'. [Query was: SELECT A FROM undefined_table]"
+            action.catch.to_text . should_equal "There was an SQL error: [SQLITE_ERROR] SQL error or missing database (no such table: undefined_table). [Query was: SELECT A FROM undefined_table]"
 
     Test.group "[SQLite] Metadata" <|
         tinfo = Name_Generator.random_name "Tinfo"

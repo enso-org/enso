@@ -73,7 +73,7 @@ spec =
         Test.specify "should call intrinsic object conversions for unimported constructors" <|
             Vector.from Methods.get_foo . should_equal ["foo"]
         Test.specify "should call extension conversions" <|
-            Text.from Methods.get_bar . should_equal "'bar'"
+            Text.from Methods.get_bar . should_equal "bar"
 
         Test.specify "should fail graciously when there is no conversion" <|
             Panic.recover Any (Foo.from (Quux.Value 10)) . catch Any .to_display_text . should_equal "Could not find a conversion from `Quux.Value` to `Foo`"
