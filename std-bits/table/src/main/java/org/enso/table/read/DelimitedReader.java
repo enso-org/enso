@@ -460,7 +460,7 @@ public class DelimitedReader {
       }
       Storage<?> storage = parseResult.value();
 
-      columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
+      columns[i] = new Column(columnName, storage);
     }
     return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
   }

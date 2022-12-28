@@ -27,7 +27,6 @@ import java.util.stream.IntStream;
 public class Table {
 
   private final Column[] columns;
-  @Deprecated
   private final Index index;
   private final AggregatedProblems problems;
 
@@ -40,15 +39,11 @@ public class Table {
     this(columns, null, null);
   }
 
-  public Table(Column[] columns, Index index) {
-    this(columns, index, null);
-  }
-
   public Table(Column[] columns, AggregatedProblems problems) {
     this(columns, null, problems);
   }
 
-  private Table(Column[] columns, Index index, AggregatedProblems problems) {
+  Table(Column[] columns, Index index, AggregatedProblems problems) {
     this.columns = columns;
     this.index =
         index == null
@@ -133,7 +128,7 @@ public class Table {
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].mask(newIx, mask, cardinality);
     }
-    return new Table(newColumns, newIx);
+    return new Table(newColumns, newIx, null);
   }
 
   /**
@@ -161,14 +156,14 @@ public class Table {
     Column[] newCols = new Column[columns.length];
     System.arraycopy(columns, 0, newCols, 0, columns.length);
     newCols[ix] = newCol;
-    return new Table(newCols, index);
+    return new Table(newCols, index, null);
   }
 
   private Table addColumn(Column newColumn) {
     Column[] newCols = new Column[columns.length + 1];
     System.arraycopy(columns, 0, newCols, 0, columns.length);
     newCols[columns.length] = newColumn;
-    return new Table(newCols, index);
+    return new Table(newCols, index, null);
   }
 
   /**
@@ -236,7 +231,7 @@ public class Table {
             .map(this::getColumnOrIndexByName)
             .filter(Objects::nonNull)
             .toArray(Column[]::new);
-    return new Table(newCols, index);
+    return new Table(newCols, index, null);
   }
 
   /**
@@ -346,7 +341,7 @@ public class Table {
                   return new Column(column.getName(), newIndex, newStorage);
                 })
             .toArray(Column[]::new);
-    return new Table(newColumns, newIndex);
+    return new Table(newColumns, newIndex, null);
   }
 
   private String suffixIfNecessary(Set<String> names, String name, String suffix) {
@@ -465,7 +460,7 @@ public class Table {
         builders.stream()
             .map(builder -> new Column(builder.name, newIndex, builder.builder.seal()))
             .toArray(Column[]::new);
-    return new Table(newColumns, newIndex);
+    return new Table(newColumns, newIndex, null);
   }
 
   private Storage<?> concatStorages(Storage<?> left, Storage<?> right) {
@@ -516,7 +511,7 @@ public class Table {
           new Column(
               suffixIfNecessary(lnames, original.getName(), rsuffix), index, original.getStorage());
     }
-    return new Table(newColumns, index);
+    return new Table(newColumns, index, null);
   }
 
   /** @return a copy of the Table containing a slice of the original data */
@@ -525,7 +520,7 @@ public class Table {
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(offset, limit);
     }
-    return new Table(newColumns, index.slice(offset, limit));
+    return new Table(newColumns, index.slice(offset, limit), null);
   }
 
   /** @return a copy of the Table consisting of slices of the original data */
@@ -534,6 +529,6 @@ public class Table {
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(ranges);
     }
-    return new Table(newColumns, index.slice(ranges));
+    return new Table(newColumns, index.slice(ranges), null);
   }
 }

@@ -26,7 +26,7 @@ public class Column {
    * @param name the column name
    * @param storage the underlying storage
    */
-  public Column(String name, Index index, Storage<?> storage) {
+  Column(String name, Index index, Storage<?> storage) {
     this.name = name;
     this.storage = storage;
     this.index = index;
@@ -48,7 +48,7 @@ public class Column {
    * @return a table containing only this column
    */
   public Table toTable() {
-    return new Table(new Column[] {this}, index);
+    return new Table(new Column[] {this});
   }
 
   /** @return the column name */
