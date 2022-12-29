@@ -58,18 +58,8 @@ type Unique_Name_Strategy
              unique_second == ["second_A_2", "second_B", "second_A_1", "C"]
     combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
     combine_with_prefix first second second_prefix =
-        unique_name_strategy = Unique_Name_Strategy.new
-        unique_name_strategy.mark_used first
-        first_pass = second.map name->
-            u = unique_name_strategy.is_unique name
-            if u then unique_name_strategy.mark_used [name]
-            [name, u]
-        second_pass = first_pass.map p->
-            name = p.first
-            was_unique = p.second
-            if was_unique then name else
-                unique_name_strategy.make_unique second_prefix+name
-        second_pass
+        Vector.from_polyglot_array <|
+            NameDeduplicator.combineWithPrefix first second second_prefix
 
     ## Vector of any duplicates renamed
     renames : Vector

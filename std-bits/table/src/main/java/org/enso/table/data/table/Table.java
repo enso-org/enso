@@ -245,9 +245,6 @@ public class Table {
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
   public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
-    // TODO adding prefix for right columns
-    NameDeduplicator deduplicator = new NameDeduplicator();
-
     JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
     if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
@@ -300,21 +297,23 @@ public class Table {
 
     if (includeLeftColumns) {
       for (Column column : this.columns) {
-        deduplicator.markUsed(column.getName());
         Column newColumn = column.applyMask(leftMask);
         newColumns.add(newColumn);
       }
     }
 
     if (includeRightColumns) {
-      HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
-      for (Column column : right.getColumns()) {
-        if (toDrop.contains(column.getName())) {
-          continue;
-        }
+      List<String> leftColumnNames = newColumns.stream().map(Column::getName).collect(Collectors.toList());
 
-        // TODO drop columns from Equals conditions if equal names too
-        String newName = deduplicator.makeUnique(column.getName());
+      HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
+      List<Column> rightColumnsToKeep = Arrays.stream(right.getColumns()).filter(col -> !toDrop.contains(col.getName())).collect(Collectors.toList());
+      List<String> rightColumNames = rightColumnsToKeep.stream().map(Column::getName).collect(Collectors.toList());
+
+      List<String> newRightColumnNames = NameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, right_prefix);
+
+      for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
+        Column column = rightColumnsToKeep.get(i);
+        String newName = newRightColumnNames.get(i);
         Storage<?> newStorage = column.getStorage().applyMask(rightMask);
         Column newColumn = new Column(newName, newStorage);
         newColumns.add(newColumn);
