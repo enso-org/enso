@@ -185,20 +185,6 @@ impl GraphInfo {
         })
     }
 
-    /// Sets a part of expression of given node.
-    #[profile(Debug)]
-    pub fn edit_node_nested(
-        &mut self,
-        node_id: ast::Id,
-        crumbs: &[ast::Crumb],
-        new_expression: Ast,
-    ) -> FallibleResult {
-        self.update_node(node_id, |mut node| {
-            node.set_nested_expression(crumbs, new_expression);
-            Some(node)
-        })
-    }
-
     #[cfg(test)]
     pub fn expect_code(&self, expected_code: impl Str) {
         let code = self.source.ast.repr();

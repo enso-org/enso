@@ -10,12 +10,10 @@ use crate::presenter::graph::ViewNodeId;
 use bimap::BiMap;
 use bimap::Overwritten;
 use engine_protocol::language_server::ExpressionUpdatePayload;
-use enso_text::prelude::unit2::Bytes;
 use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-use span_tree::action::Actions;
 
 
 // =============
@@ -735,51 +733,38 @@ impl<'a> ViewChange<'a> {
 
         let expression_has_changed = displayed.expression.code != expression;
         if expression_has_changed {
-            let expression = node_view::Expression::new_plain(expression);
-            warn!("Setting node expression from view: {} -> {}", displayed.expression, expression);
-            displayed.expression = expression;
+            // let expression = node_view::Expression::new_plain(expression);
+            // debug!("Setting node expression from view: {} -> {}", displayed.expression,
+            // expression); displayed.expression = expression;
             Some(ast_id)
         } else {
             None
         }
     }
 
-    /// Set the expression for input port of a node.
-    pub fn set_node_port_expression(
+    /// Figure out if a port expression change is necessary and return node AST id. Returns `None`
+    /// if no changes to the expression are needed.
+    pub fn check_node_port_expression_update(
         &self,
         id: ViewNodeId,
         port: &span_tree::Crumbs,
         port_expression: &str,
-    ) -> Option<controller::graph::Endpoint> {
+    ) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
+        let code = displayed.expression.code.as_str();
 
         let port_ref = displayed.expression.input_span_tree.get_node(port).ok()?;
         let span = port_ref.span();
-        let code = displayed.expression.code.as_str();
-        let code_before = code.slice(Bytes(0)..Bytes(span.start.into()));
-        let code_after = code.slice(Bytes(span.end.into())..);
-
-        let new_code = format!(
-            "{} {} {}",
-            code_before.trim_end(),
-            port_expression.trim(),
-            code_after.trim_start()
+        let span_as_range = enso_text::Range::new(span.start, span.end);
+        let current_port_expression = &code[span_as_range];
+        warn!(
+            "Checking port expression update: {} vs {}",
+            current_port_expression, port_expression
         );
-        let expression_has_changed = displayed.expression.code != new_code;
-        if expression_has_changed {
-            let expression = node_view::Expression::new_plain(new_code);
-            debug!(
-                "Setting node port expression from view: {} -> {}",
-                displayed.expression, expression
-            );
-            displayed.expression = expression;
-            let endpoint = controller::graph::Endpoint::new(ast_id, port);
-            Some(endpoint)
-        } else {
-            None
-        }
+        let expression_has_changed = current_port_expression != port_expression;
+        expression_has_changed.then_some(ast_id)
     }
 }
 

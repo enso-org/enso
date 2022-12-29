@@ -349,16 +349,6 @@ impl MainLine {
         });
     }
 
-    /// Replace part of AST of the node's expression. Maintains IDs outside of replaced subtree.
-    pub fn set_nested_expression(&mut self, crumbs: &[ast::Crumb], expression: Ast) {
-        self.modify_expression(move |ast| {
-            *ast = preserving_skip_and_freeze(ast, |ast| {
-                let Ok(updated_ast) = ast.set_traversing(crumbs, expression) else { return };
-                *ast = updated_ast;
-            });
-        });
-    }
-
     /// The whole AST of node.
     pub fn ast(&self) -> &Ast {
         match self {

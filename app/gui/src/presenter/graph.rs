@@ -45,10 +45,6 @@ pub type ViewConnection = view::graph_editor::EdgeId;
 /// The connection identifier used by controllers.
 pub type AstConnection = controller::graph::Connection;
 
-/// The node endpoint identifier used by controllers.
-pub type AstEndpoint = controller::graph::Endpoint;
-
-
 
 // =================
 // === Constants ===
@@ -147,8 +143,8 @@ impl Model {
     /// Node expression was edited in the view. Should be called whenever the user changes the
     /// contents of a node during editing.
     fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
-        warn!("node_expression_set {id:?} {expression:?}");
-        self.state.update_from_view().set_node_expression(id, expression);
+        // warn!("node_expression_set {id:?} {expression:?}");
+        // self.state.update_from_view().set_node_expression(id, expression);
     }
 
     /// Part of node expression was edited in the view. Should be called whenever the user changes
@@ -161,17 +157,11 @@ impl Model {
     ) {
         self.log_action(
             || {
-                if let Some(endpoint) =
-                    self.state.update_from_view().set_node_port_expression(id, crumbs, &expression)
-                {
-                    Some(self.controller.graph().set_nested_expression(
-                        &endpoint,
-                        expression.as_str(),
-                        &self.controller,
-                    ))
-                } else {
-                    None
-                }
+                let expression = expression.as_str();
+                let update = self.state.update_from_view();
+                let ast_id = update.check_node_port_expression_update(id, crumbs, expression)?;
+                let graph = self.controller.graph();
+                Some(graph.set_nested_expression(ast_id, crumbs, expression, &self.controller))
             },
             "update subexpression",
         );

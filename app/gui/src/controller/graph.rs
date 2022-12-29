@@ -874,32 +874,17 @@ impl Handle {
     #[profile(Debug)]
     pub fn set_nested_expression(
         &self,
-        endpoint: &Endpoint,
+        id: ast::Id,
+        crumbs: &span_tree::Crumbs,
         expression_text: impl Str,
         context: &impl SpanTreeContext,
     ) -> FallibleResult {
         let new_expression_ast = self.parse_node_expression(expression_text)?;
-        let node = self.node_info(endpoint.node)?;
-        let target_node_ast = node.expression();
-        let endpoint_info = EndpointInfo::new(&endpoint, &target_node_ast, context)?;
-        let new_node_ast = endpoint_info.set(new_expression_ast)?;
-        self.set_expression_ast(endpoint.node, new_node_ast)
-    }
-
-    /// Sets the given's node expression.
-    #[profile(Debug)]
-    pub fn set_nested_expression_ast(
-        &self,
-        id: ast::Id,
-        crumbs: &[ast::Crumb],
-        expression: Ast,
-    ) -> FallibleResult {
-        self.update_definition_ast(|definition| {
-            let mut graph = GraphInfo::from_definition(definition);
-            graph.edit_node_nested(id, crumbs, expression)?;
-            Ok(graph.source)
-        })?;
-        Ok(())
+        let node_ast = self.node_info(id)?.expression();
+        let node_span_tree: SpanTree = SpanTree::new(&node_ast, context)?;
+        let port = node_span_tree.get_node(crumbs)?;
+        let new_node_ast = port.set(&node_ast, new_expression_ast)?;
+        self.set_expression_ast(id, new_node_ast)
     }
 
     /// Set node's position.
