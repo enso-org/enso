@@ -133,7 +133,7 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   /**
-   * If one of the objects has warnings attached, just treat it as an objects without any
+   * If one of the objects has warnings attached, just treat it as an object without any
    * warnings.
    */
   @Specialization(guards = {
