@@ -62,7 +62,7 @@ append_to_file table format file match_columns on_problems =
                 if existing_separator.is_nothing.not && (selected_separator != existing_separator) then
                     Panic.throw <| Illegal_Argument.Error <|
                         # Ensure that these are properly escaped once `to_text` meaning is changed.
-                        "The explicitly provided line endings (" + selected_separator.to_text + ") do not match the line endings in the file (" + existing_separator.to_text + ")."
+                        "The explicitly provided line endings (" + selected_separator.pretty + ") do not match the line endings in the file (" + existing_separator.pretty + ")."
                 other_ending_style.to_text
 
         reordered_java_table = case preexisting_headers of

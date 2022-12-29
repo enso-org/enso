@@ -39,9 +39,19 @@ type Any
        representation.
 
        > Example
-         Getting a human-readable textual representation of the number 7.
+         Getting a human-readable representation of the number 7.
 
              7.to_text
+    pretty : Text
+    pretty self = @Builtin_Method "Any.pretty"
+
+    ## Generic conversion of an arbitrary Enso value to a corresponding short
+       human-readable representation.
+
+       > Example
+         Getting a short human-readable textual representation of the number 7.
+
+             7.to_display_text
     to_display_text : Text
     to_display_text self = @Builtin_Method "Any.to_display_text"
 
