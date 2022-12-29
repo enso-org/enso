@@ -174,11 +174,12 @@ class RuntimeStdlibTest
   }
 
   /** Checks if a given type name has been resolved.
-   *
-   * If a type in the type signature has not been resolved, its name will
-   * consist only of one segment. Every resolved type name will be mapped to its
-   * qualified type name which must have at least 3 parts (as the project name
-   * itself is two parts minimum). */
+    *
+    * If a type in the type signature has not been resolved, its name will
+    * consist only of one segment. Every resolved type name will be mapped to its
+    * qualified type name which must have at least 3 parts (as the project name
+    * itself is two parts minimum).
+    */
   def isResolved(name: QualifiedName): Boolean =
     name.path.size > 1
 
@@ -267,7 +268,7 @@ class RuntimeStdlibTest
           ) =>
         (actions.nonEmpty || updates.nonEmpty) shouldBe true
         updates.toVector.foreach { update =>
-          val types            = extractTypes(update.suggestion).toSet
+          val types           = extractTypes(update.suggestion).toSet
           val unresolvedTypes = types.filterNot(isResolved)
           if (unresolvedTypes.nonEmpty) {
             errors.updateWith(module) {
