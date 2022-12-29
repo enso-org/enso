@@ -221,17 +221,17 @@ public abstract class EqualsAnyNode extends Node {
       @CachedLibrary("selfZonedDateTime") InteropLibrary selfInterop,
       @CachedLibrary("otherZonedDateTime") InteropLibrary otherInterop) {
     try {
-      return ZonedDateTime.of(
+      var self = ZonedDateTime.of(
           selfInterop.asDate(selfZonedDateTime),
           selfInterop.asTime(selfZonedDateTime),
           selfInterop.asTimeZone(selfZonedDateTime)
-      ).isEqual(
-          ZonedDateTime.of(
-              otherInterop.asDate(otherZonedDateTime),
-              otherInterop.asTime(otherZonedDateTime),
-              otherInterop.asTimeZone(otherZonedDateTime)
-          )
       );
+      var other = ZonedDateTime.of(
+          otherInterop.asDate(otherZonedDateTime),
+          otherInterop.asTime(otherZonedDateTime),
+          otherInterop.asTimeZone(otherZonedDateTime)
+      );
+      return self.isEqual(other);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
@@ -249,15 +249,15 @@ public abstract class EqualsAnyNode extends Node {
       @CachedLibrary("selfDateTime") InteropLibrary selfInterop,
       @CachedLibrary("otherDateTime") InteropLibrary otherInterop) {
     try {
-      return LocalDateTime.of(
+      var self = LocalDateTime.of(
           selfInterop.asDate(selfDateTime),
           selfInterop.asTime(selfDateTime)
-      ).isEqual(
-          LocalDateTime.of(
-              otherInterop.asDate(otherDateTime),
-              otherInterop.asTime(otherDateTime)
-          )
       );
+      var other = LocalDateTime.of(
+          otherInterop.asDate(otherDateTime),
+          otherInterop.asTime(otherDateTime)
+      );
+      return self.isEqual(other);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
