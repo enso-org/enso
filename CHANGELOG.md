@@ -492,6 +492,7 @@
 - [Vector returns warnings of individual elements][3938]
 - [Enso.getMetaObject, Type.isMetaInstance and Meta.is_a consolidation][3949]
 - [Add executionContext/interrupt API command][3952]
+- [Any.== is a builtin method][3956]
 - [Simplify exception handling for polyglot exceptions][3981]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -568,6 +569,7 @@
 [3938]: https://github.com/enso-org/enso/pull/3938
 [3949]: https://github.com/enso-org/enso/pull/3949
 [3952]: https://github.com/enso-org/enso/pull/3952
+[3956]: https://github.com/enso-org/enso/pull/3956
 [3981]: https://github.com/enso-org/enso/pull/3981
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

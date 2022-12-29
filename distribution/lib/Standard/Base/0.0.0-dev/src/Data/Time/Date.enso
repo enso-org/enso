@@ -605,14 +605,6 @@ type Date
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error.Error Date that "that")
 
-    ## Compares two Dates for equality.
-    == : Date -> Boolean
-    == self that = case that of
-        Date -> Meta.is_same_object self Date
-        _ : Date ->
-            sign = Time_Utils.compare_to_localdate self that
-            0 == sign
-        _ -> False
 
 ## PRIVATE
 week_days_between start end =

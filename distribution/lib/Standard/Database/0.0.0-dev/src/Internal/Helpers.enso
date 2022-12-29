@@ -32,7 +32,7 @@ check_integrity entity1 entity2 =
    - entity2: The entity to check against the first.
 check_connection : (Table | Column) -> (Table | Column) -> Boolean
 check_connection entity1 entity2 =
-    entity1.connection == entity2.connection
+    Meta.is_same_object entity1.connection entity2.connection
 
 ## PRIVATE
 

@@ -154,18 +154,3 @@ type Array
        primitive array protocol.
     to_array : Array
     to_array self = @Builtin_Method "Array.to_array"
-
-    ## Checks whether this array is equal to `that`.
-
-       Arguments:
-       - that: The array to compare this array against.
-
-       Two arrays are considered equal, when they have the same length and
-       their items are pairwise equal.
-
-    == : Array -> Boolean
-    == self that =
-        if Meta.is_same_object Array self then Meta.is_same_object Array that else
-            eq_at i = self.at i == that.at i
-            Panic.catch Any handler=(_ -> False)
-                if self.length == that.length then 0.up_to self.length . all eq_at else False

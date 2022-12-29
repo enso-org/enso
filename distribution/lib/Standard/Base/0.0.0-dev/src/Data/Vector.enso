@@ -602,28 +602,6 @@ type Vector a
                     "and " + remaining_count.to_text + " more elements"
                 prefix.map .to_text . join ", " "[" " "+remaining_text+"]"
 
-    ## Checks whether this vector is equal to `that`.
-
-       Arguments:
-       - that: The vector to compare this vector against.
-
-       Two vectors are considered equal, when they have the same length and
-       their items are pairwise equal.
-
-       > Example
-         Compare two vectors for equality (this case is false).
-
-             [1, 2, 3] == [2, 3, 4]
-    == : Vector -> Boolean
-    == self that = case that of
-        _ : Vector ->
-            eq_at i = self.at i == that.at i
-            if self.length == that.length then 0.up_to self.length . all eq_at else False
-        _ : Array ->
-            eq_at i = self.at i == that.at i
-            if self.length == that.length then 0.up_to self.length . all eq_at else False
-        _ -> False
-
     ## Concatenates two vectors, resulting in a new vector, containing all the
        elements of `self`, followed by all the elements of `that`.
 

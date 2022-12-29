@@ -120,7 +120,7 @@ public final class EnsoDate implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
-  public final Object toDisplayString(boolean allowSideEffects) {
+  public Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_LOCAL_DATE.format(date);
   }
 }

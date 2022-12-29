@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -180,13 +181,14 @@ public final class EnsoFile implements TruffleObject {
     return this.truffleFile.getName();
   }
 
-  @Builtin.Method(name = "==")
-  @CompilerDirectives.TruffleBoundary
-  public boolean isEqual(EnsoFile that) {
-    // It seems that fsContext is not equal in files coming from stacktraces.
-    // Once a solution to that is found replace it with a simple
-    // return this.truffleFile.equals(that.truffleFile);
-    return this.getPath().equals(that.getPath());
+  @TruffleBoundary
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof EnsoFile otherFile) {
+      return truffleFile.getPath().equals(otherFile.truffleFile.getPath());
+    } else {
+      return false;
+    }
   }
 
   @Builtin.Method
