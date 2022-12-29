@@ -54,18 +54,13 @@ select_columns_for_join join_kind left_new_columns right_new_columns redundant_c
         Join_Kind.Left_Exclusive -> left_new_columns
         Join_Kind.Right_Exclusive -> right_new_columns
         _ ->
-            ## TODO Here we will later need to add the logic for adding a prefix
-               before adding the deduplicator numbers. Related to:
-               https://www.pivotaltracker.com/story/show/183901439
-            _ = right_prefix
-            renamer = Unique_Name_Strategy.new
-            left_new_columns_names = renamer.make_all_unique <| left_new_columns.map .name
-            right_new_kept_columns = right_new_columns.filter c-> redundant_column_names.contains c.name . not
-            right_new_kept_columns_names = renamer.make_all_unique <| right_new_kept_columns.map .name
+            left_names = left_new_columns.map .name
+            right_kept_columns = right_new_columns.filter c-> redundant_column_names.contains c.name . not
+            right_names = right_kept_columns.map .name
+            right_new_names = Unique_Name_Strategy.combine_with_prefix left_names right_names right_prefix
 
-            left_renamed_columns = Helpers.rename_internal_columns left_new_columns left_new_columns_names
-            right_renamed_kept_columns = Helpers.rename_internal_columns right_new_kept_columns right_new_kept_columns_names
-            new_columns = left_renamed_columns + right_renamed_kept_columns
+            right_renamed_kept_columns = Helpers.rename_internal_columns right_kept_columns right_new_names
+            new_columns = left_new_columns + right_renamed_kept_columns
             new_columns
 
 type Join_Subquery_Setup
