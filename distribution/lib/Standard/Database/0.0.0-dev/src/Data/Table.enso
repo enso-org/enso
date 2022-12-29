@@ -323,6 +323,11 @@ type Table
          Rename the first column to "FirstColumn" passed as a Vector
 
               table.rename_columns ["FirstColumn"]
+
+       > Example
+         Add a prefix to all column names.
+
+              table.rename_columns (table.columns.map c-> "prefix_" + c.name)
     rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
         _ : Vector ->
