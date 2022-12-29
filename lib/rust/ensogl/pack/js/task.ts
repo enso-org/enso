@@ -31,4 +31,11 @@ export default class Task {
         task.end()
         return out
     }
+
+    static async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
+        let task = Task.start(message)
+        let out = await f()
+        task.end()
+        return out
+    }
 }

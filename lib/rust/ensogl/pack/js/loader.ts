@@ -2,6 +2,8 @@ import * as animation from './animation.js'
 import * as html_utils from './html_utils.js'
 import * as math from './math.js'
 import * as svg from './svg.js'
+import Logger from './logger'
+import Task from './task'
 
 // =========================
 // === ProgressIndicator ===
@@ -13,7 +15,7 @@ let top_layer_index = '1000'
 
 type Config = { use_loader: boolean; loader_download_to_init_ratio: number }
 /// Visual representation of the loader.
-export class ProgressIndicator {
+class ProgressIndicator {
     dom: HTMLDivElement
     progress_indicator: HTMLElement
     progress_indicator_mask: HTMLElement
@@ -44,8 +46,11 @@ export class ProgressIndicator {
         progress_bar.innerHTML = progress_bar_svg
         center.appendChild(progress_bar)
 
+        //@ts-ignore
         this.progress_indicator = document.getElementById('progress_indicator')
+        //@ts-ignore
         this.progress_indicator_mask = document.getElementById('progress_indicator_mask')
+        //@ts-ignore
         this.progress_indicator_corner = document.getElementById('progress_indicator_corner')
 
         this.set(0)
@@ -100,7 +105,10 @@ export class ProgressIndicator {
 
     /// Destroys the component. Removes it from the stage and destroys attached callbacks.
     destroy() {
-        this.dom.parentNode.removeChild(this.dom)
+        let parent = this.dom.parentNode
+        if (parent) {
+            parent.removeChild(this.dom)
+        }
         this.destroyed = true
     }
 
@@ -167,7 +175,7 @@ export class ProgressIndicator {
 // ==============
 
 /// The main loader class. It connects to the provided fetch responses and tracks their status.
-export class Loader {
+export default class Loader {
     indicator: ProgressIndicator
     total_bytes: number
     received_bytes: number
@@ -187,17 +195,27 @@ export class Loader {
         this.cap_progress_at = cfg.loader_download_to_init_ratio
 
         let self = this
-        this.done_resolve = null
         this.done = new Promise(resolve => {
             self.done_resolve = resolve
         })
 
+        let missing_content_length = false
         for (let resource of resources) {
-            this.total_bytes += parseInt(resource.headers.get('Content-Length'))
-            resource.clone().body.pipeTo(this.input_stream())
+            let content_length = resource.headers.get('content-length')
+            if (content_length) {
+                this.total_bytes += parseInt(content_length)
+            } else {
+                missing_content_length = true
+            }
+            let body = resource.clone().body
+            if (body) {
+                body.pipeTo(this.input_stream())
+            } else {
+                // FIXME: error
+            }
         }
 
-        if (Number.isNaN(this.total_bytes)) {
+        if (missing_content_length || Number.isNaN(this.total_bytes)) {
             console.error(
                 "Loader error. Server is not configured to send the 'Content-Length' metadata."
             )
