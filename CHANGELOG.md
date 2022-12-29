@@ -112,8 +112,11 @@
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
   and Web versions of the IDE.
+- [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
+  suitable for single and multi-select scenarios.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
+[3985]: https://github.com/enso-org/enso/pull/3985
 
 #### Enso Standard Library
 

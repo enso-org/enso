@@ -68,24 +68,27 @@ impl Collector {
     /// Pixel value requested (the points 1 and 2 in [`Collector`] docs).
     #[profile(Debug)]
     pub fn pixel_synced(&self) {
-        let mut garbage = self.garbage.borrow_mut();
-        let objects_being_moved = std::mem::take(&mut garbage.before_pixel_sync);
-        garbage.before_pixel_update.extend(objects_being_moved);
+        let garbage = &mut *self.garbage.borrow_mut();
+        garbage.before_pixel_update.append(&mut garbage.before_pixel_sync);
     }
 
     /// Pixel value retrieved (the point 3 in [`Collector`] docs).
     #[profile(Debug)]
     pub fn pixel_updated(&self) {
-        let mut garbage = self.garbage.borrow_mut();
-        let objects_being_moved = std::mem::take(&mut garbage.before_pixel_update);
-        garbage.before_mouse_events.extend(objects_being_moved);
+        let garbage = &mut *self.garbage.borrow_mut();
+        garbage.before_mouse_events.append(&mut garbage.before_pixel_update);
     }
 
     /// Mouse events handled (the point 4 in [`Collector`] docs).
     #[profile(Debug)]
     pub fn mouse_events_handled(&self) {
-        let mut garbage = self.garbage.borrow_mut();
-        drop(std::mem::take(&mut garbage.before_mouse_events));
+        // To avoid double-borrow when garbage is collected during drop, the `before_mouse_events`
+        // list is taken out of the borrowed value and the borrow is released before dropping it.
+        let before_mouse_events = {
+            let mut garbage = self.garbage.borrow_mut();
+            std::mem::take(&mut garbage.before_mouse_events)
+        };
+        drop(before_mouse_events);
     }
 }
 
