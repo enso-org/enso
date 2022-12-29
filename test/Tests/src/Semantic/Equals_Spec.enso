@@ -5,6 +5,16 @@ import Standard.Test.Extensions
 
 polyglot java import java.util.HashMap
 
+type CustomEqType
+    C1 f1
+    C2 f1 f2
+
+    sum self = case self of
+        CustomEqType.C1 f1 -> f1
+        CustomEqType.C2 f1 f2 -> f1 + f2
+
+    == self other = self.sum == other.sum
+
 type Child
     Value number
 
@@ -119,6 +129,10 @@ spec =
             many_fields2 = ManyFieldType.Value (Child.Value 101) (Child.Value 102) (Child.Value 103) (Child.Value 104) (Child.Value 105) (Child.Value 106) (Child.Value 107) (Child.Value 108) (Child.Value 109) (Child.Value 110) (Child.Value 111) (Child.Value 112) (Child.Value 113) (Child.Value 114) (Child.Value 115)
 
             (many_fields1 == many_fields2).should_be_true
+
+        Test.specify "should be able to compare atoms with different constructors" <|
+            ((CustomEqType.C1 10) == (CustomEqType.C2 7 3)).should_be_true
+            ((CustomEqType.C1 0) == (CustomEqType.C2 7 3)).should_be_false
 
         Test.specify "should dispatch to equals on host values" <|
             java_object1 = HashMap.new

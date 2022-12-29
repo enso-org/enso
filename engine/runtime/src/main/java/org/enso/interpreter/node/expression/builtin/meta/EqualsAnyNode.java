@@ -415,16 +415,16 @@ public abstract class EqualsAnyNode extends Node {
       @Cached InvokeEqualsNode atomInvokeEqualsNode,
       @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
       @Cached ConditionProfile constructorsNotEqualProfile) {
+    if (atomOverridesEquals(self)) {
+      return atomInvokeEqualsNode.execute(self, other);
+    }
+
     if (constructorsNotEqualProfile.profile(
         self.getConstructor() != other.getConstructor()
     )) {
       return false;
     }
     assert self.getFields().length == other.getFields().length;
-
-    if (atomOverridesEquals(self)) {
-      return atomInvokeEqualsNode.execute(self, other);
-    }
 
     int fieldsSize = self.getFields().length;
     if (enoughEqualNodesForFieldsProfile.profile(fieldsSize <= equalsNodeCountForFields)) {
