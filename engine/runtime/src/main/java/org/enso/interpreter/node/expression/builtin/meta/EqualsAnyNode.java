@@ -189,23 +189,6 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   @Specialization(guards = {
-      "selfInterop.isMetaObject(selfMeta)",
-      "otherInterop.isMetaObject(otherMeta)",
-  }, limit = "3")
-  boolean equalsMetaObjects(Object selfMeta, Object otherMeta,
-      @CachedLibrary("selfMeta") InteropLibrary selfInterop,
-      @CachedLibrary("otherMeta") InteropLibrary otherInterop,
-      @Cached EqualsAnyNode equalsNode) {
-    try {
-      Object selfMetaName = selfInterop.getMetaQualifiedName(selfMeta);
-      Object otherMetaName = otherInterop.getMetaQualifiedName(otherMeta);
-      return equalsNode.execute(selfMetaName, otherMetaName);
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Specialization(guards = {
       "!selfInterop.isDate(selfTimeZone)",
       "!selfInterop.isTime(selfTimeZone)",
       "selfInterop.isTimeZone(selfTimeZone)",
