@@ -274,7 +274,8 @@ public final class Vector implements TruffleObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object showObject(InteropLibrary iop, boolean allowSideEffects, Object child) throws UnsupportedMessageException {
+  private Object showObject(InteropLibrary iop, boolean allowSideEffects, Object child)
+      throws UnsupportedMessageException {
     if (child == null) {
       return "null";
     } else if (child instanceof Boolean) {
