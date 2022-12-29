@@ -710,7 +710,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    fn register_get_shaders_fn(closure: &Closure<dyn FnMut() -> JsValue>);
+    fn registerGetShadersRustFn(closure: &Closure<dyn FnMut() -> JsValue>);
 }
 
 #[before_main]
@@ -720,7 +720,7 @@ pub fn register_get_shaders() {
         map.set(&"hello".into(), &"world".into());
         map.into()
     }) as Box<dyn FnMut() -> JsValue>);
-    register_get_shaders_fn(&closure);
+    registerGetShadersRustFn(&closure);
     mem::forget(closure);
 }
 

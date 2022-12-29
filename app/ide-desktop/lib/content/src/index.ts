@@ -135,7 +135,7 @@ let wasm_entry_point_pfx = 'entry_point_'
 let wasm_before_main_pfx = 'before_main_'
 
 function wasm_functions(wasm: any): string[] {
-   return Object.getOwnPropertyNames(wasm)
+    return Object.getOwnPropertyNames(wasm)
 }
 
 function wasm_before_main_functions(wasm: any): string[] {
@@ -145,7 +145,7 @@ function wasm_before_main_functions(wasm: any): string[] {
             names.push(fn)
         }
     }
-    names.sort();
+    names.sort()
     return names
 }
 
@@ -852,6 +852,15 @@ function tryAsString(value: any): string {
     return value.toString()
 }
 
+function registerGetShadersRustFn(fn: any) {
+    console.log('!!!!!!!!!!!!!!!!!!!')
+    let out = fn()
+    console.log('got', out)
+}
+
+// @ts-ignore
+window.registerGetShadersRustFn = registerGetShadersRustFn
+
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function runEntryPoint(config: Config) {
     // @ts-ignore
@@ -891,21 +900,23 @@ async function runEntryPoint(config: Config) {
         let fn_name = wasm_entry_point_pfx + entryTarget
         let fn = wasm[fn_name]
         if (fn) {
-            let before_main_fns = wasm_before_main_functions(wasm);
-            if(before_main_fns) {
-                console.log(`Running ${before_main_fns.length} before main functions.`);
-                const t_start = performance.now();
+            let before_main_fns = wasm_before_main_functions(wasm)
+            if (before_main_fns) {
+                console.log(`Running ${before_main_fns.length} before main functions.`)
+                const t_start = performance.now()
                 for (let before_main_fn_name of before_main_fns) {
                     wasm[before_main_fn_name]()
                 }
-                const t_end = performance.now();
-                let ms = Math.round((t_end - t_start)*100)/100;
-                console.log(`Before main functions took ${ms} milliseconds to run.`);
+                const t_end = performance.now()
+                let ms = Math.round((t_end - t_start) * 100) / 100
+                console.log(`Before main functions took ${ms} milliseconds to run.`)
                 if (ms > 30) {
-                    console.error(`Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`);
+                    console.error(
+                        `Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`
+                    )
                 }
             }
-            console.log(`Running the chosen entry point.`);
+            console.log(`Running the chosen entry point.`)
             // Loader will be removed by IDE after its initialization.
             // All other code paths need to call `loader.destroy()`.
             fn()

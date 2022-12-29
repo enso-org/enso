@@ -83,6 +83,10 @@ fn compile_js(main: &str, out: &Path) {
         "esbuild",
         main,
         "--bundle",
+        // FIXME: enable, but only on final binary, otherwise it will mangle names and we will not
+        // connect there
+        // "--minify",
+        // FIXME:
         "--sourcemap=inline",
         "--platform=node",
         &format!("--outfile={}", out.display()),
@@ -118,7 +122,7 @@ fn main() {
         let out_dir = out_dir.unwrap();
         let out_name = out_name.unwrap();
 
-        with_pwd(&root_dir.join("js"), || compile_ts("index.ts", &dist_dir.join("index.js")));
+        with_pwd(&root_dir.join("js"), || compile_ts("src/index.ts", &dist_dir.join("index.js")));
         with_pwd(&build_dir, || compile_js("pkg.js", &dist_dir.join("snippets.js")));
 
         // FIXME: change it to move

@@ -9,6 +9,7 @@ import host from './host'
 import Task from './task'
 import Logger from './logger'
 import { Config, DEFAULT_ENTRY_POINT } from './config'
+import ArgParser from './arg-parser'
 
 // import * as fs from 'fs'
 let fs = require('./fs')
@@ -331,14 +332,14 @@ function disableContextMenu() {
     })
 }
 
-function register_get_shaders_fn(fn: any) {
+function registerGetShadersRustFn(fn: any) {
     console.log('!!!!!!!!!!!!!!!!!!!')
     let out = fn()
     console.log('got', out)
 }
 
 // @ts-ignore
-host.global.register_get_shaders_fn = register_get_shaders_fn
+host.global.registerGetShadersRustFn = registerGetShadersRustFn
 
 function initBrowser(config: Config) {
     style_root()
@@ -348,6 +349,7 @@ function initBrowser(config: Config) {
         hideLogs()
     }
 }
+
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function runEntryPoint(config: Config) {
     // @ts-ignore
@@ -364,11 +366,12 @@ async function runEntryPoint(config: Config) {
     // const status = GIT_STATUS
     // Logger.log('git_status', { status })
 
+    let args = new ArgParser()
+    args.parse()
+
     if (host.browser) {
         initBrowser(config)
     }
-
-    let entryTarget = config.entry
 
     if (host.browser) {
         Logger.log('window_show_animation')
@@ -381,46 +384,37 @@ async function runEntryPoint(config: Config) {
     const mainEntryPoints = EntryPoint.mainEntryPoints(wasmFns)
     const beforeMainEntryPoints = EntryPoint.beforeMainEntryPoints(wasmFns)
 
-    Logger.log('wasm_loaded')
-    if (entryTarget) {
-        let entryPoint = mainEntryPoints.get(entryTarget.value)
-        if (entryPoint) {
-            if (beforeMainEntryPoints.size != 0) {
-                Logger.with(`Running ${beforeMainEntryPoints.size} before main functions.`, () => {
-                    for (let entryPoint of beforeMainEntryPoints.values()) {
+    function runBeforeMainEntryPoints() {
+        if (beforeMainEntryPoints.size != 0) {
+            let count = beforeMainEntryPoints.size
+            Task.with(`Running ${count} before main entry points.`, () => {
+                for (let entryPoint of beforeMainEntryPoints.values()) {
+                    Task.with(`Running ${entryPoint.displayName()}.`, () => {
                         wasm[entryPoint.fullName()]()
-                    }
-                })
+                    })
+                }
+            })
+            // if (ms > 30) {
+            //     console.error(
+            //         `Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`
+            //     )
+            // }
+        }
+    }
 
-                // if (ms > 30) {
-                //     console.error(
-                //         `Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`
-                //     )
-                // }
-            }
-            console.log(`Running the chosen entry point.`)
+    Logger.log('wasm_loaded')
+    if (config.entry) {
+        let entryPoint = mainEntryPoints.get(config.entry.value)
+        if (entryPoint) {
+            runBeforeMainEntryPoints()
+            console.log(`Running the main entry point.`)
             // Loader will be removed by IDE after its initialization.
             // All other code paths need to call `loader.destroy()`.
             wasm[entryPoint.fullName()]()
         } else {
             // loader.destroy()
-            // show_debug_screen(wasm, "Unknown entry point '" + entryTarget + "'. ")
-            if (beforeMainEntryPoints.size != 0) {
-                let count = beforeMainEntryPoints.size
-                Task.with(`Running ${count} before main entry points.`, () => {
-                    for (let entryPoint of beforeMainEntryPoints.values()) {
-                        Task.with(`Running ${entryPoint.displayName()}.`, () => {
-                            wasm[entryPoint.fullName()]()
-                        })
-                    }
-                })
-                // if (ms > 30) {
-                //     console.error(
-                //         `Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`
-                //     )
-                // }
-            }
-            console.log(`Running the chosen entry point.`)
+            // show_debug_screen(wasm, "Unknown entry point '" + config.entry + "'. ")
+            runBeforeMainEntryPoints()
             // Loader will be removed by IDE after its initialization.
             // All other code paths need to call `loader.destroy()`.
             // fn()
