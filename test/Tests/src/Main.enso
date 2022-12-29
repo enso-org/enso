@@ -12,6 +12,7 @@ import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
 import project.Semantic.Meta_Location_Spec
 import project.Semantic.Names_Spec
+import project.Semantic.Equals_Spec
 import project.Semantic.Runtime_Spec
 import project.Semantic.Self_Type_Spec
 import project.Semantic.Warnings_Spec
@@ -108,6 +109,7 @@ main = Test_Suite.run_main <|
     Meta_Spec.spec
     Meta_Location_Spec.spec
     Names_Spec.spec
+    Equals_Spec.spec
     Noise_Generator_Spec.spec
     Noise_Spec.spec
     Numbers_Spec.spec

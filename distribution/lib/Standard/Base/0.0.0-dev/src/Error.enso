@@ -133,10 +133,3 @@ type Error
              1.is_error
     is_error : Boolean
     is_error self = True
-
-    ## PRIVATE
-       TODO this is a kludge until we have proper eigentypes and statics.
-       Allows to check equality of the `Error` type with itself.
-    == self that = if Meta.is_error self then self else
-        if Meta.is_error that then that else
-            Meta.is_same_object self that

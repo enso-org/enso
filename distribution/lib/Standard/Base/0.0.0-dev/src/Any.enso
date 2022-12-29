@@ -74,10 +74,23 @@ type Any
          implementing equality for your own types, keep in mind that it needs to
          work with any Enso value as the `that` argument.
 
+       ! Unicode Equality
+         The definition of equality includes Unicode canonicalization. I.e. two
+         texts are equal if they are identical after canonical decomposition. This
+         ensures that different ways of expressing the same character in the
+         underlying binary representation are considered equal.
+
        ? Generic Equality and Performance
          While the generic equality provided here will work for _all_ values in
          Enso, its performance may often be suboptimal. Many types can implement
          their own equality operations that will be more efficient than these.
+
+       > Example
+         The string 'é' (i.e. the character U+00E9, LATIN SMALL LETTER E WITH ACUTE)
+         is canonically the same as the string 'e\u0301' (i.e. the letter `e`
+         followed by U+0301, COMBINING ACUTE ACCENT). Therefore:
+
+             ('é' == 'e\u0301') == True
 
        > Example
          Checking if the variable `a` is equal to `147`.
@@ -88,27 +101,7 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that = if Meta.is_same_object self that then True else
-        self_meta = Meta.meta self
-        that_meta = Meta.meta that
-        case Pair.new self_meta that_meta of
-            Pair.Value (Meta.Atom.Value _) (Meta.Atom.Value _) ->
-                c_1 = self_meta.constructor.value ...
-                c_2 = that_meta.constructor.value ...
-                if Meta.is_same_object c_1 c_2 . not then False else
-                    f_1 = self_meta.fields
-                    f_2 = that_meta.fields
-                    0.up_to f_1.length . all i-> (f_1.at i) == (f_2.at i)
-            Pair.Value (Meta.Error.Value _) (Meta.Error.Value _) -> self_meta.payload == that_meta.payload
-            Pair.Value (Meta.Polyglot.Value o_1) (Meta.Polyglot.Value o_2) ->
-                langs_match = (self_meta.get_language == Meta.Language.Java) && (that_meta.get_language == Meta.Language.Java)
-                if langs_match.not then False else o_1.equals o_2
-            Pair.Value (Meta.Unresolved_Symbol.Value _) (Meta.Unresolved_Symbol.Value _) ->
-                (self_meta.name == that_meta.name) && (self_meta.scope == that_meta.scope)
-            ## Constructor comparison is covered by the identity equality.
-               Primitive objects should define their own equality.
-               Therefore, there are no more cases to handle in self method.
-            _ -> False
+    == self that = @Builtin_Method "Any.=="
 
     ## ALIAS Inequality
 
