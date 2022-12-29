@@ -200,7 +200,7 @@ public final class Vector implements TruffleObject {
         Object at =
             readArrayElement(
                 i, iop, WarningsLibrary.getUncached(), HostValueToEnsoNode.getUncached());
-        Object str = iop.toDisplayString(at, allowSideEffects);
+        Object str = showObject(iop, allowSideEffects, at);
         if (iop.isString(str)) {
           sb.append(iop.asString(str));
         } else {
@@ -271,5 +271,17 @@ public final class Vector implements TruffleObject {
   @SuppressWarnings("unchecked")
   private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {
     throw (E) t;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private Object showObject(InteropLibrary iop, boolean allowSideEffects, Object child)
+      throws UnsupportedMessageException {
+    if (child == null) {
+      return "null";
+    } else if (child instanceof Boolean) {
+      return (boolean) child ? "True" : "False";
+    } else {
+      return iop.toDisplayString(child, allowSideEffects);
+    }
   }
 }

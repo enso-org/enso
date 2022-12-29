@@ -331,7 +331,7 @@ spec =
             t1 = t.filter_blank_rows when_any=True treat_nans_as_blank=False
             t1.at "X" . to_vector . should_equal [1, 4, 5]
             # Comparing text value because `Number.nan != Number.nan`.
-            t1.at "Y" . to_vector . to_text . should_equal "['A', NaN, 0]"
+            t1.at "Y" . to_vector . to_text . should_equal "[A, NaN, 0]"
             t2 = t.filter_blank_rows when_any=True treat_nans_as_blank=True
             t2.at "X" . to_vector . should_equal [1, 5]
             t2.at "Y" . to_vector . should_equal ['A', 0]
@@ -343,7 +343,7 @@ spec =
         Test.specify "Blank_Columns selector should work for all kinds of methods accepting Column_Selector" <|
             t = Table.new [["X", [1, 2, 3, 4, 5]], ["Y", ["", Nothing, Nothing, Number.nan, ""]]]
             r1 = t.distinct (Column_Selector.Blank_Columns treat_nans_as_blank=True)
-            r1.at "Y" . to_vector . to_text . should_equal "['', Nothing, NaN]"
+            r1.at "Y" . to_vector . to_text . should_equal "[, Nothing, NaN]"
             r1.at "X" . to_vector . should_equal [1, 2, 4]
 
             # TODO this could be moved to Common_Table_Operations once replace_text is implemented for Database too

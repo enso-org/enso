@@ -11,16 +11,16 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
-public abstract class AnyToTextNode extends Node {
+@BuiltinMethod(type = "Any", name = "pretty", description = "Generic pretty printing function.")
+public abstract class AnyPrettyNode extends Node {
   private static final int DISPATCH_CACHE = 3;
   private @Child InteropLibrary displays =
       InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
   private @Child InteropLibrary strings =
       InteropLibrary.getFactory().createDispatched(DISPATCH_CACHE);
 
-  public static AnyToTextNode build() {
-    return AnyToTextNodeGen.create();
+  public static AnyPrettyNode build() {
+    return AnyPrettyNodeGen.create();
   }
 
   public abstract Text execute(Object self);
