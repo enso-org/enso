@@ -105,18 +105,25 @@ public class NameDeduplicator {
     return output;
   }
 
-  /** Changes names from the second list so that they do not clash with names
-   * from the first list and with each other.*/
-  public static List<String> combineWithPrefix(List<String> first, List<String> second, String secondPrefix) {
+  /**
+   * Changes names from the second list so that they do not clash with names from the first list and
+   * with each other.
+   */
+  public static List<String> combineWithPrefix(
+      List<String> first, List<String> second, String secondPrefix) {
     NameDeduplicator deduplicator = new NameDeduplicator();
     first.forEach(deduplicator::markUsed);
-    List<Boolean> alreadyUnique = second.stream().map(name -> {
-      boolean wasUnique = deduplicator.isUnique(name);
-      if (wasUnique) {
-        deduplicator.markUsed(name);
-      }
-      return wasUnique;
-    }).collect(Collectors.toList());
+    List<Boolean> alreadyUnique =
+        second.stream()
+            .map(
+                name -> {
+                  boolean wasUnique = deduplicator.isUnique(name);
+                  if (wasUnique) {
+                    deduplicator.markUsed(name);
+                  }
+                  return wasUnique;
+                })
+            .collect(Collectors.toList());
     ArrayList<String> result = new ArrayList<>(second.size());
     for (int i = 0; i < second.size(); i++) {
       String name = second.get(i);
