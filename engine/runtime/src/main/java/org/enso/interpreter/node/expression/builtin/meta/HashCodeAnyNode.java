@@ -103,21 +103,6 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization(guards = {
-      "interop.isMetaObject(selfMeta)"
-  }, limit = "3")
-  long hashCodeForMetaInterop(Object selfMeta,
-      @CachedLibrary("selfMeta") InteropLibrary interop,
-      @Cached HashCodeAnyNode hashCodeNode) {
-    try {
-      return hashCodeNode.execute(
-          interop.getMetaQualifiedName(selfMeta)
-      );
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Specialization(guards = {
       "!interop.isDate(selfTimeZone)",
       "!interop.isTime(selfTimeZone)",
       "interop.isTimeZone(selfTimeZone)",
