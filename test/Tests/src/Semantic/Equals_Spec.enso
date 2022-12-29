@@ -90,14 +90,14 @@ create_random_tree max_depth rnd cur_depth=0 =
             _ -> Error.throw ("Unexpected number of children: " + children_count.to_text)
 
 
-foreign python py_false = """
-    return False
+foreign js js_false = """
+    return false
 
 
-foreign python py_true = """
-    return True
+foreign js js_true = """
+    return true
 
-foreign python py_text_foo = """
+foreign js js_text_foo = """
     return 'foo'
 
 
@@ -107,10 +107,10 @@ spec =
             (2 == (2.0)).should_be_true
             (2 == (2.1)).should_be_false
             (2.0).should_equal 2
-            (py_true == True).should_be_true
-            (py_false == False).should_be_true
-            (py_true == False).should_be_false
-            (py_text_foo == "foo").should_be_true
+            (js_true == True).should_be_true
+            (js_false == False).should_be_true
+            (js_true == False).should_be_false
+            (js_text_foo == "foo").should_be_true
 
 
         Test.specify "should dispatch to overriden `==` on atoms" <|
