@@ -1,4 +1,4 @@
-from Standard.Base import Any, Vector, Text, Nothing
+from Standard.Base import Any, Boolean, Vector, Text, Nothing
 
 polyglot java import org.enso.table.util.NameDeduplicator
 

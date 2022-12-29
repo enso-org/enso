@@ -2,9 +2,12 @@ from Standard.Base import all
 
 from Standard.Table import Aggregate_Column
 
+import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Join_Kind.Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
