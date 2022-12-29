@@ -921,7 +921,7 @@ type Table
         preprocessed = self.limit max_rows
         case preprocessed.internal_columns.is_empty of
             True ->
-                Java_Exports.make_table_without_columns self.row_count
+                Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.")
             False ->
                 sql = preprocessed.to_sql
                 expected_types = preprocessed.internal_columns.map .sql_type

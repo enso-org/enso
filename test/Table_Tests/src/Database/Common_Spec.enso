@@ -30,10 +30,6 @@ spec prefix connection =
         Test.specify "should allow to materialize columns directly into a Vector" <|
             v = t1.at 'a' . to_vector
             v . should_equal [1, 4]
-        Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select_columns []
-            empty.read.column_count . should_equal 0
-            empty.read.row_count . should_equal empty.row_count
         Test.specify "should handle bigger result sets" <|
             n = 1000
             original = Table.new [["a", Vector.new n ix->ix], ["b", Vector.new n ix-> ix *  3.1415926], ["c", Vector.new n ix-> ix.to_text]]
