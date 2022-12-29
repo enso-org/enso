@@ -670,4 +670,11 @@ spec = Test.group "Vectors" <|
     Test.specify "array1 should be equal to array2" <|
         a1.should_equal a2
 
+    Test.specify "should have a well-defined debug-printing method" <|
+        [].pretty.should_equal "[]"
+        [1,2,3].pretty.should_equal "[1, 2, 3]"
+        [Nothing].pretty.should_equal "[Nothing]"
+        [True, False, 'a'].pretty . should_equal "[True, False, 'a']"
+        [Foo.Value True].pretty . should_equal "[(Foo.Value True)]"
+
 main = Test_Suite.run_main spec
