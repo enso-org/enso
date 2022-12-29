@@ -45,6 +45,9 @@ pub type ViewConnection = view::graph_editor::EdgeId;
 /// The connection identifier used by controllers.
 pub type AstConnection = controller::graph::Connection;
 
+/// The node endpoint identifier used by controllers.
+pub type AstEndpoint = controller::graph::Endpoint;
+
 
 
 // =================
@@ -158,14 +161,13 @@ impl Model {
     ) {
         self.log_action(
             || {
-                if let Some((node_id, ast_crumbs)) =
+                if let Some(endpoint) =
                     self.state.update_from_view().set_node_port_expression(id, crumbs, &expression)
                 {
-                    //
                     Some(self.controller.graph().set_nested_expression(
-                        node_id,
-                        &ast_crumbs,
+                        &endpoint,
                         expression.as_str(),
+                        &self.controller,
                     ))
                 } else {
                     None

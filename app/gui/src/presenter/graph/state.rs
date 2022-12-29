@@ -15,7 +15,7 @@ use ide_view as view;
 use ide_view::graph_editor::component::node as node_view;
 use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
-
+use span_tree::action::Actions;
 
 
 // =============
@@ -750,10 +750,11 @@ impl<'a> ViewChange<'a> {
         id: ViewNodeId,
         port: &span_tree::Crumbs,
         port_expression: &str,
-    ) -> Option<(AstNodeId, ast::Crumbs)> {
+    ) -> Option<controller::graph::Endpoint> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
         let displayed = nodes.get_mut(ast_id)?;
+
         let port_ref = displayed.expression.input_span_tree.get_node(port).ok()?;
         let span = port_ref.span();
         let code = displayed.expression.code.as_str();
@@ -768,16 +769,14 @@ impl<'a> ViewChange<'a> {
         );
         let expression_has_changed = displayed.expression.code != new_code;
         if expression_has_changed {
-            let ast_crumbs = port_ref.ast_crumbs.clone();
-            // TODO[Frizi]: instead of generating new tree, we should update the existing one.
-            //              This also gets rid of the need to concat code.
             let expression = node_view::Expression::new_plain(new_code);
             debug!(
                 "Setting node port expression from view: {} -> {}",
                 displayed.expression, expression
             );
             displayed.expression = expression;
-            Some((ast_id, ast_crumbs))
+            let endpoint = controller::graph::Endpoint::new(ast_id, port);
+            Some(endpoint)
         } else {
             None
         }

@@ -874,16 +874,16 @@ impl Handle {
     #[profile(Debug)]
     pub fn set_nested_expression(
         &self,
-        id: ast::Id,
-        crumbs: &[ast::Crumb],
+        endpoint: &Endpoint,
         expression_text: impl Str,
+        context: &impl SpanTreeContext,
     ) -> FallibleResult {
-        info!(
-            "Setting node {id} nested expression at {crumbs:?} to `{}`",
-            expression_text.as_ref()
-        );
         let new_expression_ast = self.parse_node_expression(expression_text)?;
-        self.set_nested_expression_ast(id, crumbs, new_expression_ast)
+        let node = self.node_info(endpoint.node)?;
+        let target_node_ast = node.expression();
+        let endpoint_info = EndpointInfo::new(&endpoint, &target_node_ast, context)?;
+        let new_node_ast = endpoint_info.set(new_expression_ast)?;
+        self.set_expression_ast(endpoint.node, new_node_ast)
     }
 
     /// Sets the given's node expression.
