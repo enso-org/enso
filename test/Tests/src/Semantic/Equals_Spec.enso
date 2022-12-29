@@ -79,8 +79,30 @@ create_random_tree max_depth rnd cur_depth=0 =
             5 -> Node.C5 (children.at 0) (children.at 1) (children.at 2) (children.at 3) (children.at 4)
             _ -> Error.throw ("Unexpected number of children: " + children_count.to_text)
 
+
+foreign python py_false = """
+    return False
+
+
+foreign python py_true = """
+    return True
+
+foreign python py_text_foo = """
+    return 'foo'
+
+
 spec =
     Test.group "Operator ==" <|
+        Test.specify "should handle primitive values" <|
+            2.should_equal (2.0)
+            2.should_not_equal (2.1)
+            (2.0).should_equal 2
+            (py_true == True).should_be_true
+            (py_false == False).should_be_true
+            (py_true == False).should_be_false
+            (py_text_foo == "foo").should_be_true
+
+
         Test.specify "should dispatch to overriden `==` on atoms" <|
             child1 = Child.Value 11
             parent1 = Parent.Value child1
