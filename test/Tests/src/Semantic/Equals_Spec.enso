@@ -94,8 +94,8 @@ foreign python py_text_foo = """
 spec =
     Test.group "Operator ==" <|
         Test.specify "should handle primitive values" <|
-            2.should_equal (2.0)
-            2.should_not_equal (2.1)
+            (2 == (2.0)).should_be_true
+            (2 == (2.1)).should_be_false
             (2.0).should_equal 2
             (py_true == True).should_be_true
             (py_false == False).should_be_true
@@ -112,13 +112,13 @@ spec =
             parent2 = Parent.Value child2
             grand_parent2 = GrandParent.Value parent2
 
-            grand_parent1.should_equal grand_parent2
+            (grand_parent1 == grand_parent2).should_be_true
 
         Test.specify "should handle `==` on types with many fields" <|
             many_fields1 = ManyFieldType.Value (Child.Value 1) (Child.Value 2) (Child.Value 3) (Child.Value 4) (Child.Value 5) (Child.Value 6) (Child.Value 7) (Child.Value 8) (Child.Value 9) (Child.Value 10) (Child.Value 11) (Child.Value 12) (Child.Value 13) (Child.Value 14) (Child.Value 15)
             many_fields2 = ManyFieldType.Value (Child.Value 101) (Child.Value 102) (Child.Value 103) (Child.Value 104) (Child.Value 105) (Child.Value 106) (Child.Value 107) (Child.Value 108) (Child.Value 109) (Child.Value 110) (Child.Value 111) (Child.Value 112) (Child.Value 113) (Child.Value 114) (Child.Value 115)
 
-            many_fields1.should_equal many_fields2
+            (many_fields1 == many_fields2).should_be_true
 
         Test.specify "should dispatch to equals on host values" <|
             java_object1 = HashMap.new
@@ -129,36 +129,36 @@ spec =
             java_object2.put "b" 2
             java_object2.put "a" 1
 
-            java_object1.should_equal java_object2
+            (java_object1 == java_object2).should_be_true
 
             java_object2.put "c" 42
 
-            java_object1.should_not_equal java_object2
+            (java_object1 == java_object2).should_be_false
 
         Test.specify "should return False for different Atoms with same fields" <|
             p1 = Point.Value 1 2
             p2 = Point.Value 3 4
             rect = Rect.Value p1 p2
             four_field = FourFieldType.Value 1 2 3 4
-            rect.should_not_equal four_field
+            (rect == four_field).should_be_false
 
         Test.specify "should handle `==` on types" pending="Blocked by https://www.pivotaltracker.com/story/show/184092284" <|
-            Child.should_equal Child
-            Child.should_not_equal Point
-            Point.should_not_equal Child
-            HashMap.should_not_equal Child
-            Child.should_not_equal HashMap
-            Boolean.should_not_equal Any
-            Any.should_not_equal Boolean
-            Any.should_equal Any
-            Boolean.should_equal Boolean
+            (Child == Child).should_be_true
+            (Child == Point).should_be_false
+            (Point == Child).should_be_false
+            (HashMap == Child).should_be_false
+            (Child == HashMap).should_be_false
+            (Boolean == Any).should_be_false
+            (Any == Boolean).should_be_false
+            (Any == Any).should_be_true
+            (Boolean == Boolean).should_be_true
 
         Test.specify "should dispatch to overriden `==` in vectors" <|
-            [(Child.Value 1)].should_equal [(Child.Value 101)]
-            [(Child.Value 1)].should_not_equal [(Child.Value 2)]
+            ([(Child.Value 1)] == [(Child.Value 101)]).should_be_true
+            ([(Child.Value 1)] == [(Child.Value 2)]).should_be_false
 
         Test.specify "should dispatch to overriden `==` in arrays" <|
-            (Array.new_1 (Child.Value 1)).should_equal (Array.new_1 (Child.Value 101))
+            ((Array.new_1 (Child.Value 1)) == (Array.new_1 (Child.Value 101))).should_be_true
 
         Test.specify "should handle recursive atoms without custom `==`" <|
             rnd = (Random.new seed=42).java_random
@@ -166,7 +166,7 @@ spec =
                 create_random_tree 5 rnd
             trees.each tree->
                 dupl_tree = tree.deep_copy
-                Test.with_clue "Seed sed to 42" (tree.should_equal dupl_tree)
+                Test.with_clue "Seed sed to 42" (tree == dupl_tree).should_be_true
 
 
 main = Test_Suite.run_main spec
