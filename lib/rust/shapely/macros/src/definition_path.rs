@@ -11,8 +11,11 @@ use crate::prelude::*;
 
 /// Functions exposed in WASM have to have unique names. This utility creates a name based on the
 /// location (module path, line number, column number) the function was defined.
-fn definition_path() -> String {
-    let span = proc_macro::Span::call_site().parent().unwrap().parent().unwrap().parent().unwrap();
+pub fn definition_path() -> String {
+    let mut span = proc_macro::Span::call_site();
+    while let Some(parent) = span.parent() {
+        span = parent;
+    }
     let source = span.source_file();
     let start = span.start();
     let path = source.path().to_str().unwrap_or_default().to_string();

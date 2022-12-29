@@ -4,6 +4,7 @@ import * as math from './math.js'
 import * as svg from './svg.js'
 import Logger from './logger'
 import Task from './task'
+import { Config } from './config'
 
 // =========================
 // === ProgressIndicator ===
@@ -13,7 +14,6 @@ let bg_color = 'rgb(249,250,251)'
 let loader_color = '#303030'
 let top_layer_index = '1000'
 
-type Config = { use_loader: boolean; loader_download_to_init_ratio: number }
 /// Visual representation of the loader.
 class ProgressIndicator {
     dom: HTMLDivElement
@@ -192,11 +192,10 @@ export default class Loader {
         this.download_speed = 0
         this.last_receive_time = performance.now()
         this.initialized = this.indicator.initialized
-        this.cap_progress_at = cfg.loader_download_to_init_ratio
+        this.cap_progress_at = cfg.loader_download_to_init_ratio.value
 
-        let self = this
         this.done = new Promise(resolve => {
-            self.done_resolve = resolve
+            this.done_resolve = resolve
         })
 
         let missing_content_length = false
