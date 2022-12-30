@@ -1,5 +1,9 @@
 import * as nodeUtil from 'node:util'
 
+// ==========================
+// === Naming Conversions ===
+// ==========================
+
 function camelToKebabCase(name: string) {
     return name
         .split('')
@@ -10,6 +14,10 @@ function camelToKebabCase(name: string) {
         })
         .join('')
 }
+
+// ==============
+// === Option ===
+// ==============
 
 class Option {
     value: string | boolean
@@ -25,6 +33,10 @@ class Option {
         }
     }
 }
+
+// ============
+// === Args ===
+// ============
 
 export class Args {
     help = new Option(false, 'Print help message.')
@@ -45,8 +57,13 @@ export class Args {
             let out = nodeUtil.parseArgs({ options })
             for (let [optionName, optionValue] of Object.entries(out.values)) {
                 let fieldName = optionToFieldNameMap.get(optionName)
-                // @ts-ignore
-                this[fieldName].value = optionValue
+                let self: any = this
+                if (fieldName) {
+                    self[fieldName].value = optionValue
+                } else {
+                    console.error(`Unknown option: ${optionName}`)
+                    process.exit(1)
+                }
             }
         } catch (error) {
             let msg = error instanceof Error ? `${error.message}. ` : ''

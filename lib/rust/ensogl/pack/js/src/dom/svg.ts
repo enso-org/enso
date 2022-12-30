@@ -1,4 +1,4 @@
-/// This module defines a set of utils for generating and modifying the SVG images.
+/** This module defines a set of utils for generating and modifying the SVG images. */
 
 import * as math from 'math'
 
@@ -6,7 +6,7 @@ import * as math from 'math'
 // === SVG ===
 // ===========
 
-/// Defines a new SVG with the provided source.
+/** Defines a new SVG with the provided source. */
 export function new_svg(width: number, height: number, str: string): string {
     return `
     <svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg"
@@ -16,7 +16,7 @@ export function new_svg(width: number, height: number, str: string): string {
     </svg>`
 }
 
-/// Returns SVG code for an arc with a defined radius and angle.
+/** Returns SVG code for an arc with a defined radius and angle. */
 export function arc(radius: number, end_angle: number): string {
     let start_angle = 0
     if (end_angle < 0) {

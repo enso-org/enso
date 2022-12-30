@@ -123,7 +123,7 @@ export class App {
         this.args = parseArgs()
         this.info = appArgs?.info ?? {}
         const inputConfig = appArgs?.config ?? {}
-        this.config = new Config(inputConfig, host.urlParams())
+        this.config = new Config({ overrides: [inputConfig, host.urlParams()] })
 
         if (host.browser) {
             await this.init()
@@ -160,7 +160,7 @@ export class App {
         Task.with(`Running ${count} before main entry points.`, () => {
             for (const entryPoint of this.beforeMainEntryPoints.values()) {
                 const [time, _] = Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
-                    this.wasm[entryPoint.fullName()]()
+                    this.wasm[entryPoint.name()]()
                 })
                 this.checkBeforeMainEntryPointTime(time)
             }
@@ -180,7 +180,7 @@ export class App {
         if (entryPoint) {
             this.runBeforeMainEntryPoints()
             Logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)
-            this.wasm[entryPoint.fullName()]()
+            this.wasm[entryPoint.name()]()
         } else {
             this.show_debug_screen(`Unknown entry point '${entryPointName}'. `)
         }
@@ -235,11 +235,11 @@ export class App {
         for (const entry_point of this.mainEntryPoints.values()) {
             const li = document.createElement('li')
             const a = document.createElement('a')
-            const linkText = document.createTextNode(entry_point.name)
+            const linkText = document.createTextNode(entry_point.strippedName)
             ul.appendChild(li)
             a.appendChild(linkText)
-            a.title = entry_point.name
-            a.href = '?entry=' + entry_point.name
+            a.title = entry_point.strippedName
+            a.href = '?entry=' + entry_point.strippedName
             li.appendChild(a)
         }
     }

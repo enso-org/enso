@@ -1,3 +1,10 @@
+/** This module defines utilities to work with the host environment, whether it is a browser of
+ * node. */
+
+// ======================
+// === Host Utilities ===
+// ======================
+
 /** Resolves to `true` if we are running the script in the browser. If it's node, resolves to
  * `false`. */
 const browser = typeof window !== 'undefined'
@@ -20,6 +27,7 @@ function urlParams(): any {
     }
 }
 
+/** Export the value to the global scope (`global` in node and `window` in browser). */
 function exportGlobal(exports: { [key: string]: any }) {
     for (const [key, value] of Object.entries(exports)) {
         // @ts-ignore

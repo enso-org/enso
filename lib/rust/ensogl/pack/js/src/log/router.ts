@@ -1,8 +1,8 @@
 import host from 'system/host'
 
-// =================
-// === LogRouter ===
-// =================
+// ==============
+// === Router ===
+// ==============
 
 const consoleLogNames: (keyof Console)[] = [
     'log',

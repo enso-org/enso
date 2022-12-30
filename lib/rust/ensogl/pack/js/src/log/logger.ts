@@ -1,5 +1,9 @@
 import host from 'system/host'
 
+// ==============
+// === Colors ===
+// ==============
+
 class Colors {
     static resetCode = '\x1b[0m'
     static redCode = '\x1b[31m'
@@ -32,6 +36,10 @@ class Colors {
         }
     }
 }
+
+// ==============
+// === Logger ===
+// ==============
 
 export class Logger {
     private static indent_lvl: number = 0
