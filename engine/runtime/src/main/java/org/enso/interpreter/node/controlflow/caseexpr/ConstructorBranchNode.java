@@ -15,8 +15,8 @@ public abstract class ConstructorBranchNode extends BranchNode {
   private final AtomConstructor matcher;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  ConstructorBranchNode(AtomConstructor matcher, RootCallTarget branch) {
-    super(branch);
+  ConstructorBranchNode(AtomConstructor matcher, RootCallTarget branch, boolean terminalBranch) {
+    super(branch, terminalBranch);
     this.matcher = matcher;
   }
 
@@ -27,8 +27,9 @@ public abstract class ConstructorBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static ConstructorBranchNode build(AtomConstructor matcher, RootCallTarget branch) {
-    return ConstructorBranchNodeGen.create(matcher, branch);
+  public static ConstructorBranchNode build(
+      AtomConstructor matcher, RootCallTarget branch, boolean terminalBranch) {
+    return ConstructorBranchNodeGen.create(matcher, branch, terminalBranch);
   }
 
   @Specialization

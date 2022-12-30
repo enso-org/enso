@@ -270,7 +270,7 @@ spec =
                 Panic.catch Text handler=err->"JS string:"+err.payload.to_text <|
                     throw_js_str
 
-            caught_js_str_panic . should_equal "JS string:'foo'"
+            caught_js_str_panic . should_equal "JS string:foo"
 
             caught_js_arr_panic = Panic.catch Any handler=err->"Any:"+err.payload.to_text <|
                 Panic.catch Array handler=err->"JS array:"+err.payload.to_text <|

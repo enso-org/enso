@@ -882,7 +882,7 @@ class IrToTruffle(
       */
     def processCase(caseExpr: IR.Case): RuntimeExpression =
       caseExpr match {
-        case IR.Case.Expr(scrutinee, branches, location, _, _) =>
+        case IR.Case.Expr(scrutinee, branches, isNested, location, _, _) =>
           val scrutineeNode = this.run(scrutinee)
 
           val maybeCases    = branches.map(processCaseBranch)
@@ -898,7 +898,8 @@ class IrToTruffle(
             // Note [Pattern Match Fallbacks]
             val matchExpr = CaseNode.build(
               scrutineeNode,
-              cases
+              cases,
+              isNested
             )
             setLocation(matchExpr, location)
           } else {
@@ -914,7 +915,7 @@ class IrToTruffle(
 
             setLocation(ErrorNode.build(error), caseExpr.location)
           }
-        case IR.Case.Branch(_, _, _, _, _) =>
+        case _: IR.Case.Branch =>
           throw new CompilerError("A CaseBranch should never occur here.")
       }
 
@@ -947,7 +948,7 @@ class IrToTruffle(
           )
 
           val branchNode =
-            CatchAllBranchNode.build(branchCodeNode.getCallTarget)
+            CatchAllBranchNode.build(branchCodeNode.getCallTarget, true)
 
           Right(branchNode)
         case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
@@ -980,7 +981,8 @@ class IrToTruffle(
                   Right(
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
-                      mod.unsafeAsModule().getScope.getAssociatedType
+                      mod.unsafeAsModule().getScope.getAssociatedType,
+                      branch.terminalBranch
                     )
                   )
                 case Some(
@@ -991,13 +993,22 @@ class IrToTruffle(
                   val atomCons =
                     tp.unsafeToRuntimeType().getConstructors.get(cons.name)
                   val r = if (atomCons == context.getBuiltins.bool().getTrue) {
-                    BooleanBranchNode.build(true, branchCodeNode.getCallTarget)
+                    BooleanBranchNode.build(
+                      true,
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
+                    )
                   } else if (atomCons == context.getBuiltins.bool().getFalse) {
-                    BooleanBranchNode.build(false, branchCodeNode.getCallTarget)
+                    BooleanBranchNode.build(
+                      false,
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
+                    )
                   } else {
                     ConstructorBranchNode.build(
                       atomCons,
-                      branchCodeNode.getCallTarget
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
                     )
                   }
                   Right(r)
@@ -1007,15 +1018,20 @@ class IrToTruffle(
                   val tpe =
                     mod.unsafeAsModule().getScope.getTypes.get(tp.name)
                   val polyglot = context.getBuiltins.polyglot
-                  val branch = if (tpe == polyglot) {
-                    PolyglotBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                  val branchNode = if (tpe == polyglot) {
+                    PolyglotBranchNode.build(
+                      tpe,
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
+                    )
                   } else {
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
-                      tpe
+                      tpe,
+                      branch.terminalBranch
                     )
                   }
-                  Right(branch)
+                  Right(branchNode)
                 case Some(
                       BindingsMap.Resolution(
                         BindingsMap.ResolvedPolyglotSymbol(mod, symbol)
@@ -1029,7 +1045,11 @@ class IrToTruffle(
                   Either.cond(
                     polyglotSymbol != null,
                     ObjectEqualityBranchNode
-                      .build(branchCodeNode.getCallTarget, polyglotSymbol),
+                      .build(
+                        branchCodeNode.getCallTarget,
+                        polyglotSymbol,
+                        branch.terminalBranch
+                      ),
                     BadPatternMatch.NonVisiblePolyglotSymbol(symbol.name)
                   )
                 case Some(
@@ -1056,21 +1076,24 @@ class IrToTruffle(
                   Right(
                     NumericLiteralBranchNode.build(
                       doubleVal,
-                      branchCodeNode.getCallTarget
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
                     )
                   )
                 case longVal: Long =>
                   Right(
                     NumericLiteralBranchNode.build(
                       longVal,
-                      branchCodeNode.getCallTarget
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
                     )
                   )
                 case bigIntVal: BigInteger =>
                   Right(
                     NumericLiteralBranchNode.build(
                       bigIntVal,
-                      branchCodeNode.getCallTarget
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
                     )
                   )
                 case _ =>
@@ -1082,7 +1105,8 @@ class IrToTruffle(
               Right(
                 StringLiteralBranchNode.build(
                   text.text,
-                  branchCodeNode.getCallTarget
+                  branchCodeNode.getCallTarget,
+                  branch.terminalBranch
                 )
               )
           }
@@ -1116,7 +1140,11 @@ class IrToTruffle(
                     branch.location
                   )
                   Right(
-                    CatchTypeBranchNode.build(tpe, branchCodeNode.getCallTarget)
+                    CatchTypeBranchNode.build(
+                      tpe,
+                      branchCodeNode.getCallTarget,
+                      branch.terminalBranch
+                    )
                   )
                 case None => Left(BadPatternMatch.NonVisibleType(tpeName.name))
               }
@@ -1152,7 +1180,8 @@ class IrToTruffle(
                 Right(
                   PolyglotSymbolTypeBranchNode.build(
                     polySymbol,
-                    branchCodeNode.getCallTarget
+                    branchCodeNode.getCallTarget,
+                    branch.terminalBranch
                   )
                 )
               } else {

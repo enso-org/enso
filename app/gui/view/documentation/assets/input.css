@@ -1,0 +1,10 @@
+/*
+   In this file, one can define custom CSS rules for use in the documentation panel.
+   The Tailwind CLI utility uses this file as an input file, and the content is copied to
+   the final CSS stylesheet of the documentation panel.
+   See the crate documentation to learn more.
+*/
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
