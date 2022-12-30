@@ -719,23 +719,27 @@ pub fn register_get_shaders() {
         // warn!(">>x2, {:?}", web_sys::window());
         // let world = World::new();
         // let scene = &world.default_scene;
-        precompile_shaders();
-        let map = js_sys::Map::new();
-        map.set(&"hello2".into(), &"world".into());
-        map.into()
+        let map = precompile_shaders();
+        let js_map = js_sys::Map::new();
+        for (key, value) in map {
+            js_map.set(&key.into(), &value.into());
+        }
+        js_map.into()
     }) as Box<dyn FnMut() -> JsValue>);
     registerGetShadersRustFn(&closure);
     mem::forget(closure);
 }
 
-pub fn precompile_shaders() {
+pub fn precompile_shaders() -> HashMap<usize, String> {
+    let mut map = HashMap::new();
     display::world::STATIC_SHAPES.with(|shapes| {
-        for shape_cons in shapes.borrow().iter() {
+        for (i, shape_cons) in shapes.borrow().iter().enumerate() {
             let shape = shape_cons();
             let code = shape.optimize_shader();
-            warn!("{}", code.vertex);
+            map.insert(i, code.fragment);
         }
-    })
+    });
+    map
 }
 
 

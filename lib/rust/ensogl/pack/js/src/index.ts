@@ -2,17 +2,16 @@
 /// user with a visual representation of this process (welcome screen). It also implements a view
 /// allowing to choose a debug rendering test from.
 
-import Loader from './loader'
 import * as html_utils from './html_utils'
-
+import * as fs from './fs'
 import host from './host'
-import Task from './task'
-import Logger from './logger'
-import { Config, DEFAULT_ENTRY_POINT } from './config'
-import { ArgParser, parseArgs } from './arg-parser'
-
-// import * as fs from 'fs'
-let fs = require('./fs')
+import { Loader } from './loader'
+import { Task } from './task'
+import { Logger } from './logger'
+import { Config } from './config'
+import { Args, parseArgs } from './arg-parser'
+import { logRouter } from './log-router'
+import { EntryPoint, wasmFunctions } from './entry-point'
 
 // ===================
 // === PackageInfo ===
@@ -96,74 +95,6 @@ async function init_wasm(snippets_code: string, wasm: Buffer | Response): Promis
 // === EntryPoint ===
 // ==================
 
-const MAIN_ENTRY_POINT_PREFIX = 'entry_point_'
-const BEFORE_MAIN_ENTRY_POINT_PREFIX = 'before_main_entry_point_'
-const NAME_REGEX = new RegExp(String.raw`(?<underscore>__)|(_(?<specialChar>[0-9]+)_)`, 'g')
-
-class EntryPoint {
-    prefix: string
-    name: string
-    private constructor(prefix: string, name: string) {
-        this.prefix = prefix
-        this.name = name
-    }
-
-    fullName(): string {
-        return this.prefix + this.name
-    }
-
-    displayName(): string {
-        return this.name.replace(NAME_REGEX, (...args) => {
-            let groups = args.at(-1)
-            if (groups.underscore) {
-                return '_'
-            } else {
-                return String.fromCharCode(parseInt(groups.specialChar))
-            }
-        })
-    }
-
-    static tryAs(prefix: string, fullName: string): EntryPoint | null {
-        if (fullName.startsWith(prefix)) {
-            return new EntryPoint(prefix, fullName.substring(prefix.length))
-        } else {
-            return null
-        }
-    }
-
-    static tryAsMainEntryPoint(fullName: string): EntryPoint | null {
-        return EntryPoint.tryAs(MAIN_ENTRY_POINT_PREFIX, fullName)
-    }
-
-    static tryAsBeforeMainEntryPoint(fullName: string): EntryPoint | null {
-        return EntryPoint.tryAs(BEFORE_MAIN_ENTRY_POINT_PREFIX, fullName)
-    }
-
-    static entryPoints(prefix: string, names: string[]): Map<string, EntryPoint> {
-        return names
-            .map(n => EntryPoint.tryAs(prefix, n))
-            .filter((n): n is EntryPoint => n != null)
-            .reduce((map, n) => {
-                map.set(n.name, n)
-                return map
-            }, new Map())
-    }
-
-    static mainEntryPoints(names: string[]): Map<string, EntryPoint> {
-        return EntryPoint.entryPoints(MAIN_ENTRY_POINT_PREFIX, names)
-    }
-
-    static beforeMainEntryPoints(names: string[]): Map<string, EntryPoint> {
-        return EntryPoint.entryPoints(BEFORE_MAIN_ENTRY_POINT_PREFIX, names)
-    }
-}
-
-function wasmFunctions(wasm: any): string[] {
-    let names = Object.getOwnPropertyNames(wasm)
-    names.sort()
-    return names
-}
-
 // =========================
 // === EntryPointChooser ===
 // =========================
@@ -225,98 +156,6 @@ function printScamWarning() {
     console.log('%c' + msg2, msgCSS)
 }
 
-// ======================
-// === Logs Buffering ===
-// ======================
-
-const logsFns = ['log', 'info', 'debug', 'warn', 'error', 'group', 'groupCollapsed', 'groupEnd']
-
-class LogRouter {
-    private buffer: any[]
-    private readonly raw: {}
-    autoFlush: boolean
-
-    constructor() {
-        this.buffer = []
-        this.raw = {}
-        this.autoFlush = true
-        // @ts-ignore
-        console.autoFlush = true
-        for (let name of logsFns) {
-            // @ts-ignore
-            this.raw[name] = console[name]
-            // @ts-ignore
-            console[name] = (...args) => {
-                this.handle(name, args)
-            }
-        }
-    }
-
-    auto_flush_on() {
-        this.autoFlush = true
-        // @ts-ignore
-        console.autoFlush = true
-        for (let { name, args } of this.buffer) {
-            // @ts-ignore
-            this.raw[name](...args)
-        }
-        this.buffer = []
-    }
-
-    handle(name: string, args: any[]) {
-        if (this.autoFlush) {
-            // @ts-ignore
-            this.raw[name](...args)
-        } else {
-            this.buffer.push({ name, args })
-        }
-
-        // The following code is just a hack to discover if the logs start with `[E]` which
-        // indicates errors from Rust logger.
-        if (name == 'error') {
-            this.handleError(...args)
-        } else if (name == 'log') {
-            let firstArg = args[0]
-            if (firstArg !== undefined) {
-                if (!(typeof firstArg === 'string' || firstArg instanceof String)) {
-                    firstArg = firstArg.toString()
-                }
-                if (firstArg.startsWith('%c')) {
-                    let firstArgBody = firstArg.slice(2)
-                    let bodyStartIndex = firstArgBody.indexOf('%c')
-                    if (bodyStartIndex !== -1) {
-                        let body = firstArgBody.slice(bodyStartIndex + 3)
-                        let is_error = body.startsWith('[E]')
-                        if (is_error) {
-                            this.handleError(body)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    handleError(...args: any[]) {
-        Logger.log('error', args)
-    }
-}
-
-let logRouter = new LogRouter()
-
-function hideLogs() {
-    console.log('All subsequent logs will be hidden. Eval `showLogs()` to reveal them.')
-    logRouter.autoFlush = false
-    // @ts-ignore
-    console.autoFlush = false
-}
-
-function showLogs() {
-    logRouter.auto_flush_on()
-}
-
-// @ts-ignore
-// window.showLogs = showLogs
-
 // ========================
 // === Main Entry Point ===
 // ========================
@@ -334,15 +173,12 @@ function disableContextMenu() {
     })
 }
 
-// @ts-ignore
-host.global.registerGetShadersRustFn = registerGetShadersRustFn
-
 function initBrowser(config: Config) {
     style_root()
     printScamWarning()
     disableContextMenu()
     if (!config.debug) {
-        hideLogs()
+        logRouter.hideLogs()
     }
 }
 
@@ -356,7 +192,7 @@ type AppArgs = {
 }
 
 export class App {
-    args: ArgParser
+    args: Args
     info: Object
     config: Config
     wasm: any
@@ -446,9 +282,9 @@ export class App {
     }
 
     generateShadersCode() {
-        Task.with('Generating shaders code.', () => {
+        Task.with('Getting shaders code from EnsoGL.', () => {
             let out = this.getShadersFn()
-            console.log('got', out)
+            // console.log('got', out)
         })
     }
 }
@@ -457,7 +293,6 @@ export class App {
 // === App Initialization ===
 // ==========================
 
-console.log(window)
 const app = new App()
 export default app
 app.run()
@@ -466,6 +301,11 @@ function registerGetShadersRustFn(fn: any) {
     Logger.log(`Registering 'getShadersFn'.`)
     app.getShadersFn = fn
 }
+host.exportGlobal({ registerGetShadersRustFn })
+
+// ==============
+// === FIXMES ===
+// ==============
 
 // FIXME: leftover from old script
 // API[globalConfig.windowAppScopeConfigName] = config

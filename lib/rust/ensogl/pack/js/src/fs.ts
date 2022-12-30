@@ -1,10 +1,9 @@
+export * from 'fs/promises'
 import { ObjectEncodingOptions, OpenMode, PathLike } from 'node:fs'
 import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'
 import { promises as fs } from 'fs'
-
-export * from 'fs/promises'
-import LoggedTask from './task'
+import { Task as LoggedTask } from './task'
 
 export async function readFile(
     path: PathLike | FileHandle,

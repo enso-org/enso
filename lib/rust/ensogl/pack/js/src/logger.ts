@@ -33,7 +33,7 @@ class Colors {
     }
 }
 
-export default class Logger {
+export class Logger {
     private static indent_lvl: number = 0
 
     private static message(fn: string, color: string | null, ...args: any[]) {

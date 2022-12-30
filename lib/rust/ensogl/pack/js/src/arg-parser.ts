@@ -26,7 +26,7 @@ class Option {
     }
 }
 
-export class ArgParser {
+export class Args {
     help = new Option(false, 'Print help message.')
     genShadersCode = new Option(
         false,
@@ -73,8 +73,8 @@ export class ArgParser {
     }
 }
 
-export function parseArgs(): ArgParser {
-    const argParser = new ArgParser()
+export function parseArgs(): Args {
+    const argParser = new Args()
     argParser.parse()
     return argParser
 }

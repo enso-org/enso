@@ -121,9 +121,13 @@ macro_rules! wasm_lazy_global {
     };
 }
 
-pub fn get_window() -> Window {
-    use wasm_bindgen::JsCast;
+// FIXME: check if we can do it otherwise - via js_sys::global(). Its needed for .performance and we
+// can access it there probably.
 
+/// Get the global window object.
+/// # Safety
+/// We are using an unsafe cast here in rder to make it working in node.
+pub fn get_window() -> Window {
     js_sys::global().unchecked_into::<Window>()
 }
 

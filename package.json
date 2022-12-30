@@ -3,6 +3,7 @@
     "prettier": "2.4.1"
   },
   "dependencies": {
-    "chromedriver": "^106.0.1"
+    "chromedriver": "^106.0.1",
+    "typescript": "^4.9.4"
   }
 }

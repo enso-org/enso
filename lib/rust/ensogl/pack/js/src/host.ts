@@ -20,11 +20,18 @@ function urlParams(): any {
     }
 }
 
-// @ts-ignore
-global.window = global
+function exportGlobal(exports: { [key: string]: any }) {
+    for (const [key, value] of Object.entries(exports)) {
+        // @ts-ignore
+        global[key] = value
+    }
+}
+
+exportGlobal({ window: global })
 
 export default {
     global,
+    exportGlobal,
     browser,
     node,
     urlParams,

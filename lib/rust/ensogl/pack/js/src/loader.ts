@@ -2,8 +2,6 @@ import * as animation from './animation.js'
 import * as html_utils from './html_utils.js'
 import * as math from './math.js'
 import * as svg from './svg.js'
-import Logger from './logger'
-import Task from './task'
 import { Config } from './config'
 
 // =========================
@@ -175,7 +173,7 @@ class ProgressIndicator {
 // ==============
 
 /// The main loader class. It connects to the provided fetch responses and tracks their status.
-export default class Loader {
+export class Loader {
     indicator: ProgressIndicator
     total_bytes: number
     received_bytes: number

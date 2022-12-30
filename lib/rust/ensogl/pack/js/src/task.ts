@@ -1,6 +1,6 @@
-import Logger from './logger'
+import { Logger } from './logger'
 
-export default class Task {
+export class Task {
     message: string
     startTime: number = 0
     endTime: number = 0

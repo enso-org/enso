@@ -92,7 +92,10 @@ fn compile_js(main: &str, out: &Path) {
 
 fn compile_ts(main: &str, out: &Path) {
     println!("Type checking TypeScript sources.");
-    execute("npx", &["tsc", "-noEmit"]);
+    execute("npm", &["run", "typecheck"]);
+    // println!("Linting TypeScript sources.");
+    // execute("npm", &["run", "lint"]);
+    println!("Building TypeScript sources.");
     execute("npm", &["run", "build", "--", &format!("--outfile={}", out.display())]);
 }
 
@@ -119,6 +122,7 @@ fn main() {
         let out_dir = out_dir.unwrap();
         let out_name = out_name.unwrap();
 
+        with_pwd(&root_dir.join("js"), || execute("npm", &["install"]));
         with_pwd(&root_dir.join("js"), || compile_ts("src/index.ts", &dist_dir.join("index.js")));
         with_pwd(&build_dir, || compile_js("pkg.js", &dist_dir.join("snippets.js")));
 
