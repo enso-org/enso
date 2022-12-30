@@ -3,7 +3,7 @@ import { ObjectEncodingOptions, OpenMode, PathLike } from 'node:fs'
 import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'
 import { promises as fs } from 'fs'
-import { Task as LoggedTask } from './task'
+import { Task as LoggedTask } from 'log/task'
 
 export async function readFile(
     path: PathLike | FileHandle,

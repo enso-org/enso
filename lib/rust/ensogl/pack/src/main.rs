@@ -121,9 +121,13 @@ fn main() {
         // FIXME:
         let out_dir = out_dir.unwrap();
         let out_name = out_name.unwrap();
+        let js_dir = root_dir.join("js");
+        let node_modules_dir = js_dir.join("node_modules");
 
-        with_pwd(&root_dir.join("js"), || execute("npm", &["install"]));
-        with_pwd(&root_dir.join("js"), || compile_ts("src/index.ts", &dist_dir.join("index.js")));
+        if !node_modules_dir.is_dir() {
+            with_pwd(&js_dir, || execute("npm", &["install"]));
+        }
+        with_pwd(&js_dir, || compile_ts("src/index.ts", &dist_dir.join("index.js")));
         with_pwd(&build_dir, || compile_js("pkg.js", &dist_dir.join("snippets.js")));
 
         // FIXME: change it to move

@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
+    "baseUrl": "./src",
+    "strict": true,
     "inlineSourceMap": true,
-    "noImplicitAny": true,
     "target": "ES2019",
     "module": "ESNext",
     "esModuleInterop": true,
@@ -9,6 +10,13 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noImplicitOverride": true,
+    "strictPropertyInitialization": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "removeComments": true,
   },
   "ts-node": {
     "esm": true

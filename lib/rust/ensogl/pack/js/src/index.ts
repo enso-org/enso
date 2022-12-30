@@ -1,17 +1,13 @@
-/// This module is responsible for loading the WASM binary, its dependencies, and providing the
-/// user with a visual representation of this process (welcome screen). It also implements a view
-/// allowing to choose a debug rendering test from.
-
-import * as html_utils from './html_utils'
-import * as fs from './fs'
-import host from './host'
-import { Loader } from './loader'
-import { Task } from './task'
-import { Logger } from './logger'
-import { Config } from './config'
-import { Args, parseArgs } from './arg-parser'
-import { logRouter } from './log-router'
-import { EntryPoint, wasmFunctions } from './entry-point'
+import * as html_utils from 'dom/dom'
+import * as fs from 'system/fs'
+import host from 'system/host'
+import { Loader } from 'wasm/loader'
+import { Task } from 'log/task'
+import { Logger } from 'log/logger'
+import { Config } from 'config/config'
+import { Args, parseArgs } from 'config/arg-parser'
+import { logRouter } from 'log/router'
+import { EntryPoint, wasmFunctions } from 'wasm/entry-point'
 
 // ===================
 // === PackageInfo ===
@@ -39,7 +35,7 @@ class PackageInfo {
     /** Display the current info in the console. */
     display() {
         Logger.with('Package info.', () => {
-            for (let [key, value] of Object.entries(this)) {
+            for (const [key, value] of Object.entries(this)) {
                 if (value) {
                     Logger.log(`${key}: ${value}`)
                 }
@@ -58,128 +54,39 @@ class PackageInfo {
  * initialized. */
 async function load_wasm(config: Config) {
     if (host.browser) {
-        let task = Task.start(`Downloading files ${config.snippets_url} and ${config.wasm_url}.`)
-        let snippets_fetch = await fetch(config.snippets_url.value)
-        let wasm_fetch = await fetch(config.wasm_url.value)
-        let loader = new Loader([snippets_fetch, wasm_fetch], config)
+        const task = Task.start(`Downloading files ${config.snippets_url} and ${config.wasm_url}.`)
+        const snippets_fetch = await fetch(config.snippets_url.value)
+        const wasm_fetch = await fetch(config.wasm_url.value)
+        const loader = new Loader([snippets_fetch, wasm_fetch], config)
         loader.done.then(() => task.end())
         // FIXME:
-        let download_size = loader.show_total_bytes()
+        // @ts-ignore
+        const download_size = loader.show_total_bytes()
 
-        let snippets_code = await snippets_fetch.text()
-        let wasm = await init_wasm(snippets_code, wasm_fetch)
+        const snippets_code = await snippets_fetch.text()
+        const wasm = await compile_and_run_wasm(snippets_code, wasm_fetch)
         await loader.initialized
         return { wasm, loader }
     } else {
-        let snippets_code = await fs.readFile(config.snippets_url.value, 'utf8')
-        let wasm_main = await fs.readFile(config.wasm_url.value)
-        let wasm = await init_wasm(snippets_code, wasm_main)
-        let loader = null
+        const snippets_code = await fs.readFile(config.snippets_url.value, 'utf8')
+        const wasm_main = await fs.readFile(config.wasm_url.value)
+        const wasm = await compile_and_run_wasm(snippets_code, wasm_main)
+        const loader = null
         return { wasm, loader }
     }
 }
 
-async function init_wasm(snippets_code: string, wasm: Buffer | Response): Promise<any> {
-    return await Task.asyncWith('Wasm compilation.', async () => {
-        let snippets_fn = Function(
-            `let module = {}
+/** Compiles and runs the downloaded WASM file. */
+async function compile_and_run_wasm(snippets_code: string, wasm: Buffer | Response): Promise<any> {
+    return await Task.asyncWith('Running wasm.', async () => {
+        const snippets_fn = Function(
+            `const module = {}
              ${snippets_code}
              module.exports.init = pkg_default 
              return module.exports`
         )()
         return await snippets_fn.init(wasm)
     })
-}
-
-// ==================
-// === EntryPoint ===
-// ==================
-
-// =========================
-// === EntryPointChooser ===
-// =========================
-
-/// Displays a debug screen which allows the user to run one of predefined debug examples.
-function show_debug_screen(wasm: any, msg: string) {
-    Logger.log('show_debug_screen')
-    msg ??= ''
-    let entryPoints = EntryPoint.mainEntryPoints(wasmFunctions(wasm))
-    let debug_screen_div = html_utils.new_top_level_div()
-    let newDiv = document.createElement('div')
-    let newContent = document.createTextNode(msg + 'Available entry points:')
-    let ul = document.createElement('ul')
-    debug_screen_div.style.position = 'absolute'
-    debug_screen_div.style.zIndex = '1'
-    newDiv.appendChild(newContent)
-    debug_screen_div.appendChild(newDiv)
-    newDiv.appendChild(ul)
-
-    for (let entry_point of entryPoints.values()) {
-        let li = document.createElement('li')
-        let a = document.createElement('a')
-        let linkText = document.createTextNode(entry_point.name)
-        ul.appendChild(li)
-        a.appendChild(linkText)
-        a.title = entry_point.name
-        a.href = '?entry=' + entry_point.name
-        li.appendChild(a)
-    }
-}
-
-// ====================
-// === Scam Warning ===
-// ====================
-
-function printScamWarning() {
-    let headerCSS = `
-        color : white;
-        background : crimson;
-        display : block;
-        border-radius : 8px;
-        font-weight : bold;
-        padding: 10px 20px 10px 20px;
-    `
-    let headerCSS1 = headerCSS + 'font-size : 46px;'
-    let headerCSS2 = headerCSS + 'font-size : 20px;'
-    let msgCSS = 'font-size:16px;'
-
-    let msg1 =
-        'This is a browser feature intended for developers. If someone told you to ' +
-        'copy-paste something here, it is a scam and will give them access to your ' +
-        'account and data.'
-    let msg2 =
-        'See https://github.com/enso-org/enso/blob/develop/docs/security/selfxss.md for more ' +
-        'information.'
-    console.log('%cStop!', headerCSS1)
-    console.log('%cYou may be victim of a scam!', headerCSS2)
-    console.log('%c' + msg1, msgCSS)
-    console.log('%c' + msg2, msgCSS)
-}
-
-// ========================
-// === Main Entry Point ===
-// ========================
-
-function style_root() {
-    let root = document.getElementById('root')
-    if (root != null) {
-        root.style.backgroundColor = 'rgb(249,250,251)'
-    }
-}
-
-function disableContextMenu() {
-    document.body.addEventListener('contextmenu', e => {
-        e.preventDefault()
-    })
-}
-
-function initBrowser(config: Config) {
-    style_root()
-    printScamWarning()
-    disableContextMenu()
-    if (!config.debug) {
-        logRouter.hideLogs()
-    }
 }
 
 // ===========
@@ -191,6 +98,7 @@ type AppArgs = {
     info?: Object
 }
 
+/** The main application class. */
 export class App {
     args: Args
     info: Object
@@ -208,6 +116,9 @@ export class App {
         this.logger = Logger
     }
 
+    /** Runs the application. If it is run in the browser, it will initialize DOM elements, display
+     * a loader, and list of entry points if the provided entry point is missing. If it is run in
+     * node, it will run before main entry points and then the provided command. */
     async run(appArgs?: AppArgs): Promise<void> {
         this.args = parseArgs()
         this.info = appArgs?.info ?? {}
@@ -231,7 +142,7 @@ export class App {
 
     async init() {
         if (host.node) this.task = Task.start('Running the program.')
-        let { wasm, loader } = await load_wasm(this.config)
+        const { wasm, loader } = await load_wasm(this.config)
         this.wasm = wasm
         this.loader = loader
         this.wasmFunctions = wasmFunctions(this.wasm)
@@ -241,19 +152,13 @@ export class App {
         new PackageInfo(this.info).display()
     }
 
-    initBrowser() {
-        if (host.browser) {
-            initBrowser(this.config)
-        }
-    }
-
     runBeforeMainEntryPoints() {
         if (!this.beforeMainEntryPoints.size) {
             return
         }
-        let count = this.beforeMainEntryPoints.size
+        const count = this.beforeMainEntryPoints.size
         Task.with(`Running ${count} before main entry points.`, () => {
-            for (let entryPoint of this.beforeMainEntryPoints.values()) {
+            for (const entryPoint of this.beforeMainEntryPoints.values()) {
                 const [time, _] = Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
                     this.wasm[entryPoint.fullName()]()
                 })
@@ -270,22 +175,99 @@ export class App {
     }
 
     runEntryPoints() {
-        let entryPointName = this.config.entry.value
-        let entryPoint = this.mainEntryPoints.get(entryPointName)
+        const entryPointName = this.config.entry.value
+        const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             this.runBeforeMainEntryPoints()
             Logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)
             this.wasm[entryPoint.fullName()]()
         } else {
-            show_debug_screen(this.wasm, `Unknown entry point '${entryPointName}'. `)
+            this.show_debug_screen(`Unknown entry point '${entryPointName}'. `)
         }
     }
 
     generateShadersCode() {
         Task.with('Getting shaders code from EnsoGL.', () => {
-            let out = this.getShadersFn()
+            // @ts-ignore
+            const out = this.getShadersFn()
             // console.log('got', out)
         })
+    }
+
+    initBrowser() {
+        if (host.browser) {
+            this.style_root()
+            this.printScamWarning()
+            this.disableContextMenu()
+            if (!this.config.debug) {
+                logRouter.hideLogs()
+            }
+        }
+    }
+
+    disableContextMenu() {
+        document.body.addEventListener('contextmenu', e => {
+            e.preventDefault()
+        })
+    }
+
+    style_root() {
+        const root = document.getElementById('root')
+        if (root != null) {
+            root.style.backgroundColor = 'rgb(249,250,251)'
+        }
+    }
+
+    /// Displays a debug screen which allows the user to run one of predefined debug examples.
+    show_debug_screen(unknownEntryPoint?: string) {
+        Logger.log('show_debug_screen')
+        const msg = unknownEntryPoint ? `Unknown entry point '${unknownEntryPoint}'. ` : ''
+        const div = html_utils.new_top_level_div()
+        const div2 = document.createElement('div')
+        const content = document.createTextNode(msg + 'Available entry points:')
+        const ul = document.createElement('ul')
+        div.style.position = 'absolute'
+        div.style.zIndex = '1'
+        div2.appendChild(content)
+        div.appendChild(div2)
+        div2.appendChild(ul)
+
+        for (const entry_point of this.mainEntryPoints.values()) {
+            const li = document.createElement('li')
+            const a = document.createElement('a')
+            const linkText = document.createTextNode(entry_point.name)
+            ul.appendChild(li)
+            a.appendChild(linkText)
+            a.title = entry_point.name
+            a.href = '?entry=' + entry_point.name
+            li.appendChild(a)
+        }
+    }
+
+    printScamWarning() {
+        const headerCss = `
+            color : white;
+            background : crimson;
+            display : block;
+            border-radius : 8px;
+            font-weight : bold;
+            padding: 10px 20px 10px 20px;
+        `
+        const headerCss1 = headerCss + 'font-size : 46px;'
+        const headerCss2 = headerCss + 'font-size : 20px;'
+        const msgCSS = 'font-size:16px;'
+
+        const msg1 =
+            'This is a browser feature intended for developers. If someone told you to ' +
+            'copy-paste something here, it is a scam and will give them access to your ' +
+            'account and data.'
+        const msg2 =
+            'See https://github.com/enso-org/enso/blob/develop/docs/security/selfxss.md for more ' +
+            'information.'
+        console.log('%cStop!', headerCss1)
+        console.log('%cYou may be victim of a scam!', headerCss2)
+        console.log('%c' + msg1, msgCSS)
+        console.log('%c' + msg2, msgCSS)
     }
 }
 

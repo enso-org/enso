@@ -49,7 +49,8 @@ export class Args {
                 this[fieldName].value = optionValue
             }
         } catch (error) {
-            console.error(`${error.message}. Use --help to learn about possible options.`)
+            let msg = error instanceof Error ? `${error.message}. ` : ''
+            console.error(`${msg}Use --help to learn about possible options.`)
             process.exit(1)
         }
         if (this.help.value) {

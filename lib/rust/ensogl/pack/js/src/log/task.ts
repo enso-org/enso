@@ -1,4 +1,4 @@
-import { Logger } from './logger'
+import { Logger } from 'log/logger'
 
 export class Task {
     message: string

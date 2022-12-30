@@ -1,4 +1,4 @@
-import host from './host'
+import host from 'system/host'
 
 class Colors {
     static resetCode = '\x1b[0m'

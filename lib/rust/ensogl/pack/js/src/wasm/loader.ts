@@ -1,8 +1,8 @@
-import * as animation from './animation.js'
-import * as html_utils from './html_utils.js'
-import * as math from './math.js'
-import * as svg from './svg.js'
-import { Config } from './config'
+import * as animation from 'animation'
+import * as html_utils from 'dom/dom'
+import * as math from 'math'
+import * as svg from 'dom/svg'
+import { Config } from 'config/config'
 
 // =========================
 // === ProgressIndicator ===
@@ -135,7 +135,7 @@ class ProgressIndicator {
     /// Start show animation. It is used after the loader is created.
     animate_show(): Promise<void> {
         let indicator = this
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (resolve) {
             let alpha = 0
             function show_step() {
                 if (alpha > 1) {
@@ -157,7 +157,7 @@ class ProgressIndicator {
     animate_rotation() {
         let indicator = this
         let rotation = 0
-        function rotate_step(timestamp: DOMHighResTimeStamp) {
+        function rotate_step() {
             indicator.set_rotation(rotation)
             rotation += 6
             if (!indicator.destroyed) {

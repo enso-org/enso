@@ -1,4 +1,4 @@
-import host from './host'
+import host from 'system/host'
 
 // =================
 // === LogRouter ===
@@ -16,7 +16,7 @@ const consoleLogNames: (keyof Console)[] = [
 ]
 
 // FIXME: fix Rust `autoFlush` handling
-class LogRouter {
+class Router {
     private buffer: { name: string; args: any[] }[]
     private readonly console: any
     autoFlush: boolean
@@ -60,6 +60,6 @@ class LogRouter {
     }
 }
 
-export const logRouter = new LogRouter()
+export const logRouter = new Router()
 
 host.exportGlobal({ logRouter, hideLogs: logRouter.hideLogs, showLogs: logRouter.showLogs })
