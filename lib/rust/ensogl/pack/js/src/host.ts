@@ -20,6 +20,9 @@ function urlParams(): any {
     }
 }
 
+// @ts-ignore
+global.window = global
+
 export default {
     global,
     browser,

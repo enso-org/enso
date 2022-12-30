@@ -32,27 +32,21 @@ impl Framebuffers {
 /// Pass for rendering all symbols. The results are stored in the 'color' and 'id' outputs.
 #[derive(Clone, Debug)]
 pub struct SymbolsRenderPass {
-    logger:          Logger,
-    symbol_registry: SymbolRegistry,
-    layers:          scene::HardcodedLayers,
-    framebuffers:    Option<Framebuffers>,
-    mask_composer:   MaskComposer,
+    logger:        Logger,
+    layers:        scene::HardcodedLayers,
+    framebuffers:  Option<Framebuffers>,
+    mask_composer: MaskComposer,
 }
 
 impl SymbolsRenderPass {
     /// Constructor.
-    pub fn new(
-        logger: impl AnyLogger,
-        symbol_registry: &SymbolRegistry,
-        layers: &scene::HardcodedLayers,
-    ) -> Self {
+    pub fn new(logger: impl AnyLogger, layers: &scene::HardcodedLayers) -> Self {
         let logger = Logger::new_sub(logger, "SymbolsRenderPass");
-        let symbol_registry = symbol_registry.clone_ref();
         let layers = layers.clone_ref();
         let framebuffers = default();
         let mask_composer =
             MaskComposer::new("pass_mask_color", "pass_layer_color", "pass_layer_id");
-        Self { logger, symbol_registry, layers, framebuffers, mask_composer }
+        Self { logger, layers, framebuffers, mask_composer }
     }
 }
 
@@ -169,8 +163,10 @@ impl SymbolsRenderPass {
             instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &arr);
         }
 
-        self.symbol_registry.set_camera(&layer.camera());
-        self.symbol_registry.render_symbols(&layer.symbols());
+        scene::with_symbol_registry(|t| {
+            t.set_camera(&layer.camera());
+            t.render_symbols(&layer.symbols());
+        });
         for sublayer in layer.sublayers().iter() {
             self.render_layer(instance, sublayer, scissor_stack, was_ever_masked);
         }

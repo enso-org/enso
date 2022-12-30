@@ -121,8 +121,14 @@ macro_rules! wasm_lazy_global {
     };
 }
 
+pub fn get_window() -> Window {
+    use wasm_bindgen::JsCast;
+
+    js_sys::global().unchecked_into::<Window>()
+}
+
 #[cfg(target_arch = "wasm32")]
-wasm_lazy_global! { window : Window = web_sys::window().unwrap() }
+wasm_lazy_global! { window : Window = get_window() }
 
 #[cfg(target_arch = "wasm32")]
 wasm_lazy_global! { document : Document = window.document().unwrap() }

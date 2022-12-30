@@ -65,6 +65,7 @@ use crate::system::gpu::types::*;
 
 use crate::display;
 use crate::display::object::instance::GenericLayoutApi;
+use crate::display::scene;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
@@ -128,12 +129,11 @@ pub trait InstanceParamsTrait {
 /// such data. In case a shape system does not need any custom data, the empty tuple will be used.
 pub trait CustomSystemData<S: Shape> {
     /// Constructor.
-    fn new(scene: &Scene, data: &ShapeSystemStandardData<S>, shape_data: &S::ShapeData) -> Self;
+    fn new(data: &ShapeSystemStandardData<S>, shape_data: &S::ShapeData) -> Self;
 }
 
 impl<S: Shape> CustomSystemData<S> for () {
-    fn new(_scene: &Scene, _data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {
-    }
+    fn new(_data: &ShapeSystemStandardData<S>, _shape_data: &S::ShapeData) -> Self {}
 }
 
 
@@ -257,14 +257,15 @@ impl<S: Shape> ShapeSystem<S> {
 
     /// Constructor.
     #[profile(Debug)]
-    pub fn new(scene: &Scene, shape_data: &S::ShapeData) -> Self {
-        let style_watch = display::shape::StyleWatch::new(&scene.style_sheet);
+    pub fn new(shape_data: &S::ShapeData) -> Self {
+        let style_watch =
+            scene::with_symbol_registry(|t| display::shape::StyleWatch::new(&t.style_sheet));
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
         let model = display::shape::ShapeSystemModel::new(shape_def, events, S::definition_path());
         let gpu_params = S::new_gpu_params(&model);
         let standard = ShapeSystemStandardData { gpu_params, model, style_watch };
-        let user = CustomSystemData::<S>::new(scene, &standard, shape_data);
+        let user = CustomSystemData::<S>::new(&standard, shape_data);
         standard.model.init();
         let data = Rc::new(ShapeSystemData { standard, user });
         Self { data }.init_refresh_on_style_change()

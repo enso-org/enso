@@ -17,6 +17,7 @@ use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::alignment;
+use ensogl_core::display::scene;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::material::Material;
@@ -181,7 +182,6 @@ mod glyph_shape {
 
 impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
     fn new(
-        scene: &Scene,
         data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph_shape::Shape>,
         shape_data: &ShapeData,
     ) -> Self {
@@ -195,8 +195,10 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
         data.model.do_not_use_shape_definition.set(true);
 
         sprite_system.unsafe_set_alignment(alignment::Dim2::left_bottom());
-        scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        scene.variables.add("msdf_size", size);
+        scene::with_symbol_registry(|t| {
+            t.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+            t.variables.add("msdf_size", size);
+        });
 
         symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
 

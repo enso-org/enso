@@ -125,8 +125,7 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
-        let scene = scene();
-        let (shape, _) = scene.layers.DETACHED.instantiate(&scene, &data);
+        let (shape, _) = scene::with_symbol_registry(|t| t.layers.DETACHED.instantiate(&data));
         let events = PointerTarget::new();
         let pointer_targets = default();
         let data = RefCell::new(data);
@@ -150,7 +149,7 @@ impl<S: Shape> ShapeViewModel<S> {
         } else {
             // Bug in clippy: https://github.com/rust-lang/rust-clippy/issues/9763
             #[allow(clippy::explicit_auto_deref)]
-            let (shape, _) = scene.layers.DETACHED.instantiate(scene, &*self.data.borrow());
+            let (shape, _) = scene.layers.DETACHED.instantiate(&*self.data.borrow());
             self.shape.swap(&shape);
         }
     }
@@ -172,7 +171,7 @@ impl<S: Shape> ShapeViewModel<S> {
     // Clippy error: https://github.com/rust-lang/rust-clippy/issues/9763
     #[allow(clippy::explicit_auto_deref)]
     fn add_to_scene_layer(&self, scene: &Scene, layer: &scene::Layer) {
-        let (shape, instance) = layer.instantiate(scene, &*self.data.borrow());
+        let (shape, instance) = layer.instantiate(&*self.data.borrow());
         scene.pointer_target_registry.insert(instance.global_instance_id, self.events.clone_ref());
         self.pointer_targets.borrow_mut().push(instance.global_instance_id);
         self.shape.swap(&shape);

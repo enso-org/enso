@@ -403,15 +403,13 @@ pub type SymbolRegistryDirty = dirty::SharedBool<Box<dyn Fn()>>;
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Dirty {
-    symbols: SymbolRegistryDirty,
-    shape:   ShapeDirty,
+    shape: ShapeDirty,
 }
 
 impl Dirty {
     pub fn new<OnMut: Fn() + Clone + 'static>(on_mut: OnMut) -> Self {
         let shape = ShapeDirty::new(Box::new(on_mut.clone()));
-        let symbols = SymbolRegistryDirty::new(Box::new(on_mut));
-        Self { symbols, shape }
+        Self { shape }
     }
 }
 
@@ -713,50 +711,51 @@ extern "C" {
     fn registerGetShadersRustFn(closure: &Closure<dyn FnMut() -> JsValue>);
 }
 
+use crate::display::world::World;
 #[before_main]
 pub fn register_get_shaders() {
     let closure = Closure::wrap(Box::new(|| {
+        init_global();
+        // warn!(">>x2, {:?}", web_sys::window());
+        // let world = World::new();
+        // let scene = &world.default_scene;
+        precompile_shaders();
         let map = js_sys::Map::new();
-        map.set(&"hello".into(), &"world".into());
+        map.set(&"hello2".into(), &"world".into());
         map.into()
     }) as Box<dyn FnMut() -> JsValue>);
     registerGetShadersRustFn(&closure);
     mem::forget(closure);
 }
 
-// #[wasm_bindgen]
-// pub struct Interval {
-//     closure: Closure<dyn FnMut()>,
-//     token: f64,
-// }
-//
-// impl Interval {
-//     pub fn new<F: 'static>(millis: u32, f: F) -> Interval
-//         where
-//             F: FnMut()
-//     {
-//         // Construct a new closure.
-//         let closure = Closure::new(f);
-//
-//         // Pass the closure to JS, to run every n milliseconds.
-//         let token = setInterval(&closure, millis);
-//
-//         Interval { closure, token }
-//     }
-// }
-//
-// // When the Interval is destroyed, cancel its `setInterval` timer.
-// impl Drop for Interval {
-//     fn drop(&mut self) {
-//         cancelInterval(self.token);
-//     }
-// }
-//
-// // Keep logging "hello" every second until the resulting `Interval` is dropped.
-// #[wasm_bindgen]
-// pub fn hello() -> Interval {
-//     Interval::new(1_000, || log("hello"))
-// }
+pub fn precompile_shaders() {
+    display::world::STATIC_SHAPES.with(|shapes| {
+        for shape_cons in shapes.borrow().iter() {
+            let shape = shape_cons();
+            let code = shape.optimize_shader();
+            warn!("{}", code.vertex);
+        }
+    })
+}
+
+
+// ===============================
+// === SymbolRegistry Instance ===
+// ===============================
+
+thread_local! {
+    pub static SYMBOL_REGISTRY: RefCell<Option<SymbolRegistry>> = RefCell::new(None);
+}
+
+pub fn with_symbol_registry<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
+    let initialized = SYMBOL_REGISTRY.with_borrow(|t| t.is_some());
+    if !initialized {
+        SYMBOL_REGISTRY.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
+    }
+    SYMBOL_REGISTRY.with_borrow(|t| f(t.as_ref().unwrap()))
+}
+
+
 
 // =================
 // === SceneData ===
@@ -768,7 +767,6 @@ pub struct SceneData {
     pub dom: Dom,
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
-    pub symbols: SymbolRegistry,
     pub variables: UniformScope,
     pub current_js_event: CurrentJsEvent,
     pub mouse: Mouse,
@@ -802,17 +800,15 @@ impl SceneData {
         let display_mode = display_mode.clone_ref();
         let dom = Dom::new();
         let display_object = display::object::Root::new_named("Scene");
-        let variables = UniformScope::new();
+        let variables = with_symbol_registry(|t| t.variables.clone_ref());
         let dirty = Dirty::new(on_mut);
-        let symbols_dirty = &dirty.symbols;
-        let symbols = SymbolRegistry::mk(&variables, stats, f!(symbols_dirty.set()));
-        let layers = HardcodedLayers::new();
+        let layers = with_symbol_registry(|t| t.layers.clone_ref());
         let stats = stats.clone();
         let background = PointerTarget::new();
         let pointer_target_registry = PointerTargetRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
-        let style_sheet = style::Sheet::new();
+        let style_sheet = with_symbol_registry(|t| t.style_sheet.clone_ref());
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
         let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, &display_mode);
@@ -844,7 +840,6 @@ impl SceneData {
             dom,
             context,
             context_lost_handler,
-            symbols,
             variables,
             current_js_event,
             mouse,
@@ -873,22 +868,11 @@ impl SceneData {
         self
     }
 
-    pub fn precompile_shaders(&self) {
-        let style_watch = display::shape::StyleWatch::new(&self.style_sheet);
-        display::world::STATIC_SHAPES.with(|shapes| {
-            for shape_cons in shapes.borrow().iter() {
-                let shape = shape_cons();
-                let code = shape.optimize_shader();
-                warn!("{}", code.vertex);
-            }
-        })
-    }
-
     /// Set the GPU context. In most cases, this happens during app initialization or during context
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
-        self.symbols.set_context(context);
+        with_symbol_registry(|t| t.set_context(context));
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
@@ -903,12 +887,12 @@ impl SceneData {
     }
 
     pub fn new_symbol(&self) -> Symbol {
-        self.symbols.new()
+        with_symbol_registry(|t| t.new())
     }
 
-    pub fn symbols(&self) -> &SymbolRegistry {
-        &self.symbols
-    }
+    // pub fn symbols(&self) -> &SymbolRegistry {
+    //     &self.symbols
+    // }
 
     fn update_shape(&self) -> bool {
         if self.dirty.shape.check_all() {
@@ -926,13 +910,14 @@ impl SceneData {
     }
 
     fn update_symbols(&self) -> bool {
-        if self.dirty.symbols.check_all() {
-            self.symbols.update();
-            self.dirty.symbols.unset_all();
-            true
-        } else {
-            false
-        }
+        with_symbol_registry(|t| {
+            if t.dirty.check_all() {
+                t.update();
+                true
+            } else {
+                false
+            }
+        })
     }
 
     fn update_camera(&self, scene: &Scene) -> bool {
@@ -947,7 +932,7 @@ impl SceneData {
         if changed {
             was_dirty = true;
             self.frp.camera_changed_source.emit(());
-            self.symbols.set_camera(&camera);
+            with_symbol_registry(|t| t.set_camera(&camera));
             self.dom.layers.front.update_view_projection(&camera);
             self.dom.layers.back.update_view_projection(&camera);
         }

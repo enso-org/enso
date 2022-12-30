@@ -5,8 +5,11 @@ use crate::data::dirty::traits::*;
 use crate::prelude::*;
 
 use crate::data::dirty;
+use crate::debug;
 use crate::debug::stats::Stats;
 use crate::display::camera::Camera2d;
+use crate::display::scene;
+use crate::display::style;
 use crate::display::symbol;
 use crate::display::symbol::RenderGroup;
 use crate::display::symbol::Symbol;
@@ -15,6 +18,8 @@ use crate::display::symbol::WeakSymbol;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::Context;
+use crate::system::web;
+use crate::system::web::traits::*;
 
 
 
@@ -22,7 +27,7 @@ use crate::system::gpu::Context;
 // === Types ===
 // =============
 
-pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
+pub type Dirty = dirty::SharedSet<SymbolId>;
 
 
 
@@ -52,54 +57,57 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId, Box<dyn Fn()>>;
 pub struct SymbolRegistry {
     symbols:            Rc<RefCell<WeakValueHashMap<SymbolId, WeakSymbol>>>,
     global_id_provider: symbol::GlobalInstanceIdProvider,
-    symbol_dirty:       SymbolDirty,
+    pub dirty:          Dirty,
     view_projection:    Uniform<Matrix4<f32>>,
     z_zoom_1:           Uniform<f32>,
-    variables:          UniformScope,
+    pub variables:      UniformScope,
     context:            Rc<RefCell<Option<Context>>>,
-    stats:              Stats,
+    pub stats:          Stats,
     next_id:            Rc<Cell<u32>>,
+    pub style_sheet:    style::Sheet,
+    pub layers:         scene::HardcodedLayers,
 }
 
 impl SymbolRegistry {
     /// Constructor.
-    pub fn mk<OnMut: Fn() + 'static>(
-        variables: &UniformScope,
-        stats: &Stats,
-        on_mut: OnMut,
-    ) -> Self {
+    pub fn mk() -> Self {
         debug!("Initializing.");
-        let symbol_dirty = SymbolDirty::new(Box::new(on_mut));
+        let dirty = Dirty::new(());
         let symbols = default();
-        let variables = variables.clone();
+        let variables = UniformScope::new();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let context = default();
-        let stats = stats.clone_ref();
+        // FIXME
+        let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let global_id_provider = default();
         let next_id = default();
+        let style_sheet = style::Sheet::new();
+        let layers = scene::HardcodedLayers::new();
         Self {
             symbols,
             global_id_provider,
-            symbol_dirty,
+            dirty,
             view_projection,
             z_zoom_1,
             variables,
             context,
             stats,
             next_id,
+            style_sheet,
+            layers,
         }
     }
 
     /// Creates a new `Symbol`.
     #[allow(clippy::new_ret_no_self)]
     pub fn new(&self) -> Symbol {
-        let symbol_dirty = self.symbol_dirty.clone();
+        let dirty = self.dirty.clone();
         let stats = &self.stats;
         let id_value = self.next_id.get();
         self.next_id.set(id_value + 1);
         let id = SymbolId::new(id_value);
-        let on_mut = move || symbol_dirty.set(id);
+        let on_mut = move || dirty.set(id);
         let symbol = Symbol::new(stats, id, &self.global_id_provider, on_mut);
         symbol.set_context(self.context.borrow().as_ref());
         self.symbols.borrow_mut().insert(id, symbol.clone_ref());
@@ -119,12 +127,12 @@ impl SymbolRegistry {
     pub fn update(&self) {
         debug_span!("Updating.").in_scope(|| {
             let symbols = self.symbols.borrow();
-            for id in self.symbol_dirty.take().iter() {
+            for id in self.dirty.take().iter() {
                 if let Some(symbol) = symbols.get(id) {
                     symbol.update(&self.variables);
                 }
             }
-            self.symbol_dirty.unset_all();
+            self.dirty.unset_all();
         })
     }
 

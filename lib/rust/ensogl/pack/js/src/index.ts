@@ -457,6 +457,7 @@ export class App {
 // === App Initialization ===
 // ==========================
 
+console.log(window)
 const app = new App()
 export default app
 app.run()

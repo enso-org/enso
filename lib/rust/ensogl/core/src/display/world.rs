@@ -18,6 +18,7 @@ use crate::display;
 use crate::display::garbage;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
+use crate::display::scene;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::glsl;
@@ -259,6 +260,9 @@ pub struct WorldData {
 impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
+        // FIXME: describe
+        scene::with_symbol_registry(|_| {});
+        warn!(">>0");
         PRECOMPILED_SHADERS.with_borrow_mut(|t| t.insert("lib/rust/ensogl/example/auto-layout/src/lib.rs:36:5", "
     highp vec2 _2666 = abs(input_local.xy);
     highp vec2 _2651 = (-input_size) * vec2(0.5) + _2666;
@@ -733,13 +737,19 @@ impl WorldData {
     }
         ".to_string()));
 
+        warn!(">>1");
         let frp = frp.clone_ref();
+        warn!(">>2");
+        warn!(">> {:?}", web::window);
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
+        warn!(">>2");
         let on = Callbacks::default();
+        warn!(">>3");
         let scene_dirty = dirty::SharedBool::new(());
         let on_change = enclose!((scene_dirty) move || scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
+        warn!(">>2");
         let default_scene = Scene::new(&stats, on_change, &display_mode);
         let uniforms = Uniforms::new(&default_scene.variables);
         let debug_hotkeys_handle = default();
@@ -823,11 +833,7 @@ impl WorldData {
         // pixel_read_pass.set_threshold(1);
         let logger = Logger::new("renderer");
         let pipeline = render::Pipeline::new()
-            .add(SymbolsRenderPass::new(
-                logger,
-                self.default_scene.symbols(),
-                &self.default_scene.layers,
-            ))
+            .add(SymbolsRenderPass::new(logger, &self.default_scene.layers))
             .add(ScreenRenderPass::new())
             .add(pixel_read_pass);
         self.default_scene.renderer.set_pipeline(pipeline);

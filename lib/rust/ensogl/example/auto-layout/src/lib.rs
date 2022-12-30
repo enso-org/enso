@@ -161,7 +161,7 @@ pub fn main() {
 
     warn!("rect1: {:?}", rect1.display_object());
 
-    scene.precompile_shaders();
+    // scene::precompile_shaders();
 
     let r = rect1.clone_ref();
     let mut i = 0;
