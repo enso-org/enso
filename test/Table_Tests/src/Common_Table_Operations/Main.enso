@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
+import project.Common_Table_Operations.Distinct_Spec
 import project.Common_Table_Operations.Expression_Spec
 import project.Common_Table_Operations.Filter_Spec
 import project.Common_Table_Operations.Join_Spec
@@ -89,5 +90,6 @@ spec setup =
     Take_Drop_Spec.spec setup
     Expression_Spec.spec detailed=False setup
     Join_Spec.spec setup
+    Distinct_Spec.spec setup
 
 main = run_default_backend spec
