@@ -494,6 +494,7 @@
 - [Add executionContext/interrupt API command][3952]
 - [Any.== is a builtin method][3956]
 - [Simplify exception handling for polyglot exceptions][3981]
+- [IGV can jump to JMH sources & more][4008]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -571,6 +572,7 @@
 [3952]: https://github.com/enso-org/enso/pull/3952
 [3956]: https://github.com/enso-org/enso/pull/3956
 [3981]: https://github.com/enso-org/enso/pull/3981
+[4008]: https://github.com/enso-org/enso/pull/4008
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

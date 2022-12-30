@@ -101,7 +101,10 @@ and open it as _"project"_ in IGV:
 
 The project directories (not only `runtime`, but also other like
 `runtime-language-epb`, etc.) are recognized only if you have built the Enso
-engine sources with `sbt buildEngineDistribution`.
+engine sources with `sbt buildEngineDistribution`. Once the IGV opens the
+`runtime` & co. projects, it allows smooth navigation among the sources
+
+![IGV Projects view](https://user-images.githubusercontent.com/26887752/209615348-8911af4c-4680-4e61-ac87-19a19738e2ca.png)
 
 With such setup let's open graph for one of the top-most functions:
 `TruffleHotSpotCompilation*Primes*next*.bgv`. Choose compilation phase _"Before
@@ -142,7 +145,7 @@ environment. Switch to this directory and invoke:
 ```bash
 enso/tools/enso4igv$ mvn clean install
 enso/tools/enso4igv$ ls target/*.nbm
-target/enso4igv-1.0-SNAPSHOT.nbm
+target/enso4igv-*-SNAPSHOT.nbm
 ```
 
 an NBM file is generated which can be installed into IGV, NetBeans or any other

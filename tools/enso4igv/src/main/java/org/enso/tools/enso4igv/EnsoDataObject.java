@@ -28,7 +28,7 @@ import org.openide.windows.TopComponent;
 @GrammarRegistration(mimeType = "application/x-enso", grammar = "enso.tmLanguage.json")
 @DataObject.Registration(
         mimeType = "application/x-enso",
-        iconBase = "org/enso/tools/enso4igv/enso.png",
+        iconBase = "org/enso/tools/enso4igv/enso.svg",
         displayName = "#LBL_Enso_LOADER",
         position = 300
 )
@@ -98,7 +98,7 @@ public class EnsoDataObject extends MultiDataObject {
 
     @MultiViewElement.Registration(
             displayName = "#LBL_Enso_EDITOR",
-            iconBase = "org/enso/tools/enso4igv/enso.png",
+            iconBase = "org/enso/tools/enso4igv/enso.svg",
             mimeType = "application/x-enso",
             persistenceType = TopComponent.PERSISTENCE_ONLY_OPENED,
             preferredID = "Enso",

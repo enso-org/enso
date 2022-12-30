@@ -349,7 +349,8 @@ However, as we don't want these things polluting our standard builds, we provide
 a helper SBT command `withDebug` to allow for passing these options. It supports
 the following flags:
 
-- `--dumpGraphs`: This dumps the IGV (a Graal tool) graphs for the program to
+- `--dumpGraphs`: This dumps the IGV (read about
+  [Enso tooling for IGV](../tools/enso4igv/README.md)) graphs for the program to
   allow for manual analysis and discovery of optimisation failures.
 - `--showCompilations`: Prints the truffle compilation trace information.
 - `--printAssembly`: Prints the assembly output from the HotSpot JIT tier.
