@@ -1,0 +1,12 @@
+from Standard.Test import Test
+
+spec =
+    Test.specify "should handle appending elements to builder" <|
+        map_builder = Hash_Map.new_builder
+        map_builder.add "a" 1
+        map_builder.size.should_equal 1
+        map_builder.add "b" 2
+        map_builder.size.should_equal 2
+
+    Test.specify "" <|
+        hash_map = Hash_Map.empty.insert "a" 1 . insert "b" 2

@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.data;
+package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -8,52 +8,62 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Supplier;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.ValueWithIndex;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.graalvm.collections.EconomicMap;
 
+/**
+ * Effectively a snapshot of {@link EnsoHashMapBuilder}.
+ */
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 @Builtin(stdlibName = "Standard.Base.Data.Hash_Map.Hash_Map", name = "Hash_Map")
 public final class EnsoHashMap implements TruffleObject {
-  private final EconomicMap<Object, Object> storage;
+  private final EnsoHashMapBuilder mapBuilder;
+  private final int snapshotSize;
 
-  private EnsoHashMap(Object vector) {
-    InteropLibrary interop = InteropLibrary.getUncached();
-    assert interop.hasArrayElements(vector);
-    try {
-      long arraySize = interop.getArraySize(vector);
-      assert arraySize % 2 == 0;
-
-      storage = EconomicMap.create((int) arraySize);
-      for (int i = 0; i < arraySize - 1; i++) {
-        Object key = interop.readArrayElement(vector, i);
-        Object value = interop.readArrayElement(vector, i + 1);
-        storage.put(key, value);
-      }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw new IllegalStateException(e);
-    }
+  EnsoHashMap(EnsoHashMapBuilder mapBuilder, int snapshotSize) {
+    this.mapBuilder = mapBuilder;
+    this.snapshotSize = snapshotSize;
+    assert snapshotSize < mapBuilder.getCapacity();
   }
 
-  @Builtin.Method(name = "create_from_vector")
-  public static EnsoHashMap createFromVector(Object vector) {
-    return new EnsoHashMap(vector);
+  static EnsoHashMap createWithBuilder(EnsoHashMapBuilder mapBuilder, int snapshotSize) {
+    return new EnsoHashMap(mapBuilder, snapshotSize);
+  }
+
+  static EnsoHashMap createEmpty() {
+    return new EnsoHashMap(
+        EnsoHashMapBuilder.createWithCapacity(10),
+        0
+    );
+  }
+
+  @Builtin.Method
+  public static EnsoHashMap empty() {
+    return createEmpty();
+  }
+
+  @Builtin.Method
+  public EnsoHashMap insert(Object key, Object value) {
+    mapBuilder.add(key, value);
+    return mapBuilder.build();
   }
 
   @Builtin.Method
   public long size() {
-    return storage.size();
+    return snapshotSize;
   }
 
   @Builtin.Method
   public Object get(Object key) {
-    if (storage.containsKey(key)) {
-      return storage.get(key);
+    ValueWithIndex valueWithIdx = mapBuilder.get(key);
+    if (isValueInThisMap(valueWithIdx)) {
+      return valueWithIdx.value();
     } else {
       throw DataflowError.withoutTrace("No such key '" + key.toString() + "'", null);
     }
@@ -61,16 +71,14 @@ public final class EnsoHashMap implements TruffleObject {
 
   @Builtin.Method(name = "contains_key")
   public boolean containsKey(Object key) {
-    return storage.containsKey(key);
+    return isValueInThisMap(
+        mapBuilder.get(key)
+    );
   }
 
   @Builtin.Method(name = "key_set")
   public Object keySet() {
-    List<Object> keys = new ArrayList<>();
-    for (Object key : storage.getKeys()) {
-      keys.add(key);
-    }
-    return keys;
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @ExportMessage
@@ -80,18 +88,19 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage
   int getHashSize() {
-    return storage.size();
+    return snapshotSize;
   }
 
   @ExportMessage
   boolean isHashEntryReadable(Object key) {
-    return storage.containsKey(key);
+    return containsKey(key);
   }
 
   @ExportMessage
   Object readHashValue(Object key) throws UnknownKeyException {
-    if (storage.containsKey(key)) {
-      return storage.get(key);
+    ValueWithIndex valueWithIdx = mapBuilder.get(key);
+    if (isValueInThisMap(valueWithIdx)) {
+      return valueWithIdx.value();
     } else {
       throw UnknownKeyException.create(key);
     }
@@ -110,5 +119,9 @@ public final class EnsoHashMap implements TruffleObject {
   @ExportMessage(library = TypesLibrary.class)
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().vector();
+  }
+
+  private boolean isValueInThisMap(ValueWithIndex valueWithIndex) {
+    return valueWithIndex != null && valueWithIndex.index() <= snapshotSize;
   }
 }
