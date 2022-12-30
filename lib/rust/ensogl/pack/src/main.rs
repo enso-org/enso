@@ -83,9 +83,6 @@ fn compile_js(main: &str, out: &Path) {
         "esbuild",
         main,
         "--bundle",
-        // FIXME: enable, but only on final binary, otherwise it will mangle names and we will not
-        // connect there
-        // "--minify",
         // FIXME:
         "--sourcemap=inline",
         "--platform=node",
@@ -96,7 +93,7 @@ fn compile_js(main: &str, out: &Path) {
 fn compile_ts(main: &str, out: &Path) {
     println!("Type checking TypeScript sources.");
     execute("npx", &["tsc", "-noEmit"]);
-    compile_js(main, out);
+    execute("npm", &["run", "build", "--", &format!("--outfile={}", out.display())]);
 }
 
 fn main() {

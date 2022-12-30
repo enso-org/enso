@@ -1,23 +1,66 @@
 import host from './host'
 
+class Colors {
+    static resetCode = '\x1b[0m'
+    static redCode = '\x1b[31m'
+    static orangeCode = '\x1b[33m'
+    static red(text: string): string {
+        return Colors.redCode + text + Colors.resetCode
+    }
+    static orange(text: string): string {
+        return Colors.orangeCode + text + Colors.resetCode
+    }
+    static bold_start(): string {
+        return '\x1b[1m'
+    }
+    static reset(): string {
+        return Colors.resetCode
+    }
+    static level(level: number, text: string): string {
+        return Colors.levelStart(level) + text + Colors.resetCode
+    }
+    static levelStart(level: number): string {
+        switch (level) {
+            case 0:
+                return `\x1b[38;5;155m`
+            case 1:
+                return `\x1b[38;5;85m`
+            case 2:
+                return `\x1b[38;5;51m`
+            default:
+                return `\x1b[38;5;64m`
+        }
+    }
+}
+
 export default class Logger {
     private static indent_lvl: number = 0
 
-    private static message(fn: string, ...args: any[]) {
+    private static message(fn: string, color: string | null, ...args: any[]) {
+        const strArgs = args.map(arg => arg.toString())
         const c: any = console
         if (host.browser) {
-            c[fn](...args)
+            c[fn](...strArgs)
         } else {
+            //@ts-ignore
+            const coloredArgs = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
             if (Logger.indent_lvl > 0) {
-                c[fn](Logger.indent_shorter(), ...args)
+                let indent = Logger.indent()
+                const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}    `))
+                c.log(Logger.indent_shorter(), ...indentedArgs)
             } else {
-                c[fn](...args)
+                c.log(...strArgs)
             }
         }
     }
 
     private static indent(): string {
-        return '│ '.repeat(Logger.indent_lvl)
+        let out = ''
+        for (let i = 0; i < Logger.indent_lvl; i++) {
+            let box = Colors.level(i, '│')
+            out += `${box} `
+        }
+        return out
     }
 
     private static indent_shorter(): string {
@@ -26,17 +69,17 @@ export default class Logger {
 
     /** Log a message. */
     static log(...args: any[]) {
-        Logger.message('log', ...args)
+        Logger.message('log', null, ...args)
     }
 
     /** Log a warning. */
     static warn(...args: any[]) {
-        Logger.message('warn', ...args)
+        Logger.message('warn', 'orange', ...args)
     }
 
     /** Log an error. */
     static error(...args: any[]) {
-        Logger.message('error', ...args)
+        Logger.message('error', 'red', ...args)
     }
 
     /** Start a group and log a message. */
@@ -44,7 +87,8 @@ export default class Logger {
         if (host.browser) {
             console.group(...args)
         } else {
-            console.log(`${Logger.indent()}╭`, ...args)
+            const styleStart = `${Colors.bold_start()}${Colors.levelStart(Logger.indent_lvl)}`
+            console.log(`${Logger.indent()}${styleStart}╭`, ...args, Colors.reset())
         }
         Logger.indent_lvl += 1
     }
@@ -53,10 +97,10 @@ export default class Logger {
     static groupCollapsed(...args: any[]) {
         if (host.browser) {
             console.groupCollapsed(...args)
+            Logger.indent_lvl += 1
         } else {
-            console.log(`${Logger.indent()}╭`, ...args)
+            Logger.group(...args)
         }
-        Logger.indent_lvl += 1
     }
 
     /** Log a message and end the last opened group. */
@@ -69,7 +113,8 @@ export default class Logger {
                 }
                 console.groupEnd()
             } else {
-                console.log(`${Logger.indent()}╰`, ...args)
+                const styleStart = `${Colors.levelStart(Logger.indent_lvl)}`
+                console.log(`${Logger.indent()}${styleStart}╰`, ...args)
             }
         } else {
             Logger.log(...args)

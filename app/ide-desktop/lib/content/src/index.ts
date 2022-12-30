@@ -756,6 +756,7 @@ function style_root() {
 /// Electron. Please note that it returns immediately in the web browser.
 async function windowShowAnimation() {
     // @ts-ignore
+    console.log(window.showAnimation)
     await window.showAnimation
 }
 

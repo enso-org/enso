@@ -11,8 +11,18 @@ const node = !browser
 // const global = {}
 global ??= window
 
+function urlParams(): any {
+    if (browser) {
+        const urlParams = new URLSearchParams(window.location.search)
+        return Object.fromEntries(urlParams.entries())
+    } else {
+        return {}
+    }
+}
+
 export default {
     global,
     browser,
     node,
+    urlParams,
 }

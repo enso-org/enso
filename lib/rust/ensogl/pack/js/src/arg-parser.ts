@@ -1,4 +1,4 @@
-import { parseArgs } from 'node:util'
+import * as nodeUtil from 'node:util'
 
 function camelToKebabCase(name: string) {
     return name
@@ -26,7 +26,7 @@ class Option {
     }
 }
 
-export default class ArgParser {
+export class ArgParser {
     help = new Option(false, 'Print help message.')
     genShadersCode = new Option(
         false,
@@ -42,7 +42,7 @@ export default class ArgParser {
             options[optionName] = { type: option.type, default: option.value }
         }
         try {
-            let out = parseArgs({ options })
+            let out = nodeUtil.parseArgs({ options })
             for (let [optionName, optionValue] of Object.entries(out.values)) {
                 let fieldName = optionToFieldNameMap.get(optionName)
                 // @ts-ignore
@@ -53,8 +53,7 @@ export default class ArgParser {
             process.exit(1)
         }
         if (this.help.value) {
-            this.printHelp()
-            process.exit(0)
+            this.printHelpAndExit()
         }
     }
 
@@ -67,4 +66,15 @@ export default class ArgParser {
             console.log(option.description)
         }
     }
+
+    printHelpAndExit() {
+        this.printHelp()
+        process.exit(0)
+    }
+}
+
+export function parseArgs(): ArgParser {
+    const argParser = new ArgParser()
+    argParser.parse()
+    return argParser
 }

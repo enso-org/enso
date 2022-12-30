@@ -11,6 +11,9 @@
     "type": "git",
     "url": "git@github.com:enso-org/enso.git"
   },
+  "scripts": {
+    "build": "npx ts-node bundle.ts"
+  },
   "bugs": {
     "url": "https://github.com/enso-org/enso/issues"
   }

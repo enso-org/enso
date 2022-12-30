@@ -9,35 +9,44 @@ import host from './host'
 import Task from './task'
 import Logger from './logger'
 import { Config, DEFAULT_ENTRY_POINT } from './config'
-import ArgParser from './arg-parser'
+import { ArgParser, parseArgs } from './arg-parser'
 
 // import * as fs from 'fs'
 let fs = require('./fs')
 
-// ==================
-// === Global API ===
-// ==================
+// ===================
+// === PackageInfo ===
+// ===================
 
-export default class App {
-    async run(inputConfig: Object): Promise<void> {
-        if (host.node) {
-            Task.asyncWith('Running the program.', async () => {
-                await this.runBody(inputConfig)
-            })
-        } else {
-            await this.runBody(inputConfig)
-        }
+/** Package info. It contains the build git hash and git status, both injected during build time.
+ * See `bundle.ts` to learn more. It can also contain additional info provided by the user of this
+ * library. */
+class PackageInfo {
+    gitHash: string
+    gitStatus: string
+
+    /** Constructor.
+     * @param info - Optional user provided info. */
+    constructor(info?: any) {
+        const infoObject = info || {}
+        // @ts-ignore
+        this.gitHash = GIT_HASH
+        // @ts-ignore
+        this.gitStatus = GIT_STATUS
+        const self: any = this
+        Object.assign(self, infoObject)
     }
 
-    private async runBody(inputConfig: Object): Promise<void> {
-        const config = new Config()
-        config.updateFromObject(inputConfig)
-        config.updateFromObject(urlParams())
-        config.resolve()
-        await runEntryPoint(config)
+    /** Display the current info in the console. */
+    display() {
+        Logger.with('Package info.', () => {
+            for (let [key, value] of Object.entries(this)) {
+                if (value) {
+                    Logger.log(`${key}: ${value}`)
+                }
+            }
+        })
     }
-
-    log(event: string, data?: any) {}
 }
 
 // ========================
@@ -83,13 +92,12 @@ async function init_wasm(snippets_code: string, wasm: Buffer | Response): Promis
     })
 }
 
-// ====================
-// === Debug Screen ===
-// ====================
+// ==================
+// === EntryPoint ===
+// ==================
 
 const MAIN_ENTRY_POINT_PREFIX = 'entry_point_'
 const BEFORE_MAIN_ENTRY_POINT_PREFIX = 'before_main_entry_point_'
-
 const NAME_REGEX = new RegExp(String.raw`(?<underscore>__)|(_(?<specialChar>[0-9]+)_)`, 'g')
 
 class EntryPoint {
@@ -156,14 +164,15 @@ function wasmFunctions(wasm: any): string[] {
     return names
 }
 
+// =========================
+// === EntryPointChooser ===
+// =========================
+
 /// Displays a debug screen which allows the user to run one of predefined debug examples.
 function show_debug_screen(wasm: any, msg: string) {
     Logger.log('show_debug_screen')
+    msg ??= ''
     let entryPoints = EntryPoint.mainEntryPoints(wasmFunctions(wasm))
-
-    if (msg === '' || msg === null || msg === undefined) {
-        msg = ''
-    }
     let debug_screen_div = html_utils.new_top_level_div()
     let newDiv = document.createElement('div')
     let newContent = document.createTextNode(msg + 'Available entry points:')
@@ -319,23 +328,10 @@ function style_root() {
     }
 }
 
-/// Waits for the window to finish its show animation. It is used when the website is run in
-/// Electron. Please note that it returns immediately in the web browser.
-async function windowShowAnimation() {
-    // @ts-ignore
-    await window.showAnimation
-}
-
 function disableContextMenu() {
     document.body.addEventListener('contextmenu', e => {
         e.preventDefault()
     })
-}
-
-function registerGetShadersRustFn(fn: any) {
-    console.log('!!!!!!!!!!!!!!!!!!!')
-    let out = fn()
-    console.log('got', out)
 }
 
 // @ts-ignore
@@ -350,88 +346,125 @@ function initBrowser(config: Config) {
     }
 }
 
-/// Main entry point. Loads WASM, initializes it, chooses the scene to run.
-async function runEntryPoint(config: Config) {
-    // @ts-ignore
-    // API[globalConfig.windowAppScopeConfigName] = config
+// ===========
+// === App ===
+// ===========
 
-    // // Build data injected during the build process. See `webpack.config.js` for the source.
-    // // @ts-ignore
-    // const hash = GIT_HASH
-    // Logger.log('git_hash', { hash })
-    // // @ts-ignore
-    // const buildInfo = BUILD_INFO
-    // Logger.log('build_information', buildInfo)
-    // // @ts-ignore
-    // const status = GIT_STATUS
-    // Logger.log('git_status', { status })
+type AppArgs = {
+    config?: Object
+    info?: Object
+}
 
-    let args = new ArgParser()
-    args.parse()
+export class App {
+    args: ArgParser
+    info: Object
+    config: Config
+    wasm: any
+    loader: Loader | null
+    logger: Logger
+    wasmFunctions: string[]
+    beforeMainEntryPoints: Map<string, EntryPoint>
+    mainEntryPoints: Map<string, EntryPoint>
+    task: Task | null
+    getShadersFn: any
 
-    if (host.browser) {
-        initBrowser(config)
+    constructor() {
+        this.logger = Logger
     }
 
-    if (host.browser) {
-        Logger.log('window_show_animation')
-        await windowShowAnimation()
-    }
-    Logger.log('load_wasm')
-    let { wasm, loader } = await load_wasm(config)
+    async run(appArgs?: AppArgs): Promise<void> {
+        this.args = parseArgs()
+        this.info = appArgs?.info ?? {}
+        const inputConfig = appArgs?.config ?? {}
+        this.config = new Config(inputConfig, host.urlParams())
 
-    const wasmFns = wasmFunctions(wasm)
-    const mainEntryPoints = EntryPoint.mainEntryPoints(wasmFns)
-    const beforeMainEntryPoints = EntryPoint.beforeMainEntryPoints(wasmFns)
-
-    function runBeforeMainEntryPoints() {
-        if (beforeMainEntryPoints.size != 0) {
-            let count = beforeMainEntryPoints.size
-            Task.with(`Running ${count} before main entry points.`, () => {
-                for (let entryPoint of beforeMainEntryPoints.values()) {
-                    Task.with(`Running ${entryPoint.displayName()}.`, () => {
-                        wasm[entryPoint.fullName()]()
-                    })
-                }
-            })
-            // if (ms > 30) {
-            //     console.error(
-            //         `Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`
-            //     )
-            // }
-        }
-    }
-
-    Logger.log('wasm_loaded')
-    if (config.entry) {
-        let entryPoint = mainEntryPoints.get(config.entry.value)
-        if (entryPoint) {
-            runBeforeMainEntryPoints()
-            console.log(`Running the main entry point.`)
-            // Loader will be removed by IDE after its initialization.
-            // All other code paths need to call `loader.destroy()`.
-            wasm[entryPoint.fullName()]()
+        if (host.browser) {
+            await this.init()
+            this.runEntryPoints()
         } else {
-            // loader.destroy()
-            // show_debug_screen(wasm, "Unknown entry point '" + config.entry + "'. ")
-            runBeforeMainEntryPoints()
-            // Loader will be removed by IDE after its initialization.
-            // All other code paths need to call `loader.destroy()`.
-            // fn()
+            if (this.args.genShadersCode.value) {
+                await this.init()
+                this.runBeforeMainEntryPoints()
+                this.generateShadersCode()
+            } else {
+                this.args.printHelpAndExit()
+            }
         }
-    } else {
-        // loader.destroy()
-        show_debug_screen(wasm, '')
+        if (this.task) this.task.end()
+    }
+
+    async init() {
+        if (host.node) this.task = Task.start('Running the program.')
+        let { wasm, loader } = await load_wasm(this.config)
+        this.wasm = wasm
+        this.loader = loader
+        this.wasmFunctions = wasmFunctions(this.wasm)
+        this.beforeMainEntryPoints = EntryPoint.beforeMainEntryPoints(this.wasmFunctions)
+        this.mainEntryPoints = EntryPoint.mainEntryPoints(this.wasmFunctions)
+        this.initBrowser()
+        new PackageInfo(this.info).display()
+    }
+
+    initBrowser() {
+        if (host.browser) {
+            initBrowser(this.config)
+        }
+    }
+
+    runBeforeMainEntryPoints() {
+        if (!this.beforeMainEntryPoints.size) {
+            return
+        }
+        let count = this.beforeMainEntryPoints.size
+        Task.with(`Running ${count} before main entry points.`, () => {
+            for (let entryPoint of this.beforeMainEntryPoints.values()) {
+                const [time, _] = Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
+                    this.wasm[entryPoint.fullName()]()
+                })
+                this.checkBeforeMainEntryPointTime(time)
+            }
+        })
+    }
+
+    checkBeforeMainEntryPointTime(time: number) {
+        if (time > this.config.maxBeforeMainEntryPointsTimeMs) {
+            Logger.error(`Entry point took ${time} milliseconds to run. This is too long.`)
+            Logger.error('Before main entry points should be used for fast initialization only.')
+        }
+    }
+
+    runEntryPoints() {
+        let entryPointName = this.config.entry.value
+        let entryPoint = this.mainEntryPoints.get(entryPointName)
+        if (entryPoint) {
+            this.runBeforeMainEntryPoints()
+            Logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)
+            this.wasm[entryPoint.fullName()]()
+        } else {
+            show_debug_screen(this.wasm, `Unknown entry point '${entryPointName}'. `)
+        }
+    }
+
+    generateShadersCode() {
+        Task.with('Generating shaders code.', () => {
+            let out = this.getShadersFn()
+            console.log('got', out)
+        })
     }
 }
 
-function urlParams(): any {
-    if (host.browser) {
-        const urlParams = new URLSearchParams(window.location.search)
-        return Object.fromEntries(urlParams.entries())
-    } else {
-        return {}
-    }
+// ==========================
+// === App Initialization ===
+// ==========================
+
+const app = new App()
+export default app
+app.run()
+
+function registerGetShadersRustFn(fn: any) {
+    Logger.log(`Registering 'getShadersFn'.`)
+    app.getShadersFn = fn
 }
 
-new App().run({})
+// FIXME: leftover from old script
+// API[globalConfig.windowAppScopeConfigName] = config
