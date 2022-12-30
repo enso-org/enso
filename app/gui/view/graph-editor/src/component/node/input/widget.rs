@@ -1,3 +1,5 @@
+//! Definition all variants of possible node widgets and common widget API.
+
 use crate::prelude::*;
 
 use enso_frp as frp;
@@ -15,11 +17,11 @@ use ensogl_component::drop_down::Dropdown;
 
 ensogl::define_endpoints_2! {
     Input {
-        set_current_value(Option<String>),
+        set_current_value(Option<ImString>),
         set_focused(bool),
     }
     Output {
-        value_changed(Option<String>),
+        value_changed(Option<ImString>),
     }
 }
 
@@ -64,7 +66,6 @@ impl display::Object for NodeWidget {
     fn display_object(&self) -> &display::object::Instance {
         match self {
             Self::SingleChoice(s) => &s.display_object,
-            // Self::SingleChoice(s) => &s.dropdown.display_object(),
         }
     }
 }
@@ -73,7 +74,7 @@ impl display::Object for NodeWidget {
 // === Dot Shape ===
 // =================
 
-/// Port hover shape definition.
+/// Temporary dropdown activation shape definition.
 pub mod dot {
     use super::*;
     ensogl::shape! {
@@ -103,7 +104,7 @@ pub struct SingleChoice {
     display_object: display::object::Instance,
     frp:            Frp,
     #[allow(dead_code)]
-    dropdown:       Dropdown<String>,
+    dropdown:       Dropdown<ImString>,
     /// temporary click handling
     activation_dot: dot::View,
 }
@@ -111,8 +112,9 @@ pub struct SingleChoice {
 impl SingleChoice {
     fn new(app: &Application, argument_info: span_tree::ArgumentInfo, node_height: f32) -> Self {
         let display_object = display::object::Instance::new();
-        let dropdown = app.new_view::<Dropdown<String>>();
+        let dropdown = app.new_view::<Dropdown<ImString>>();
         display_object.add_child(&dropdown);
+        app.display.default_scene.layers.above_nodes.add(&dropdown);
         let frp = Frp::new();
         let network = &frp.network;
         let input = &frp.input;
@@ -129,7 +131,7 @@ impl SingleChoice {
 
 
         if !argument_info.tag_values.is_empty() {
-            let entries = argument_info.tag_values.clone();
+            let entries: Vec<ImString> = argument_info.tag_values.iter().map(Into::into).collect();
             dropdown.set_all_entries(entries);
         } else {
             // TODO: support dynamic entries

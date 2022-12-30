@@ -245,6 +245,7 @@ pub fn register_views(app: &Application) {
     app.views.register::<ensogl_component::text::Text>();
     app.views.register::<ensogl_component::selector::NumberPicker>();
     app.views.register::<ensogl_component::selector::NumberRangePicker>();
+    app.views.register::<ensogl_component::drop_down::Dropdown<ImString>>();
 
     // As long as .label() of a View is the same, shortcuts and commands are currently also
     // expected to be the same, so it should not be important which concrete type parameter of

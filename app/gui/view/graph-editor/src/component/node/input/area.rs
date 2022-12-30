@@ -440,7 +440,7 @@ impl Model {
                     port_widget.set_current_value(Some(code.into()));
                     frp::extend! { port_network
                         area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
-                            f!([crumbs](v) (crumbs.clone_ref(), v.as_ref().map_or_else(|| "".into(),|s| s.into())))
+                            f!([crumbs](v) (crumbs.clone_ref(), v.clone().unwrap_or_default()))
                         );
                     }
                 }
