@@ -328,7 +328,10 @@ final class TreeToIr {
     var inputAst = maybeManyParensed(exp);
     return switch (inputAst) {
       case null -> appendTo;
-      case Tree.TypeDef def -> translateModuleSymbol(def, (List) appendTo);
+      case Tree.TypeDef def -> {
+        var ir = translateSyntaxError(def, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
+        yield cons(ir, appendTo);
+      }
       case Tree.ArgumentBlockApplication app -> appendTo;
       case Tree.TypeSignature sig -> {
         var isMethod = false;
