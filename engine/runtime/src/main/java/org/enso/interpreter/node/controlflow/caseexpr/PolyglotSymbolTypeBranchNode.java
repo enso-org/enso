@@ -26,8 +26,9 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
   private final ConditionProfile subtypeProfile = ConditionProfile.createCountingProfile();
 
-  PolyglotSymbolTypeBranchNode(Object polyglotSymbol, RootCallTarget functionNode) {
-    super(functionNode);
+  PolyglotSymbolTypeBranchNode(
+      Object polyglotSymbol, RootCallTarget functionNode, boolean terminalBranch) {
+    super(functionNode, terminalBranch);
     this.polyglotSymbol = polyglotSymbol;
   }
 
@@ -39,8 +40,8 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
    * @return a catch-all node
    */
   public static PolyglotSymbolTypeBranchNode build(
-      Object polyglotSymbol, RootCallTarget functionNode) {
-    return PolyglotSymbolTypeBranchNodeGen.create(polyglotSymbol, functionNode);
+      Object polyglotSymbol, RootCallTarget functionNode, boolean terminalBranch) {
+    return PolyglotSymbolTypeBranchNodeGen.create(polyglotSymbol, functionNode, terminalBranch);
   }
 
   @Specialization

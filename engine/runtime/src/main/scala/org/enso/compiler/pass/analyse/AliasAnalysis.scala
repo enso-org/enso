@@ -665,7 +665,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): IR.Case = {
     ir match {
-      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, graph, parentScope),
