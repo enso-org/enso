@@ -143,12 +143,11 @@ impl Model {
     /// Node expression was edited in the view. Should be called whenever the user changes the
     /// contents of a node during editing.
     fn node_expression_set(&self, id: ViewNodeId, expression: ImString) {
-        // warn!("node_expression_set {id:?} {expression:?}");
-        // self.state.update_from_view().set_node_expression(id, expression);
+        self.state.update_from_view().set_node_expression(id, expression);
     }
 
-    /// Part of node expression was edited in the view. Should be called whenever the user changes
-    /// the contents of a node during editing.
+    /// Part of node expression was edited in the view. Should be called whenever the user partially
+    /// changes the contents of a node during editing, e.g. via a widget.
     fn node_port_expression_set(
         &self,
         id: ViewNodeId,

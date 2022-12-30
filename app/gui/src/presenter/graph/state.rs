@@ -456,7 +456,7 @@ impl<'a> ControllerChange<'a> {
         let displayed = nodes.get_mut_or_create(ast_id);
 
         if displayed.expression != new_displayed_expr {
-            warn!(
+            debug!(
                 "Setting node expression from controller: {} -> {}",
                 displayed.expression, new_displayed_expr
             );
@@ -733,9 +733,9 @@ impl<'a> ViewChange<'a> {
 
         let expression_has_changed = displayed.expression.code != expression;
         if expression_has_changed {
-            // let expression = node_view::Expression::new_plain(expression);
-            // debug!("Setting node expression from view: {} -> {}", displayed.expression,
-            // expression); displayed.expression = expression;
+            let expression = node_view::Expression::new_plain(expression);
+            debug!("Setting node expression from view: {} -> {}", displayed.expression, expression);
+            displayed.expression = expression;
             Some(ast_id)
         } else {
             None

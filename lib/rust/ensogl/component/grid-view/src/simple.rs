@@ -69,8 +69,7 @@ pub struct EntryModel {
 }
 
 impl EntryModel {
-    /// Create a new entry model with given text contents.
-    pub fn new(text: impl Into<ImString>) -> Self {
+    fn new(text: impl Into<ImString>) -> Self {
         Self { text: text.into(), ..default() }
     }
 }

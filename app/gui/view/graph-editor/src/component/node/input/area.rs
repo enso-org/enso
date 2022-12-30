@@ -405,6 +405,7 @@ impl Model {
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
                     area_frp.source.on_port_hover <+ hover;
 
+                    
                     // === Pointer Style ===
 
                     let port_shape_hover = port_shape.hover.clone_ref();

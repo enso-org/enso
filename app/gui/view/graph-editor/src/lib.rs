@@ -1518,13 +1518,26 @@ impl GraphEditorModelWithNetwork {
 
             pointer_style <+ node_model.input.frp.pointer_style;
 
-            let target_fn = move |crumbs: &span_tree::Crumbs| EdgeEndpoint::new(node_id,crumbs.clone());
-            eval node_model.output.frp.on_port_press ((crumbs) output_press.emit(target_fn(crumbs)));
-            eval node_model.input.frp.on_port_press ((crumbs) input_press.emit(target_fn(crumbs)));
+            eval node_model.output.frp.on_port_press ([output_press](crumbs){
+                let target = EdgeEndpoint::new(node_id,crumbs.clone());
+                output_press.emit(target);
+            });
 
-            let hover_fn = move |hover: &Switch<span_tree::Crumbs>| hover.on().map(target_fn);
-            model.frp.private.output.hover_node_input <+ node_model.input.frp.on_port_hover.map(hover_fn);
-            model.frp.private.output.hover_node_output <+ node_model.output.frp.on_port_hover.map(hover_fn);
+            eval node_model.input.frp.on_port_press ([input_press](crumbs)
+                let target = EdgeEndpoint::new(node_id,crumbs.clone());
+                input_press.emit(target);
+            );
+
+            eval node_model.input.frp.on_port_hover ([model](t) {
+                let crumbs = t.on();
+                let target = crumbs.map(|c| EdgeEndpoint::new(node_id,c.clone()));
+                model.frp.private.output.hover_node_input.emit(target);
+            });
+
+            eval node_model.output.frp.on_port_hover ([model](hover) {
+               let output = hover.on().map(|crumbs| EdgeEndpoint::new(node_id,crumbs.clone()));
+               model.frp.private.output.hover_node_output.emit(output);
+            });
 
             let neutral_color = model.styles_frp.get_color(theme::code::types::any::selection);
 

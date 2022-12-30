@@ -155,11 +155,9 @@ pub struct Model {
     pub frp:         Frp,
     pub shape:       Option<Shape>,
     pub widget:      Option<NodeWidget>,
-    // pub name:            Option<String>,
     pub index:       ByteDiff,
     pub local_index: ByteDiff,
     pub length:      ByteDiff,
-    // pub highlight_color: color::Lcha, // TODO needed? and other fields?
 }
 
 impl Deref for Model {
