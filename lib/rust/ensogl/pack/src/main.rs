@@ -128,7 +128,7 @@ fn main() {
             with_pwd(&js_dir, || execute("npm", &["install"]));
         }
         with_pwd(&js_dir, || compile_ts("src/index.ts", &dist_dir.join("index.js")));
-        with_pwd(&build_dir, || compile_js("pkg.js", &dist_dir.join("snippets.js")));
+        with_pwd(&build_dir, || compile_js("pkg.js", &dist_dir.join("main.js")));
 
         // FIXME: change it to move
         std::fs::copy(build_dir.join("pkg.wasm"), dist_dir.join(&format!("main.wasm")));
