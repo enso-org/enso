@@ -4,7 +4,7 @@
 	"description": "Support for Enso programming and development",
 	"version": "0.1.0",
 	"preview": true,
-	"license": "SEE LICENSE IN LICENSE.txt",
+	"license": "SEE LICENSE IN dist/LICENSE",
 	"publisher": "enso",
 	"author": {
 		"name": "Enso.org"

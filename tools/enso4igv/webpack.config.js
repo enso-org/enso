@@ -7,34 +7,48 @@ const maven = require('maven');
 const CopyPlugin = require("copy-webpack-plugin");
 const webpack = require('webpack');
 
+const mvnBuild = {
+    apply: (compiler) => {
+        compiler.hooks.beforeCompile.tapPromise('MavenPlugin', (compilation) => {
+            const mvn = maven.create({ cwd: '.' });
+            return mvn.execute(['clean', 'install'], { 'skipTests': true });
+        }
+        );
+    }
+};
+
+const copyCluster = new CopyPlugin({
+    patterns: [
+        {
+            from: "./target/nbm/clusters/extra/",
+            to: "../nbcode/enso4igv/"
+        }
+    ]
+});
+const copyLicense = new CopyPlugin({
+    patterns: [
+        {
+            from: "../../LICENSE",
+            to: "."
+        }
+    ]
+});
+
+const entryExtension = {
+    extension: './src/main/vscode/extension.ts' // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+};
+
 
 /**@type {import('webpack').Configuration}*/
 const config = {
     target: 'node', // vscode extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
 
     plugins: [
-        {
-            apply: (compiler) => {
-                compiler.hooks.beforeCompile.tapPromise('MavenPlugin', (compilation) => {
-                    const mvn = maven.create({ cwd: '.' });
-                    return mvn.execute(['clean', 'install'], { 'skipTests': true });
-                }
-                );
-            }
-        },
-        new CopyPlugin({
-            patterns: [
-                {
-                    from: "./target/nbm/clusters/extra/",
-                    to: "../nbcode/enso4igv/"
-                }
-            ],
-        }),
+        mvnBuild,
+        copyCluster,
+        copyLicense
     ],
-
-    entry: {
-        extension: './src/main/vscode/extension.ts', // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
-    },
+    entry: entryExtension,
     output: { // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
         path: path.resolve(__dirname, 'dist'),
         filename: '[name].js',
@@ -66,29 +80,12 @@ const devConf = {
     target: 'node', // vscode extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
 
     plugins: [
-        {
-            apply: (compiler) => {
-                compiler.hooks.beforeCompile.tapPromise('MavenPlugin', (compilation) => {
-                    const mvn = maven.create({ cwd: '.' });
-                    return mvn.execute(['clean', 'install'], { 'skipTests': true });
-                }
-                );
-            }
-        },
-        new CopyPlugin({
-            patterns: [
-                {
-                    from: "./target/nbm/clusters/extra/",
-                    to: "../nbcode/enso4igv/"
-                }
-            ],
-        }),
+        mvnBuild,
+        copyCluster,
+        copyLicense,
         new webpack.AutomaticPrefetchPlugin()
     ],
-
-    entry: {
-        extension: './src/main/vscode/extension.ts', // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
-    },
+    entry: entryExtension,
     output: { // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
         path: path.resolve(__dirname, 'dist'),
         filename: '[name].js',
