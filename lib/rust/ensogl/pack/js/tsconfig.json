@@ -1,22 +1,23 @@
 {
   "compilerOptions": {
-    "baseUrl": "./src",
-    "strict": true,
-    "inlineSourceMap": true,
-    "target": "ES2019",
-    "module": "ESNext",
-    "esModuleInterop": true,
-    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "strictNullChecks": true,
+    "baseUrl": "./src",
+    "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "inlineSourceMap": true,
     "isolatedModules": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
     "noImplicitOverride": true,
-    "strictPropertyInitialization": false,
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "removeComments": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false,
+    "target": "ES2019"
   },
   "ts-node": {
     "esm": true

@@ -4,7 +4,7 @@ import host from 'system/host'
 // === Router ===
 // ==============
 
-const consoleLogNames: (keyof Console)[] = [
+const consoleLogNames = [
     'log',
     'info',
     'debug',
@@ -13,7 +13,7 @@ const consoleLogNames: (keyof Console)[] = [
     'group',
     'groupCollapsed',
     'groupEnd',
-]
+] satisfies (keyof Console)[]
 
 // FIXME: fix Rust `autoFlush` handling
 class Router {
@@ -27,8 +27,7 @@ class Router {
         this.autoFlush = true
         for (let name of consoleLogNames) {
             this.console[name] = console[name]
-            const anyConsole = console as any
-            anyConsole[name] = (...args: any[]) => {
+            console[name] = (...args: any[]) => {
                 this.consume(name, args)
             }
         }
