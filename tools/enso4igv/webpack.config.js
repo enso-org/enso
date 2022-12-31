@@ -11,7 +11,7 @@ const mvnBuild = {
     apply: (compiler) => {
         compiler.hooks.beforeCompile.tapPromise('MavenPlugin', (compilation) => {
             const mvn = maven.create({ cwd: '.' });
-            return mvn.execute(['clean', 'install'], { 'skipTests': true });
+            return mvn.execute(['package'], { 'skipTests': true });
         }
         );
     }

@@ -165,7 +165,10 @@ enso4vscode-*.vsix
 ```
 
 one needs to have `npm`, Java and `mvn` available to successfully build the
-VSCode extension.
+VSCode extension. Alternatively one can use Maven to built the VSIX extension
+via `mvn clean install -Pvsix`.
+
+![Install from VSIX...](https://user-images.githubusercontent.com/26887752/210131513-8c729f9b-5ddc-43aa-9ad5-420b7d87d81d.png)
 
 Once the `.vsix` file is created, it can be installed into VSCode. Select
 _Extension perspective_ and choose _Install from VSIX..._ menu item.
