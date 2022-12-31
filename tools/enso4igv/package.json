@@ -79,18 +79,9 @@
 	"dependencies": {
 		"copy-webpack-plugin": "^10.2.4",
 		"decompress": "4.2.1",
-		"maven": "^5.0.0",
-		"mustache": "4.0.1",
-		"sax": "^1.2.4",
-		"vscode-chrome-debug-core": "^6.8.8",
-		"vscode-languageclient": "^5.2.1",
-		"xml2js": "^0.4.23"
+		"maven": "^5.0.0"
 	},
 	"devDependencies": {
-		"@types/decompress": "^4.2.3",
-		"@types/mustache": "^4.0.1",
-		"@types/node": "^12.12.30",
-		"@types/sax": "^1.2.1",
 		"@types/vscode": "=1.49.0",
 		"@types/xml2js": "^0.4.8",
 		"ts-loader": "^6.2.1",
