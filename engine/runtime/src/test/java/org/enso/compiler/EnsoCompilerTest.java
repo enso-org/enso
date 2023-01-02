@@ -605,7 +605,7 @@ public class EnsoCompilerTest {
   public void testNotAnOperator() throws Exception {
     parseTest("""
     main =
-        x = Panic.catch Any @ caught_panic-> caught_panic.payload
+        x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
         x.to_text
     """);
   }
