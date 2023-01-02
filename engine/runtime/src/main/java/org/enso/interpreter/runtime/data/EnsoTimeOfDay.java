@@ -143,7 +143,7 @@ public final class EnsoTimeOfDay implements TruffleObject {
   }
 
   @ExportMessage
-  final boolean isDate() {
+  boolean isDate() {
     return false;
   }
 

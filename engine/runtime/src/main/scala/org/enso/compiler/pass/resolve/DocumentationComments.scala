@@ -116,10 +116,10 @@ case object DocumentationComments extends IRPass {
   private def resolveBranches(items: Seq[Branch]): Seq[Branch] = {
     var lastDoc: Option[String] = None
     items.flatMap {
-      case Branch(IR.Pattern.Documentation(doc, _, _, _), _, _, _, _) =>
+      case Branch(IR.Pattern.Documentation(doc, _, _, _), _, _, _, _, _) =>
         lastDoc = Some(doc)
         None
-      case branch @ Branch(pattern, expression, _, _, _) =>
+      case branch @ Branch(pattern, expression, _, _, _, _) =>
         val resolved =
           branch.copy(
             pattern    = pattern.mapExpressions(resolveExpression),

@@ -22,7 +22,8 @@ public class EnsoSbtProject implements Project {
         this.ps = ps;
         this.lkp = Lookups.fixed(
             this,
-            new EnsoSbtClassPathProvider(this)
+            new EnsoSbtClassPathProvider(this),
+            new EnsoLogicalView(this)
         );
     }
 
@@ -59,7 +60,7 @@ public class EnsoSbtProject implements Project {
         @Override
         public ProjectManager.Result isProject2(FileObject fo) {
             if (isProject(fo)) {
-                var img = ImageUtilities.loadImage("org/enso/tools/enso4igv/enso.png");
+                var img = ImageUtilities.loadImage("org/enso/tools/enso4igv/enso.svg");
                 return new ProjectManager.Result(ImageUtilities.image2Icon(img));
             }
             return null;

@@ -728,7 +728,6 @@ object BindingsMap {
     * @param name the name of the constructor.
     * @param arity the number of fields in the constructor.
     * @param allFieldsDefaulted whether all fields provide a default value.
-    * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
   case class Cons(name: String, arity: Int, allFieldsDefaulted: Boolean)
 
@@ -736,6 +735,7 @@ object BindingsMap {
     *
     * @param name the type name
     * @param members the member names
+    * @param builtinType true if constructor is annotated with @Builtin_Type, false otherwise.
     */
   case class Type(
     override val name: String,
