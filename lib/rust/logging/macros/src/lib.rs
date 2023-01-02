@@ -308,8 +308,8 @@ impl LoggerMethods<syn::Ident> {
     fn signatures(&self) -> LoggerMethods {
         let LoggerMethods { emit_fn, enter_fn, exit_fn } = self;
         LoggerMethods {
-            emit_fn:  quote! { #[allow(missing_docs)] fn #emit_fn(span: String); },
-            enter_fn: quote! { #[allow(missing_docs)] fn #enter_fn(span: String); },
+            emit_fn:  quote! { #[allow(missing_docs)] fn #emit_fn(span: &str); },
+            enter_fn: quote! { #[allow(missing_docs)] fn #enter_fn(span: &str); },
             exit_fn:  quote! { #[allow(missing_docs)] fn #exit_fn(); },
         }
     }
@@ -321,8 +321,8 @@ impl LoggerMethods<syn::Ident> {
         let LoggerMethods { emit_fn, enter_fn, exit_fn } = self;
         let LoggerMethods { emit_fn: emit_body, enter_fn: enter_body, exit_fn: exit_body } = bodies;
         LoggerMethods {
-            emit_fn:  quote! { #[inline] fn #emit_fn(span: String) { #emit_body } },
-            enter_fn: quote! { #[inline] fn #enter_fn(span: String) { #enter_body } },
+            emit_fn:  quote! { #[inline] fn #emit_fn(span: &str) { #emit_body } },
+            enter_fn: quote! { #[inline] fn #enter_fn(span: &str) { #enter_body } },
             exit_fn:  quote! { #[inline] fn #exit_fn() { #exit_body } },
         }
     }
@@ -359,7 +359,7 @@ fn event_api_for_level(level: &str, methods: &LoggerMethods<syn::Path>, enabled:
         quote! {
             use $crate::internal::Logger;
             $crate::internal::#emit_fn(
-                format!(
+                &format!(
                     "[{}] {}:{} {}",
                     #level_tag,
                     file!(),
@@ -403,7 +403,7 @@ fn span_api_for_level(level: &str, methods: &LoggerMethods<syn::Path>, enabled: 
     let exit_fn = &methods.exit_fn;
     let enter_impl = enabled
         .then_some(quote! {
-            #enter_fn(self.0.clone());
+            #enter_fn(&self.0);
         })
         .unwrap_or_default();
     let exit_impl = enabled
