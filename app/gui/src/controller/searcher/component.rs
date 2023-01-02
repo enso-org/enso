@@ -226,7 +226,8 @@ pub struct List {
     top_modules:                group::AlphabeticalList,
     top_modules_flattened:      group::AlphabeticalList,
     module_groups:              Rc<HashMap<Id, ModuleGroups>>,
-    module_groups_by_namespace: Rc<HashMap<ImString, HashMap<Id, ModuleGroups>>>,
+    module_groups_by_section:   Rc<Vec<HashMap<Id, ModuleGroups>>>,
+    namespace_by_section:      Rc<Vec<ImString>>,
     filtered:                   Rc<Cell<bool>>,
     /// Components to display in the "Local Scope" section of the [Component
     /// Browser](crate::controller::Searcher).

@@ -259,7 +259,16 @@ impl List {
                 .or_insert(default())
                 .insert(id, group.build());
         }
-        let module_groups_by_namespace = Rc::new(module_groups_by_namespace);
+
+        // Separate module groups by section.
+        let mut module_groups_by_section = Vec::new();
+        let mut namespaces_by_section = Vec::new();
+        for (namespace, groups) in module_groups_by_namespace {
+            module_groups_by_section.push(groups);
+            namespaces_by_section.push(namespace);
+        }
+        let module_groups_by_section = Rc::new(module_groups_by_section);
+        let namespaces_by_section = Rc::new(namespaces_by_section);
 
         component::List {
             all_components: Rc::new(self.all_components),
@@ -268,7 +277,8 @@ impl List {
             module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            module_groups_by_namespace,
+            module_groups_by_section,
+            namespace_by_section: namespaces_by_section,
             local_scope: self.local_scope,
             filtered: default(),
             favorites,
