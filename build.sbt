@@ -1614,9 +1614,7 @@ lazy val `runtime-with-polyglot` =
         "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
         "org.graalvm.truffle" % "truffle-api"           % graalVersion     % "provided",
         "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % "provided"
-      ),
-      // Note [Unmanaged Classpath]
-      Test / unmanagedClasspath += (baseDirectory.value / ".." / ".." / "app" / "gui" / "view" / "graph-editor" / "src" / "builtin" / "visualization" / "native" / "inc"),
+      )
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
     .dependsOn(`runtime-with-instruments`)
