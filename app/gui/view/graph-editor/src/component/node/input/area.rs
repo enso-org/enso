@@ -405,7 +405,7 @@ impl Model {
                     hover   <- hovered.map (f!([crumbs](t) Switch::new(crumbs.clone_ref(),*t)));
                     area_frp.source.on_port_hover <+ hover;
 
-                    
+
                     // === Pointer Style ===
 
                     let port_shape_hover = port_shape.hover.clone_ref();
@@ -437,7 +437,7 @@ impl Model {
                     port_widget.set_x(unit * index as f32);
                     builder.parent.add_child(&port_widget);
                     let range = port.payload.range();
-                    let code = &expression.viz_code[range.clone()];
+                    let code = &expression.viz_code[range];
                     port_widget.set_current_value(Some(code.into()));
                     frp::extend! { port_network
                         area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
@@ -445,7 +445,7 @@ impl Model {
                         );
                     }
                 }
-                
+
 
                 init_color.emit(());
                 area_frp.set_view_mode.emit(area_frp.view_mode.value());

@@ -140,7 +140,7 @@ impl SingleChoice {
 
         frp::extend! { network
             dropdown.set_selected_entries <+ input.set_current_value.map(|s| s.iter().cloned().collect());
-            first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().cloned().next());
+            first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
             output.value_changed <+ first_selected_entry.on_change();
 
             let dot_clicked = activation_dot.events.mouse_down_primary.clone_ref();
