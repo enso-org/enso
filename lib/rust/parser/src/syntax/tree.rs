@@ -316,8 +316,8 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
             pub right: token::CloseSymbol<'s>,
         },
-        /// An expression preceded by an annotation, e.g. `@Builtin_Method foo`.
-        Annotated {
+        /// An expression preceded by a special built-in annotation, e.g. `@Tail_Call foo 4`.
+        AnnotatedBuiltin {
             pub token:      token::Operator<'s>,
             pub annotation: token::Ident<'s>,
             pub newlines:   Vec<token::Newline<'s>>,
@@ -796,11 +796,11 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func_.fractional_digits = mem::take(fractional_digits);
             func
         }
-        (Variant::Annotated(func_ @ Annotated { expression: None, .. }), _) => {
+        (Variant::AnnotatedBuiltin(func_ @ AnnotatedBuiltin { expression: None, .. }), _) => {
             func_.expression = arg.into();
             func
         }
-        (Variant::Annotated(Annotated { expression: Some(expression), .. }), _) => {
+        (Variant::AnnotatedBuiltin(AnnotatedBuiltin { expression: Some(expression), .. }), _) => {
             *expression = apply(mem::take(expression), arg);
             func
         }
@@ -941,7 +941,7 @@ pub fn apply_operator<'s>(
 pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
     if opr.properties.is_annotation()
             && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
-        Tree::annotated(opr, token, vec![], None)
+        Tree::annotated_builtin(opr, token, vec![], None)
     } else {
         Tree::unary_opr_app(opr, rhs)
     }

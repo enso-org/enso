@@ -1212,22 +1212,23 @@ fn trailing_whitespace() {
 
 #[test]
 fn annotation_syntax() {
-    #[rustfmt::skip]
-    let cases = [
-        ("foo@bar", block![(OprApp (Ident foo) (Ok "@") (Ident bar))]),
-        ("foo @ bar", block![(OprApp (Ident foo) (Ok "@") (Ident bar))]),
-        ("@Bar", block![(Annotated "@" Bar #() ())]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
+    test!("foo@bar", (OprApp (Ident foo) (Ok "@") (Ident bar)));
+    test!("foo @ bar", (OprApp (Ident foo) (Ok "@") (Ident bar)));
+    test!("@Bar", (AnnotatedBuiltin "@" Bar #() ()));
+}
+
+#[test]
+fn at_operator() {
+    test!("Panic.catch Any @ caught_panic-> caught_panic.payload", ());
 }
 
 #[test]
 fn inline_annotations() {
     #[rustfmt::skip]
     let cases = [
-        ("@Tail_Call go t", block![(Annotated "@" Tail_Call #() (App (Ident go) (Ident t)))]),
+        ("@Tail_Call go t", block![(AnnotatedBuiltin "@" Tail_Call #() (App (Ident go) (Ident t)))]),
         ("@Tail_Call go\n a\n b", block![
-            (Annotated "@" Tail_Call #()
+            (AnnotatedBuiltin "@" Tail_Call #()
              (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b))))]),
     ];
     cases.into_iter().for_each(|(code, expected)| test(code, expected));
@@ -1236,7 +1237,7 @@ fn inline_annotations() {
 #[test]
 fn multiline_annotations() {
     test!("@Builtin_Type\ntype Date",
-        (Annotated "@" Builtin_Type #(()) (TypeDef type Date #() #())));
+        (AnnotatedBuiltin "@" Builtin_Type #(()) (TypeDef type Date #() #())));
 }
 
 

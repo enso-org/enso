@@ -58,7 +58,7 @@ pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s
         let mut statement = line.map_expression(expression_to_statement);
         if let Some(Tree {
             variant:
-                box Variant::Annotated(Annotated { newlines, expression, .. })
+                box Variant::AnnotatedBuiltin(AnnotatedBuiltin { newlines, expression, .. })
                 | box Variant::Documented(Documented {
                     documentation: DocComment { newlines, .. },
                     expression,
