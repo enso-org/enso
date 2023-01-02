@@ -7,17 +7,11 @@
 //!
 //! Note [Log Safety]
 //! =============================
-//! Shared-mutable safety is achieved on a transactional basis: Every `pub` modification operation
-//! leaves the structure in a valid state. All exposed references to the structure are abstract
-//! (i.e. by index) so that they are not invalidated by mutation.
-//!
-//! The data structure has two parts:
-//! - A non-full [`current`] block, which is used like a fixed-size [`Vec`].
-//! - A [`Vec`] of full blocks.
-//!
-//! This approach supports efficient iteration within blocks, because a block's contents are never
-//! moved. (Iteration of the block-list must be by index to avoid invalidation, but blocks are
-//! large enough that the cost of this is low).
+//! Soundness of shared-mutable data requires avoiding reference conflicts: The data must not be
+//! mutated while a shared-reference to it exists. This is ensured by:
+//! - No public interface of [`Log`] allows keeping a reference with lifetime derived from the data.
+//! - References taken within [`Log`]'s implementation don't overlap with other references in the
+//!   scope.
 
 use std::cell;
 use std::mem;
@@ -61,10 +55,10 @@ impl<T> Log<T> {
             if i1 % BLOCK == 0 {
                 // Current gradually-initialized block is full. Read it, cast it to a
                 // fully-initialized block, and replace it with a new empty block.
-                let block = self.current.get().read();
+                let empty = Box::new(mem::MaybeUninit::uninit_array());
+                let block = self.current.get().replace(empty);
                 let block =
                     mem::transmute::<Box<[mem::MaybeUninit<T>; BLOCK]>, Box<[T; BLOCK]>>(block);
-                *self.current.get() = Box::new(mem::MaybeUninit::uninit_array());
                 // Add the old block to our collection of completed blocks.
                 (*self.completed.get()).push(block);
             }
@@ -89,11 +83,16 @@ impl<T> Log<T> {
     pub fn for_each<F>(&self, mut f: F)
     where F: FnMut(&T) {
         unsafe {
-            let blocks = &*self.completed.get();
-            for block in blocks {
+            let blocks = self.len() / BLOCK;
+            let n = self.len() % BLOCK;
+            for i in 0..blocks {
+                // Safety: The contents of a completed block are never modified, so we can hold a
+                // borrow while calling the function (which may append to the log).
+                let block = &(*self.completed.get())[i];
                 block.iter().for_each(&mut f);
             }
-            let n = self.len() % BLOCK;
+            // Safety: The elements in the completed portion of the block are never modified, so we
+            // can hold a borrow while calling the function (which may append to the log).
             let current = &(*self.current.get())[..n];
             current.iter().map(|elem| elem.assume_init_ref()).for_each(f);
         }
