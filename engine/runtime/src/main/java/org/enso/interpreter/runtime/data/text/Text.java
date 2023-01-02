@@ -73,6 +73,7 @@ public final class Text implements TruffleObject {
 
         "14.95€".is_normalized
   """)
+  @CompilerDirectives.TruffleBoundary
   public boolean is_normalized() {
     switch (fcdNormalized) {
       case YES -> {
