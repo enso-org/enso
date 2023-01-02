@@ -1211,31 +1211,35 @@ fn trailing_whitespace() {
 // === Annotations ===
 
 #[test]
-fn annotation_syntax() {
+fn at_operator() {
     test!("foo@bar", (OprApp (Ident foo) (Ok "@") (Ident bar)));
     test!("foo @ bar", (OprApp (Ident foo) (Ok "@") (Ident bar)));
-    test!("@Bar", (AnnotatedBuiltin "@" Bar #() ()));
+}
+
+
+#[test]
+fn attributes() {
+    test!("@on_problems P.g\nTable.select_columns : Text -> Table",
+        (Annotated "@" on_problems
+         (OprApp (Ident P) (Ok ".") (Ident g))
+         #(())
+         (TypeSignature (OprApp (Ident Table) (Ok ".") (Ident select_columns))
+                        ":"
+                        (OprApp (Ident Text) (Ok "->") (Ident Table)))));
+    test!("@a z\n@b\nx", (Annotated "@" a (Ident z) #(()) (Annotated "@" b () #(()) (Ident x))));
+    test!("@a\n@b\nx", (Annotated "@" a () #(()) (Annotated "@" b () #(()) (Ident x))));
 }
 
 #[test]
-fn at_operator() {
-    test!("Panic.catch Any @ caught_panic-> caught_panic.payload", ());
+fn inline_builtin_annotations() {
+    test!("@Tail_Call go t", (AnnotatedBuiltin "@" Tail_Call #() (App (Ident go) (Ident t))));
+    test!("@Tail_Call go\n a\n b",
+        (AnnotatedBuiltin "@" Tail_Call #()
+         (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b)))));
 }
 
 #[test]
-fn inline_annotations() {
-    #[rustfmt::skip]
-    let cases = [
-        ("@Tail_Call go t", block![(AnnotatedBuiltin "@" Tail_Call #() (App (Ident go) (Ident t)))]),
-        ("@Tail_Call go\n a\n b", block![
-            (AnnotatedBuiltin "@" Tail_Call #()
-             (ArgumentBlockApplication (Ident go) #((Ident a) (Ident b))))]),
-    ];
-    cases.into_iter().for_each(|(code, expected)| test(code, expected));
-}
-
-#[test]
-fn multiline_annotations() {
+fn multiline_builtin_annotations() {
     test!("@Builtin_Type\ntype Date",
         (AnnotatedBuiltin "@" Builtin_Type #(()) (TypeDef type Date #() #())));
 }
