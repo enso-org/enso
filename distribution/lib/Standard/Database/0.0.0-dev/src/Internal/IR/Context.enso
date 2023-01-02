@@ -64,6 +64,7 @@ type Context
        - limit: an optional maximum number of elements that the equery should
          return.
     Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer)
+    # TODO modifiers to select - how do we want to approach them?
 
     ## PRIVATE
 
