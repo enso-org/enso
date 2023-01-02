@@ -79,6 +79,8 @@
   the project is changed from the last saved snapshot and lighter when the
   snapshot matches the current project state.
 - [Added shortcut to interrupt the program][3967]
+- [Added dropdown for node argument value suggestions.][4013] Currently it
+  displays only statically known enum variant choices.
 
 #### EnsoGL (rendering engine)
 
@@ -420,6 +422,7 @@
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
 [3997]: https://github.com/enso-org/enso/pull/3997
+[4013]: https://github.com/enso-org/enso/pull/4013
 
 #### Enso Compiler
 
