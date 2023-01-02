@@ -171,7 +171,7 @@ public class Text_Utils {
    *     positive value if {@code a} is after {@code b}
    */
   public static int compare(String a, String b, boolean isNormalized) {
-    int options = isNormalized ? Normalizer.INPUT_IS_FCD : Normalizer.FOLD_CASE_DEFAULT;
+    int options = isNormalized ? Normalizer.FOLD_CASE_DEFAULT | Normalizer.INPUT_IS_FCD : Normalizer.FOLD_CASE_DEFAULT;
     return Normalizer.compare(a, b, options);
   }
 
