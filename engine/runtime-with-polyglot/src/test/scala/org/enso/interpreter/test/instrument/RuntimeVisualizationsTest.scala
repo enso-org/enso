@@ -2189,7 +2189,6 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    //val pushContextResponses = context.receiveNIgnorePendingExpressionUpdates(3)
     val pushContextResponses = context.receiveNIgnoreStdLib(3)
     pushContextResponses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
