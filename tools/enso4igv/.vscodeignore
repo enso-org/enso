@@ -1,5 +1,4 @@
 target
-src
 *.vsix
 node_modules
 
