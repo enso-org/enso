@@ -343,13 +343,11 @@ impl IsWatchable for Wasm {
             if let Some(profiling_level) = profiling_level {
                 watch_cmd.args(["--profiling-level", profiling_level.to_string().as_str()]);
             }
-            if let Some(log_level) = log_level {
-                watch_cmd.args(["--log-level", log_level.to_string().as_str()]);
-            }
-            if let Some(uncollapsed_log_level) = uncollapsed_log_level {
-                watch_cmd
-                    .args(["--uncollapsed-log-level", uncollapsed_log_level.to_string().as_str()]);
-            }
+            watch_cmd.args(["--log-level", log_level.unwrap_or_default().to_string().as_str()]);
+            watch_cmd.args([
+                "--uncollapsed-log-level",
+                uncollapsed_log_level.unwrap_or_default().to_string().as_str(),
+            ]);
             for wasm_opt_option in wasm_opt_options {
                 watch_cmd.args(["--wasm-opt-option", &wasm_opt_option]);
             }
