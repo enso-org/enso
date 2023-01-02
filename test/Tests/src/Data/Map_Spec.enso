@@ -5,9 +5,6 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec = Test.group "Maps" <|
-    m = Map.empty . insert 1 2 . insert 2 4
-    expected = Map.empty . insert "1" 4 . insert "2" 8
-    m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
     Test.specify "should allow checking for emptiness" <|
         empty_map = Map.empty
         non_empty = Map.empty . insert "foo" 1234
