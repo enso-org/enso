@@ -15,7 +15,7 @@ use crate::model::module::ProjectMetadata;
 use crate::model::module::TextChange;
 use crate::notification;
 
-use double_representation::definition::DefinitionInfo;
+use double_representation::definition::{DefinitionInfo, DefinitionProvider};
 use double_representation::import;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
@@ -270,11 +270,13 @@ impl model::module::API for Module {
             let removing_imports_result: FallibleResult =
                 temp_imports.map(|temp_import| info.remove_import_by_id(temp_import)).collect();
 
-            let nodes_md = content.metadata.ide.node.iter();
-            let
-            content.ast.
-            for (id, node_md) in nodes_md {
-                let
+            let nodes_md = &mut content.metadata.ide.node;
+
+            let mut definitions_to_visit = content.ast.def_iter().collect_vec();
+            while let Somme(definition) = definitions_to_visit.pop() {
+                let graph = double_representation::graph::GraphInfo::from_definition(definition);
+                graph.nodes()
+                definitions_to_visit.extend(definition.def_iter())
             }
         })
     }
