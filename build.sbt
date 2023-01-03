@@ -1612,9 +1612,7 @@ lazy val `runtime-with-polyglot` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
-        "org.scalatest"      %% "scalatest"             % scalatestVersion % Test,
-        "org.graalvm.truffle" % "truffle-api"           % graalVersion     % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion     % "provided"
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test
       )
     )
     .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
