@@ -211,10 +211,16 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
     "reset to last saved state" in new TestCtx with InitialRepoSetup {
       val fooFile = repoPath.resolve("Foo.enso")
       val barFile = repoPath.resolve("Bar.enso")
+      val bazFile = repoPath.resolve("Baz.enso")
       createStubFile(fooFile) should equal(true)
       Files.write(
         fooFile,
         "file contents".getBytes(StandardCharsets.UTF_8)
+      )
+      createStubFile(bazFile) should equal(true)
+      Files.write(
+        bazFile,
+        "baz file contents".getBytes(StandardCharsets.UTF_8)
       )
       val commitResult = vcs.commit(repoPath, "New files").unsafeRunSync()
       commitResult.isRight shouldBe true
@@ -235,11 +241,16 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
 
       val restoreResult = vcs.restore(repoPath, commitId = None).unsafeRunSync()
       restoreResult.isRight shouldBe true
+      restoreResult.getOrElse(Nil) shouldEqual List(
+        Path.of("Bar.enso"),
+        Path.of("Foo.enso")
+      )
 
       val text2 = Files.readAllLines(fooFile)
       text2.get(0) should equal("file contents")
 
       barFile.toFile should exist // TODO: verify this is the expected logic
+      bazFile.toFile should exist
     }
 
     "reset to a named saved state" in new TestCtx with InitialRepoSetup {
@@ -269,6 +280,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val restoreResult =
         vcs.restore(repoPath, Some(commitId)).unsafeRunSync()
       restoreResult.isRight shouldBe true
+      restoreResult.getOrElse(Nil) shouldEqual List(Path.of("Foo.enso"))
 
       val fileText2 = Files.readAllLines(fooFile)
       fileText2.get(0) should equal("file contents")

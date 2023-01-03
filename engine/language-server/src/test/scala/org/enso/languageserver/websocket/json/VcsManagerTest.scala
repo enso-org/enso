@@ -574,7 +574,14 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 3,
-            "result": null
+            "result": {
+              "changed": [
+                {
+                  "rootId": $testContentRootId,
+                  "segments": [ "src", "Foo.enso" ]
+                }
+              ]
+            }
           }
           """)
 
@@ -609,6 +616,10 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     }
 
     "reset to a named save" taggedAs Retry in withCleanRoot { client =>
+      timingsConfig = timingsConfig.withAutoSave(0.5.seconds)
+      val sleepDuration: Long = 2 * 1000 // 2 seconds
+      val client2             = getInitialisedWsClient()
+      val testFileName        = "Foo2.enso"
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/status",
@@ -637,12 +648,14 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
 
       val srcDir = testContentRoot.file.toPath.resolve("src")
       Files.createDirectory(srcDir)
-      val fooPath = srcDir.resolve("Foo.enso")
+      val fooPath = srcDir.resolve(testFileName)
       fooPath.toFile.createNewFile()
       Files.write(
         fooPath,
         "file contents".getBytes(StandardCharsets.UTF_8)
       )
+      // "file contents" version: 4d23065da489de360890285072c209b2b39d45d12283dbb5d1fa4389
+
       add(testContentRoot.file, srcDir)
       commit(testContentRoot.file, "Add missing files")
       val barPath = srcDir.resolve("Bar.enso")
@@ -657,13 +670,176 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
         fooPath,
         "different contents".getBytes(StandardCharsets.UTF_8)
       )
+      // "different contents" version: e2bf8493b00a13749e643e2f970b6025c227cc91340c2acb7d67e1da
+
       add(testContentRoot.file, srcDir)
       commit(testContentRoot.file, "More changes")
 
       client.send(json"""
           { "jsonrpc": "2.0",
-            "method": "vcs/status",
+            "method": "text/openFile",
             "id": 2,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "src", $testFileName ]
+              }
+            }
+          }
+      """)
+
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+              "writeCapability": null,
+              "content": "different contents",
+              "currentVersion": "e2bf8493b00a13749e643e2f970b6025c227cc91340c2acb7d67e1da"
+            }
+          }
+          """)
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 2,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "src", $testFileName ]
+              }
+            }
+          }
+      """)
+      client2.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+              "writeCapability": null,
+              "content": "different contents",
+              "currentVersion": "e2bf8493b00a13749e643e2f970b6025c227cc91340c2acb7d67e1da"
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/acquire",
+            "id": 3,
+            "params": {
+              "method": "text/canEdit",
+              "registerOptions": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "src", $testFileName ]
+                }
+              }
+            }
+          }
+          """)
+
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": null
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 4,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "src", $testFileName ]
+                },
+                "oldVersion": "e2bf8493b00a13749e643e2f970b6025c227cc91340c2acb7d67e1da",
+                "newVersion": "e4bb87ced8ddafa060f08f2a79cc2861355eb9f596e462d7df462ef4",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 9 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 4,
+            "result": null
+          }
+          """)
+      client2.expectJson(json"""
+         { "jsonrpc" : "2.0",
+           "method" : "text/didChange",
+           "params" : {
+             "edits" : [
+               {
+                 "path" : {
+                   "rootId" : $testContentRootId,
+                   "segments" : [
+                     "src",
+                     $testFileName
+                   ]
+                 },
+                 "edits" : [
+                   {
+                     "range" : {
+                       "start" : {
+                         "line" : 0,
+                         "character" : 0
+                       },
+                       "end" : {
+                         "line" : 0,
+                         "character" : 9
+                       }
+                     },
+                     "text" : "bar"
+                   }
+                 ],
+                 "oldVersion" : "e2bf8493b00a13749e643e2f970b6025c227cc91340c2acb7d67e1da",
+                 "newVersion" : "e4bb87ced8ddafa060f08f2a79cc2861355eb9f596e462d7df462ef4"
+               }
+             ]
+           }
+         }
+         """)
+
+      // Ensure auto-save kicks in
+      Thread.sleep(sleepDuration)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method":"text/autoSave",
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "src", $testFileName ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method":"text/autoSave",
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "src", $testFileName ]
+              }
+            }
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "vcs/status",
+            "id": 5,
             "params": {
               "root": {
                 "rootId": $testContentRootId,
@@ -674,10 +850,18 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           """)
       client.fuzzyExpectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 2,
+            "id": 5,
             "result": {
-              "dirty": false,
-              "changed": [],
+              "dirty": true,
+              "changed": [
+                {
+                  "rootId" : $testContentRootId,
+                  "segments" : [
+                    "src",
+                    $testFileName
+                  ]
+                }
+              ],
               "lastSave": {
                 "commitId": "*",
                 "message": "More changes"
@@ -685,12 +869,16 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-      val sndToLast = commits(testContentRoot.file).tail.head
+      val allCommits = commits(testContentRoot.file)
+      val sndToLast  = allCommits.tail.head
+
+      val text0 = Files.readAllLines(fooPath)
+      text0.get(0) should equal("bar contents")
 
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "vcs/restore",
-            "id": 3,
+            "id": 6,
             "params": {
               "root": {
                 "rootId": $testContentRootId,
@@ -701,19 +889,188 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           }
           """)
       client.expectJson(json"""
+         { "jsonrpc" : "2.0",
+           "method" : "text/didChange",
+           "params" : {
+             "edits" : [
+               {
+                 "path" : {
+                   "rootId" : $testContentRootId,
+                   "segments" : [
+                     "src",
+                     $testFileName
+                   ]
+                 },
+                 "edits" : [
+                   {
+                     "range" : {
+                       "start" : {
+                         "line" : 0,
+                         "character" : 0
+                       },
+                       "end" : {
+                         "line" : 0,
+                         "character" : 13
+                       }
+                     },
+                     "text" : "file contents"
+                   }
+                 ],
+                 "oldVersion" : "e4bb87ced8ddafa060f08f2a79cc2861355eb9f596e462d7df462ef4",
+                 "newVersion" : "4d23065da489de360890285072c209b2b39d45d12283dbb5d1fa4389"
+               }
+             ]
+           }
+         }""")
+      client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 3,
-            "result": null
+            "id": 6,
+            "result": {
+              "changed": [
+                {
+                  "rootId": $testContentRootId,
+                  "segments": [ "src", $testFileName ]
+                }
+              ]
+            }
           }
           """)
+      client2.expectJson(json"""
+         { "jsonrpc" : "2.0",
+           "method" : "text/didChange",
+           "params" : {
+             "edits" : [
+               {
+                 "path" : {
+                   "rootId" : $testContentRootId,
+                   "segments" : [
+                     "src",
+                     $testFileName
+                   ]
+                 },
+                 "edits" : [
+                   {
+                     "range" : {
+                       "start" : {
+                         "line" : 0,
+                         "character" : 0
+                       },
+                       "end" : {
+                         "line" : 0,
+                         "character" : 13
+                       }
+                     },
+                     "text" : "file contents"
+                   }
+                 ],
+                 "oldVersion" : "e4bb87ced8ddafa060f08f2a79cc2861355eb9f596e462d7df462ef4",
+                 "newVersion" : "4d23065da489de360890285072c209b2b39d45d12283dbb5d1fa4389"
+               }
+             ]
+           }
+         }""")
 
       val text1 = Files.readAllLines(fooPath)
       text1.get(0) should equal("file contents")
 
       client.send(json"""
           { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 7,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "src", $testFileName ]
+                },
+                "oldVersion": "4d23065da489de360890285072c209b2b39d45d12283dbb5d1fa4389",
+                "newVersion": "1141745721c08c1c1c26ca32b95f103c0721f70eedaa6db765dfc43e",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 4 }
+                    },
+                    "text": "foo"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 7,
+            "id": 7,
+            "result": null
+          }
+          """)
+      client2.expectJson(json"""
+         { "jsonrpc" : "2.0",
+           "method" : "text/didChange",
+           "params" : {
+             "edits" : [
+               {
+                 "path" : {
+                   "rootId" : $testContentRootId,
+                   "segments" : [
+                     "src",
+                     $testFileName
+                   ]
+                 },
+                 "edits" : [
+                   {
+                     "range" : {
+                       "start" : {
+                         "line" : 0,
+                         "character" : 0
+                       },
+                       "end" : {
+                         "line" : 0,
+                         "character" : 4
+                       }
+                     },
+                     "text" : "foo"
+                   }
+                 ],
+                 "oldVersion" : "4d23065da489de360890285072c209b2b39d45d12283dbb5d1fa4389",
+                 "newVersion" : "1141745721c08c1c1c26ca32b95f103c0721f70eedaa6db765dfc43e"
+               }
+             ]
+           }
+         }""")
+
+      // Ensure auto-save kicks in
+      Thread.sleep(sleepDuration)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method":"text/autoSave",
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "src", $testFileName ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method":"text/autoSave",
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "src", $testFileName ]
+              }
+            }
+          }
+          """)
+      val text2 = Files.readAllLines(fooPath)
+      text2.get(0) should equal("foo contents")
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
             "method": "vcs/restore",
-            "id": 4,
+            "id": 8,
             "params": {
               "root": {
                 "rootId": $testContentRootId,
@@ -725,7 +1082,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
           """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 4,
+            "id": 8,
             "error": {
               "code": 1004,
               "message": "Requested save not found"
@@ -894,7 +1251,7 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
     jgit.log().call().asScala.toList
   }
 
-  def commit(root: File, msg: String): Unit = {
+  def commit(root: File, msg: String): RevCommit = {
     val jgit = new JGit(repository(root.toPath))
     jgit.commit.setMessage(msg).setAuthor("Enso VCS", "vcs@enso.io").call()
   }
