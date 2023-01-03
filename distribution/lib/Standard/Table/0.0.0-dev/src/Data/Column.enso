@@ -141,6 +141,7 @@ type Column
            cost of Java-to-Enso calls. We want to have a vectorized
            implementation, but we need to extend the architecture to allow
            passing the locale to it.
+           See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
         run_vectorized_binary_op self "equals_ignore_case" (x-> y-> x.equals_ignore_case y locale=locale) other
 
     ## Element-wise non-equality comparison.

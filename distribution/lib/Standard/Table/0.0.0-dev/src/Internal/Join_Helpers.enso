@@ -67,7 +67,7 @@ type Join_Condition_Resolver
                 if left.is_nothing || right_lower.is_nothing || right_upper.is_nothing then Nothing else
                     self.make_between problem_builder left right_lower right_upper
         problem_builder.throw_unmatched_columns_as_error <|
-            if converted.contains Nothing then Error.throw (Illegal_State.Error "Impossible: unresolved columns remaining in the join resolution. This should have raised a dataflow error. This is a bug in the Table library.") else
+            if converted.contains Nothing then Panic.throw (Illegal_State.Error "Impossible: unresolved columns remaining in the join resolution. This should have raised a dataflow error. This is a bug in the Table library.") else
                 problem_builder.attach_problems_after on_problems <|
                     Join_Condition_Resolution.Result converted redundant_names.to_vector
 

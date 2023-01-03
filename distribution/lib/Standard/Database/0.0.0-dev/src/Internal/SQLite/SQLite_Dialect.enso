@@ -13,7 +13,7 @@ import project.Data.Table.Table
 import project.Internal.Base_Generator
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Join_Kind.Join_Kind
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Common.Join_Helper
@@ -82,13 +82,14 @@ type SQLite_Dialect
     ## PRIVATE
        Prepares a join operation, returning a new table instance encapsulating a
        proper query.
-    prepare_join : Connection -> Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
+    prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select = case join_kind of
-        Join_Kind.Right ->
+        SQL_Join_Kind.Right ->
             # We just do a left join with swapped order of sub-queries, while keeping the original order of columns.
-            Join_Helper.default_prepare_join connection Join_Kind.Left new_table_name right_subquery left_subquery on_expressions where_expressions columns_to_select
-        Join_Kind.Full ->
-            # TODO workaround for full joins by left outer + right-anti union
+            Join_Helper.default_prepare_join connection SQL_Join_Kind.Left new_table_name right_subquery left_subquery on_expressions where_expressions columns_to_select
+        SQL_Join_Kind.Full ->
+            ## TODO workaround for full joins by left outer + right-anti union
+               https://www.pivotaltracker.com/story/show/184090548
             Error.throw (Unsupported_Database_Operation.Error "Full outer joins are not YET supported by the SQLite backend. You may need to materialize the Table to perform this operation.")
         _ ->
             # Other kinds of joins just fall back to the default logic.
@@ -100,9 +101,6 @@ make_internal_generator_dialect =
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
 
-    # TODO these may be problematic as they may break indexes, double-check query plans!
-    #eq = Base_Generator.lift_binary_op "=" (a-> b-> a.paren ++ " IS " ++ b.paren)
-    #neq = Base_Generator.lift_binary_op "!=" (a-> b-> a.paren ++ " IS NOT " ++ b.paren)
     bool = [bool_or]
     my_mappings = text + counts + stats + bool
     Base_Generator.base_dialect . extend_with my_mappings

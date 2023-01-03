@@ -9,7 +9,7 @@ import project.Data.Table.Table
 import project.Internal.Base_Generator
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
-import project.Internal.IR.Join_Kind.Join_Kind
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
@@ -64,6 +64,6 @@ type Redshift_Dialect
     ## PRIVATE
        Prepares a join operation, returning a new table instance encapsulating a
        proper query.
-    prepare_join : Connection -> Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
+    prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
         Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
