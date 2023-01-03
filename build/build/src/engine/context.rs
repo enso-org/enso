@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use std::convert::identity;
 
 use crate::engine;
 use crate::engine::bundle::Bundle;
@@ -341,6 +342,18 @@ impl RunContext {
             for benchmark in &self.config.execute_benchmarks {
                 if let Some(task) = benchmark.sbt_task() {
                     sbt.call_arg(task).await?;
+                }
+            }
+        } // End of Sbt run.
+
+        if TARGET_OS == OS::Windows {
+            for package in [&ret.packages.launcher, &ret.packages.project_manager] {
+                if let Some(package) = package {
+                    let pattern = package.dir.join_iter(["**", "*.exe"]);
+                    let executables = glob::glob(pattern.as_str())?.try_collect_vec()?;
+                    for executable in executables {
+                        ide_ci::packaging::add_msvc_redist_dependencies(&executable).await?;
+                    }
                 }
             }
         }
