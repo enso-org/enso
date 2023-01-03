@@ -1,5 +1,5 @@
 import project.Data.Numbers.Integer
-import project.Data.Vector
+import project.Data.Vector.Vector
 
 from project.Data.Boolean import Boolean, True, False
 from project import Error, Nothing, Any
@@ -14,7 +14,7 @@ type Hash_Map key value
     empty = @Builtin_Method "Hash_Map.empty"
 
     singleton : Any -> Any -> Map
-    singleton key value = Unimplemented.throw "singleton"
+    singleton key value = Hash_Map.empty.insert key value
 
     from_vector : Vector Any -> Map
     from_vector vec = vec.fold Hash_Map.empty (m -> el -> m.insert (el.at 0) (el.at 1))
@@ -23,7 +23,7 @@ type Hash_Map key value
     insert self key value = @Builtin_Method "Hash_Map.insert"
 
     is_empty : Boolean
-    is_empty self = Unimplemented.throw "is_empty"
+    is_empty self = self.size == 0
 
     not_empty : Boolean
     not_empty self = self.is_empty.not
@@ -44,17 +44,50 @@ type Hash_Map key value
     contains_key : Any -> Boolean
     contains_key self key = @Builtin_Method "Hash_Map.contains_key"
 
-    to_vector : Vector Any
-    to_vector self = Unimplemented.throw "to_vector"
-
-    to_text : Text
-    to_text self = self.to_vector.to_text
-
     keys : Vector
     keys self = @Builtin_Method "Hash_Map.key_set"
 
     values : Vector
     values self = Unimplemented.throw "values"
+
+    map : (Any -> Any) -> Hash_Map
+    map self function =
+        kv_func = _ -> function
+        self.map_with_key kv_func
+
+    map_with_key : (Any -> Any -> Any) -> Hash_Map
+    map_with_key self function =
+        Hash_Map.from_vector <| self.to_vector.map pair->
+            key = pair.first
+            value = pair.last
+            [key, (function key value)]
+
+    transform : (Any -> Any -> [Any, Any]) -> Map
+    transform self function = Unimplemented.throw "transform"
+        ##func_pairs = p -> function (p.at 0) (p.at 1)
+        #vec_transformed = self.to_vector.map func_pairs
+        #Map.from_vector vec_transformed
+
+    each : (Any -> Any) -> Nothing
+    each self function =
+        kv_func = _ -> function
+        self.each_with_key kv_func
+
+    each_with_key : (Any -> Any -> Any) -> Nothing
+    each_with_key self function = Unimplemented.throw "each_with_key"
+
+    to_flat_vector : Vector Any
+    to_flat_vector self = @Builtin_Method "Hash_Map.to_flat_vector"
+
+    to_vector : Vector Any
+    to_vector self =
+        flat_vec = self.to_flat_vector
+        vec = Vector.new (flat_vec.length.div 2) idx->
+            [(flat_vec.at idx*2), (flat_vec.at (idx*2 + 1))]
+        vec.sort by=x-> y-> x.first.compare_to y.first
+
+    to_text : Text
+    to_text self = @Builtin_Method "Hash_Map.to_text"
 
     ## Get a key value pair of the lowest key in the map.
        If the map is empty, returns Nothing.
