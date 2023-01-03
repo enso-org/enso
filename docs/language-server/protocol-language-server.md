@@ -2808,6 +2808,10 @@ If the contents of any open buffer has changed as a result of this operation, al
 subscribed clients will be notified about the new version of the file via
 `text/didChange` push notification.
 
+A file might have been removed during the operation while there were still open
+buffers for that file. Any such clients will be modified of a file removal via
+the `file/event` notification.
+
 #### Parameters
 
 ```typescript

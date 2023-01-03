@@ -17,6 +17,7 @@ import org.enso.languageserver.filemanager.FileManagerProtocol.{
   WriteFileResult
 }
 import org.enso.languageserver.filemanager.{
+  FileEventKind,
   FileManagerProtocol,
   FileNotFound,
   OperationTimeout,
@@ -278,6 +279,9 @@ class CollaborativeBuffer(
       )
 
     case ReadTextualFileResult(Left(FileNotFound)) =>
+      clients.values.foreach {
+        _.rpcController ! TextProtocol.FileEvent(path, FileEventKind.Removed)
+      }
       replyTo ! ReloadedBuffer(path)
       timeoutCancellable.cancel()
       stop(Map.empty)
