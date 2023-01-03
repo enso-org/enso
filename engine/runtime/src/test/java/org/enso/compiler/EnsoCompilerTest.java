@@ -601,8 +601,9 @@ public class EnsoCompilerTest {
     """);
   }
 
+  @Ignore // AstToIr bug: Old parser emits syntax error in place of `@` operator.
   @Test
-  public void testNotAnOperator() throws Exception {
+  public void testAtOperator() throws Exception {
     parseTest("""
     main =
         x = Panic.catch Any @ caught_panic-> caught_panic.payload
