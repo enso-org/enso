@@ -1,6 +1,7 @@
 from Standard.Base import all hiding First, Last
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
@@ -74,6 +75,12 @@ type Postgres_Dialect
     prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
         Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
+
+    ## PRIVATE
+       Prepares a distinct operation.
+    prepare_distinct : Table -> Vector -> Table
+    prepare_distinct self table key_columns =
+        Unimplemented.throw "TODO"
 
 ## PRIVATE
 make_internal_generator_dialect =

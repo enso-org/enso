@@ -56,6 +56,12 @@ type Dialect
     prepare_join self =
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       Prepares a distinct operation.
+    prepare_distinct : Table -> Vector -> Table
+    prepare_distinct self =
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.

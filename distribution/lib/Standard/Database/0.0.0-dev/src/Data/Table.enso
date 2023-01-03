@@ -23,7 +23,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column
+from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
@@ -651,9 +651,14 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
-        # TODO most likely need, like joins, a specialized generator for each dialect
-        _ = [columns, case_sensitivity, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "`Table.distinct` is not yet implemented for the database backend.")
+        warning_mapper error = case error of
+            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
+            _ -> Nothing
+        key_columns = Warning.map_warnings_and_errors warning_mapper <|
+            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
+        # TODO detect floating point
+        # TODO text case insensitive mode
+        self.connection.dialect.prepare_distinct self key_columns
 
     ## Joins two tables according to the specified join conditions.
 
