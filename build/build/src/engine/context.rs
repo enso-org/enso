@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::convert::identity;
 
 use crate::engine;
 use crate::engine::bundle::Bundle;
@@ -31,6 +30,7 @@ use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
+use std::convert::identity;
 use sysinfo::SystemExt;
 
 

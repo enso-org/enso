@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 
+
 /// Wrapper for the [`vswhere`](https://github.com/microsoft/vswhere) program.
 ///
 /// It typically is installed as part of the Visual Studio installation.
