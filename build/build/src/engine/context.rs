@@ -30,7 +30,6 @@ use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
-use std::convert::identity;
 use sysinfo::SystemExt;
 
 
@@ -256,13 +255,18 @@ impl RunContext {
         let build_native_runner =
             self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
 
+        ret.packages.engine = self.config.build_engine_package().then(|| self.paths.engine.clone());
+        ret.packages.project_manager =
+            self.config.build_project_manager_package().then(|| self.paths.project_manager.clone());
+        ret.packages.launcher =
+            self.config.build_launcher_package().then(|| self.paths.launcher.clone());
+
         if big_memory_machine {
             let mut tasks = vec![];
 
             if self.config.build_engine_package() {
                 tasks.push("buildEngineDistribution");
                 tasks.push("engine-runner/assembly");
-                ret.packages.engine = Some(self.paths.engine.clone());
             }
             if build_native_runner {
                 tasks.push("engine-runner/buildNativeImage");
@@ -276,12 +280,10 @@ impl RunContext {
 
             if self.config.build_project_manager_package() {
                 tasks.push("buildProjectManagerDistribution");
-                ret.packages.project_manager = Some(self.paths.project_manager.clone());
             }
 
             if self.config.build_launcher_package() {
                 tasks.push("buildLauncherDistribution");
-                ret.packages.launcher = Some(self.paths.launcher.clone());
             }
 
             // This just compiles benchmarks, not run them. At least we'll know that they can be
@@ -346,14 +348,23 @@ impl RunContext {
             }
         } // End of Sbt run.
 
+        // Native images built by GraalVM on Windows use MSVC build tools. Thus, the generated
+        // binaries have MSVC CRT (C++ standard library) linked. This means that we need to ship
+        // the MSVC CRT DLLs with the binaries.
         if TARGET_OS == OS::Windows {
-            for package in [&ret.packages.launcher, &ret.packages.project_manager] {
+            debug!("Copying MSVC CRT DLLs to the distribution.");
+            let packages_with_native_images =
+                [&ret.packages.launcher, &ret.packages.project_manager];
+            for package in packages_with_native_images {
                 if let Some(package) = package {
                     let pattern = package.dir.join_iter(["**", "*.exe"]);
                     let executables = glob::glob(pattern.as_str())?.try_collect_vec()?;
+                    debug!(?executables, ?pattern, "Found executables in the package.");
                     for executable in executables {
                         ide_ci::packaging::add_msvc_redist_dependencies(&executable).await?;
                     }
+                } else {
+                    debug!("No package to copy MSVC CRT DLLs to.");
                 }
             }
         }
