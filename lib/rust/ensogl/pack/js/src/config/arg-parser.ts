@@ -1,5 +1,3 @@
-import * as nodeUtil from 'node:util'
-
 // ==========================
 // === Naming Conversions ===
 // ==========================
@@ -46,6 +44,7 @@ export class Args {
     )
 
     parse() {
+        console.log('PARSE!!!')
         const optionToFieldNameMap: Map<string, string> = new Map()
         const options: any = {}
         for (let [fieldName, option] of Object.entries(this)) {
@@ -54,6 +53,7 @@ export class Args {
             options[optionName] = { type: option.type, default: option.value }
         }
         try {
+            const nodeUtil = require('node:util')
             let out = nodeUtil.parseArgs({ options })
             for (let [optionName, optionValue] of Object.entries(out.values)) {
                 let fieldName = optionToFieldNameMap.get(optionName)

@@ -48,7 +48,6 @@ const config: esbuild.BuildOptions = {
     },
     platform: 'node',
     sourcemap: true,
-    minify: true,
     color: true,
 }
 

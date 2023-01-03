@@ -3133,6 +3133,7 @@ dependencies = [
 name = "ensogl-pack"
 version = "0.1.0"
 dependencies = [
+ "fs_extra",
  "manifest-dir-macros",
  "tempfile",
 ]

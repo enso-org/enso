@@ -51,6 +51,7 @@ pub mod env {
         ENSO_BUILD_ICONS, PathBuf;
         ENSO_BUILD_GUI_WASM, PathBuf;
         ENSO_BUILD_GUI_JS_GLUE, PathBuf;
+        ENSO_BUILD_GUI_JS_APP, PathBuf;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;

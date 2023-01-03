@@ -1,7 +1,6 @@
 /** This module redefines some `node:fs` functions with embedded logging, so it is easy to track
  * what they do.*/
 
-export * from 'fs/promises'
 import { ObjectEncodingOptions, OpenMode, PathLike } from 'node:fs'
 import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'

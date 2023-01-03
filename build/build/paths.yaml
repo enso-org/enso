@@ -37,12 +37,14 @@
 
     # Final WASM artifacts in `dist` directory.
     wasm/:
-      ? path: ide.wasm
+      ? path: main-opt.wasm
         var: wasm_main
-      ? path: ide_bg.wasm
+      ? path: main.wasm
         var: wasm_main_raw
-      ? path: ide.js
+      ? path: main.js
         var: wasm_glue
+      ? path: app.js
+        var: app
   distribution/:
     editions/:
       <edition>.yaml:

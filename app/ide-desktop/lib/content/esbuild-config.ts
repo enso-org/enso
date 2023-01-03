@@ -59,6 +59,8 @@ function git(command: string): string {
 // === Files to manually copy ===
 // ==============================
 
+// FIXME:
+const ensogl_app_path = path.resolve(js_glue_path, '..', 'app.js')
 /**
  * Static set of files that are always copied to the output directory.
  */
@@ -68,6 +70,7 @@ const always_copied_files = [
     path.resolve(thisPath, 'src', 'style.css'),
     path.resolve(thisPath, 'src', 'docsStyle.css'),
     wasm_path,
+    js_glue_path,
 ]
 
 /**
@@ -88,14 +91,14 @@ async function* files_to_copy_provider() {
 
 const config: esbuild.BuildOptions = {
     bundle: true,
-    entryPoints: ['src/index.ts', 'src/wasm_imports.js'],
+    entryPoints: ['src/index.ts'],
     outdir: output_path,
     outbase: 'src',
     plugins: [
         plugin_yaml.yamlPlugin({}),
         NodeModulesPolyfillPlugin(),
         NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
-        aliasPlugin({ wasm_rust_glue: js_glue_path }),
+        aliasPlugin({ ensogl_app: ensogl_app_path }),
         timePlugin(),
         copy_plugin.create(files_to_copy_provider),
     ],
@@ -108,6 +111,7 @@ const config: esbuild.BuildOptions = {
     minify: true,
     metafile: true,
     publicPath: '/assets',
+    platform: 'node',
     incremental: true,
     color: true,
     logOverride: {

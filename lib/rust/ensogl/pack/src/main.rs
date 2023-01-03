@@ -108,42 +108,71 @@ fn main() {
         let root_dir = current_cargo_path.parent().unwrap();
         println!("{:?}", root_dir);
 
-        // let build_dir = tempdir().expect("Failed to create temporary directory");
+        // let target_dir = tempdir().expect("Failed to create temporary directory");
         let workspace_dir = workspace_dir();
-        let build_dir = workspace_dir.join("target").join("ensogl-pack");
-        let dist_dir = build_dir.join("dist");
+        let target_dir = workspace_dir.join("target").join("ensogl-pack");
+        let target_dist_dir = target_dir.join("dist");
 
         let out_dir =
-            modify_arg_1(&mut args, "--out-dir", |_| Some(build_dir.display().to_string()));
+            modify_arg_1(&mut args, "--out-dir", |_| Some(target_dir.display().to_string()));
         let out_dir = out_dir
-            .or_else(|| modify_arg_1(&mut args, "-d", |_| Some(build_dir.display().to_string())));
+            .or_else(|| modify_arg_1(&mut args, "-d", |_| Some(target_dir.display().to_string())));
         let out_name = modify_arg_1(&mut args, "--out-name", |_| Some("pkg".to_string()));
+
+        println!("Executing wasm-pack with args: {:?}", args);
+        execute("wasm-pack", &args);
+
+
         // FIXME:
         let out_dir = out_dir.unwrap();
         let out_name = out_name.unwrap();
+        let out_dir = Path::new(&out_dir);
         let js_dir = root_dir.join("js");
         let node_modules_dir = js_dir.join("node_modules");
 
         if !node_modules_dir.is_dir() {
             with_pwd(&js_dir, || execute("npm", &["install"]));
         }
-        with_pwd(&js_dir, || compile_ts("src/index.ts", &dist_dir.join("index.js")));
-        with_pwd(&build_dir, || compile_js("pkg.js", &dist_dir.join("main.js")));
+        with_pwd(&js_dir, || compile_ts("src/index.ts", &target_dist_dir.join("app.js")));
+        with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
 
-        // FIXME: change it to move
-        std::fs::copy(build_dir.join("pkg.wasm"), dist_dir.join(&format!("main.wasm")));
+        println!(
+            "Copying {:?} to {:?}",
+            target_dir.join("pkg.wasm"),
+            target_dist_dir.join(&format!("main.wasm"))
+        );
+        std::fs::copy(target_dir.join("pkg_bg.wasm"), target_dist_dir.join(&format!("main.wasm")))
+            .unwrap();
+        println!("Source files:");
+        let paths = std::fs::read_dir(&target_dist_dir).unwrap();
+        for path in paths {
+            println!("Name: {}", path.unwrap().path().display())
+        }
+        println!("DONE!");
 
 
+        let mut options = fs_extra::dir::CopyOptions::new();
+        options.overwrite = true;
+        options.content_only = true;
+        println!("Copying folder {:?} to {:?}", target_dist_dir, out_dir);
+        fs_extra::dir::copy(&target_dist_dir, &out_dir, &options).unwrap();
 
-        // execute("wasm-pack", &args);
+        let paths = std::fs::read_dir(&out_dir).unwrap();
+        println!("Copied files:");
+        for path in paths {
+            println!("Name: {}", path.unwrap().path().display())
+        }
 
-
-        println!("{:?}", out_dir);
-        println!("{:?}", out_name);
-        println!("{:?}", args);
-
-
-
-        println!("build_dir: {}", build_dir.display());
+        //
+        // println!("{:?}", out_dir);
+        // println!("{:?}", out_name);
+        // println!("{:?}", args);
+        //
+        //
+        //
+        // println!("target_dir: {}", target_dir.display());
+    } else {
+        println!("Executing wasm-pack with args: {:?}", args);
+        execute("wasm-pack", &args);
     }
 }

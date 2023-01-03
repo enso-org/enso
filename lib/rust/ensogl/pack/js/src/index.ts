@@ -54,9 +54,9 @@ class PackageInfo {
  * initialized. */
 async function load_wasm(config: Config) {
     if (host.browser) {
-        const task = Task.start(`Downloading files ${config.snippets_url} and ${config.wasm_url}.`)
-        const snippets_fetch = await fetch(config.snippets_url.value)
-        const wasm_fetch = await fetch(config.wasm_url.value)
+        const task = Task.start(`Downloading files ${config.mainJsUrl} and ${config.mainWasmUrl}.`)
+        const snippets_fetch = await fetch(config.mainJsUrl.value)
+        const wasm_fetch = await fetch(config.mainWasmUrl.value)
         const loader = new Loader([snippets_fetch, wasm_fetch], config)
         loader.done.then(() => task.end())
         // FIXME:
@@ -68,8 +68,8 @@ async function load_wasm(config: Config) {
         await loader.initialized
         return { wasm, loader }
     } else {
-        const snippets_code = await fs.readFile(config.snippets_url.value, 'utf8')
-        const wasm_main = await fs.readFile(config.wasm_url.value)
+        const snippets_code = await fs.readFile(config.mainJsUrl.value, 'utf8')
+        const wasm_main = await fs.readFile(config.mainWasmUrl.value)
         const wasm = await compile_and_run_wasm(snippets_code, wasm_main)
         const loader = null
         return { wasm, loader }
@@ -82,7 +82,7 @@ async function compile_and_run_wasm(snippets_code: string, wasm: Buffer | Respon
         const snippets_fn = Function(
             `const module = {}
              ${snippets_code}
-             module.exports.init = pkg_default 
+             module.exports.init = pkg_default
              return module.exports`
         )()
         return await snippets_fn.init(wasm)
@@ -110,7 +110,6 @@ export class App {
     beforeMainEntryPoints: Map<string, EntryPoint>
     mainEntryPoints: Map<string, EntryPoint>
     task: Task | null
-    getShadersFn: any
 
     constructor() {
         this.logger = Logger
@@ -120,7 +119,6 @@ export class App {
      * a loader, and list of entry points if the provided entry point is missing. If it is run in
      * node, it will run before main entry points and then the provided command. */
     async run(appArgs?: AppArgs): Promise<void> {
-        this.args = parseArgs()
         this.info = appArgs?.info ?? {}
         const inputConfig = appArgs?.config ?? {}
         this.config = new Config({ overrides: [inputConfig, host.urlParams()] })
@@ -129,6 +127,7 @@ export class App {
             await this.init()
             this.runEntryPoints()
         } else {
+            this.args = parseArgs()
             if (this.args.genShadersCode.value) {
                 await this.init()
                 this.runBeforeMainEntryPoints()
@@ -189,7 +188,7 @@ export class App {
     generateShadersCode() {
         Task.with('Getting shaders code from EnsoGL.', () => {
             // @ts-ignore
-            const out = this.getShadersFn()
+            const out = rustGenShadersFn()
             // console.log('got', out)
         })
     }
@@ -275,13 +274,15 @@ export class App {
 // === App Initialization ===
 // ==========================
 
-const app = new App()
-export default app
-app.run()
+// const app = new App()
+// export default app
+// // app.run()
+//
 
+let rustGenShadersFn: any = null
 function registerGetShadersRustFn(fn: any) {
     Logger.log(`Registering 'getShadersFn'.`)
-    app.getShadersFn = fn
+    rustGenShadersFn = fn
 }
 host.exportGlobal({ registerGetShadersRustFn })
 
