@@ -9,7 +9,9 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -369,6 +371,41 @@ public abstract class EqualsAnyNode extends Node {
       }
       return true;
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @Specialization(guards = {
+      "selfInterop.hasHashEntries(selfHashMap)",
+      "otherInterop.hasHashEntries(otherHashMap)"
+  }, limit = "3")
+  boolean equalsHashMaps(Object selfHashMap, Object otherHashMap,
+      @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
+      @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
+      @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
+      @Cached EqualsAnyNode equalsNode) {
+    try {
+      int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
+      int otherHashSize = (int) selfInterop.getHashSize(otherHashMap);
+      if (selfHashSize != otherHashSize) {
+        return false;
+      }
+      Object entriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
+      while (entriesInterop.hasIteratorNextElement(entriesIter)) {
+        Object key = entriesInterop.getIteratorNextElement(entriesIter);
+        Object selfValue = entriesInterop.getIteratorNextElement(entriesIter);
+        if (otherInterop.isHashEntryExisting(otherHashMap, key)
+            && otherInterop.isHashEntryReadable(otherHashMap, key)) {
+          Object otherValue = otherInterop.readHashValue(otherHashMap, key);
+          if (!equalsNode.execute(selfValue, otherValue)) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+      return true;
+    } catch (UnsupportedMessageException | StopIterationException | UnknownKeyException e) {
       throw new IllegalStateException(e);
     }
   }
