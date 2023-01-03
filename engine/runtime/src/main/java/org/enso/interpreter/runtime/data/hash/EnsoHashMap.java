@@ -220,30 +220,26 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @ExportMessage
+  @TruffleBoundary
   Object toDisplayString(boolean allowSideEffects) {
-    InteropLibrary interop = InteropLibrary.getUncached();
-    Object vector = getCachedVectorRepresentation();
     var sb = new StringBuilder();
-    try {
-      long vecSize = interop.getArraySize(vector);
-      assert vecSize % 2 == 0;
-      sb.append("{");
-      int i = 0;
-      while (i < vecSize) {
-        Object key = interop.readArrayElement(vector, i++);
-        Object value = interop.readArrayElement(vector, i++);
-        sb.append(key).append("=").append(value).append(", ");
+    sb.append("{");
+    for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
+      if (isEntryInThisMap(entry)) {
+        sb.append(entry.key()).append("=").append(entry.value()).append(", ");
       }
-      if (vecSize > 0) {
-        // Replace last comma
-        sb.delete(sb.length() - 2, sb.length());
-      } else {
-        sb.append("}");
-      }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      return "Error thrown during evaluation of EnsoHashMap.toDisplayString: " + e;
     }
+    if (sb.length() > 1) {
+      // Delete last comma
+      sb.delete(sb.length() - 2, sb.length());
+    }
+    sb.append("}");
     return sb.toString();
+  }
+
+  @Override
+  public String toString() {
+    return (String) toDisplayString(true);
   }
 
   private Object getCachedVectorRepresentation() {
