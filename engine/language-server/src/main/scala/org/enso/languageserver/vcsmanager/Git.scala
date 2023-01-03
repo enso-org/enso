@@ -211,7 +211,9 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
       .diff()
       .setOldTree(oldTree)
       .setNewTree(newTree)
-      .setPathFilter(PathFilter.create(gitDir.toString).negate())
+      .setPathFilter(
+        PathFilter.create(ensureUnixPathSeparator(gitDir.toString)).negate()
+      )
       .call()
     diffResult.asScala.map { diff =>
       Path.of(diff.getOldPath)

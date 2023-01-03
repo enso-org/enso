@@ -253,10 +253,11 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       bazFile.toFile should exist
     }
 
-    "reset to a named saved state" in new TestCtx with InitialRepoSetup {
+    "reset to a named saved state while preserving original line endings" in new TestCtx
+      with InitialRepoSetup {
       val fooFile = repoPath.resolve("Foo.enso")
       createStubFile(fooFile) should equal(true)
-      val text1 = "file contents"
+      val text1 = "file contents\r\nand more\u0000"
       Files.write(
         fooFile,
         text1.getBytes(StandardCharsets.UTF_8)
@@ -265,7 +266,7 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       commitResult.isRight shouldBe true
       val commitId = commitResult.getOrElse(null).commitId
 
-      val text2 = "different contents"
+      val text2 = "different contents\r\nanother line"
       Files.write(
         fooFile,
         text2.getBytes(StandardCharsets.UTF_8)
@@ -274,16 +275,16 @@ class GitSpec extends AnyWordSpecLike with Matchers with Effects {
       val commitResult2 = vcs.commit(repoPath, "More changes").unsafeRunSync()
       commitResult2.isRight shouldBe true
 
-      val fileText1 = Files.readAllLines(fooFile)
-      fileText1.get(0) should equal("different contents")
+      val fileText1 = Files.readString(fooFile)
+      fileText1 should equal(text2)
 
       val restoreResult =
         vcs.restore(repoPath, Some(commitId)).unsafeRunSync()
       restoreResult.isRight shouldBe true
       restoreResult.getOrElse(Nil) shouldEqual List(Path.of("Foo.enso"))
 
-      val fileText2 = Files.readAllLines(fooFile)
-      fileText2.get(0) should equal("file contents")
+      val fileText2 = Files.readString(fooFile)
+      fileText2 should equal(text1)
     }
 
     "report problem when named save does not exist" in new TestCtx
