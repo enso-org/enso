@@ -174,6 +174,24 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   @Specialization(guards = {
+      "isHostObject(selfHostObject)",
+      "isHostObject(otherHostObject)",
+  })
+  boolean equalsHostObjects(
+      Object selfHostObject, Object otherHostObject,
+      @CachedLibrary(limit = "5") InteropLibrary interop
+  ) {
+    try {
+      return interop.asBoolean(
+          interop.invokeMember(selfHostObject, "equals", otherHostObject)
+      );
+    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
+             UnsupportedTypeException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @Specialization(guards = {
       "selfInterop.isBoolean(selfBoolean)",
       "otherInterop.isBoolean(otherBoolean)"
   }, limit = "3")
@@ -392,9 +410,9 @@ public abstract class EqualsAnyNode extends Node {
       }
       Object entriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
       while (entriesInterop.hasIteratorNextElement(entriesIter)) {
-        Object key = entriesInterop.getIteratorNextElement(entriesIter);
+        Object key = entriesInterop.getIteratorNextElement(entriesIter); // FIXME: key can be HostObject
         Object selfValue = entriesInterop.getIteratorNextElement(entriesIter);
-        if (otherInterop.isHashEntryExisting(otherHashMap, key)
+        if (otherInterop.isHashEntryExisting(otherHashMap, key) // FIXME: This won't work if key is HostObject
             && otherInterop.isHashEntryReadable(otherHashMap, key)) {
           Object otherValue = otherInterop.readHashValue(otherHashMap, key);
           if (!equalsNode.execute(selfValue, otherValue)) {
@@ -571,24 +589,13 @@ public abstract class EqualsAnyNode extends Node {
   @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
       @CachedLibrary(limit = "5") InteropLibrary interop) {
-    EnsoContext ctx = EnsoContext.get(interop);
-    if (isHostObject(ctx, left) && isHostObject(ctx, right)) {
-      try {
-        return interop.asBoolean(
-            interop.invokeMember(left, "equals", right)
-        );
-      } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
-               UnsupportedTypeException e) {
-        throw new IllegalStateException(e);
-      }
-    } else {
       return left == right
-          || left.equals(right)
-          || interop.isIdentical(left, right, interop);
-    }
+          || interop.isIdentical(left, right, interop)
+          || left.equals(right);
   }
 
-  private static boolean isHostObject(EnsoContext context, Object object) {
-    return context.getEnvironment().isHostObject(object);
+  @TruffleBoundary
+  boolean isHostObject(Object object) {
+    return EnsoContext.get(this).getEnvironment().isHostObject(object);
   }
 }
