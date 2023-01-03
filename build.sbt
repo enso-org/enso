@@ -1144,6 +1144,7 @@ lazy val `polyglot-api` = project
     },
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion      % "provided",
+      "org.graalvm.truffle"    % "truffle-api"      % graalVersion      % "provided",
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.scalatest"         %% "scalatest"        % scalatestVersion  % Test,
       "org.scalacheck"        %% "scalacheck"       % scalacheckVersion % Test
