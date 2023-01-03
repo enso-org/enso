@@ -1,9 +1,9 @@
 import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
+import project.Data.Pair.Pair
 
 from project.Data.Boolean import Boolean, True, False
-from project import Error, Nothing, Any
-from project.Error import Unimplemented
+from project import Error, Nothing, Any, Panic
 from project.Error.No_Such_Key import No_Such_Key
 
 
@@ -35,7 +35,9 @@ type Hash_Map key value
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
     get : Any -> Any -> Any
-    get self key ~if_missing=Nothing = @Builtin_Method "Hash_Map.get"
+    get self key ~if_missing=Nothing =
+        val = self.get_builtin key
+        if val.is_error then if_missing else val
 
     get_or_default : Any -> Any -> Any
     get_or_default self key default =
@@ -44,11 +46,17 @@ type Hash_Map key value
     contains_key : Any -> Boolean
     contains_key self key = @Builtin_Method "Hash_Map.contains_key"
 
-    keys : Vector
-    keys self = @Builtin_Method "Hash_Map.key_set"
+    keys : Vector Any
+    keys self =
+        flat_vec = self.to_flat_vector
+        Vector.new (flat_vec.length.div 2) idx->
+            flat_vec.at (idx * 2)
 
-    values : Vector
-    values self = Unimplemented.throw "values"
+    values : Vector Any
+    values self =
+        flat_vec = self.to_flat_vector
+        Vector.new (flat_vec.length.div 2) idx->
+            flat_vec.at (idx * 2 + 1)
 
     map : (Any -> Any) -> Hash_Map
     map self function =
@@ -62,11 +70,24 @@ type Hash_Map key value
             value = pair.last
             [key, (function key value)]
 
-    transform : (Any -> Any -> [Any, Any]) -> Map
-    transform self function = Unimplemented.throw "transform"
-        ##func_pairs = p -> function (p.at 0) (p.at 1)
-        #vec_transformed = self.to_vector.map func_pairs
-        #Map.from_vector vec_transformed
+    map_keys : (Any -> Any) -> Map
+    map_keys self function =
+        trans_function = k -> v -> [function k, v]
+        self.transform trans_function
+
+    transform : (Any -> Any -> [Any, Any]) -> Hash_Map
+    transform self function =
+        func_pairs = p -> function (p.at 0) (p.at 1)
+        vec_transformed = self.to_vector.map func_pairs
+        Hash_Map.from_vector vec_transformed
+
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold self init function = self.values.fold init function
+
+    fold_with_key : Any -> (Any -> Any -> Any -> Any) -> Any
+    fold_with_key self init function =
+        self.to_vector.fold init acc-> pair->
+            function acc pair.first pair.last
 
     each : (Any -> Any) -> Nothing
     each self function =
@@ -74,8 +95,12 @@ type Hash_Map key value
         self.each_with_key kv_func
 
     each_with_key : (Any -> Any -> Any) -> Nothing
-    each_with_key self function = Unimplemented.throw "each_with_key"
+    each_with_key self function =
+        self.to_vector.each pair->
+            function pair.first pair.last
 
+    ## PRIVATE
+    ## UNSTABLE
     to_flat_vector : Vector Any
     to_flat_vector self = @Builtin_Method "Hash_Map.to_flat_vector"
 
@@ -84,7 +109,7 @@ type Hash_Map key value
         flat_vec = self.to_flat_vector
         vec = Vector.new (flat_vec.length.div 2) idx->
             [(flat_vec.at idx*2), (flat_vec.at (idx*2 + 1))]
-        vec.sort by=x-> y-> x.first.compare_to y.first
+        vec.sort by=(x-> y-> x.first.compare_to y.first)
 
     to_text : Text
     to_text self = @Builtin_Method "Hash_Map.to_text"
@@ -92,31 +117,24 @@ type Hash_Map key value
     ## Get a key value pair of the lowest key in the map.
        If the map is empty, returns Nothing.
     first : Pair
-    first self = Unimplemented.throw "first"
+    first self =
+        case self.is_empty of
+            True -> Nothing
+            False ->
+                flat_vec_part = self.to_flat_vector.take 2
+                case flat_vec_part.length of
+                    2 -> Pair.new (flat_vec_part.at 0) (flat_vec_part.at 1)
+                    _ -> Panic.throw "flat_vector should have length exactly 2"
 
     ## Get a key value pair of the highest key in the map.
        If the map is empty, returns Nothing.
     last : Pair
-    last self = Unimplemented.throw "last"
+    last self =
+        case self.is_empty of
+            True -> Nothing
+            False ->
+                vec_part = self.to_flat_vector.drop (self.to_flat_vector.length - 2)
+                case vec_part.length of
+                    2 -> Pair.new (vec_part.at 0) (vec_part.at 1)
+                    _ -> Panic.throw "flat_vector should have length exactly 2"
 
-
-type Builder
-    Value vec_builder
-
-    new : Integer -> Builder
-    new (capacity=10) = Builder.Value (Vector.Builder.new capacity)
-
-    is_empty : Boolean
-    is_empty self = self.vec_builder.is_empty
-
-    not_empty : Boolean
-    not_empty self = self.is_empty.not
-
-    append : Any -> Any -> Builder ! Error
-    append self key value =
-        self.vec_builder.append key
-        self.vec_builder.append value
-
-    build : Hash_Map Any Any
-    build self =
-        Hash_Map.from_vector self.vec_builder.to_vector
