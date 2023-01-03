@@ -45,7 +45,8 @@ type Text
     compare_to : Text -> Ordering
     compare_to self that = case that of
         _ : Text ->
-            comparison_result = Text_Utils.compare_normalized self that
+            is_normalized = self.is_normalized && that.is_normalized
+            comparison_result = Text_Utils.compare self that is_normalized
             Ordering.from_sign comparison_result
         _ -> Error.throw (Type_Error.Error Text that "that")
 
