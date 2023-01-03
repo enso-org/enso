@@ -197,8 +197,9 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
             component_grid::SectionId::LocalScope =>
                 (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
-            component_grid::SectionId::SubModules => self.top_modules().get(id.index).cloned(),
-            component_grid::SectionId::ModuleNamespace(_) => self.top_modules().get(id.index).cloned(),
+            component_grid::SectionId::SubModules => self.top_modules().get(0)?.get(id.index).cloned(),
+            component_grid::SectionId::ModuleNamespace(section) =>
+                self.top_modules().get(section)?.get(id.index).cloned(),
         };
         opt_group
     }
@@ -208,10 +209,12 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         let popular_section =
             group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
         let top_modules = self.top_modules();
-        let submodules_section = group_list_to_grid_group_infos(
-            component_grid::SectionId::SubModules,
-            top_modules.deref(),
-        );
+        let submodules_section = top_modules.iter().enumerate().flat_map(|(idx, list)| {
+            group_list_to_grid_group_infos(
+                component_grid::SectionId::ModuleNamespace(idx),
+                list,
+            )
+        });
         component_list_panel::grid::content::Info {
             groups:                  popular_section.chain(submodules_section).collect(),
             local_scope_entry_count: self.local_scope().matched_items.get(),

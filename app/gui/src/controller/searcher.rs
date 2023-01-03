@@ -497,14 +497,14 @@ pub struct ComponentsProvider {
 
 impl ComponentsProvider {
     /// The list of modules and their content displayed in `Submodules` section of the browser.
-    pub fn top_modules(&self) -> group::AlphabeticalList {
+    pub fn top_modules(&self) -> Vec<group::AlphabeticalList> {
         let components = self.components();
         if let Some(selected) = self.breadcrumbs.selected() {
-            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+            vec![components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()]
         } else if *self.has_this_arg {
-            components.top_modules_flattened().clone_ref()
+            components.top_modules_flattened().to_vec()
         } else {
-            components.top_modules().clone_ref()
+            components.top_modules().to_vec()
         }
     }
 

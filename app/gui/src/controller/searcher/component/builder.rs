@@ -240,45 +240,45 @@ impl List {
             }
         }
         self.local_scope.update_sorting(components_order);
-        let top_modules_iter = self.module_groups.values().filter(|g| g.is_top_module);
-        let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
-        top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
-        let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
-        top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
         let favorites = self.build_favorites_and_add_to_all_components();
 
-        // Separate module groups by namespace.
-        let mut module_groups_by_namespace: HashMap<
-            ImString,
-            HashMap<component::Id, component::ModuleGroups>,
-        > = HashMap::new();
-        for (id, group) in self.module_groups.clone() {
+        // Separate top module groups by namespace.
+        let mut top_modules_by_namespace: HashMap<_, Vec<&ModuleGroups>> = HashMap::new();
+        for group in self.module_groups.values().filter(|g| g.is_top_module) {
             let namespace = group.qualified_name.project().namespace.clone();
-            module_groups_by_namespace
+            warn!("* {:?}", namespace);
+            top_modules_by_namespace
                 .entry(namespace)
                 .or_insert(default())
-                .insert(id, group.build());
+                .push(group);
         }
-
-        // Separate module groups by section.
-        let mut module_groups_by_section = Vec::new();
-        let mut namespaces_by_section = Vec::new();
-        for (namespace, groups) in module_groups_by_namespace {
-            module_groups_by_section.push(groups);
-            namespaces_by_section.push(namespace);
+        // Create alphabetical lists of top modules per section.
+        let mut top_modules = Vec::new();
+        let mut top_modules_flattened = Vec::new();
+        let mut section_names = Vec::new();
+        //FIXME: List sections in alphabetical order!!!
+        for (namespace, groups) in top_modules_by_namespace {
+            let top_modules_iter = groups.iter();
+            let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
+            top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
+            top_modules.push(top_mdl_bld.build());
+            let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
+            top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
+            top_modules_flattened.push(top_mdl_flat_bld.build());
+            section_names.push(namespace);
         }
-        let module_groups_by_section = Rc::new(module_groups_by_section);
-        let namespaces_by_section = Rc::new(namespaces_by_section);
+        let top_modules = Rc::new(top_modules);
+        let top_modules_flattened = Rc::new(top_modules_flattened);
+        let section_names = Rc::new(section_names);
 
         component::List {
             all_components: Rc::new(self.all_components),
-            top_modules: top_mdl_bld.build(),
-            top_modules_flattened: top_mdl_flat_bld.build(),
+            top_modules,
+            top_modules_flattened,
+            section_names,
             module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),
-            module_groups_by_section,
-            namespace_by_section: namespaces_by_section,
             local_scope: self.local_scope,
             filtered: default(),
             favorites,

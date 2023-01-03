@@ -42,7 +42,7 @@ const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
 const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
 const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
-const BOTTOM_BUTTONS_COUNT: usize = 3;
+const BOTTOM_BUTTONS_COUNT: usize = 5;
 
 
 // =============

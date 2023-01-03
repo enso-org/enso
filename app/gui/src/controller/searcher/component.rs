@@ -223,11 +223,10 @@ pub struct ModuleGroups {
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
     all_components:             Rc<Vec<Component>>,
-    top_modules:                group::AlphabeticalList,
-    top_modules_flattened:      group::AlphabeticalList,
+    top_modules:                Rc<Vec<group::AlphabeticalList>>,
+    top_modules_flattened:      Rc<Vec<group::AlphabeticalList>>,
+    section_names:              Rc<Vec<ImString>>,
     module_groups:              Rc<HashMap<Id, ModuleGroups>>,
-    module_groups_by_section:   Rc<Vec<HashMap<Id, ModuleGroups>>>,
-    namespace_by_section:      Rc<Vec<ImString>>,
     filtered:                   Rc<Cell<bool>>,
     /// Components to display in the "Local Scope" section of the [Component
     /// Browser](crate::controller::Searcher).
@@ -241,7 +240,7 @@ impl List {
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
     /// If the list is filtered, all top modules will be flattened.
-    pub fn top_modules(&self) -> &group::AlphabeticalList {
+    pub fn top_modules(&self) -> &[group::AlphabeticalList] {
         if self.filtered.get() {
             &self.top_modules_flattened
         } else {
@@ -250,7 +249,7 @@ impl List {
     }
 
     /// Return the list of filtered top modules and their contents.
-    pub fn top_modules_flattened(&self) -> &group::AlphabeticalList {
+    pub fn top_modules_flattened(&self) -> &[group::AlphabeticalList] {
         &self.top_modules_flattened
     }
 
@@ -293,7 +292,7 @@ impl List {
     /// All groups from [`List`] without the groups found in [`List::favorites`].
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
-        let flattened = self.top_modules_flattened.iter();
+        let flattened = self.top_modules_flattened.iter().flat_map(|group| group.iter());
         normal.chain(flattened).chain(std::iter::once(&self.local_scope))
     }
 }
