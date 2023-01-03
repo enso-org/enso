@@ -2804,8 +2804,8 @@ checkpoint recorded with `vcs/save`. If no save exists with a provided
 restore the project to the last saved state, will all current modifications
 forgotten.
 
-If the contents of any open buffer has changed as a result of this operation, all
-subscribed clients will be notified about the new version of the file via
+If the contents of any open buffer has changed as a result of this operation,
+all subscribed clients will be notified about the new version of the file via
 `text/didChange` push notification.
 
 A file might have been removed during the operation while there were still open
