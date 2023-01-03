@@ -1,12 +1,124 @@
-from Standard.Test import Test
+from Standard.Base import all
+import Standard.Base.Error.No_Such_Key.No_Such_Key
+from Standard.Base.Data.Hash_Map import Hash_Map
 
-spec =
-    Test.specify "should handle appending elements to builder" <|
-        map_builder = Hash_Map.new_builder
-        map_builder.add "a" 1
-        map_builder.size.should_equal 1
-        map_builder.add "b" 2
-        map_builder.size.should_equal 2
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
-    Test.specify "" <|
-        hash_map = Hash_Map.empty.insert "a" 1 . insert "b" 2
+# TODO: (Python + js) Interop specs
+
+spec = Test.group "Maps" <|
+    Test.specify "should allow checking for emptiness" <|
+        empty_map = Hash_Map.empty
+        non_empty = Hash_Map.empty . insert "foo" 1234
+        empty_map.is_empty . should_be_true
+        non_empty.is_empty . should_be_false
+    Test.specify "should allow checking for non emptiness" <|
+        empty_map = Hash_Map.empty
+        non_empty = Hash_Map.empty . insert "foo" 1234
+        empty_map.not_empty . should_be_false
+        non_empty.not_empty . should_be_true
+    Test.specify "should allow checking its size" <|
+        empty_map = Hash_Map.empty
+        non_empty = Hash_Map.singleton "a" "b" . insert "x" "y"
+        empty_map.size . should_equal 0
+        non_empty.size . should_equal 2
+    Test.specify "should convert the whole map to a vector" <|
+        m = Hash_Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
+        m.to_vector.should_equal [[0, 0], [1, 2], [3, -5]]
+    Test.specify "should allow building the map from a vector" <|
+        expected = Hash_Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
+        vec = [[0, 0], [3, -5], [1, 2]]
+        Hash_Map.from_vector vec . should_equal expected
+    Test.specify "should define a well-defined text conversion" <|
+        m = Hash_Map.empty . insert 0 0 . insert 3 -5 . insert 1 2
+        m.to_text . should_equal "{0=0, 3=-5, 1=2}"
+    Test.specify "should define structural equality" <|
+        map_1 = Hash_Map.empty . insert "1" 2 . insert "2" "1"
+        map_2 = Hash_Map.empty . insert "1" 2 . insert "2" "1"
+        map_3 = Hash_Map.empty
+        map_1==map_2 . should_be_true
+        map_1==map_3 . should_be_false
+        map_2==map_3 . should_be_false
+    Test.specify "should allow inserting and looking up values" <|
+        m = Hash_Map.empty . insert "foo" 134 . insert "bar" 654 . insert "baz" "spam"
+        m.at "foo" . should_equal 134
+        m.at "bar" . should_equal 654
+        m.at "baz" . should_equal "spam"
+        (m.at "nope").should_fail_with No_Such_Key.Error
+    Test.specify "should support get" <|
+        m = Hash_Map.empty . insert 2 3
+        m.get 2 0 . should_equal 3
+        m.get 1 10 . should_equal 10
+        m.get 2 (Panic.throw "missing") . should_equal 3
+    Test.specify "should allow transforming the map" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        expected = Hash_Map.empty . insert "1" 4 . insert "2" 8
+        m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
+    Test.specify "should allow mapping over values" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        expected = Hash_Map.empty . insert 1 4 . insert 2 8
+        m.map (v -> v*2) . should_equal expected
+    Test.specify "should allow mapping over keys" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        expected = Hash_Map.empty . insert 2 2 . insert 4 4
+        m.map_keys (k -> k*2) . should_equal expected
+    Test.specify "should allow mapping with keys" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        expected = Hash_Map.empty . insert 1 3 . insert 2 6
+        m.map_with_key (k -> v -> k + v) . should_equal expected
+    Test.specify "should allow iterating over each value" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        vec = Vector.new_builder
+        expected_vec = [2, 4]
+        m.each (v -> vec.append v)
+        vec.to_vector . should_equal expected_vec
+    Test.specify "should allow iterating over each key-value pair" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        vec = Vector.new_builder
+        expected_vec = [3, 6]
+        m.each_with_key (k -> v -> vec.append (k+v))
+        vec.to_vector . should_equal expected_vec
+    Test.specify "should allow folding over the values" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        m.fold 0 (+) . should_equal 6
+    Test.specify "should allow folding over the key-value pairs" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        m.fold_with_key 0 (l -> k -> v -> l + k + v) . should_equal 9
+    Test.specify "should allow getting a vector of the keys" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        m.keys . should_equal [1, 2]
+    Test.specify "should allow getting a vector of the values" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        m.values . should_equal [2, 4]
+    Test.specify "should be able to get the first key value pair" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        pair = m.first
+        pair.first . should_equal 1
+        pair.second . should_equal 2
+    Test.specify "should be able to get the first key value pair of an empty map" <|
+        m = Hash_Map.empty
+        m.first . should_equal Nothing
+    Test.specify "should be able to get the last key value pair" <|
+        m = Hash_Map.empty . insert 1 2 . insert 2 4
+        pair = m.last
+        pair.first . should_equal 2
+        pair.second . should_equal 4
+    Test.specify "should be able to get the last key value pair of an empty map" <|
+        m = Hash_Map.empty
+        m.last . should_equal Nothing
+    Test.specify "should be able to add a Nothing key to the map" <|
+        m = Hash_Map.empty . insert Nothing 1
+        m.last . should_equal (Pair.new Nothing 1)
+    Test.specify "should be able to add a Nothing key to the map of Text" <|
+        m = Hash_Map.empty . insert "A" 2 . insert Nothing 1 . insert "B" 3
+        m.at "A" . should_equal 2
+        m.at "B" . should_equal 3
+        m.at Nothing . should_equal 1
+    Test.specify "should be able to add a Nothing key to the map of Integer" <|
+        m = Hash_Map.empty . insert 100 2 . insert Nothing 1 . insert 200 3
+        m.at 100 . should_equal 2
+        m.at 200 . should_equal 3
+        m.at Nothing . should_equal 1
+
+main = Test_Suite.run_main spec
