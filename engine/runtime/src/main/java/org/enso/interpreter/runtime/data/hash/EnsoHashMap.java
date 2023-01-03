@@ -1,6 +1,10 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -10,15 +14,16 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.Vector;
-import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.ValueWithIndex;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.EconomicMap;
-import org.graalvm.collections.MapCursor;
 
 /**
  * Effectively a snapshot of {@link EnsoHashMapBuilder}.
@@ -28,6 +33,7 @@ import org.graalvm.collections.MapCursor;
 @ExportLibrary(InteropLibrary.class)
 @Builtin(stdlibName = "Standard.Base.Data.Hash_Map.Hash_Map", name = "Hash_Map")
 public final class EnsoHashMap implements TruffleObject {
+  private static final TruffleLogger logger = EnsoHashMapBuilder.logger;
   private final EnsoHashMapBuilder mapBuilder;
   private final int snapshotSize;
   private Object cachedVectorRepresentation;
@@ -35,7 +41,7 @@ public final class EnsoHashMap implements TruffleObject {
   private EnsoHashMap(EnsoHashMapBuilder mapBuilder, int snapshotSize) {
     this.mapBuilder = mapBuilder;
     this.snapshotSize = snapshotSize;
-    assert snapshotSize < mapBuilder.getCapacity();
+    assert snapshotSize <= mapBuilder.getSize();
   }
 
   static EnsoHashMap createWithBuilder(EnsoHashMapBuilder mapBuilder, int snapshotSize) {
@@ -44,7 +50,7 @@ public final class EnsoHashMap implements TruffleObject {
 
   static EnsoHashMap createEmpty() {
     return new EnsoHashMap(
-        EnsoHashMapBuilder.createWithCapacity(10),
+        EnsoHashMapBuilder.create(),
         0
     );
   }
@@ -57,14 +63,16 @@ public final class EnsoHashMap implements TruffleObject {
   @Builtin.Method(name = "from_flat_vector")
   @Builtin.Specialize
   public static EnsoHashMap fromFlatVector(Object flatVector,
-      @CachedLibrary("flatVector") InteropLibrary interop) {
+      @CachedLibrary("flatVector") InteropLibrary interop,
+      @Cached HashCodeAnyNode hashCodeNode,
+      @Cached EqualsAnyNode equalsNode) {
     if (!interop.hasArrayElements(flatVector)) {
       throw new PanicException(
           "Value not a vector: " + interop.toDisplayString(flatVector),
           interop
       );
     }
-    var mapBuilder = EnsoHashMapBuilder.createWithCapacity(10);
+    var mapBuilder = EnsoHashMapBuilder.create();
     int arrSize = 0;
     try {
       arrSize = (int) interop.getArraySize(flatVector);
@@ -91,7 +99,7 @@ public final class EnsoHashMap implements TruffleObject {
       try {
         Object key = interop.readArrayElement(flatVector, i);
         Object value = interop.readArrayElement(flatVector, i + 1);
-        mapBuilder.add(key, value);
+        mapBuilder.add(key, value, hashCodeNode, equalsNode);
       } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
         throw new IllegalStateException(e);
       }
@@ -104,8 +112,11 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @Builtin.Method
-  public EnsoHashMap insert(Object key, Object value) {
-    mapBuilder.add(key, value);
+  @Builtin.Specialize
+  public EnsoHashMap insert(Object key, Object value,
+      @Cached HashCodeAnyNode hashCodeNode,
+      @Cached EqualsAnyNode equalsNode) {
+    mapBuilder.add(key, value, hashCodeNode, equalsNode);
     return mapBuilder.build();
   }
 
@@ -114,20 +125,26 @@ public final class EnsoHashMap implements TruffleObject {
     return snapshotSize;
   }
 
-  @Builtin.Method
-  public Object get(Object key) {
-    ValueWithIndex valueWithIdx = mapBuilder.get(key);
-    if (isValueInThisMap(valueWithIdx)) {
-      return valueWithIdx.value();
+  @Builtin.Method(name = "get_builtin")
+  @Builtin.Specialize
+  public Object get(Object key,
+      @Cached HashCodeAnyNode hashCodeNode,
+      @Cached EqualsAnyNode equalsNode) {
+    StorageEntry entry = mapBuilder.get(key, hashCodeNode, equalsNode);
+    if (isEntryInThisMap(entry)) {
+      return entry.value();
     } else {
-      throw DataflowError.withoutTrace("No such key '" + key.toString() + "'", null);
+      throw DataflowError.withoutTrace("No such key '" + key.toString() + "'", hashCodeNode);
     }
   }
 
   @Builtin.Method(name = "contains_key")
-  public boolean containsKey(Object key) {
-    return isValueInThisMap(
-        mapBuilder.get(key)
+  @Builtin.Specialize
+  public boolean containsKey(Object key,
+      @Cached HashCodeAnyNode hashCodeNode,
+      @Cached EqualsAnyNode equalsNode) {
+    return isEntryInThisMap(
+        mapBuilder.get(key, hashCodeNode, equalsNode)
     );
   }
 
@@ -157,20 +174,26 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   @ExportMessage
-  boolean isHashEntryExisting(Object key) {
-    return containsKey(key);
+  boolean isHashEntryExisting(Object key,
+      @Cached @Shared("hashCodeNode") HashCodeAnyNode hashCodeNode,
+      @Cached @Shared("equalsNode") EqualsAnyNode equalsNode) {
+    return containsKey(key, hashCodeNode, equalsNode);
   }
 
   @ExportMessage
-  boolean isHashEntryReadable(Object key) {
-    return isHashEntryExisting(key);
+  boolean isHashEntryReadable(Object key,
+      @Cached @Shared("hashCodeNode")HashCodeAnyNode hashCodeNode,
+      @Cached @Shared("equalsNode") EqualsAnyNode equalsNode) {
+    return isHashEntryExisting(key, hashCodeNode, equalsNode);
   }
 
   @ExportMessage
-  Object readHashValue(Object key) throws UnknownKeyException {
-    ValueWithIndex valueWithIdx = mapBuilder.get(key);
-    if (isValueInThisMap(valueWithIdx)) {
-      return valueWithIdx.value();
+  Object readHashValue(Object key,
+      @Cached @Shared("hashCodeNode") HashCodeAnyNode hashCodeNode,
+      @Cached @Shared("equalsNode") EqualsAnyNode equalsNode) throws UnknownKeyException {
+    StorageEntry entry = mapBuilder.get(key, hashCodeNode, equalsNode);
+    if (isEntryInThisMap(entry)) {
+      return entry.value();
     } else {
       throw UnknownKeyException.create(key);
     }
@@ -226,6 +249,7 @@ public final class EnsoHashMap implements TruffleObject {
   private Object getCachedVectorRepresentation() {
     if (cachedVectorRepresentation == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
+      logger.fine(() -> "Caching vector representation for " + toDisplayString(true));
       if (size() == 0) {
         cachedVectorRepresentation = Vector.fromArray(new EmptyKeyValueVector());
       } else {
@@ -236,8 +260,8 @@ public final class EnsoHashMap implements TruffleObject {
     return cachedVectorRepresentation;
   }
 
-  private boolean isValueInThisMap(ValueWithIndex valueWithIndex) {
-    return valueWithIndex != null && valueWithIndex.index() <= snapshotSize;
+  private boolean isEntryInThisMap(StorageEntry entry) {
+    return entry != null && entry.index() <= snapshotSize;
   }
 
   @ExportLibrary(InteropLibrary.class)
@@ -248,15 +272,14 @@ public final class EnsoHashMap implements TruffleObject {
       this.keyValueArray = new Object[arrSize];
     }
 
-    static FlatKeyValueVector fromBuilderStorage(EconomicMap<Object, ValueWithIndex> storage, int maxKeyIdx) {
+    static FlatKeyValueVector fromBuilderStorage(EconomicMap<Integer, StorageEntry> storage, int maxKeyIdx) {
       assert storage.size() > 0;
-      MapCursor<Object, ValueWithIndex> entries = storage.getEntries();
       var flatVector = new FlatKeyValueVector(maxKeyIdx * 2);
       int arrIdx = 0;
-      while (entries.advance()) {
-        if (entries.getValue().index() <= maxKeyIdx) {
-          flatVector.keyValueArray[arrIdx++] = entries.getKey();
-          flatVector.keyValueArray[arrIdx++] = entries.getValue().value();
+      for (StorageEntry entry : storage.getValues()) {
+        if (entry.index() <= maxKeyIdx) {
+          flatVector.keyValueArray[arrIdx++] = entry.key();
+          flatVector.keyValueArray[arrIdx++] = entry.value();
         }
       }
       return flatVector;
