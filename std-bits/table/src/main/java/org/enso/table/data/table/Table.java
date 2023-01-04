@@ -218,6 +218,7 @@ public class Table {
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
   public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
+    NameDeduplicator nameDeduplicator = new NameDeduplicator();
     JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
     if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
@@ -282,7 +283,7 @@ public class Table {
       List<Column> rightColumnsToKeep = Arrays.stream(right.getColumns()).filter(col -> !toDrop.contains(col.getName())).collect(Collectors.toList());
       List<String> rightColumNames = rightColumnsToKeep.stream().map(Column::getName).collect(Collectors.toList());
 
-      List<String> newRightColumnNames = NameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, right_prefix);
+      List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, right_prefix);
 
       for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
         Column column = rightColumnsToKeep.get(i);
@@ -293,7 +294,8 @@ public class Table {
       }
     }
 
-    AggregatedProblems problems = joinResult != null ? joinResult.problems() : new AggregatedProblems();
+    AggregatedProblems joinProblems = joinResult != null ? joinResult.problems() : null;
+    AggregatedProblems aggregatedProblems = AggregatedProblems.merge(joinProblems, AggregatedProblems.of(nameDeduplicator.getProblems()));
     return new Table(newColumns.toArray(new Column[0]), problems);
   }
 
@@ -348,7 +350,7 @@ public class Table {
       int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
       Builder builder = new StringBuilder(size);
       builder.appendNulls(size);
-      Storage newStorage = builder.seal();
+      Storage<?> newStorage = builder.seal();
       newColumns[id_columns.length] = new Column(name_field, newStorage);
       newColumns[id_columns.length + 1] = new Column(value_field, newStorage);
       return new Table(newColumns);
@@ -428,17 +430,6 @@ public class Table {
             .map(builder -> new Column(builder.name, builder.builder.seal()))
             .toArray(Column[]::new);
     return new Table(newColumns, null);
-  }
-
-  private Storage<?> concatStorages(Storage<?> left, Storage<?> right) {
-    InferredBuilder builder = new InferredBuilder(left.size() + right.size());
-    for (int i = 0; i < left.size(); i++) {
-      builder.appendNoGrow(left.getItemBoxed(i));
-    }
-    for (int j = 0; j < right.size(); j++) {
-      builder.appendNoGrow(right.getItemBoxed(j));
-    }
-    return builder.seal();
   }
 
   private Storage<?> nullPad(int nullCount, Storage<?> storage, boolean start) {

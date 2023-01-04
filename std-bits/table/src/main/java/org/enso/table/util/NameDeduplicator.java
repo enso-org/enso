@@ -108,17 +108,16 @@ public class NameDeduplicator {
    * Changes names from the second list so that they do not clash with names from the first list and
    * with each other.
    */
-  public static List<String> combineWithPrefix(
+  public List<String> combineWithPrefix(
       List<String> first, List<String> second, String secondPrefix) {
-    NameDeduplicator deduplicator = new NameDeduplicator();
-    first.forEach(deduplicator::markUsed);
+    first.forEach(this::markUsed);
     ArrayList<String> output = new ArrayList<>(second.size());
     // First pass - we add only the names that are already unique, and mark them as used in
     // preparation for the second pass.
     for (String name : second) {
-      if (deduplicator.isUnique(name)) {
+      if (isUnique(name)) {
         output.add(name);
-        deduplicator.markUsed(name);
+        markUsed(name);
       } else {
         output.add(null);
       }
@@ -128,7 +127,7 @@ public class NameDeduplicator {
     for (int i = 0; i < second.size(); i++) {
       String name = second.get(i);
       if (output.get(i) == null) {
-        output.set(i, deduplicator.makeUnique(secondPrefix + name));
+        output.set(i, makeUnique(secondPrefix + name));
       }
     }
     return output;

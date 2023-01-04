@@ -57,9 +57,9 @@ type Unique_Name_Strategy
              unique_second = Unique_Name_Strategy.combine_with_prefix first second "second_"
              unique_second == ["second_A_2", "second_B", "second_A_1", "C"]
     combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
-    combine_with_prefix first second second_prefix =
+    combine_with_prefix self first second second_prefix =
         Vector.from_polyglot_array <|
-            NameDeduplicator.combineWithPrefix first second second_prefix
+            self.deduplicator.combineWithPrefix first second second_prefix
 
     ## Vector of any duplicates renamed
     renames : Vector

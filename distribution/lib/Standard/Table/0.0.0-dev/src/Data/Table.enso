@@ -716,7 +716,7 @@ type Table
                 storage = column.java_column.getStorage
                 new_storage_and_problems = parser.parseColumn column.name storage
                 new_storage = new_storage_and_problems.value
-                problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
+                problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Java_Problems.translate_problem expected_type)
                 problems.each problem_builder.append
                 Column.Value (Java_Column.new column.name new_storage)
 
