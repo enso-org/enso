@@ -831,11 +831,11 @@ type Vector a
     ## Sort the Vector.
 
        Arguments:
+       - order: The order in which the vector elements are sorted.
        - on: A projection from the element type to the value of that element
          being sorted on.
        - by: A function that compares the result of applying `on` to two
          elements, returning an Ordering to compare them.
-       - order: The order in which the vector elements are sorted.
 
        By default, elements are sorted in ascending order, using the comparator
        `compare_to`. A custom comparator may be passed to the sort function.

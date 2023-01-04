@@ -271,7 +271,7 @@ type Table
        case-sensitive ascending order based on the `Text.compare_to` operator.
 
        Arguments:
-       - direction: Whether sorting should be in ascending or descending order.
+       - order: Whether sorting should be in ascending or descending order.
        - text_ordering: The sort methodology to use.
 
        > Example
@@ -289,8 +289,8 @@ type Table
 
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
-    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering.Default =
-        new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns direction text_ordering
+    sort_columns self order=Sort_Direction.Ascending text_ordering=Text_Ordering.Default =
+        new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
         self.updated_columns new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping
