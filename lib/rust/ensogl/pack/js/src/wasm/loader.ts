@@ -3,33 +3,47 @@ import * as html_utils from 'dom/dom'
 import * as math from 'math'
 import * as svg from 'dom/svg'
 import { Config } from 'config/config'
+import { Logo } from 'dom/logo'
+import { easeInOutElastic, easeOutElastic, elasticOut } from 'animation'
 
 // =========================
 // === ProgressIndicator ===
 // =========================
 
-let bg_color = 'rgb(249,250,251)'
-let loader_color = '#303030'
-let top_layer_index = '1000'
+let loaderColor = '#3c3c3c'
+let ghostColor = '#00000020'
+let topLayerIndex = '1000'
 
 /// Visual representation of the loader.
 class ProgressIndicator {
     dom: HTMLDivElement
-    progress_indicator: HTMLElement
-    progress_indicator_mask: HTMLElement
-    progress_indicator_corner: HTMLElement
-    initialized: Promise<void>
+    track: HTMLElement
+    indicator: HTMLElement
+    progressIndicatorMask: HTMLElement
+    loaderTrackEndPoint: HTMLElement
+    logo: HTMLElement
+    center: HTMLElement
+    initialized: Promise<void[]>
     destroyed: boolean
+    ringInnerRadius: number
+    ringWidth: number
+
+    value: number
 
     constructor(cfg: Config) {
+        this.value = 0
+
+        this.ringInnerRadius = 48
+        this.ringWidth = 12
+
         this.dom = html_utils.new_top_level_div()
         this.dom.id = 'loader'
         this.dom.style.position = 'fixed'
         this.dom.style.top = '0'
         this.dom.style.left = '0'
-        // In the Cloud UI, all layers are stacked, and the progress
-        // indicator must be placed at the top layer.
-        this.dom.style.zIndex = top_layer_index
+        this.dom.style.zIndex = topLayerIndex
+        this.dom.style.background = 'white'
+        this.dom.style.opacity = '1'
 
         let center = document.createElement('div')
         center.style.width = '100%'
@@ -38,63 +52,87 @@ class ProgressIndicator {
         center.style.justifyContent = 'center'
         center.style.alignItems = 'center'
         this.dom.appendChild(center)
+        this.center = center
+
+        let outerRadius = this.ringInnerRadius + this.ringWidth
+        let size = outerRadius * 2
 
         let progress_bar_svg = this.init_svg()
-        let progress_bar = document.createElement('div')
-        progress_bar.innerHTML = progress_bar_svg
-        center.appendChild(progress_bar)
+        let logo = document.createElement('div')
+        let progressBar = document.createElement('div')
+        progressBar.style.position = 'absolute'
+        logo.innerHTML = new Logo({
+            size,
+            color: loaderColor,
+            showBorder: false,
+            borderWidth: this.ringWidth,
+            borderOffset: 8,
+        }).generate()
+        this.logo = logo
+        progressBar.innerHTML = progress_bar_svg
+        center.appendChild(progressBar)
+        center.appendChild(logo)
 
         //@ts-ignore
-        this.progress_indicator = document.getElementById('progress_indicator')
+        this.track = document.getElementById('loaderTrack')
         //@ts-ignore
-        this.progress_indicator_mask = document.getElementById('progress_indicator_mask')
+        this.indicator = document.getElementById('loaderIndicator')
         //@ts-ignore
-        this.progress_indicator_corner = document.getElementById('progress_indicator_corner')
+        this.progressIndicatorMask = document.getElementById('progressIndicatorMask')
+        //@ts-ignore
+        this.loaderTrackEndPoint = document.getElementById('loaderTrackEndPoint')
 
         this.set(0)
-        this.set_opacity(0)
+        this.setIndicatorOpacity(0)
 
         if (cfg.use_loader) {
-            this.initialized = this.animate_show()
+            this.initialized = Promise.all<void>([this.animateShow(), this.animateShowLogo()])
         } else {
             this.initialized = new Promise(resolve => {
-                resolve()
+                resolve([])
             })
         }
         this.animate_rotation()
         this.destroyed = false
+
+        console.log('req anim frame')
     }
 
     /// Initializes the SVG view.
-    init_svg() {
-        let width = 128
-        let height = 128
-        let alpha = 0.9
-        let inner_radius = 48
-        let outer_radius = 60
-        let mid_radius = (inner_radius + outer_radius) / 2
-        let bar_width = outer_radius - inner_radius
+    init_svg(): string {
+        let outerRadius = this.ringInnerRadius + this.ringWidth
+        let ringCenterRadius = this.ringInnerRadius + this.ringWidth / 2
+        let size = outerRadius * 2
 
         return svg.new_svg(
-            width,
-            height,
+            size,
+            size,
             `
             <defs>
-                <g id="progress_bar">
-                    <circle fill="${loader_color}" r="${outer_radius}"                               />
-                    <circle fill="${bg_color}"     r="${inner_radius}"                               />
-                    <path   fill="${bg_color}"     opacity="${alpha}" id="progress_indicator_mask"   />
-                    <circle fill="${loader_color}" r="${
-                bar_width / 2
-            }" id="progress_indicator_corner" />
-                    <circle fill="${loader_color}" r="${
-                bar_width / 2
-            }" cy="-${mid_radius}"            />
+                <g id="progressBar">
+                    <use href="#loaderRing" mask="url(#loaderTrackArcMask)" />
+                    <circle r="${this.ringWidth / 2}" id="loaderTrackEndPoint" />
+                    <circle r="${this.ringWidth / 2}" cy="-${ringCenterRadius}" />
                 </g>
+                <g id="loaderRing">
+                    <circle r="${outerRadius}" mask="url(#loaderTrackRingMask)"/>
+                </g>
+                <mask id="loaderTrackArcMask">
+                    <path fill="white" id="progressIndicatorMask"/>
+                </mask>
+                <mask id="loaderTrackRingMask">
+                    <circle fill="white" r="${outerRadius}"/>
+                    <circle fill="black" r="${this.ringInnerRadius}"/>
+                </mask>
+                    
+                
             </defs>
-            <g transform="translate(${width / 2},${height / 2})">
-                <g transform="rotate(0,0,0)" id="progress_indicator">
-                    <use xlink:href="#progress_bar"></use>
+            <g>
+                <g transform="translate(${size / 2},${size / 2})" id="loaderIndicator" opacity="1">
+                    <use href="#loaderRing" fill="${ghostColor}" />
+                    <g transform="rotate(0,0,0)" id="loaderTrack">
+                        <use xlink:href="#progressBar" fill="${loaderColor}"></use>
+                    </g>
                 </g>
             </g>
         `
@@ -103,53 +141,116 @@ class ProgressIndicator {
 
     /// Destroys the component. Removes it from the stage and destroys attached callbacks.
     destroy() {
-        let parent = this.dom.parentNode
-        if (parent) {
-            parent.removeChild(this.dom)
-        }
-        this.destroyed = true
+        const self = this
+        this.initialized.then(() => {
+            this.animateHide().then(() => {
+                const parent = self.dom.parentNode
+                if (parent) {
+                    parent.removeChild(self.dom)
+                }
+                self.destroyed = true
+            })
+        })
     }
 
-    /// Set the value of the loader [0..1].
     set(value: number) {
-        let min_angle = 0
-        let max_angle = 359
-        let angle_span = max_angle - min_angle
-        let mask_angle = (1 - value) * angle_span - min_angle
-        let corner_pos = math.polar_to_cartesian(54, -mask_angle)
-        this.progress_indicator_mask.setAttribute('d', svg.arc(128, -mask_angle))
-        this.progress_indicator_corner.setAttribute('cx', `${corner_pos.x}`)
-        this.progress_indicator_corner.setAttribute('cy', `${corner_pos.y}`)
+        const minAngle = 0
+        const maxAngle = 359
+        const outerRadius = this.ringInnerRadius + this.ringWidth
+        const size = outerRadius * 2
+        const clampedValue = Math.min(Math.max(value, 0), 1)
+        const ringCenterRadius = this.ringInnerRadius + this.ringWidth / 2
+        const angleSpan = maxAngle - minAngle
+        const maskAngle = maxAngle - ((1 - clampedValue) * angleSpan - minAngle)
+        const cornerPos = math.polar_to_cartesian(ringCenterRadius, maskAngle)
+        this.progressIndicatorMask.setAttribute('d', svg.arc(size, maskAngle))
+        this.loaderTrackEndPoint.setAttribute('cx', `${cornerPos.x}`)
+        this.loaderTrackEndPoint.setAttribute('cy', `${cornerPos.y}`)
     }
 
     /// Set the opacity of the loader.
-    set_opacity(val: number) {
-        this.progress_indicator.setAttribute('opacity', `${val}`)
+    setIndicatorOpacity(val: number) {
+        this.center.style.opacity = `${val}`
+    }
+
+    /// Set the opacity of the loader.
+    setOpacity(val: number) {
+        this.dom.style.opacity = `${val}`
     }
 
     /// Set the rotation of the loader (angles).
     set_rotation(val: number) {
-        this.progress_indicator.setAttribute('transform', `rotate(${val},0,0)`)
+        this.track.setAttribute('transform', `rotate(${val},0,0)`)
     }
 
     /// Start show animation. It is used after the loader is created.
-    animate_show(): Promise<void> {
-        let indicator = this
+    animateShow(): Promise<void> {
+        let self = this
+        let startTime = window.performance.now()
+        let outerRadius = this.ringInnerRadius + this.ringWidth
+        let size = outerRadius * 2
         return new Promise(function (resolve) {
-            let alpha = 0
-            function show_step() {
-                if (alpha > 1) {
-                    alpha = 1
-                }
-                indicator.set_opacity(animation.ease_in_out_quad(alpha))
-                alpha += 0.02
-                if (alpha < 1) {
-                    window.requestAnimationFrame(show_step)
+            function showStep(time: DOMHighResTimeStamp) {
+                const opacitySampler = Math.min((time - startTime) / (1000 * 1), 1)
+                self.setIndicatorOpacity(animation.ease_in_out_quad(opacitySampler))
+                if (opacitySampler < 1) {
+                    window.requestAnimationFrame(showStep)
                 } else {
                     resolve()
                 }
             }
-            window.requestAnimationFrame(show_step)
+            window.requestAnimationFrame(showStep)
+        })
+    }
+
+    animateShowLogo(): Promise<void> {
+        let self = this
+        let startTime = window.performance.now()
+        let outerRadius = this.ringInnerRadius + this.ringWidth
+        let size = outerRadius * 2
+        return new Promise(function (resolve) {
+            function showStep(time: DOMHighResTimeStamp) {
+                const opacitySampler = Math.min((time - startTime) / (1000 * 2), 1)
+                self.logo.innerHTML = new Logo({
+                    size,
+                    color: loaderColor,
+                    showBorder: false,
+                    borderWidth: self.ringWidth,
+                    shapeSpikeCutoff:
+                        1 + 6 * animation.elasticInOut.amplitude(1).period(1)(opacitySampler),
+                    rotation:
+                        100 - 100 * animation.elasticInOut.amplitude(0.5).period(1)(opacitySampler),
+                    borderOffset:
+                        20 * (1 - animation.elasticInOut.amplitude(1).period(0.4)(opacitySampler)) +
+                        8,
+                    shapeErosion:
+                        30 * (1 - animation.elasticInOut.amplitude(1).period(0.4)(opacitySampler)) -
+                        4,
+                }).generate()
+                if (opacitySampler < 1) {
+                    window.requestAnimationFrame(showStep)
+                } else {
+                    resolve()
+                }
+            }
+            window.requestAnimationFrame(showStep)
+        })
+    }
+
+    animateHide(): Promise<void> {
+        let self = this
+        let startTime = window.performance.now()
+        return new Promise(function (resolve) {
+            function hideStep(time: DOMHighResTimeStamp) {
+                const opacitySampler = 1 - Math.min((time - startTime) / (1000 * 0.3), 1)
+                self.setOpacity(animation.ease_in_out_quad(opacitySampler))
+                if (opacitySampler > 0) {
+                    window.requestAnimationFrame(hideStep)
+                } else {
+                    resolve()
+                }
+            }
+            window.requestAnimationFrame(hideStep)
         })
     }
 
@@ -157,9 +258,9 @@ class ProgressIndicator {
     animate_rotation() {
         let indicator = this
         let rotation = 0
-        function rotate_step() {
+        function rotate_step(time: DOMHighResTimeStamp) {
             indicator.set_rotation(rotation)
-            rotation += 6
+            rotation = time / 6
             if (!indicator.destroyed) {
                 window.requestAnimationFrame(rotate_step)
             }
@@ -178,9 +279,9 @@ export class Loader {
     total_bytes: number
     received_bytes: number
     download_speed: number
-    last_receive_time: number
-    initialized: Promise<void>
-    cap_progress_at: number
+    lastReceiveTime: number
+    initialized: Promise<void[]>
+    capProgressAt: number
     done: Promise<void>
     done_resolve: (value: void | PromiseLike<void>) => void
     constructor(resources: Response[], cfg: Config) {
@@ -188,9 +289,9 @@ export class Loader {
         this.total_bytes = 0
         this.received_bytes = 0
         this.download_speed = 0
-        this.last_receive_time = performance.now()
+        this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
-        this.cap_progress_at = cfg.loader_download_to_init_ratio.value
+        this.capProgressAt = cfg.loader_download_to_init_ratio.value
 
         this.done = new Promise(resolve => {
             this.done_resolve = resolve
@@ -243,16 +344,16 @@ export class Loader {
     on_receive(new_bytes: number) {
         this.received_bytes += new_bytes
         let time = performance.now()
-        let time_diff = time - this.last_receive_time
-        this.download_speed = new_bytes / time_diff
-        this.last_receive_time = time
+        let timeDiff = time - this.lastReceiveTime
+        this.download_speed = new_bytes / timeDiff
+        this.lastReceiveTime = time
 
         let percent = this.show_percentage_value()
         let speed = this.show_download_speed()
         let received = this.show_received_bytes()
         console.log(`${percent}% (${received}) (${speed}).`)
 
-        let indicator_progress = this.value() * this.cap_progress_at
+        let indicator_progress = this.value() * this.capProgressAt
         this.indicator.set(indicator_progress)
         if (this.is_done()) {
             this.done_resolve()

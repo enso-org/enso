@@ -65,7 +65,6 @@ async function load_wasm(config: Config) {
 
         const snippets_code = await snippets_fetch.text()
         const wasm = await compile_and_run_wasm(snippets_code, wasm_fetch)
-        await loader.initialized
         return { wasm, loader }
     } else {
         const snippets_code = await fs.readFile(config.mainJsUrl.value, 'utf8')
@@ -178,10 +177,12 @@ export class App {
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             this.runBeforeMainEntryPoints()
+            if (this.loader) this.loader.destroy()
             Logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)
             this.wasm[entryPoint.name()]()
         } else {
-            this.show_debug_screen(`Unknown entry point '${entryPointName}'. `)
+            if (this.loader) this.loader.destroy()
+            this.show_debug_screen(entryPointName)
         }
     }
 

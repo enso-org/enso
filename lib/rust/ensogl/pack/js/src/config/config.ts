@@ -54,7 +54,7 @@ export class Config {
     /** The (time needed for WASM download) / (total time including WASM download and WASM app
      * initialization). In case of small WASM apps, this can be set to 1.0. In case of bigger WASM
      * apps, it's desired to show the progress bar growing up to e.g. 70% and leaving the last 30% for WASM app init. */
-    loader_download_to_init_ratio: Param<number> = new Param(0.7)
+    loader_download_to_init_ratio: Param<number> = new Param(1.0)
     /** Controls whether the application should be run in the debug mode. In this mode all logs are
      * printed to the console. Otherwise, the logs are hidden unless explicitly shown by calling
      * `showLogs`. */
