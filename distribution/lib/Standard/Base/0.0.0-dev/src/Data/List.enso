@@ -7,7 +7,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
-import project.Runtime.Unsafe
+import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -209,8 +209,17 @@ type List
     map self f = case self of
         Nil -> Nil
         Cons h t ->
-            res = Cons (f h) Nil
-            map_helper t res f
+            go : List -> Any -> (Any -> Any) -> Nothing
+            go list fill = case list of
+                Nil -> fill Nil
+                Cons h t ->
+                    v = f h
+                    res = Meta.lazy_atom (e -> Cons v e)
+                    fill res
+                    @Tail_Call go t (res.at 1)
+            v = f h
+            res = Meta.lazy_atom (e -> Cons v e)
+            go t (res.at 1)
             res
 
     ## Applies a function to each element of the list.
@@ -379,21 +388,3 @@ type Empty_Error
     to_display_text : Text
     to_display_text self = "The List is empty."
 
-## PRIVATE
-   A helper for the `map` function.
-
-   Arguments:
-   - list: The list to map over.
-   - cons: The current field to set.
-   - f: The function to apply to the value.
-
-   Uses unsafe field mutation under the hood, to rewrite `map` in
-   a tail-recursive manner. The mutation is purely internal and does not leak
-   to the user-facing API.
-map_helper : List -> Any -> (Any -> Any) -> Nothing
-map_helper list cons f = case list of
-    Nil -> Unsafe.set_atom_field cons 1 Nil
-    Cons h t ->
-        res = Cons (f h) Nil
-        Unsafe.set_atom_field cons 1 res
-        @Tail_Call map_helper t res f
