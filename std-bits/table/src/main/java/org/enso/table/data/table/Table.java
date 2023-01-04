@@ -12,7 +12,10 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.join.*;
+import org.enso.table.data.table.join.IndexJoin;
+import org.enso.table.data.table.join.JoinCondition;
+import org.enso.table.data.table.join.JoinResult;
+import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
@@ -27,7 +30,6 @@ import java.util.stream.IntStream;
 public class Table {
 
   private final Column[] columns;
-  private final Index index;
   private final AggregatedProblems problems;
 
   /**
@@ -36,27 +38,19 @@ public class Table {
    * @param columns the columns contained in this table.
    */
   public Table(Column[] columns) {
-    this(columns, null, null);
+    this(columns, null);
   }
 
   public Table(Column[] columns, AggregatedProblems problems) {
-    this(columns, null, problems);
-  }
-
-  Table(Column[] columns, Index index, AggregatedProblems problems) {
     this.columns = columns;
-    this.index =
-        index == null
-            ? (new DefaultIndex(
-                (columns == null || columns.length == 0) ? 0 : columns[0].getSize()))
-            : index;
     this.problems = problems;
   }
 
   /** @return the number of rows in this table */
   public int rowCount() {
-    if (columns == null || columns.length == 0) {
-      return index.size();
+    // TODO I think we can make this check obsolete once we start requiring >=1 column in tables.
+    if (columns.length == 0) {
+      return 0;
     } else {
       return columns[0].getSize();
     }
@@ -88,25 +82,6 @@ public class Table {
   }
 
   /**
-   * Returns a column or index with the given name, or null if it doesn't exist.
-   *
-   * @param name the column name
-   * @return a column or index column with the given name
-   */
-  public Column getColumnOrIndexByName(String name) {
-    var column = getColumnByName(name);
-    if (column != null) {
-      return column;
-    }
-
-    if (Text_Utils.equals(getIndex().getName(), name)) {
-      return getIndex().toColumn();
-    }
-
-    return null;
-  }
-
-  /**
    * Returns a table resulting from selecting only the rows corresponding to true entries in the
    * provided column.
    *
@@ -124,11 +99,10 @@ public class Table {
     mask.and(localStorageMask);
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
-    Index newIx = index.mask(mask, cardinality);
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].mask(newIx, mask, cardinality);
+      newColumns[i] = columns[i].mask(mask, cardinality);
     }
-    return new Table(newColumns, newIx, null);
+    return new Table(newColumns, null);
   }
 
   /**
@@ -156,14 +130,14 @@ public class Table {
     Column[] newCols = new Column[columns.length];
     System.arraycopy(columns, 0, newCols, 0, columns.length);
     newCols[ix] = newCol;
-    return new Table(newCols, index, null);
+    return new Table(newCols, null);
   }
 
   private Table addColumn(Column newColumn) {
     Column[] newCols = new Column[columns.length + 1];
     System.arraycopy(columns, 0, newCols, 0, columns.length);
     newCols[columns.length] = newColumn;
-    return new Table(newCols, index, null);
+    return new Table(newCols, null);
   }
 
   /**
@@ -172,7 +146,7 @@ public class Table {
    * @return the index of this table
    */
   public Index getIndex() {
-    return index;
+    return new DefaultIndex(rowCount());
   }
 
   /**
@@ -211,12 +185,11 @@ public class Table {
     var rowsToKeep = Distinct.buildDistinctRowsMask(rowCount(), keyColumns, textFoldingStrategy, problems);
     int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
-    Index newIx = index.mask(rowsToKeep, cardinality);
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].mask(newIx, rowsToKeep, cardinality);
+      newColumns[i] = this.columns[i].mask(rowsToKeep, cardinality);
     }
 
-    return new Table(newColumns, newIx, problems);
+    return new Table(newColumns, problems);
   }
 
   /**
@@ -228,10 +201,10 @@ public class Table {
   public Table selectColumns(List<String> colNames) {
     Column[] newCols =
         colNames.stream()
-            .map(this::getColumnOrIndexByName)
+            .map(this::getColumnByName)
             .filter(Objects::nonNull)
             .toArray(Column[]::new);
-    return new Table(newCols, index, null);
+    return new Table(newCols, null);
   }
 
   /**
@@ -331,16 +304,15 @@ public class Table {
    * @return a new table, with all columns and indexes reordered accordingly
    */
   public Table applyMask(OrderMask orderMask) {
-    final Index newIndex = index.applyMask(orderMask);
     Column[] newColumns =
         Arrays.stream(columns)
             .map(
                 column -> {
                   Storage<?> newStorage = column.getStorage().applyMask(orderMask);
-                  return new Column(column.getName(), newIndex, newStorage);
+                  return new Column(column.getName(), newStorage);
                 })
             .toArray(Column[]::new);
-    return new Table(newColumns, newIndex, null);
+    return new Table(newColumns, null);
   }
 
   private String suffixIfNecessary(Set<String> names, String name, String suffix) {
@@ -420,10 +392,6 @@ public class Table {
    * @return a table result from concatenating both tables
    */
   public static Table concat(List<Table> tables) {
-
-    Index newIndex =
-        concatIndexes(tables.stream().map(Table::getIndex).collect(Collectors.toList()));
-
     int resultSize = tables.stream().mapToInt(Table::rowCount).sum();
 
     List<NamedBuilder> builders = new ArrayList<>();
@@ -457,9 +425,9 @@ public class Table {
 
     Column[] newColumns =
         builders.stream()
-            .map(builder -> new Column(builder.name, newIndex, builder.builder.seal()))
+            .map(builder -> new Column(builder.name, builder.builder.seal()))
             .toArray(Column[]::new);
-    return new Table(newColumns, newIndex, null);
+    return new Table(newColumns, null);
   }
 
   private Storage<?> concatStorages(Storage<?> left, Storage<?> right) {
@@ -487,11 +455,6 @@ public class Table {
     return builder.seal();
   }
 
-  private static Index concatIndexes(List<Index> indexes) {
-    int resultSize = indexes.stream().mapToInt(Index::size).sum();
-    return new DefaultIndex(resultSize);
-  }
-
   private Table hconcat(Table other, String lsuffix, String rsuffix) {
     Column[] newColumns = new Column[this.columns.length + other.columns.length];
     Set<String> lnames =
@@ -502,15 +465,15 @@ public class Table {
       Column original = columns[i];
       newColumns[i] =
           new Column(
-              suffixIfNecessary(rnames, original.getName(), lsuffix), index, original.getStorage());
+              suffixIfNecessary(rnames, original.getName(), lsuffix), original.getStorage());
     }
     for (int i = 0; i < other.columns.length; i++) {
       Column original = other.columns[i];
       newColumns[i + columns.length] =
           new Column(
-              suffixIfNecessary(lnames, original.getName(), rsuffix), index, original.getStorage());
+              suffixIfNecessary(lnames, original.getName(), rsuffix), original.getStorage());
     }
-    return new Table(newColumns, index, null);
+    return new Table(newColumns, null);
   }
 
   /** @return a copy of the Table containing a slice of the original data */
@@ -519,7 +482,7 @@ public class Table {
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(offset, limit);
     }
-    return new Table(newColumns, index.slice(offset, limit), null);
+    return new Table(newColumns, null);
   }
 
   /** @return a copy of the Table consisting of slices of the original data */
@@ -528,6 +491,6 @@ public class Table {
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(ranges);
     }
-    return new Table(newColumns, index.slice(ranges), null);
+    return new Table(newColumns, null);
   }
 }

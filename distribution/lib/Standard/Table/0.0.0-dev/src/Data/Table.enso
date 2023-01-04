@@ -197,7 +197,7 @@ type Table
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Value (java_columns.at selector)
         _ : Text ->
-            case self.java_table.getColumnOrIndexByName selector of
+            case self.java_table.getColumnByName selector of
                 Nothing -> Error.throw (No_Such_Column.Error selector)
                 c -> Column.Value c
 
