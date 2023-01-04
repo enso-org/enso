@@ -211,16 +211,16 @@ type List
         Cons h t ->
             go : List -> Any -> (Any -> Any) -> Nothing
             go list fill = case list of
-                Nil -> fill Nil
+                Nil -> fill.set Nil
                 Cons h t ->
                     v = f h
                     res = Meta.lazy_atom (e -> Cons v e)
-                    fill res
+                    fill.set (res.at 0)
                     @Tail_Call go t (res.at 1)
             v = f h
             res = Meta.lazy_atom (e -> Cons v e)
             go t (res.at 1)
-            res
+            res.at 0
 
     ## Applies a function to each element of the list.
 
