@@ -193,31 +193,48 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
     }
 
     fn group_by_view_id(&self, id: component_grid::GroupId) -> Option<component::Group> {
+        use controller::searcher::TopModules;
         let opt_group = match id.section {
             component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
             component_grid::SectionId::LocalScope =>
                 (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
-            component_grid::SectionId::ModuleNamespace(section) =>
-                self.top_modules().get(section)?.get(id.index).cloned(),
+            component_grid::SectionId::ModuleNamespace(id_section) =>
+                match self.top_modules() {
+                    TopModules::All(modules) => modules.get(id_section)?.get(id.index).cloned(),
+                    TopModules::Subset(modules, top_section) if id_section==top_section =>
+                        modules.get(id.index).cloned(),
+                    _ => None,
+                }
         };
         opt_group
     }
 
     fn create_grid_content_info(&self) -> component_grid::content::Info {
+        use controller::searcher::TopModules;
         let favorites = self.favorites();
         let popular_section =
             group_list_to_grid_group_infos(component_grid::SectionId::Popular, &favorites);
         let top_modules = self.top_modules();
-        let submodules_section = top_modules.iter().enumerate().flat_map(|(idx, list)| {
-            group_list_to_grid_group_infos(
-                component_grid::SectionId::ModuleNamespace(idx),
-                list,
-            )
-        });
-        component_list_panel::grid::content::Info {
-            groups:                  popular_section.chain(submodules_section).collect(),
-            local_scope_entry_count: self.local_scope().matched_items.get(),
-        }
+        let groups = match top_modules {
+            TopModules::All(modules) => {
+                let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
+                    group_list_to_grid_group_infos(
+                        component_grid::SectionId::ModuleNamespace(section),
+                        list,
+                    )
+                });
+                popular_section.chain(submodules).collect()
+            }
+            TopModules::Subset(list, section) => {
+                let submodules = group_list_to_grid_group_infos(
+                    component_grid::SectionId::ModuleNamespace(section),
+                    &list,
+                );
+                popular_section.chain(submodules).collect()
+            }
+        };
+        let local_scope_entry_count = self.local_scope().matched_items.get();
+        component_list_panel::grid::content::Info {groups, local_scope_entry_count}
     }
 
     fn get_entry_model(

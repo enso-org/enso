@@ -495,16 +495,33 @@ pub struct ComponentsProvider {
     has_this_arg: Immutable<bool>,
 }
 
+/// Enum of top modules and their content to display.
+#[derive(Debug)]
+pub enum TopModules{
+    /// The selected `Groups` list and the section number the groups belong to.
+    Subset(group::AlphabeticalList, usize),
+    /// Vector of all `Group` lists in the same order as the sections they belong to.
+    All(Vec<group::AlphabeticalList>),
+}
+
 impl ComponentsProvider {
     /// The list of modules and their content displayed in `Submodules` section of the browser.
-    pub fn top_modules(&self) -> Vec<group::AlphabeticalList> {
+    pub fn top_modules(&self) -> TopModules {
         let components = self.components();
         if let Some(selected) = self.breadcrumbs.selected() {
-            vec![components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()]
+            let section = components.module_qualified_name(selected).and_then(|name|{
+                let namespace = &name.project().namespace;
+                let section_names = components.section_names();
+                section_names.iter().enumerate().find(
+                    |(_, name)| *name==namespace
+                ).map(|(idx, _)| idx);
+            }).unwrap_or_default();
+            let submodules = components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default();
+            TopModules::Subset(submodules, section)
         } else if *self.has_this_arg {
-            components.top_modules_flattened().to_vec()
+            TopModules::All(components.top_modules_flattened().to_vec())
         } else {
-            components.top_modules().to_vec()
+            TopModules::All(components.top_modules().to_vec())
         }
     }
 
