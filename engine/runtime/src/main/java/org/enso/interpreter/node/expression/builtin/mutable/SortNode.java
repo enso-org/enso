@@ -9,20 +9,28 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
 import java.util.Comparator;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.epb.node.CoercePrimitiveNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.ArrayOverBuffer;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
-@BuiltinMethod(type = "Array", name = "sort", description = "Sorts a mutable array in place.")
+@BuiltinMethod(
+    type = "Array",
+    name = "sort_builtin",
+    description = "Sorts a mutable array in place.")
 public abstract class SortNode extends Node {
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private @Child InvalidComparisonNode invalidComparisonNode = InvalidComparisonNode.build();
+  private @Child CoercePrimitiveNode coercePrimitiveNode = CoercePrimitiveNode.build();
   private final BranchProfile resultProfile = BranchProfile.create();
 
   abstract Object execute(State state, Object self, Object comparator);
@@ -34,13 +42,20 @@ public abstract class SortNode extends Node {
   @Specialization
   Object doSortFunction(State state, Array self, Function comparator) {
     EnsoContext context = EnsoContext.get(this);
-    Comparator<Object> compare = getComparator(comparator, context, state);
-    return runSort(compare, self, context);
+    Comparator<Object> compare = getComparator(comparator, context, state, false);
+    return runSort(compare, self.getItems(), context);
   }
 
   @Specialization
   Object doAtomThis(State state, Atom self, Object that) {
     return EnsoContext.get(this).getBuiltins().nothing();
+  }
+
+  @Specialization
+  Object doArrayOverBuffer(State state, ArrayOverBuffer self, Function comparator) {
+    EnsoContext context = EnsoContext.get(this);
+    Comparator<Object> compare = getComparator(comparator, context, state, true);
+    return runSort(compare, self.backingArray(), context);
   }
 
   @Fallback
@@ -52,10 +67,18 @@ public abstract class SortNode extends Node {
         this);
   }
 
-  Object runSort(Comparator<Object> compare, Array self, EnsoContext context) {
-    doSort(self.getItems(), compare);
-    LoopNode.reportLoopCount(this, (int) self.length());
+  Object runSort(Comparator<Object> compare, Object[] self, EnsoContext context) {
+    doSort(self, compare);
+    LoopNode.reportLoopCount(this, self.length);
     return context.getBuiltins().nothing();
+  }
+
+  Object runSort(Comparator<Object> compare, byte[] self, EnsoContext context) {
+    Byte[] tmpArray = ArrayUtils.toObject(self);
+    Object result = runSort(compare, tmpArray, context);
+    byte[] primitiveTmpArray = ArrayUtils.toPrimitive(tmpArray);
+    System.arraycopy(primitiveTmpArray, 0, self, 0, self.length);
+    return result;
   }
 
   @TruffleBoundary
@@ -63,8 +86,11 @@ public abstract class SortNode extends Node {
     Arrays.sort(items, compare);
   }
 
-  private SortComparator getComparator(Function comp, EnsoContext context, State state) {
-    return new SortComparator(comp, context, this, state);
+  private SortComparator getComparator(
+      Function comp, EnsoContext context, State state, boolean coerce) {
+    return coerce
+        ? new CoerceSortComparator(comp, context, this, state)
+        : new SortComparator(comp, context, this, state);
   }
 
   private class SortComparator implements Comparator<Object> {
@@ -103,6 +129,18 @@ public abstract class SortNode extends Node {
         resultProfile.enter();
         return invalidComparisonNode.execute(res);
       }
+    }
+  }
+
+  private class CoerceSortComparator extends SortComparator {
+
+    CoerceSortComparator(Function compFn, EnsoContext context, SortNode outerThis, State state) {
+      super(compFn, context, outerThis, state);
+    }
+
+    @Override
+    public int compare(Object o1, Object o2) {
+      return super.compare(coercePrimitiveNode.execute(o1), coercePrimitiveNode.execute(o2));
     }
   }
 }
