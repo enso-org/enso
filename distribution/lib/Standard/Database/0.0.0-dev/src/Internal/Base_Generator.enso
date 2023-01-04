@@ -295,9 +295,7 @@ generate_from_part dialect from_spec = case from_spec of
 
 ## PRIVATE
 simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
-    eq = code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
-    nulls = code "(" ++ a ++ " IS NULL) AND (" ++ b ++ " IS NULL)"
-    code "COALESCE(" ++ eq ++ ", " ++ nulls ++ ")"
+    code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
 
 ## PRIVATE
 make_equals a b =

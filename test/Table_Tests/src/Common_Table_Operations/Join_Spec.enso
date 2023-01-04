@@ -588,8 +588,7 @@ spec setup =
             r2.at 0 . should_equal [2, 20, 5, 5, 100]
             r2.at 1 . should_equal [3, 30, 7, 7, 200]
 
-        # This is marked as pending as currently will not work neither on Postgres (because complex condition Full joins do not work there) nor SQLite (as no Full joins work there).
-        Test.specify "should allow full joins with more complex join conditions" pending=db_todo <|
+        Test.specify "should allow full joins with more complex join conditions" pending=(if setup.test_selection.supports_full_join.not then "Full join workaround is not implemented for this backend yet.") <|
             t1 = table_builder [["X", ["a", "b", "c"]], ["Y", [10, 20, 30]]]
             t2 = table_builder [["X", ["Ć", "A", "b"]], ["Z", [100, 200, 300]]]
 
