@@ -518,7 +518,7 @@ impl ComponentsProvider {
                         .iter()
                         .enumerate()
                         .find(|(_, name)| *name == namespace)
-                        .map(|(idx, _)| idx);
+                        .map(|(idx, _)| idx)
                 })
                 .unwrap_or_default();
             let submodules =
