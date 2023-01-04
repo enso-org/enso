@@ -243,19 +243,17 @@ impl List {
         let favorites = self.build_favorites_and_add_to_all_components();
 
         // Separate top module groups by namespace.
-        let mut top_modules_by_namespace: HashMap<_, Vec<&ModuleGroups>> = HashMap::new();
+        let mut top_modules_by_namespace: BTreeMap<_, Vec<&ModuleGroups>> = BTreeMap::new();
         for group in self.module_groups.values().filter(|g| g.is_top_module) {
             let namespace = group.qualified_name.project().namespace.clone();
-            warn!("* {:?}", namespace);
             top_modules_by_namespace.entry(namespace).or_insert(default()).push(group);
         }
         // Create alphabetical lists of top modules per section.
         let mut top_modules = Vec::new();
         let mut top_modules_flattened = Vec::new();
         let mut section_names = Vec::new();
-        //FIXME: List sections in alphabetical order!!!
-        for (namespace, groups) in top_modules_by_namespace {
-            let top_modules_iter = groups.iter();
+        for (namespace, modules) in top_modules_by_namespace {
+            let top_modules_iter = modules.iter();
             let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
             top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
             top_modules.push(top_mdl_bld.build());
