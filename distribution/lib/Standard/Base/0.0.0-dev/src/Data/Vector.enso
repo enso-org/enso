@@ -868,10 +868,9 @@ type Vector a
        > Example
          Sorting a vector of `Pair`s on the first element, descending.
 
-             [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Direction.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values
-    sort self (on = x -> x) (by = (_.compare_to _)) (order = Sort_Direction.Ascending) =
-        ## As we want to account for both custom projections and custom
+             [Pair 1 2, Pair -1 8].sort Sort_Direction.Descending (_.first)
+    sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (_.compare_to _)) =
            comparisons we need to construct a comparator for internal use that
            does both.
         comp_ascending l r  = by (on l) (on r)

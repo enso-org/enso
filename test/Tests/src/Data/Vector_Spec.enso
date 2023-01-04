@@ -579,12 +579,12 @@ spec = Test.group "Vectors" <|
     Test.specify "should be able to sort in descending order" <|
         small_vec = [2, 7, -3, 383, -392, 28, -90]
         small_expected = [383, 28, 7, 2, -3, -90, -392]
-        small_vec.sort order=Sort_Direction.Descending . should_equal small_expected
+        small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
     Test.specify "should be stable in descending order" <|
         small_vec = [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
-        small_vec.sort order=Sort_Direction.Descending . should_equal small_expected
+        small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
     Test.specify "should correctly propagate error through map" <|
         [1, 2, 3].map Error.throw . catch . should_equal 1

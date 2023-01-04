@@ -438,10 +438,10 @@ spec =
             r_1 = c.sort
             r_1.to_vector.should_equal [1,4,7,8,Nothing,Nothing]
 
-            r_2 = c.sort order=Sort_Direction.Descending
+            r_2 = c.sort Sort_Direction.Descending
             r_2.to_vector.should_equal [8,7,4,1,Nothing,Nothing]
 
-            r_3 = c.sort order=Sort_Direction.Descending missing_last=False
+            r_3 = c.sort Sort_Direction.Descending missing_last=False
             r_3.to_vector.should_equal [Nothing,Nothing,8,7,4,1]
 
         Test.specify 'should respect defined comparison operations for custom types' <|
