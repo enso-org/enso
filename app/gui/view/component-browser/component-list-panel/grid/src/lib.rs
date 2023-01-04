@@ -474,7 +474,8 @@ impl Model {
     }
 
     fn entry_to_select_after_reset(&self) -> Option<(Row, Col)> {
-        let sections = [SectionId::Popular, SectionId::ModuleNamespace(0), SectionId::LocalScope].iter();
+        let sections =
+            [SectionId::Popular, SectionId::ModuleNamespace(0), SectionId::LocalScope].iter();
         let pick_location = |s: &SectionId| self.entry_to_select_when_switching_to_section(*s);
         sections.filter_map(pick_location).next()
     }

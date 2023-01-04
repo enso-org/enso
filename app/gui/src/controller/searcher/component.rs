@@ -222,18 +222,18 @@ pub struct ModuleGroups {
 /// [`builder::List`].
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
-    all_components:             Rc<Vec<Component>>,
-    top_modules:                Rc<Vec<group::AlphabeticalList>>,
-    top_modules_flattened:      Rc<Vec<group::AlphabeticalList>>,
-    section_names:              Rc<Vec<ImString>>,
-    module_groups:              Rc<HashMap<Id, ModuleGroups>>,
-    filtered:                   Rc<Cell<bool>>,
+    all_components:        Rc<Vec<Component>>,
+    top_modules:           Rc<Vec<group::AlphabeticalList>>,
+    top_modules_flattened: Rc<Vec<group::AlphabeticalList>>,
+    section_names:         Rc<Vec<ImString>>,
+    module_groups:         Rc<HashMap<Id, ModuleGroups>>,
+    filtered:              Rc<Cell<bool>>,
     /// Components to display in the "Local Scope" section of the [Component
     /// Browser](crate::controller::Searcher).
-    pub local_scope:            Group,
+    pub local_scope:       Group,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
-    pub favorites:              group::List,
+    pub favorites:         group::List,
 }
 
 impl List {

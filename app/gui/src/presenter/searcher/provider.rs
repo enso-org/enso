@@ -198,13 +198,12 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
             component_grid::SectionId::LocalScope =>
                 (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
-            component_grid::SectionId::ModuleNamespace(id_section) =>
-                match self.top_modules() {
-                    TopModules::All(modules) => modules.get(id_section)?.get(id.index).cloned(),
-                    TopModules::Subset(modules, top_section) if id_section==top_section =>
-                        modules.get(id.index).cloned(),
-                    _ => None,
-                }
+            component_grid::SectionId::ModuleNamespace(id_section) => match self.top_modules() {
+                TopModules::All(modules) => modules.get(id_section)?.get(id.index).cloned(),
+                TopModules::Subset(modules, top_section) if id_section == top_section =>
+                    modules.get(id.index).cloned(),
+                _ => None,
+            },
         };
         opt_group
     }
@@ -234,7 +233,7 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             }
         };
         let local_scope_entry_count = self.local_scope().matched_items.get();
-        component_list_panel::grid::content::Info {groups, local_scope_entry_count}
+        component_list_panel::grid::content::Info { groups, local_scope_entry_count }
     }
 
     fn get_entry_model(
