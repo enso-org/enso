@@ -24,6 +24,8 @@ type My_Type
 
 main = run_default_backend spec
 
+within_table table = Test.with_clue 'Resulting table:\n'+table.display+'\n\n'
+
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
@@ -444,8 +446,6 @@ spec setup =
             t1 = table_builder [["A", [Nothing, 2, Nothing, 1]], ["B", [Nothing, 3, 4, 7]]]
             t2 = table_builder [["C", [Nothing, 2, Nothing, 4]], ["D", [Nothing, 5, 6, Nothing]]]
 
-            within_table table = Test.with_clue 'Resulting table:\n'+table.display+'\n\n'
-
             t3 = t1.join t2 on=[Join_Condition.Equals "A" "C"] join_kind=Join_Kind.Inner
             expect_column_names ["A", "B", "C", "D"] t3
             r3 = materialize t3 . order_by ["A", "B", "D"] . rows . map .to_vector
@@ -613,3 +613,16 @@ spec setup =
             r2.at 1 . should_equal [1, 10, 3, Nothing, Nothing]
             r2.at 2 . should_equal [2, 20, 5, 5, 100]
             r2.at 3 . should_equal [3, 30, 7, 7, 200]
+
+            t4_3 = table_builder [["X", [Nothing, 2, 3]], ["Y", [10, 20, 30]]]
+            t4_4 = t4_3.set "C" (t4_3.at "X" . fill_missing 7)
+            t7 = t4_4.join t5 on=(Join_Condition.Equals "C" "X") join_kind=Join_Kind.Full
+            within_table t7 <|
+                expect_column_names ["X", "Y", "C", "Right_X", "Z"] t7
+                r3 = materialize t7 . order_by ["Y", "Right_X"] . rows . map .to_vector
+                r3.length . should_equal 5
+                r3.at 0 . should_equal [Nothing, Nothing, Nothing, 1, 300]
+                r3.at 1 . should_equal [Nothing, Nothing, Nothing, 5, 100]
+                r3.at 2 . should_equal [Nothing, 10, 7, 7, 200]
+                r3.at 3 . should_equal [2, 20, 2, Nothing, Nothing]
+                r3.at 4 . should_equal [3, 30, 3, Nothing, Nothing]
