@@ -2,7 +2,6 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
@@ -23,12 +22,6 @@ class RuntimeInstrumentTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
-
-  // === Test Timer ===========================================================
-
-  class TestTimer extends Timer {
-    override def getTime(): Long = 0
-  }
 
   // === Test Utilities =======================================================
 
@@ -54,6 +47,7 @@ class RuntimeInstrumentTest
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
@@ -73,14 +67,6 @@ class RuntimeInstrumentTest
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
-
-    val languageContext = executionContext.context
-      .getBindings(LanguageInfo.ID)
-      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-      .asHostObject[org.enso.interpreter.runtime.EnsoContext]
-    languageContext.getLanguage.getIdExecutionService.ifPresent(
-      _.overrideTimer(new TestTimer)
-    );
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile

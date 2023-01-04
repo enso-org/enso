@@ -24,11 +24,13 @@ import org.netbeans.spi.java.queries.BinaryForSourceQueryImplementation2;
 import org.netbeans.spi.java.queries.CompilerOptionsQueryImplementation;
 import org.netbeans.spi.java.queries.SourceForBinaryQueryImplementation2;
 import org.netbeans.spi.java.queries.SourceLevelQueryImplementation2;
+import org.netbeans.spi.project.support.GenericSources;
 import org.netbeans.spi.project.ui.ProjectOpenedHook;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.filesystems.URLMapper;
 import org.openide.util.Exceptions;
+import org.openide.util.ImageUtilities;
 
 final class EnsoSbtClassPathProvider extends ProjectOpenedHook
 implements ClassPathProvider, SourceLevelQueryImplementation2, CompilerOptionsQueryImplementation,
@@ -228,7 +230,14 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
     }
 
     @Override
-    public SourceGroup[] getSourceGroups(String string) {
+    public SourceGroup[] getSourceGroups(String type) {
+        if (Sources.TYPE_GENERIC.equals(type)) {
+            var dir = project.getProjectDirectory();
+            var displayname = FileUtil.getFileDisplayName(dir);
+            var icon = ImageUtilities.loadImageIcon("org/enso/tools/enso4igv/enso.svg", true);
+            var genericGroup = GenericSources.group(project, dir, dir.getNameExt(), displayname, icon, icon);
+            return new SourceGroup[] { genericGroup};
+        }
         return sources;
     }
 
