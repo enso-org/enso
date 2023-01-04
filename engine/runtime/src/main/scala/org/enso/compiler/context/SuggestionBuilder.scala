@@ -165,6 +165,7 @@ final class SuggestionBuilder[A: IndexedSource](
               name,
               args,
               scope.location.get,
+              doc,
               typeSignature
             )
             val subforest = go(
@@ -181,6 +182,7 @@ final class SuggestionBuilder[A: IndexedSource](
               module,
               name.name,
               scope.location.get,
+              doc,
               typeSignature
             )
             val subforest = go(
@@ -264,18 +266,20 @@ final class SuggestionBuilder[A: IndexedSource](
     name: IR.Name,
     args: Seq[IR.DefinitionArgument],
     location: Location,
+    doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Function = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
       buildFunctionArguments(args, typeSig)
     Suggestion.Function(
-      externalId = externalId,
-      module     = module.toString,
-      name       = name.name,
-      arguments  = methodArgs,
-      returnType = buildReturnType(returnTypeDef),
-      scope      = buildScope(location)
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name.name,
+      arguments     = methodArgs,
+      returnType    = buildReturnType(returnTypeDef),
+      scope         = buildScope(location),
+      documentation = doc
     )
   }
 
@@ -285,16 +289,18 @@ final class SuggestionBuilder[A: IndexedSource](
     module: QualifiedName,
     name: String,
     location: Location,
+    doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Local = {
     val typeSig            = buildTypeSignatureFromMetadata(typeSignature)
     val (_, returnTypeDef) = buildFunctionArguments(Seq(), typeSig)
     Suggestion.Local(
-      externalId,
-      module.toString,
-      name,
-      buildReturnType(returnTypeDef),
-      buildScope(location)
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name,
+      returnType    = buildReturnType(returnTypeDef),
+      scope         = buildScope(location),
+      documentation = doc
     )
   }
 

@@ -317,7 +317,11 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   "x",
                   "Number",
                   Suggestion
-                    .Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
+                    .Scope(
+                      Suggestion.Position(0, 9),
+                      Suggestion.Position(4, 9)
+                    ),
+                  None
                 ),
                 Vector()
               ),
@@ -328,7 +332,11 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   "y",
                   SuggestionBuilder.Any,
                   Suggestion
-                    .Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
+                    .Scope(
+                      Suggestion.Position(0, 9),
+                      Suggestion.Position(4, 9)
+                    ),
+                  None
                 ),
                 Vector()
               )
@@ -940,7 +948,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 10)
-                  )
+                  ),
+                  None
                 ),
                 Vector()
               )
@@ -989,7 +998,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(4, 10)
-                  )
+                  ),
+                  documentation = None
                 ),
                 Vector(
                   Tree.Node(
@@ -1001,7 +1011,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                       scope = Suggestion.Scope(
                         Suggestion.Position(1, 11),
                         Suggestion.Position(3, 9)
-                      )
+                      ),
+                      documentation = None
                     ),
                     Vector()
                   )
@@ -1050,7 +1061,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(3, 10)
-                  )
+                  ),
+                  documentation = None
                 ),
                 Vector()
               )
@@ -1119,7 +1131,63 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(2, 6),
                     Suggestion.Position(5, 10)
-                  )
+                  ),
+                  documentation = None
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build function with documentation" in {
+
+      val code =
+        """main =
+          |    ## Foo documentation.
+          |    foo a = a + 1
+          |    foo 42
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Method(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Function(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  arguments = Seq(
+                    Suggestion
+                      .Argument(
+                        "a",
+                        SuggestionBuilder.Any,
+                        false,
+                        false,
+                        None
+                      )
+                  ),
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(3, 10)
+                  ),
+                  documentation = Some(" Foo documentation.")
                 ),
                 Vector()
               )
@@ -1162,7 +1230,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 7)
-                  )
+                  ),
+                  documentation = None
                 ),
                 Vector()
               )
@@ -1207,7 +1276,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(4, 7)
-                  )
+                  ),
+                  documentation = None
                 ),
                 Vector(
                   Tree.Node(
@@ -1219,7 +1289,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                       scope = Suggestion.Scope(
                         Suggestion.Position(1, 9),
                         Suggestion.Position(3, 9)
-                      )
+                      ),
+                      documentation = None
                     ),
                     Vector()
                   )
@@ -1265,7 +1336,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(3, 7)
-                  )
+                  ),
+                  documentation = None
                 ),
                 Vector()
               )
@@ -1323,7 +1395,53 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(2, 6),
                     Suggestion.Position(5, 7)
-                  )
+                  ),
+                  documentation = None
+                ),
+                Vector()
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "build local with documentation" in {
+
+      val code =
+        """main =
+          |    ## This is foo.
+          |    foo = 42
+          |    foo
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) shouldEqual Tree.Root(
+        Vector(
+          ModuleNode,
+          Tree.Node(
+            Suggestion.Method(
+              externalId    = None,
+              module        = "Unnamed.Test",
+              name          = "main",
+              arguments     = Seq(),
+              selfType      = "Unnamed.Test",
+              returnType    = SuggestionBuilder.Any,
+              isStatic      = true,
+              documentation = None
+            ),
+            Vector(
+              Tree.Node(
+                Suggestion.Local(
+                  externalId = None,
+                  module     = "Unnamed.Test",
+                  name       = "foo",
+                  returnType = SuggestionBuilder.Any,
+                  scope = Suggestion.Scope(
+                    Suggestion.Position(0, 6),
+                    Suggestion.Position(3, 7)
+                  ),
+                  documentation = Some(" This is foo.")
                 ),
                 Vector()
               )
@@ -2188,7 +2306,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 28)
-                  )
+                  ),
+                  documentation = None
                 ),
                 Vector()
               )
@@ -2237,7 +2356,8 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   scope = Suggestion.Scope(
                     Suggestion.Position(0, 6),
                     Suggestion.Position(2, 18)
-                  )
+                  ),
+                  documentation = None
                 ),
                 Vector()
               )
