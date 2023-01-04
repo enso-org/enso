@@ -731,8 +731,13 @@ final class SuggestionsHandler(
         val docSections = conversion.documentation.map(docSectionsBuilder.build)
         conversion.copy(documentationSections = docSections)
 
-      case _: Suggestion.Function => suggestion
-      case _: Suggestion.Local    => suggestion
+      case function: Suggestion.Function =>
+        val docSections = function.documentation.map(docSectionsBuilder.build)
+        function.copy(documentationSections = docSections)
+
+      case local: Suggestion.Local =>
+        val docSections = local.documentation.map(docSectionsBuilder.build)
+        local.copy(documentationSections = docSections)
     }
 }
 
