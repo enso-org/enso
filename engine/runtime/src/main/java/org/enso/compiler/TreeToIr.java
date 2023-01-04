@@ -275,7 +275,7 @@ final class TreeToIr {
         yield cons(binding, appendTo);
       }
 
-      case Tree.Annotated anno -> {
+      case Tree.AnnotatedBuiltin anno -> {
         var annotation = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
       }
@@ -381,7 +381,7 @@ final class TreeToIr {
         var irDoc = translateComment(doc, doc.getDocumentation());
         yield translateTypeBodyExpression(doc.getExpression(), cons(irDoc, appendTo));
       }
-      case Tree.Annotated anno -> {
+      case Tree.AnnotatedBuiltin anno -> {
         var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         var annotation = translateAnnotation(ir, anno.getExpression(), nil());
         yield cons(annotation, appendTo);
@@ -909,7 +909,7 @@ final class TreeToIr {
       }
       case Tree.TemplateFunction templ -> translateExpression(templ.getAst(), false);
       case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
-      case Tree.Annotated anno -> {
+      case Tree.AnnotatedBuiltin anno -> {
         var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateAnnotation(ir, anno.getExpression(), nil());
       }
@@ -964,7 +964,7 @@ final class TreeToIr {
         case Tree.UnaryOprApp app -> app.getRhs();
         case Tree.OprSectionBoundary section -> section.getAst();
         case Tree.TemplateFunction function -> function.getAst();
-        case Tree.Annotated annotated -> annotated.getExpression();
+        case Tree.AnnotatedBuiltin annotated -> annotated.getExpression();
         case Tree.Documented documented -> documented.getExpression();
         case Tree.Assignment assignment -> assignment.getExpr();
         case Tree.TypeAnnotated annotated -> annotated.getExpression();
