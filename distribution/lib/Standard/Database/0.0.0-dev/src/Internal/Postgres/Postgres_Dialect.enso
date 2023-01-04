@@ -11,7 +11,7 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
-import project.Internal.Common.Join_Helper
+import project.Internal.Common.Database_Join_Helper
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -73,7 +73,7 @@ type Postgres_Dialect
        proper query.
     prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
-        Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
+        Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
 
 ## PRIVATE
 make_internal_generator_dialect =

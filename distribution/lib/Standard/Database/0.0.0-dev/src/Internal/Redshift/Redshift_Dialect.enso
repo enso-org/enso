@@ -13,7 +13,7 @@ import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
-import project.Internal.Common.Join_Helper
+import project.Internal.Database_Join_Helper
 
 ## PRIVATE
 
@@ -66,4 +66,4 @@ type Redshift_Dialect
        proper query.
     prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
-        Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
+        Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
