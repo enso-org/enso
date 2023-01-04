@@ -5,7 +5,7 @@ use enso_text::unit::*;
 use ensogl::display::shape::*;
 
 use crate::node::input::area;
-use crate::node::input::widget::NodeWidget;
+use crate::node::input::widget::Widget;
 use crate::Type;
 
 use ensogl::application::Application;
@@ -154,7 +154,7 @@ ensogl::define_endpoints! {
 pub struct Model {
     pub frp:         Frp,
     pub shape:       Option<Shape>,
-    pub widget:      Option<NodeWidget>,
+    pub widget:      Option<Widget>,
     pub index:       ByteDiff,
     pub local_index: ByteDiff,
     pub length:      ByteDiff,
@@ -190,9 +190,9 @@ impl Model {
         app: &Application,
         argument_info: Option<span_tree::ArgumentInfo>,
         node_height: f32,
-    ) -> Option<NodeWidget> {
+    ) -> Option<Widget> {
         let Some(argument_info) = argument_info else { return None };
-        self.widget = NodeWidget::new(app, argument_info, node_height);
+        self.widget = Widget::new(app, argument_info, node_height);
         self.widget.clone_ref()
     }
 

@@ -870,9 +870,12 @@ impl Handle {
         Ok(())
     }
 
-    /// Sets the given's node expression.
+    /// Updates the given node's expression by rewriting a part of it, as specified by span crumbs.
+    ///
+    /// This will not modify AST IDs of any part of the expression that is not selected by the
+    /// crumbs.
     #[profile(Debug)]
-    pub fn set_nested_expression(
+    pub fn set_expression_span(
         &self,
         id: ast::Id,
         crumbs: &span_tree::Crumbs,

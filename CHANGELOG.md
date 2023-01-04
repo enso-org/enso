@@ -79,8 +79,8 @@
   the project is changed from the last saved snapshot and lighter when the
   snapshot matches the current project state.
 - [Added shortcut to interrupt the program][3967]
-- [Added dropdown for node argument value suggestions.][4013] Currently it
-  displays only statically known enum variant choices.
+- [Added suggestion dropdown for function arguments][4013]. The dropdown is
+  present only when the argument is of type that has a predefined set of values.
 
 #### EnsoGL (rendering engine)
 

@@ -1,4 +1,4 @@
-//! Definition all variants of possible node widgets and common widget API.
+//! Definition of all hardcoded node widget variants and common widget FRP API.
 
 use crate::prelude::*;
 
@@ -26,13 +26,16 @@ ensogl::define_endpoints_2! {
 }
 
 /// Possible widgets for a node input.
+///
+/// Currently all widget types are hardcoded. This is likely to be a temporary solution. In the
+/// future the set of widget types might be dynamic, similar to visualizations.
 #[derive(Clone, Debug, CloneRef)]
-pub enum NodeWidget {
+pub enum Widget {
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoice),
 }
 
-impl NodeWidget {
+impl Widget {
     /// Create a new node widget, selecting the appropriate widget type based on the provided
     /// argument info.
     pub fn new(
@@ -40,7 +43,8 @@ impl NodeWidget {
         argument_info: span_tree::ArgumentInfo,
         node_height: f32,
     ) -> Option<Self> {
-        // TODO: support more widgets, use engine provided widget type
+        // TODO [PG] Support more widgets, use engine provided widget type.
+        // https://www.pivotaltracker.com/story/show/184012753
         if !argument_info.tag_values.is_empty() {
             Some(Self::SingleChoice(SingleChoice::new(app, argument_info, node_height)))
         } else {
@@ -55,14 +59,14 @@ impl NodeWidget {
     }
 }
 
-impl Deref for NodeWidget {
+impl Deref for Widget {
     type Target = Frp;
     fn deref(&self) -> &Self::Target {
         self.frp()
     }
 }
 
-impl display::Object for NodeWidget {
+impl display::Object for Widget {
     fn display_object(&self) -> &display::object::Instance {
         match self {
             Self::SingleChoice(s) => &s.display_object,
@@ -134,7 +138,8 @@ impl SingleChoice {
             let entries: Vec<ImString> = argument_info.tag_values.iter().map(Into::into).collect();
             dropdown.set_all_entries(entries);
         } else {
-            // TODO: support dynamic entries
+            // TODO [PG]: Support dynamic entries.
+            // https://www.pivotaltracker.com/story/show/184012743
             unimplemented!();
         }
 
