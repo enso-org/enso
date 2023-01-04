@@ -295,6 +295,11 @@ impl List {
         let flattened = self.top_modules_flattened.iter().flat_map(|group| group.iter());
         normal.chain(flattened).chain(std::iter::once(&self.local_scope))
     }
+
+    /// Get a vector of section names for the sections of the top modules.
+    pub fn section_names(&self) -> &[ImString] {
+        &self.section_names
+    }
 }
 
 

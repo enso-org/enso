@@ -24,8 +24,6 @@ pub enum SectionId {
     Popular,
     /// The "Local Scope" section.
     LocalScope,
-    /// The "Sub-Modules" section.
-    SubModules,
     /// A section defined by its namespace ID.
     ModuleNamespace(NamespaceId),
 }
@@ -36,7 +34,6 @@ impl SectionId {
         match self {
             Self::Popular => "Popular",
             Self::LocalScope => "Local",
-            Self::SubModules => "Modules",
             Self::ModuleNamespace(_) => "Namespace",
         }
     }

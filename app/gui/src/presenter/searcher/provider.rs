@@ -197,7 +197,6 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
             component_grid::SectionId::LocalScope =>
                 (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
-            component_grid::SectionId::SubModules => self.top_modules().get(0)?.get(id.index).cloned(),
             component_grid::SectionId::ModuleNamespace(section) =>
                 self.top_modules().get(section)?.get(id.index).cloned(),
         };
@@ -237,7 +236,6 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         let can_be_entered = match group_id.section {
             component_grid::SectionId::Popular => false,
             component_grid::SectionId::LocalScope => true,
-            component_grid::SectionId::SubModules => true,
             component_grid::SectionId::ModuleNamespace(_) => true,
         };
         Some(group_to_header_model(&group, can_be_entered))

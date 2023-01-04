@@ -223,15 +223,21 @@ impl Model {
         }
     }
 
-    fn set_section_name_crumb(&self, text: &str) {
+    fn set_section_name_crumb(&self, text: ImString) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
             let breadcrumbs = &browser.model().list.model().breadcrumbs;
-            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, ImString::new(text).into()));
+            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
         }
     }
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
-        self.set_section_name_crumb(section_id.as_str());
+        let components = self.controller.components();
+        let section_names = components.section_names();
+        match section_id {
+            component_grid::SectionId::ModuleNamespace(n) =>
+                self.set_section_name_crumb(section_names.get(n).cloned().unwrap_or_default()),
+            section_id => self.set_section_name_crumb(ImString::new(section_id.as_str())),
+        }
     }
 
     fn module_entered(&self, module: component_grid::ElementId) {
