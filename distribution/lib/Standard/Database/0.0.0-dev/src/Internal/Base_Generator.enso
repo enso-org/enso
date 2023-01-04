@@ -377,10 +377,16 @@ generate_query : Internal_Dialect -> Query -> Builder
 generate_query dialect query = case query of
     Query.Select columns ctx ->
         gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
-        cols = SQL.join ", " (columns.map gen_column)
-        code "SELECT " ++ cols ++ generate_select_context dialect ctx
-    Query.Select_All ctx ->
-        code "SELECT * " ++ generate_select_context dialect ctx
+        cols = case columns of
+            Nothing -> code "*"
+            _ -> SQL.join ", " (columns.map gen_column)
+        prefix = case ctx.distinct_on of
+            Nothing -> code ""
+            expressions : Vector ->
+                # TODO I just realised this does not make sense in other backends than Postgres, so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
+                generated = SQL.join ", " (expressions.map (generate_expression dialect))
+                code "DISTINCT ON (" ++ generated ++ ") "
+        code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type."

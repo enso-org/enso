@@ -100,12 +100,11 @@ type SQLite_Dialect
        Prepares a distinct operation.
     prepare_distinct : Table -> Vector -> Table
     prepare_distinct self table key_columns =
-        setup = table.context.as_subquery table.name+"_for_distinct" [table.internal_columns, key_columns]
+        setup = table.context.as_subquery table.name+"_inner" [table.internal_columns, key_columns]
         new_key_columns = setup.second.second
         distinct_expressions = new_key_columns.map .expression
         new_context = Context.for_subquery setup.first . set_groups distinct_expressions
         new_columns = setup.second.first
-        # TODO maybe rename here
         table.updated_context_and_columns new_context new_columns
 
 

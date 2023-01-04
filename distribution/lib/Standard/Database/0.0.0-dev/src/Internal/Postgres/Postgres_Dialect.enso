@@ -13,6 +13,7 @@ import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -80,7 +81,13 @@ type Postgres_Dialect
        Prepares a distinct operation.
     prepare_distinct : Table -> Vector -> Table
     prepare_distinct self table key_columns =
-        Unimplemented.throw "TODO"
+        setup = table.context.as_subquery table.name+"_inner" [table.internal_columns, key_columns]
+        new_key_columns = setup.second.second
+        distinct_expressions = new_key_columns.map .expression
+        # TODO check order_by
+        new_context = Context.for_subquery setup.first . set_distinct_on distinct_expressions
+        new_columns = setup.second.first
+        table.updated_context_and_columns new_context new_columns
 
 ## PRIVATE
 make_internal_generator_dialect =
