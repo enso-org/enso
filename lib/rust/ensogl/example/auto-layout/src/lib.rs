@@ -65,6 +65,7 @@ pub fn test() {
 }
 
 /// The example entry point.
+/// foo bar baz
 #[entry_point]
 #[allow(dead_code)]
 pub fn main() {

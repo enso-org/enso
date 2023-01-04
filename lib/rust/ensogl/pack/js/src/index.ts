@@ -182,7 +182,7 @@ export class App {
             this.wasm[entryPoint.name()]()
         } else {
             if (this.loader) this.loader.destroy()
-            this.show_debug_screen(entryPointName)
+            this.show_entry_point_selector(entryPointName)
         }
     }
 
@@ -219,28 +219,83 @@ export class App {
     }
 
     /// Displays a debug screen which allows the user to run one of predefined debug examples.
-    show_debug_screen(unknownEntryPoint?: string) {
-        Logger.log('show_debug_screen')
+    show_entry_point_selector(unknownEntryPoint?: string) {
+        Logger.log('Showing entry point selector.')
+        const padding = '8px'
+        const background_radius = '8px'
         const msg = unknownEntryPoint ? `Unknown entry point '${unknownEntryPoint}'. ` : ''
         const div = html_utils.new_top_level_div()
+        div.style.fontFamily = `"SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif`
+        div.style.fontSize = '14px'
+        div.style.overflow = 'scroll'
         const div2 = document.createElement('div')
-        const content = document.createTextNode(msg + 'Available entry points:')
-        const ul = document.createElement('ul')
-        div.style.position = 'absolute'
-        div.style.zIndex = '1'
-        div2.appendChild(content)
+        div2.style.padding = '10px'
         div.appendChild(div2)
-        div2.appendChild(ul)
 
+        const title = document.createElement('div')
+        title.style.fontWeight = 'bold'
+        title.style.padding = '8px'
+        const content = document.createTextNode(msg + 'Available entry points:')
+        const table = document.createElement('table')
+        table.style.paddingTop = '20px'
+        table.style.borderCollapse = 'collapse'
+        div2.style.position = 'absolute'
+        div2.style.zIndex = '1'
+        title.appendChild(content)
+        div2.appendChild(title)
+        div2.appendChild(table)
+
+        const tr = document.createElement('tr')
+        const th1 = document.createElement('th')
+        const th2 = document.createElement('th')
+        th1.innerText = 'Name'
+        th2.innerText = 'Description'
+        th1.style.textAlign = 'left'
+        th2.style.textAlign = 'left'
+        th1.style.padding = padding
+        th2.style.padding = padding
+        tr.appendChild(th1)
+        tr.appendChild(th2)
+        table.appendChild(tr)
+
+        let rowWithBg = true
         for (const entry_point of this.mainEntryPoints.values()) {
-            const li = document.createElement('li')
+            // FIXME: Currently, this does not work. It should be fixed by wasm-bindgen or wasm-pack
+            //     team. See: https://github.com/rustwasm/wasm-bindgen/issues/3224
+            const docsFn = this.wasm[entry_point.docsFnName()]
+            let docs = 'No description.'
+            if (docsFn) {
+                const rustDocs = docsFn()
+                if (rustDocs) {
+                    docs = rustDocs
+                }
+            }
+
+            const tr = document.createElement('tr')
+            const td1 = document.createElement('td')
+            const td2 = document.createElement('td')
+            td1.style.padding = padding
+            td2.style.padding = padding
+            if (rowWithBg) {
+                td1.style.background = '#00000010'
+                td2.style.background = '#00000010'
+                td1.style.borderTopLeftRadius = background_radius
+                td1.style.borderBottomLeftRadius = background_radius
+                td2.style.borderTopRightRadius = background_radius
+                td2.style.borderBottomRightRadius = background_radius
+            }
             const a = document.createElement('a')
             const linkText = document.createTextNode(entry_point.strippedName)
-            ul.appendChild(li)
+
+            table.appendChild(tr)
+            tr.appendChild(td1)
+            tr.appendChild(td2)
             a.appendChild(linkText)
             a.title = entry_point.strippedName
             a.href = '?entry=' + entry_point.strippedName
-            li.appendChild(a)
+            td1.appendChild(a)
+            td2.innerText = docs
+            rowWithBg = !rowWithBg
         }
     }
 

@@ -29,6 +29,10 @@ export class EntryPoint {
         return this.prefix + this.strippedName
     }
 
+    docsFnName(): string {
+        return `docs_of_${this.name()}`
+    }
+
     /** Not mangled name, easy to read by the user. WASM function names exported from Rust are
      * mangled to contain the path and location information. This converts them to a form of
      * 'file/path/from/repo/root.rs:line:column'. */
