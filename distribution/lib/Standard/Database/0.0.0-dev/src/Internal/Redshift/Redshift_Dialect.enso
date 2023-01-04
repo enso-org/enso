@@ -13,7 +13,7 @@ import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
-import project.Internal.Database_Join_Helper
+import project.Internal.Common.Database_Join_Helper
 
 ## PRIVATE
 

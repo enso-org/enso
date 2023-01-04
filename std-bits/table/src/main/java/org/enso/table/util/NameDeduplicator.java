@@ -6,7 +6,6 @@ import org.enso.table.util.problems.InvalidNames;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class NameDeduplicator {
   private final Set<String> usedNames = new HashSet<>();
@@ -113,26 +112,25 @@ public class NameDeduplicator {
       List<String> first, List<String> second, String secondPrefix) {
     NameDeduplicator deduplicator = new NameDeduplicator();
     first.forEach(deduplicator::markUsed);
-    List<Boolean> alreadyUnique =
-        second.stream()
-            .map(
-                name -> {
-                  boolean wasUnique = deduplicator.isUnique(name);
-                  if (wasUnique) {
-                    deduplicator.markUsed(name);
-                  }
-                  return wasUnique;
-                })
-            .collect(Collectors.toList());
-    ArrayList<String> result = new ArrayList<>(second.size());
-    for (int i = 0; i < second.size(); i++) {
-      String name = second.get(i);
-      if (alreadyUnique.get(i)) {
-        result.add(name);
+    ArrayList<String> output = new ArrayList<>(second.size());
+    // First pass - we add only the names that are already unique, and mark them as used in
+    // preparation for the second pass.
+    for (String name : second) {
+      if (deduplicator.isUnique(name)) {
+        output.add(name);
+        deduplicator.markUsed(name);
       } else {
-        result.add(deduplicator.makeUnique(secondPrefix + name));
+        output.add(null);
       }
     }
-    return result;
+    // Second pass - we go over the duplicated names and disambiguate them by adding a prefix and
+    // a suffix if necessary.
+    for (int i = 0; i < second.size(); i++) {
+      String name = second.get(i);
+      if (output.get(i) == null) {
+        output.set(i, deduplicator.makeUnique(secondPrefix + name));
+      }
+    }
+    return output;
   }
 }
