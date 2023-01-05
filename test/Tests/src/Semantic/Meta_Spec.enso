@@ -11,6 +11,7 @@ polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+from Standard.Base.Error.Common import Uninitialized_State
 
 type My_Type
     Value foo bar baz
@@ -194,5 +195,13 @@ spec = Test.group "Meta-Value Manipulation" <|
             fill 10 # no change
             atom.bar . should_equal 2
 
+        Test.specify "fail if lazy_atom isn't used" <|
+            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+                Meta.lazy_atom (_ -> My_Type.Value 1 2 3)
+            case key of
+                t : My_Type ->
+                    t.foo . should_equal 1
+                    t.bar . should_equal 2
+                    t.baz . should_equal 3
 
 main = Test_Suite.run_main spec

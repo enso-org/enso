@@ -57,7 +57,7 @@ public abstract class LazyAtomInstanceNode extends Node {
           }
         }
       }
-      throw new PanicException(ctx.getBuiltins().error().getInvalidArrayIndex(), this);
+      throw new PanicException(ctx.getBuiltins().error().makeUninitializedStateError(r), this);
     } catch (UnsupportedTypeException ex) {
       throw raise(RuntimeException.class, ex);
     } catch (ArityException ex) {
