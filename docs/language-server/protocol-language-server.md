@@ -2812,6 +2812,9 @@ A file might have been removed during the operation while there were still open
 buffers for that file. Any such clients will be modified of a file removal via
 the `file/event` notification.
 
+The result of the call returns a list of files that have been modified during
+the operation.
+
 #### Parameters
 
 ```typescript
@@ -2834,7 +2837,9 @@ the `file/event` notification.
 #### Result
 
 ```typescript
-null;
+{
+  changed: [Path];
+}
 ```
 
 ### `vcs/list`
@@ -3493,7 +3498,7 @@ on the stack. In general, all consequent stack items should be `LocalCall`s.
 }
 ```
 
-Returns successful reponse.
+Returns successful response.
 
 ```json
 {

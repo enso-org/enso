@@ -1,6 +1,8 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import io.circe.parser.parse
+
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.{Git => JGit}
 import org.eclipse.jgit.lib.Repository
@@ -1267,20 +1269,18 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
             }
           }
           """)
-        client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 6,
-            "result": {
-              "changed": [
-                {
-                  "rootId": $testContentRootId,
-                  "segments": [ "src", $testBarFileName ]
-                }
-              ]
-            }
-          }
-          """)
-        client.expectJson(json"""
+
+        // Additional logic to deal with out-of-order messages due
+        // to multiple actors being involved in forwarding messages.
+        val msg1        = parse(client.expectMessage()).getOrElse(fail())
+        val msg2        = parse(client.expectMessage()).getOrElse(fail())
+        val isFileEvent = msg1.hcursor.get[String]("method").toOption.isEmpty
+        val (methodsEvent, response) = if (isFileEvent) {
+          (msg2, msg1)
+        } else {
+          (msg1, msg2)
+        }
+        methodsEvent shouldEqual json"""
           { "jsonrpc" : "2.0",
             "method" : "file/event",
             "params" : {
@@ -1294,7 +1294,21 @@ class VcsManagerTest extends BaseServerTest with RetrySpec {
               "kind" : "Removed"
             }
           }
-          """)
+          """
+
+        response shouldEqual json"""
+          { "jsonrpc": "2.0",
+            "id": 6,
+            "result": {
+              "changed": [
+                {
+                  "rootId": $testContentRootId,
+                  "segments": [ "src", $testBarFileName ]
+                }
+              ]
+            }
+          }
+          """
 
         client2.expectJson(json"""
           { "jsonrpc" : "2.0",
