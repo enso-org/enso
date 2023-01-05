@@ -1,10 +1,8 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.distribution.FileSystem
+import org.apache.commons.io.FileUtils
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.ConstantsGen
-import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager, QualifiedName}
 import org.enso.polyglot._
@@ -27,12 +25,6 @@ class RuntimeVisualizationsTest
     with Matchers
     with BeforeAndAfterEach {
 
-  // === Test Timer ===========================================================
-
-  class TestTimer extends Timer {
-    override def getTime(): Long = 0
-  }
-
   // === Test Utilities =======================================================
 
   var context: TestContext = _
@@ -40,7 +32,7 @@ class RuntimeVisualizationsTest
   class TestContext(packageName: String) extends InstrumentTestContext {
 
     val tmpDir: Path = Files.createTempDirectory("enso-test-packages")
-    sys.addShutdownHook(FileSystem.removeDirectoryIfExists(tmpDir))
+    sys.addShutdownHook(FileUtils.deleteQuietly(tmpDir.toFile))
     val lockManager = new ThreadSafeFileLockManager(tmpDir.resolve("locks"))
     val runtimeServerEmulator =
       new RuntimeServerEmulator(messageQueue, lockManager)
@@ -51,7 +43,7 @@ class RuntimeVisualizationsTest
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
-        .newBuilder(LanguageInfo.ID)
+        .newBuilder()
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
@@ -59,6 +51,7 @@ class RuntimeVisualizationsTest
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .option(RuntimeOptions.INTERACTIVE_MODE, "true")
         .option(
@@ -75,14 +68,6 @@ class RuntimeVisualizationsTest
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
-
-    val languageContext = executionContext.context
-      .getBindings(LanguageInfo.ID)
-      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
-      .asHostObject[EnsoContext]
-    languageContext.getLanguage.getIdExecutionService.ifPresent(
-      _.overrideTimer(new TestTimer)
-    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -783,6 +768,215 @@ class RuntimeVisualizationsTest
         data
     }
     data1.sameElements("45".getBytes) shouldBe true
+  }
+
+  it should "emit visualisation update when frame popped" in {
+    val contents   = context.Main.code
+    val moduleName = "Enso_Test.Test.Main"
+    val mainFile   = context.writeMain(contents)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // open files
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code
+        )
+      )
+    )
+    context.receiveNone shouldEqual None
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainZ,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "encode"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receiveN(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId = context.Main.idMainZ
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data) shouldEqual "50"
+
+    // push foo call
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idFooZ,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "encode"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses2 = context.receiveN(2)
+    attachVisualisationResponses2 should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId2 = context.Main.idFooZ
+    val Some(data2) = attachVisualisationResponses2.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId2`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data2) shouldEqual "45"
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(10, 15), model.Position(10, 16)),
+              "5"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+
+    val editFileResponse = context.receiveNIgnorePendingExpressionUpdates(4)
+    editFileResponse should contain allOf (
+      TestMessages.update(contextId, context.Main.idFooY, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, context.Main.idFooZ, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+    val Some(data3) = editFileResponse.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId2`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data3) shouldEqual "55"
+
+    // pop foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    val popContextResponses = context.receiveNIgnorePendingExpressionUpdates(
+      5
+    )
+    popContextResponses should contain allOf (
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      context.executionComplete(contextId)
+    )
+
+    val Some(data4) = popContextResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data4) shouldEqual "60"
   }
 
   it should "be able to modify visualisations" in {
@@ -1951,10 +2145,6 @@ class RuntimeVisualizationsTest
   }
 
   it should "run internal IDE visualisation preprocessor catching error" in {
-    pending
-    // TODO [JD]: Disabled due to issue with context not allowing JS functions.
-    // https://www.pivotaltracker.com/story/show/184064564
-
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
     val visualisationId = UUID.randomUUID()
@@ -1999,8 +2189,8 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushContextResponses = context.receiveNIgnorePendingExpressionUpdates(3)
-    pushContextResponses should contain allOf (
+    val pushContextResponses = context.receiveNIgnoreStdLib(3)
+    pushContextResponses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.error(
         contextId,
@@ -2052,7 +2242,7 @@ class RuntimeVisualizationsTest
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{ "kind": "Dataflow", "message": "The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
+    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:6:5-32)"}"""
   }
 
   it should "attach method pointer visualisation without arguments" in {
@@ -2745,7 +2935,7 @@ class RuntimeVisualizationsTest
         ConstantsGen.INTEGER,
         Api.MethodPointer(
           warningModuleName.toString,
-          warningTypeName.toString,
+          warningTypeName.toString + ".type",
           "attach"
         )
       ),

@@ -58,13 +58,13 @@ spec = Test.group "Meta-Value Manipulation" <|
         1.2.is_a Any . should_be_true
         (My_Type.Value 1 "foo" Nothing).is_a Any . should_be_true
         
-        Array.is_a Array . should_be_true
+        Array.is_a Array . should_be_false
         [].to_array.is_a Array . should_be_true
         [].to_array.is_a Decimal . should_be_false
         [1,2,3].is_a Vector . should_be_true
         [1,2,3].is_a Array . should_be_false
 
-        Boolean.is_a Boolean . should_be_true
+        Boolean.is_a Boolean . should_be_false
         True.is_a Boolean . should_be_true
         False.is_a Boolean . should_be_true
         True.is_a Integer . should_be_false
@@ -84,7 +84,7 @@ spec = Test.group "Meta-Value Manipulation" <|
         1.0.is_a Text . should_be_false
 
         random_gen = Random.new
-        Meta.is_a random_gen Polyglot.Polyglot . should_be_true
+        Meta.is_a random_gen Random . should_be_true
         Meta.is_a random_gen Integer . should_be_false
 
         (My_Type.Value 1 "foo" Nothing).is_a My_Type.Value . should_be_true

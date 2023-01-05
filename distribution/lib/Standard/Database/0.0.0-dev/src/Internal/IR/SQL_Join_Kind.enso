@@ -1,9 +1,11 @@
 from Standard.Base import all
 
+from Standard.Table import Join_Kind
+
 ## PRIVATE
 
    The kind of the join operation.
-type Join_Kind
+type SQL_Join_Kind
     ## PRIVATE
 
        Inner join.
@@ -42,3 +44,19 @@ type Join_Kind
        the right source. Its `on` list should be empty, instead `where_filters`
        in the query can be used to filter the results.
     Cross
+
+    ## PRIVATE
+
+       The result contains all rows from both sources, each unmatched row is
+       extended with null values for the columns from the other table.
+    Full
+
+    ## PRIVATE
+       Returns the SQL representation of this join kind as text.
+    to_sql : Text
+    to_sql self = case self of
+        SQL_Join_Kind.Inner -> "INNER JOIN"
+        SQL_Join_Kind.Left -> "LEFT JOIN"
+        SQL_Join_Kind.Right -> "RIGHT JOIN"
+        SQL_Join_Kind.Full -> "FULL OUTER JOIN"
+        SQL_Join_Kind.Cross -> "CROSS JOIN"

@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Base.Data.Array_Proxy import Array_Proxy
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -40,7 +41,17 @@ spec =
             v2 = Vector.from_polyglot_array (Array_Proxy.from_proxy_object (Proxy_Object.Value 5))
             v2.should_equal [0, 10, 20, 30, 40]
 
-        Test.specify "should check the callback type validity at construction" <|
+        Test.specify "should check validity at construction" <|
             Test.expect_panic_with (Array_Proxy.new 0 0) Type_Error.Error
+            Test.expect_panic_with (Array_Proxy.new -1 (x->x)) Illegal_Argument.Error
+
+        Test.specify "should pretend to just be an Array" <|
+            proxy = Array_Proxy.new 3 (ix -> ix + 10)
+            ok_match = case proxy of
+                _ : Vector -> "Vector"
+                _ : Array -> "Array"
+                _ -> "other"
+            ok_match . should_equal "Array"
+            Meta.get_qualified_type_name proxy . should_equal "Standard.Base.Data.Array.Array"
 
 main = Test_Suite.run_main spec

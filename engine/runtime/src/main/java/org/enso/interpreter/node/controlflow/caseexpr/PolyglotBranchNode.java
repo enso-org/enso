@@ -15,8 +15,8 @@ public abstract class PolyglotBranchNode extends BranchNode {
   private final ConditionProfile constructorProfile = ConditionProfile.createCountingProfile();
   private final ConditionProfile polyglotProfile = ConditionProfile.createCountingProfile();
 
-  PolyglotBranchNode(Type polyglot, RootCallTarget branch) {
-    super(branch);
+  PolyglotBranchNode(Type polyglot, RootCallTarget branch, boolean terminalBranch) {
+    super(branch, terminalBranch);
     this.polyglot = polyglot;
   }
 
@@ -27,8 +27,9 @@ public abstract class PolyglotBranchNode extends BranchNode {
    * @param branch the code to execute
    * @return an integer branch node
    */
-  public static PolyglotBranchNode build(Type polyglot, RootCallTarget branch) {
-    return PolyglotBranchNodeGen.create(polyglot, branch);
+  public static PolyglotBranchNode build(
+      Type polyglot, RootCallTarget branch, boolean terminalBranch) {
+    return PolyglotBranchNodeGen.create(polyglot, branch, terminalBranch);
   }
 
   @Specialization

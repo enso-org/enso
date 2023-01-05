@@ -323,7 +323,7 @@ case object TailCall extends IRPass {
     */
   def analyseCase(caseExpr: IR.Case, isInTailPosition: Boolean): IR.Case = {
     caseExpr match {
-      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, isInTailPosition = false),

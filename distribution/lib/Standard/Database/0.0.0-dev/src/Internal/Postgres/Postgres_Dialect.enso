@@ -5,14 +5,19 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
+import project.Connection.Connection.Connection
 import project.Data.SQL
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.Common.Database_Join_Helper
+import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Query.Query
 
 from project.Data.SQL import code
@@ -62,6 +67,13 @@ type Postgres_Dialect
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         make_order_descriptor internal_column sort_direction text_ordering
+
+    ## PRIVATE
+       Prepares a join operation, returning a new table instance encapsulating a
+       proper query.
+    prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
+    prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
+        Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
 
 ## PRIVATE
 make_internal_generator_dialect =

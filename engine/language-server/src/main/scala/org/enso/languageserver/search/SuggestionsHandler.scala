@@ -154,7 +154,7 @@ final class SuggestionsHandler(
         .fold(
           t =>
             logger.error(
-              "Failed to read the package definition from [{}]. {} {}",
+              "Cannot read the package definition from [{}]. {} {}",
               MaskedPath(config.projectContentRoot.file.toPath),
               t.getClass.getName,
               t.getMessage
@@ -571,7 +571,7 @@ final class SuggestionsHandler(
           action match {
             case Api.SuggestionAction.Add() =>
               if (ids.isEmpty) {
-                logger.error("Failed to {} [{}].", verb, suggestion)
+                logger.error("Cannot {} [{}].", verb, suggestion)
               }
               ids.map(
                 SuggestionsDatabaseUpdate.Add(
@@ -581,7 +581,7 @@ final class SuggestionsHandler(
               )
             case Api.SuggestionAction.Remove() =>
               if (ids.isEmpty) {
-                logger.error(s"Failed to {} [{}].", verb, suggestion)
+                logger.error(s"Cannot {} [{}].", verb, suggestion)
               }
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
             case m: Api.SuggestionAction.Modify =>

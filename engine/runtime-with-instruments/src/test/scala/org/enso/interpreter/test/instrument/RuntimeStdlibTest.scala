@@ -173,7 +173,14 @@ class RuntimeStdlibTest
     (argTypes ++ selfType :+ returnType).map(QualifiedName.fromString)
   }
 
-  def isQualified(name: QualifiedName): Boolean =
+  /** Checks if a given type name has been resolved.
+    *
+    * If a type in the type signature has not been resolved, its name will
+    * consist only of one segment. Every resolved type name will be mapped to its
+    * qualified type name which must have at least 3 parts (as the project name
+    * itself is two parts minimum).
+    */
+  def isResolved(name: QualifiedName): Boolean =
     name.path.size > 1
 
   override protected def beforeEach(): Unit = {
@@ -261,14 +268,14 @@ class RuntimeStdlibTest
           ) =>
         (actions.nonEmpty || updates.nonEmpty) shouldBe true
         updates.toVector.foreach { update =>
-          val types            = extractTypes(update.suggestion).toSet
-          val unqualifiedTypes = types.filterNot(isQualified)
-          if (unqualifiedTypes.nonEmpty) {
+          val types           = extractTypes(update.suggestion).toSet
+          val unresolvedTypes = types.filterNot(isResolved)
+          if (unresolvedTypes.nonEmpty) {
             errors.updateWith(module) {
               case Some(values) =>
-                Some(values :+ ErrorEntry(update.suggestion, unqualifiedTypes))
+                Some(values :+ ErrorEntry(update.suggestion, unresolvedTypes))
               case None =>
-                Some(Vector(ErrorEntry(update.suggestion, unqualifiedTypes)))
+                Some(Vector(ErrorEntry(update.suggestion, unresolvedTypes)))
             }
           }
         }
@@ -282,13 +289,13 @@ class RuntimeStdlibTest
         errors
           .map { case (module, entries) =>
             val suggestions = entries.map(entry =>
-              s"${entry.suggestion.name}(${entry.unqualifiedTypes.mkString(",")})"
+              s"${entry.suggestion.name}(${entry.unresolvedTypes.mkString(",")})"
             )
             s"$module: ${suggestions.mkString(",")}"
           }
           .mkString("\n")
       fail(
-        s"Found $numberOfErrors modules with unqualified types:\n$report"
+        s"Found $numberOfErrors modules with unresolved types in method signatures:\n$report"
       )
     }
 
@@ -370,6 +377,6 @@ object RuntimeStdlibTest {
 
   case class ErrorEntry(
     suggestion: Suggestion,
-    unqualifiedTypes: Set[QualifiedName] = Set()
+    unresolvedTypes: Set[QualifiedName] = Set()
   )
 }

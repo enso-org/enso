@@ -427,17 +427,6 @@ type File
     normalize : File
     normalize self = @Builtin_Method "File.normalize"
 
-    ## Checks if this file has the same `path` as `that`.
-
-       > Example
-         Check if two files are equivalent.
-
-             import Standard.Examples
-
-             example_eq = Examples.csv == Examples.scratch_file
-    == : File -> Boolean
-    == self that = @Builtin_Method "File.=="
-
     ## Deletes the file.
 
        If the file is a directory, it must be empty, otherwise a `Panic` will

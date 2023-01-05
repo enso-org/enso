@@ -13,8 +13,8 @@ import com.oracle.truffle.api.nodes.NodeInfo;
     description = "An explicit catch-all branch in a case expression")
 public class CatchAllBranchNode extends BranchNode {
 
-  private CatchAllBranchNode(RootCallTarget functionNode) {
-    super(functionNode);
+  private CatchAllBranchNode(RootCallTarget functionNode, boolean terminalBranch) {
+    super(functionNode, terminalBranch);
   }
 
   /**
@@ -23,8 +23,8 @@ public class CatchAllBranchNode extends BranchNode {
    * @param functionNode the function to execute in this case
    * @return a catch-all node
    */
-  public static CatchAllBranchNode build(RootCallTarget functionNode) {
-    return new CatchAllBranchNode(functionNode);
+  public static CatchAllBranchNode build(RootCallTarget functionNode, boolean terminalBranch) {
+    return new CatchAllBranchNode(functionNode, terminalBranch);
   }
 
   /**

@@ -308,37 +308,7 @@ is_same_object value_1 value_2 = @Builtin_Method "Meta.is_same_object"
    - value: The value to check for being an instance of `typ`.
    - typ: The type to check `self` against.
 is_a : Any -> Any -> Boolean
-is_a value typ = if is_same_object value typ then True else
-    if typ == Any then True else
-        if is_error value then typ == Base_Error else
-            case value of
-                _ : Vector -> typ.is_same_object_as Vector
-                _ : Array -> typ == Array
-                _ : Boolean -> if typ == Boolean then True else value == typ
-                _ : Text -> typ == Text
-                _ : Number -> if typ == Number then True else case value of
-                    _ : Integer -> typ == Integer
-                    _ : Decimal -> typ == Decimal
-                _ : Date_Time -> typ.is_same_object_as Date_Time
-                _ : Date      -> typ.is_same_object_as Date
-                _ : Duration -> typ.is_same_object_as Duration
-                _ : Time_Of_Day -> typ.is_same_object_as Time_Of_Day
-                _ : Time_Zone -> typ.is_same_object_as Time_Zone
-                Base_Polyglot -> typ==Base_Polyglot || java_instance_check value typ
-                _ ->
-                    meta_val = meta value
-                    case meta_val of
-                        _ : Atom -> if is_atom typ then typ == value else
-                            meta_val.constructor.value == typ
-                        _ : Constructor ->
-                            meta_typ = meta typ
-                            case meta_typ of
-                                _ : Atom -> meta_val == meta_typ.constructor
-                                _ : Constructor -> meta_val == meta_typ
-                                _ -> False
-                        _ : Error -> typ == Error
-                        _ : Unresolved_Symbol -> typ == Unresolved_Symbol
-                        _ -> False
+is_a value typ = @Builtin_Method "Meta.is_a"
 
 ## PRIVATE
 java_instance_check value typ =
