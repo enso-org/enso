@@ -322,7 +322,7 @@ spec = Test.group "Vectors" <|
         [].to_text.should_equal "[]"
         [1,2,3].to_text.should_equal "[1, 2, 3]"
         [Nothing].to_text.should_equal "[Nothing]"
-        ['a'].to_text . should_equal "['a']"
+        ['a'].to_text . should_equal "[a]"
 
     Test.specify "should allow to generate a short text representation for display" <|
         [].short_display_text max_entries=3 . should_equal "[]"
@@ -669,5 +669,12 @@ spec = Test.group "Vectors" <|
 
     Test.specify "array1 should be equal to array2" <|
         a1.should_equal a2
+
+    Test.specify "should have a well-defined debug-printing method" <|
+        [].pretty.should_equal "[]"
+        [1,2,3].pretty.should_equal "[1, 2, 3]"
+        [Nothing].pretty.should_equal "[Nothing]"
+        [True, False, 'a'].pretty . should_equal "[True, False, 'a']"
+        [Foo.Value True].pretty . should_equal "[(Foo.Value True)]"
 
 main = Test_Suite.run_main spec

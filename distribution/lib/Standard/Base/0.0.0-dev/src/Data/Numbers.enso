@@ -458,18 +458,6 @@ type Decimal
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Decimal.^"
 
-    ## Compares this and that for equality.
-
-       Arguments:
-       - that: The number to compare this against.
-
-       > Example
-         Comparing 7 and 2.1 for equality.
-
-             7 == 2.1
-    == : Number -> Boolean
-    == self that = @Builtin_Method "Decimal.=="
-
     ## Checks if this is greater than that.
 
        Arguments:
@@ -707,18 +695,6 @@ type Integer
              2^3
     ^ : Number -> Number
     ^ self that = @Builtin_Method "Integer.^"
-
-    ## Compares this and that for equality.
-
-       Arguments:
-       - that: The number to compare this against.
-
-       > Example
-         Comparing 7 and 2 for equality.
-
-             7 == 2
-    == : Number -> Boolean
-    == self that = @Builtin_Method "Integer.=="
 
     ## Checks if this is greater than that.
 

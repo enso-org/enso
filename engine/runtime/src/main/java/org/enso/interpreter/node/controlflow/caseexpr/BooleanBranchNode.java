@@ -13,8 +13,8 @@ public abstract class BooleanBranchNode extends BranchNode {
   private final boolean matched;
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  BooleanBranchNode(boolean matched, RootCallTarget branch) {
-    super(branch);
+  BooleanBranchNode(boolean matched, RootCallTarget branch, boolean terminalBranch) {
+    super(branch, terminalBranch);
     this.matched = matched;
   }
 
@@ -25,8 +25,9 @@ public abstract class BooleanBranchNode extends BranchNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static BooleanBranchNode build(boolean matched, RootCallTarget branch) {
-    return BooleanBranchNodeGen.create(matched, branch);
+  public static BooleanBranchNode build(
+      boolean matched, RootCallTarget branch, boolean terminalBranch) {
+    return BooleanBranchNodeGen.create(matched, branch, terminalBranch);
   }
 
   @Specialization

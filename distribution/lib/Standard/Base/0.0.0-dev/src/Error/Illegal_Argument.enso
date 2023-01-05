@@ -24,6 +24,6 @@ type Illegal_Argument
     to_display_text self = "Illegal Argument: " + self.message
 
     ## PRIVATE
-       Capture a Java `IllegalArgumentException` and convert it to Enso dataflow error - `Illegal_Argument_Error`.
+       Capture a Java `IllegalArgumentException` and convert it to Enso dataflow error - `Illegal_Argument.Error`.
     handle_java_exception =
         Panic.catch IllegalArgumentException handler=(cause-> Error.throw (Illegal_Argument.Error cause.payload.getMessage cause.payload))

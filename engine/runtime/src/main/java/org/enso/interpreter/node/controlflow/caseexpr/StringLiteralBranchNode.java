@@ -19,13 +19,14 @@ public abstract class StringLiteralBranchNode extends BranchNode {
 
   private final ConditionProfile textProfile = ConditionProfile.createCountingProfile();
 
-  StringLiteralBranchNode(String literal, RootCallTarget branch) {
-    super(branch);
+  StringLiteralBranchNode(String literal, RootCallTarget branch, boolean terminalBranch) {
+    super(branch, terminalBranch);
     this.literal = literal;
   }
 
-  public static StringLiteralBranchNode build(String literal, RootCallTarget branch) {
-    return StringLiteralBranchNodeGen.create(literal, branch);
+  public static StringLiteralBranchNode build(
+      String literal, RootCallTarget branch, boolean terminalBranch) {
+    return StringLiteralBranchNodeGen.create(literal, branch, terminalBranch);
   }
 
   @Specialization

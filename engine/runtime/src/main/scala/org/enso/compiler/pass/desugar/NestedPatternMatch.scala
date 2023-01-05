@@ -30,50 +30,32 @@ import scala.annotation.unused
   *   # Desugar Nil in first branch
   *   case x of
   *       Cons (Cons a b) y -> case y of
-  *           Nil -> a + b
-  *           _ -> case x of
-  *               Cons a Nil -> a
-  *               _ -> 0
+  *           Nil -> a + b            ## fallthrough on failed match ##
   *       Cons a Nil -> a
   *       _ -> 0
   *
   *   # Desuar `Cons a b` in the first branch
   *   case x of
   *       Cons w y -> case w of
-  *           Cons a b -> case y of
-  *               Nil -> a + b
-  *               _ -> case x of
-  *                   Cons a Nil -> a
-  *                   _ -> 0
-  *           _ -> case x of
-  *                   Cons a Nil -> a
-  *                   _ -> 0
+  *           Cons a b -> case y of   ## fallthrough on failed match ##
+  *               Nil -> a + b        ## fallthrough on failed match ##
   *       Cons a Nil -> a
   *       _ -> 0
   *
   *   # Desugar `Cons a Nil` in the second branch
   *   case x of
   *       Cons w y -> case w of
-  *           Cons a b -> case y of
-  *               Nil -> a + b
-  *               _ -> case x of
-  *                   Cons a z -> case z of
-  *                       Nil -> a
-  *                       _ -> case x of
-  *                           _ -> 0
-  *                   _ -> 0
-  *           _ -> case x of
-  *                   Cons a z -> case z of
-  *                       Nil -> a
-  *                       _ -> case x of
-  *                           _ -> 0
-  *                   _ -> 0
+  *           Cons a b -> case y of   ## fallthrough on failed match ##
+  *               Nil -> a + b        ## fallthrough on failed match ##
   *       Cons a z -> case z of
-  *           Nil -> a
-  *           _ -> case x of
-  *               _ -> 0
+  *           Nil -> a                ## fallthrough on failed match ##
   *       _ -> 0
   * }}}
+  *
+  * Note how the desugaring discards unmatched branches for nested cases.
+  * This is done on purpose to simplify the constructed IR. Rather than
+  * implementing the fallthrough logic using IR, it is done in CaseNode/BranchNode
+  * Truffle nodes directly.
   *
   * This pass requires no configuration.
   *
@@ -178,7 +160,7 @@ case object NestedPatternMatch extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     expr match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
         val scrutineeBindingName = freshNameSupply.newName()
         val scrutineeExpression  = desugarExpression(scrutinee, freshNameSupply)
         val scrutineeBinding =
@@ -186,14 +168,10 @@ case object NestedPatternMatch extends IRPass {
 
         val caseExprScrutinee = scrutineeBindingName.duplicate()
 
-        val processedBranches = branches.zipWithIndex.map { case (branch, ix) =>
-          val remainingBranches = branches.drop(ix + 1).toList
-
+        val processedBranches = branches.zipWithIndex.map { case (branch, _) =>
           desugarCaseBranch(
             branch,
-            caseExprScrutinee,
             branch.location,
-            remainingBranches,
             freshNameSupply
           )
         }
@@ -214,20 +192,15 @@ case object NestedPatternMatch extends IRPass {
   /** Desugars a case branch.
     *
     * @param branch the branch to desugar
-    * @param originalScrutinee the original scrutinee of the pattern match
     * @param topBranchLocation the location of the source branch that is being
     *                           desugared
-    * @param remainingBranches all subsequent branches at the current pattern
-    *                          match level
     * @param freshNameSupply the compiler's supply of fresh names
     * @return `branch`, with any nested patterns desugared
     */
   @scala.annotation.tailrec
   def desugarCaseBranch(
     branch: IR.Case.Branch,
-    originalScrutinee: IR.Expression,
     topBranchLocation: Option[IR.IdentifiedLocation],
-    remainingBranches: List[IR.Case.Branch],
     freshNameSupply: FreshNameSupply
   ): IR.Case.Branch = {
     if (containsNestedPatterns(branch.pattern)) {
@@ -241,7 +214,6 @@ case object NestedPatternMatch extends IRPass {
           val newField = Pattern.Name(newName, None)
           val nestedScrutinee =
             newName.duplicate()
-          newName.duplicate()
 
           val newFields =
             fields.take(nestedPosition) ++ (newField :: fields.drop(
@@ -255,22 +227,20 @@ case object NestedPatternMatch extends IRPass {
           val newExpression = generateNestedCase(
             lastNestedPattern,
             nestedScrutinee,
-            originalScrutinee,
-            branch.expression,
-            remainingBranches
+            branch.expression
           )
 
+          val newPattern1 = newPattern.duplicate()
           val partDesugaredBranch = IR.Case.Branch(
-            pattern    = newPattern.duplicate(),
-            expression = newExpression.duplicate(),
+            pattern        = newPattern1,
+            expression     = newExpression.duplicate(),
+            terminalBranch = false,
             None
           )
 
           desugarCaseBranch(
             partDesugaredBranch,
-            originalScrutinee,
             topBranchLocation,
-            remainingBranches,
             freshNameSupply
           )
         case _: Pattern.Literal =>
@@ -321,41 +291,30 @@ case object NestedPatternMatch extends IRPass {
     * @param pattern the pattern being replaced in the desugaring
     * @param nestedScrutinee the name of the variable replacing `pattern` in the
     *                      branch
-    * @param topLevelScrutineeExpr the scrutinee of the original case expression
     * @param currentBranchExpr the expression executed in the current branch on
     *                          a success
-    * @param remainingBranches the branches to check against on a failure
     * @return a nested case expression of the form above
     */
   def generateNestedCase(
     pattern: Pattern,
     nestedScrutinee: IR.Expression,
-    topLevelScrutineeExpr: IR.Expression,
-    currentBranchExpr: IR.Expression,
-    remainingBranches: List[IR.Case.Branch]
+    currentBranchExpr: IR.Expression
   ): IR.Expression = {
-    val fallbackCase = IR.Case.Expr(
-      topLevelScrutineeExpr.duplicate(),
-      remainingBranches.duplicate(),
-      None
-    )
-
+    val patternDuplicate = pattern.duplicate()
+    val finalTest        = containsNestedPatterns(patternDuplicate)
     val patternBranch =
       IR.Case.Branch(
-        pattern.duplicate(),
+        patternDuplicate,
         currentBranchExpr.duplicate(),
-        None
+        terminalBranch = !finalTest,
+        location       = None
       )
-    val fallbackBranch = IR.Case.Branch(
-      IR.Pattern.Name(IR.Name.Blank(None), None),
-      fallbackCase,
-      None
-    )
 
     IR.Case.Expr(
       nestedScrutinee.duplicate(),
-      List(patternBranch, fallbackBranch),
-      None
+      List(patternBranch),
+      isNested = true,
+      location = None
     )
   }
 

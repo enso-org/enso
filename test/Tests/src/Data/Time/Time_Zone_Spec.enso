@@ -12,6 +12,9 @@ spec =
     Test.group "Zone" <|
         Test.specify "should get system zone id" <|
             Time_Zone.system
+        Test.specify "Different time zones should not equal" <|
+            (Time_Zone.parse "UTC").should_not_equal (Time_Zone.parse "CET")
+            (Time_Zone.parse "UTC").should_equal (Time_Zone.parse "UTC")
         Test.specify "should parse UTC zone" <|
             zone = "UTC"
             id = Time_Zone.parse zone

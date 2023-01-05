@@ -61,7 +61,7 @@ public abstract class AnyToTextNode extends Node {
     for (int i = 1; i < atom.getFields().length; i++) {
       res = Text.create(res, " ");
       try {
-        res = Text.create(res, strings.asString(displays.toDisplayString(atom.getFields()[i])));
+        res = Text.create(res, showObject(atom.getFields()[i]));
       } catch (UnsupportedMessageException e) {
         res = Text.create(res, atom.getFields()[i].toString());
       }

@@ -96,6 +96,26 @@ public class DataflowError extends AbstractTruffleException {
   }
 
   @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().dataflowError();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  boolean isException() {
+    return true;
+  }
+
+  @ExportMessage
+  RuntimeException throwException() throws UnsupportedMessageException {
+    return this;
+  }
+
+  @ExportMessage
   boolean hasType() {
     return true;
   }

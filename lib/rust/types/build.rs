@@ -166,7 +166,7 @@ fn main() {
     let mut out = String::new();
     out.write_str("//! Macros allowing generation of swizzling getters and setters.\n").unwrap();
     out.write_str("//! See the docs of [`build.rs`] and usage places to learn more.\n").unwrap();
-    out.write_str(&format!("\n// {}\n", border)).unwrap();
+    out.write_str(&format!("\n\n\n// {}\n", border)).unwrap();
     out.write_str("// THIS IS AN AUTO-GENERATED FILE. DO NOT EDIT IT DIRECTLY!\n").unwrap();
     out.write_str(&format!("// {}\n\n\n", border)).unwrap();
     out.write_str(&gen_swizzling_macro(false)).unwrap();

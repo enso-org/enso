@@ -8,10 +8,10 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -28,9 +28,13 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public abstract class CaseNode extends ExpressionNode {
 
   @Children private final BranchNode[] cases;
+  private final boolean isNested;
 
-  CaseNode(BranchNode[] cases) {
+  private final ConditionProfile fallthroughProfile = ConditionProfile.createCountingProfile();
+
+  CaseNode(boolean isNested, BranchNode[] cases) {
     this.cases = cases;
+    this.isNested = isNested;
   }
 
   /**
@@ -38,10 +42,12 @@ public abstract class CaseNode extends ExpressionNode {
    *
    * @param scrutinee the value being scrutinised
    * @param cases the case branches
+   * @param isNested if true, the flag indicates that the case node represents a nested pattern. If
+   *     false, the case node represents a top-level case involving potentially nested patterns.
    * @return a node representing a pattern match
    */
-  public static CaseNode build(ExpressionNode scrutinee, BranchNode[] cases) {
-    return CaseNodeGen.create(cases, scrutinee);
+  public static CaseNode build(ExpressionNode scrutinee, BranchNode[] cases, boolean isNested) {
+    return CaseNodeGen.create(isNested, cases, scrutinee);
   }
 
   /**
@@ -104,12 +110,16 @@ public abstract class CaseNode extends ExpressionNode {
       for (BranchNode branchNode : cases) {
         branchNode.execute(frame, state, object);
       }
-      CompilerDirectives.transferToInterpreter();
-      throw new PanicException(
-          EnsoContext.get(this).getBuiltins().error().makeInexhaustivePatternMatch(object), this);
+      if (fallthroughProfile.profile(isNested)) {
+        return BranchResult.failure(this);
+      } else {
+        CompilerDirectives.transferToInterpreter();
+        throw new PanicException(
+            EnsoContext.get(this).getBuiltins().error().makeInexhaustivePatternMatch(object), this);
+      }
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
-      return e.getResult();
+      return isNested ? e.getBranchResult() : e.getBranchResult().result();
     }
   }
 
@@ -132,5 +142,13 @@ public abstract class CaseNode extends ExpressionNode {
    *
    * The main alternative to this was desugaring to a nested-if, which would've been significantly
    * harder to maintain, and also resulted in significantly higher code complexity.
+   *
+   * Note that the CaseNode may return either a BranchResult or it's underlying value.
+   * This depends on whether the current CaseNode has been constructed as part of the desugaring phase
+   * for nested patterns.
+   * Case expressions that are synthetic, correspond to nested patterns and must propagate additional
+   * information about the state of the match. That way, in the case of a failure in a deeply
+   * nested case, other branches of the original case expression are tried.
+   * `isNested` check ensures that `CaseResult` never leaks outside the CaseNode/BranchNode hierarchy.
    */
 }
