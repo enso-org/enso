@@ -127,7 +127,7 @@ impl Drop for Transaction {
     fn drop(&mut self) {
         if let Some(urm) = self.urm.upgrade() {
             if !self.ignored.get() {
-                warn!("Transaction '{}' will create a new frame.", self.name());
+                warn!("Transaction '{}' will create a new frame. {}", self.name(), backtrace());
                 urm.push_to(Stack::Undo, self.frame.borrow().clone());
                 urm.clear(Stack::Redo);
             } else {
