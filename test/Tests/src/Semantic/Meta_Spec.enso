@@ -211,4 +211,38 @@ spec = Test.group "Meta-Value Manipulation" <|
                 t : Number ->
                     t . should_equal 2
 
+        Test.specify "only one lazy_atom is used" <|
+            vec = Meta.lazy_atom (e -> My_Type.Value e e e)
+            case vec of
+                v : Vector -> v.length . should_equal 2
+                _ -> Test.fail "Should return an array"
+
+            atom = vec.at 0
+            fill = vec.at 1
+
+            Meta.is_atom atom . should_be_true
+
+            case atom.foo of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+            case atom.baz of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+            case atom.bar of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+
+            fill 2
+            atom.foo . should_equal 2
+
+            fill 10 # no change
+            atom.foo . should_equal 2
+
+            case atom.baz of
+                n : Number -> Test.fail "Not changed to number: "+n
+                _ -> Nothing
+            case atom.bar of
+                n : Number -> Test.fail "Not changed to number: "+n
+                _ -> Nothing
+
 main = Test_Suite.run_main spec
