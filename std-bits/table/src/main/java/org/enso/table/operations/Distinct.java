@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.util.ConstantList;
 

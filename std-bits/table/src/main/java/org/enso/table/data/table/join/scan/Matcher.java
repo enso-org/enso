@@ -1,6 +1,6 @@
 package org.enso.table.data.table.join.scan;
 
-import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.problems.AggregatedProblems;
 
 public interface Matcher {
   boolean matches(int left, int right);
