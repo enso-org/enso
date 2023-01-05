@@ -245,7 +245,7 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   private boolean isEntryInThisMap(StorageEntry entry) {
-    return entry != null && entry.index() <= snapshotSize;
+    return entry != null && entry.index() < snapshotSize;
   }
 
   @ExportLibrary(InteropLibrary.class)
