@@ -633,29 +633,43 @@ type Vector a
         _ : Array -> self + Vector.from_polyglot_array that
         _ -> Error.throw (Type_Error.Error Vector that "Should be a Vector or Array to be appended.")
 
-    ## Add `element` to the beginning of `self` vector.
+    ## Inserts the given item into the vector at the given index.
 
        Arguments:
-       - `element`: An element to add to this vector.
+       - at: The index at which to insert the item.
+         If the index is greater than the length of the vector, the item will
+         be added at the end.
+         If the index is less than 0, the index will be counted back from the
+         end. If before the beginning will be added at the start.
+       - item: The item to insert into the vector.
+    insert : Integer -> Any -> Vector
+    insert self at=self.length item=Nothing =
+        used_index = if at < 0 then self.length + at else at
+        if used_index >= self.length then self + [item] else
+            if used_index <= 0 then [item] + self else
+                arr = Array.new (self.length + 1)
+                Array.copy self.to_array 0 arr 0 used_index
+                Array.copy [item].to_array 0 arr used_index 1
+                Array.copy self.to_array used_index arr (used_index + 1) (self.length - used_index)
+                Vector.from_polyglot_array arr
 
-       > Example
-         Add 1 to the start of the vector.
-
-             [2, 3].prepend 1
-    prepend : Any -> Vector Any
-    prepend self element = [element] + self
-
-    ## Add `element` to the end of `self` vector.
+    ## Removes the item at the given index from the vector.
 
        Arguments:
-       - `element`: An element to add to this vector.
-
-       > Example
-         Add 3 to the end of the vector.
-
-             [1, 2].append 3
-    append : Any -> Vector Any
-    append self element = self + [element]
+       - at: The index at which to remove the item.
+         If the index is greater than the length of the vector, the vector
+         is returned unchanged.
+         If the index is less than 0, the index will be counted back from the
+         end. If before the beginning will be returned unchanged.
+       - item: The item to insert into the vector.
+    remove : Integer -> Any -> Vector
+    remove self at=self.length item=Nothing =
+        used_index = if at < 0 then self.length + at else at
+        if used_index >= self.length || used_index < 0 then self else
+            arr = Array.new (self.length - 1)
+            Array.copy self.to_array 0 arr 0 used_index
+            Array.copy self.to_array (used_index + 1) arr used_index (self.length - used_index - 1)
+            Vector.from_polyglot_array arr
 
     ## When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.

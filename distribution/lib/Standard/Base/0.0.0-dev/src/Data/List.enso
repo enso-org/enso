@@ -356,6 +356,30 @@ type List
         Nil -> Error.throw Empty_Error
         Cons a _ -> a
 
+    ## Get the first element from the list.
+
+       > Example
+         This returns 1.
+
+             import Standard.Examples
+
+             example_head = Examples.list.x
+    head : Any ! Empty_Error
+    head self = self.first
+
+    ## Get all elements from the list except the first.
+
+       > Example
+         This returns (Cons 2 Nil).
+
+             import Standard.Examples
+
+             example_tail = Examples.list.tail
+    tail : List ! Empty_Error
+    tail self = case self of
+        Nil -> Error.throw Empty_Error
+        Cons _ b -> b
+
     ## UNSTABLE
        Convert this list to a vector with the same elements.
     to_vector : Vector

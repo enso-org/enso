@@ -70,6 +70,20 @@ spec = Test.group "Range" <|
         0.up_to 1 . not_empty . should_be_true
         0.up_to 5 . not_empty . should_be_true
         5.down_to 0 . not_empty . should_be_true
+    Test.specify "should allow getting first" <|
+        0.up_to 0 . first . should_equal Nothing
+        3.up_to 100 . first . should_equal 3
+        0.down_to 0 . first . should_equal Nothing
+        0.down_to -3 . first . should_equal 0
+    Test.specify "should allow getting second" <|
+        0.up_to 0 . second . should_equal Nothing
+        3.up_to 100 . second . should_equal 4
+        3.up_to 100 . with_step 10 . second . should_equal 13
+        3.up_to 10 . with_step 10 . second . should_equal Nothing
+        0.down_to 0 . second . should_equal Nothing
+        0.down_to -3 . second . should_equal -1
+        0.down_to -3 . with_step 2 . second . should_equal -2
+        0.down_to -3 . with_step 4 . second . should_equal Nothing
     Test.specify "should be able to be mapped over to make a Vector" <|
         empty = 0.up_to 0
         empty.map *2 . should_equal []
