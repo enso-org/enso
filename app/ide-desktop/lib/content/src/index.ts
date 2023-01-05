@@ -3,13 +3,7 @@
 /// allowing to choose a debug rendering test from.
 
 // @ts-ignore
-import * as loader_module from 'enso-studio-common/src/loader'
-// @ts-ignore
-import * as html_utils from 'enso-studio-common/src/html_utils'
-// @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
-// @ts-ignore
-import { defaultLogServerHost } from '../../../config'
 // @ts-ignore
 import assert from 'assert'
 // @ts-ignore
@@ -89,6 +83,13 @@ class Config {
         `Controls whether the minimum engine version check should be performed. It is set to \
          \`true\` in local builds.`
     )
+    debug: Param<boolean> = new Param(
+        Versions.isDevVersion(),
+        `Controls whether the application should be run in the debug mode. In this mode all logs \
+        are printed to the console. Otherwise, the logs are hidden unless explicitly shown by \
+        calling \`showLogs\`. Moreover, additional logs from libraries are printed in this mode, \
+        including Mixpanel logs. The debug mode is set to \`true\` by default in local builds.`
+    )
     preferredEngineVersion: Param<SemVer> = new Param(
         Versions.ideVersion,
         `The preferred engine version.`
@@ -107,12 +108,12 @@ class MixpanelLogger extends Consumer {
     mixpanel: Mixpanel
     groups: (string | null)[] = []
 
-    constructor() {
+    constructor(debug: boolean) {
         super()
         this.mixpanel = require('mixpanel-browser')
         this.mixpanel.init(
             '5b541aeab5e08f313cdc1d1bbebc12ac',
-            { debug: true, api_host: 'https://api-eu.mixpanel.com' },
+            { debug, api_host: 'https://api-eu.mixpanel.com' },
             ''
         )
     }
@@ -562,7 +563,7 @@ class Main {
         app.configResolved.then((config: Config) => {
             if (config.dataGathering.value) {
                 logger.log('Data gathering enabled. Initializing Mixpanel.')
-                const mixpanelLogger = new MixpanelLogger()
+                const mixpanelLogger = new MixpanelLogger(config.debug.value)
                 logger.addConsumer(mixpanelLogger)
                 if (config.email.value) {
                     logger.log(`User identified as '${config.email.value}'.`)

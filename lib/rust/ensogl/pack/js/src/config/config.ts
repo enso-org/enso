@@ -77,7 +77,8 @@ export class Config {
         false,
         `Controls whether the application should be run in the debug mode. In this mode all logs \
         are printed to the console. Otherwise, the logs are hidden unless explicitly shown by \
-        calling \`showLogs\`.`
+        calling \`showLogs\`. Moreover, EnsoGL extensions are loaded in the debug mode which may \
+        cause additional logs to be printed.`
     )
     maxBeforeMainEntryPointsTimeMs: Param<number> = new Param(
         3,

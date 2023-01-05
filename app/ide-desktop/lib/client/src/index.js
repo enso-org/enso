@@ -1,6 +1,5 @@
 'use strict'
 
-import { defaultLogServerHost } from '../../../config.js'
 import assert from 'node:assert'
 import buildCfg from '../../../build.json'
 import Electron from 'electron'
@@ -221,14 +220,6 @@ optParser.options('info', {
 
 optParser.options('version', {
     describe: `Print the version`,
-})
-
-optParser.options('crash-report-host', {
-    describe:
-        'The address of the server that will receive crash reports. ' +
-        'Consists of a hostname, optionally followed by a ":" and a port number',
-    requiresArg: true,
-    default: defaultLogServerHost,
 })
 
 optParser.options('data-gathering', {

@@ -134,6 +134,7 @@ export class App {
      * a loader, and list of entry points if the provided entry point is missing. If it is run in
      * node, it will run before main entry points and then the provided command. */
     async run(appArgs?: AppArgs): Promise<void> {
+        this.initBrowser()
         const inputConfig = appArgs?.config ?? {}
         const unrecognizedParams = this.config.resolve({
             overrides: [inputConfig, host.urlParams()],
@@ -168,7 +169,6 @@ export class App {
         this.wasmFunctions = wasmFunctions(this.wasm)
         this.beforeMainEntryPoints = EntryPoint.beforeMainEntryPoints(this.wasmFunctions)
         this.mainEntryPoints = EntryPoint.mainEntryPoints(this.wasmFunctions)
-        this.initBrowser()
         this.packageInfo.display()
     }
 
@@ -219,9 +219,11 @@ export class App {
     initBrowser() {
         if (host.browser) {
             this.style_root()
-            this.printScamWarning()
             this.disableContextMenu()
-            if (!this.config.debug) {
+            if (this.config.debug.value) {
+                logger.log('Application is run in debug mode. The logs will not be hidden.')
+            } else {
+                this.printScamWarning()
                 logRouter.hideLogs()
             }
         }
