@@ -1,7 +1,6 @@
 //! The plain Module Model.
 
 use crate::prelude::*;
-use std::collections::hash_map::Entry;
 
 use crate::model::module::Content;
 use crate::model::module::ImportMetadata;
@@ -24,6 +23,7 @@ use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
 use parser_scala::api::SourceFile;
 use parser_scala::Parser;
+use std::collections::hash_map::Entry;
 
 
 
@@ -68,10 +68,10 @@ impl Module {
     #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
-            warn!("Ignoring spurious update.");
+            debug!("Ignoring spurious update.");
             return Ok(());
         }
-        warn!("Updating module's content: {kind:?}. New content:\n{new_content}");
+        trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
         let transaction = self.repository.transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content.borrow().clone());
 

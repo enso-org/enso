@@ -1,7 +1,6 @@
 //! Code for definition discovery in the blocks, finding definition by name and related utilities.
 
 use crate::prelude::*;
-use std::iter::FusedIterator;
 
 use crate::LineKind;
 use crate::INDENT;
@@ -13,6 +12,7 @@ use ast::crumbs::Located;
 use ast::known;
 use ast::opr;
 use parser_scala::Parser;
+use std::iter::FusedIterator;
 
 
 

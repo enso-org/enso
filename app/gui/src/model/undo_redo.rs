@@ -106,9 +106,12 @@ impl Transaction {
     /// up or not.
     pub fn fill_content(&self, id: model::module::Id, content: model::module::Content) {
         with(self.frame.borrow_mut(), |mut data| {
-            warn!("Filling transaction '{}' with snapshot of module '{id}':\n{content}", data.name);
+            debug!(
+                "Filling transaction '{}' with snapshot of module '{id}':\n{content}",
+                data.name
+            );
             if data.snapshots.try_insert(id, content).is_err() {
-                warn!("Skipping this snapshot, as module's state was already saved.")
+                debug!("Skipping this snapshot, as module's state was already saved.")
             }
         })
     }
@@ -118,7 +121,7 @@ impl Transaction {
     /// Ignored transaction when dropped is discarded, rather than being put on top of "Redo" stack.
     /// It does not affect the actions belonging to transaction in any way.
     pub fn ignore(&self) {
-        debug!("Marking transaction '{}' as ignored.", self.frame.borrow().name);
+        info!("Marking transaction '{}' as ignored.", self.frame.borrow().name);
         self.ignored.set(true)
     }
 }

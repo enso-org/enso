@@ -1,4 +1,5 @@
 //! This module defines utilities for working with the `Result` type.
+
 use std::fmt;
 use std::fmt::Display;
 
