@@ -2804,6 +2804,17 @@ checkpoint recorded with `vcs/save`. If no save exists with a provided
 restore the project to the last saved state, will all current modifications
 forgotten.
 
+If the contents of any open buffer has changed as a result of this operation,
+all subscribed clients will be notified about the new version of the file via
+`text/didChange` push notification.
+
+A file might have been removed during the operation while there were still open
+buffers for that file. Any such clients will be modified of a file removal via
+the `file/event` notification.
+
+The result of the call returns a list of files that have been modified during
+the operation.
+
 #### Parameters
 
 ```typescript
@@ -2826,7 +2837,9 @@ forgotten.
 #### Result
 
 ```typescript
-null;
+{
+  changed: [Path];
+}
 ```
 
 ### `vcs/list`
@@ -3485,7 +3498,7 @@ on the stack. In general, all consequent stack items should be `LocalCall`s.
 }
 ```
 
-Returns successful reponse.
+Returns successful response.
 
 ```json
 {
