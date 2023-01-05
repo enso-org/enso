@@ -7,13 +7,6 @@ import globalConfig from '../../../../gui/config.yaml'
 // @ts-ignore
 import buildCfg from '../../../build.json'
 
-// @ts-ignore
-import firebase from 'firebase/compat/app'
-// @ts-ignore
-import 'firebase/auth'
-// @ts-ignore
-import firebase_config from '../firebase.yaml'
-
 import * as semver from 'semver'
 import { SemVer, Comparator } from 'semver'
 
@@ -23,6 +16,23 @@ const authInfo = 'auth-info'
 
 import { App, LogLevel, Consumer, logger, Param } from 'ensogl_app'
 import { Mixpanel } from 'mixpanel-browser'
+
+const Timeout = (time: number) => {
+    let controller = new AbortController()
+    setTimeout(() => controller.abort(), time * 1000)
+    return controller
+}
+
+async function fetchTimeout(url: string, timeout: number): Promise<any> {
+    return fetch(url, { signal: Timeout(10).signal }).then(response => {
+        const statusCodeOK = 200
+        if (response.status === statusCodeOK) {
+            return response.json()
+        } else {
+            throw new Error(`Failed to fetch '${url}'. Response status: ${response.status}.`)
+        }
+    })
+}
 
 class Versions {
     /// Development version.
@@ -77,7 +87,7 @@ class Config {
     )
     testWorkflow: Param<string | null> = new Param(null, 'TODO')
     skipMinVersionCheck: Param<boolean> = new Param(
-        Versions.isDevVersion(),
+        false,
         `Controls whether the minimum engine version check should be performed. It is set to \
          \`true\` in local builds.`
     )
@@ -183,371 +193,62 @@ class MixpanelLogger extends Consumer {
     }
 }
 
-// // @ts-ignore
-// window.showLogs = showLogs
+// =====================
+// === Version Check ===
+// =====================
 
-// // =====================
-// // === Version Check ===
-// // =====================
-//
-// // An error with the payload.
-// class ErrorDetails {
-//     public readonly message: string
-//     public readonly payload: any
-//
-//     constructor(message: string, payload: any) {
-//         this.message = message
-//         this.payload = payload
-//     }
-// }
-//
-/// Utility methods helping to work with the versions.
+// An error with the payload.
+class ErrorDetails {
+    public readonly message: string
+    public readonly payload: any
 
-// /// Fetch the application config from the provided url.
-// async function fetchApplicationConfig(url: string) {
-//     const statusCodeOK = 200
-//
-//     return new Promise((resolve: any, reject: any) => {
-//         https.get(url, res => {
-//             const statusCode = res.statusCode
-//             if (statusCode !== statusCodeOK) {
-//                 reject(new ErrorDetails('Request failed.', { url, statusCode }))
-//                 return
-//             }
-//
-//             res.setEncoding('utf8')
-//             let rawData = ''
-//
-//             res.on('data', (chunk: any) => (rawData += chunk))
-//
-//             res.on('end', () => {
-//                 try {
-//                     resolve(JSON.parse(rawData))
-//                 } catch (e) {
-//                     reject(e)
-//                 }
-//             })
-//
-//             res.on('error', (e: any) => reject(e))
-//         })
-//     })
-// }
-//
-// /// Return `true` if the current application version is still supported
-// /// and `false` otherwise.
-// ///
-// /// Function downloads the application config containing the minimum supported
-// /// version from GitHub and compares it with the version of the `client` js
-// /// package. When the function is unable to download the application config, or
-// /// one of the compared versions does not match the semver scheme, it returns
-// /// `true`.
-// async function checkMinSupportedVersion(config: Config) {
-//     if (config.skipMinVersionCheck === true) {
-//         return true
-//     }
-//     try {
-//         const appConfig: any = await fetchApplicationConfig(config.applicationConfigUrl)
-//         const clientVersion = Versions.ideVersion
-//         const minSupportedVersion = appConfig.minimumSupportedVersion
-//         const comparator = new Comparator(`>=${minSupportedVersion}`)
-//         return comparator.test(Versions.ideVersion)
-//     } catch (e) {
-//         console.error('Minimum version check failed.', e)
-//         return true
-//     }
-// }
-//
-// // ======================
-// // === Authentication ===
-// // ======================
-//
-// class FirebaseAuthentication {
-//     protected readonly config: any
-//     public readonly firebaseui: any
-//     public readonly ui: any
-//
-//     public authCallback: any
-//
-//     constructor(authCallback: any) {
-//         this.firebaseui = require('firebaseui')
-//         this.config = firebase_config
-//         // initialize Firebase
-//         firebase.initializeApp(this.config)
-//         // create HTML markup
-//         this.createHtml()
-//         // initialize Firebase UI
-//         this.ui = new this.firebaseui.auth.AuthUI(firebase.auth())
-//         this.ui.disableAutoSignIn()
-//         this.authCallback = authCallback
-//         firebase.auth().onAuthStateChanged((user: any) => {
-//             if (ok(user)) {
-//                 if (this.hasEmailAuth(user) && !user.emailVerified) {
-//                     document.getElementById('user-email-not-verified').style.display = 'block'
-//                     this.handleSignedOutUser()
-//                 } else {
-//                     this.handleSignedInUser(user)
-//                 }
-//             } else {
-//                 this.handleSignedOutUser()
-//             }
-//         })
-//     }
-//
-//     protected hasEmailAuth(user: any): boolean {
-//         const emailProviderId = firebase.auth.EmailAuthProvider.PROVIDER_ID
-//         const hasEmailProvider = user.providerData.some(
-//             (data: any) => data.providerId === emailProviderId
-//         )
-//         const hasOneProvider = user.providerData.length === 1
-//         return hasOneProvider && hasEmailProvider
-//     }
-//
-//     protected getUiConfig() {
-//         return {
-//             callbacks: {
-//                 // Called when the user has been successfully signed in.
-//                 signInSuccessWithAuthResult: (authResult: any, redirectUrl: any) => {
-//                     if (ok(authResult.user)) {
-//                         switch (authResult.additionalUserInfo.providerId) {
-//                             case firebase.auth.EmailAuthProvider.PROVIDER_ID:
-//                                 if (authResult.user.emailVerified) {
-//                                     this.handleSignedInUser(authResult.user)
-//                                 } else {
-//                                     authResult.user.sendEmailVerification()
-//                                     document.getElementById(
-//                                         'user-email-not-verified'
-//                                     ).style.display = 'block'
-//                                     this.handleSignedOutUser()
-//                                 }
-//                                 break
-//
-//                             default:
-//                         }
-//                     }
-//                     // Do not redirect.
-//                     return false
-//                 },
-//             },
-//             signInOptions: [
-//                 {
-//                     provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-//                     // Required to enable ID token credentials for this provider.
-//                     clientId: this.config.clientId,
-//                 },
-//                 firebase.auth.GithubAuthProvider.PROVIDER_ID,
-//                 {
-//                     provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
-//                     // Whether the display name should be displayed in Sign Up page.
-//                     requireDisplayName: false,
-//                 },
-//             ],
-//         }
-//     }
-//
-//     protected handleSignedOutUser() {
-//         document.getElementById('auth-container').style.display = 'block'
-//         this.ui.start('#firebaseui-container', this.getUiConfig())
-//     }
-//
-//     protected handleSignedInUser(user: any) {
-//         document.getElementById('auth-container').style.display = 'none'
-//         this.authCallback(user)
-//     }
-//
-//     /// Create the HTML markup.
-//     ///
-//     /// ```
-//     /// <div id="root">
-//     ///     <div id="auth-container">
-//     ///         <div class="auth-header">
-//     ///             <h1>Sign in to Enso</h1>
-//     ///             <div class="auth-text">
-//     ///                 <p>Enso lets you create interactive data workflows. In order to share them, you need an account. In alpha/beta versions, this account is required.</p>
-//     ///             </div>
-//     ///         </div>
-//     ///         <div id="user-signed-out">
-//     ///             <div id="firebaseui-container"></div>
-//     ///         </div>
-//     ///         <div id="user-email-not-verified" class="auth-info">
-//     ///             Verification link is sent. You can sign in after verifying your email.
-//     ///         </div>
-//     ///     </div>
-//     ///     <div id="version-check" class="auth-info">
-//     ///         This version is no longer supported. Please download a new one.
-//     ///     </div>
-//     /// </div>
-//     /// ```
-//     protected createHtml() {
-//         const authContainer = 'auth-container'
-//         const authHeader = 'auth-header'
-//         const authText = 'auth-text'
-//         const firebaseuiContainer = 'firebaseui-container'
-//         const userSignedOut = 'user-signed-out'
-//         const userEmailNotVerified = 'user-email-not-verified'
-//
-//         const authHeaderText = document.createTextNode('Sign in to Enso')
-//         const authTextText = document.createTextNode(
-//             'Enso lets you create interactive data workflows. In order to share them, you need an account. In alpha/beta versions, this account is required.'
-//         )
-//         const userEmailNotVerifiedText = document.createTextNode(
-//             'Verification link is sent. You can sign in after verifying your email.'
-//         )
-//
-//         let root = document.getElementById('root')
-//
-//         // div#auth-container
-//         let authContainerDiv = document.createElement('div')
-//         authContainerDiv.id = authContainer
-//         authContainerDiv.style.display = 'none'
-//         // div.auth-header
-//         let authHeaderDiv = document.createElement('div')
-//         authHeaderDiv.className = authHeader
-//         // div.auth-header/h1
-//         let authHeaderH1 = document.createElement('h1')
-//         authHeaderH1.appendChild(authHeaderText)
-//         // div.auth-header/div#auth-text
-//         let authHeaderTextDiv = document.createElement('div')
-//         authHeaderTextDiv.className = authText
-//         authHeaderTextDiv.appendChild(authTextText)
-//
-//         authHeaderDiv.appendChild(authHeaderH1)
-//         authHeaderDiv.appendChild(authHeaderTextDiv)
-//
-//         // div#user-signed-out
-//         let userSignedOutDiv = document.createElement('div')
-//         userSignedOutDiv.id = userSignedOut
-//         let firebaseuiContainerDiv = document.createElement('div')
-//         firebaseuiContainerDiv.id = firebaseuiContainer
-//         userSignedOutDiv.appendChild(firebaseuiContainerDiv)
-//
-//         // div#user-email-not-verified
-//         let userEmailNotVerifiedDiv = document.createElement('div')
-//         userEmailNotVerifiedDiv.id = userEmailNotVerified
-//         userEmailNotVerifiedDiv.className = authInfo
-//         userEmailNotVerifiedDiv.appendChild(userEmailNotVerifiedText)
-//
-//         authContainerDiv.appendChild(authHeaderDiv)
-//         authContainerDiv.appendChild(userSignedOutDiv)
-//         authContainerDiv.appendChild(userEmailNotVerifiedDiv)
-//
-//         root.appendChild(authContainerDiv)
-//     }
-// }
-//
-// // ========================
-// // === Main Entry Point ===
-// // ========================
-//
+    constructor(message: string, payload: any) {
+        this.message = message
+        this.payload = payload
+    }
+}
 
-// /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
-// async function runEntryPoint(config: Config) {
-//     console.log('runEntryPoint', config)
-//     // @ts-ignore
-//     API[globalConfig.windowAppScopeConfigName] = config
 //
-//     API.initLogging(config)
-//
-//     // Build data injected during the build process. See `webpack.config.js` for the source.
-//     // @ts-ignore
-//     const hash = GIT_HASH
-//     API.remoteLog('git_hash', { hash })
-//     // @ts-ignore
-//     const buildInfo = BUILD_INFO
-//     API.remoteLog('build_information', buildInfo)
-//     // @ts-ignore
-//     const status = GIT_STATUS
-//     API.remoteLog('git_status', { status })
-//
-//     //initCrashHandling()
-//     style_root()
-//     printScamWarning()
-//     /// Only hide logs in production, but show them when running a development version.
-//     if (!Versions.isDevVersion()) {
-//         hideLogs()
-//     }
-//     disableContextMenu()
-//
-//     let entryTarget = ok(config.entry) ? config.entry : main_entry_point
-//     config.use_loader = config.use_loader && entryTarget === main_entry_point
-//
-//     API.remoteLog('window_show_animation')
-//     await windowShowAnimation()
-//     API.remoteLog('download_content')
-//     let { wasm, loader } = await download_content(config)
-//     API.remoteLog('wasm_loaded')
-//     if (entryTarget) {
-//         let fn_name = wasm_entry_point_pfx + entryTarget
-//         let fn = wasm[fn_name]
-//         if (fn) {
-//             let before_main_fns = wasm_before_main_functions(wasm)
-//             if (before_main_fns) {
-//                 console.log(`Running ${before_main_fns.length} before main functions.`)
-//                 const t_start = performance.now()
-//                 for (let before_main_fn_name of before_main_fns) {
-//                     wasm[before_main_fn_name]()
-//                 }
-//                 const t_end = performance.now()
-//                 let ms = Math.round((t_end - t_start) * 100) / 100
-//                 console.log(`Before main functions took ${ms} milliseconds to run.`)
-//                 if (ms > 30) {
-//                     console.error(
-//                         `Before main functions took ${ms} milliseconds to run. This is too long. Before main functions should be used for fast initialization only.`
-//                     )
-//                 }
-//             }
-//             console.log(`Running the chosen entry point.`)
-//             // Loader will be removed by IDE after its initialization.
-//             // All other code paths need to call `loader.destroy()`.
-//             fn()
-//         } else {
-//             loader.destroy()
-//             show_debug_screen(wasm, "Unknown entry point '" + entryTarget + "'. ")
-//         }
-//     } else {
-//         loader.destroy()
-//         show_debug_screen(wasm, '')
-//     }
-// }
-//
-// function createVersionCheckHtml() {
-//     // div#version-check
-//     const versionCheckText = document.createTextNode(
-//         'This version is no longer supported. Please download a new one.'
-//     )
-//
-//     let root = document.getElementById('root')
-//     let versionCheckDiv = document.createElement('div')
-//     versionCheckDiv.id = 'version-check'
-//     versionCheckDiv.className = authInfo
-//     versionCheckDiv.style.display = 'block'
-//     versionCheckDiv.appendChild(versionCheckText)
-//     root.appendChild(versionCheckDiv)
-// }
-//
-// API.main = async function (inputConfig: any) {
-//     console.log('hello from main2')
-// const urlParams = new URLSearchParams(window.location.search)
-// // @ts-ignore
-// const urlConfig = Object.fromEntries(urlParams.entries())
-//
-// const config = new Config()
-// config.updateFromObject(inputConfig)
-// config.updateFromObject(urlConfig)
-//
-// if (await checkMinSupportedVersion(config)) {
-//     if (config.authenticationEnabled && !config.entry) {
-//         new FirebaseAuthentication(function (user: any) {
-//             config.email = user.email
-//             runEntryPoint(config)
-//         })
-//     } else {
-//         await runEntryPoint(config)
-//     }
-// } else {
-//     // Display a message asking to update the application.
-//     createVersionCheckHtml()
-// }
-// }
+/// Return `true` if the current application version is still supported
+/// and `false` otherwise.
+///
+/// Function downloads the application config containing the minimum supported
+/// version from GitHub and compares it with the version of the `client` js
+/// package. When the function is unable to download the application config, or
+/// one of the compared versions does not match the semver scheme, it returns
+/// `true`.
+async function checkMinSupportedVersion(config: Config) {
+    if (config.skipMinVersionCheck.value === true) {
+        return true
+    }
+    try {
+        const appConfig: any = await fetchTimeout(config.applicationConfigUrl.value, 300)
+        const minSupportedVersion = appConfig.minimumSupportedVersion
+        const comparator = new Comparator(`>=${minSupportedVersion}`)
+        return comparator.test(Versions.ideVersion)
+    } catch (e) {
+        console.error('Minimum version check failed.', e)
+        return true
+    }
+}
+
+// ========================
+// === Main Entry Point ===
+// ========================
+
+function createVersionCheckHtml() {
+    const versionCheckText = document.createTextNode(
+        'This version is no longer supported. Please download a new one.'
+    )
+
+    let root = document.getElementById('root')
+    let versionCheckDiv = document.createElement('div')
+    versionCheckDiv.id = 'version-check'
+    versionCheckDiv.className = authInfo
+    versionCheckDiv.style.display = 'block'
+    versionCheckDiv.appendChild(versionCheckText)
+    root.appendChild(versionCheckDiv)
+}
 
 class Main {
     async main(inputConfig: any) {
@@ -558,23 +259,37 @@ class Main {
                 engineVersion: BUILD_INFO.default.engineVersion,
             },
         })
-        app.configResolved.then((config: Config) => {
-            if (config.dataGathering.value) {
-                logger.log('Data gathering enabled. Initializing Mixpanel.')
-                const mixpanelLogger = new MixpanelLogger(config.debug.value)
-                logger.addConsumer(mixpanelLogger)
-                if (config.email.value) {
-                    logger.log(`User identified as '${config.email.value}'.`)
-                    mixpanelLogger.identify(config.email.value)
-                }
-            }
-        })
-        app.run({
+        app.init({
             config: {
                 mainWasmUrl: 'assets/main-opt.wasm',
                 mainJsUrl: 'assets/main.js',
             },
         })
+
+        let mixpanelLogger = null
+        if (app.config.dataGathering.value) {
+            logger.log('Data gathering enabled. Initializing Mixpanel.')
+            mixpanelLogger = new MixpanelLogger(app.config.debug.value)
+            logger.addConsumer(mixpanelLogger)
+        }
+        if (!(await checkMinSupportedVersion(app.config))) {
+            createVersionCheckHtml()
+        } else {
+            if (
+                app.config.authenticationEnabled.value &&
+                app.config.entry.value != app.config.entry.default
+            ) {
+                // TODO: authentication here
+                // app.config.email.value = user.email
+                app.run()
+            } else {
+                app.run()
+            }
+            if (app.config.email.value && mixpanelLogger) {
+                logger.log(`User identified as '${app.config.email.value}'.`)
+                mixpanelLogger.identify(app.config.email.value)
+            }
+        }
     }
 }
 

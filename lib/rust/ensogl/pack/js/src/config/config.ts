@@ -81,7 +81,7 @@ export class Config {
         cause additional logs to be printed.`
     )
     maxBeforeMainEntryPointsTimeMs: Param<number> = new Param(
-        3,
+        30,
         `The maximum time in milliseconds a before main entry point is allowed to run. After this \
         time, an error will be printed, but the execution will continue`
     )

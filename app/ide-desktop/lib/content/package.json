@@ -22,8 +22,6 @@
   "dependencies": {
     "@types/semver": "^7.3.9",
     "enso-studio-common": "1.0.0",
-    "firebase": "^9.14.0",
-    "firebaseui": "^6.0.2",
     "html-loader": "^4.2.0",
     "mixpanel-browser": "2.45.0",
     "enso-gui-server": "^1.0.0",

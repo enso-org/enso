@@ -114,8 +114,7 @@ export class App {
     beforeMainEntryPoints: Map<string, EntryPoint>
     mainEntryPoints: Map<string, EntryPoint>
     task: Task | null
-    configResolved: Promise<Config>
-    private onConfigResolved: (value: Config) => void
+    private initialized = false
 
     constructor(opts?: { config?: ExternalConfig; packageInfo: any }) {
         this.packageInfo = new PackageInfo(opts?.packageInfo ?? {})
@@ -123,45 +122,52 @@ export class App {
         if (opts?.config) {
             this.config.extend(opts.config)
         }
-        this.configResolved = new Promise(resolve => {
-            this.onConfigResolved = resolve
-        })
 
         this.logger = logger
     }
 
-    /** Runs the application. If it is run in the browser, it will initialize DOM elements, display
-     * a loader, and list of entry points if the provided entry point is missing. If it is run in
-     * node, it will run before main entry points and then the provided command. */
-    async run(appArgs?: AppArgs): Promise<void> {
+    init(appArgs?: AppArgs): boolean {
+        this.initialized = true
         this.initBrowser()
         const inputConfig = appArgs?.config ?? {}
         const unrecognizedParams = this.config.resolve({
             overrides: [inputConfig, host.urlParams()],
         })
         logger.log(`Resolved config:`, this.config.strigifiedKeyValueMap())
-        this.onConfigResolved(this.config)
         if (unrecognizedParams) {
             this.showConfigOptions(unrecognizedParams)
+            return false
         } else {
-            if (host.browser) {
-                await this.init()
-                this.runEntryPoints()
-            } else {
-                this.args = parseArgs()
-                if (this.args.genShadersCode.value) {
-                    await this.init()
-                    this.runBeforeMainEntryPoints()
-                    this.generateShadersCode()
-                } else {
-                    this.args.printHelpAndExit()
-                }
-            }
-            if (this.task) this.task.end()
+            return true
         }
     }
 
-    async init() {
+    /** Runs the application. If it is run in the browser, it will initialize DOM elements, display
+     * a loader, and list of entry points if the provided entry point is missing. If it is run in
+     * node, it will run before main entry points and then the provided command. */
+    async run(appArgs?: AppArgs): Promise<void> {
+        if (!this.initialized) {
+            if (!this.init(appArgs)) {
+                return
+            }
+        }
+        if (host.browser) {
+            await this.loadWasm()
+            this.runEntryPoints()
+        } else {
+            this.args = parseArgs()
+            if (this.args.genShadersCode.value) {
+                await this.loadWasm()
+                this.runBeforeMainEntryPoints()
+                this.generateShadersCode()
+            } else {
+                this.args.printHelpAndExit()
+            }
+        }
+        if (this.task) this.task.end()
+    }
+
+    async loadWasm() {
         if (host.node) this.task = Task.start('Running the program.')
         const { wasm, loader } = await load_wasm(this.config)
         this.wasm = wasm
@@ -177,19 +183,19 @@ export class App {
             return
         }
         const count = this.beforeMainEntryPoints.size
-        Task.with(`Running ${count} before main entry points.`, () => {
+        const [time, _] = Task.withTimed(`Running ${count} before main entry points.`, () => {
             for (const entryPoint of this.beforeMainEntryPoints.values()) {
-                const [time, _] = Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
+                Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
                     this.wasm[entryPoint.name()]()
                 })
-                this.checkBeforeMainEntryPointTime(time)
             }
         })
+        this.checkBeforeMainEntryPointsTime(time)
     }
 
-    checkBeforeMainEntryPointTime(time: number) {
+    checkBeforeMainEntryPointsTime(time: number) {
         if (time > this.config.maxBeforeMainEntryPointsTimeMs.value) {
-            logger.error(`Entry point took ${time} milliseconds to run. This is too long.`)
+            logger.error(`Entry points took ${time} milliseconds to run. This is too long.`)
             logger.error('Before main entry points should be used for fast initialization only.')
         }
     }
@@ -221,7 +227,7 @@ export class App {
             this.style_root()
             this.disableContextMenu()
             if (this.config.debug.value) {
-                logger.log('Application is run in debug mode. The logs will not be hidden.')
+                logger.log('Application is run in debug mode. Logs will not be hidden.')
             } else {
                 this.printScamWarning()
                 logRouter.hideLogs()

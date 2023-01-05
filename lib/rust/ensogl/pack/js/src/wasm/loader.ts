@@ -343,16 +343,18 @@ export class Loader {
         this.received_bytes += new_bytes
         let time = performance.now()
         let timeDiff = time - this.lastReceiveTime
-        this.download_speed = new_bytes / timeDiff
-        this.lastReceiveTime = time
+        if (timeDiff > 0) {
+            this.download_speed = new_bytes / timeDiff
+            this.lastReceiveTime = time
 
-        let percent = this.show_percentage_value()
-        let speed = this.show_download_speed()
-        let received = this.show_received_bytes()
-        console.log(`${percent}% (${received}) (${speed}).`)
+            let percent = this.show_percentage_value()
+            let speed = this.show_download_speed()
+            let received = this.show_received_bytes()
+            console.log(`${percent}% (${received}) (${speed}).`)
 
-        let indicator_progress = this.value() * this.capProgressAt
-        this.indicator.set(indicator_progress)
+            let indicator_progress = this.value() * this.capProgressAt
+            this.indicator.set(indicator_progress)
+        }
         if (this.is_done()) {
             this.done_resolve()
         }
