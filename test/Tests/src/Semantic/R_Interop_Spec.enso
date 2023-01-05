@@ -33,6 +33,9 @@ foreign r make_object = """
 foreign r make_array = """
     list(list(x=30), list(x=10), list(x=20))
 
+foreign r make_num_array = """
+    list(30, 10, 20)
+
 foreign r make_str str = """
     paste("foo", str, "bar", sep=" ")
 
@@ -79,6 +82,11 @@ spec =
             sorted = arr.sort
             arr . should_equal [30, 10, 20]
             sorted . should_equal [10, 20, 30]
+
+            arr_2 = make_num_array
+            sorted_2 = arr_2.sort
+            arr_2 . should_equal [30, 10, 20]
+            sorted_2 . should_equal [10, 20, 30]
 
         Test.specify "should correctly marshall strings" <|
             str = make_str "x" + " baz"

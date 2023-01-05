@@ -47,6 +47,9 @@ foreign python make_array = """
             return self.x < guess
     return [My(30), My(10), My(20)]
 
+foreign python make_num_array = """
+    return [30, 10, 20]
+
 foreign python make_str str = """
     return ("foo " + str + " bar")
 
@@ -93,6 +96,11 @@ spec =
             sorted = arr.sort
             arr . should_equal [30, 10, 20]
             sorted . should_equal [10, 20, 30]
+
+            arr_2 = make_num_array
+            sorted_2 = arr_2.sort
+            arr_2 . should_equal [30, 10, 20]
+            sorted_2 . should_equal [10, 20, 30]
 
 
         Test.specify "should correctly marshall strings" <|
