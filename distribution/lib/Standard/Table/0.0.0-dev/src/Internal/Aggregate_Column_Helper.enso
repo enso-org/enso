@@ -72,10 +72,7 @@ prepare_aggregate_columns aggregates table =
     # Build Problems Output
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
-    if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
-    if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
+    problem_builder.report_unique_name_strategy unique
 
     Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
 

@@ -68,48 +68,55 @@ spec =
 
     Test.group "Unique_Name_Strategy.combine_with_prefix" <|
         Test.specify "should work as in examples" <|
+            strategy = Unique_Name_Strategy.new
             first = ["A", "B", "second_A"]
             second = ["A", "B", "second_A_1", "C"]
-            unique_second = Unique_Name_Strategy.combine_with_prefix first second "second_"
+            unique_second = strategy.combine_with_prefix first second "second_"
             unique_second . should_equal ["second_A_2", "second_B", "second_A_1", "C"]
+            strategy.invalid_names . should_equal []
+            strategy.renames . should_equal ["A", "B"]
 
         Test.specify "should work with no prefix" <|
             first = ["A", "B"]
             second = ["B", "A", "C"]
-            r = Unique_Name_Strategy.combine_with_prefix first second ""
+            strategy = Unique_Name_Strategy.new
+            r = strategy.combine_with_prefix first second ""
             r . should_equal ["B_1", "A_1", "C"]
 
         Test.specify "should work for empty input" <|
-            Unique_Name_Strategy.combine_with_prefix [] [] "" . should_equal []
-            Unique_Name_Strategy.combine_with_prefix ["a"] [] "" . should_equal []
-            Unique_Name_Strategy.combine_with_prefix [] ["a"] "" . should_equal ["a"]
+            Unique_Name_Strategy.new.combine_with_prefix [] [] "" . should_equal []
+            Unique_Name_Strategy.new.combine_with_prefix ["a"] [] "" . should_equal []
+            Unique_Name_Strategy.new.combine_with_prefix [] ["a"] "" . should_equal ["a"]
 
         Test.specify "should find the first free spot" <|
-            Unique_Name_Strategy.combine_with_prefix ["A", "A_1", "A_2"] ["A"] "" . should_equal ["A_3"]
-            Unique_Name_Strategy.combine_with_prefix ["A", "A_1", "A_2"] ["A_4", "A_6", "A_100", "A", "A_3"] "" . should_equal ["A_4", "A_6", "A_100", "A_5", "A_3"]
+            Unique_Name_Strategy.new.combine_with_prefix ["A", "A_1", "A_2"] ["A"] "" . should_equal ["A_3"]
+            Unique_Name_Strategy.new.combine_with_prefix ["A", "A_1", "A_2"] ["A_4", "A_6", "A_100", "A", "A_3"] "" . should_equal ["A_4", "A_6", "A_100", "A_5", "A_3"]
 
-            Unique_Name_Strategy.combine_with_prefix ["A", "A_1", "A_2"] ["A"] "P_" . should_equal ["P_A"]
-            Unique_Name_Strategy.combine_with_prefix ["A", "A_1", "A_2", "P_A"] ["A"] "P_" . should_equal ["P_A_1"]
-            Unique_Name_Strategy.combine_with_prefix ["A", "A_1", "A_2", "P_A_1"] ["A"] "P_" . should_equal ["P_A"]
-            Unique_Name_Strategy.combine_with_prefix ["A", "A_1", "A_2", "P_A_1"] ["A", "P_A", "P_A_2"] "P_" . should_equal ["P_A_3", "P_A", "P_A_2"]
+            Unique_Name_Strategy.new.combine_with_prefix ["A", "A_1", "A_2"] ["A"] "P_" . should_equal ["P_A"]
+            Unique_Name_Strategy.new.combine_with_prefix ["A", "A_1", "A_2", "P_A"] ["A"] "P_" . should_equal ["P_A_1"]
+            Unique_Name_Strategy.new.combine_with_prefix ["A", "A_1", "A_2", "P_A_1"] ["A"] "P_" . should_equal ["P_A"]
+            Unique_Name_Strategy.new.combine_with_prefix ["A", "A_1", "A_2", "P_A_1"] ["A", "P_A", "P_A_2"] "P_" . should_equal ["P_A_3", "P_A", "P_A_2"]
 
         Test.specify "will add a prefix/suffix, not increment an existing counter" <|
             first = ["A", "A_1", "A_2", "A_3"]
-            Unique_Name_Strategy.combine_with_prefix first ["A_2"] "P_" . should_equal ["P_A_2"]
-            Unique_Name_Strategy.combine_with_prefix first ["A_2"] "" . should_equal ["A_2_1"]
-            Unique_Name_Strategy.combine_with_prefix first+["P_A_2"] ["A_2"] "P_" . should_equal ["P_A_2_1"]
+            Unique_Name_Strategy.new.combine_with_prefix first ["A_2"] "P_" . should_equal ["P_A_2"]
+            Unique_Name_Strategy.new.combine_with_prefix first ["A_2"] "" . should_equal ["A_2_1"]
+            Unique_Name_Strategy.new.combine_with_prefix first+["P_A_2"] ["A_2"] "P_" . should_equal ["P_A_2_1"]
 
-        Test.specify "should not rename a name if it doesn't clash with first list even if it may clash with renamed one in second one" <|
+        Test.specify "should prioritize existing names when renaming conflicts and rename only ones that are clashing with the other list" <|
             first = ["A", "B"]
             second = ["B", "A", "B_1", "C", "B_2", "B_4"]
-            r = Unique_Name_Strategy.combine_with_prefix first second ""
+            strategy = Unique_Name_Strategy.new
+            r = strategy.combine_with_prefix first second ""
             r . should_equal ["B_3", "A_1", "B_1", "C", "B_2", "B_4"]
+            strategy.invalid_names . should_equal []
+            strategy.renames . should_equal ["B", "A"]
 
-            r2 = Unique_Name_Strategy.combine_with_prefix first second "P_"
+            r2 = Unique_Name_Strategy.new.combine_with_prefix first second "P_"
             r2 . should_equal ["P_B", "P_A", "B_1", "C", "B_2", "B_4"]
 
             third = ["B", "A", "P_B", "X", "P_B_1", "P_B_2"]
-            r3 = Unique_Name_Strategy.combine_with_prefix first third "P_"
+            r3 = Unique_Name_Strategy.new.combine_with_prefix first third "P_"
             r3 . should_equal ["P_B_3", "P_A", "P_B", "X", "P_B_1", "P_B_2"]
 
 main = Test_Suite.run_main spec

@@ -3,7 +3,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
 
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Column_Matched_By_Multiple_Selectors
+from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Column_Matched_By_Multiple_Selectors, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 type Problem_Builder
     Value oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
@@ -22,6 +22,12 @@ type Problem_Builder
 
     report_column_matched_by_multiple_selectors self column_name selectors =
         self.report_other_warning (Column_Matched_By_Multiple_Selectors.Error column_name selectors)
+
+    report_unique_name_strategy self unique_name_strategy =
+        if unique_name_strategy.invalid_names.not_empty then
+            self.report_other_warning (Invalid_Output_Column_Names.Error unique_name_strategy.invalid_names)
+        if unique_name_strategy.renames.not_empty then
+            self.report_other_warning (Duplicate_Output_Column_Names.Error unique_name_strategy.renames)
 
     report_other_warning self warning =
         self.other.append warning

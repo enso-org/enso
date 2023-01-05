@@ -1,9 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
+import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Internal.Join_Helpers
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
-import Standard.Table.Data.Join_Kind.Join_Kind
 from Standard.Table.Errors import Floating_Point_Grouping
 
 import project.Data.SQL_Type.SQL_Type
@@ -49,7 +49,7 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
    names and returns a list of new columns that should be present in the join
    result (depending on the kind of performed join), ensuring that any colliding
    columns are properly renamed.
-select_columns_for_join join_kind left_new_columns right_new_columns redundant_column_names right_prefix =
+select_columns_for_join join_kind left_new_columns right_new_columns redundant_column_names right_prefix problem_builder =
     case join_kind of
         Join_Kind.Left_Exclusive -> left_new_columns
         Join_Kind.Right_Exclusive -> right_new_columns
@@ -57,7 +57,10 @@ select_columns_for_join join_kind left_new_columns right_new_columns redundant_c
             left_names = left_new_columns.map .name
             right_kept_columns = right_new_columns.filter c-> redundant_column_names.contains c.name . not
             right_names = right_kept_columns.map .name
-            right_new_names = Unique_Name_Strategy.combine_with_prefix left_names right_names right_prefix
+            renaming_strategy = Unique_Name_Strategy.new
+
+            right_new_names = renaming_strategy.combine_with_prefix left_names right_names right_prefix
+            problem_builder.report_unique_name_strategy renaming_strategy
 
             right_renamed_kept_columns = Helpers.rename_internal_columns right_kept_columns right_new_names
             new_columns = left_new_columns + right_renamed_kept_columns

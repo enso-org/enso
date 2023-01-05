@@ -437,6 +437,23 @@ spec setup =
             t8 = t1.join t2 right_prefix="P"
             expect_column_names ["X", "Y", "PY"] t8
 
+        Test.specify "should warn about renamed columns" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [3, 4]]]
+            t2 = table_builder [["X", [2, 1]], ["Y", [2, 2]], ["Right_Y", [2, 44]]]
+
+            action1 = t1.join t2 on=(Join_Condition.Equals "X" "Y") on_problems=_
+            tester1 table =
+                expect_column_names ["X", "Y", "Right_X", "Right_Y_1", "Right_Y"] table
+            problems1 = [Duplicate_Output_Column_Names.Error ["X", "Y"]]
+            Problems.test_problem_handling action1 problems1 tester1
+
+
+            action2 = t1.join t2 on=(Join_Condition.Equals "X" "X") on_problems=_
+            tester2 table =
+                expect_column_names ["X", "Y", "Right_Y_1", "Right_Y"] table
+            problems2 = [Duplicate_Output_Column_Names.Error ["Y"]]
+            Problems.test_problem_handling action2 problems2 tester2
+
         Test.specify "should pass dataflow errors through" <|
             error = Error.throw (Illegal_State.Error "FOO")
             t1.join error . should_fail_with Illegal_State.Error

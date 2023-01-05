@@ -723,8 +723,9 @@ type Table
             left_setup = subquery_setups.first
             right_setup = subquery_setups.second
 
+            problem_builder = Problem_Builder.new
             join_resolution = Database_Join_Helper.make_join_helpers left right left_setup.column_mapping right_setup.column_mapping . resolve on on_problems
-            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns join_resolution.redundant_column_names right_prefix
+            result_columns = Database_Join_Helper.select_columns_for_join join_kind left_setup.new_columns right_setup.new_columns join_resolution.redundant_column_names right_prefix problem_builder
 
             ## TODO proper equality of nulls in join conditions, see:
                https://www.pivotaltracker.com/story/show/184109759
@@ -746,7 +747,9 @@ type Table
                 Join_Kind.Full            -> SQL_Join_Kind.Full
                 Join_Kind.Left_Exclusive  -> SQL_Join_Kind.Left
                 Join_Kind.Right_Exclusive -> SQL_Join_Kind.Right
-            self.connection.dialect.prepare_join self.connection sql_join_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
+
+            problem_builder.attach_problems_before on_problems <|
+                self.connection.dialect.prepare_join self.connection sql_join_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
 
     ## ALIAS group, summarize
 

@@ -56,6 +56,10 @@ public class NameDeduplicator {
    * @return unique name following above rules.
    */
   public String makeUnique(String name) {
+    return makeUnique(name, true);
+  }
+
+  private String makeUnique(String name, boolean reportDuplicate) {
     String validName = makeValid(name);
 
     // If an invalid name then starts as `Column_1`.
@@ -63,7 +67,7 @@ public class NameDeduplicator {
 
     String currentName = getName(validName, currentIndex);
     while (usedNames.contains(currentName)) {
-      if (currentIndex == 0) {
+      if (currentIndex == 0 && reportDuplicate) {
         duplicatedNames.add(name);
       }
       currentIndex++;
@@ -127,7 +131,8 @@ public class NameDeduplicator {
     for (int i = 0; i < second.size(); i++) {
       String name = second.get(i);
       if (output.get(i) == null) {
-        output.set(i, makeUnique(secondPrefix + name));
+        duplicatedNames.add(name);
+        output.set(i, makeUnique(secondPrefix + name, false));
       }
     }
     return output;

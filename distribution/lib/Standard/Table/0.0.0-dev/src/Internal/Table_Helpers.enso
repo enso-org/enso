@@ -14,7 +14,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected
 
 polyglot java import java.util.HashSet
 
@@ -284,11 +284,7 @@ rename_columns internal_columns mapping on_problems =
     processed = mapped.map_with_index i->n->
         n.if_nothing (unique.make_unique (internal_columns.at i).name)
 
-    if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
-    if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
-
+    problem_builder.report_unique_name_strategy unique
     problem_builder.attach_problems_before on_problems processed
 
 ## PRIVATE
