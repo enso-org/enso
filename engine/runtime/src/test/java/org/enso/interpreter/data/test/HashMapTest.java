@@ -2,20 +2,26 @@ package org.enso.interpreter.data.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnknownKeyException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNodeGen;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNodeGen;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder;
+import org.enso.polyglot.RuntimeOptions;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Language;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,70 +29,107 @@ public class HashMapTest {
   private InteropLibrary interop;
   private HashCodeAnyNode hashCodeNode;
   private EqualsAnyNode equalsNode;
+  private Context ctx;
 
   @Before
   public void setUp() {
-    interop = InteropLibrary.getUncached();
-    hashCodeNode = HashCodeAnyNodeGen.getUncached();
-    equalsNode = EqualsAnyNodeGen.getUncached();
+    this.ctx = Context.newBuilder("enso")
+        .allowExperimentalOptions(true)
+        .allowIO(true)
+        .allowAllAccess(true)
+        .logHandler(new ByteArrayOutputStream())
+        .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths.get("../../distribution/component").toFile().getAbsolutePath()
+        ).build();
+    final Map<String, Language> langs = ctx.getEngine().getLanguages();
+    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    execInContext(ctx, () -> {
+      this.interop = InteropLibrary.getUncached();
+      this.hashCodeNode = HashCodeAnyNodeGen.getUncached();
+      this.equalsNode = EqualsAnyNodeGen.getUncached();
+      return null;
+    });
+  }
+
+  private static Value execInContext(Context ctx, Callable<Object> callable) {
+    // Force initialization of the context
+    ctx.eval("enso", "42");
+    ctx.getPolyglotBindings().putMember("testSymbol", (ProxyExecutable) (Value... args) -> {
+      try {
+        return callable.call();
+      } catch (Exception e) {
+        throw new AssertionError(e);
+      }
+    });
+    return ctx.getPolyglotBindings().getMember("testSymbol").execute();
   }
 
   @Test
-  public void testEmptyMap() throws UnsupportedMessageException {
-    var emptyMap = EnsoHashMap.empty();
-    assertEquals(0, emptyMap.size());
-    Object emptyVec = emptyMap.toVector();
-    assertTrue(interop.hasArrayElements(emptyVec));
-    assertEquals(0, interop.getArraySize(emptyVec));
+  public void testEmptyMap() {
+    execInContext(ctx, () -> {
+      var emptyMap = EnsoHashMap.empty(hashCodeNode, equalsNode);
+      assertEquals(0, emptyMap.size());
+      Object emptyVec = emptyMap.toVector();
+      assertTrue(interop.hasArrayElements(emptyVec));
+      assertEquals(0, interop.getArraySize(emptyVec));
+      return null;
+    });
   }
 
   @Test
   public void testElementInsert() {
-    var map = EnsoHashMap.empty().insert("a", 42, hashCodeNode, equalsNode);
-    assertEquals(1, map.size());
-    assertTrue(map.containsKey("a", hashCodeNode, equalsNode));
-    assertEquals(42, map.get("a", hashCodeNode, equalsNode));
+    execInContext(ctx, () -> {
+      var map = EnsoHashMap.empty(hashCodeNode, equalsNode).insert("a", 42);
+      assertEquals(1, map.size());
+      assertTrue(map.containsKey("a"));
+      assertEquals(42, map.get("a"));
+      return null;
+    });
   }
 
   @Test
   public void testBuilder() {
-    var builder = EnsoHashMapBuilder.create();
-    builder.add("a", 42, hashCodeNode, equalsNode);
-    assertEquals(1, builder.getSize());
-    EnsoHashMap map = builder.build();
-    assertEquals(1, map.size());
-    assertTrue(map.containsKey("a", hashCodeNode, equalsNode));
-    assertEquals(42, map.get("a", hashCodeNode, equalsNode));
+    execInContext(ctx, () -> {
+      var builder = EnsoHashMapBuilder.create(hashCodeNode, equalsNode);
+      builder.add("a", 42);
+      assertEquals(1, builder.getSize());
+      EnsoHashMap map = builder.build();
+      assertEquals(1, map.size());
+      assertTrue(map.containsKey("a"));
+      assertEquals(42, map.get("a"));
+      return null;
+    });
   }
 
   @Test
   public void testMultipleSnapshots() {
-    var builder = EnsoHashMapBuilder.create();
-    builder.add("a", 42, hashCodeNode, equalsNode);
-    EnsoHashMap map1 = builder.build();
-    builder.add("b", 23, hashCodeNode, equalsNode);
-    EnsoHashMap map2 = builder.build();
-    assertEquals(2, builder.getSnapshots().size());
-    assertSame("Snapshots are singletons", map1, builder.getSnapshots().get(0));
-    assertSame("Snapshots are singletons", map2, builder.getSnapshots().get(1));
-    assertTrue(map1.containsKey("a", hashCodeNode, equalsNode));
-    assertFalse(map1.containsKey("b", hashCodeNode, equalsNode));
-    assertTrue(map2.containsKey("a", hashCodeNode, equalsNode));
-    assertTrue(map2.containsKey("b", hashCodeNode, equalsNode));
+    execInContext(ctx, () -> {
+      var map1 = EnsoHashMap.empty(hashCodeNode, equalsNode).insert("a", 42);
+      var map2 = map1.insert("b", 23);
+      assertTrue(map1.containsKey("a"));
+      assertFalse(map1.containsKey("b"));
+      assertTrue(map2.containsKey("a"));
+      assertTrue(map2.containsKey("b"));
+      return null;
+    });
   }
 
   @Test
   public void testMultipleElementsInsert() {
-    var map = EnsoHashMap.empty()
-        .insert("a", 42, hashCodeNode, equalsNode)
-        .insert("b", 23, hashCodeNode, equalsNode)
-        .insert("c", 11, hashCodeNode, equalsNode);
-    assertTrue(map.containsKey("a", hashCodeNode, equalsNode));
-    assertTrue(map.containsKey("b", hashCodeNode, equalsNode));
-    assertTrue(map.containsKey("c", hashCodeNode, equalsNode));
-    assertEquals(42, map.get("a", hashCodeNode, equalsNode));
-    assertEquals(23, map.get("b", hashCodeNode, equalsNode));
-    assertEquals(11, map.get("c", hashCodeNode, equalsNode));
+    execInContext(ctx, () -> {
+      var map = EnsoHashMap.empty(hashCodeNode, equalsNode)
+          .insert("a", 42)
+          .insert("b", 23)
+          .insert("c", 11);
+      assertTrue(map.containsKey("a"));
+      assertTrue(map.containsKey("b"));
+      assertTrue(map.containsKey("c"));
+      assertEquals(42, map.get("a"));
+      assertEquals(23, map.get("b"));
+      assertEquals(11, map.get("c"));
+      return null;
+    });
   }
 
   /**
@@ -95,33 +138,39 @@ public class HashMapTest {
    */
   @Test
   public void testInsertElemsWithKeysWithSameHashCode() {
-    // hash("Aa") == hash("BB")
-    // hash("AaAa") == hash("BBBB")
-    var map = EnsoHashMap.empty()
-        .insert("Aa", 1, hashCodeNode, equalsNode)
-        .insert("BB", 2, hashCodeNode, equalsNode)
-        .insert("AaAa", 3, hashCodeNode, equalsNode)
-        .insert("BBBB", 4, hashCodeNode, equalsNode);
-    assertEquals(4, map.size());
-    assertMapEquals(
-        Map.of("Aa", 1, "BB", 2, "AaAa", 3, "BBBB", 4),
-        map
-    );
+    execInContext(ctx, () -> {
+      // hash("Aa") == hash("BB")
+      // hash("AaAa") == hash("BBBB")
+      var map = EnsoHashMap.empty(hashCodeNode, equalsNode)
+          .insert("Aa", 1)
+          .insert("BB", 2)
+          .insert("AaAa", 3)
+          .insert("BBBB", 4);
+      assertEquals(4, map.size());
+      assertMapEquals(
+          Map.of("Aa", 1, "BB", 2, "AaAa", 3, "BBBB", 4),
+          map
+      );
+      return null;
+    });
   }
 
   @Test
-  public void testHashMapInterop() throws UnsupportedMessageException, UnknownKeyException {
-    var map = EnsoHashMap.empty()
-        .insert("a", 42, hashCodeNode, equalsNode)
-        .insert("b", 23, hashCodeNode, equalsNode);
-    assertTrue(interop.hasHashEntries(map));
-    assertEquals(2, interop.getHashSize(map));
-    assertTrue(interop.isHashEntryExisting(map, "a"));
-    assertTrue(interop.isHashEntryExisting(map, "b"));
-    assertTrue(interop.isHashEntryReadable(map, "a"));
-    assertTrue(interop.isHashEntryReadable(map, "b"));
-    assertEquals(42, interop.readHashValue(map, "a"));
-    assertEquals(23, interop.readHashValue(map, "b"));
+  public void testHashMapInterop() {
+    execInContext(ctx, () -> {
+      var map = EnsoHashMap.empty(hashCodeNode, equalsNode)
+          .insert("a", 42)
+          .insert("b", 23);
+      assertTrue(interop.hasHashEntries(map));
+      assertEquals(2, interop.getHashSize(map));
+      assertTrue(interop.isHashEntryExisting(map, "a"));
+      assertTrue(interop.isHashEntryExisting(map, "b"));
+      assertTrue(interop.isHashEntryReadable(map, "a"));
+      assertTrue(interop.isHashEntryReadable(map, "b"));
+      assertEquals(42, interop.readHashValue(map, "a"));
+      assertEquals(23, interop.readHashValue(map, "b"));
+      return null;
+    });
   }
 
   private void assertMapEquals(Map<Object, Object> expectedMap, EnsoHashMap ensoMap) {
@@ -134,9 +183,9 @@ public class HashMapTest {
     for (Entry<Object, Object> expectedEntry : expectedMap.entrySet()) {
       assertTrue(
           errMsg + "Enso map does not contain " + expectedEntry.getKey() + " key",
-          ensoMap.containsKey(expectedEntry.getKey(), hashCodeNode, equalsNode)
+          ensoMap.containsKey(expectedEntry.getKey())
       );
-      Object actualValue = ensoMap.get(expectedEntry.getKey(), hashCodeNode, equalsNode);
+      Object actualValue = ensoMap.get(expectedEntry.getKey());
       assertEquals(
           errMsg + "Expected value=" + expectedEntry.getValue() + ", actual value=" + actualValue,
           expectedEntry.getValue(),
