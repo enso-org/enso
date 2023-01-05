@@ -273,7 +273,7 @@ get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_na
 new_atom : Any -> Array -> Atom
 new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
-lazy_atom : (Nothing -> Atom) -> Atom
+lazy_atom : (Any -> Atom) -> Atom
 lazy_atom constructor fields = @Builtin_Method "Meta.lazy_atom"
 
 ## UNSTABLE

@@ -211,11 +211,11 @@ type List
         Cons h t ->
             go : List -> Any -> (Any -> Any) -> Nothing
             go list fill = case list of
-                Nil -> fill.set Nil
+                Nil -> fill Nil
                 Cons h t ->
                     v = f h
                     res = Meta.lazy_atom (e -> Cons v e)
-                    fill.set (res.at 0)
+                    fill (res.at 0)
                     @Tail_Call go t (res.at 1)
             v = f h
             res = Meta.lazy_atom (e -> Cons v e)
