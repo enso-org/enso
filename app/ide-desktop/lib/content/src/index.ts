@@ -5,8 +5,6 @@
 // @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
 // @ts-ignore
-import assert from 'assert'
-// @ts-ignore
 import buildCfg from '../../../build.json'
 
 // @ts-ignore
