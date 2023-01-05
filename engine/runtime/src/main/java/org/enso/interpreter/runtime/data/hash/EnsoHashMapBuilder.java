@@ -12,10 +12,8 @@ import org.graalvm.collections.Equivalence;
  * There should be at most one snapshot for a given size.
  * All the snapshots should have size smaller than this builder size.
  */
-public class EnsoHashMapBuilder {
+public final class EnsoHashMapBuilder {
   static final TruffleLogger logger = TruffleLogger.getLogger("enso", "HashMap");
-  // TODO: List of weak refs?
-  private final List<EnsoHashMap> snapshots = new ArrayList<>();
 
   private EconomicMap<Object, StorageEntry> storage;
   private int size;
@@ -36,10 +34,6 @@ public class EnsoHashMapBuilder {
     return storage;
   }
 
-  public List<EnsoHashMap> getSnapshots() {
-    return snapshots;
-  }
-
   public void add(Object key, Object value) {
     StorageEntry oldValue = storage.put(key, new StorageEntry(key, value, size));
     if (oldValue == null) {
@@ -52,9 +46,7 @@ public class EnsoHashMapBuilder {
   }
 
   public EnsoHashMap build() {
-    var snapshot = EnsoHashMap.createWithBuilder(this, size);
-    snapshots.add(snapshot);
-    return snapshot;
+    return EnsoHashMap.createWithBuilder(this, size);
   }
 
   record StorageEntry(
