@@ -3,7 +3,7 @@ from Standard.Base import all
 import project.Data.Table.Table
 import project.Data.Column.Column
 
-from project.Errors import Unsupported_Name
+from project.Errors import Unsupported_Name, Unsupported_Database_Operation
 
 polyglot java import java.util.regex.Pattern
 
@@ -67,3 +67,24 @@ ensure_name_is_sane name =
     if is_safe then True else
         Error.throw <| Unsupported_Name.Error (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
 
+## PRIVATE
+assume_default_locale : Locale -> Any -> Any ! Unsupported_Database_Operation
+assume_default_locale locale ~action =
+    case locale == Locale.default of
+        True -> action
+        False ->
+            msg = "Custom locales are not supported for operations in the Database backend. If you want to use them, you need to materialize the table first."
+            Error.throw (Unsupported_Database_Operation.Error msg)
+
+## PRIVATE
+
+   Transforms the vector of columns, changing names of each column to the
+   corresponding name from the second vector.
+
+   Arguments:
+   - columns: A vector of columns to rename.
+   - new_names: The new names for the columns.
+rename_internal_columns : Vector Internal_Column -> Vector Text -> Vector Internal_Column
+rename_internal_columns columns new_names =
+    columns.zip new_names col-> name->
+        col.rename name
