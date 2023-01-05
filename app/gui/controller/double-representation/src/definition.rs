@@ -462,6 +462,24 @@ impl DefinitionProvider for DefinitionInfo {
     }
 }
 
+impl DefinitionProvider for ChildDefinition {
+    fn indent(&self) -> usize {
+        self.item.indent()
+    }
+
+    fn scope_kind(&self) -> ScopeKind {
+        self.item.scope_kind()
+    }
+
+    fn enumerate_asts<'a>(&'a self) -> Box<dyn Iterator<Item = ChildAst<'a>> + 'a> {
+        Box::new(
+            self.item
+                .enumerate_asts()
+                .map(|child_ast| self.descendant(child_ast.crumbs, child_ast.item)),
+        )
+    }
+}
+
 
 
 // =============

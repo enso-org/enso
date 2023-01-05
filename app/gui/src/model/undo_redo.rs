@@ -1,6 +1,7 @@
 //! Support for IDE Undo-Redo functionality.
 
 use crate::prelude::*;
+use parser_scala::Parser;
 
 use crate::controller;
 
@@ -106,12 +107,9 @@ impl Transaction {
     /// up or not.
     pub fn fill_content(&self, id: model::module::Id, content: model::module::Content) {
         with(self.frame.borrow_mut(), |mut data| {
-            debug!(
-                "Filling transaction '{}' with snapshot of module '{id}':\n{content}",
-                data.name
-            );
+            warn!("Filling transaction '{}' with snapshot of module '{id}':\n{content}", data.name);
             if data.snapshots.try_insert(id, content).is_err() {
-                debug!("Skipping this snapshot, as module's state was already saved.")
+                warn!("Skipping this snapshot, as module's state was already saved.")
             }
         })
     }
@@ -130,7 +128,7 @@ impl Drop for Transaction {
     fn drop(&mut self) {
         if let Some(urm) = self.urm.upgrade() {
             if !self.ignored.get() {
-                info!("Transaction '{}' will create a new frame.", self.name());
+                warn!("Transaction '{}' will create a new frame.", self.name());
                 urm.push_to(Stack::Undo, self.frame.borrow().clone());
                 urm.clear(Stack::Redo);
             } else {
@@ -459,6 +457,7 @@ impl Manager {
             // And it cannot fail, as it already underwent this procedure successfully in the past
             // (we are copying an old state, so it must ba a representable state).
             module.update_whole(content.clone())?;
+            module.remove_temporary_expressions(&Parser::new()?)?
         }
         Ok(())
     }

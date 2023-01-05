@@ -516,10 +516,6 @@ pub trait Crumbable {
         Box::new(iter)
     }
 
-    fn enumerate_recursively<'a>(&'a self) -> Box<dyn Iterator<Item = Located<&'a Ast>>> {
-        iter::once(Located::new_root(self)).chain(self.enumerate_recursively())
-    }
-
     /// Returns child Ast subtree while keeping knowledge of its location.
     fn get_located(&self, crumb: Self::Crumb) -> FallibleResult<Located<&Ast>> {
         let child = self.get(&crumb)?;

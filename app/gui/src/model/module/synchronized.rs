@@ -283,6 +283,10 @@ impl API for Module {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn remove_temporary_expressions(&self, parser: &Parser) -> FallibleResult {
+        self.model.remove_temporary_expressions(parser)
+    }
 }
 
 

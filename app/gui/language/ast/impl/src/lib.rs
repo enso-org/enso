@@ -321,7 +321,7 @@ impl Ast {
         ids: impl IntoIterator<Item = IdLike>,
     ) -> impl Iterator<Item = &Ast>
     where
-        IdLike: std::borrow::Borrow<Id>,
+        IdLike: std::borrow::Borrow<Id> + Eq + Hash,
     {
         let ids_set: HashSet<IdLike> = ids.into_iter().collect();
         self.iter_recursive().filter(move |ast| ast.id.map_or(false, |id| ids_set.contains(&id)))

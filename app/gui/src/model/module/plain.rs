@@ -1,11 +1,13 @@
 //! The plain Module Model.
 
 use crate::prelude::*;
+use std::collections::hash_map::Entry;
 
 use crate::model::module::Content;
 use crate::model::module::ImportMetadata;
 use crate::model::module::ImportMetadataNotFound;
 use crate::model::module::Metadata;
+use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::module::NodeMetadataNotFound;
 use crate::model::module::Notification;
@@ -15,7 +17,8 @@ use crate::model::module::ProjectMetadata;
 use crate::model::module::TextChange;
 use crate::notification;
 
-use double_representation::definition::{DefinitionInfo, DefinitionProvider};
+use double_representation::definition::DefinitionInfo;
+use double_representation::definition::DefinitionProvider;
 use double_representation::import;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
@@ -65,10 +68,10 @@ impl Module {
     #[profile(Debug)]
     fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
-            debug!("Ignoring spurious update.");
+            warn!("Ignoring spurious update.");
             return Ok(());
         }
-        trace!("Updating module's content: {kind:?}. New content:\n{new_content}");
+        warn!("Updating module's content: {kind:?}. New content:\n{new_content}");
         let transaction = self.repository.transaction("Setting module's content");
         transaction.fill_content(self.id(), self.content.borrow().clone());
 
@@ -261,24 +264,53 @@ impl model::module::API for Module {
         self
     }
 
-    fn remove_temporary_expressions(&self) -> FallibleResult {
+    fn remove_temporary_expressions(&self, parser: &Parser) -> FallibleResult {
         self.update_content(NotificationKind::Invalidate, |content| {
             let mut info = double_representation::module::Info::from(content.ast.clone_ref());
             let imports_md = content.metadata.ide.import.iter();
-            let temp_imports =
+            let mut temp_imports =
                 imports_md.filter_map(|(id, import)| import.is_temporary.then_some(*id));
             let removing_imports_result: FallibleResult =
-                temp_imports.map(|temp_import| info.remove_import_by_id(temp_import)).collect();
+                temp_imports.try_for_each(|temp_import| {
+                    warn!("Removing temporary import {temp_import}");
+                    info.remove_import_by_id(temp_import)
+                });
 
             let nodes_md = &mut content.metadata.ide.node;
 
             let mut definitions_to_visit = content.ast.def_iter().collect_vec();
-            while let Somme(definition) = definitions_to_visit.pop() {
-                let graph = double_representation::graph::GraphInfo::from_definition(definition);
-                graph.nodes()
-                definitions_to_visit.extend(definition.def_iter())
+            while let Some(definition) = definitions_to_visit.pop() {
+                warn!("Visiting definition {:?}", definition.crumbs);
+                definitions_to_visit.extend(definition.def_iter());
+                let mut graph =
+                    double_representation::graph::GraphInfo::from_definition(definition.item);
+                for node in graph.nodes() {
+                    if let Entry::Occupied(mut md_entry) = nodes_md.entry(node.id()) {
+                        match mem::take(&mut md_entry.get_mut().edit_status) {
+                            Some(NodeEditStatus::Created) => {
+                                graph.remove_node(node.id())?;
+                                md_entry.remove();
+                            }
+                            Some(NodeEditStatus::Edited {
+                                previous_expression,
+                                previous_intended_method,
+                            }) => {
+                                graph.edit_node(
+                                    node.id(),
+                                    parser.parse_line_ast(previous_expression)?,
+                                )?;
+                                md_entry.get_mut().intended_method = previous_intended_method;
+                            }
+                            None => {}
+                        }
+                    }
+                }
+                warn!("Updating definition ast: {}", graph.source.ast.repr());
+                content.ast =
+                    content.ast.set_traversing(&definition.crumbs, graph.source.ast.into())?;
             }
-        })
+            removing_imports_result
+        })?
     }
 }
 
