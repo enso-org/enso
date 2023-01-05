@@ -1,5 +1,9 @@
 from Standard.Base import all
 
+from Standard.Table.Errors import Floating_Point_Grouping
+
+import project.Internal.IR.SQL_Expression.SQL_Expression
+
 ## PRIVATE
 make_distinct_expression text_case_insensitive problem_builder key_column =
     if key_column.sql_type.is_definitely_double then

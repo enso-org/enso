@@ -156,7 +156,7 @@ type Context
             columns.map column-> [column.name, column.expression]
         new_from = From_Spec.Sub_Query encapsulated_columns self alias
 
-        Subquery_Setup.Value new_from new_columns mapping
+        Subquery_Setup.Value new_from new_columns
 
 type Subquery_Setup
     Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column))

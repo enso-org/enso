@@ -715,7 +715,7 @@ spec =
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
 
-            r2 = t.distinct (By_Name ["A", "B"]) on_problems=Report_Error
+            r2 = t.distinct (Column_Selector.By_Name ["A", "B"]) on_problems=Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
@@ -752,14 +752,14 @@ spec =
             action1 = t1.distinct on_problems=_
             tester1 table =
                 table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping.Error "Distinct"]
+            problems1 = [Floating_Point_Grouping.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
             action2 = t2.distinct on_problems=_
             tester2 table =
                 table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
-            problems2 = [Floating_Point_Grouping.Error "Distinct"]
+            problems2 = [Floating_Point_Grouping.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should report a warning and report the whole table if no columns were selected" <|
