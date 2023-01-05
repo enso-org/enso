@@ -284,8 +284,8 @@ impl API for Module {
         self
     }
 
-    fn remove_temporary_expressions(&self, parser: &Parser) -> FallibleResult {
-        self.model.remove_temporary_expressions(parser)
+    fn restore_temporary_changes(&self) -> FallibleResult {
+        self.model.restore_temporary_changes()
     }
 }
 

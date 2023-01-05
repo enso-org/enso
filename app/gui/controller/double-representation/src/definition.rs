@@ -1,6 +1,7 @@
 //! Code for definition discovery in the blocks, finding definition by name and related utilities.
 
 use crate::prelude::*;
+use std::iter::FusedIterator;
 
 use crate::LineKind;
 use crate::INDENT;
@@ -345,9 +346,11 @@ pub fn resolve_single_name(def: ChildDefinition, id: &Crumb) -> FallibleResult<C
 
 
 
-// ==========================
+// =================
+// === Iterators ===
+// =================
+
 // === DefinitionIterator ===
-// ==========================
 
 /// Iterator that iterates over child definitions.
 #[allow(missing_debug_implementations)]
@@ -389,10 +392,35 @@ impl<'a> DefinitionIterator<'a> {
 }
 
 
+// === RecursiveDefinitionIterator ===
+
+/// An recursive iterator over child definitions, returned by
+/// [`DefinitionProvider::recursive_def_iter`].
+#[derive(Clone, Debug, Default)]
+pub struct RecursiveDefinitionIterator {
+    stack: Vec<ChildDefinition>,
+}
+
+impl Iterator for RecursiveDefinitionIterator {
+    type Item = ChildDefinition;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_item = self.stack.pop();
+        if let Some(some_item) = &next_item {
+            self.stack.extend(some_item.def_iter())
+        }
+        next_item
+    }
+}
+
+impl FusedIterator for RecursiveDefinitionIterator {}
+
 
 // ==========================
 // === DefinitionProvider ===
 // ==========================
+
+
 
 /// An entity that contains lines that we want to interpret as definitions.
 pub trait DefinitionProvider {
@@ -412,6 +440,12 @@ pub trait DefinitionProvider {
         let scope_kind = self.scope_kind();
         let indent = self.indent();
         DefinitionIterator { iterator, scope_kind, indent }
+    }
+
+    /// Returns an iterator iterating recursively over definitions provided by this provider and
+    /// their nested definitions (as [`ChildDefinition`] is also a provider).
+    fn recursive_def_iter(&self) -> RecursiveDefinitionIterator {
+        RecursiveDefinitionIterator { stack: self.def_iter().collect() }
     }
 }
 

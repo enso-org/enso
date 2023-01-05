@@ -1,7 +1,6 @@
 //! Support for IDE Undo-Redo functionality.
 
 use crate::prelude::*;
-use parser_scala::Parser;
 
 use crate::controller;
 
@@ -457,7 +456,10 @@ impl Manager {
             // And it cannot fail, as it already underwent this procedure successfully in the past
             // (we are copying an old state, so it must ba a representable state).
             module.update_whole(content.clone())?;
-            module.remove_temporary_expressions(&Parser::new()?)?
+            // Temporary changes should not leave UR frames, but some frame could be created during
+            // editing, so the temporary changes are in the snapshot. We need to remove them after
+            // restoring that frame.
+            module.restore_temporary_changes()?
         }
         Ok(())
     }
