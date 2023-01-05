@@ -204,4 +204,11 @@ spec = Test.group "Meta-Value Manipulation" <|
                     t.bar . should_equal 2
                     t.baz . should_equal 3
 
+        Test.specify "fail if non-atom is created" <|
+            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+                Meta.lazy_atom (_ -> 2)
+            case key of
+                t : Number ->
+                    t . should_equal 2
+
 main = Test_Suite.run_main spec
