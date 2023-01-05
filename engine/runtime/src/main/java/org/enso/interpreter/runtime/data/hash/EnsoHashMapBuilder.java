@@ -6,6 +6,7 @@ import java.util.List;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.collections.Equivalence;
 
 /**
  * There should be at most one snapshot for a given size.
@@ -15,18 +16,23 @@ public class EnsoHashMapBuilder {
   static final TruffleLogger logger = TruffleLogger.getLogger("enso", "HashMap");
   // TODO: List of weak refs?
   private final List<EnsoHashMap> snapshots = new ArrayList<>();
-  private final EconomicMap<Integer, StorageEntry> storage = EconomicMap.create();
+
+  private EconomicMap<Object, StorageEntry> storage;
   private int size;
 
-  public static EnsoHashMapBuilder create() {
-    return new EnsoHashMapBuilder();
+  EnsoHashMapBuilder(HashCodeAnyNode hashCodeAnyNode, EqualsAnyNode equalsNode) {
+    this.storage = EconomicMap.create(new StorageStrategy(equalsNode, hashCodeAnyNode));
+  }
+
+  public static EnsoHashMapBuilder create(HashCodeAnyNode hashCodeNode, EqualsAnyNode equalsNode) {
+    return new EnsoHashMapBuilder(hashCodeNode, equalsNode);
   }
 
   public int getSize() {
     return size;
   }
 
-  public EconomicMap<Integer, StorageEntry> getStorage() {
+  public EconomicMap<Object, StorageEntry> getStorage() {
     return storage;
   }
 
@@ -34,27 +40,15 @@ public class EnsoHashMapBuilder {
     return snapshots;
   }
 
-  public void add(Object key, Object value, HashCodeAnyNode hashCodeNode, EqualsAnyNode equalsNode) {
-    logger.entering("EnsoHashMapBuilder", "add");
-    size++;
-    int keyHashCode = (int) hashCodeNode.execute(key);
-    logger.fine(() -> "Storage = " + storage);
-    logger.info(() -> String.format("Inserting key=%s value=%s. keyHashCode=%d", key, value, keyHashCode));
-    var entryWithOffset = findEntryLinearProbe(key, equalsNode, hashCodeNode);
-    if (entryWithOffset.entry == null) {
-      // entry does not exist
-      logger.info(() -> "Entry does not exist");
-      storage.put(keyHashCode + entryWithOffset.offset, new StorageEntry(key, value, size));
-    } else {
-      // entry already exist, rewriting
-      logger.info(() -> "Entry exists, rewriting");
-      storage.put(keyHashCode + entryWithOffset.offset, new StorageEntry(key, value, size));
+  public void add(Object key, Object value) {
+    StorageEntry oldValue = storage.put(key, new StorageEntry(key, value, size));
+    if (oldValue == null) {
+      size++;
     }
-    logger.exiting("EnsoHashMapBuilder", "add");
   }
 
-  public StorageEntry get(Object key, HashCodeAnyNode hashCodeNode, EqualsAnyNode equalsNode) {
-    return findEntryLinearProbe(key, equalsNode, hashCodeNode).entry;
+  public StorageEntry get(Object key) {
+    return storage.get(key);
   }
 
   public EnsoHashMap build() {
@@ -63,36 +57,30 @@ public class EnsoHashMapBuilder {
     return snapshot;
   }
 
-  private EntryWithOffset findEntryLinearProbe(Object key, EqualsAnyNode equalsNode, HashCodeAnyNode hashCodeNode) {
-    return findEntryLinearProbe(
-        (int) hashCodeNode.execute(key),
-        0,
-        key,
-        equalsNode
-    );
-  }
-
-  private EntryWithOffset findEntryLinearProbe(int keyHashCode, int hashOffset, Object key, EqualsAnyNode equalsNode) {
-    StorageEntry entry = storage.get(keyHashCode + hashOffset);
-    if (entry == null) {
-      return new EntryWithOffset(null, hashOffset);
-    } else {
-      if (equalsNode.execute(key, entry.key)) {
-        return new EntryWithOffset(entry, hashOffset);
-      } else {
-        return findEntryLinearProbe(keyHashCode, ++hashOffset, key, equalsNode);
-      }
-    }
-  }
-
   record StorageEntry(
       Object key,
       Object value,
       int index
   ){}
 
-  private record EntryWithOffset(
-      StorageEntry entry,
-      int offset
-  ) {}
+  private static final class StorageStrategy extends Equivalence {
+    private final EqualsAnyNode equalsNode;
+    private final HashCodeAnyNode hashCodeNode;
+
+    private StorageStrategy(EqualsAnyNode equalsNode, HashCodeAnyNode hashCodeNode) {
+      this.equalsNode = equalsNode;
+      this.hashCodeNode = hashCodeNode;
+    }
+
+    @Override
+    public boolean equals(Object a, Object b) {
+      return equalsNode.execute(a, b);
+    }
+
+    @Override
+    public int hashCode(Object o) {
+      return (int) hashCodeNode.execute(o);
+    }
+  }
+
 }
