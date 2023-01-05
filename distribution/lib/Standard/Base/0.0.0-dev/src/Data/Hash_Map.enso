@@ -7,7 +7,6 @@ from project import Error, Nothing, Any, Panic
 from project.Error.No_Such_Key import No_Such_Key
 
 
-# TODO: Should have exactly same API as Map.enso
 @Builtin_Type
 type Hash_Map key value
     empty : Hash_Map

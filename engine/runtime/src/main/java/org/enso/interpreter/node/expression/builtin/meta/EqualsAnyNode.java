@@ -162,15 +162,14 @@ public abstract class EqualsAnyNode extends Node {
   /** Interop libraries **/
 
   @Specialization(guards = {
-      "selfInterop.isNull(selfNull)",
-      "otherInterop.isNull(otherNull)"
+      "selfInterop.isNull(selfNull) || otherInterop.isNull(otherNull)",
   }, limit = "3")
   boolean equalsNull(
       Object selfNull, Object otherNull,
       @CachedLibrary("selfNull") InteropLibrary selfInterop,
       @CachedLibrary("otherNull") InteropLibrary otherInterop
   ) {
-    return true;
+    return selfInterop.isNull(selfNull) && otherInterop.isNull(otherNull);
   }
 
   @Specialization(guards = {
@@ -410,9 +409,9 @@ public abstract class EqualsAnyNode extends Node {
       }
       Object entriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
       while (entriesInterop.hasIteratorNextElement(entriesIter)) {
-        Object key = entriesInterop.getIteratorNextElement(entriesIter); // FIXME: key can be HostObject
+        Object key = entriesInterop.getIteratorNextElement(entriesIter);
         Object selfValue = entriesInterop.getIteratorNextElement(entriesIter);
-        if (otherInterop.isHashEntryExisting(otherHashMap, key) // FIXME: This won't work if key is HostObject
+        if (otherInterop.isHashEntryExisting(otherHashMap, key)
             && otherInterop.isHashEntryReadable(otherHashMap, key)) {
           Object otherValue = otherInterop.readHashValue(otherHashMap, key);
           if (!equalsNode.execute(selfValue, otherValue)) {
