@@ -256,13 +256,12 @@ text_column_2 = Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
 ## A simple table that contains basic shop inventory data for the food shop.
 inventory_table : Table
-inventory_table = csv.read . set_index "item_id"
+inventory_table = csv.read
 
 ## A simple table that contains basic item popularity data for the food shop.
 popularity_table : Table
 popularity_table =
-    table = (enso_project.data / "food_shop_popularity.csv") . read
-    table.set_index "item_id"
+    (enso_project.data / "food_shop_popularity.csv") . read
 
 ## A simple tablethat contains basic transaction data for the food shop.
 transactions_table : Table

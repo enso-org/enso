@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from Standard.Table import Sort_Column, Sort_Column_Selector, Column_Selector
+from Standard.Table import Sort_Column, Sort_Column_Selector, Column_Selector, Join_Condition
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Input_Columns_Selected, Missing_Input_Columns, No_Such_Column
 
@@ -28,7 +28,7 @@ spec =
         Fake_Test_Connection.make Dialect.sqlite tables
     t1 = test_connection.query (SQL_Query.Table_Name "T1")
     Test.group "[Codegen] JSON serialization" <|
-        Test.specify "should serialize Tables and Columns to their SQL representation" <|
+        Test.specify "should serialize Tables and Columns to their SQL representation" pending="TODO: decide on how we handle ==" <|
             q1 = t1.filter (t1.at "A" == 42) . to_json
 
             part1 = JS_Object.from_pairs [["sql_code", 'SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ']]
@@ -93,14 +93,6 @@ spec =
             contains.to_sql.prepare . should_equal ['SELECT instr("T1"."B", ?) > 0 AS "B" FROM "T1" AS "T1"', [["inf", str]]]
 
     Test.group "[Codegen] Masking Tables and Columns" <|
-        Test.specify "should allow filtering table rows based on a boolean expression" <|
-            t2 = t1.filter (t1.at "A" == 42)
-            t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" = ?)', [[42, int]]]
-
-        Test.specify "should allow selecting column rows based on a boolean expression" <|
-            c2 = t1.filter (t1.at "A" == t1.at "C") . at "B"
-            c2.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B" FROM "T1" AS "T1" WHERE ("T1"."A" = "T1"."C")', []]
-
         Test.specify "should generate a single BETWEEN expression" <|
             t2 = t1.filter "A" (Filter_Condition.Between 10 20)
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ("T1"."A" BETWEEN ? AND ?)', [[10, int], [20, int]]]
@@ -123,44 +115,6 @@ spec =
 
             t5 = t1.filter "A" (Filter_Condition.Is_In [Nothing])
             t5.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" WHERE ((FALSE) OR ("T1"."A" IS NULL))', []]
-
-    # TODO these tests will soon be out of date, superseded by Common_Table_Spec
-    Test.group "[Codegen] Joining Tables" <|
-        t2 = test_connection.query (SQL_Query.Table_Name "T2")
-        t3 = test_connection.query (SQL_Query.Table_Name "T3")
-        Test.specify "should allow joining tables index-on-index" <|
-            r1 = t1.set_index 'A' . join (t2.set_index 'D')
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A", "T1"."A" AS "A_1" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T2"."E" AS "E", "T2"."F" AS "F", "T2"."D" AS "D" FROM "T2" AS "T2") AS "T2" ON ("T1"."A_1" = "T2"."D")', []]
-
-        Test.specify "should allow joining tables column-on-index" <|
-            r1 = t1.join (t2.set_index 'D') on='B' drop_unmatched=True
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T2"."E" AS "E", "T2"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T1"."B" AS "B_1" FROM "T1" AS "T1") AS "T1" INNER JOIN (SELECT "T2"."E" AS "E", "T2"."F" AS "F", "T2"."D" AS "D" FROM "T2" AS "T2") AS "T2" ON ("T1"."B_1" = "T2"."D")', []]
-
-        Test.specify "should append suffixes to disambiguate column names" <|
-            r1 = t1.join (t3.set_index 'E') on='A'
-            r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A_left", "T1"."B" AS "B", "T1"."C" AS "C", "T3"."A" AS "A_right", "T3"."F" AS "F" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A_1" FROM "T1" AS "T1") AS "T1" LEFT JOIN (SELECT "T3"."A" AS "A", "T3"."F" AS "F", "T3"."E" AS "E" FROM "T3" AS "T3") AS "T3" ON ("T1"."A_1" = "T3"."E")', []]
-
-            r2 = (t3.set_index 'E').join (t2.set_index 'F')
-            r2.index.name . should_equal "E_left"
-            r2.columns . map .name . should_equal ["A", "F", "D", "E_right"]
-
-        Test.specify "should avoid duplicates when disambiguating column names" <|
-            connection =
-                table1 = ["T1", [["X", int], ["A", int], ["A_left", int]]]
-                table2 = ["T2", [["X", int], ["A", int], ["B", int]]]
-                tables = Map.from_vector [table1, table2]
-                Fake_Test_Connection.make Dialect.sqlite tables
-            t1 = connection.query (SQL_Query.Table_Name "T1")
-            t2 = connection.query (SQL_Query.Table_Name "T2")
-            (t1.set_index "X").join (t2.set_index "X") . should_fail_with Illegal_State.Error
-
-        Test.specify "should ensure that name suffixes are distinct" <|
-            err = (t1.set_index 'A').join (t2.set_index 'D') left_suffix='foo' right_suffix='foo'
-            err . should_fail_with Illegal_State.Error
-
-        Test.specify "should correctly handle self-joins" <|
-            r1 = t1.join (t1.set_index 'A') on='B'
-            r1.to_sql.prepare . should_equal ['SELECT "T1_left"."A" AS "A", "T1_left"."B" AS "B_left", "T1_left"."C" AS "C_left", "T1_right"."B" AS "B_right", "T1_right"."C" AS "C_right" FROM (SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C", "T1"."B" AS "B_1" FROM "T1" AS "T1") AS "T1_left" LEFT JOIN (SELECT "T1"."B" AS "B", "T1"."C" AS "C", "T1"."A" AS "A" FROM "T1" AS "T1") AS "T1_right" ON ("T1_left"."B_1" = "T1_right"."A")', []]
 
     Test.group "[Codegen] Handling Missing Values" <|
         Test.specify "fill_missing should allow to replace missing values in a column with a constant" <|
@@ -198,14 +152,6 @@ spec =
             Problems.test_problem_handling action problems tester
 
     Test.group "Helpers" <|
-        Test.specify "combine_names should combine lists of names" <|
-            v1 = ["A", "B"]
-            v2 = ["A", "C"]
-            combined = combine_names v1 v2 "_1" "_2"
-            combined.first . should_equal ["A_1", "B"]
-            combined.second . should_equal ["A_2", "C"]
-
-            Test.expect_panic_with (combine_names ["A", "A_1"] ["A"] "_1" "_2") Illegal_State.Error
         Test.specify "fresh_names should provide fresh names" <|
             used_names = ["A", "A_1"]
             preferred_names = ["A", "A", "B"]

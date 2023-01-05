@@ -415,6 +415,9 @@ spec setup =
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
                 table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
 
+            expect_column_names ["prefix_alpha", "prefix_beta", "prefix_gamma", "prefix_delta"] <|
+                table.rename_columns (table.columns.map c-> "prefix_" + c.name)
+
         Test.specify "should work by index" <|
             map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
             expect_column_names ["FirstColumn", "beta", "Another", "delta"] <|

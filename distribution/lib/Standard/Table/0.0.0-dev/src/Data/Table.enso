@@ -25,6 +25,7 @@ import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Storage.Storage
 import project.Internal.Aggregate_Column_Helper
+import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
@@ -167,10 +168,7 @@ type Table
              example_to_json = Examples.inventory_table.to_js_object
     to_js_object : JS_Object
     to_js_object self =
-        index_prep = case self.index.catch No_Index_Set_Error (_->Nothing) of
-            Nothing -> []
-            index -> [index]
-        cols = index_prep + self.columns
+        cols = self.columns
         rows = 0.up_to self.row_count . map row->
             vals_kv = cols.map col-> [col.name, col.at row]
             JS_Object.from_pairs vals_kv
@@ -200,7 +198,7 @@ type Table
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Value (java_columns.at selector)
         _ : Text ->
-            case self.java_table.getColumnOrIndexByName selector of
+            case self.java_table.getColumnByName selector of
                 Nothing -> Error.throw (No_Such_Column.Error selector)
                 c -> Column.Value c
 
@@ -428,6 +426,11 @@ type Table
          Rename the first column to "FirstColumn" passed as a Vector
 
               table.rename_columns ["FirstColumn"]
+
+       > Example
+         Add a prefix to all column names.
+
+              table.rename_columns (table.columns.map c-> "prefix_" + c.name)
     rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
         _ : Vector ->
@@ -510,7 +513,7 @@ type Table
 
             on_problems.attach_problems_after new_table <|
                 problems = java_table.getProblems
-                Aggregate_Column_Helper.parse_aggregated_problems problems
+                Java_Problems.parse_aggregated_problems problems
 
     ## Sorts the rows of the table according to the specified columns and order.
 
@@ -652,7 +655,7 @@ type Table
             self.java_table.distinct java_columns.to_array text_folding_strategy
         on_problems.attach_problems_after (Table.Value java_table) <|
             problems = java_table.getProblems
-            Aggregate_Column_Helper.parse_aggregated_problems problems
+            Java_Problems.parse_aggregated_problems problems
 
 
     ## Parses columns within a Table to a specific value type.
@@ -716,7 +719,7 @@ type Table
                 new_storage = new_storage_and_problems.value
                 problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem expected_type)
                 problems.each problem_builder.append
-                Column.Value (Java_Column.new column.name column.java_column.getIndex new_storage)
+                Column.Value (Java_Column.new column.name new_storage)
 
         ## TODO [RW] this case of is a workaround for wrong dataflow handling on arrays, it can be removed once the PR fixing it is merged, the relevant PR is:
            https://github.com/enso-org/enso/pull/3400
@@ -989,39 +992,6 @@ type Table
         proxy = Rows_View.Value table
         Vector.from_polyglot_array (Array_Proxy.from_proxy_object proxy)
 
-    ## Sets the index of this table, using the column with the provided name.
-
-       Arguments:
-       - index: The name of the column to use as the index in this table, or the
-         column itself to use.
-
-       > Example
-         Set the index of the inventory table to be the item name.
-
-             import Standard.Examples
-
-             example_set_index = Examples.inventory_table.set_index "item_name"
-    set_index : Text | Column -> Table
-    set_index self index = case index of
-        _ : Text -> Table.Value (self.java_table.indexFromColumn index)
-        Column.Value c -> Table.Value (self.java_table.indexFromColumn c)
-
-    ## Returns the index of this table, as a column that is indexed by itself.
-
-       Throws `No_Index_Set_Error` if there is no index set in the table it is
-       being called on.
-
-       > Example
-         Get the column that is used as the index for a table.
-
-             import Standard.Examples
-
-             example_index = Examples.inventory_table.index
-    index : Column ! No_Index_Set_Error
-    index self = case self.java_table.getIndex.toColumn of
-        Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Value i
-
     ## Joins two tables according to the specified join conditions.
 
        Arguments:
@@ -1102,16 +1072,12 @@ type Table
                 object_comparator = Comparator.new
                 equality_fallback = .==
 
-                new_java_table = case join_resolution.conditions of
-                    # Nothing is returned if some conditions failed to resolve, we will return an empty result in such case.
-                    Nothing ->
-                        self.java_table.join right.java_table Nothing False False False (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
-                    java_conditions ->
-                        self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
+                java_conditions = join_resolution.conditions
+                new_java_table = self.java_table.join right.java_table java_conditions (rows_to_keep.at 0) (rows_to_keep.at 1) (rows_to_keep.at 2) (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix object_comparator equality_fallback
 
                 on_problems.attach_problems_after (Table.Value new_java_table) <|
                     problems = new_java_table.getProblems
-                    Aggregate_Column_Helper.parse_aggregated_problems problems
+                    Java_Problems.parse_aggregated_problems problems
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1153,7 +1119,7 @@ type Table
     info : Table
     info self =
         cols = self.columns
-        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]] . set_index "Column"
+        Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
 
     ## UNSTABLE
 
@@ -1300,7 +1266,7 @@ type Table
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
-                Aggregate_Column_Helper.parse_aggregated_problems problems
+                Java_Problems.parse_aggregated_problems problems
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.
@@ -1501,9 +1467,9 @@ slice_ranges table ranges =
 
 ## PRIVATE
 make_join_helpers left_table right_table =
-    make_equals left right = Java_Join_Equals.new left.java_column right.java_column
-    make_equals_ignore_case left right locale =
+    make_equals _ left right = Java_Join_Equals.new left.java_column right.java_column
+    make_equals_ignore_case _ left right locale =
         Java_Join_Equals_Ignore_Case.new left.java_column right.java_column locale.java_locale
-    make_between left right_lower right_upper =
+    make_between _ left right_lower right_upper =
         Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
