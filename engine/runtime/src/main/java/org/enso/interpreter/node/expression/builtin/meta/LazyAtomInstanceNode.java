@@ -150,7 +150,7 @@ public abstract class LazyAtomInstanceNode extends Node {
     public Object execute(VirtualFrame frame) {
       var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
       if (args[0] instanceof Atom replace) {
-        if (args[1] instanceof Number n) {
+        if (args[1] instanceof Integer n) {
           var fields = replace.getFields();
           if (fields[n.intValue()] == args[2]) {
             fields[n.intValue()] = args[3];
