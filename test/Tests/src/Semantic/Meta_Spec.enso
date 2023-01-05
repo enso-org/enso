@@ -170,4 +170,29 @@ spec = Test.group "Meta-Value Manipulation" <|
         (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
         (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
 
+    Test.group "Lazy atom with holes" <|
+        Test.specify "construct and fill" <|
+            vec = Meta.lazy_atom (e -> My_Type.Value 1 e 3)
+            case vec of
+                v : Vector -> v.length . should_equal 2
+                _ -> Test.fail "Should return an array"
+
+            atom = vec.at 0
+            fill = vec.at 1
+
+            Meta.is_atom atom . should_be_true
+
+            atom.foo . should_equal 1
+            atom.baz . should_equal 3
+            case atom.bar of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+
+            fill 2
+            atom.bar . should_equal 2
+
+            fill 10 # no change
+            atom.bar . should_equal 2
+
+
 main = Test_Suite.run_main spec
