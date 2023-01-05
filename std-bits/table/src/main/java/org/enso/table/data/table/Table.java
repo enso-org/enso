@@ -296,7 +296,7 @@ public class Table {
 
     AggregatedProblems joinProblems = joinResult != null ? joinResult.problems() : null;
     AggregatedProblems aggregatedProblems = AggregatedProblems.merge(joinProblems, AggregatedProblems.of(nameDeduplicator.getProblems()));
-    return new Table(newColumns.toArray(new Column[0]), problems);
+    return new Table(newColumns.toArray(new Column[0]), aggregatedProblems);
   }
 
   /**

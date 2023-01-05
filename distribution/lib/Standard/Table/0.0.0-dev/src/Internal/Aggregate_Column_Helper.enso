@@ -12,7 +12,7 @@ import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from project.Data.Aggregate_Column.Aggregate_Column import all
 import project.Data.Table.Table
-from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator

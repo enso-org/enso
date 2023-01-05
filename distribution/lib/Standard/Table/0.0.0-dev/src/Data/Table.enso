@@ -25,6 +25,7 @@ import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Storage.Storage
 import project.Internal.Aggregate_Column_Helper
+import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
@@ -512,7 +513,7 @@ type Table
 
             on_problems.attach_problems_after new_table <|
                 problems = java_table.getProblems
-                Aggregate_Column_Helper.parse_aggregated_problems problems
+                Java_Problems.parse_aggregated_problems problems
 
     ## Sorts the rows of the table according to the specified columns and order.
 
@@ -654,7 +655,7 @@ type Table
             self.java_table.distinct java_columns.to_array text_folding_strategy
         on_problems.attach_problems_after (Table.Value java_table) <|
             problems = java_table.getProblems
-            Aggregate_Column_Helper.parse_aggregated_problems problems
+            Java_Problems.parse_aggregated_problems problems
 
 
     ## Parses columns within a Table to a specific value type.
@@ -1076,7 +1077,7 @@ type Table
 
                 on_problems.attach_problems_after (Table.Value new_java_table) <|
                     problems = new_java_table.getProblems
-                    Aggregate_Column_Helper.parse_aggregated_problems problems
+                    Java_Problems.parse_aggregated_problems problems
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1265,7 +1266,7 @@ type Table
 
             on_problems.attach_problems_after (Table.Value result) <|
                 problems = result.getProblems
-                Aggregate_Column_Helper.parse_aggregated_problems problems
+                Java_Problems.parse_aggregated_problems problems
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.

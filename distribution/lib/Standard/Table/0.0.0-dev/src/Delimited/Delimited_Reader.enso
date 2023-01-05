@@ -8,6 +8,7 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Delimited.Quote_Style.Quote_Style
 import project.Internal.Java_Problems
+from project.Errors import Additional_Warnings, Parser_Error
 
 polyglot java import org.enso.base.encoding.NewlineDetector
 polyglot java import org.enso.table.read.DelimitedReader
@@ -200,7 +201,7 @@ newline_at_eof file encoding =
 ## PRIVATE
 handle_parsing_failure =
     translate_parsing_failure caught_panic =
-        Error.throw (translate_problem caught_panic.payload.problem)
+        Error.throw (Java_Problems.translate_problem caught_panic.payload.problem)
     Panic.catch ParsingFailedException handler=translate_parsing_failure
 
 ## PRIVATE
