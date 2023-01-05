@@ -285,6 +285,7 @@ lazy val enso = (project in file("."))
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
     `runtime-with-instruments`,
+    `runtime-with-polyglot`,
     `runtime-version-manager`,
     `runtime-version-manager-test`,
     editions,
@@ -1143,6 +1144,7 @@ lazy val `polyglot-api` = project
     },
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion      % "provided",
+      "org.graalvm.truffle"    % "truffle-api"      % graalVersion      % "provided",
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.scalatest"         %% "scalatest"        % scalatestVersion  % Test,
       "org.scalacheck"        %% "scalacheck"       % scalacheckVersion % Test
@@ -1568,6 +1570,53 @@ lazy val `runtime-with-instruments` =
     .dependsOn(`runtime-instrument-id-execution`)
     .dependsOn(`runtime-instrument-repl-debugger`)
     .dependsOn(`runtime-instrument-runtime-server`)
+
+/* runtime-with-polyglot
+ * ~~~~~~~~~~~~~~~~~~~~~
+ * A project that allows loading polyglot languages by not disabling
+ * the GraalVM locator explicitly with `-Dgraalvm.locatorDisabled=true` like the
+ * `runtime-with-instruments` project does. It means that the test classes and
+ * runtime classes are loaded using different classloaders, and the test code
+ * cannot access the `EnsoContext`.
+ */
+
+lazy val `runtime-with-polyglot` =
+  (project in file("engine/runtime-with-polyglot"))
+    .configs(Benchmark)
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Benchmark)(Defaults.testSettings),
+      commands += WithDebugCommand.withDebug,
+      Benchmark / javacOptions --= Seq(
+        "-source",
+        frgaalSourceLevel,
+        "--enable-preview"
+      ),
+      Test / javaOptions ++= {
+        // Note [Classpath Separation]
+        val runtimeClasspath =
+          (LocalProject("runtime") / Compile / fullClasspath).value
+        val runtimeInstrumentsClasspath =
+          (LocalProject("runtime-with-instruments") / Compile / fullClasspath).value
+        val appendClasspath =
+          (runtimeClasspath ++ runtimeInstrumentsClasspath)
+            .map(_.data)
+            .mkString(File.pathSeparator)
+        Seq(
+          s"-Dtruffle.class.path.append=$appendClasspath"
+        )
+      },
+      Test / fork := true,
+      Test / envVars ++= distributionEnvironmentOverrides ++ Map(
+        "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
+      ),
+      libraryDependencies ++= Seq(
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test
+      )
+    )
+    .dependsOn(runtime % "compile->compile;test->test;runtime->runtime")
+    .dependsOn(`runtime-with-instruments`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
