@@ -132,9 +132,6 @@ spec = Test.group "Range" <|
     Test.specify "should check all" <|
         1.up_to 10 . all (> 0) . should_be_true
         1.up_to 10 . all (< 0) . should_be_false
-    Test.specify "should check exists" <|
-        1.up_to 10 . exists (> 5) . should_be_true
-        1.up_to 10 . exists (> 10) . should_be_false
     Test.specify "should check any" <|
         1.up_to 10 . any (> 5) . should_be_true
         1.up_to 10 . any (> 10) . should_be_false

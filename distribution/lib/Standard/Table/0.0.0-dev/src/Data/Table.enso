@@ -686,7 +686,7 @@ type Table
             if matching_input.length == 0 then Nothing else
                 if matching_input.length == 1 then matching_input.first.datatype else
                     first_type = matching_input.first.datatype
-                    ambiguous = matching_input.exists s-> s.datatype != first_type
+                    ambiguous = matching_input.any s-> s.datatype != first_type
                     problem_builder.append (Duplicate_Type_Selector.Error column.name ambiguous)
                     if ambiguous then Nothing else first_type
 
@@ -703,7 +703,7 @@ type Table
                             if valid.not then
                                 invalid_indices.append selector
                         _ : Text ->
-                            found = columns.exists col-> col.name == selector
+                            found = columns.any col-> col.name == selector
                             if found.not then
                                 missing_columns.append selector
                 if missing_columns.is_empty.not then
@@ -893,7 +893,7 @@ type Table
        > Example
          Take rows from the top of the table as long as their values sum to 10.
 
-             table.take (While row-> row.to_vector.sum == 10)
+             table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
@@ -915,7 +915,7 @@ type Table
        > Example
          Drop rows from the top of the table as long as their values sum to 10.
 
-             table.drop (While row-> row.to_vector.sum == 10)
+             table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range

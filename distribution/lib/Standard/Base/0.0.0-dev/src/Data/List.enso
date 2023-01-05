@@ -81,28 +81,6 @@ type List
          value that says whether that value satisfies the conditions of the
          function.
 
-       > Example
-         Check if any element of the list is larger than 5.
-
-             import Standard.Examples
-
-             example_exists = Examples.list.exists (> 5)
-    exists : (Any -> Boolean) -> Boolean
-    exists self predicate =
-        go list = case list of
-            Nil -> False
-            Cons h t -> if predicate h then True else
-                @Tail_Call go t
-        res = go self
-        res
-
-    ## Checks whether any element of the list matches the given predicate.
-
-       Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
-
        A predicate is a function that takes a list element and returns
        a Boolean value.
 
@@ -113,7 +91,13 @@ type List
 
              example_any = Examples.list.any (> 5)
     any : (Any -> Boolean) -> Boolean
-    any self predicate = self.exists predicate
+    any self predicate =
+        go list = case list of
+            Nil -> False
+            Cons h t -> if predicate h then True else
+                @Tail_Call go t
+        res = go self
+        res
 
     ## Checks whether a predicate holds for all elements in this list.
 
@@ -143,7 +127,7 @@ type List
 
              example_contains = Examples.list.contains 3
     contains : Any -> Boolean
-    contains self elem = self.exists ix-> ix == elem
+    contains self elem = self.any ix-> ix == elem
 
     ## Checks if this list is empty.
 
@@ -307,19 +291,6 @@ type List
             go count-1 b res.fill
             res.value
 
-    ## Get the first element from the list.
-
-       > Example
-         This returns 1.
-
-             import Standard.Examples
-
-             example_head = Examples.list.x
-    head : Any ! Empty_Error
-    head self = case self of
-        Nil -> Error.throw Empty_Error
-        Cons a _ -> a
-
     ## Get all elements from the list except the first.
 
        > Example
@@ -381,18 +352,9 @@ type List
 
              example_first = Examples.list.first
     first : Any ! Empty_Error
-    first self = self.head
-
-    ## Get all elements from the list except the first.
-
-       > Example
-         Getting all elements in the list except the first.
-
-             import Standard.Examples
-
-             example_rest = Examples.list.rest
-    rest : List ! Empty_Error
-    rest self = self.tail
+    first self = case self of
+        Nil -> Error.throw Empty_Error
+        Cons a _ -> a
 
     ## UNSTABLE
        Convert this list to a vector with the same elements.

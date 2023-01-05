@@ -19,11 +19,6 @@ spec = Test.group "List" <|
         prod = l.fold 1 (*)
         sum.should_equal 6
         prod.should_equal 6
-    Test.specify "should allow checking if an element satisfies a predicate with .exists" <|
-        any_even = l.exists (x -> x % 2 == 0)
-        any_eq_five = l.exists (== 5)
-        any_even.should_be_true
-        any_eq_five.should_be_false
     Test.specify "should allow checking if an element satisfies a predicate with .any" <|
         any_even = l.any (x -> x % 2 == 0)
         any_eq_five = l.any (== 5)
@@ -93,7 +88,7 @@ spec = Test.group "List" <|
         bools.filter Filter_Condition.Is_True . should_equal [True, True].to_list
         bools.filter Filter_Condition.Is_False . should_equal [False].to_list
     Test.specify "should allow mapping a function over its elements with .map" <|
-        l.map +1 . head . should_equal 2
+        l.map +1 . first . should_equal 2
     Test.specify "should allow executing an action for each element with .each" <|
         sum = State.run Number 0 <|
             l.each el->
@@ -102,16 +97,13 @@ spec = Test.group "List" <|
             State.get Number
         sum.should_equal 6
     Test.specify "should allow reversing with .reverse" <|
-        l.reverse.head.should_equal 3
+        l.reverse.first.should_equal 3
     Test.specify "should allow dropping elements from the left with `.drop`" <|
         l.drop_start 1 . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
         empty.drop_start 1 . should_equal List.Nil
     Test.specify "should allow taking elements from the left with `.take_start`" <|
         l.take_start 2 . should_equal (List.Cons 1 (List.Cons 2 List.Nil))
         empty.take_start 2 . should_equal List.Nil
-    Test.specify "should allow getting the head of the list with `.head`" <|
-        l.head . should_equal 1
-        empty.head.should_fail_with Empty_Error
     Test.specify "should allow getting the tail of the list with `.tail`" <|
         l.tail . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
         empty.tail.should_fail_with Empty_Error
@@ -128,8 +120,5 @@ spec = Test.group "List" <|
     Test.specify "should allow getting the head of the list with `.first`" <|
         l.first . should_equal 1
         empty.first.should_fail_with Empty_Error
-    Test.specify "should allow getting the tail of the list with `.rest`" <|
-        l.rest . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
-        empty.rest.should_fail_with Empty_Error
 
 main = Test_Suite.run_main spec

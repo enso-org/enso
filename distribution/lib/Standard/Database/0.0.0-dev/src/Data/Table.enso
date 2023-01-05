@@ -512,7 +512,7 @@ type Table
                     _ : Text -> self.evaluate column
                     _ -> column
                 new_col = Internal_Column.Value name resolved.sql_type resolved.expression
-                replace = self.internal_columns.exists (c -> c.name == name)
+                replace = self.internal_columns.any (c -> c.name == name)
                 case replace of
                     True ->
                         new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)

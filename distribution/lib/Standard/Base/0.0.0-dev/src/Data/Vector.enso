@@ -12,6 +12,7 @@ import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Common.No_Such_Method
+import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Incomparable_Values.Incomparable_Values
@@ -261,38 +262,6 @@ type Vector a
                         @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
                 fold_function (self.at 0) 1
 
-    ## Computes the sum of the values in the vector.
-
-       For this method to be defined, the elements of the vector must be able to
-       have the `+` operator used to combine them.
-
-       > Example
-         Compute the sum of all fo the elements in a vector.
-
-             [0, 1, 2].sum
-    sum : Any ! (Empty_Error | No_Such_Method)
-    sum self =
-        result = Panic.recover Any <| self.reduce (+)
-        result.map_error x->case x of
-            _ : No_Such_Method -> x
-            Empty_Error -> x
-            _ -> Panic.throw x
-
-    ## Checks whether a predicate holds for at least one element of this vector.
-
-       Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
-
-       > Example
-         Check if any element of the list is larger than 3.
-
-             [1, 2, 3, 4, 5].exists (> 3)
-    exists : (Any -> Boolean) -> Boolean
-    exists self predicate =
-        0.up_to self.length . exists (idx -> (predicate (self.at idx)))
-
     ## Returns the first element of the vector that satisfies the predicate or
        if no elements of the vector satisfy the predicate, it throws nothing.
 
@@ -305,10 +274,50 @@ type Vector a
          Finding a first element of the list that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
-    find : (Any -> Boolean) -> Any ! Nothing
-    find self predicate =
-        found = 0.up_to self.length . find (idx -> (predicate (self.at idx)))
+    find : (Any -> Boolean) -> Integer -> Any ! Nothing
+    find self predicate start=0 =
+        found = start.up_to self.length . find (idx -> (predicate (self.at idx)))
         if found.is_nothing then Error.throw Nothing else self.at found
+
+    ## Returns the index of an element in the vector. Returns -1 if the element
+       is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from.
+
+       > Example
+         Find the index of an element in a vector.
+
+             [1, 2, 3].index_of 2 == 1
+    index_of : (Any -> Boolean) -> Integer -> Any
+    index_of self element start=0 =
+        predicate = case element of
+            _ : Function -> (i -> element (self.at i))
+            _ -> (i -> self.at i == element)
+        found = start.up_to self.length . find predicate
+        found.if_nothing -1
+
+    ## Returns the last index of an element in the vector. Returns -1 if the
+       element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from.
+
+       > Example
+         Find the last index of an element in a vector.
+
+             [1, 2, 3, 1, 2, 3].last_index_of 2 == 4
+    last_index_of : (Any -> Boolean) -> Integer -> Any
+    last_index_of self element start=self.length-1 =
+        predicate = case element of
+            _ : Function -> (i -> element (self.at i))
+            _ -> (i -> self.at i == element)
+        found = start.down_to -1 . find predicate
+        found.if_nothing -1
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -322,7 +331,8 @@ type Vector a
 
              [1, 2, 3, 4, 5].any (> 3)
     any : (Any -> Boolean) -> Boolean
-    any self predicate = self.exists predicate
+    any self predicate =
+        0.up_to self.length . any (idx -> (predicate (self.at idx)))
 
     ## Checks whether a predicate holds for all elements in this vector.
 
@@ -336,7 +346,7 @@ type Vector a
 
              [-1, 1, 5, 8].all (< 0)
     all : (Any -> Boolean) -> Boolean
-    all self predicate = self . exists (predicate >> .not) . not
+    all self predicate = self . any (predicate >> .not) . not
 
     ## Checks whether this vector contains a given value as an element.
 
@@ -348,7 +358,7 @@ type Vector a
 
              [1, 383, 72, 301].contains 72
     contains : Any -> Boolean
-    contains self elem = self.exists ix-> ix == elem
+    contains self elem = self.any ix-> ix == elem
 
     ## Checks if this vector is empty.
 
@@ -613,12 +623,15 @@ type Vector a
 
              [1] + [2]
     + : Vector Any -> Vector Any
-    + self that =
-        self_len = self.length
-        arr = Array.new (self_len + that.length)
-        Array.copy self.to_array 0 arr 0 self_len
-        Array.copy that.to_array 0 arr self_len that.length
-        Vector.from_polyglot_array arr
+    + self that = case that of
+        _ : Vector ->
+            self_len = self.length
+            arr = Array.new (self_len + that.length)
+            Array.copy self.to_array 0 arr 0 self_len
+            Array.copy that.to_array 0 arr self_len that.length
+            Vector.from_polyglot_array arr
+        _ : Array -> self + Vector.from_polyglot_array that
+        _ -> Error.throw (Type_Error.Error Vector that "Should be a Vector or Array to be appended.")
 
     ## Add `element` to the beginning of `self` vector.
 
@@ -764,28 +777,9 @@ type Vector a
        > Example
          The following code returns 1.
 
-             [1, 2, 3, 4].head
-    head : Any ! Empty_Error
-    head self = if self.length >= 1 then self.at 0 else Error.throw Empty_Error
-
-    ## Get all elements in the vector except the first.
-
-       > Example
-         The following code returns [2, 3, 4].
-
-             [1, 2, 3, 4].tail
-    tail : Vector ! Empty_Error
-    tail self = if self.length >= 1 then self.drop (Index_Sub_Range.First 1) else
-        Error.throw Empty_Error
-
-    ## Get the all elements in the vector except the last.
-
-       > Example
-         The following code returns [1, 2, 3].
-
-             [1, 2, 3, 4].init
-    init : Vector ! Empty_Error
-    init self = if self.length >= 1 then self.drop (Index_Sub_Range.Last 1) else Error.throw Empty_Error
+             [1, 2, 3, 4].first
+    first : Vector ! Index_Out_Of_Bounds
+    first self = self.at 0
 
     ## Get the last element of the vector, or an `Empty_Error` if the vector is
        empty.
@@ -794,19 +788,8 @@ type Vector a
          The following code returns 4.
 
              [1, 2, 3, 4].last
-    last : Vector ! Empty_Error
-    last self = if self.length >= 1 then self.at (self.length-1) else
-        Error.throw Empty_Error
-
-    ## Get the first element from the vector, or an `Empty_Error` if the vector
-       is empty.
-
-       > Example
-         The following code returns 1.
-
-             [1, 2, 3, 4].first
-    first : Vector ! Empty_Error
-    first self = self.head
+    last : Vector ! Index_Out_Of_Bounds
+    last self = self.at -1
 
     ## Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
        vector doesn't have a second element.
@@ -819,14 +802,6 @@ type Vector a
              [1, 2, 3, 4].second
     second : Vector ! Index_Out_Of_Bounds
     second self = self.at 1
-
-    ## Get all elements in the vector except the first.
-
-       > Example
-         The following code returns [2, 3, 4].
-             [1, 2, 3, 4].rest
-    rest : Vector ! Empty_Error
-    rest self = self.tail
 
     ## Sort the Vector.
 
@@ -1089,9 +1064,9 @@ type Builder
        - predicate: A function that takes a list element and returns a boolean
          that says whether that value satisfies the conditions of the function.
 
-    exists : (Any -> Boolean) -> Boolean
-    exists self predicate =
-        0.up_to self.length . exists (idx -> (predicate (self.java_builder.get idx)))
+    any : (Any -> Boolean) -> Boolean
+    any self predicate =
+        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
     ## Converts this builder to a vector containing all the appended elements.
 
