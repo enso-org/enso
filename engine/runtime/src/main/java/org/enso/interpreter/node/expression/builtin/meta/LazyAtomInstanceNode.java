@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -14,7 +15,6 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.mutable.CoerceArrayNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -42,7 +42,6 @@ public abstract class LazyAtomInstanceNode extends Node {
   Vector doExecute(
     Object factory,
     @CachedLibrary(limit="3") InteropLibrary iop,
-    @Cached CoerceArrayNode coerce,
     @Cached SwapAtomFieldNode swapNode
   ) {
     var ctx = EnsoContext.get(this);
@@ -50,11 +49,10 @@ public abstract class LazyAtomInstanceNode extends Node {
     try {
       var r = iop.execute(factory, lazy);
       if (r instanceof Atom a) {
-        for (int i = 0; i < a.getFields().length; i++) {
-          if (a.getFields()[i] == lazy) {
-            var function = swapNode.createFn(a, i, lazy);
-            return Vector.fromArray(new Array(a, function));
-          }
+        var i = swapNode.findHoleIndex(a, lazy);
+        if (i >= 0) {
+          var function = swapNode.createFn(a, i, lazy);
+          return Vector.fromArray(new Array(a, function));
         }
       }
       throw new PanicException(ctx.getBuiltins().error().makeUninitializedStateError(r), this);
@@ -84,6 +82,8 @@ public abstract class LazyAtomInstanceNode extends Node {
   }
   static final class SwapAtomFieldNode extends RootNode {
     private final FunctionSchema schema;
+    @CompilerDirectives.CompilationFinal
+    private int lastIndex = -1;
 
     private SwapAtomFieldNode() {
       super(null);
@@ -99,6 +99,40 @@ public abstract class LazyAtomInstanceNode extends Node {
 
     static SwapAtomFieldNode create() {
       return new SwapAtomFieldNode();
+    }
+
+    int findHoleIndex(Atom atom, HoleInAtom lazy) {
+      var arr = atom.getFields();
+      if (lastIndex >= 0 && lastIndex < arr.length) {
+        if (arr[lastIndex] == lazy) {
+          return lastIndex;
+        }
+      }
+      int index = findHoleIndexLoop(arr, lazy);
+      if (index == -1) {
+        return -1;
+      }
+      if (lastIndex == -1) {
+        lastIndex = index;
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        return index;
+      } else {
+        if (lastIndex != -2) {
+          CompilerDirectives.transferToInterpreterAndInvalidate();
+          lastIndex = -2;
+        }
+      }
+      return index;
+    }
+
+    @CompilerDirectives.TruffleBoundary
+    private int findHoleIndexLoop(Object[] arr, HoleInAtom lazy) {
+        for (int i = 0; i < arr.length; i++) {
+          if (arr[i] == lazy) {
+            return i;
+          }
+        }
+        return -1;
     }
 
     Function createFn(Atom atom, int index, HoleInAtom lazy) {
