@@ -1,8 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -17,12 +15,9 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
-import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.graalvm.collections.EconomicMap;
 
 /**
  * Effectively a snapshot of {@link EnsoHashMapBuilder}.
@@ -32,7 +27,6 @@ import org.graalvm.collections.EconomicMap;
 @ExportLibrary(InteropLibrary.class)
 @Builtin(stdlibName = "Standard.Base.Data.Hash_Map.Hash_Map", name = "Hash_Map")
 public final class EnsoHashMap implements TruffleObject {
-  private static final TruffleLogger logger = EnsoHashMapBuilder.logger;
   private final EnsoHashMapBuilder mapBuilder;
   private final int snapshotSize;
   private Object cachedVectorRepresentation;
@@ -52,6 +46,33 @@ public final class EnsoHashMap implements TruffleObject {
         EnsoHashMapBuilder.create(hashCodeAnyNode, equalsNode),
         0
     );
+  }
+
+  EnsoHashMapBuilder getMapBuilder() {
+    return mapBuilder;
+  }
+
+  Object getCachedVectorRepresentation() {
+    assert cachedVectorRepresentation != null;
+    return cachedVectorRepresentation;
+  }
+
+  boolean isVectorRepresentationCached() {
+    return cachedVectorRepresentation != null;
+  }
+
+  @TruffleBoundary
+  void cacheVectorRepresentation() {
+    assert cachedVectorRepresentation == null : "Caching vector repr should be done at most once";
+    Object[] keyValueArr = new Object[snapshotSize * 2];
+    int arrIdx = 0;
+    for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
+      if (entry.index() <= snapshotSize) {
+        keyValueArr[arrIdx++] = entry.key();
+        keyValueArr[arrIdx++] = entry.value();
+      }
+    }
+    cachedVectorRepresentation = new FlatKeyValueVector(keyValueArr);
   }
 
   @Builtin.Method
@@ -109,52 +130,8 @@ public final class EnsoHashMap implements TruffleObject {
     }
     int keysCount = arrSize / 2;
     var hashMap = createWithBuilder(mapBuilder, keysCount);
-    // Cache vector.
-    hashMap.cachedVectorRepresentation = FlatKeyValueVector.fromInteropVector(flatVector, interop);
+    // TODO: Cache flat vector?
     return hashMap;
-  }
-
-  @Builtin.Method
-  public EnsoHashMap insert(Object key, Object value) {
-    mapBuilder.add(key, value);
-    return mapBuilder.build();
-  }
-
-  @Builtin.Method
-  public long size() {
-    return snapshotSize;
-  }
-
-  @Builtin.Method(name = "get_builtin")
-  public Object get(Object key) {
-    StorageEntry entry = mapBuilder.get(key);
-    if (isEntryInThisMap(entry)) {
-      return entry.value();
-    } else {
-      throw DataflowError.withoutTrace("No such key '" + key.toString() + "'", null);
-    }
-  }
-
-  @Builtin.Method(name = "contains_key")
-  public boolean containsKey(Object key) {
-    return isEntryInThisMap(
-        mapBuilder.get(key)
-    );
-  }
-
-  @Builtin.Method(name = "to_flat_vector")
-  public Object toVector() {
-    return getCachedVectorRepresentation();
-  }
-
-  @Builtin.Method(name = "to_text")
-  public Object toText() {
-    return toDisplayString(false);
-  }
-
-  @Builtin.Method(name = "key_set")
-  public Object keySet() {
-    throw new UnsupportedOperationException("unimplemented");
   }
 
   @ExportMessage
@@ -169,7 +146,9 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage
   boolean isHashEntryExisting(Object key) {
-    return containsKey(key);
+    return isEntryInThisMap(
+        mapBuilder.get(key)
+    );
   }
 
   @ExportMessage
@@ -190,6 +169,9 @@ public final class EnsoHashMap implements TruffleObject {
   @ExportMessage
   Object getHashEntriesIterator(
       @CachedLibrary(limit = "3") InteropLibrary interop) {
+    if (!isVectorRepresentationCached()) {
+      cacheVectorRepresentation();
+    }
     try {
       return interop.getIterator(getCachedVectorRepresentation());
     } catch (UnsupportedMessageException e) {
@@ -211,7 +193,7 @@ public final class EnsoHashMap implements TruffleObject {
   @TruffleBoundary
   Object toDisplayString(boolean allowSideEffects) {
     var sb = new StringBuilder();
-    sb.append("{");
+    sb.append("EnsoHashMap{");
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (isEntryInThisMap(entry)) {
         sb.append(entry.key()).append("=").append(entry.value()).append(", ");
@@ -230,119 +212,7 @@ public final class EnsoHashMap implements TruffleObject {
     return (String) toDisplayString(true);
   }
 
-  private Object getCachedVectorRepresentation() {
-    if (cachedVectorRepresentation == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      logger.fine(() -> "Caching vector representation for " + toDisplayString(true));
-      if (size() == 0) {
-        cachedVectorRepresentation = Vector.fromArray(new EmptyKeyValueVector());
-      } else {
-        cachedVectorRepresentation =
-            Vector.fromArray(FlatKeyValueVector.fromBuilderStorage(mapBuilder.getStorage(), snapshotSize));
-      }
-    }
-    return cachedVectorRepresentation;
-  }
-
   private boolean isEntryInThisMap(StorageEntry entry) {
     return entry != null && entry.index() < snapshotSize;
-  }
-
-  @ExportLibrary(InteropLibrary.class)
-  static final class FlatKeyValueVector implements TruffleObject {
-    private final Object[] keyValueArray;
-
-    private FlatKeyValueVector(int arrSize) {
-      this.keyValueArray = new Object[arrSize];
-    }
-
-    static FlatKeyValueVector fromBuilderStorage(EconomicMap<Object, StorageEntry> storage, int maxKeyIdx) {
-      assert storage.size() > 0;
-      var flatVector = new FlatKeyValueVector(maxKeyIdx * 2);
-      int arrIdx = 0;
-      for (StorageEntry entry : storage.getValues()) {
-        if (entry.index() <= maxKeyIdx) {
-          flatVector.keyValueArray[arrIdx++] = entry.key();
-          flatVector.keyValueArray[arrIdx++] = entry.value();
-        }
-      }
-      return flatVector;
-    }
-
-    static FlatKeyValueVector fromInteropVector(Object vector, InteropLibrary interop) {
-      try {
-        int arrSize = (int) interop.getArraySize(vector);
-        assert arrSize % 2 == 0;
-        var flatVector = new FlatKeyValueVector(arrSize);
-        for (int i = 0; i < arrSize; i++) {
-          flatVector.keyValueArray[i] = interop.readArrayElement(vector, i);
-        }
-        return flatVector;
-      } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-
-    @ExportMessage
-    boolean hasArrayElements() {
-      return true;
-    }
-
-    @ExportMessage
-    long getArraySize() {
-      return keyValueArray.length;
-    }
-
-    @ExportMessage
-    boolean isArrayElementReadable(long idx) {
-      return idx < keyValueArray.length;
-    }
-
-    @ExportMessage
-    boolean isArrayElementModifiable(long idx) {
-      return false;
-    }
-
-    @ExportMessage
-    boolean isArrayElementInsertable(long idx) {
-      return false;
-    }
-
-    @ExportMessage
-    void writeArrayElement(long index, Object value) throws UnsupportedMessageException {
-      throw UnsupportedMessageException.create();
-    }
-
-    @ExportMessage
-    Object readArrayElement(long idx) throws InvalidArrayIndexException {
-      if (idx < keyValueArray.length) {
-        return keyValueArray[(int) idx];
-      } else {
-        throw InvalidArrayIndexException.create(idx);
-      }
-    }
-  }
-
-  @ExportLibrary(InteropLibrary.class)
-  static final class EmptyKeyValueVector implements TruffleObject {
-    @ExportMessage
-    boolean hasArrayElements() {
-      return true;
-    }
-
-    @ExportMessage
-    long getArraySize() {
-      return 0;
-    }
-
-    @ExportMessage
-    boolean isArrayElementReadable(long index) {
-      return false;
-    }
-
-    @ExportMessage
-    Object readArrayElement(long index) throws InvalidArrayIndexException {
-      throw InvalidArrayIndexException.create(index);
-    }
   }
 }

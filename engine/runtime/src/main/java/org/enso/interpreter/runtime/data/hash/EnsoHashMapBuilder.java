@@ -1,8 +1,5 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import com.oracle.truffle.api.TruffleLogger;
-import java.util.ArrayList;
-import java.util.List;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.graalvm.collections.EconomicMap;
@@ -13,8 +10,6 @@ import org.graalvm.collections.Equivalence;
  * All the snapshots should have size smaller than this builder size.
  */
 public final class EnsoHashMapBuilder {
-  static final TruffleLogger logger = TruffleLogger.getLogger("enso", "HashMap");
-
   private EconomicMap<Object, StorageEntry> storage;
   private int size;
 
