@@ -357,12 +357,15 @@ impl Searcher {
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
                 let grid = &browser.model().list.model().grid;
+                let navigator = &browser.model().list.model().section_navigator;
                 let breadcrumbs = &browser.model().list.model().breadcrumbs;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
-                    eval_ action_list_changed ([model, grid] {
+                    eval_ action_list_changed ([model, grid, navigator] {
                         model.provider.take();
                         let controller_provider = model.controller.provider();
+                        let section_count = model.controller.provider().namespace_section_count();
+                        navigator.set_module_section_count.emit(section_count);
                         let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });

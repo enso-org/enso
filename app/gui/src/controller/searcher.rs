@@ -560,6 +560,11 @@ impl ComponentsProvider {
     fn components(&self) -> &component::List {
         &self.list
     }
+
+    /// Returns the number of namespace sections.
+    pub fn namespace_section_count(&self) -> usize {
+        self.list.section_names().len()
+    }
 }
 
 /// Searcher Controller.
