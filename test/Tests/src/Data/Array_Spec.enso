@@ -43,10 +43,11 @@ spec =
             res = Array.new err
             res . should_fail_with Illegal_State.Error
 
-        Test.specify "should sort in place" <|
+        Test.specify "should not sort in place" <|
             arr = make_enso_array [3, 1, 2]
-            arr.sort
-            arr . should_equal [1, 2, 3]
+            new_arr = arr.sort
+            arr . should_equal [3, 1, 2]
+            new_arr . should_equal [1, 2, 3]
 
     Test.group "ArrayOverBuffer" <|
         Test.specify "should behave like an Array" <|
@@ -57,8 +58,9 @@ spec =
                 _ -> Test.fail "Expected ArrayOverBuffer to match on Array type"
 
             array_over_buffer.to_text . should_equal "[32, 106, 117, 106, 117, 98, 101, 115, 46, 10]"
-            array_over_buffer.sort
-            array_over_buffer.to_text . should_equal "[10, 32, 46, 98, 101, 106, 106, 115, 117, 117]"
+            sorted = array_over_buffer.sort
+            array_over_buffer.to_text . should_equal "[32, 106, 117, 106, 117, 98, 101, 115, 46, 10]"
+            sorted.to_text . should_equal "[10, 32, 46, 98, 101, 106, 106, 115, 117, 117]"
 
 
 main = Test_Suite.run_main spec
