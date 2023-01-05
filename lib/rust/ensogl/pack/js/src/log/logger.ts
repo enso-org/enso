@@ -1,5 +1,13 @@
 import host from 'system/host'
 
+// =============
+// === Utils ===
+// =============
+
+function isObject(value: any): boolean {
+    return typeof value === 'object' && !Array.isArray(value) && value !== null
+}
+
 // ==============
 // === Colors ===
 // ==============
@@ -37,123 +45,211 @@ class Colors {
     }
 }
 
+// ================
+// === Consumer ===
+// ================
+
+export type LogLevel = 'trace' | 'log' | 'warn' | 'error'
+
+export abstract class Consumer {
+    abstract message(fn: LogLevel, ...args: any[]): void
+
+    /** Start a group and log a message. */
+    abstract group(...args: any[]): void
+
+    /** Start a group and log a message. */
+    abstract groupCollapsed(...args: any[]): void
+
+    /** Log a message and end the last opened group. */
+    abstract groupEnd(...args: any[]): void
+
+    /** Log a message. */
+    log(...args: any[]) {
+        this.message('log', ...args)
+    }
+
+    /** Log a warning. */
+    warn(...args: any[]) {
+        this.message('warn', ...args)
+    }
+
+    /** Log an error. */
+    error(...args: any[]) {
+        this.message('error', ...args)
+    }
+
+    with<T>(message: string, f: () => T): T {
+        this.group(message)
+        let out = f()
+        this.groupEnd()
+        return out
+    }
+
+    withCollapsed<T>(message: string, f: () => T): T {
+        this.groupCollapsed(message)
+        let out = f()
+        this.groupEnd()
+        return out
+    }
+
+    async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
+        this.group(message)
+        let out = await f()
+        this.groupEnd()
+        return out
+    }
+
+    async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
+        this.groupCollapsed(message)
+        let out = await f()
+        this.groupEnd()
+        return out
+    }
+}
+
 // ==============
 // === Logger ===
 // ==============
 
-export class Logger {
-    private static indent_lvl: number = 0
+export class Logger extends Consumer {
+    private consumers: Consumer[] = []
 
-    private static message(fn: string, color: string | null, ...args: any[]) {
-        const strArgs = args.map(arg => arg.toString())
+    addConsumer(consumer: Consumer) {
+        this.consumers.push(consumer)
+    }
+
+    message(fn: LogLevel, ...args: any[]) {
+        for (let consumer of this.consumers) {
+            consumer.message(fn, ...args)
+        }
+    }
+
+    group(...args: any[]) {
+        for (let consumer of this.consumers) {
+            consumer.group(...args)
+        }
+    }
+
+    groupCollapsed(...args: any[]) {
+        for (let consumer of this.consumers) {
+            consumer.groupCollapsed(...args)
+        }
+    }
+
+    groupEnd(...args: any[]) {
+        for (let consumer of this.consumers) {
+            consumer.groupEnd(...args)
+        }
+    }
+}
+
+// ===============
+// === Console ===
+// ===============
+
+function replacer(key: string, value: any) {
+    if (value instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(value.entries()),
+        }
+    } else {
+        return value
+    }
+}
+
+export class Console extends Consumer {
+    private indent_lvl: number = 0
+
+    message(fn: LogLevel, ...args: any[]) {
+        const strArgs = args.map(arg => {
+            if (isObject(arg)) {
+                return JSON.stringify(arg, replacer, 2)
+            } else {
+                return arg.toString()
+            }
+        })
         const c: any = console
         if (host.browser) {
             c[fn](...strArgs)
         } else {
+            let color: null | string
+            switch (fn) {
+                case 'warn':
+                    color = 'orange'
+                    break
+                case 'error':
+                    color = 'red'
+                    break
+                default:
+                    color = null
+                    break
+            }
             //@ts-ignore
             const coloredArgs = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
-            if (Logger.indent_lvl > 0) {
-                let indent = Logger.indent()
+            if (this.indent_lvl > 0) {
+                let indent = this.indent()
                 const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}    `))
-                c.log(Logger.indent_shorter(), ...indentedArgs)
+                c.log(this.indent_shorter(), ...indentedArgs)
             } else {
                 c.log(...strArgs)
             }
         }
     }
 
-    private static indent(): string {
-        let out = ''
-        for (let i = 0; i < Logger.indent_lvl; i++) {
-            let box = Colors.level(i, '│')
-            out += `${box} `
-        }
-        return out
-    }
-
-    private static indent_shorter(): string {
-        return Logger.indent().slice(0, -1)
-    }
-
-    /** Log a message. */
-    static log(...args: any[]) {
-        Logger.message('log', null, ...args)
-    }
-
-    /** Log a warning. */
-    static warn(...args: any[]) {
-        Logger.message('warn', 'orange', ...args)
-    }
-
-    /** Log an error. */
-    static error(...args: any[]) {
-        Logger.message('error', 'red', ...args)
-    }
-
-    /** Start a group and log a message. */
-    static group(...args: any[]) {
+    group(...args: any[]) {
         if (host.browser) {
             console.group(...args)
         } else {
-            const styleStart = `${Colors.bold_start()}${Colors.levelStart(Logger.indent_lvl)}`
-            console.log(`${Logger.indent()}${styleStart}╭`, ...args, Colors.reset())
+            const styleStart = `${Colors.bold_start()}${Colors.levelStart(this.indent_lvl)}`
+            console.log(`${this.indent()}${styleStart}╭`, ...args, Colors.reset())
         }
-        Logger.indent_lvl += 1
+        this.indent_lvl += 1
     }
 
-    /** Start a group and log a message. */
-    static groupCollapsed(...args: any[]) {
+    groupCollapsed(...args: any[]) {
         if (host.browser) {
             console.groupCollapsed(...args)
-            Logger.indent_lvl += 1
+            this.indent_lvl += 1
         } else {
-            Logger.group(...args)
+            this.group(...args)
         }
     }
 
-    /** Log a message and end the last opened group. */
-    static groupEnd(...args: any[]) {
-        if (Logger.indent_lvl > 0) {
-            Logger.indent_lvl -= 1
+    groupEnd(...args: any[]) {
+        if (this.indent_lvl > 0) {
+            this.indent_lvl -= 1
             if (host.browser) {
                 if (args.length > 0) {
                     console.log(...args)
                 }
                 console.groupEnd()
             } else {
-                const styleStart = `${Colors.levelStart(Logger.indent_lvl)}`
-                console.log(`${Logger.indent()}${styleStart}╰`, ...args)
+                const styleStart = `${Colors.levelStart(this.indent_lvl)}`
+                console.log(`${this.indent()}${styleStart}╰`, ...args)
             }
         } else {
-            Logger.log(...args)
+            this.log(...args)
         }
     }
 
-    static with<T>(message: string, f: () => T): T {
-        Logger.group(message)
-        let out = f()
-        Logger.groupEnd()
+    private indent(): string {
+        let out = ''
+        for (let i = 0; i < this.indent_lvl; i++) {
+            let box = Colors.level(i, '│')
+            out += `${box} `
+        }
         return out
     }
 
-    static withCollapsed<T>(message: string, f: () => T): T {
-        Logger.groupCollapsed(message)
-        let out = f()
-        Logger.groupEnd()
-        return out
-    }
-
-    static async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
-        Logger.group(message)
-        let out = await f()
-        Logger.groupEnd()
-        return out
-    }
-
-    static async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
-        Logger.groupCollapsed(message)
-        let out = await f()
-        Logger.groupEnd()
-        return out
+    private indent_shorter(): string {
+        return this.indent().slice(0, -1)
     }
 }
+
+// ===============================
+// === Default Logger Instance ===
+// ===============================
+
+export const logger = new Logger()
+logger.addConsumer(new Console())

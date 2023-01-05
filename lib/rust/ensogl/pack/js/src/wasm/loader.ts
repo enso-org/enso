@@ -85,7 +85,7 @@ class ProgressIndicator {
         this.set(0)
         this.setIndicatorOpacity(0)
 
-        if (cfg.use_loader) {
+        if (cfg.useLoader) {
             this.initialized = Promise.all<void>([this.animateShow(), this.animateShowLogo()])
         } else {
             this.initialized = new Promise(resolve => {
@@ -94,8 +94,6 @@ class ProgressIndicator {
         }
         this.animate_rotation()
         this.destroyed = false
-
-        console.log('req anim frame')
     }
 
     /// Initializes the SVG view.
@@ -291,7 +289,7 @@ export class Loader {
         this.download_speed = 0
         this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
-        this.capProgressAt = cfg.loader_download_to_init_ratio.value
+        this.capProgressAt = cfg.loaderDownloadToInitRatio.value
 
         this.done = new Promise(resolve => {
             this.done_resolve = resolve

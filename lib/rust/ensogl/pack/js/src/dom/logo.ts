@@ -80,7 +80,7 @@ export class Logo {
                 <circle ${id('RightCircle')} cx="${rCircleX}" cy="${size2}" r="${rCircleR}"/>
                 <rect ${id('Bg')} width="${this.size}" height="${this.size}" fill="white"/>
                 <mask ${id('BgMask')}>
-                  <use ${this.ref}=${idRef('Bg')}/>
+                  <use ${idRef('Bg')}/>
                   <circle cx="${size2}" cy="${size2}" r="${size2 - this.borderWidth}" fill="black"/>
                 </mask>
                 <mask ${id('MainShapeMask')}>

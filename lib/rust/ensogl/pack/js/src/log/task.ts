@@ -1,4 +1,4 @@
-import { Logger } from 'log/logger'
+import { logger } from 'log/logger'
 
 // ============
 // === Task ===
@@ -13,7 +13,7 @@ export class Task {
     }
 
     start() {
-        Logger.group(`${this.message}`)
+        logger.group(`${this.message}`)
         this.startTime = performance.now()
     }
 
@@ -27,7 +27,7 @@ export class Task {
         if (ms_rounded == 0) {
             ms_rounded = Math.round(ms * 1000) / 1000
         }
-        Logger.groupEnd(`Done in ${ms_rounded} ms.`)
+        logger.groupEnd(`Done in ${ms_rounded} ms.`)
         return ms
     }
 
