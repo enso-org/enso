@@ -651,14 +651,19 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
+        problem_builder = Problem_Builder.new
         warning_mapper error = case error of
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
             _ -> Nothing
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
             self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
-        # TODO detect floating point
-        # TODO text case insensitive mode
-        self.connection.dialect.prepare_distinct self key_columns
+        text_case_insensitive = case case_sensitivity of
+            Case_Sensitivity.Sensitive -> False
+            Case_Sensitivity.Insensitive locale ->
+                Helpers.assume_default_locale locale <|
+                    True
+        new_table = self.connection.dialect.prepare_distinct self key_columns text_case_insensitive problem_builder
+        problem_builder.attach_problems_before on_problems new_table
 
     ## Joins two tables according to the specified join conditions.
 
@@ -916,7 +921,7 @@ type Table
            computing too much we do not pass all the columns but only the first
            one.
         setup = self.context.as_subquery self.name [[self.internal_columns.first]]
-        new_ctx = Context.for_subquery setup.first
+        new_ctx = Context.for_subquery setup.subquery
         query = Query.Select [[column_name, expr]] new_ctx
         sql = self.connection.dialect.generate_sql query
         table = self.connection.read_statement sql
@@ -965,8 +970,8 @@ type Table
                Naively wrapping each column in a `COUNT(...)` will not
                always work as aggregates cannot be nested.
             setup = self.context.as_subquery self.name [self.internal_columns]
-            new_ctx = Context.for_subquery setup.first
-            new_columns = setup.second.first.map column->
+            new_ctx = Context.for_subquery setup.subquery
+            new_columns = setup.new_columns.first.map column->
                 [column.name, SQL_Expression.Operation "COUNT" [column.expression]]
             query = Query.Select new_columns new_ctx
             self.connection.dialect.generate_sql query

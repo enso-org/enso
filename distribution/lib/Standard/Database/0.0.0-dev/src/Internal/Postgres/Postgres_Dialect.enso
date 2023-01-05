@@ -4,6 +4,7 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
@@ -79,14 +80,15 @@ type Postgres_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : Table -> Vector -> Table
-    prepare_distinct self table key_columns =
-        setup = table.context.as_subquery table.name+"_inner" [table.internal_columns, key_columns]
-        new_key_columns = setup.second.second
-        distinct_expressions = new_key_columns.map .expression
+    prepare_distinct : Table -> Vector -> Boolean -> Problem_Builder -> Table
+    prepare_distinct self table key_columns text_case_insensitive problem_builder =
+        setup = table.context.as_subquery table.name+"_inner" [table.internal_columns]
+        new_columns = setup.new_columns.first
+        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        new_key_columns = key_columns.map c-> column_mapping.at c.name
+        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression text_case_insensitive problem_builder)
         # TODO check order_by
-        new_context = Context.for_subquery setup.first . set_distinct_on distinct_expressions
-        new_columns = setup.second.first
+        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
         table.updated_context_and_columns new_context new_columns
 
 ## PRIVATE
