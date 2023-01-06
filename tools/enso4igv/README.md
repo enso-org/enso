@@ -153,9 +153,9 @@ NetBeans based application.
 
 ## Building VSCode Extension
 
-One can package the same plugin into a VSCode extension and obtain _Enso_
-syntax coloring as well as support for editing `engine/runtime` sources in
-**VSCode**. Just invoke:
+One can package the same plugin into a VSCode extension and obtain _Enso_ syntax
+coloring as well as support for editing `engine/runtime` sources in **VSCode**.
+Just invoke:
 
 ```
 enso/tools/enso4igv$ npm install
