@@ -345,13 +345,13 @@ type List
     init self =
         case self of
             Nil -> Error.throw Empty_Error
-            Cons a Nil -> Nil
+            Cons _ Nil -> Nil
             Cons a b ->
                 go l fill = case l of
                     Cons x xs -> case xs of
                         Nil -> fill Nil
-                        Cons y z ->
-                            res = Meta.atom_with_hole (e -> Cons y e)
+                        Cons _ _ ->
+                            res = Meta.atom_with_hole (e -> Cons x e)
                             fill res.value
                             @Tail_Call go xs res.fill
 
@@ -406,7 +406,7 @@ type List
     to_text self =
         go l t = case l of
             Nil -> t + "Nil"
-            Cons x xs -> @Tail_Call go xs ("Cons " + x.to_text + " ")
+            Cons x xs -> @Tail_Call go xs (t + "Cons " + x.to_text + " ")
         go self ""
 
 ## UNSTABLE

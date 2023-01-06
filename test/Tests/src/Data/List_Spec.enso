@@ -115,6 +115,10 @@ spec = Test.group "List" <|
     Test.specify "should allow getting the tail of the list with `.tail`" <|
         l.tail . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
         empty.tail.should_fail_with Empty_Error
+    Test.specify "single element list.init yields Nil" <|
+        (List.Cons 1 List.Nil).init . should_equal List.Nil
+    Test.specify "two element list.init yields one element" <|
+        (List.Cons 1 (List.Cons 2 List.Nil)).init . should_equal (List.Cons 1 List.Nil)
     Test.specify "should allow getting the init of the list with `.init`" <|
         l.init . should_equal (List.Cons 1 (List.Cons 2 List.Nil))
         empty.init.should_fail_with Empty_Error
