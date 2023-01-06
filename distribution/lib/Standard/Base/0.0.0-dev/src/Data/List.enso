@@ -88,7 +88,7 @@ type List
                 Nil -> if count == 0 then current.x else if_missing
                 Cons _ xs ->
                     new_current = if count > 0 then current else current.xs
-                    @Tail_Call loop new_current (0.max index-1) xs
+                    @Tail_Call loop new_current (0.max count-1) xs
             loop self -index self
 
     ## Combines all the elements of the list, by iteratively applying the

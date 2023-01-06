@@ -123,5 +123,29 @@ spec = Test.group "List" <|
     Test.specify "should allow getting the second item of the list with `.second`" <|
         l.second . should_equal 2
         empty.second.should_fail_with Index_Out_Of_Bounds.Error
+    Test.specify "should allow getting the last element of the list with `.last`" <|
+        l.last . should_equal 3
+        empty.last.should_fail_with Index_Out_Of_Bounds.Error
+    Test.specify "should allow getting the items of the list with `.at`" <|
+        l.at 0 . should_equal 1
+        l.at 1 . should_equal 2
+        l.at 2 . should_equal 3
+        l.at -3 . should_equal 1
+        l.at -2 . should_equal 2
+        l.at -1 . should_equal 3
+        empty.at 0 . should_fail_with Index_Out_Of_Bounds.Error
+        l.at 3 . should_fail_with Index_Out_Of_Bounds.Error
+        l.at -4 . should_fail_with Index_Out_Of_Bounds.Error
+    Test.specify "should allow getting the items of the list with `.get`" <|
+        l.get 0 . should_equal 1
+        l.get 1 . should_equal 2
+        l.get 2 . should_equal 3
+        l.get -3 . should_equal 1
+        l.get -2 . should_equal 2
+        l.get -1 . should_equal 3
+        empty.get 0 . should_equal Nothing
+        empty.get 0 "A" . should_equal "A"
+        l.get 3 . should_equal Nothing
+        l.get -4 . should_equal Nothing
 
 main = Test_Suite.run_main spec
