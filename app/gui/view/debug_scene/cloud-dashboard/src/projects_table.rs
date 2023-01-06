@@ -614,6 +614,14 @@ impl View {
         Self { frp, model, client, app }
     }
 
+    /// Initializes the FRP network responsible for this view by calling out to the individual init
+    /// methods in the correct order.
+    ///
+    /// It also initializes the HTTP client used to communicate with the Cloud backend for the
+    /// purposes of loading [`Project`] details and modifying the [`Project`]s, either by creating
+    /// or destroying them, or by starting or stopping them.
+    ///
+    /// [`Project`]: ::enso_cloud_view::project::Project
     pub fn init(self) -> Result<Self, Error> {
         let frp = &self.frp;
         let model = &self.model;
