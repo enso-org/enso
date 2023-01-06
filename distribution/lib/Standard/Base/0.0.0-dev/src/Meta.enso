@@ -276,17 +276,14 @@ new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
 ## PRIVATE
 
-   Constructs a new atom with a "hole". Returns a `Pair` of the newly created
-   atom and a function to "fill the hole" later.
+   Constructs a new atom with a "hole". Returns an object with `value` and
+   `fill` properties. Value contains the created atom and `fill` holds a
+   function to "fill the hole" later.
 
    Arguments:
    - factory: a function that takes the "hole" element and returns newly created atom
-atom_with_hole : (Any -> Atom) -> Pair Atom (Any -> Nothing)
-atom_with_hole factory =
-   vec = atom_with_hole_builtin factory
-   Pair.new (vec.at 0) (vec.at 1)
-
-atom_with_hole_builtin factory = @Builtin_Method "Meta.atom_with_hole_builtin"
+atom_with_hole : (Any -> Atom) -> Any
+atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
 
 ## UNSTABLE
    ADVANCED

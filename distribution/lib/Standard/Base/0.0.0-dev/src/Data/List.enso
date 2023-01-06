@@ -215,12 +215,12 @@ type List
                 Cons h t ->
                     v = f h
                     res = Meta.atom_with_hole (e -> Cons v e)
-                    fill res.first
-                    @Tail_Call go t res.second
+                    fill res.value
+                    @Tail_Call go t res.fill
             v = f h
             res = Meta.atom_with_hole (e -> Cons v e)
-            go t res.second
-            res.first
+            go t res.fill
+            res.value
 
     ## Applies a function to each element of the list.
 

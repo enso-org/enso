@@ -175,12 +175,9 @@ spec =
     Test.group "Atom with holes" <|
         Test.specify "construct and fill" <|
             pair = Meta.atom_with_hole (e -> My_Type.Value 1 e 3)
-            case pair of
-                _ : Pair -> Nothing
-                _ -> Test.fail "Should return a Pair"
 
-            atom = pair.first
-            fill = pair.second
+            atom = pair.value
+            fill = pair.fill
 
             Meta.is_atom atom . should_be_true
 
@@ -214,8 +211,8 @@ spec =
 
         Test.specify "only one atom_with_hole is used" <|
             pair = Meta.atom_with_hole (e -> My_Type.Value e e e)
-            atom = pair.first
-            fill = pair.second
+            atom = pair.value
+            fill = pair.fill
 
             Meta.is_atom atom . should_be_true
 

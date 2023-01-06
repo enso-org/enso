@@ -17,10 +17,13 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.state.State;
 
@@ -35,18 +38,17 @@ public abstract class AtomWithAHoleNode extends Node {
     return AtomWithAHoleNodeGen.create();
   }
 
-
-  abstract Vector execute(VirtualFrame frame, Object factory);
+  abstract Object execute(VirtualFrame frame, Object factory);
 
   static InvokeCallableNode callWithHole() {
-      return InvokeCallableNode.build(
-          new CallArgumentInfo[] {new CallArgumentInfo()},
-          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+    return InvokeCallableNode.build(
+      new CallArgumentInfo[] {new CallArgumentInfo()},
+      InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+      InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
   }
 
   @Specialization
-  Vector doExecute(
+  Object doExecute(
     VirtualFrame frame,
     Object factory,
     @Cached("callWithHole()") InvokeCallableNode iop,
@@ -54,20 +56,57 @@ public abstract class AtomWithAHoleNode extends Node {
   ) {
     var ctx = EnsoContext.get(this);
     var lazy = new HoleInAtom();
-    var r = iop.execute(factory, frame, State.create(ctx), new Object[] { lazy });
-    if (r instanceof Atom a) {
-      var i = swapNode.findHoleIndex(a, lazy);
-      if (i >= 0) {
-        var function = swapNode.createFn(a, i, lazy);
-        return Vector.fromArray(new Array(a, function));
+    var result = iop.execute(factory, frame, State.create(ctx), new Object[] { lazy });
+    if (result instanceof Atom atom) {
+      var index = swapNode.findHoleIndex(atom, lazy);
+      if (index >= 0) {
+        var function = swapNode.createFn(lazy);
+        lazy.init(atom, index, function);
+        return lazy;
       }
     }
-    throw new PanicException(ctx.getBuiltins().error().makeUninitializedStateError(r), this);
+    throw new PanicException(ctx.getBuiltins().error().makeUninitializedStateError(result), this);
   }
 
   @ExportLibrary(InteropLibrary.class)
   static final class HoleInAtom implements TruffleObject {
+    Atom result;
+    int index;
+    Function function;
+
     HoleInAtom() {
+    }
+
+    void init(Atom result, int index, Function function) {
+      this.result = result;
+      this.index = index;
+      this.function = function;
+    }
+
+    @ExportMessage boolean hasMembers() {
+        return true;
+    }
+
+    @ExportMessage boolean isMemberReadable(String member) {
+        return switch (member) {
+            case "value", "fill" -> true;
+            default -> false;
+        };
+    }
+
+    @ExportMessage Object getMembers(boolean includeInternal) throws UnsupportedMessageException {
+        return new Array("value", "fill");
+    }
+
+    @ExportMessage
+    Object readMember(String name) throws UnknownIdentifierException {
+      if ("value".equals(name)) {
+        return result;
+      }
+      if ("fill".equals(name)) {
+        return function;
+      }
+      throw UnknownIdentifierException.create(name);
     }
 
     @ExportMessage
@@ -77,18 +116,17 @@ public abstract class AtomWithAHoleNode extends Node {
   }
   static final class SwapAtomFieldNode extends RootNode {
     private final FunctionSchema schema;
+    private final ValueProfile sameAtom = ValueProfile.createClassProfile();
     @CompilerDirectives.CompilationFinal
     private int lastIndex = -1;
 
     private SwapAtomFieldNode() {
       super(null);
       this.schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.NONE, new ArgumentDefinition[]{
-        new ArgumentDefinition(0, "instance", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(1, "lazy_index", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(2, "lazy", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(3, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
+        new ArgumentDefinition(0, "lazy", ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
-        true, true, true, false
+        true, false
       }, new CallArgumentInfo[0]);
     }
 
@@ -130,8 +168,8 @@ public abstract class AtomWithAHoleNode extends Node {
         return -1;
     }
 
-    Function createFn(Atom atom, int index, HoleInAtom lazy) {
-      var preArgs = new Object[]{atom, index, lazy, null};
+    Function createFn(HoleInAtom lazy) {
+      var preArgs = new Object[]{lazy, null};
       return new Function(
               getCallTarget(),
               null,
@@ -144,13 +182,13 @@ public abstract class AtomWithAHoleNode extends Node {
     @Override
     public Object execute(VirtualFrame frame) {
       var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
-      if (args[0] instanceof Atom replace) {
-        if (args[1] instanceof Integer n) {
-          var fields = replace.getFields();
-          if (fields[n.intValue()] == args[2]) {
-            fields[n.intValue()] = args[3];
-          }
+      if (args[0] instanceof HoleInAtom lazy) {
+        var fields = lazy.result.getFields();
+        var newValue = args[1];
+        if (fields[lazy.index] == lazy) {
+          fields[lazy.index] = newValue;
         }
+        return newValue;
       }
       return EnsoContext.get(this).getBuiltins().nothing();
     }
