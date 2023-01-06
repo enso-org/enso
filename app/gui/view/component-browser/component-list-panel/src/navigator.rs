@@ -119,26 +119,29 @@ fn section_id_to_icon_id(section: SectionId) -> icon::Id {
 // ============================================================
 
 /// Convert [`SectionId`] to location on [`Navigator::bottom_buttons`].
-fn section_id_to_grid_loc(id: SectionId) -> (Row, Col) {
+fn section_id_to_grid_loc(id: SectionId, sections_count: usize) -> (Row, Col) {
     const COLUMN: Col = 0;
+    let namespace_section_offset = sections_count - FIXED_BOTTOM_BUTTONS_COUNT;
     match id {
-        SectionId::Popular => (0, COLUMN),
-        SectionId::LocalScope => (1, COLUMN),
-        SectionId::ModuleNamespace(id) => (id + FIXED_BOTTOM_BUTTONS_COUNT, COLUMN),
+        SectionId::Popular => (namespace_section_offset, COLUMN),
+        SectionId::LocalScope => (namespace_section_offset + 1, COLUMN),
+        SectionId::ModuleNamespace(n) => (namespace_section_offset - n - 1, COLUMN),
     }
 }
 
 /// Convert the location on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
 /// index and returns the id of topmost section.
-fn loc_to_section_id(&(row, _): &(Row, Col)) -> SectionId {
+fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId {
+    let namespace_section_offset = sections_count - FIXED_BOTTOM_BUTTONS_COUNT;
     match row {
-        0 => SectionId::Popular,
-        1 => SectionId::LocalScope,
-        n => SectionId::ModuleNamespace(n - FIXED_BOTTOM_BUTTONS_COUNT),
-        // _ => {
-        //     error!("Tried to create SectionId from too high Navigator List row ({}).", row);
-        //     highest
-        // }
+        n if n == namespace_section_offset => SectionId::Popular,
+        n if n == namespace_section_offset + 1 => SectionId::LocalScope,
+        n if n < namespace_section_offset =>
+            SectionId::ModuleNamespace(namespace_section_offset - n - 1),
+        _ => {
+            error!("Tried to create SectionId from too high Navigator List row ({}).", row);
+            SectionId::ModuleNamespace(0)
+        }
     }
 }
 
@@ -186,11 +189,11 @@ impl Navigator {
         frp::extend! { network
             style <- any(...);
             set_module_section_count <- any(...);
-            set_section_count <- set_module_section_count.map(
+            section_count <- set_module_section_count.map(
                 |&n: &usize| n + FIXED_BOTTOM_BUTTONS_COUNT
             );
-            bottom_buttons_shape <- set_section_count.map(|n| (*n, 1));
-            bottom_button_params <- all2(&set_section_count, &style);
+            bottom_buttons_shape <- section_count.map(|n| (*n, 1));
+            bottom_button_params <- all2(&section_count, &style);
             bottom_button_viewport <- bottom_button_params.map(get_bottom_button_viewport);
             bottom_button_y_pos <- bottom_button_params.map(get_bottom_button_y_pos);
             bottom_buttons.reset_entries <+ bottom_buttons_shape;
@@ -198,15 +201,21 @@ impl Navigator {
             eval bottom_button_y_pos ((y) bottom_buttons.set_y(*y));
 
             select_section <- any(...);
-            user_selected_section <- select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
+            user_selected_section <- all2(&select_section, &section_count);
+            user_selected_section <- user_selected_section.map(
+                |(s, max): &(Option<SectionId>, _)| s.map(|s| section_id_to_grid_loc(s, *max))
+            );
             bottom_buttons.select_entry <+ user_selected_section;
             selected_button_and_section <- all(&bottom_buttons.entry_selected, &user_selected_section);
-            different_section_chosen <- selected_button_and_section.filter(|(e, u)| *e != *u);
-            chosen_section <- different_section_chosen._0().map(|loc| loc.as_ref().map(loc_to_section_id));
+            different_section_chosen <- selected_button_and_section.filter(|(e, u)| *e != *u)._0();
+            chosen_section <- all2(&different_section_chosen, &section_count);
+            chosen_section <- chosen_section.map(
+                |(loc, max)| loc.as_ref().map(|loc| loc_to_section_id(loc, *max))
+            );
 
-            model <- bottom_buttons.model_for_entry_needed.map2(&colors.update, f!([]
-                ((row, col), colors) {
-                    let section_id = loc_to_section_id(&(*row, *col));
+            model <- bottom_buttons.model_for_entry_needed.map3(&colors.update, &section_count, f!([]
+                ((row, col), colors, section_count) {
+                    let section_id = loc_to_section_id(&(*row, *col), *section_count);
                     let icon_id = section_id_to_icon_id(section_id);
                     let active_colors = colors.get(section_id).into();
                     let inactive_colors = colors.inactive.into();
