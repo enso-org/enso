@@ -1,5 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.Array;
+import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.error.PanicException;
+
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -14,26 +25,16 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.Vector;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Meta",
-    name = "lazy_atom",
+    name = "atom_with_hole_builtin",
     description = "Creates a new atom with given constructor and fields.",
     autoRegister = false)
-public abstract class LazyAtomInstanceNode extends Node {
+public abstract class AtomWithAHoleNode extends Node {
 
-  static LazyAtomInstanceNode build() {
-    return LazyAtomInstanceNodeGen.create();
+  static AtomWithAHoleNode build() {
+    return AtomWithAHoleNodeGen.create();
   }
 
   abstract Vector execute(Object factory);
@@ -77,7 +78,7 @@ public abstract class LazyAtomInstanceNode extends Node {
 
     @ExportMessage
     String toDisplayString(boolean pure) {
-      return "Meta.lazy_atom";
+      return "Meta.atom_with_hole";
     }
   }
   static final class SwapAtomFieldNode extends RootNode {

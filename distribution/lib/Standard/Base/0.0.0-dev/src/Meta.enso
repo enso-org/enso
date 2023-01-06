@@ -3,6 +3,7 @@ import project.Data.Array.Array
 import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Date.Date
@@ -273,8 +274,19 @@ get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_na
 new_atom : Any -> Array -> Atom
 new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
-lazy_atom : (Any -> Atom) -> Atom
-lazy_atom constructor fields = @Builtin_Method "Meta.lazy_atom"
+## PRIVATE
+
+   Constructs a new atom with a "hole". Returns a `Pair` of the newly created
+   atom and a function to "fill the hole" later.
+
+   Arguments:
+   - factory: a function that takes the "hole" element and returns newly created atom
+atom_with_hole : (Any -> Atom) -> Pair Atom (Any -> Nothing)
+atom_with_hole factory =
+   vec = atom_with_hole_builtin factory
+   Pair.new (vec.at 0) (vec.at 1)
+
+atom_with_hole_builtin factory = @Builtin_Method "Meta.atom_with_hole_builtin"
 
 ## UNSTABLE
    ADVANCED

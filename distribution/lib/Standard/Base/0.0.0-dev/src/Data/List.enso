@@ -214,13 +214,13 @@ type List
                 Nil -> fill Nil
                 Cons h t ->
                     v = f h
-                    res = Meta.lazy_atom (e -> Cons v e)
-                    fill (res.at 0)
-                    @Tail_Call go t (res.at 1)
+                    res = Meta.atom_with_hole (e -> Cons v e)
+                    fill res.first
+                    @Tail_Call go t res.second
             v = f h
-            res = Meta.lazy_atom (e -> Cons v e)
-            go t (res.at 1)
-            res.at 0
+            res = Meta.atom_with_hole (e -> Cons v e)
+            go t res.second
+            res.first
 
     ## Applies a function to each element of the list.
 
