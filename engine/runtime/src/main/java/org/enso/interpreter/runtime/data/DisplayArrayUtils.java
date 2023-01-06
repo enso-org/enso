@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -9,6 +10,7 @@ import java.io.StringWriter;
 
 public class DisplayArrayUtils {
 
+  @CompilerDirectives.TruffleBoundary
   public static String toDisplayString(
       Object arrayLike, boolean allowSideEffects, InteropLibrary iop) {
     StringBuilder sb = new StringBuilder();
@@ -32,7 +34,7 @@ public class DisplayArrayUtils {
     } catch (InvalidArrayIndexException | UnsupportedMessageException ex) {
       StringWriter w = new StringWriter();
       ex.printStackTrace(new PrintWriter(w));
-      sb.append("...\n").append(w.toString());
+      sb.append("...\n").append(w);
     }
     return sb.toString();
   }

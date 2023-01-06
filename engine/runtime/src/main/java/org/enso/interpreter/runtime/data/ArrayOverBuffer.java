@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -57,6 +58,7 @@ public final class ArrayOverBuffer implements TruffleObject {
    *
    * @return byte array backing ByteBuffer
    */
+  @CompilerDirectives.TruffleBoundary
   public byte[] backingArray() {
     return buffer.array();
   }

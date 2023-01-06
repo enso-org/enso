@@ -66,8 +66,13 @@ public abstract class SortNode extends Node {
     Byte[] tmpArray = ArrayUtils.toObject(self.backingArray());
     runSort(compare, tmpArray);
     byte[] sortedPrimitiveArray = ArrayUtils.toPrimitive(tmpArray);
+    return createArrayOverBuffer(sortedPrimitiveArray);
+  }
+
+  @TruffleBoundary
+  private ArrayOverBuffer createArrayOverBuffer(byte[] arrayOfPrimitives) {
     return ArrayOverBuffer.wrapBuffer(
-        ByteBuffer.wrap(sortedPrimitiveArray, 0, sortedPrimitiveArray.length));
+        ByteBuffer.wrap(arrayOfPrimitives, 0, arrayOfPrimitives.length));
   }
 
   @Specialization(guards = "arrays.hasArrayElements(self)")
