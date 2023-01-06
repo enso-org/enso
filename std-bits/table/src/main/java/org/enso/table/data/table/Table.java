@@ -8,15 +8,15 @@ import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
-import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.join.*;
-import org.enso.table.data.table.join.scan.ScanJoin;
+import org.enso.table.data.table.join.IndexJoin;
+import org.enso.table.data.table.join.JoinCondition;
+import org.enso.table.data.table.join.JoinResult;
+import org.enso.table.data.table.join.JoinStrategy;
 import org.enso.table.data.table.problems.AggregatedProblems;
-import org.enso.table.error.NoSuchColumnException;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
 import org.enso.table.util.NameDeduplicator;
@@ -30,8 +30,6 @@ import java.util.stream.IntStream;
 public class Table {
 
   private final Column[] columns;
-  @Deprecated
-  private final Index index;
   private final AggregatedProblems problems;
 
   /**
@@ -40,31 +38,19 @@ public class Table {
    * @param columns the columns contained in this table.
    */
   public Table(Column[] columns) {
-    this(columns, null, null);
-  }
-
-  public Table(Column[] columns, Index index) {
-    this(columns, index, null);
+    this(columns, null);
   }
 
   public Table(Column[] columns, AggregatedProblems problems) {
-    this(columns, null, problems);
-  }
-
-  private Table(Column[] columns, Index index, AggregatedProblems problems) {
     this.columns = columns;
-    this.index =
-        index == null
-            ? (new DefaultIndex(
-                (columns == null || columns.length == 0) ? 0 : columns[0].getSize()))
-            : index;
     this.problems = problems;
   }
 
   /** @return the number of rows in this table */
   public int rowCount() {
-    if (columns == null || columns.length == 0) {
-      return index.size();
+    // TODO I think we can make this check obsolete once we start requiring >=1 column in tables.
+    if (columns.length == 0) {
+      return 0;
     } else {
       return columns[0].getSize();
     }
@@ -96,25 +82,6 @@ public class Table {
   }
 
   /**
-   * Returns a column or index with the given name, or null if it doesn't exist.
-   *
-   * @param name the column name
-   * @return a column or index column with the given name
-   */
-  public Column getColumnOrIndexByName(String name) {
-    var column = getColumnByName(name);
-    if (column != null) {
-      return column;
-    }
-
-    if (Text_Utils.equals(getIndex().getName(), name)) {
-      return getIndex().toColumn();
-    }
-
-    return null;
-  }
-
-  /**
    * Returns a table resulting from selecting only the rows corresponding to true entries in the
    * provided column.
    *
@@ -132,11 +99,10 @@ public class Table {
     mask.and(localStorageMask);
     int cardinality = mask.cardinality();
     Column[] newColumns = new Column[columns.length];
-    Index newIx = index.mask(mask, cardinality);
     for (int i = 0; i < columns.length; i++) {
-      newColumns[i] = columns[i].mask(newIx, mask, cardinality);
+      newColumns[i] = columns[i].mask(mask, cardinality);
     }
-    return new Table(newColumns, newIx);
+    return new Table(newColumns, null);
   }
 
   /**
@@ -164,14 +130,14 @@ public class Table {
     Column[] newCols = new Column[columns.length];
     System.arraycopy(columns, 0, newCols, 0, columns.length);
     newCols[ix] = newCol;
-    return new Table(newCols, index);
+    return new Table(newCols, null);
   }
 
   private Table addColumn(Column newColumn) {
     Column[] newCols = new Column[columns.length + 1];
     System.arraycopy(columns, 0, newCols, 0, columns.length);
     newCols[columns.length] = newColumn;
-    return new Table(newCols, index);
+    return new Table(newCols, null);
   }
 
   /**
@@ -180,41 +146,7 @@ public class Table {
    * @return the index of this table
    */
   public Index getIndex() {
-    return index;
-  }
-
-  /**
-   * Reindexes this table by using values from the column with the given name.
-   *
-   * @param col the column to use as index
-   * @return a table indexed by the proper column
-   */
-  public Table indexFromColumn(Column col) {
-    Storage<?> storage = col.getStorage();
-    Index ix = HashIndex.fromStorage(col.getName(), storage);
-    List<Column> newColumns = new ArrayList<>();
-    Column indexCol = index.toColumn();
-    if (indexCol != null) {
-      newColumns.add(indexCol.withIndex(ix));
-    }
-    for (Column column : columns) {
-      if (!Text_Utils.equals(column.getName(), col.getName())) {
-        newColumns.add(column.withIndex(ix));
-      }
-    }
-    return new Table(newColumns.toArray(new Column[0]), ix);
-  }
-
-  /**
-   * Reindexes this table by using values from the column with the given name.
-   *
-   * @param name the column name to use as index
-   * @return a table indexed by the proper column
-   */
-  public Table indexFromColumn(String name) {
-    Column col = getColumnByName(name);
-    if (col == null) throw new NoSuchColumnException(name);
-    return indexFromColumn(col);
+    return new DefaultIndex(rowCount());
   }
 
   /**
@@ -253,12 +185,11 @@ public class Table {
     var rowsToKeep = Distinct.buildDistinctRowsMask(rowCount(), keyColumns, textFoldingStrategy, problems);
     int cardinality = rowsToKeep.cardinality();
     Column[] newColumns = new Column[this.columns.length];
-    Index newIx = index.mask(rowsToKeep, cardinality);
     for (int i = 0; i < this.columns.length; i++) {
-      newColumns[i] = this.columns[i].mask(newIx, rowsToKeep, cardinality);
+      newColumns[i] = this.columns[i].mask(rowsToKeep, cardinality);
     }
 
-    return new Table(newColumns, newIx, problems);
+    return new Table(newColumns, problems);
   }
 
   /**
@@ -270,10 +201,10 @@ public class Table {
   public Table selectColumns(List<String> colNames) {
     Column[] newCols =
         colNames.stream()
-            .map(this::getColumnOrIndexByName)
+            .map(this::getColumnByName)
             .filter(Objects::nonNull)
             .toArray(Column[]::new);
-    return new Table(newCols, index);
+    return new Table(newCols, null);
   }
 
   /**
@@ -287,9 +218,7 @@ public class Table {
    * {@code rightColumnsToDrop} allows to drop columns from the right table that are redundant when joining on equality of equally named columns.
    */
   public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
-    // TODO adding prefix for right columns
-    NameDeduplicator deduplicator = new NameDeduplicator();
-
+    NameDeduplicator nameDeduplicator = new NameDeduplicator();
     JoinResult joinResult = null;
     // Only compute the join if there are any results to be returned.
     if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
@@ -342,29 +271,32 @@ public class Table {
 
     if (includeLeftColumns) {
       for (Column column : this.columns) {
-        deduplicator.markUsed(column.getName());
         Column newColumn = column.applyMask(leftMask);
         newColumns.add(newColumn);
       }
     }
 
     if (includeRightColumns) {
-      HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
-      for (Column column : right.getColumns()) {
-        if (toDrop.contains(column.getName())) {
-          continue;
-        }
+      List<String> leftColumnNames = newColumns.stream().map(Column::getName).collect(Collectors.toList());
 
-        // TODO drop columns from Equals conditions if equal names too
-        String newName = deduplicator.makeUnique(column.getName());
+      HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
+      List<Column> rightColumnsToKeep = Arrays.stream(right.getColumns()).filter(col -> !toDrop.contains(col.getName())).collect(Collectors.toList());
+      List<String> rightColumNames = rightColumnsToKeep.stream().map(Column::getName).collect(Collectors.toList());
+
+      List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, right_prefix);
+
+      for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
+        Column column = rightColumnsToKeep.get(i);
+        String newName = newRightColumnNames.get(i);
         Storage<?> newStorage = column.getStorage().applyMask(rightMask);
         Column newColumn = new Column(newName, newStorage);
         newColumns.add(newColumn);
       }
     }
 
-    AggregatedProblems problems = joinResult != null ? joinResult.problems() : new AggregatedProblems();
-    return new Table(newColumns.toArray(new Column[0]), problems);
+    AggregatedProblems joinProblems = joinResult != null ? joinResult.problems() : null;
+    AggregatedProblems aggregatedProblems = AggregatedProblems.merge(joinProblems, AggregatedProblems.of(nameDeduplicator.getProblems()));
+    return new Table(newColumns.toArray(new Column[0]), aggregatedProblems);
   }
 
   /**
@@ -374,16 +306,15 @@ public class Table {
    * @return a new table, with all columns and indexes reordered accordingly
    */
   public Table applyMask(OrderMask orderMask) {
-    final Index newIndex = index.applyMask(orderMask);
     Column[] newColumns =
         Arrays.stream(columns)
             .map(
                 column -> {
                   Storage<?> newStorage = column.getStorage().applyMask(orderMask);
-                  return new Column(column.getName(), newIndex, newStorage);
+                  return new Column(column.getName(), newStorage);
                 })
             .toArray(Column[]::new);
-    return new Table(newColumns, newIndex);
+    return new Table(newColumns, null);
   }
 
   private String suffixIfNecessary(Set<String> names, String name, String suffix) {
@@ -419,7 +350,7 @@ public class Table {
       int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
       Builder builder = new StringBuilder(size);
       builder.appendNulls(size);
-      Storage newStorage = builder.seal();
+      Storage<?> newStorage = builder.seal();
       newColumns[id_columns.length] = new Column(name_field, newStorage);
       newColumns[id_columns.length + 1] = new Column(value_field, newStorage);
       return new Table(newColumns);
@@ -463,10 +394,6 @@ public class Table {
    * @return a table result from concatenating both tables
    */
   public static Table concat(List<Table> tables) {
-
-    Index newIndex =
-        concatIndexes(tables.stream().map(Table::getIndex).collect(Collectors.toList()));
-
     int resultSize = tables.stream().mapToInt(Table::rowCount).sum();
 
     List<NamedBuilder> builders = new ArrayList<>();
@@ -500,20 +427,9 @@ public class Table {
 
     Column[] newColumns =
         builders.stream()
-            .map(builder -> new Column(builder.name, newIndex, builder.builder.seal()))
+            .map(builder -> new Column(builder.name, builder.builder.seal()))
             .toArray(Column[]::new);
-    return new Table(newColumns, newIndex);
-  }
-
-  private Storage<?> concatStorages(Storage<?> left, Storage<?> right) {
-    InferredBuilder builder = new InferredBuilder(left.size() + right.size());
-    for (int i = 0; i < left.size(); i++) {
-      builder.appendNoGrow(left.getItemBoxed(i));
-    }
-    for (int j = 0; j < right.size(); j++) {
-      builder.appendNoGrow(right.getItemBoxed(j));
-    }
-    return builder.seal();
+    return new Table(newColumns, null);
   }
 
   private Storage<?> nullPad(int nullCount, Storage<?> storage, boolean start) {
@@ -530,21 +446,6 @@ public class Table {
     return builder.seal();
   }
 
-  private static Index concatIndexes(List<Index> indexes) {
-    int resultSize = indexes.stream().mapToInt(Index::size).sum();
-    if (indexes.stream().allMatch(ix -> ix instanceof DefaultIndex)) {
-      return new DefaultIndex(resultSize);
-    } else {
-      InferredBuilder builder = new InferredBuilder(resultSize);
-      for (var index : indexes) {
-        for (int i = 0; i < index.size(); i++) {
-          builder.appendNoGrow(index.iloc(i));
-        }
-      }
-      return HashIndex.fromStorage(indexes.get(0).getName(), builder.seal());
-    }
-  }
-
   private Table hconcat(Table other, String lsuffix, String rsuffix) {
     Column[] newColumns = new Column[this.columns.length + other.columns.length];
     Set<String> lnames =
@@ -555,15 +456,15 @@ public class Table {
       Column original = columns[i];
       newColumns[i] =
           new Column(
-              suffixIfNecessary(rnames, original.getName(), lsuffix), index, original.getStorage());
+              suffixIfNecessary(rnames, original.getName(), lsuffix), original.getStorage());
     }
     for (int i = 0; i < other.columns.length; i++) {
       Column original = other.columns[i];
       newColumns[i + columns.length] =
           new Column(
-              suffixIfNecessary(lnames, original.getName(), rsuffix), index, original.getStorage());
+              suffixIfNecessary(lnames, original.getName(), rsuffix), original.getStorage());
     }
-    return new Table(newColumns, index);
+    return new Table(newColumns, null);
   }
 
   /** @return a copy of the Table containing a slice of the original data */
@@ -572,7 +473,7 @@ public class Table {
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(offset, limit);
     }
-    return new Table(newColumns, index.slice(offset, limit));
+    return new Table(newColumns, null);
   }
 
   /** @return a copy of the Table consisting of slices of the original data */
@@ -581,6 +482,6 @@ public class Table {
     for (int i = 0; i < columns.length; i++) {
       newColumns[i] = columns[i].slice(ranges);
     }
-    return new Table(newColumns, index.slice(ranges));
+    return new Table(newColumns, null);
   }
 }

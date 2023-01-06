@@ -5,7 +5,7 @@
     <artifactId>enso4igv</artifactId>
     <packaging>nbm</packaging>
     <name>Enso Language Support for NetBeans &amp; Ideal Graph Visualizer</name>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.11-SNAPSHOT</version>
     <build>
         <plugins>
             <plugin>
@@ -167,6 +167,18 @@
         <dependency>
             <groupId>org.netbeans.api</groupId>
             <artifactId>org-netbeans-modules-java-project-ui</artifactId>
+            <version>${netbeans.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-api-debugger-jpda</artifactId>
+            <version>${netbeans.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-api-debugger</artifactId>
             <version>${netbeans.version}</version>
             <type>jar</type>
         </dependency>
