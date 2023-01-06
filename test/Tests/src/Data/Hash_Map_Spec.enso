@@ -7,6 +7,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 polyglot java import java.nio.file.Path as JavaPath
+polyglot java import java.util.Map as JavaMap
 
 # TODO: (Python + js) Interop specs
 foreign js js_str str = """
@@ -32,11 +33,15 @@ foreign python py_dict_from_vec vec = """
     return d
 
 foreign python py_dict_from_map map = """
-    return map.copy()
+    d = dict()
+    for key in map.__iter__():
+        d[key] = map[key]
+    return d
 
 foreign python py_vec_from_map map = """
     vec = []
-    for key, value in map.items():
+    for key in map.__iter__():
+        value = map[key]
         vec.append([key, value])
     return vec
 
@@ -287,7 +292,8 @@ spec =
     Test.group "Polyglot hash maps" <|
         Test.specify "should pass maps as immutable maps to other langs" <|
             map = Hash_Map.singleton "A" 1
-            Test.expect_panic_with (py_update_dict map "A" 2) Error
+            # Python's KeyError should be raised
+            Test.expect_panic_with (py_update_dict map "A" 2) Any
             map.get "A" . should_equal 1
 
         Test.specify "should treat JavaScript maps as Enso maps" <|
@@ -295,6 +301,11 @@ spec =
             map = js_dict.insert "C" 3
             js_dict.to_vector.should_equal [["A", 1], ["B", 2]]
             map.to_vector.should_equal [["A", 1], ["B", 2], ["C", 3]]
+
+        Test.specify "should treat Java Map as Enso map" <|
+            jmap = JavaMap.of "A" 1 "B" 2
+            jmap.to_vector.should_equal [["A", 1], ["B", 2]]
+            jmap.insert "C" 3 . to_vector . should_equal [["A", 1], ["B", 2], ["C", 3]]
 
         Test.specify "should treat Python dicts as Enso maps" pending=pending_python_missing <|
             py_dict = py_dict_from_vec ["A", 1, "B", 2]
@@ -308,7 +319,7 @@ spec =
             py_dict = py_dict_from_map (Hash_Map.singleton Nothing 42)
             py_dict.get Nothing . should_equal 42
             py_dict.insert "A" 23 . get Nothing . should_equal 42
-            py_dict.insert Nothing 23 . get Nothing . should_equal 42
+            py_dict.insert Nothing 23 . get Nothing . should_equal 23
 
         Test.specify "should treat Enso maps as Python dicts when passed to Python" pending=pending_python_missing <|
             map1 = Hash_Map.empty.insert "A" 1 . insert "B" 2
