@@ -108,4 +108,16 @@ type Pair
 
              Pair.new -1 3 . all (< 0)
     all : (Any -> Boolean) -> Boolean
-    all self predicate = self . any (predicate >> .not) . not
+    all self predicate = predicate self.first && predicate self.second
+
+    ## Checks whether this pair contains a given value as an element.
+
+       Arguments:
+       - elem: The item to see if it exists in the pair.
+
+       > Example
+         Checking if the vector contains the number 72.
+
+             Pair.new 1 42 . contains 72
+    contains : Any -> Boolean
+    contains self elem = self.first == elem || self.second == elem
