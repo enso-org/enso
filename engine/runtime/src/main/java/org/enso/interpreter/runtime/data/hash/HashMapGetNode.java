@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -9,10 +10,14 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.Suspend;
+import org.enso.interpreter.node.BaseNode.TailStatus;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Hash_Map",
-    name = "get",
+    name = "get_builtin",
     description = """
         Gets a value from the map on the specified key, or default.
         """,
@@ -25,24 +30,26 @@ public abstract class HashMapGetNode extends Node {
     return HashMapGetNodeGen.create();
   }
 
-  abstract Object execute(Object hashMap, Object key, Object defaultValue);
+  abstract Object execute(State state, Object self, Object key, @Suspend Object defaultValue);
 
-  @Specialization(guards = "interop.hasHashEntries(hashMap)", limit = "3")
-  Object hashMapGet(Object hashMap, Object key, Object defaultValue,
-      @CachedLibrary("hashMap") InteropLibrary interop) {
-    if (interop.isHashEntryReadable(hashMap, key)) {
+  @Specialization(guards = "interop.hasHashEntries(self)", limit = "3")
+  Object hashMapGet(State state, Object self, Object key, Object defaultValue,
+      @CachedLibrary("self") InteropLibrary interop,
+      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
+    if (interop.isHashEntryReadable(self, key)) {
       try {
-        return interop.readHashValue(hashMap, key);
+        return interop.readHashValue(self, key);
       } catch (UnsupportedMessageException | UnknownKeyException e) {
         throw new IllegalStateException(e);
       }
     } else {
-      return defaultValue;
+      return thunkExecutorNode.executeThunk(defaultValue, state, TailStatus.NOT_TAIL);
     }
   }
 
   @Fallback
-  Object fallback(Object hashMap, Object key, Object defaultValue) {
-    return defaultValue;
+  Object fallback(State state, Object self, Object key, Object defaultValue,
+      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
+    return thunkExecutorNode.executeThunk(defaultValue, state, TailStatus.NOT_TAIL);
   }
 }

@@ -34,13 +34,11 @@ type Hash_Map key value
     at self key = self.get key (Error.throw (No_Such_Key.Error self key))
 
     get : Any -> Any -> Any
-    get self key ~if_missing=Nothing =
-        val = self.get_builtin key
-        if val.is_error then if_missing else val
+    get self key ~if_missing=Nothing = self.get_builtin key if_missing
 
-    get_or_default : Any -> Any -> Any
-    get_or_default self key default =
-        if self.contains_key key then self.get key else default
+    # Workaround - we cannot have a builtin method with default parameters
+    get_builtin : Any -> Any -> Any
+    get_builtin self key ~if_missing = @Builtin_Method "Hash_Map.get_builtin"
 
     contains_key : Any -> Boolean
     contains_key self key = @Builtin_Method "Hash_Map.contains_key"
