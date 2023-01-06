@@ -498,6 +498,7 @@
 - [IGV can jump to JMH sources & more][4008]
 - [Basic support of VSCode integration][4014]
 - [Sync language server with file system after VCS restore][4020]
+- [Report failures in name resolution in type signatures][4030]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -579,6 +580,7 @@
 [4008]: https://github.com/enso-org/enso/pull/4008
 [4014]: https://github.com/enso-org/enso/pull/4014
 [4020]: https://github.com/enso-org/enso/pull/4020
+[4030]: https://github.com/enso-org/enso/pull/4030
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
