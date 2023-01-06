@@ -185,13 +185,19 @@ type List
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
-        predicate : Function ->
-            go_filter list = case list of
-                Nil -> Nil
-                Cons h t ->
-                    rest = go_filter t
-                    if predicate h then Cons h rest else rest
-            go_filter self
+        predicate : Function -> case self of
+            Nil -> Nil
+            Cons x xs -> if predicate x . not then @Tail_Call xs.filter filter else
+                go list fill = case list of
+                    Nil -> fill Nil
+                    Cons h t -> if predicate h . not then @Tail_Call go t fill else
+                        res = Meta.atom_with_hole (e -> Cons h e)
+                        fill res.value
+                        @Tail_Call go t res.fill
+
+                res = Meta.atom_with_hole (e -> Cons x e)
+                go xs res.fill
+                res.value
 
     ## Applies a function to each element of the list, returning the list of
        results.
@@ -290,7 +296,16 @@ type List
     take_start : Integer -> List
     take_start self count = if count <= 0 then Nil else case self of
         Nil -> Nil
-        Cons a b -> Cons a (b.take_start count-1)
+        Cons a b ->
+            go c l fill = if c <= 0 then fill Nil else case l of
+                Nil -> fill Nil
+                Cons a b ->
+                    res = Meta.atom_with_hole (e -> Cons a e)
+                    fill res.value
+                    @Tail_Call go c-1 b res.fill
+            res = Meta.atom_with_hole (e -> Cons a e)
+            go count-1 b res.fill
+            res.value
 
     ## Get the first element from the list.
 
@@ -328,12 +343,21 @@ type List
              example_init = Examples.list.init
     init : List ! Empty_Error
     init self =
-        init_fn x y = case y of
-            Nil -> Nil
-            Cons a b -> Cons x (init_fn a b)
         case self of
             Nil -> Error.throw Empty_Error
-            Cons a b -> init_fn a b
+            Cons a Nil -> Nil
+            Cons a b ->
+                go l fill = case l of
+                    Cons x xs -> case xs of
+                        Nil -> fill Nil
+                        Cons y z ->
+                            res = Meta.atom_with_hole (e -> Cons y e)
+                            fill res.value
+                            @Tail_Call go xs res.fill
+
+                res = Meta.atom_with_hole (e -> Cons a e)
+                go b res.fill
+                res.value
 
     ## Get the last element of the list.
 
@@ -377,6 +401,13 @@ type List
         builder = self.fold (Vector.new_builder self.length) builder-> elem->
             builder.append elem
         builder.to_vector
+
+    to_text : Text
+    to_text self =
+        go l t = case l of
+            Nil -> t + "Nil"
+            Cons x xs -> @Tail_Call go xs ("Cons " + x.to_text + " ")
+        go self ""
 
 ## UNSTABLE
 

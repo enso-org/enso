@@ -20,7 +20,7 @@ import org.junit.Test;
 
 public class ListTest {
   private Context ctx;
-  private final int size = 10;
+  private final int size = 100_000;
   private Value generator;
   private Value plusOne;
   private Value evenOnes;
