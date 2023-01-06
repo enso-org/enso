@@ -51,8 +51,8 @@ class RestoreVcsHandler(
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 
-    case VcsProtocol.RestoreRepoResponse(Right(_)) =>
-      replyTo ! ResponseResult(RestoreVcs, id, Unused)
+    case VcsProtocol.RestoreRepoResponse(Right(paths)) =>
+      replyTo ! ResponseResult(RestoreVcs, id, RestoreVcs.Result(paths))
       cancellable.cancel()
       context.stop(self)
 

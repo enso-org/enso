@@ -47,7 +47,7 @@ public class NameDeduplicator {
    * Makes a name unique.
    *
    * <p>If a name has been used, it will suffixed with `_n` where n is the first integer greater
-   * than 1 such that the name is unique.
+   * than or equal to 1 such that the name is unique.
    *
    * <p>An invalid name will be replaced with {@code invalidNameReplacement}. The suffix will always
    * be added to invalid names. For example: Column_1.
@@ -56,6 +56,10 @@ public class NameDeduplicator {
    * @return unique name following above rules.
    */
   public String makeUnique(String name) {
+    return makeUnique(name, true);
+  }
+
+  private String makeUnique(String name, boolean reportDuplicate) {
     String validName = makeValid(name);
 
     // If an invalid name then starts as `Column_1`.
@@ -63,7 +67,7 @@ public class NameDeduplicator {
 
     String currentName = getName(validName, currentIndex);
     while (usedNames.contains(currentName)) {
-      if (currentIndex == 0) {
+      if (currentIndex == 0 && reportDuplicate) {
         duplicatedNames.add(name);
       }
       currentIndex++;
@@ -72,6 +76,10 @@ public class NameDeduplicator {
 
     usedNames.add(currentName);
     return currentName;
+  }
+
+  public boolean isUnique(String name) {
+    return !usedNames.contains(name);
   }
 
   private static String getName(String name, int index) {
@@ -96,6 +104,36 @@ public class NameDeduplicator {
     }
     if (!this.duplicatedNames.isEmpty()) {
       output.add(new DuplicateNames(this.getDuplicatedNames()));
+    }
+    return output;
+  }
+
+  /**
+   * Changes names from the second list so that they do not clash with names from the first list and
+   * with each other.
+   */
+  public List<String> combineWithPrefix(
+      List<String> first, List<String> second, String secondPrefix) {
+    first.forEach(this::markUsed);
+    ArrayList<String> output = new ArrayList<>(second.size());
+    // First pass - we add only the names that are already unique, and mark them as used in
+    // preparation for the second pass.
+    for (String name : second) {
+      if (isUnique(name)) {
+        output.add(name);
+        markUsed(name);
+      } else {
+        output.add(null);
+      }
+    }
+    // Second pass - we go over the duplicated names and disambiguate them by adding a prefix and
+    // a suffix if necessary.
+    for (int i = 0; i < second.size(); i++) {
+      String name = second.get(i);
+      if (output.get(i) == null) {
+        duplicatedNames.add(name);
+        output.set(i, makeUnique(secondPrefix + name, false));
+      }
     }
     return output;
   }

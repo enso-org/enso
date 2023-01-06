@@ -19,7 +19,7 @@ type Context
        - alias: An alias name to use for table within the query.
     for_table : Text -> Text -> Context
     for_table table_name alias=table_name =
-        Context.Value (From_Spec.Table table_name alias) [] [] [] [] Nothing
+        Context.Value (From_Spec.Table table_name alias) [] [] [] Nothing
 
     ## PRIVATE
 
@@ -30,7 +30,7 @@ type Context
        - alias: An alias name to use for table within the query.
     for_query : Text -> Text -> Context
     for_query raw_sql alias =
-        Context.Value (From_Spec.Query raw_sql alias) [] [] [] [] Nothing
+        Context.Value (From_Spec.Query raw_sql alias) [] [] [] Nothing
 
     ## PRIVATE
 
@@ -40,7 +40,7 @@ type Context
        - subquery: The subquery to lift into a context.
     for_subquery : From_Spec -> Context
     for_subquery subquery =
-        Context.Value subquery [] [] [] [] Nothing
+        Context.Value subquery [] [] [] Nothing
 
     ## PRIVATE
 
@@ -61,20 +61,9 @@ type Context
        - groups: a list of grouping expressions, for each entry a GROUP BY is
          added, the resulting query can then directly include only the
          grouped-by columns or aggregate expressions.
-       - meta_index: a list of internal columns to use for joining or grouping.
        - limit: an optional maximum number of elements that the equery should
          return.
-    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (meta_index : Vector Internal_Column) (limit : Nothing | Integer)
-
-    ## PRIVATE
-
-       Returns a copy of the context with changed `meta_index`.
-
-       Arguments:
-       - new_index: The new index to set in the query.
-    set_index : Vector Internal_Column -> Context
-    set_index self new_index =
-        Context.Value self.from_spec self.where_filters self.orders self.groups new_index self.limit
+    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer)
 
     ## PRIVATE
 
@@ -84,7 +73,7 @@ type Context
        - new_filters: The new filters to set in the query.
     set_where_filters : Vector SQL_Expression -> Context
     set_where_filters self new_filters =
-        Context.Value self.from_spec new_filters self.orders self.groups self.meta_index self.limit
+        Context.Value self.from_spec new_filters self.orders self.groups self.limit
 
     ## PRIVATE
 
@@ -94,7 +83,7 @@ type Context
        - new_orders: The new ordering clauses to set in the query.
     set_orders : Vector Order_Descriptor -> Context
     set_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders self.groups self.meta_index self.limit
+        Context.Value self.from_spec self.where_filters new_orders self.groups self.limit
 
     ## PRIVATE
 
@@ -111,7 +100,7 @@ type Context
        - new_orders: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> Context
     add_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders+self.orders self.groups self.meta_index self.limit
+        Context.Value self.from_spec self.where_filters new_orders+self.orders self.groups self.limit
 
     ## PRIVATE
 
@@ -121,7 +110,7 @@ type Context
        - new_groups: The new grouping clauses to set in the query.
     set_groups : Vector SQL_Expression -> Context
     set_groups self new_groups =
-        Context.Value self.from_spec self.where_filters self.orders new_groups self.meta_index self.limit
+        Context.Value self.from_spec self.where_filters self.orders new_groups self.limit
 
     ## PRIVATE
 
@@ -131,7 +120,7 @@ type Context
        - new_limit: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> Context
     set_limit self new_limit =
-       Context.Value self.from_spec self.where_filters self.orders self.groups self.meta_index new_limit
+       Context.Value self.from_spec self.where_filters self.orders self.groups new_limit
 
     ## PRIVATE
 
