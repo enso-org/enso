@@ -299,7 +299,13 @@ impl WorldData {
                 if key == "Backquote" {
                     stats_monitor.toggle()
                 } else if key == "KeyP" {
-                    enso_debug_api::save_profile(&profiler::internal::get_log());
+                    if event.shift_key() {
+                        for interval in profiler::interval_stream() {
+                            log_measurement(&interval);
+                        }
+                    } else {
+                        enso_debug_api::save_profile(&profiler::internal::get_log());
+                    }
                 } else if key == "KeyQ" {
                     enso_debug_api::save_profile(&profiler::internal::get_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
@@ -376,6 +382,25 @@ impl WorldData {
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
     }
+}
+
+mod js {
+    #[wasm_bindgen::prelude::wasm_bindgen(inline_js = r#"
+export function log_measurement(label, start, end) {
+    window.performance.measure(label, { "start": start, "end": end })
+}
+"#)]
+    extern "C" {
+        #[allow(unsafe_code)]
+        pub fn log_measurement(msg: String, start: f64, end: f64);
+    }
+}
+
+fn log_measurement(interval: &profiler::Interval) {
+    let label = interval.label().to_owned();
+    let start = interval.start();
+    let end = interval.end();
+    js::log_measurement(label, start, end);
 }
 
 

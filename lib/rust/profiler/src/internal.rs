@@ -319,6 +319,16 @@ pub enum Event {
     },
 }
 
+impl Event {
+    /// Return the [`Start`] information, if this is an event that defines a profiler.
+    pub fn as_start(self) -> Option<Start> {
+        match self {
+            Event::Start(start) | Event::StartPaused(start) => Some(start),
+            _ => None,
+        }
+    }
+}
+
 
 
 // =============
@@ -450,7 +460,7 @@ impl From<Timestamp> for format::Timestamp {
 // ===============
 
 /// Identifies an event in the profiling log.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct EventId(pub u32);
 
 impl EventId {

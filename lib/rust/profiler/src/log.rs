@@ -97,6 +97,23 @@ impl<T> Log<T> {
             current.iter().map(|elem| elem.assume_init_ref()).for_each(f);
         }
     }
+
+    #[inline]
+    #[allow(unsafe_code)] // Note [Log Safety]
+    fn get(&self, index: usize) -> Option<&T> {
+        unsafe {
+            let block_i = index / BLOCK;
+            let i = index % BLOCK;
+            let blocks = &*self.completed.get();
+            if let Some(block) = blocks.get(block_i) {
+                Some(&block[i])
+            } else if block_i == blocks.len() && i < self.len.get() % BLOCK {
+                Some((*self.current.get())[i].assume_init_ref())
+            } else {
+                None
+            }
+        }
+    }
 }
 
 impl<T: Clone> Log<T> {
@@ -111,21 +128,9 @@ impl<T: Clone> Log<T> {
 
 impl<T> core::ops::Index<usize> for Log<T> {
     type Output = T;
-
     #[inline]
-    #[allow(unsafe_code)] // Note [Log Safety]
     fn index(&self, index: usize) -> &Self::Output {
-        unsafe {
-            let block_i = index / BLOCK;
-            let i = index % BLOCK;
-            let blocks = &*self.completed.get();
-            assert!(block_i <= blocks.len());
-            if block_i < blocks.len() {
-                &blocks[block_i][i]
-            } else {
-                (*self.current.get())[i].assume_init_ref()
-            }
-        }
+        self.get(index).unwrap()
     }
 }
 
@@ -173,9 +178,17 @@ impl<T: 'static> ThreadLocalLog<T> {
     /// Get the entry at the given index, and pass it to a function; return the result of the
     /// function.
     ///
-    /// Panics if the index exceeds [`len`].
+    /// Panics if the index is not less than [`len`].
     pub fn get<U>(&'static self, i: usize, f: impl FnOnce(&T) -> U) -> U {
         self.0.with(|this| f(&this[i]))
+    }
+
+    /// Get the entry at the given index, and pass it to a function; return the result of the
+    /// function.
+    ///
+    /// Returns [`None`] if the index is not less than [`len`].
+    pub fn try_get<U>(&'static self, i: usize, f: impl FnOnce(&T) -> U) -> Option<U> {
+        self.0.with(|this| this.get(i).map(f))
     }
 }
 
