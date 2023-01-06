@@ -191,11 +191,11 @@ type List
                 go list fill = case list of
                     Nil -> fill Nil
                     Cons h t -> if predicate h . not then @Tail_Call go t fill else
-                        res = Meta.atom_with_hole (e -> Cons h e)
+                        res = Meta.atom_with_hole (Cons h _)
                         fill res.value
                         @Tail_Call go t res.fill
 
-                res = Meta.atom_with_hole (e -> Cons x e)
+                res = Meta.atom_with_hole (Cons x _)
                 go xs res.fill
                 res.value
 
@@ -220,11 +220,11 @@ type List
                 Nil -> fill Nil
                 Cons h t ->
                     v = f h
-                    res = Meta.atom_with_hole (e -> Cons v e)
+                    res = Meta.atom_with_hole (Cons v _)
                     fill res.value
                     @Tail_Call go t res.fill
             v = f h
-            res = Meta.atom_with_hole (e -> Cons v e)
+            res = Meta.atom_with_hole (Cons v _)
             go t res.fill
             res.value
 
@@ -300,10 +300,10 @@ type List
             go c l fill = if c <= 0 then fill Nil else case l of
                 Nil -> fill Nil
                 Cons a b ->
-                    res = Meta.atom_with_hole (e -> Cons a e)
+                    res = Meta.atom_with_hole (Cons a _)
                     fill res.value
                     @Tail_Call go c-1 b res.fill
-            res = Meta.atom_with_hole (e -> Cons a e)
+            res = Meta.atom_with_hole (Cons a _)
             go count-1 b res.fill
             res.value
 
@@ -351,11 +351,11 @@ type List
                     Cons x xs -> case xs of
                         Nil -> fill Nil
                         Cons _ _ ->
-                            res = Meta.atom_with_hole (e -> Cons x e)
+                            res = Meta.atom_with_hole (Cons x _)
                             fill res.value
                             @Tail_Call go xs res.fill
 
-                res = Meta.atom_with_hole (e -> Cons a e)
+                res = Meta.atom_with_hole (Cons a _)
                 go b res.fill
                 res.value
 
