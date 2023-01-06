@@ -162,6 +162,7 @@ pub struct Navigator {
     top_buttons:        Grid,
     tooltip:            Tooltip,
     pub set_module_section_count:  frp::Any<usize>,
+    pub style:          frp::Any<AllStyles>,
     pub select_section: frp::Any<Option<SectionId>>,
     pub chosen_section: frp::Stream<Option<SectionId>>,
 }
@@ -183,23 +184,18 @@ impl Navigator {
         tooltip_hide_timer.set_delay(MARKETPLACE_TOOLTIP_HIDE_DELAY_MS);
         tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
+            style <- any(...);
             set_module_section_count <- any(...);
             set_section_count <- set_module_section_count.map(
                 |&n: &usize| n + FIXED_BOTTOM_BUTTONS_COUNT
             );
             bottom_buttons_shape <- set_section_count.map(|n| (*n, 1));
+            bottom_button_params <- all2(&set_section_count, &style);
+            bottom_button_viewport <- bottom_button_params.map(get_bottom_button_viewport);
+            bottom_button_y_pos <- bottom_button_params.map(get_bottom_button_y_pos);
             bottom_buttons.reset_entries <+ bottom_buttons_shape;
-
-            let panel_style = crate::Style::from_theme(&network, &style_frp);
-            let grid_style = crate::grid::Style::from_theme(&network, &style_frp);
-            let navigator_style = Style::from_theme(&network, &style_frp);
-            style <- all3(&panel_style.update, &grid_style.update, &navigator_style.update);
-            style <- style.map(|&(panel, grid, navigator)| AllStyles {panel, grid, navigator});
-
-            bottom_button_viewport <- all2(&set_section_count, &style);
-            bottom_button_viewport <- bottom_button_viewport.map(get_bottom_button_viewport);
             bottom_buttons.set_viewport <+ bottom_button_viewport;
-            trace bottom_button_viewport;
+            eval bottom_button_y_pos ((y) bottom_buttons.set_y(*y));
 
             select_section <- any(...);
             user_selected_section <- select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
@@ -257,6 +253,7 @@ impl Navigator {
             tooltip,
             network,
             set_module_section_count,
+            style,
             select_section,
             chosen_section,
         }
@@ -301,15 +298,13 @@ impl Navigator {
 
 fn get_bottom_button_viewport((buttons_count, style): &(usize, AllStyles)) -> grid::Viewport {
     let size = style.navigator.button_size;
-    warn!("{:?}", style);
-    warn!("{:?}", size);
     let bottom = -size * (*buttons_count as f32);
     grid::Viewport { top: 0.0, bottom, left: 0.0, right: size }
 }
 
-fn get_bottom_button_y(buttons_count: usize, style: &AllStyles) -> f32 {
+fn get_bottom_button_y_pos((buttons_count, style): &(usize, AllStyles)) -> f32 {
     let size = style.navigator.button_size;
-    let bottom_buttons_height = size * buttons_count as f32;
+    let bottom_buttons_height = size * (*buttons_count as f32);
     let height = style.grid.height + style.panel.menu_height;
     let bottom = (-height / 2.0).floor();
     let bottom_padding = style.navigator.bottom_padding;
