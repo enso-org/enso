@@ -18,6 +18,7 @@ import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
+import project.Data.Row.Row
 import project.Data.Storage.Storage
 import project.Data.Value_Type.Value_Type
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
@@ -38,7 +39,7 @@ import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Internal.Rows_View import Rows_View
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
+from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
 from project.Data.Column import get_item_string
 from project.Internal.Filter_Condition_Helpers import make_filter_column
@@ -1373,7 +1374,7 @@ type Table
              from Standard.Table import Excel
 
              example_to_xlsx = Examples.inventory_table.write (enso_project.data / "example_xlsx_output.xlsx") Excel
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument | File_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         file = File.new path
         case format of

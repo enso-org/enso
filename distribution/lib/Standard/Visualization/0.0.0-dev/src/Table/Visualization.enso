@@ -69,7 +69,7 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
      `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json : (Dataframe_Table | Database_Table) -> Vector Column -> Integer -> Text
+make_json : (Dataframe_Table | Database_Table) -> Vector Dataframe_Column -> Integer -> Text
 make_json dataframe indices all_rows_count =
     columns  = dataframe.columns
     header      = ["header", columns.map .name]

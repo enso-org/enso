@@ -74,11 +74,17 @@ case object TypeNames extends IRPass {
     bindingsMap: BindingsMap,
     expression: IR.Expression
   ): IR.Expression =
-    expression.transformExpressions { case n: IR.Name.Literal =>
-      bindingsMap
-        .resolveName(n.name)
-        .map(res => n.updateMetadata(this -->> Resolution(res)))
-        .getOrElse(n)
+    expression.transformExpressions {
+      case expr if SuspendedArguments.representsSuspended(expr) => expr
+      case n: IR.Name.Literal =>
+        bindingsMap
+          .resolveName(n.name)
+          .map(res => n.updateMetadata(this -->> Resolution(res)))
+          .fold(
+            error =>
+              IR.Error.Resolution(n, IR.Error.Resolution.ResolverError(error)),
+            identity
+          )
     }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
