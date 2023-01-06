@@ -496,6 +496,7 @@
 - [Simplify exception handling for polyglot exceptions][3981]
 - [Simplify compilation of nested patterns][4005]
 - [IGV can jump to JMH sources & more][4008]
+- [Basic support of VSCode integration][4014]
 - [Sync language server with file system after VCS restore][4020]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
@@ -576,6 +577,7 @@
 [3981]: https://github.com/enso-org/enso/pull/3981
 [4005]: https://github.com/enso-org/enso/pull/4005
 [4008]: https://github.com/enso-org/enso/pull/4008
+[4014]: https://github.com/enso-org/enso/pull/4014
 [4020]: https://github.com/enso-org/enso/pull/4020
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
