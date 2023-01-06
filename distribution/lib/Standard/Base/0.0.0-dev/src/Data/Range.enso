@@ -3,6 +3,7 @@ import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Function.Function
@@ -86,6 +87,41 @@ type Range
     length self = case self.last of
         Nothing -> 0
         last -> ((last - self.start) . div self.step) + 1
+
+    ## Gets an element from the Range at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the Range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the final item, i.e. -1 will correspond to the last element.
+
+       > Example
+         Get the second element of a range.
+
+             0.up_to 10 . get 1 == 1
+
+       > Example
+         Get the last element of a range with step.
+
+            0.up_to 10 . with_step 2 . get -1 == 8
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## Gets an element from the Range at a specified index (0-based).
+       If the index is invalid then `if_missing` is returned.
+
+       Arguments:
+       - index: The location in the Range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the Range, i.e. -1 will correspond to the last element.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing =
+        len = self.length
+        used_index = if index < 0 then len + index else index
+        if used_index >= 0 && used_index < len then self.start + used_index * self.step else
+            if_missing
 
     ## Checks if this range is empty.
 
@@ -283,15 +319,6 @@ type Range
                         @Tail_Call go current+self.step
             go self.start
 
-    ## Converts the range to a vector containing the numbers in the range.
-
-       > Example
-         Getting a vector of the numbers 1 to 5.
-
-             1.up_to 6 . to_vector
-    to_vector : Vector
-    to_vector self = self.map x->x
-
     ## Checks if the range contains the specified value.
 
        > Example
@@ -311,6 +338,15 @@ type Range
            decimals instead.
         _ ->
             Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
+
+    ## Converts the range to a vector containing the numbers in the range.
+
+       > Example
+         Getting a vector of the numbers 1 to 5.
+
+             1.up_to 6 . to_vector
+    to_vector : Vector
+    to_vector self = self.map x->x
 
 ## PRIVATE
 throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")

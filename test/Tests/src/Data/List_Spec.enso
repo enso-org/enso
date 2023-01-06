@@ -1,8 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
-from Standard.Base.Data.List import Empty_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -106,7 +106,7 @@ spec = Test.group "List" <|
         empty.take_start 2 . should_equal List.Nil
     Test.specify "should allow getting the tail of the list with `.tail`" <|
         l.tail . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
-        empty.tail.should_fail_with Empty_Error
+        empty.tail.should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "single element list.init yields Nil" <|
         (List.Cons 1 List.Nil).init . should_equal List.Nil
     Test.specify "two element list.init yields one element" <|
@@ -116,9 +116,12 @@ spec = Test.group "List" <|
         empty.init.should_fail_with Empty_Error
     Test.specify "should allow getting the last element of the list with `.last`" <|
         l.last . should_equal 3
-        empty.last.should_fail_with Empty_Error
+        empty.last.should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "should allow getting the head of the list with `.first`" <|
         l.first . should_equal 1
-        empty.first.should_fail_with Empty_Error
+        empty.first.should_fail_with Index_Out_Of_Bounds.Error
+    Test.specify "should allow getting the second item of the list with `.second`" <|
+        l.second . should_equal 2
+        empty.second.should_fail_with Index_Out_Of_Bounds.Error
 
 main = Test_Suite.run_main spec

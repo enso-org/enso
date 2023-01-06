@@ -661,9 +661,8 @@ type Vector a
          is returned unchanged.
          If the index is less than 0, the index will be counted back from the
          end. If before the beginning will be returned unchanged.
-       - item: The item to insert into the vector.
     remove : Integer -> Any -> Vector
-    remove self at=self.length item=Nothing =
+    remove self at=self.length =
         used_index = if at < 0 then self.length + at else at
         if used_index >= self.length || used_index < 0 then self else
             arr = Array.new (self.length - 1)
@@ -792,7 +791,7 @@ type Vector a
          The following code returns 1.
 
              [1, 2, 3, 4].first
-    first : Vector ! Index_Out_Of_Bounds
+    first : Any ! Index_Out_Of_Bounds
     first self = self.at 0
 
     ## Get the last element of the vector, or an `Empty_Error` if the vector is
@@ -802,7 +801,7 @@ type Vector a
          The following code returns 4.
 
              [1, 2, 3, 4].last
-    last : Vector ! Index_Out_Of_Bounds
+    last : Any ! Index_Out_Of_Bounds
     last self = self.at -1
 
     ## Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
@@ -814,7 +813,7 @@ type Vector a
          The following code returns 2.
 
              [1, 2, 3, 4].second
-    second : Vector ! Index_Out_Of_Bounds
+    second : Any ! Index_Out_Of_Bounds
     second self = self.at 1
 
     ## Sort the Vector.

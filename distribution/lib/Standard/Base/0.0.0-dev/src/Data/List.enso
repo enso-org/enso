@@ -4,6 +4,7 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
@@ -37,6 +38,7 @@ type List
     Cons x xs
 
     ## Computes the number of elements in the list.
+       Note: This is a linear operation requiring O(n) time.
 
        > Example
          Get the length of a two item list.
@@ -46,6 +48,48 @@ type List
              example_length = Examples.list.length
     length : Number
     length self = self.fold 0 (acc -> _ -> acc + 1)
+
+    ## Gets an element from the list at a specified index (0-based).
+       Note: This is a linear operation requiring O(n) time.
+
+       Arguments:
+       - index: The location in the List to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the final item, i.e. -1 will correspond to the last element.
+
+       > Example
+         Get the second item by index.
+
+             import Standard.Examples
+
+             example_length = Examples.list.length
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## Gets an element from the list at a specified index (0-based).
+       If the index is invalid then `if_missing` is returned.
+       Note: This is a linear operation requiring O(n) time.
+
+       Arguments:
+       - index: The location in the List to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the final item, i.e. -1 will correspond to the last element.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing = case index >= 0 of
+        True ->
+            loop index point = case point of
+                Nil -> if_missing
+                Cons x xs -> if index == 0 then x else @Tail_Call loop (index - 1) xs
+            loop index self
+        False ->
+            loop current count point = case point of
+                Nil -> if count == 0 then current.x else if_missing
+                Cons _ xs ->
+                    new_current = if count > 0 then current else current.xs
+                    @Tail_Call loop new_current (0.max index-1) xs
+            loop self -index self
 
     ## Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
@@ -338,9 +382,9 @@ type List
              import Standard.Examples
 
              example_last = Examples.list.last
-    last : Any ! Empty_Error
+    last : Any ! Index_Out_Of_Bounds
     last self = case self.fold Nothing (_ -> r -> r) of
-        Nothing -> Error.throw Empty_Error
+        Nothing -> Error.throw (Index_Out_Of_Bounds.Error -1 0)
         a -> a
 
     ## Get the first element from the list.
@@ -351,10 +395,25 @@ type List
              import Standard.Examples
 
              example_first = Examples.list.first
-    first : Any ! Empty_Error
+    first : Any ! Index_Out_Of_Bounds
     first self = case self of
-        Nil -> Error.throw Empty_Error
+        Nil -> Error.throw (Index_Out_Of_Bounds.Error 0 0)
         Cons a _ -> a
+
+    ## Get the second element from the list.
+
+       > Example
+         Getting the second element in the list.
+
+             import Standard.Examples
+
+             example_second = Examples.list.second
+    second : Any ! Index_Out_Of_Bounds
+    second self = case self of
+        Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 0)
+        Cons _ a -> case a of
+            Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 1)
+            Cons b _ -> b
 
     ## Get the first element from the list.
 
@@ -364,7 +423,7 @@ type List
              import Standard.Examples
 
              example_head = Examples.list.x
-    head : Any ! Empty_Error
+    head : Any ! Index_Out_Of_Bounds
     head self = self.first
 
     ## Get all elements from the list except the first.
@@ -375,9 +434,9 @@ type List
              import Standard.Examples
 
              example_tail = Examples.list.tail
-    tail : List ! Empty_Error
+    tail : List ! Index_Out_Of_Bounds
     tail self = case self of
-        Nil -> Error.throw Empty_Error
+        Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 0)
         Cons _ b -> b
 
     ## UNSTABLE
