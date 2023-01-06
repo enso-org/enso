@@ -15,16 +15,14 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Meta",
@@ -37,38 +35,34 @@ public abstract class AtomWithAHoleNode extends Node {
     return AtomWithAHoleNodeGen.create();
   }
 
-  abstract Vector execute(Object factory);
 
-  @Specialization(guards = "iop.isExecutable(factory)")
+  abstract Vector execute(VirtualFrame frame, Object factory);
+
+  static InvokeCallableNode callWithHole() {
+      return InvokeCallableNode.build(
+          new CallArgumentInfo[] {new CallArgumentInfo()},
+          InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+          InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+  }
+
+  @Specialization
   Vector doExecute(
+    VirtualFrame frame,
     Object factory,
-    @CachedLibrary(limit="3") InteropLibrary iop,
+    @Cached("callWithHole()") InvokeCallableNode iop,
     @Cached SwapAtomFieldNode swapNode
   ) {
     var ctx = EnsoContext.get(this);
     var lazy = new HoleInAtom();
-    try {
-      var r = iop.execute(factory, lazy);
-      if (r instanceof Atom a) {
-        var i = swapNode.findHoleIndex(a, lazy);
-        if (i >= 0) {
-          var function = swapNode.createFn(a, i, lazy);
-          return Vector.fromArray(new Array(a, function));
-        }
+    var r = iop.execute(factory, frame, State.create(ctx), new Object[] { lazy });
+    if (r instanceof Atom a) {
+      var i = swapNode.findHoleIndex(a, lazy);
+      if (i >= 0) {
+        var function = swapNode.createFn(a, i, lazy);
+        return Vector.fromArray(new Array(a, function));
       }
-      throw new PanicException(ctx.getBuiltins().error().makeUninitializedStateError(r), this);
-    } catch (UnsupportedTypeException ex) {
-      throw raise(RuntimeException.class, ex);
-    } catch (ArityException ex) {
-      throw raise(RuntimeException.class, ex);
-    } catch (UnsupportedMessageException ex) {
-      throw raise(RuntimeException.class, ex);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> type, Throwable t) throws E {
-    throw (E)t;
+    throw new PanicException(ctx.getBuiltins().error().makeUninitializedStateError(r), this);
   }
 
   @ExportLibrary(InteropLibrary.class)
