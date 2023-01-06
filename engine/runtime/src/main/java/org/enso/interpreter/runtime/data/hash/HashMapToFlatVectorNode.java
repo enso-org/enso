@@ -30,23 +30,10 @@ public abstract class HashMapToFlatVectorNode extends Node {
     return HashMapToFlatVectorNodeGen.create();
   }
 
-  abstract Object execute(Object hashMap);
-
-  @Specialization(limit = "3")
-  Object foreignWrapperToFlatVec(ForeignMapWrapper mapWrapper,
-      @CachedLibrary("mapWrapper") InteropLibrary mapInterop,
-      @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached ConditionProfile isFlatVectorNotCached) {
-    Object cachedVector = mapWrapper.getCachedVectorRepresentation();
-    if (isFlatVectorNotCached.profile(cachedVector == null)) {
-      cachedVector = createFlatVectorFromForeignMap(mapWrapper, mapInterop, interop);
-      mapWrapper.setCachedVectorRepresentation(cachedVector);
-    }
-    return cachedVector;
-  }
+  abstract Object execute(Object self);
 
   @Specialization
-  Object ensoHashMapToFlatVec(EnsoHashMap hashMap,
+  Object ensoMapToFlatVec(EnsoHashMap hashMap,
       @Cached ConditionProfile vectorReprNotCached) {
     if (vectorReprNotCached.profile(!hashMap.isVectorRepresentationCached())) {
       hashMap.cacheVectorRepresentation();
