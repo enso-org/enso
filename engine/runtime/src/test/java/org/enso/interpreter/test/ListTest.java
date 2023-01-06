@@ -27,6 +27,7 @@ public class ListTest {
   private Value taken;
   private Value init;
   private Value asVector;
+  private Value asText;
 
   @Before
   public void prepareCtx() throws Exception {
@@ -56,6 +57,8 @@ public class ListTest {
 
     as_vector list = list.to_vector
 
+    as_text list = list.to_text
+
     generator n =
         go x v l = if x > n then l else
             @Tail_Call go x+1 v+1 (Cons v l)
@@ -68,6 +71,7 @@ public class ListTest {
     taken = evalCode(code, "taken");
     init = evalCode(code, "init");
     asVector = evalCode(code, "as_vector");
+    asText = evalCode(code, "as_text");
   }
 
   @Test
@@ -132,6 +136,14 @@ public class ListTest {
     assertEquals("It's vector", "Vector", vec.getMetaObject().getMetaSimpleName());
     assertTrue("And an array like object", vec.hasArrayElements());
     assertEquals("The same size remains", size, vec.getArraySize());
+  }
+
+  @Test
+  public void toText() throws Exception {
+    var list = generator.execute(size);
+    assertLength("Generated all", size, list);
+    var str = asText.execute(list);
+    assertTrue("It is a string", str.isString());
   }
 
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {
