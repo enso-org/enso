@@ -30,8 +30,11 @@ public final class EnsoHashMapBuilder {
   }
 
   public void add(Object key, Object value) {
-    StorageEntry oldValue = storage.put(key, new StorageEntry(key, value, size));
-    if (oldValue == null) {
+    StorageEntry oldEntry = storage.get(key);
+    StorageEntry newEntry =
+        oldEntry != null ? new StorageEntry(key, value, oldEntry.index) : new StorageEntry(key, value, size);
+    storage.put(key, newEntry);
+    if (oldEntry == null) {
       size++;
     }
   }

@@ -6,7 +6,7 @@ from Standard.Base.Data.Hash_Map import Hash_Map
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-polyglot java import java.lang.StringBuilder
+polyglot java import java.nio.file.Path as JavaPath
 
 # TODO: (Python + js) Interop specs
 foreign js js_str str = """
@@ -31,6 +31,15 @@ foreign python py_dict_from_vec vec = """
         d[vec[i]] = vec[i + 1]
     return d
 
+foreign python py_dict_from_map map = """
+    return map.copy()
+
+foreign python py_vec_from_map map = """
+    vec = []
+    for key, value in map.items():
+        vec.append([key, value])
+    return vec
+
 # Should throw error - updating immutable map from Enso
 foreign python py_update_dict map key val = """
     map[key] = val
@@ -40,6 +49,9 @@ foreign python py_wrapper obj = """
         def __init__(self, obj):
             self.data = obj
     return MyClass(obj)
+
+pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
+    Can't run Python tests, Python is not installed.
 
 
 spec =
@@ -249,10 +261,7 @@ spec =
             m.at 200 . should_equal 3
             m.at Nothing . should_equal 1
 
-    Test.group "Polyglot Hash maps" <|
-        pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
-            Can't run Python tests, Python is not installed.
-            ``
+    Test.group "Polyglot keys and values" <|
         Test.specify "should support polyglot keys" <|
             map = Hash_Map.singleton (js_str "A") 42
             map.size.should_equal 1
@@ -260,29 +269,52 @@ spec =
             map.get (js_str "A") . should_equal 42
 
         Test.specify "should support host objects as keys" <|
-            map = Hash_Map.singleton (StringBuilder.new "A") 42
+            # JavaPath has proper implementation of hashCode
+            map = Hash_Map.singleton (JavaPath.of "/home/user/file.txt") 42
             map.get "X" . should_equal Nothing
             map.get "A" . should_equal Nothing
-            map.get (StringBuilder.new "A") . should_equal 42
+            map.get (JavaPath.of "/home/user/file.txt") . should_equal 42
 
-        Test.specify "should pass maps as immutable maps to other langs" <|
-            map = Hash_Map.singleton "A" 1
-            Test.expect_panic_with (py_update_dict map "A" 2) Panic
-            map.get "A" . should_equal 1
-
-        Test.specify "should support Python objects as keys" <|
+        Test.specify "should support Python objects as keys" pending=pending_python_missing <|
             py_obj = py_wrapper 42
             map = Hash_Map.singleton py_obj "Value"
-            map.keys.at 0 . data . should_equal 42
+            map.get py_obj . should_equal "Value"
+
+        Test.specify "should support Python objects as values" pending=pending_python_missing <|
+            map = Hash_Map.singleton "A" (py_wrapper 42)
+            map.get "A" . data . should_equal 42
+
+    Test.group "Polyglot hash maps" <|
+        Test.specify "should pass maps as immutable maps to other langs" <|
+            map = Hash_Map.singleton "A" 1
+            Test.expect_panic_with (py_update_dict map "A" 2) Error
+            map.get "A" . should_equal 1
 
         Test.specify "should treat JavaScript maps as Enso maps" <|
             js_dict = js_dict_from_vec ["A", 1, "B", 2]
             map = js_dict.insert "C" 3
+            js_dict.to_vector.should_equal [["A", 1], ["B", 2]]
             map.to_vector.should_equal [["A", 1], ["B", 2], ["C", 3]]
 
         Test.specify "should treat Python dicts as Enso maps" pending=pending_python_missing <|
             py_dict = py_dict_from_vec ["A", 1, "B", 2]
             map = py_dict.insert "C" 3
+            py_dict.not_empty . should_be_true
+            py_dict.to_vector.should_equal [["A", 1], ["B", 2]]
             map.to_vector.should_equal [["A", 1], ["B", 2], ["C", 3]]
+
+        Test.specify "should pass maps with null keys to Python and back" pending=pending_python_missing <|
+            # Python supports None as keys, Enso support Nothing as keys
+            py_dict = py_dict_from_map (Hash_Map.singleton Nothing 42)
+            py_dict.get Nothing . should_equal 42
+            py_dict.insert "A" 23 . get Nothing . should_equal 42
+            py_dict.insert Nothing 23 . get Nothing . should_equal 42
+
+        Test.specify "should treat Enso maps as Python dicts when passed to Python" pending=pending_python_missing <|
+            map1 = Hash_Map.empty.insert "A" 1 . insert "B" 2
+            py_vec_from_map map1 . should_equal [["A", 1], ["B", 2]]
+            map2 = Hash_Map.empty.insert "A" 1 . insert Nothing 2
+            py_vec_from_map map2 . should_equal [["A", 1], [Nothing, 2]]
+
 
 main = Test_Suite.run_main spec

@@ -15,6 +15,7 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -72,7 +73,8 @@ public final class EnsoHashMap implements TruffleObject {
         keyValueArr[arrIdx++] = entry.value();
       }
     }
-    cachedVectorRepresentation = new FlatKeyValueVector(keyValueArr);
+    cachedVectorRepresentation =
+        Vector.fromArray(new FlatKeyValueVector(keyValueArr));
   }
 
   @Builtin.Method
@@ -194,12 +196,14 @@ public final class EnsoHashMap implements TruffleObject {
   Object toDisplayString(boolean allowSideEffects) {
     var sb = new StringBuilder();
     sb.append("EnsoHashMap{");
+    boolean empty = true;
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (isEntryInThisMap(entry)) {
+        empty = false;
         sb.append(entry.key()).append("=").append(entry.value()).append(", ");
       }
     }
-    if (sb.length() > 1) {
+    if (!empty) {
       // Delete last comma
       sb.delete(sb.length() - 2, sb.length());
     }

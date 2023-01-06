@@ -22,7 +22,7 @@ public abstract class HashMapSizeNode extends Node {
     return HashMapSizeNodeGen.create();
   }
 
-  abstract long execute(Object hashMap);
+  abstract long execute(Object self);
 
   @Specialization(guards = "interop.hasHashEntries(hashMap)", limit = "3")
   long getHashMapSize(Object hashMap,

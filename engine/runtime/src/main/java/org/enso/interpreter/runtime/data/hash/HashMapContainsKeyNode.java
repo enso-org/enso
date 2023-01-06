@@ -23,7 +23,7 @@ public abstract class HashMapContainsKeyNode extends Node {
     return HashMapContainsKeyNodeGen.create();
   }
 
-  abstract boolean execute(Object hashMap, Object key);
+  abstract boolean execute(Object self, Object key);
 
   @Specialization(guards = {
       "interop.hasHashEntries(foreignMap)"

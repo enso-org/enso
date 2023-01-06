@@ -25,16 +25,16 @@ public abstract class HashMapInsertNode extends Node {
     return HashMapInsertNodeGen.create();
   }
 
-  abstract Object execute(Object hashMap, Object key, Object value);
+  abstract EnsoHashMap execute(Object self, Object key, Object value);
 
   @Specialization
-  Object doEnsoHashMap(EnsoHashMap hashMap, Object key, Object value) {
+  EnsoHashMap doEnsoHashMap(EnsoHashMap hashMap, Object key, Object value) {
     hashMap.getMapBuilder().add(key, value);
     return hashMap.getMapBuilder().build();
   }
 
   @Specialization(guards = "mapInterop.hasHashEntries(foreignMap)", limit = "3")
-  Object doForeign(Object foreignMap, Object keyToInsert, Object valueToInsert,
+  EnsoHashMap doForeign(Object foreignMap, Object keyToInsert, Object valueToInsert,
       @CachedLibrary("foreignMap") InteropLibrary mapInterop,
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop,
       @Cached HashCodeAnyNode hashCodeNode,
