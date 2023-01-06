@@ -374,6 +374,23 @@ type List
                 go b res.fill
                 res.value
 
+    ## Get all elements from the list except the last.
+
+       > Example
+         Removing the last element of the list to give (Cons 1 Nil).
+
+             import Standard.Examples
+
+             example_init = Examples.list.init
+    init : List ! Index_Out_Of_Bounds
+    init self =
+        init_fn x y = case y of
+            Nil -> Nil
+            Cons a b -> Cons x (init_fn a b)
+        case self of
+            Nil -> Error.throw (Index_Out_Of_Bounds.Error 0 0)
+            Cons a b -> init_fn a b
+
     ## Get the last element of the list.
 
        > Example

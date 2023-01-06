@@ -113,7 +113,7 @@ spec = Test.group "List" <|
         (List.Cons 1 (List.Cons 2 List.Nil)).init . should_equal (List.Cons 1 List.Nil)
     Test.specify "should allow getting the init of the list with `.init`" <|
         l.init . should_equal (List.Cons 1 (List.Cons 2 List.Nil))
-        empty.init.should_fail_with Empty_Error
+        empty.init.should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "should allow getting the last element of the list with `.last`" <|
         l.last . should_equal 3
         empty.last.should_fail_with Index_Out_Of_Bounds.Error
