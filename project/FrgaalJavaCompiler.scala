@@ -66,16 +66,15 @@ object FrgaalJavaCompiler {
     val sources = sources0 map {
       case x: PathBasedFile => x.toPath.toAbsolutePath.toString
     }
-    val out = output.getSingleOutputAsPath().get()
-    val shared = sources0.fold(out)((a, b) => {
-      var ap = a match {
+
+    def asPath(a: Any) : Path = a match {
         case p: PathBasedFile => p.toPath
         case p: Path => p
-      }
-      val bp = b match {
-        case p: PathBasedFile => p.toPath
-        case p: Path => p
-      }
+    }
+
+    def asCommon(a: Any, b: Any): Path = {
+      var ap = asPath(a)
+      val bp = asPath(b)
 
       var i = 0
       while (i < Math.min(ap.getNameCount(), bp.getNameCount()) && ap.getName(i) == bp.getName(i)) {
@@ -86,7 +85,45 @@ object FrgaalJavaCompiler {
         ap = ap.getParent()
       }
       ap
-    }).asInstanceOf[Path]
+    }
+
+    val out = output.getSingleOutputAsPath().get()
+    val shared = sources0.fold(out)(asCommon).asInstanceOf[Path]
+
+    // searching for $shared/src/main/java or
+    // $shared/src/test/java or
+    // $shared/src/bench/java or etc.
+    def findUnder(depth : Int, dir : Path): Path = {
+      var d = dir
+      while (d.getNameCount() > depth) {
+        val threeUp = d.subpath(0, d.getNameCount() - depth)
+        val relShare = shared.subpath(0, shared.getNameCount())
+        if (relShare.equals(threeUp)) {
+          return d
+        } else {
+          d = d.getParent()
+        }
+      }
+      throw new IllegalArgumentException(
+        "Cannot findUnder for " + dir + " and " + shared +
+        "\nout: " + out + "\nsources: " + sources
+      )
+    }
+    def checkTarget(x : Any) = {
+      val p = asPath(x)
+      val namesCheck = for (i <- 0 until p.getNameCount)
+        yield "target".equals(p.getName(i).toString())
+      val inATargetDir = namesCheck.exists(x => x)
+      inATargetDir
+    }
+
+    val (withTarget, noTarget) = sources0.partition(checkTarget)
+    val in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
+    val generated = if (withTarget.isEmpty) {
+      None
+    } else {
+      Some(findUnder(4, withTarget.tail.fold(asPath(withTarget.head))(asCommon).asInstanceOf[Path]))
+    }
 
     if (shared.toFile().exists()) {
       val ensoMarker = new File(shared.toFile(), ENSO_SOURCES)
@@ -97,6 +134,10 @@ object FrgaalJavaCompiler {
         values.zipWithIndex.foreach { case (value, idx) => ensoProperties.setProperty(s"$name.$idx", value) }
       }
 
+      ensoProperties.setProperty("input", in.toString())
+      if (generated.isDefined) {
+        ensoProperties.setProperty("generated", generated.get.toString())
+      }
       ensoProperties.setProperty("output", out.toString())
       storeArray("options", options)
       source.foreach(v => ensoProperties.setProperty("source", v))

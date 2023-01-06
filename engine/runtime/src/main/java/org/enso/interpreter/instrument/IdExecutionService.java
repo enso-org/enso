@@ -28,6 +28,7 @@ public interface IdExecutionService {
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
+   * @param timer the execution timer.
    * @param nextExecutionItem the next item scheduled for execution.
    * @param functionCallCallback the consumer of function call events.
    * @param onComputedCallback the consumer of the computed value events.
@@ -41,18 +42,12 @@ public interface IdExecutionService {
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
+      Timer timer,
       UUID nextExecutionItem,
       Consumer<ExpressionCall> functionCallCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<Exception> onExceptionalCallback);
-
-  /**
-   * Override the default nanosecond timer with the specified {@code timer}.
-   *
-   * @param timer the timer to override with
-   */
-  void overrideTimer(Timer timer);
 
   /** A class for notifications about functions being called in the course of execution. */
   public static class ExpressionCall {

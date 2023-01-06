@@ -377,12 +377,3 @@ type Time_Of_Day
             sign = Time_Utils.compare_to_localtime self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error.Error Time_Of_Day that "that")
-
-    ## Compares two Time_Of_Day for equality.
-    == : Date -> Boolean
-    == self that = case that of
-        Time_Of_Day -> Meta.is_same_object self Time_Of_Day
-        _ : Time_Of_Day ->
-            sign = Time_Utils.compare_to_localtime self that
-            0 == sign
-        _ -> False

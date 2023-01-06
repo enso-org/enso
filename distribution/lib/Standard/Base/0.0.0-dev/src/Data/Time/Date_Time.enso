@@ -701,12 +701,3 @@ type Date_Time
             sign = Time_Utils.compare_to_zoneddatetime self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error.Error Date_Time that "that")
-
-    ## Compares two Date_Time for equality.
-    == : Date_Time -> Boolean
-    == self that = case that of
-        Date_Time -> Meta.is_same_object self Date_Time
-        _ : Date_Time ->
-            sign = Time_Utils.compare_to_zoneddatetime self that
-            0 == sign
-        _ -> False

@@ -38,18 +38,13 @@ visualization_spec connection =
         Test.specify "should wrap internal errors" <|
             bad_table = Database_Table.Value Nothing Nothing Nothing Nothing
             vis = Visualization.prepare_visualization bad_table 2
-            json = JS_Object.from_pairs [["error", "Method `meta_index` of Nothing could not be found."]]
+            json = JS_Object.from_pairs [["error", "Method `set_limit` of Nothing could not be found."]]
             vis . should_equal json.to_text
 
         Test.specify "should visualize database tables" <|
             vis = Visualization.prepare_visualization t 1
             json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 ixes_header=[] ixes=[]
             vis . should_equal json
-
-            t2 = t.set_index "A"
-            vis2 = Visualization.prepare_visualization t2 1
-            json2 = make_json header=["B", "C"] data=[[2], [3]] all_rows=3 ixes_header=["A"] ixes=[['a']]
-            vis2 . should_equal json2
 
         Test.specify "should visualize database columns" <|
             vis = Visualization.prepare_visualization (t.at "A") 2
@@ -66,11 +61,6 @@ visualization_spec connection =
             vis = Visualization.prepare_visualization t2 1
             json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 ixes_header=[""] ixes=[[0]]
             vis . should_equal json
-
-            t3 = t2.set_index "A"
-            vis2 = Visualization.prepare_visualization t3 1
-            json2 = make_json header=["B", "C"] data=[[4], [7]] all_rows=3 ixes_header=["A"] ixes=[[1]]
-            vis2 . should_equal json2
 
         Test.specify "should visualize dataframe columns" <|
             vis = Visualization.prepare_visualization (t2.at "A") 2

@@ -23,6 +23,13 @@ spec =
             True.compare_to False . should_equal Ordering.Greater
             False.compare_to True . should_equal Ordering.Less
 
+        Test.specify "should allow == operator" <|
+            True.should_equal True
+            False.should_equal False
+            True.should_not_equal False
+            False.should_not_equal True
+            (1 == 1).should_equal True
+
         Test.specify "should allow for extending Bools in a local module" <|
             test = 1 == 2
             test.method . should_equal test

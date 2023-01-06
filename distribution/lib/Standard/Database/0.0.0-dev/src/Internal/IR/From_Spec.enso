@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
-import project.Internal.IR.Join_Kind.Join_Kind
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 
 ## PRIVATE
 
@@ -44,7 +44,7 @@ type From_Spec
        - on: a list of expressions that will be used as join conditions, these
          are usually be equalities between expressions from the left and right
          sources.
-    Join (kind : Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector SQL_Expression)
+    Join (kind : SQL_Join_Kind) (left_spec : From_Spec) (right_spec : From_Spec) (on : Vector SQL_Expression)
 
     ## PRIVATE
 

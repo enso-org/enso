@@ -66,10 +66,10 @@ type Point_Data
     ## PRIVATE
     fallback_column : Table -> Column ! No_Fallback_Column
     fallback_column self table = case self of
-        Point_Data.X -> table.index.catch_ <| Point_Data.iota table.row_count
+        Point_Data.X -> Point_Data.iota table.row_count
         Point_Data.Y ->
             x_column = Point_Data.X.lookup_in table
-            candidates = table.all_columns
+            candidates = table.columns
             is_good_enough c = c.is_numeric && c.name != x_column.name
             is_good c = is_good_enough c && (self.is_recognized c).not
 
@@ -123,7 +123,7 @@ Table.axes self =
     y_axis = describe_axis Point_Data.Y
     is_valid axis_pair =
         label = axis_pair.at 1
-        label.is_valid && (self.all_columns.length > 0)
+        label.is_valid && (self.columns.length > 0)
     axes_obj = JS_Object.from_pairs <| [x_axis, y_axis].filter is_valid
     if axes_obj.length > 0 then axes_obj else Nothing
 

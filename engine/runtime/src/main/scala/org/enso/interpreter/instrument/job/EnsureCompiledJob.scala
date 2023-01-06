@@ -430,7 +430,7 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     module: QualifiedName,
     stack: Iterable[InstrumentFrame]
   ): Boolean =
-    stack.headOption match {
+    stack.lastOption match {
       case Some(
             InstrumentFrame(StackItem.ExplicitCall(methodPointer, _, _), _, _)
           ) =>

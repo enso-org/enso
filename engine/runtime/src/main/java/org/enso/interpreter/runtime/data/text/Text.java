@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.data.text;
 
 import com.ibm.icu.text.BreakIterator;
+import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -26,6 +27,13 @@ public final class Text implements TruffleObject {
   private static final Lock LOCK = new ReentrantLock();
   private volatile Object contents;
   private volatile int length = -1;
+  private volatile FcdNormalized fcdNormalized = FcdNormalized.UNKNOWN;
+
+  private enum FcdNormalized {
+    YES,
+    NO,
+    UNKNOWN
+  }
 
   private Text(String string) {
     this.contents = string;
@@ -55,6 +63,33 @@ public final class Text implements TruffleObject {
       length = l;
     }
     return l;
+  }
+
+  @Builtin.Method(description = """
+  Checks whether this text is in FCD normalized form.
+
+  > Example
+    Check if the string is normalized
+
+        "14.95€".is_normalized
+  """)
+  @CompilerDirectives.TruffleBoundary
+  public boolean is_normalized() {
+    switch (fcdNormalized) {
+      case YES -> {
+        return true;
+      }
+      case NO -> {
+        return false;
+      }
+      case UNKNOWN -> {
+        Normalizer2 normalizer = Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.FCD);
+        boolean isNormalized = normalizer.isNormalized(toString());
+        setFcdNormalized(isNormalized);
+        return isNormalized;
+      }
+    }
+    return false;
   }
 
   /**
@@ -172,9 +207,27 @@ public final class Text implements TruffleObject {
     return "'" + replaced + "'";
   }
 
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().text();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
   private void setContents(String contents) {
     assert length == -1 || length == contents.length();
     this.contents = contents;
+  }
+
+  private void setFcdNormalized(boolean flag) {
+    if (flag) {
+      fcdNormalized = FcdNormalized.YES;
+    } else {
+      fcdNormalized = FcdNormalized.NO;
+    }
   }
 
   @Override
@@ -233,4 +286,5 @@ public final class Text implements TruffleObject {
     }
     return result;
   }
+
 }

@@ -17,21 +17,24 @@ public abstract class NumericLiteralBranchNode extends BranchNode {
 
   private final ConditionProfile numProfile = ConditionProfile.createCountingProfile();
 
-  NumericLiteralBranchNode(Object literal, RootCallTarget branch) {
-    super(branch);
+  NumericLiteralBranchNode(Object literal, RootCallTarget branch, boolean terminalBranch) {
+    super(branch, terminalBranch);
     this.literal = literal;
   }
 
-  public static NumericLiteralBranchNode build(long literal, RootCallTarget branch) {
-    return NumericLiteralBranchNodeGen.create(literal, branch);
+  public static NumericLiteralBranchNode build(
+      long literal, RootCallTarget branch, boolean terminalBranch) {
+    return NumericLiteralBranchNodeGen.create(literal, branch, terminalBranch);
   }
 
-  public static NumericLiteralBranchNode build(double literal, RootCallTarget branch) {
-    return NumericLiteralBranchNodeGen.create(literal, branch);
+  public static NumericLiteralBranchNode build(
+      double literal, RootCallTarget branch, boolean terminalBranch) {
+    return NumericLiteralBranchNodeGen.create(literal, branch, terminalBranch);
   }
 
-  public static NumericLiteralBranchNode build(BigInteger literal, RootCallTarget branch) {
-    return NumericLiteralBranchNodeGen.create(literal, branch);
+  public static NumericLiteralBranchNode build(
+      BigInteger literal, RootCallTarget branch, boolean terminalBranch) {
+    return NumericLiteralBranchNodeGen.create(literal, branch, terminalBranch);
   }
 
   @Specialization(guards = "interop.isNumber(target)")

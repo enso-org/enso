@@ -1,10 +1,53 @@
 //! Documentation view visualization generating and presenting Enso Documentation under
 //! the documented node.
+//!
+//! # Tailwind CSS
+//!
+//! This crate uses the [`Tailwind CSS`] framework to style the HTML code displayed inside the
+//! documentation panel. [`Tailwind CSS`] is a utility-first CSS framework packed with classes like
+//! `flex`, `w-1/2`, `h-32`, or `bg-gray-200`. It allows for defining any visual style by combining
+//! these classes. The `build.rs` script runs the [`Tailwind CSS`] utility to generate a
+//! CSS stylesheet by scanning the source code for class names and including needed CSS rules in the
+//! output file. It means one can set `Tailwind` classes for any DOM element, and the stylesheet
+//! will automatically update with needed CSS rules.
+//!
+//! The build script runs `npx tailwindcss`, so one should have [Node.js] installed. Installing the
+//! `Tailwind` utility is not strictly required because the `npx` would download it
+//! automatically if needed.
+//!
+//! [`Tailwind CSS`]: https://tailwindcss.com/
 
-use crate::prelude::*;
+// === Features ===
+#![feature(associated_type_bounds)]
+#![feature(associated_type_defaults)]
+#![feature(drain_filter)]
+#![feature(fn_traits)]
+#![feature(option_result_contains)]
+#![feature(specialization)]
+#![feature(trait_alias)]
+#![feature(type_alias_impl_trait)]
+#![feature(unboxed_closures)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+#![allow(incomplete_features)] // To be removed, see: https://github.com/enso-org/ide/issues/1559
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![recursion_limit = "1024"]
+
+use ensogl::prelude::*;
 use ensogl::system::web::traits::*;
 
-use crate::graph_editor::component::visualization;
+use graph_editor::component::visualization;
+use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
 use ensogl::application::Application;
@@ -39,7 +82,7 @@ pub const VIEW_WIDTH: f32 = 300.0;
 pub const VIEW_HEIGHT: f32 = 300.0;
 
 /// Content in the documentation view when there is no data available.
-const CORNER_RADIUS: f32 = crate::graph_editor::component::node::CORNER_RADIUS;
+const CORNER_RADIUS: f32 = graph_editor::component::node::CORNER_RADIUS;
 const PADDING: f32 = 15.0;
 const PADDING_TOP: f32 = 5.0;
 const CODE_BLOCK_CLASS: &str = "doc-code-container";
@@ -121,7 +164,16 @@ impl Model {
 
     fn init(self) -> Self {
         self.reload_style();
+        self.load_css_stylesheet();
         self
+    }
+
+    /// Add `<style>` tag with the stylesheet to the `outer_dom`.
+    fn load_css_stylesheet(&self) {
+        let stylesheet = include_str!(concat!(env!("OUT_DIR"), "/stylesheet.css"));
+        let element = web::document.create_element_or_panic("style");
+        element.set_inner_html(stylesheet);
+        self.outer_dom.append_or_warn(&element);
     }
 
     /// Set size of the documentation view.
@@ -209,7 +261,7 @@ impl Model {
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
     /// TODO [MM] : This should be replaced with a EnsoGL spinner in the next PR.
     fn load_waiting_screen(&self) {
-        let spinner = include_str!("documentation/spinner.html");
+        let spinner = include_str!("../assets/spinner.html");
         self.push_to_dom(String::from(spinner))
     }
 

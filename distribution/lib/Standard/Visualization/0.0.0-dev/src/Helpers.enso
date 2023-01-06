@@ -179,19 +179,6 @@ Array.to_default_visualization_data self =
 
 ## PRIVATE
 
-   Returns all the columns in the table, including indices.
-
-   Index columns are placed before other columns.
-Table.all_columns : Vector
-Table.all_columns self =
-    index = self.index.catch_ []
-    index_columns = case index of
-        _ : Vector -> index
-        a -> [a]
-    index_columns + self.columns
-
-## PRIVATE
-
    Looks for a column by a given name.
 
    Unlike `Table.at` looks into index columns and name comparison is case-insensitive.
@@ -200,7 +187,7 @@ Table.all_columns self =
    - text: the case-insensitive name of the searched column.
 Table.lookup_ignore_case : Text -> Column ! Nothing
 Table.lookup_ignore_case self name =
-    self.all_columns.find <| col->
+    self.columns.find <| col->
         col.name.equals_ignore_case name
 
 ## UNSTABLE

@@ -37,7 +37,7 @@ import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
     id = IdExecutionService.INSTRUMENT_ID,
     services = IdExecutionService.class)
 public class IdExecutionInstrument extends TruffleInstrument implements IdExecutionService {
-  private Timer timer;
+
   private Env env;
 
   /**
@@ -48,18 +48,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
   @Override
   protected void onCreate(Env env) {
     env.registerService(this);
-    this.timer = new Timer.Nanosecond();
     this.env = env;
-  }
-
-  /**
-   * Override the default nanosecond timer with the specified {@code timer}.
-   *
-   * @param timer the timer to override with
-   */
-  @Override
-  public void overrideTimer(Timer timer) {
-    this.timer = timer;
   }
 
   /** The listener class used by this instrument. */
@@ -305,6 +294,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param syncState the synchronization state of runtime updates.
+   * @param timer the execution timer.
    * @param nextExecutionItem the next item scheduled for execution.
    * @param functionCallCallback the consumer of function call events.
    * @param onComputedCallback the consumer of the computed value events.
@@ -319,6 +309,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
+      Timer timer,
       UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,

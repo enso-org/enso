@@ -14,18 +14,6 @@ type Boolean
     True
     False
 
-    ## Compares two booleans for equality.
-
-       Arguments:
-       - that: The boolean to compare this with.
-
-       > Example
-         Comparing True to False to get False.
-
-             True == False
-    == : Boolean -> Boolean
-    == self that = @Builtin_Method "Boolean.=="
-
     ## Computes the logical and (conjunction) of two booleans.
 
        Arguments:

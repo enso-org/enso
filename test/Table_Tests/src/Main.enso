@@ -4,6 +4,7 @@ from Standard.Test import Test_Suite
 
 import project.Database
 import project.Formatting
+import project.Helpers
 import project.In_Memory
 import project.IO
 
@@ -12,3 +13,4 @@ main = Test_Suite.run_main <|
     IO.Main.spec
     Formatting.Main.spec
     Database.Main.spec
+    Helpers.Main.spec

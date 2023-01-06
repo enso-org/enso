@@ -251,9 +251,17 @@ spec =
             text_1 = '''
                 foo
                 bar\r\tbaz
-            text_1.to_text.should_equal "'foo\nbar\r\tbaz'"
+            text_1.pretty.should_equal "'foo\nbar\r\tbaz'"
             text_2 = '\n\t\a\b\f\r\v\e\''
-            text_2.to_text.should_equal "'\n\t\a\b\f\r\v\e\''"
+            text_2.pretty.should_equal "'\n\t\a\b\f\r\v\e\''"
+
+        Test.specify "should return text as is when converting to text" <|
+            text_1 = '''
+                foo
+                bar\r\tbaz
+            text_1.to_text.should_equal text_1
+            text_2 = '\n\t\a\b\f\r\v\e\''
+            text_2.to_text.should_equal text_2
 
         Test.specify "should allow taking or dropping every other character" <|
             "ABCDE".take (Every 1) . should_equal "ABCDE"
