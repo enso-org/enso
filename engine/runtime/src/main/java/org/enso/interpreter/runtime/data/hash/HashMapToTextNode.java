@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -34,15 +35,16 @@ public abstract class HashMapToTextNode extends Node {
     try {
       Object entryIterator = interop.getHashEntriesIterator(hashMap);
       while (interop.hasIteratorNextElement(entryIterator)) {
-        Object key = interop.getIteratorNextElement(entryIterator);
-        Object value = interop.getIteratorNextElement(entryIterator);
+        Object keyValuePair = interop.getIteratorNextElement(entryIterator);
+        Object key = interop.readArrayElement(keyValuePair, 0);
+        Object value = interop.readArrayElement(keyValuePair, 1);
         sb.append(key).append("=").append(value).append(", ");
       }
       if (interop.getHashSize(hashMap) > 0) {
         // Delete last comma
         sb.delete(sb.length() - 2, sb.length());
       }
-    } catch (UnsupportedMessageException | StopIterationException e) {
+    } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       throw new IllegalStateException(
           "hashMap " + hashMap + " probably implements interop API incorrectly",
           e

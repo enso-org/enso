@@ -65,16 +65,20 @@ public final class EnsoHashMap implements TruffleObject {
   @TruffleBoundary
   void cacheVectorRepresentation() {
     assert cachedVectorRepresentation == null : "Caching vector repr should be done at most once";
-    Object[] keyValueArr = new Object[snapshotSize * 2];
+    Object[] keys = new Object[snapshotSize];
+    Object[] values = new Object[snapshotSize];
     int arrIdx = 0;
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (entry.index() <= snapshotSize) {
-        keyValueArr[arrIdx++] = entry.key();
-        keyValueArr[arrIdx++] = entry.value();
+        keys[arrIdx] = entry.key();
+        values[arrIdx] = entry.value();
+        arrIdx++;
       }
     }
     cachedVectorRepresentation =
-        Vector.fromArray(new FlatKeyValueVector(keyValueArr));
+        Vector.fromArray(
+            HashEntriesVector.createFromKeysAndValues(keys, values)
+        );
   }
 
   @Builtin.Method

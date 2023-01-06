@@ -403,14 +403,15 @@ public abstract class EqualsAnyNode extends Node {
       @Cached EqualsAnyNode equalsNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
-      int otherHashSize = (int) selfInterop.getHashSize(otherHashMap);
+      int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
       if (selfHashSize != otherHashSize) {
         return false;
       }
-      Object entriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
-      while (entriesInterop.hasIteratorNextElement(entriesIter)) {
-        Object key = entriesInterop.getIteratorNextElement(entriesIter);
-        Object selfValue = entriesInterop.getIteratorNextElement(entriesIter);
+      Object selfEntriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
+      while (entriesInterop.hasIteratorNextElement(selfEntriesIter)) {
+        Object selfKeyValue = entriesInterop.getIteratorNextElement(selfEntriesIter);
+        Object key = entriesInterop.readArrayElement(selfKeyValue, 0);
+        Object selfValue = entriesInterop.readArrayElement(selfKeyValue, 1);
         if (otherInterop.isHashEntryExisting(otherHashMap, key)
             && otherInterop.isHashEntryReadable(otherHashMap, key)) {
           Object otherValue = otherInterop.readHashValue(otherHashMap, key);
@@ -422,7 +423,8 @@ public abstract class EqualsAnyNode extends Node {
         }
       }
       return true;
-    } catch (UnsupportedMessageException | StopIterationException | UnknownKeyException e) {
+    } catch (UnsupportedMessageException | StopIterationException | UnknownKeyException |
+             InvalidArrayIndexException e) {
       throw new IllegalStateException(e);
     }
   }

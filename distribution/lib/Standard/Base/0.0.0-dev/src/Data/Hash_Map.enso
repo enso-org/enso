@@ -44,16 +44,10 @@ type Hash_Map key value
     contains_key self key = @Builtin_Method "Hash_Map.contains_key"
 
     keys : Vector Any
-    keys self =
-        flat_vec = self.to_flat_vector
-        Vector.new (flat_vec.length.div 2) idx->
-            flat_vec.at (idx * 2)
+    keys self = self.to_vector.map pair-> pair.at 0
 
     values : Vector Any
-    values self =
-        flat_vec = self.to_flat_vector
-        Vector.new (flat_vec.length.div 2) idx->
-            flat_vec.at (idx * 2 + 1)
+    values self = self.to_vector.map pair-> pair.at 1
 
     map : (Any -> Any) -> Hash_Map
     map self function =
@@ -96,17 +90,9 @@ type Hash_Map key value
         self.to_vector.each pair->
             function pair.first pair.last
 
-    ## PRIVATE
-    ## UNSTABLE
-    to_flat_vector : Vector Any
-    to_flat_vector self = @Builtin_Method "Hash_Map.to_flat_vector"
-
+    # Returns unsorted vector of key-value pairs (nested 2 element vectors).
     to_vector : Vector Any
-    to_vector self =
-        flat_vec = self.to_flat_vector
-        vec = Vector.new (flat_vec.length.div 2) idx->
-            [(flat_vec.at idx*2), (flat_vec.at (idx*2 + 1))]
-        vec.sort by=(x-> y-> x.first.compare_to y.first)
+    to_vector self = @Builtin_Method "Hash_Map.to_vector"
 
     to_text : Text
     to_text self = @Builtin_Method "Hash_Map.to_text"
@@ -118,10 +104,7 @@ type Hash_Map key value
         case self.is_empty of
             True -> Nothing
             False ->
-                flat_vec_part = self.to_flat_vector.take 2
-                case flat_vec_part.length of
-                    2 -> Pair.new (flat_vec_part.at 0) (flat_vec_part.at 1)
-                    _ -> Panic.throw "flat_vector should have length exactly 2"
+                Pair.new (self.to_vector.first.at 0) (self.to_vector.first.at 1)
 
     ## Get a key value pair of the highest key in the map.
        If the map is empty, returns Nothing.
@@ -130,8 +113,5 @@ type Hash_Map key value
         case self.is_empty of
             True -> Nothing
             False ->
-                vec_part = self.to_flat_vector.drop (self.to_flat_vector.length - 2)
-                case vec_part.length of
-                    2 -> Pair.new (vec_part.at 0) (vec_part.at 1)
-                    _ -> Panic.throw "flat_vector should have length exactly 2"
+                Pair.new (self.to_vector.last.at 0) (self.to_vector.last.at 1)
 

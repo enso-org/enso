@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -43,11 +44,12 @@ public abstract class HashMapInsertNode extends Node {
     try {
       Object entriesIterator = mapInterop.getHashEntriesIterator(foreignMap);
       while (iteratorInterop.hasIteratorNextElement(entriesIterator)) {
-        Object key = iteratorInterop.getIteratorNextElement(entriesIterator);
-        Object value = iteratorInterop.getIteratorNextElement(entriesIterator);
+        Object keyValueArr = iteratorInterop.getIteratorNextElement(entriesIterator);
+        Object key = iteratorInterop.readArrayElement(keyValueArr, 0);
+        Object value = iteratorInterop.readArrayElement(keyValueArr, 1);
         mapBuilder.add(key, value);
       }
-    } catch (UnsupportedMessageException | StopIterationException e) {
+    } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       throw new IllegalStateException(
           "Polyglot hash map " + foreignMap + " has wrongly specified Interop API (hash entries iterator)",
           e
