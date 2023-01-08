@@ -134,9 +134,7 @@ type Array
     length : Integer
     length self = @Builtin_Method "Array.length"
 
-    ## ADVANCED
-
-      Sorts the Array.
+    ## Sorts the Array.
 
       Arguments:
       - comparator: A comparison function that takes two elements and returns

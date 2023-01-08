@@ -50,16 +50,4 @@ public final class ArrayOverBuffer implements TruffleObject {
     final InteropLibrary iop = InteropLibrary.getUncached();
     return DisplayArrayUtils.toDisplayString(this, allowSideEffects, iop);
   }
-
-  /**
-   * Retrieves the underlying array of the buffer.
-   *
-   * <p>The returned array should not be further modified.
-   *
-   * @return byte array backing ByteBuffer
-   */
-  @CompilerDirectives.TruffleBoundary
-  public byte[] backingArray() {
-    return buffer.array();
-  }
 }
