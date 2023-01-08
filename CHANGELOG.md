@@ -498,6 +498,8 @@
 - [IGV can jump to JMH sources & more][4008]
 - [Basic support of VSCode integration][4014]
 - [Sync language server with file system after VCS restore][4020]
+- [`ArrayOverBuffer` behaves like an `Array` and `Array.sort` no longer sorts in
+  place][4022]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
 
@@ -581,6 +583,7 @@
 [4008]: https://github.com/enso-org/enso/pull/4008
 [4014]: https://github.com/enso-org/enso/pull/4014
 [4020]: https://github.com/enso-org/enso/pull/4020
+[4022]: https://github.com/enso-org/enso/pull/4022
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 
