@@ -52,6 +52,14 @@ spec setup =
             rows.at 0 . should_equal ["A", 5]
             rows.at 1 . should_equal ["B", 5]
 
+        Test.specify "aggregates and ordering" <|
+            t1 = table_builder [["Letter", ["C", "A", "B", "A", "A", "C", "C", "B"]], ["Points", [0, -100, 5, 2, 1, 10, 3, 0]]]
+            t2 = t1.aggregate [Group_By "Letter", Sum "Points"]
+            t3 = t2.order_by "Sum Points" |> materialize
+            t3.columns.map .name . should_equal ["Letter", "Sum Points"]
+            t3.at "Letter" . to_vector . should_equal ["A", "B", "C"]
+            t3.at "Sum Points" . to_vector . should_equal [-97, 5, 13]
+
         Test.specify "distinct and ordering" <|
             t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]]
 
@@ -108,7 +116,3 @@ spec setup =
                 r5 = t5 |> materialize
                 r5.at "A" . to_vector . should_equal ["b", "a"]
                 r5.at "B" . to_vector . should_equal [5, 5]
-
-        Test.specify "aggregates and ordering" pending="TODO" <|
-            # TODO order by sum and then group by and order again but in different direction?
-            Nothing
