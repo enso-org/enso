@@ -50,12 +50,13 @@ object VcsManagerApi {
 
   case object RestoreVcs extends Method("vcs/restore") {
     case class Params(root: Path, commitId: Option[String])
+    case class Result(changed: List[Path])
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = RestoreVcs.Params
     }
     implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
+      type Result = RestoreVcs.Result
     }
   }
 

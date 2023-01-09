@@ -1,5 +1,7 @@
 package org.enso.table.data.table.problems;
 
+import org.enso.table.problems.Problem;
+
 import java.util.ArrayList;
 import java.util.List;
 

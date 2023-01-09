@@ -83,11 +83,7 @@ case object TypeSignatures extends IRPass {
 
     val newBindings: List[IR.Module.Scope.Definition] = mod.bindings.flatMap {
       case sig: IR.Type.Ascription =>
-        val res = lastSignature match {
-          case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
-          case None         => None
-        }
-
+        val res = lastSignature.map(IR.Error.Unexpected.TypeSignature(_))
         lastSignature = Some(sig)
         res
       case meth: IR.Module.Scope.Definition.Method =>

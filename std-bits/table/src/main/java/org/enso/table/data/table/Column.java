@@ -5,7 +5,6 @@ import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.DefaultIndex;
-import org.enso.table.data.index.HashIndex;
 import org.enso.table.data.index.Index;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -19,19 +18,6 @@ import java.util.List;
 public class Column {
   private final String name;
   private final Storage<?> storage;
-  private final Index index;
-
-  /**
-   * Creates a new column.
-   *
-   * @param name the column name
-   * @param storage the underlying storage
-   */
-  public Column(String name, Index index, Storage<?> storage) {
-    this.name = name;
-    this.storage = storage;
-    this.index = index;
-  }
 
   /**
    * Creates a new column.
@@ -40,7 +26,8 @@ public class Column {
    * @param storage the underlying storage
    */
   public Column(String name, Storage<?> storage) {
-    this(name, new DefaultIndex(storage.size()), storage);
+    this.name = name;
+    this.storage = storage;
   }
 
   /**
@@ -49,7 +36,7 @@ public class Column {
    * @return a table containing only this column
    */
   public Table toTable() {
-    return new Table(new Column[] {this}, index);
+    return new Table(new Column[] {this});
   }
 
   /** @return the column name */
@@ -74,8 +61,8 @@ public class Column {
    * @param cardinality the number of true values in mask
    * @return a new column, masked with the given mask
    */
-  public Column mask(Index maskedIndex, BitSet mask, int cardinality) {
-    return new Column(name, maskedIndex, storage.mask(mask, cardinality));
+  public Column mask(BitSet mask, int cardinality) {
+    return new Column(name, storage.mask(mask, cardinality));
   }
 
   /**
@@ -95,8 +82,7 @@ public class Column {
     localStorageMask.set(0, getStorage().size());
     mask.and(localStorageMask);
     int cardinality = mask.cardinality();
-    Index newIx = index.mask(mask, cardinality);
-    return mask(newIx, mask, cardinality);
+    return mask(mask, cardinality);
   }
 
   /**
@@ -106,7 +92,7 @@ public class Column {
    * @return a new column with the given name
    */
   public Column rename(String name) {
-    return new Column(name, index, storage);
+    return new Column(name, storage);
   }
 
   /**
@@ -123,7 +109,7 @@ public class Column {
       builder.appendNoGrow(converted);
     }
     var storage = builder.seal();
-    return new Column(name, new DefaultIndex(items.size()), storage);
+    return new Column(name, storage);
   }
 
   /**
@@ -141,34 +127,12 @@ public class Column {
       var converted = Polyglot_Utils.convertPolyglotValue(item);
       builder.appendNoGrow(converted);
     }
-    return new Column(name, new DefaultIndex(totalSize), builder.seal());
-  }
-
-  /**
-   * Changes the index of this column.
-   *
-   * @param ix the index to use
-   * @return a column indexed by {@code ix}
-   */
-  public Column withIndex(Index ix) {
-    return new Column(name, ix, storage);
-  }
-
-  /**
-   * Sets the index of this column to the provided column.
-   *
-   * @param col the column to use as the index.
-   * @return a column indexed by {@code col}
-   */
-  public Column setIndex(Column col) {
-    Storage<?> storage = col.getStorage();
-    Index ix = HashIndex.fromStorage(col.getName(), storage);
-    return this.withIndex(ix);
+    return new Column(name, builder.seal());
   }
 
   /** @return the index of this column */
   public Index getIndex() {
-    return index;
+    return new DefaultIndex(getSize());
   }
 
   /**
@@ -176,23 +140,22 @@ public class Column {
    * @return a new column, resulting from reordering this column according to {@code mask}.
    */
   public Column applyMask(OrderMask mask) {
-    Index newIndex = index.applyMask(mask);
     Storage<?> newStorage = storage.applyMask(mask);
-    return new Column(name, newIndex, newStorage);
+    return new Column(name, newStorage);
   }
 
   /** @return a copy of the Column containing a slice of the original data */
   public Column slice(int offset, int limit) {
-    return new Column(name, index.slice(offset, limit), storage.slice(offset, limit));
+    return new Column(name, storage.slice(offset, limit));
   }
 
   /** @return a copy of the Column consisting of slices of the original data */
   public Column slice(List<SliceRange> ranges) {
-    return new Column(name, index.slice(ranges), storage.slice(ranges));
+    return new Column(name, storage.slice(ranges));
   }
 
   /** @return a column counting value repetitions in this column. */
   public Column duplicateCount() {
-    return new Column(name + "_duplicate_count", index, storage.duplicateCount());
+    return new Column(name + "_duplicate_count", storage.duplicateCount());
   }
 }

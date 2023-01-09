@@ -5,8 +5,6 @@ import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import org.enso.table.data.column.builder.string.StringStorageBuilder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.StringStorage;
-import org.enso.table.data.index.DefaultIndex;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.parsing.DatatypeParser;
@@ -460,7 +458,7 @@ public class DelimitedReader {
       }
       Storage<?> storage = parseResult.value();
 
-      columns[i] = new Column(columnName, new DefaultIndex(storage.size()), storage);
+      columns[i] = new Column(columnName, storage);
     }
     return new WithProblems<>(new Table(columns), getReportedProblems(headerProblems));
   }

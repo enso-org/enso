@@ -30,6 +30,7 @@ import org.enso.interpreter.epb.EpbLanguage;
 import org.enso.interpreter.instrument.IdExecutionService;
 import org.enso.interpreter.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.instrument.NotificationHandler.TextMode$;
+import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
@@ -130,6 +131,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     }
 
+    boolean isExecutionTimerEnabled =
+        env.getOptions().get(RuntimeOptions.ENABLE_EXECUTION_TIMER_KEY);
+    Timer timer = isExecutionTimerEnabled ? new Timer.Nanosecond() : new Timer.Disabled();
+
     EnsoContext context =
         new EnsoContext(
             this, getLanguageHome(), env, notificationHandler, lockManager, distributionManager);
@@ -140,7 +145,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
                     env.lookup(idValueListenerInstrument, IdExecutionService.class));
     env.registerService(
         new ExecutionService(
-            context, idExecutionInstrument, notificationHandler, connectedLockManager));
+            context, idExecutionInstrument, notificationHandler, connectedLockManager, timer));
 
     return context;
   }

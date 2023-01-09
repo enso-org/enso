@@ -18,6 +18,7 @@ import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.NotificationHandler;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
+import org.enso.interpreter.instrument.execution.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -58,25 +59,30 @@ public class ExecutionService {
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
   private final ConnectedLockManager connectedLockManager;
 
+  private final Timer timer;
+
   /**
    * Creates a new instance of this service.
    *
    * @param context the language context to use.
    * @param idExecutionInstrument optional instance of the {@link IdExecutionService} to use in the
-   *     course of executions
-   * @param notificationForwarder a forwarder of notifications, used to communicate with the user
+   *     course of executions.
+   * @param notificationForwarder a forwarder of notifications, used to communicate with the user.
    * @param connectedLockManager a connected lock manager (if it is in use) that should be connected
-   *     to the language server, or null
+   *     to the language server, or null.
+   * @param timer an execution timer.
    */
   public ExecutionService(
       EnsoContext context,
       Optional<IdExecutionService> idExecutionInstrument,
       NotificationHandler.Forwarder notificationForwarder,
-      ConnectedLockManager connectedLockManager) {
+      ConnectedLockManager connectedLockManager,
+      Timer timer) {
     this.idExecutionInstrument = idExecutionInstrument;
     this.context = context;
     this.notificationForwarder = notificationForwarder;
     this.connectedLockManager = connectedLockManager;
+    this.timer = timer;
   }
 
   /** @return the language context. */
@@ -159,6 +165,7 @@ public class ExecutionService {
                     cache,
                     methodCallsCache,
                     syncState,
+                    this.timer,
                     nextExecutionItem,
                     funCallCallback,
                     onComputedCallback,
@@ -289,6 +296,7 @@ public class ExecutionService {
                     cache,
                     methodCallsCache,
                     syncState,
+                    this.timer,
                     nextExecutionItem,
                     funCallCallback,
                     onComputedCallback,

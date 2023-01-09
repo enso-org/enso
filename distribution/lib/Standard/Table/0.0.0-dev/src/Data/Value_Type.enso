@@ -38,7 +38,7 @@ type Value_Type
     ## Floating point value.
 
        ANSI SQL: REAL, FLOAT, DOUBLE
-    Float size:(Bits.Bits_32 | Bits.Bits_64)=Bits.Bits_64
+    Float size:Bits=Bits.Bits_64
 
     ## Arbitrary precision numerical value with a scale and precision.
 

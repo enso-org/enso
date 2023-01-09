@@ -1,0 +1,53 @@
+from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+
+from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+
+polyglot java import org.enso.table.data.table.problems.AggregatedProblems
+polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
+polyglot java import org.enso.table.data.table.problems.InvalidAggregation
+polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
+polyglot java import org.enso.table.parsing.problems.InvalidFormat
+polyglot java import org.enso.table.parsing.problems.LeadingZeros
+polyglot java import org.enso.table.parsing.problems.InvalidRow
+polyglot java import org.enso.table.parsing.problems.MismatchedQuote
+polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
+polyglot java import org.enso.table.util.problems.DuplicateNames
+polyglot java import org.enso.table.util.problems.InvalidNames
+
+## PRIVATE
+   Convert a Java problem into its Enso equivalent.
+translate_problem p = case p of
+    _ : InvalidAggregation ->
+        Invalid_Aggregation.Error p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage
+    _ : FloatingPointGrouping ->
+        Floating_Point_Grouping.Error p.getColumnName
+    _ : UnquotedDelimiter ->
+        Unquoted_Delimiter.Error p.getColumnName (Vector.from_polyglot_array p.getRows)
+    _ : InvalidRow ->
+        Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row)
+    _ : AdditionalInvalidRows ->
+        Additional_Invalid_Rows.Error p.count
+    _ : MismatchedQuote ->
+        Mismatched_Quote
+    _ : DuplicateNames ->
+        Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array p.duplicatedNames)
+    _ : InvalidNames ->
+        Invalid_Output_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
+    _ : InvalidFormat ->
+        Panic.throw (Illegal_Argument.Error "InvalidFormat should be translated using the Parse_Values_Helper.translate_parsing_problem instead. This is a bug in the Table library.")
+    _ : LeadingZeros ->
+        Panic.throw (Illegal_Argument.Error "LeadingZeros should be translated using the Parse_Values_Helper.translate_parsing_problem instead. This is a bug in the Table library.")
+    _ ->
+        Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
+
+## PRIVATE
+   Convert Java aggregated problems to Enso Vector of equivalents.
+parse_aggregated_problems : AggregatedProblems -> Vector
+parse_aggregated_problems problems =
+    if problems.is_nothing then [] else
+        problems_array = problems.getProblems
+        parsed = Vector.from_polyglot_array problems_array . map translate_problem
+
+        if problems.getCount == problems_array.length then parsed else
+            parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]
