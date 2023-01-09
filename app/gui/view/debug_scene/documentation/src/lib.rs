@@ -73,7 +73,8 @@ impl DatabaseWrapper {
         let index = self.current_entry.get();
         let ids = self.database.keys();
         let id = ids[index];
-        render_documentation(self.database.documentation_for_entry(id))
+        let docs = self.database.documentation_for_entry(id);
+        ide_view_documentation::html::render(docs)
     }
 }
 
@@ -158,7 +159,7 @@ fn database() -> SuggestionDatabase {
         Standard.Base {
             #[with_doc_section(doc_section!("Maybe type."))]
             #[with_doc_section(doc_section!(@ "Annotated", ""))]
-            type Maybe {
+            type Maybe (a) {
                 #[with_doc_section(doc_section!("Some constructor."))]
                 #[with_doc_section(doc_section!(> "Example", "Some 1"))]
                 #[with_doc_section(doc_section!("Documentation for the Some(a) constructor."))]

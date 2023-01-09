@@ -1,0 +1,7 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path opacity="0.3" d="M4 8C1.79086 8 9.65645e-08 6.20914 0 4C-9.65645e-08 1.79086 1.79086 9.65645e-08 4 0H12C14.2091 -9.65645e-08 16 1.79086 16 4V12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 6.20914 8 4 8Z" fill="#4D5B6C"/>
+<circle cx="12" cy="12" r="2" transform="rotate(-90 12 12)" fill="#4D5B6C"/>
+<circle cx="12" cy="4" r="2" transform="rotate(-90 12 4)" fill="#4D5B6C"/>
+<circle cx="4" cy="4" r="2" transform="rotate(-90 4 4)" fill="#4D5B6C"/>
+<circle opacity="0.5" cx="4" cy="12" r="2.5" transform="rotate(-90 4 12)" fill="#4D5B6C"/>
+</svg>
