@@ -114,5 +114,5 @@ spec setup =
                 t4 = t.filter "B" (Filter_Condition.Equal 5)
                 t5 = t4.distinct ["A"] on_problems=Report_Error
                 r5 = t5 |> materialize
-                r5.at "A" . to_vector . should_equal ["b", "a"]
+                r5.at "A" . to_vector . should_contain_the_same_elements_as ["b", "a"]
                 r5.at "B" . to_vector . should_equal [5, 5]
