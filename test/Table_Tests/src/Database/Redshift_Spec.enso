@@ -22,7 +22,7 @@ redshift_specific_spec connection =
         t.insert ["def", 42, True, 1.4]
         Test.specify "should return Table information" <|
             i = t.info
-            i.index . to_vector . should_equal ["strs", "ints", "bools", "reals"]
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "SQL Type" . to_vector . should_equal ["varchar", "int4", "bool", "float4"]
         Test.specify "should infer standard types correctly" <|

@@ -1,0 +1,120 @@
+from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
+
+import Standard.Table.Data.Join_Kind.Join_Kind
+import Standard.Table.Internal.Join_Helpers
+import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
+from Standard.Table.Errors import Floating_Point_Grouping
+
+import project.Data.SQL_Type.SQL_Type
+import project.Data.Table.Table
+import project.Internal.Helpers
+import project.Internal.IR.Context.Context
+import project.Internal.IR.From_Spec.From_Spec
+import project.Internal.IR.Internal_Column.Internal_Column
+import project.Internal.IR.SQL_Expression.SQL_Expression
+
+## PRIVATE
+default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
+    new_from = From_Spec.Join join_kind left_subquery right_subquery on_expressions
+    new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
+    Table.Value new_table_name connection columns_to_select new_ctx
+
+## PRIVATE
+make_join_helpers left_table right_table left_column_mapping right_column_mapping =
+    ## Resolves the column in the original table and finds the expression
+       corresponding to it in the subquery.
+    resolve_target_expression column_mapping column =
+        new_column = column_mapping.get column.name if_missing=(Panic.throw (Illegal_State.Error "Impossible. Could not find column "+column.name+" in the mapping. This is a bug in the Database library."))
+        new_column.expression
+    resolve_left = resolve_target_expression left_column_mapping
+    resolve_right = resolve_target_expression right_column_mapping
+
+    make_equals problem_builder left right =
+        if left.sql_type.is_definitely_double then
+            problem_builder.report_other_warning (Floating_Point_Grouping.Error left.name)
+        if right.sql_type.is_definitely_double then
+            problem_builder.report_other_warning (Floating_Point_Grouping.Error right.name)
+        SQL_Expression.Operation "=" [resolve_left left, resolve_right right]
+    make_equals_ignore_case _ left right locale =
+        Helpers.assume_default_locale locale <|
+            SQL_Expression.Operation "equals_ignore_case" [resolve_left left, resolve_right right]
+    make_between _ left right_lower right_upper =
+        args = [resolve_left left, resolve_right right_lower, resolve_right right_upper]
+        SQL_Expression.Operation "BETWEEN" args
+    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+
+## PRIVATE
+   Takes columns from the left and right subquery, a list of redundant column
+   names and returns a list of new columns that should be present in the join
+   result (depending on the kind of performed join), ensuring that any colliding
+   columns are properly renamed.
+select_columns_for_join join_kind left_new_columns right_new_columns redundant_column_names right_prefix problem_builder =
+    case join_kind of
+        Join_Kind.Left_Exclusive -> left_new_columns
+        Join_Kind.Right_Exclusive -> right_new_columns
+        _ ->
+            left_names = left_new_columns.map .name
+            right_kept_columns = right_new_columns.filter c-> redundant_column_names.contains c.name . not
+            right_names = right_kept_columns.map .name
+            renaming_strategy = Unique_Name_Strategy.new
+
+            right_new_names = renaming_strategy.combine_with_prefix left_names right_names right_prefix
+            problem_builder.report_unique_name_strategy renaming_strategy
+
+            right_renamed_kept_columns = Helpers.rename_internal_columns right_kept_columns right_new_names
+            new_columns = left_new_columns + right_renamed_kept_columns
+            new_columns
+
+type Join_Subquery_Setup
+    Value (subquery : From_Spec) (new_columns : Vector Internal_Column) (old_columns : Vector Internal_Column) (indicator_column : Nothing | Internal_Column)
+
+    ## PRIVATE
+       Creates a mapping from names of columns in the original table to
+       corresponding columns in the created subquery.
+    column_mapping : Map Text Internal_Column
+    column_mapping self =
+        Map.from_vector <|
+            self.old_columns.zip self.new_columns old-> new->
+                [old.name, new]
+
+prepare_subqueries : Table -> Table -> Boolean -> Boolean -> Pair Join_Subquery_Setup
+prepare_subqueries left right needs_left_indicator needs_right_indicator =
+    ## If a self-join, make sure we are able to distinguish the left and
+       right tables.
+    aliases = case left.name == right.name of
+        True -> [left.name+"_left", right.name+"_right"]
+        False -> [left.name, right.name]
+    left_alias = aliases.first
+    right_alias = aliases.second
+
+    left_indicators = if needs_left_indicator.not then [] else
+        renamer = Unique_Name_Strategy.new
+        renamer.mark_used (left.internal_columns.map .name)
+        # This is an operation, not a constant to avoid adding unnecessary interpolations to the query.
+        [Internal_Column.Value (renamer.make_unique "left_indicator") SQL_Type.boolean (SQL_Expression.Operation "TRUE" [])]
+
+    right_indicators = if needs_right_indicator.not then [] else
+        renamer = Unique_Name_Strategy.new
+        renamer.mark_used (right.internal_columns.map .name)
+        [Internal_Column.Value (renamer.make_unique "right_indicator") SQL_Type.boolean (SQL_Expression.Operation "TRUE" [])]
+
+    # Create subqueries that encapsulate the original queries and provide needed columns.
+    # The generated new sets of columns refer to the encapsulated expressions within the subquery and are
+    # valid in contexts whose from_spec is this subquery directly or it is a join containing this subquery.
+    # TODO [RW] Not all of these included columns are actually usable from the external context, so
+    # in the future we may consider pruning some of them as additional optimization and simplification of the query
+    # (the only columns that are needed are ones that the later performed join resolution needs).
+    left_config = left.context.as_subquery left_alias [left.internal_columns, left_indicators]
+    right_config = right.context.as_subquery right_alias [right.internal_columns, right_indicators]
+
+    left_subquery = left_config.first
+    new_left_columns = left_config.second.at 0
+    new_left_indicators = left_config.second.at 1
+    right_subquery = right_config.first
+    new_right_columns = right_config.second.at 0
+    new_right_indicators = right_config.second.at 1
+
+    left_setup = Join_Subquery_Setup.Value left_subquery new_left_columns left.internal_columns (new_left_indicators.get 0)
+    right_setup = Join_Subquery_Setup.Value right_subquery new_right_columns right.internal_columns (new_right_indicators.get 0)
+    Pair.new left_setup right_setup

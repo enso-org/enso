@@ -17,7 +17,9 @@ import org.enso.languageserver.filemanager.FileManagerProtocol.{
   WriteFileResult
 }
 import org.enso.languageserver.filemanager.{
+  FileEventKind,
   FileManagerProtocol,
+  FileNotFound,
   OperationTimeout,
   Path
 }
@@ -25,7 +27,10 @@ import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.text.CollaborativeBuffer.{
   AutoSave,
   ForceSave,
-  IOTimeout
+  IOTimeout,
+  ReloadBuffer,
+  ReloadBufferFailed,
+  ReloadedBuffer
 }
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
@@ -185,6 +190,7 @@ class CollaborativeBuffer(
         isAutoSave = false,
         onClose    = None
       )
+
     case AutoSave(clientId, clientVersion) =>
       saveFile(
         buffer,
@@ -196,6 +202,7 @@ class CollaborativeBuffer(
         isAutoSave = true,
         onClose    = None
       )
+
     case ForceSave(clientId) =>
       autoSave.get(clientId) match {
         case Some((contentVersion, cancellable)) =>
@@ -214,6 +221,95 @@ class CollaborativeBuffer(
         case None =>
           sender() ! FileSaved
       }
+
+    case ReloadBuffer(rpcSession, path) =>
+      if (buffer.inMemory) {
+        fileManager ! FileManagerProtocol.OpenBuffer(path)
+      } else {
+        fileManager ! FileManagerProtocol.ReadFile(path)
+      }
+      val timeoutCancellable = context.system.scheduler
+        .scheduleOnce(timingsConfig.requestTimeout, self, IOTimeout)
+      context.become(
+        waitingOnReloadedContent(
+          sender(),
+          rpcSession,
+          path,
+          buffer,
+          timeoutCancellable,
+          clients,
+          buffer.inMemory
+        )
+      )
+
+  }
+
+  private def waitingOnReloadedContent(
+    replyTo: ActorRef,
+    rpcSession: JsonSession,
+    path: Path,
+    oldBuffer: Buffer,
+    timeoutCancellable: Cancellable,
+    clients: Map[ClientId, JsonSession],
+    inMemoryBuffer: Boolean
+  ): Receive = {
+    case ReadTextualFileResult(Right(file)) =>
+      val buffer = Buffer(file.path, file.content, inMemoryBuffer)
+
+      // Notify *all* clients about the new buffer
+      // This also ensures that the client that requested the restore operation
+      // also gets a notification.
+      val change = FileEdit(
+        path,
+        List(TextEdit(buffer.fullRange, file.content)),
+        oldBuffer.version.toHexString,
+        buffer.version.toHexString
+      )
+      clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
+      timeoutCancellable.cancel()
+      unstashAll()
+      replyTo ! ReloadedBuffer(path)
+      context.become(
+        collaborativeEditing(
+          buffer,
+          clients,
+          lockHolder = Some(rpcSession),
+          Map.empty
+        )
+      )
+
+    case ReadTextualFileResult(Left(FileNotFound)) =>
+      clients.values.foreach {
+        _.rpcController ! TextProtocol.FileEvent(path, FileEventKind.Removed)
+      }
+      replyTo ! ReloadedBuffer(path)
+      timeoutCancellable.cancel()
+      stop(Map.empty)
+
+    case ReadTextualFileResult(Left(err)) =>
+      replyTo ! ReloadBufferFailed(path, "io failure: " + err.toString)
+      timeoutCancellable.cancel()
+      context.become(
+        collaborativeEditing(
+          oldBuffer,
+          clients,
+          lockHolder = Some(rpcSession),
+          Map.empty
+        )
+      )
+
+    case IOTimeout =>
+      replyTo ! ReloadBufferFailed(path, "io timeout")
+      context.become(
+        collaborativeEditing(
+          oldBuffer,
+          clients,
+          lockHolder = Some(rpcSession),
+          Map.empty
+        )
+      )
+
+    case _ => stash()
   }
 
   private def saving(
@@ -422,7 +518,7 @@ class CollaborativeBuffer(
     lockHolder: Option[JsonSession],
     clientId: ClientId,
     change: FileEdit
-  ): Either[ApplyEditFailure, Buffer] =
+  ): Either[ApplyEditFailure, Buffer] = {
     for {
       _              <- validateAccess(lockHolder, clientId)
       _              <- validateVersions(ContentVersion(change.oldVersion), buffer.version)
@@ -432,6 +528,7 @@ class CollaborativeBuffer(
         modifiedBuffer.version
       )
     } yield modifiedBuffer
+  }
 
   private def validateVersions(
     clientVersion: ContentVersion,
@@ -674,6 +771,12 @@ object CollaborativeBuffer {
   )
 
   case class ForceSave(clientId: ClientId)
+
+  case class ReloadBuffer(rpcSession: JsonSession, path: Path)
+
+  case class ReloadBufferFailed(path: Path, reason: String)
+
+  case class ReloadedBuffer(path: Path)
 
   /** Creates a configuration object used to create a [[CollaborativeBuffer]]
     *

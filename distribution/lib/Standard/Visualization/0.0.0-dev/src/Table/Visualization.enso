@@ -26,24 +26,19 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
         dataframe = x.take (First max_rows)
         all_rows_count = x.row_count
         included_rows = dataframe.row_count
-        index = dataframe.index.catch Any _->
-            Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
+        index = Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
 
         ## Workaround so that the JS String is converted to a Text
            https://www.pivotaltracker.com/story/show/184061302
         "" + make_json dataframe [index] all_rows_count
 
     _ : Database_Table ->
-        # Materialize a table with indices as normal columns (because dataframe does not support multi-indexing).
-        df = x.reset_index.read max_rows
-        # Then split into actual columns and indices.
-        vis_df = df.select_columns (Column_Selector.By_Name (x.columns.map .name))
-        indices = if x.indices.length == 0 then [] else df.select_columns (Column_Selector.By_Name (x.indices.map .name)) . columns
+        df = x.read max_rows
         all_rows_count = x.row_count
 
         ## Workaround so that the JS String is converted to a Text
            https://www.pivotaltracker.com/story/show/184061302
-        "" + make_json vis_df indices all_rows_count
+        "" + make_json df [] all_rows_count
 
     # We display columns as 1-column tables.
     _ : Dataframe_Column ->
