@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Source_Location.Source_Location
+import Standard.Base.Runtime.Stack_Trace_Element
 
 polyglot java import java.lang.NullPointerException
 

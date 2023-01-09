@@ -1,3 +1,5 @@
+import Standard.Base.Data.Vector.Vector
+
 ## Represents different types of underlying storage for Columns.
 type Storage
     ## A column storing text data.

@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.Connection.Connection_Options
+import project.Connection.Connection_Options.Connection_Options
 import project.Internal.SQLite.SQLite_Connection
 
 type SQLite_Options

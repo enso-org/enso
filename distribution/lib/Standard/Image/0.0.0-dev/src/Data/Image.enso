@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Error.File_Error.File_Error
 
+import project.Read_Flag.Read_Flag
+import project.Write_Flag.Write_Flag
 import project.Data.Histogram.Histogram
 import project.Data.Matrix.Matrix
 import project.Data.Matrix_Error.Matrix_Error

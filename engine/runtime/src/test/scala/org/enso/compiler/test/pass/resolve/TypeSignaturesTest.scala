@@ -155,7 +155,7 @@ class TypeSignaturesTest extends CompilerTest {
           |    MyAtom
           |
           |    ## is atom
-          |    is_atom : this -> Boolean
+          |    is_atom : Boolean
           |    is_atom = true
           |
           |    error_signature : Int

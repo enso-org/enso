@@ -18,6 +18,7 @@ class DevelopmentContextTest extends InterpreterTest {
     "error on Input actions" in {
       val code =
         """from Standard.Base import all
+          |from Standard.Base.Runtime.IO_Permissions import Input
           |
           |input_action : Integer -> Integer in Input
           |input_action i = i
@@ -30,6 +31,7 @@ class DevelopmentContextTest extends InterpreterTest {
     "error on Output actions" in {
       val code =
         """from Standard.Base import all
+          |from Standard.Base.Runtime.IO_Permissions import Output
           |
           |output_action : Integer -> Nothing in Output
           |output_action i = i
@@ -42,6 +44,7 @@ class DevelopmentContextTest extends InterpreterTest {
     "allow locally running IO" in {
       val code =
         """from Standard.Base import all
+          |from Standard.Base.Runtime.IO_Permissions import Input, Output
           |
           |output_action : Integer -> Integer in Output
           |output_action i = i + 1
@@ -69,6 +72,7 @@ class ProductionContextTest extends InterpreterTest {
     "allow all IO" in {
       val code =
         """from Standard.Base import all
+          |from Standard.Base.Runtime.IO_Permissions import Input, Output
           |
           |output_action : Integer -> Integer in Output
           |output_action i = i + 1
