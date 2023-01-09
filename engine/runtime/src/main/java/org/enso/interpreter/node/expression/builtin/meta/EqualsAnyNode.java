@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -33,6 +34,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.State;
@@ -156,6 +158,17 @@ public abstract class EqualsAnyNode extends Node {
       return equalsNode.execute(self, other);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  @Specialization(limit = "3")
+  boolean equalsTexts(Text selfText, Text otherText,
+      @CachedLibrary("selfText") InteropLibrary selfInterop,
+      @CachedLibrary("otherText") InteropLibrary otherInterop) {
+    if (selfText.is_normalized() && otherText.is_normalized()) {
+      return selfText.toString().compareTo(otherText.toString()) == 0;
+    } else {
+      return equalsStrings(selfText, otherText, selfInterop, otherInterop);
     }
   }
 
