@@ -4,16 +4,9 @@ use ensogl::display::shape::*;
 use ensogl::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::doc_section;
-use crate::mock_suggestion_database;
-use crate::model::suggestion_database;
-use crate::model::suggestion_database::documentation_ir::Documentation;
-use crate::model::suggestion_database::documentation_ir::EntryDocumentation;
-use crate::model::suggestion_database::documentation_ir::ModuleDocumentation;
-use crate::model::suggestion_database::documentation_ir::Placeholder;
-use crate::model::suggestion_database::documentation_ir::TypeDocumentation;
-use crate::model::SuggestionDatabase;
-
+use enso_suggestion_database as suggestion_database;
+use enso_suggestion_database::doc_section;
+use enso_suggestion_database::mock_suggestion_database;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -27,6 +20,12 @@ use ide_view::documentation;
 use ide_view::graph_editor::component::visualization::Registry;
 use std::f32::consts::PI;
 use std::fmt::Write;
+use suggestion_database::documentation_ir::Documentation;
+use suggestion_database::documentation_ir::EntryDocumentation;
+use suggestion_database::documentation_ir::ModuleDocumentation;
+use suggestion_database::documentation_ir::Placeholder;
+use suggestion_database::documentation_ir::TypeDocumentation;
+use suggestion_database::SuggestionDatabase;
 
 
 

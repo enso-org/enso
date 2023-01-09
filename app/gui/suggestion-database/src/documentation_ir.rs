@@ -7,12 +7,12 @@
 
 use crate::prelude::*;
 
-use crate::model::suggestion_database::entry;
-use crate::model::suggestion_database::entry::Argument;
-use crate::model::suggestion_database::entry::Kind;
-use crate::model::suggestion_database::Entry;
-use crate::model::suggestion_database::NoSuchEntry;
-use crate::model::SuggestionDatabase;
+use crate::entry;
+use crate::entry::Argument;
+use crate::entry::Kind;
+use crate::Entry;
+use crate::NoSuchEntry;
+use crate::SuggestionDatabase;
 
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::DocSection;

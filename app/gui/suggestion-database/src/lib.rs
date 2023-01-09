@@ -1,18 +1,48 @@
-//! The module contains all structures for representing suggestions and their database.
+//! The crate contains all structures for representing suggestions and their database.
 
-use crate::prelude::*;
+#![recursion_limit = "512"]
+// === Features ===
+#![feature(arc_unwrap_or_clone)]
+#![feature(async_closure)]
+#![feature(associated_type_bounds)]
+#![feature(cell_update)]
+#![feature(drain_filter)]
+#![feature(exact_size_is_empty)]
+#![feature(iter_order_by)]
+#![feature(option_result_contains)]
+#![feature(trait_alias)]
+#![feature(result_option_inspect)]
+#![feature(map_try_insert)]
+#![feature(assert_matches)]
+#![feature(hash_drain_filter)]
+#![feature(unwrap_infallible)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+// === Non-Standard Linter Configuration ===
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
 
-use crate::model::module::MethodId;
-use crate::model::suggestion_database::documentation_ir::EntryDocumentation;
-use crate::model::suggestion_database::entry::Kind;
-use crate::model::suggestion_database::entry::ModuleSpan;
-use crate::notification;
+use enso_prelude::*;
 
+use crate::documentation_ir::EntryDocumentation;
+use crate::entry::Kind;
+use crate::entry::ModuleSpan;
+
+use double_representation::module::MethodId;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use engine_protocol::language_server;
 use engine_protocol::language_server::SuggestionId;
-use ensogl::data::HashMapTree;
+use enso_data_structures::hash_map_tree::HashMapTree;
+use enso_notification as notification;
 use flo_stream::Subscriber;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -27,9 +57,17 @@ pub mod entry;
 pub mod example;
 pub mod mock;
 
+pub use engine_protocol;
 pub use entry::Entry;
 pub use example::Example;
 
+
+
+/// Common types that should be visible across the whole IDE crate.
+pub mod prelude {
+    pub use ast::prelude::*;
+    pub use enso_prelude::*;
+}
 
 
 // ============================
@@ -537,13 +575,14 @@ fn swap_value_and_traverse_back_pruning_empty_subtrees<P, I>(
 pub mod test {
     use super::*;
 
-    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use enso_executor::test_utils::TestWithLocalPoolExecutor;
 
     use double_representation::name::NamePath;
     use engine_protocol::language_server::FieldUpdate;
     use engine_protocol::language_server::SuggestionEntry;
     use engine_protocol::language_server::SuggestionsDatabaseEntry;
     use engine_protocol::language_server::SuggestionsDatabaseModification;
+    use futures::stream::StreamExt;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);

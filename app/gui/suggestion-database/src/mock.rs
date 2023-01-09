@@ -3,10 +3,10 @@
 
 use crate::prelude::*;
 
-use crate::model::suggestion_database::entry;
-use crate::model::suggestion_database::entry::Argument;
-use crate::model::suggestion_database::Entry;
-use crate::model::SuggestionDatabase;
+use crate::entry;
+use crate::entry::Argument;
+use crate::Entry;
+use crate::SuggestionDatabase;
 
 use double_representation::name::QualifiedName;
 
@@ -39,8 +39,8 @@ pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 /// # Example
 ///
 /// ```
-/// use enso_gui::model::suggestion_database::entry::IconName;
-/// use enso_gui::model::suggestion_database::mock::Builder;
+/// use enso_gui::entry::IconName;
+/// use enso_gui::mock::Builder;
 ///
 /// let mut builder = Builder::new();
 /// builder.add_and_enter_module("local.Project", |e| e);
@@ -244,8 +244,8 @@ macro_rules! mock_suggestion_database_entries {
 ///
 /// This macro takes a declaration of suggestion database entries in a kind of pseudo code:
 /// ```
+/// use enso_gui::entry;
 /// use enso_gui::mock_suggestion_database;
-/// use enso_gui::model::suggestion_database::entry;
 ///
 /// let db = mock_suggestion_database! {
 ///    Standard.Base {
@@ -300,9 +300,9 @@ macro_rules! mock_suggestion_database {
     ($($(#[$($attr_setter:tt)*])* $ns:ident.$project:ident { $($content:tt)* })*) => {
         {
             #[allow(unused_imports)]
-            use $crate::model::suggestion_database::mock::Builder;
+            use $crate::mock::Builder;
             #[allow(unused_imports)]
-            use $crate::model::suggestion_database::mock::DEFAULT_TYPE;
+            use $crate::mock::DEFAULT_TYPE;
             #[allow(unused_imports)]
             use $crate::mock_suggestion_database_entries;
             #[allow(unused_imports)]
@@ -310,7 +310,7 @@ macro_rules! mock_suggestion_database {
             #[allow(unused_imports)]
             use $crate::mock_suggestion_database_entry_argument;
             #[allow(unused_imports)]
-            use $crate::model::suggestion_database::entry::Argument;
+            use $crate::entry::Argument;
 
             let mut builder = Builder::new();
             $(

@@ -221,13 +221,6 @@ impl WithProjectManager {
 // === Utils ===
 // =============
 
-/// Creates a new running executor with its own event loop. Registers them as a global executor.
-pub fn setup_global_executor() -> executor::web::EventLoopExecutor {
-    let executor = executor::web::EventLoopExecutor::new_running();
-    executor::global::set_spawner(executor.spawner.clone());
-    executor
-}
-
 /// Register all the standard views for the IDE.
 pub fn register_views(app: &Application) {
     app.views.register::<ide_view::root::View>();
