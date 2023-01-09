@@ -145,8 +145,8 @@ pub const LIBRARIES_TO_TEST: [&str; 6] = [
 pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> generated::RepoRoot {
     generated::RepoRoot::new_root(
         repo_root,
-        EXE_SUFFIX,
         triple.versions.edition_name(),
+        EXE_SUFFIX,
         triple.to_string(),
         triple.versions.version.to_string(),
     )
