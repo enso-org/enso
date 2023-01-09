@@ -85,7 +85,7 @@ public final class Text implements TruffleObject {
         return false;
       }
       case UNKNOWN -> {
-        Normalizer2 normalizer = Normalizer2.getInstance(null, "nfc", Normalizer2.Mode.FCD);
+        Normalizer2 normalizer = Normalizer2.getNFDInstance();
         boolean isNormalized = normalizer.isNormalized(toString());
         setFcdNormalized(isNormalized);
         return isNormalized;
@@ -250,23 +250,6 @@ public final class Text implements TruffleObject {
   @ExportMessage
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
     return EnsoContext.get(thisLib).getBuiltins().text();
-  }
-
-  @ExportMessage
-  @TruffleBoundary
-  TriState isIdenticalOrUndefined(Object other) {
-    if (other instanceof Text otherText) {
-      return toString().hashCode() == otherText.toString().hashCode() ?
-          TriState.TRUE : TriState.FALSE;
-    } else {
-      return TriState.FALSE;
-    }
-  }
-
-  @ExportMessage
-  @TruffleBoundary
-  int identityHashCode() {
-    return toString().hashCode();
   }
 
   /**
