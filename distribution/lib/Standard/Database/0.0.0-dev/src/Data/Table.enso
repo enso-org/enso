@@ -100,7 +100,7 @@ type Table
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ : Text ->
-            internal_column = self.internal_columns.find (p -> p.name == selector) . map_error (_ -> No_Such_Column.Error selector)
+            internal_column = self.internal_columns.find if_missing=(Error.throw (No_Such_Column.Error selector)) (p -> p.name == selector)
             self.make_column internal_column
 
     ## Returns the number of columns in the table.
