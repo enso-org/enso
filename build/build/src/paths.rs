@@ -2,9 +2,106 @@ use crate::prelude::*;
 
 use crate::version::Versions;
 
+use crate::engine::sbt::SbtCommandProvider;
+use ide_ci::github::release::ReleaseHandle;
+use ide_ci::github::release::ARCHIVE_EXTENSION;
+use octocrab::models::repos::Asset;
 use std::env::consts::EXE_EXTENSION;
+use std::env::consts::EXE_SUFFIX;
 use std::fmt::Formatter;
 
+#[derive(Clone, Copy, Debug)]
+pub enum ArtifactKind {
+    EnginePackage,
+    ProjectManagerPackage,
+    LauncherPackage,
+    ProjectManagerBundle,
+    LauncherBundle,
+}
+
+pub trait IsPackage: IsArtifact {
+    /// Get the package name that is recognized by the SBT build scripts.
+    ///
+    /// It can be used e.g. to verify the package by invoking `enso/verifyGeneratedPackage` task.
+    fn sbt_package_name(&self) -> &str;
+
+    /// Primary directory of the package.
+    ///
+    /// E.g. for the Engine package it is like
+    /// `H:\NBO\enso\built-distribution\enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64\enso-0.
+    /// 0.0-SNAPSHOT.2022-01-19`.
+    fn dir(&self) -> &Path {
+        self.as_ref()
+    }
+
+    /// Invokes `enso/verifyGeneratedPackage` task on this package.
+    fn verify_package_sbt(&self, sbt: &crate::engine::sbt::Context) -> BoxFuture<'static, Result> {
+        let package_name = self.sbt_package_name();
+        let dir = self.dir();
+        sbt.verify_generated_package(package_name, dir)
+    }
+}
+
+impl IsPackage for crate::paths::generated::EnginePackage {
+    fn sbt_package_name(&self) -> &str {
+        "engine"
+    }
+}
+
+impl IsPackage for crate::paths::generated::ProjectManagerPackage {
+    fn sbt_package_name(&self) -> &str {
+        "project-manager"
+    }
+}
+
+impl IsPackage for crate::paths::generated::LauncherPackage {
+    fn sbt_package_name(&self) -> &str {
+        "launcher"
+    }
+}
+
+pub trait IsArtifact: AsRef<Path> + Send + Sync {
+    fn kind(&self) -> ArtifactKind;
+
+    fn clear(&self) -> Result {
+        ide_ci::fs::remove_dir_if_exists(self)
+    }
+
+    fn upload_as_asset(&self, release: ReleaseHandle) -> BoxFuture<'static, Result<Asset>> {
+        let path = self.as_ref().to_path_buf();
+        async move { release.upload_compressed_dir(path).await }.boxed()
+    }
+}
+
+impl IsArtifact for crate::paths::generated::EnginePackage {
+    fn kind(&self) -> ArtifactKind {
+        ArtifactKind::EnginePackage
+    }
+}
+
+impl IsArtifact for crate::paths::generated::ProjectManagerPackage {
+    fn kind(&self) -> ArtifactKind {
+        ArtifactKind::ProjectManagerPackage
+    }
+}
+
+impl IsArtifact for crate::paths::generated::ProjectManagerBundle {
+    fn kind(&self) -> ArtifactKind {
+        ArtifactKind::ProjectManagerBundle
+    }
+}
+
+impl IsArtifact for crate::paths::generated::LauncherPackage {
+    fn kind(&self) -> ArtifactKind {
+        ArtifactKind::LauncherPackage
+    }
+}
+
+impl IsArtifact for crate::paths::generated::LauncherBundle {
+    fn kind(&self) -> ArtifactKind {
+        ArtifactKind::LauncherBundle
+    }
+}
 
 
 #[allow(clippy::all)] // [mwu] Little reason to bother in the generated code.
@@ -43,13 +140,14 @@ pub const LIBRARIES_TO_TEST: [&str; 6] = [
     "Visualization_Tests",
 ];
 
-pub const ARCHIVE_EXTENSION: &str = match TARGET_OS {
-    OS::Windows => "zip",
-    _ => "tar.gz",
-};
-
 pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> generated::RepoRoot {
-    generated::RepoRoot::new_root(repo_root, triple.to_string(), triple.versions.edition_name())
+    generated::RepoRoot::new_root(
+        repo_root,
+        EXE_SUFFIX,
+        triple.versions.edition_name(),
+        triple.to_string(),
+        triple.versions.version.to_string(),
+    )
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -77,23 +175,6 @@ impl ComponentPaths {
         let dir = root.join(dirname);
         let artifact_archive = root.with_appended_extension(ARCHIVE_EXTENSION);
         Self { name, root, dir, artifact_archive }
-    }
-
-    pub async fn emit_to_actions(&self, prefix: &str) -> Result {
-        let paths = [
-            ("NAME", &self.name),
-            ("ROOT", &self.root),
-            ("DIR", &self.dir),
-            ("ARCHIVE", &self.artifact_archive),
-        ];
-        for (what, path) in paths {
-            ide_ci::actions::workflow::set_env(
-                &iformat!("{prefix}_DIST_{what}"),
-                &path.to_string_lossy(),
-            )
-            .await?;
-        }
-        Ok(())
     }
 }
 
@@ -146,14 +227,11 @@ impl Display for TargetTriple {
 
 #[derive(Clone, Debug)]
 pub struct Paths {
-    pub repo_root:       generated::RepoRoot,
-    pub build_dist_root: PathBuf,
-    pub target:          PathBuf,
-    pub launcher:        ComponentPaths,
-    pub engine:          ComponentPaths,
-    pub project_manager: ComponentPaths,
-    pub triple:          TargetTriple,
-    pub test_results:    PathBuf,
+    pub repo_root: generated::RepoRoot,
+    // pub launcher:        ComponentPaths,
+    // pub engine:          ComponentPaths,
+    // pub project_manager: ComponentPaths,
+    pub triple:    TargetTriple,
 }
 
 impl Paths {
@@ -165,28 +243,7 @@ impl Paths {
     pub fn new_triple(repo_root: impl Into<PathBuf>, triple: TargetTriple) -> Result<Self> {
         let repo_root: PathBuf = repo_root.into().absolutize()?.into();
         let repo_root = new_repo_root(repo_root, &triple);
-        let build_dist_root = repo_root.join("built-distribution");
-        let target = repo_root.join("target");
-        let launcher = ComponentPaths::new(&build_dist_root, "enso-launcher", "enso", &triple);
-        let engine = ComponentPaths::new(
-            &build_dist_root,
-            "enso-engine",
-            &format!("enso-{}", &triple.versions.version),
-            &triple,
-        );
-        let project_manager =
-            ComponentPaths::new(&build_dist_root, "enso-project-manager", "enso", &triple);
-        let test_results = target.join("test-results");
-        Ok(Paths {
-            repo_root,
-            build_dist_root,
-            target,
-            launcher,
-            engine,
-            project_manager,
-            triple,
-            test_results,
-        })
+        Ok(Paths { repo_root, triple })
     }
 
     /// Create a new set of paths for building the Enso with a given version number.
@@ -204,18 +261,9 @@ impl Paths {
     /// Sets the environment variables in the current process and in GitHub Actions Runner (if being
     /// run in its environment), so future steps of the job also have access to them.
     pub async fn emit_env_to_actions(&self) -> Result {
-        let components = [
-            ("ENGINE", &self.engine),
-            ("LAUNCHER", &self.launcher),
-            ("PROJECTMANAGER", &self.project_manager),
-        ];
-
-        for (prefix, paths) in components {
-            paths.emit_to_actions(prefix).await?;
-        }
-
-        ide_ci::actions::workflow::set_env("TARGET_DIR", &self.target.to_string_lossy()).await?;
-        ENSO_TEST_JUNIT_DIR.set_workflow_env(self.test_results.as_path()).await?;
+        // TODO [mwu]: Check if TARGET_DIR is needed. If so, create a strongly typed wrapper.
+        // ide_ci::actions::workflow::set_env("TARGET_DIR", &self.repo_root.target).await?;
+        ENSO_TEST_JUNIT_DIR.set_workflow_env(self.repo_root.target.test_results.as_ref()).await?;
         Ok(())
     }
 
@@ -236,18 +284,21 @@ impl Paths {
     }
 
     pub fn manifest_file(&self) -> PathBuf {
-        self.engine.dir.join("manifest.yaml")
+        self.repo_root
+            .built_distribution
+            .enso_engine_triple
+            .engine_package
+            .manifest_yaml
+            .to_path_buf()
     }
 
     pub fn launcher_manifest_file(&self) -> PathBuf {
-        self.distribution().join("launcher-manifest.yaml")
+        self.repo_root.distribution.launcher_manifest_yaml.to_path_buf()
     }
 
     // e.g. enso2\distribution\editions\2021.20-SNAPSHOT.yaml
     pub fn edition_file(&self) -> PathBuf {
-        self.distribution()
-            .join_iter(["editions", &self.edition_name()])
-            .with_appended_extension("yaml")
+        self.repo_root.distribution.editions.edition_yaml.to_path_buf()
     }
 
     pub async fn upload_edition_file_artifact(&self) -> Result {
