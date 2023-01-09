@@ -260,20 +260,6 @@ public final class AtomConstructor implements TruffleObject {
   }
 
   @ExportMessage
-  TriState isIdenticalOrUndefined(Object other) {
-    if (other instanceof AtomConstructor otherCtor) {
-      return this == otherCtor ? TriState.TRUE : TriState.FALSE;
-    } else {
-      return TriState.FALSE;
-    }
-  }
-
-  @ExportMessage
-  int identityHashCode() {
-    return System.identityHashCode(this);
-  }
-
-  @ExportMessage
   @TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
     return "Constructor<" + getDisplayName() + ">";

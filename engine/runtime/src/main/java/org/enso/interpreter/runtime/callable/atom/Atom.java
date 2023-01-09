@@ -70,6 +70,15 @@ public final class Atom implements TruffleObject {
     return fields;
   }
 
+  public void setHashCode(int hashCode) {
+    assert this.hashCode == null : "setHashCode must be called at most once";
+    this.hashCode = hashCode;
+  }
+
+  public Integer getHashCode() {
+    return hashCode;
+  }
+
   private void toString(StringBuilder builder, boolean shouldParen, int depth) {
     if (depth <= 0) {
       builder.append("...");
@@ -203,67 +212,6 @@ public final class Atom implements TruffleObject {
         | UnexpectedResultException e) {
       return Text.create(this.toString(10));
     }
-  }
-
-  @ExportMessage
-  int identityHashCode(
-      @Cached ConditionProfile isHashCodeComputedProfile,
-      @Cached("createIdentityProfile()") ValueProfile hashValueProfile
-  ) {
-    if (isHashCodeComputedProfile.profile(hashCode != null)) {
-      return hashValueProfile.profile(hashCode);
-    } else {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      hashCode = computeIdentityHashCode(this);
-      return hashCode;
-    }
-  }
-
-  @ExportMessage
-  static class IsIdenticalOrUndefined {
-    @Specialization
-    static TriState isIdenticalOrUndefined(
-        Atom thisAtom,
-        Atom otherAtom,
-        @Cached("createCountingProfile()") ConditionProfile thisAtomHasNotHash,
-        @Cached("createCountingProfile()") ConditionProfile otherAtomHasNotHash
-    ) {
-      if (thisAtomHasNotHash.profile(thisAtom.hashCode == null)) {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        thisAtom.hashCode = computeIdentityHashCode(thisAtom);
-      }
-      int thisAtomHash = thisAtom.hashCode;
-      if (otherAtomHasNotHash.profile(otherAtom.hashCode == null)) {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        otherAtom.hashCode = computeIdentityHashCode(otherAtom);
-      }
-      int otherAtomHash = otherAtom.hashCode;
-      return thisAtomHash == otherAtomHash ? TriState.TRUE : TriState.FALSE;
-    }
-
-    @Fallback
-    static TriState fallBack(Atom thisAtom, Object other) {
-      return TriState.FALSE;
-    }
-  }
-
-  @TruffleBoundary
-  static int computeIdentityHashCode(Atom atom) {
-    InteropLibrary interop = InteropLibrary.getUncached();
-    int[] hashCodes =  Arrays.stream(atom.fields)
-        .mapToInt((Object field) -> {
-          if (interop.hasIdentity(field)) {
-            try {
-              return interop.identityHashCode(field);
-            } catch (UnsupportedMessageException e) {
-              throw new IllegalStateException(e);
-            }
-          } else {
-            return field.hashCode();
-          }
-        })
-        .toArray();
-    return Arrays.hashCode(hashCodes);
   }
 
   @ExportMessage

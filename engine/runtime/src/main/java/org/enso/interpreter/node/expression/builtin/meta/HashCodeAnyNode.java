@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -10,6 +11,7 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
 import com.oracle.truffle.api.profiles.ValueProfile;
 import java.time.LocalDateTime;
@@ -19,6 +21,9 @@ import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 /**
@@ -68,6 +73,60 @@ public abstract class HashCodeAnyNode extends Node {
   @Specialization
   long hashCodeForUnresolvedConversion(UnresolvedConversion selfConversion) {
     throw new UnsupportedOperationException("unimplemented");
+  }
+
+  @Specialization
+  long hashCodeForAtomConstructor(AtomConstructor atomConstructor) {
+    return System.identityHashCode(atomConstructor);
+  }
+
+  /**
+   * How many {@link HashCodeAnyNode} nodes should be created for fields in atoms.
+   */
+  static final int hashCodeNodeCountForFields = 10;
+
+  static HashCodeAnyNode[] createHashCodeNodes(int size) {
+    HashCodeAnyNode[] nodes = new HashCodeAnyNode[size];
+    Arrays.fill(nodes, HashCodeAnyNode.build());
+    return nodes;
+  }
+
+  @Specialization
+  long hashCodeForAtom(Atom atom,
+      @Cached(value = "createHashCodeNodes(hashCodeNodeCountForFields)", allowUncached = true) HashCodeAnyNode[] fieldHashCodeNodes,
+      @Cached ConditionProfile isHashCodeCached,
+      @Cached ConditionProfile enoughHashCodeNodesForFields,
+      @Cached LoopConditionProfile loopProfile) {
+    if (isHashCodeCached.profile(atom.getHashCode() != null)) {
+      return atom.getHashCode();
+    }
+    // TODO[PM]: If atom overrides hash_code, call that method
+    int fieldsCount = atom.getFields().length;
+    Object[] fields = atom.getFields();
+    // hashes stores hash codes for all fields, and for constructor.
+    int[] hashes = new int[fieldsCount + 1];
+    if (enoughHashCodeNodesForFields.profile(fieldsCount <= hashCodeNodeCountForFields)) {
+      loopProfile.profileCounted(fieldsCount);
+      for (int i = 0; loopProfile.inject(i < fieldsCount); i++) {
+        hashes[i] = (int) fieldHashCodeNodes[i].execute(fields[i]);
+      }
+    } else {
+      hashCodeForAtomFieldsUncached(fields, hashes);
+    }
+
+    int ctorHashCode = System.identityHashCode(atom.getConstructor());
+    hashes[hashes.length - 1] = ctorHashCode;
+
+    int atomHashCode = Arrays.hashCode(hashes);
+    atom.setHashCode(atomHashCode);
+    return atomHashCode;
+  }
+
+  @TruffleBoundary
+  private void hashCodeForAtomFieldsUncached(Object[] fields, int[] fieldHashes) {
+    for (int i = 0; i < fields.length; i++) {
+      fieldHashes[i] = (int) HashCodeAnyNodeGen.getUncached().execute(fields[i]);
+    }
   }
 
   @Specialization(guards = {
