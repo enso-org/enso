@@ -370,7 +370,10 @@ macro_rules! doc_section_mark {
 #[macro_export]
 macro_rules! doc_section {
     (@ $tag:expr, $body:expr) => {
-        engine_protocol::language_server::DocSection::Tag { name: $tag.into(), body: $body.into() }
+        $crate::engine_protocol::language_server::DocSection::Tag {
+            name: $tag.into(),
+            body: $body.into(),
+        }
     };
     ($mark:tt $body:expr) => {
         $crate::engine_protocol::language_server::DocSection::Marked {
@@ -387,10 +390,10 @@ macro_rules! doc_section {
         }
     };
     ($paragraph:expr) => {
-        engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
+        $crate::engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
     };
     ($key:expr => $body:expr) => {
-        engine_protocol::language_server::DocSection::Keyed {
+        $crate::engine_protocol::language_server::DocSection::Keyed {
             key:  $key.into(),
             body: $body.into(),
         }

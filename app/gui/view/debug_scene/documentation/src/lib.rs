@@ -1,5 +1,11 @@
 //! Example scene showing a documentation panel of the component browser.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -16,8 +22,8 @@ use ensogl::frp;
 use ensogl::shape;
 use ensogl::system::web;
 use ensogl_hardcoded_theme::application::component_browser as theme;
-use ide_view::documentation;
-use ide_view::graph_editor::component::visualization::Registry;
+use ide_view_documentation as documentation;
+use ide_view_graph_editor::component::visualization::Registry;
 use std::f32::consts::PI;
 use std::fmt::Write;
 use suggestion_database::documentation_ir::Documentation;

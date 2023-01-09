@@ -89,8 +89,6 @@ pub use ide_view as view;
 #[cfg(test)]
 mod tests;
 
-mod documentation_debug_scene;
-
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {
     pub use ast::prelude::*;

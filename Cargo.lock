@@ -1584,6 +1584,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-documentation"
+version = "0.1.0"
+dependencies = [
+ "enso-suggestion-database",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
@@ -2003,6 +2016,7 @@ version = "0.1.0"
 dependencies = [
  "debug-scene-cloud-dashboard",
  "debug-scene-component-list-panel-view",
+ "debug-scene-documentation",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-text-grid-visualization",
