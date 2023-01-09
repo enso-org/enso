@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import all
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count, Sum
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions

@@ -40,6 +40,19 @@ spec setup =
             [0.1, 0.2, 0.5].contains (cv.at 0) . should_be_true
             [0.3, 0.4, 0.6].contains (cv.at 1) . should_be_true
 
+        Test.specify "should allow to select distinct rows based on a subset of columns, returning any first from each group if the table was ordered" <|
+            a = ["A", ["a", "a", "a", "a", "a", "a"]]
+            b = ["B", [1, 1, 2, 2, 1, 2]]
+            c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
+            t = table_builder [a, b, c] . order_by "C"
+
+            r2 = t.distinct ["A", "B"] on_problems=Report_Error |> materialize |> _.order_by "B"
+            r2.at "A" . to_vector . should_equal ["a", "a"]
+            r2.at "B" . to_vector . should_equal [1, 2]
+            cv = r2.at "C" . to_vector
+            [0.1, 0.2, 0.5].contains (cv.at 0) . should_be_true
+            [0.3, 0.4, 0.6].contains (cv.at 1) . should_be_true
+
         Test.specify "should allow to control case-sensitivity of keys" <|
             x = ["X", ['A', 'a', 'enso', 'Enso', 'A']]
             t1 = table_builder [x]
