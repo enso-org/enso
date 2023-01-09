@@ -709,38 +709,37 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
     }
 
-    "update suggestion local documentation" taggedAs Retry in withRepo {
-      repo =>
-        val newDoc = "Some stuff there"
-        val action = for {
-          (v1, Seq(_, _, _, _, _, _, id1)) <- repo.insertAll(
-            Seq(
-              suggestion.module,
-              suggestion.tpe,
-              suggestion.constructor,
-              suggestion.method,
-              suggestion.conversion,
-              suggestion.function,
-              suggestion.local
-            )
+    "update suggestion local documentation" taggedAs Retry in withRepo { repo =>
+      val newDoc = "Some stuff there"
+      val action = for {
+        (v1, Seq(_, _, _, _, _, _, id1)) <- repo.insertAll(
+          Seq(
+            suggestion.module,
+            suggestion.tpe,
+            suggestion.constructor,
+            suggestion.method,
+            suggestion.conversion,
+            suggestion.function,
+            suggestion.local
           )
-          (v2, id2) <- repo.update(
-            suggestion.local,
-            None,
-            None,
-            None,
-            Some(Some(newDoc)),
-            None,
-            None
-          )
-          s <- repo.select(id1.get)
-        } yield (v1, id1, v2, id2, s)
-        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
-        v1 should not equal v2
-        id1 shouldEqual id2
-        s shouldEqual Some(
-          suggestion.local.copy(documentation = Some(newDoc))
         )
+        (v2, id2) <- repo.update(
+          suggestion.local,
+          None,
+          None,
+          None,
+          Some(Some(newDoc)),
+          None,
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(
+        suggestion.local.copy(documentation = Some(newDoc))
+      )
     }
 
     "update suggestion removing documentation" taggedAs Retry in withRepo {

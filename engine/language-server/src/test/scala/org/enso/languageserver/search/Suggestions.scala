@@ -88,8 +88,8 @@ object Suggestions {
     returnType = "IO",
     scope =
       Suggestion.Scope(Suggestion.Position(1, 9), Suggestion.Position(1, 22)),
-    documentation = Some("My Function"),
-    documentationHtml = None,
+    documentation         = Some("My Function"),
+    documentationHtml     = None,
     documentationSections = Some(docSectionsBuilder.build("My Function"))
   )
 
