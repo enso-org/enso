@@ -349,6 +349,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow finding the index of a value" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.index_of 4 . should_equal 3
+        input.index_of (>3) . should_equal 3
         input.index_of 2 start=3 . should_equal 5
         input.index_of 5 . should_equal Nothing
 

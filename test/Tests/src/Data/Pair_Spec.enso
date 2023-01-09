@@ -15,6 +15,9 @@ spec = Test.group "Pair" <|
     Test.specify "should have length 2" <|
         Pair.new "A" "B" . length . should_equal 2
 
+    Test.specify "should allow reversing" <|
+        Pair.new 1 2 . reverse . should_equal (Pair.Value 2 1)
+
     Test.specify "should have allow getting by index" <|
         Pair.new "A" "B" . get 0 . should_equal "A"
         Pair.new "A" "B" . get -2 . should_equal "A"
@@ -54,7 +57,40 @@ spec = Test.group "Pair" <|
         Pair.new 1 3 . find (>0) start=1 . should_equal 3
         Pair.new 1 3 . find (>0) start=2 . should_fail_with Not_Found
         Pair.new 1 3 . find (>0) start=-1 . should_equal 3
-        Pair.new 1 3 . find (>0) start=-22 . should_equal 1
+        Pair.new 1 3 . find (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        Pair.new 1 3 . find (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
         Pair.new 1 3 . find (>3) if_missing=Nothing . should_equal Nothing
+
+    Test.specify "should allow finding the index of an item" <|
+        Pair.new 10 30 . index_of 10 . should_equal 0
+        Pair.new 10 10 . index_of 10 . should_equal 0
+        Pair.new 10 30 . index_of 30 . should_equal 1
+        Pair.new 10 30 . index_of 20 . should_equal Nothing
+        Pair.new 10 30 . index_of (>20) . should_equal 1
+        Pair.new 10 30 . index_of (>0) start=1 . should_equal 1
+        Pair.new 10 30 . index_of (>0) start=2 . should_equal Nothing
+        Pair.new 10 30 . index_of (>0) start=-1 . should_equal 1
+        Pair.new 10 30 . index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        Pair.new 10 30 . index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+
+    Test.specify "should allow finding the last index of an item" <|
+        Pair.new 10 30 . last_index_of 10 . should_equal 0
+        Pair.new 10 10 . last_index_of 10 . should_equal 1
+        Pair.new 10 30 . last_index_of 30 . should_equal 1
+        Pair.new 10 30 . last_index_of 20 . should_equal Nothing
+        Pair.new 10 30 . last_index_of (>20) . should_equal 1
+        Pair.new 10 30 . last_index_of (>0) start=1 . should_equal 1
+        Pair.new 10 30 . last_index_of (>0) start=2 . should_equal 1
+        Pair.new 10 30 . last_index_of (>0) start=-1 . should_equal 1
+        Pair.new 10 30 . last_index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        Pair.new 10 30 . last_index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+
+    Test.specify "should allow folding an operator over its elements" <|
+        Pair.new 10 20 . fold 0 (+) . should_equal 30
+
+    Test.specify "should allow applying a function to each element" <|
+        vec_mut = Vector.new_builder
+        Pair.new 10 20 . each vec_mut.append
+        vec_mut.to_vector . should_equal [10, 20]
 
 main = Test_Suite.run_main spec

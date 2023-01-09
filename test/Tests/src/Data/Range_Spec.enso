@@ -187,6 +187,10 @@ spec = Test.group "Range" <|
         1.up_to 10 . find (v-> v%4 == 0) start=6 . should_be_a 8
     Test.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]
+    Test.specify "should allow reversing" <|
+        1.up_to 6 . reverse . should_equal (5.down_to 0)
+        5.down_to 0 . reverse . should_equal (1.up_to 6)
+        1.up_to 6 . with_step 2 . reverse . should_equal (5.down_to -1 . with_step 2)
 
     Test.specify "should allow checking if a value is in the range" <|
         0.up_to 10 . contains 5 . should_be_true

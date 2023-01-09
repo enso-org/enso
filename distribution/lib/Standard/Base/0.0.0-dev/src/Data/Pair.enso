@@ -5,6 +5,7 @@ import project.Data.Vector.Vector
 import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Common.Not_Found
 import project.Error.Error
+import project.Function.Function
 import project.Nothing.Nothing
 
 ## A pair of elements.
@@ -139,7 +140,97 @@ type Pair
              Pair.new 1 6 .find (> 3)
     find : (Any -> Boolean) -> Integer -> Any -> Any
     find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
-        used_start = 0.max (if start < 0 then start + 2 else start)
-        if used_start<1 && predicate self.first then self.first else
-            if used_start<2 && predicate self.second then self.second else
-                if_missing
+        used_start = if start < 0 then start + 2 else start
+        if used_start < 0 || used_start > 2 then Error.throw (Index_Out_Of_Bounds.Error start 3) else
+            if used_start<1 && predicate self.first then self.first else
+                if used_start<2 && predicate self.second then self.second else
+                    if_missing
+
+    ## Returns the index of an element in the pair.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from.
+
+       > Example
+         Find the index of an element in a pair.
+
+             Pair.new 1 2 . index_of 2 == 1
+             Pair.new 2 2 . index_of 2 == 0
+    index_of : (Any -> Boolean) -> Integer -> Integer | Nothing
+    index_of self element start=0 =
+        used_start = if start < 0 then start + 2 else start
+        if used_start < 0 || used_start > 2 then Error.throw (Index_Out_Of_Bounds.Error start 3) else
+            predicate = case element of
+                _ : Function -> (i -> element i)
+                _ -> (i -> i == element)
+            if used_start<1 && predicate self.first then 0 else
+                if used_start<2 && predicate self.second then 1 else
+                    Nothing
+
+    ## Returns the last index of an element in the pair.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from.
+
+       > Example
+         Find the last index of an element in a pair.
+
+             Pair.new 2 2 . last_index_of 2 == 1
+    last_index_of : (Any -> Boolean) -> Integer -> Integer | Nothing
+    last_index_of self element start=1 =
+        used_start = if start < 0 then start + 2 else start
+        if used_start < 0 || used_start > 2 then Error.throw (Index_Out_Of_Bounds.Error start 3) else
+            predicate = case element of
+                _ : Function -> (i -> element i)
+                _ -> (i -> i == element)
+            if used_start>0 && predicate self.second then 1 else
+                if used_start>=0 && predicate self.first then 0 else
+                    Nothing
+
+    ## Combines all the elements of the pair, by iteratively applying the
+       passed function with next elements of the pair.
+
+       Arguments:
+       - init: The initial value for the fold.
+       - function: A function taking two elements and combining them.
+
+       > Example
+         Compute the sum of all of the elements in a pair.
+
+             Pair.new 10 20 . fold 0 (+)
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold self init function =
+        function (function init self.first) self.second
+
+    ## Reverses the pair, returning a pair with the same elements, but in
+       the opposite order.
+
+       > Example
+         Reverse a two-element vector.
+
+             Pair.new 1 2 . reverse
+    reverse : Pair
+    reverse self = Pair.new self.second self.first
+
+    ## Applies a function to each element of the pair.
+
+       Unlike `map`, this method does not return the individual results,
+       therefore it is only useful for side-effecting computations.
+
+       Arguments:
+       - function: A function to apply to each element of the pair.
+
+       > Example
+         Print each element in the vector to standard output.
+
+             Pair.new 1 2 . each IO.println
+    each : (Any -> Any) -> Nothing
+    each self f =
+        f self.first
+        f self.second

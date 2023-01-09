@@ -157,7 +157,7 @@ type List
 
              example_all = Examples.list.all (> 0)
     all : (Any -> Boolean) -> Boolean
-    all self predicate = self.fold True (l -> r -> l && predicate r)
+    all self predicate = self . any (predicate >> .not) . not
 
     ## Checks whether this list contains a given value as an element.
 

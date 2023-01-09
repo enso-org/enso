@@ -285,8 +285,8 @@ type Vector a
             found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
             if found.is_nothing then if_missing else self.at found
 
-    ## Returns the index of an element in the vector. Returns -1 if the element
-       is not found.
+    ## Returns the index of an element in the vector.
+       Returns Nothing if the element is not found.
 
        Arguments:
        - element: The element to search for or a predicate function to test for
@@ -304,8 +304,8 @@ type Vector a
             _ -> (i -> self.at i == element)
         start.up_to self.length . find if_missing=Nothing predicate
 
-    ## Returns the last index of an element in the vector. Returns -1 if the
-       element is not found.
+    ## Returns the last index of an element in the vector.
+       Returns Nothing if the element is not found.
 
        Arguments:
        - element: The element to search for or a predicate function to test for
@@ -539,11 +539,11 @@ type Vector a
 
     ## Applies a function to each element of the vector.
 
-       Arguments:
-       - function: A function to apply to each element of the vector.
-
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
+
+       Arguments:
+       - function: A function to apply to each element of the vector.
 
        > Example
          Print each element in the vector to standard output.

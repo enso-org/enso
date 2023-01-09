@@ -344,6 +344,18 @@ type Range
         _ ->
             Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
 
+    ## Reverses the range, returning a range with the same elements, but in
+       the opposite order.
+
+       > Example
+         Reverse a step 5 from 0 to 23
+
+             Range.new 0 23 . with_step 5 . reverse
+    reverse : Range
+    reverse self =
+        if self.step == 0 then throw_zero_step_error else
+            Range.Between self.last (self.first-self.step) (-self.step)
+
     ## Converts the range to a vector containing the numbers in the range.
 
        > Example
