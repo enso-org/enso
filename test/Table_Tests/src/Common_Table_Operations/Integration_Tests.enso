@@ -1,7 +1,8 @@
 from Standard.Base import all
 
-from Standard.Table import all
-from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count
+# We hide the table constructor as instead we are supposed to use `table_builder` which is backend-agnostic.
+from Standard.Table import all hiding Table
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count, Sum
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -62,9 +63,52 @@ spec setup =
             t4 = t1.order_by "Y" . distinct "X" . order_by "Y" |> materialize
             t4.row_count . should_equal 2
 
-            # TODO add a test exploiting the fact that actually SQLite and Postgres _will_ return first row on ordered distinct
-            Nothing
+        if setup.test_selection.distinct_returns_first_row_from_group_if_ordered then
+            Test.specify "distinct and ordering if first row is returned after ordering" <|
+                a = ["A", ["a", "a", "a", "a", "a", "a"]]
+                b = ["B", [1, 1, 2, 2, 1, 2]]
+                c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
+                t = table_builder [a, b, c] . order_by (Sort_Column_Selector.By_Name [(Sort_Column.Name "C" Sort_Direction.Descending)])
 
-        Test.specify "aggregates and ordering" <|
+                t2 = t.distinct ["A", "B"] on_problems=Report_Error
+                # Now, reverse the order!
+                ## But the distinct was taken under descending order, so that
+                   should be preserved - we will still have _last_ rows from
+                   each group (first in reversed order).
+                t3 = t2.order_by "C"
+                r = t3 |> materialize
+                r.at "A" . to_vector . should_equal ["a", "a"]
+                r.at "B" . to_vector . should_equal [1, 2]
+                r.at "C" . to_vector . should_equal [0.5, 0.6]
+
+            ## It should matter whether we do the filter _before_ or _after_ the
+               distinct operation.
+
+               It is easier to test this if we can rely on distinct returning
+               the first row, if it is returning any row, it is harder to write
+               tests that distinguish the two cases (filter before and after).
+            Test.specify "distinct and filtering" <|
+                a = ["A", ["a", "a", "b", "a", "b"]]
+                b = ["B", [1, 2, 5, 5, 2]]
+                c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5]]
+                t = table_builder [a, b, c] . order_by "C"
+
+                t2 = t.distinct ["A"] on_problems=Report_Error
+                r2 = t2 |> materialize
+                r2.at "A" . to_vector . should_equal ["a", "b"]
+                r2.at "B" . to_vector . should_equal [1, 5]
+
+                t3 = t2.filter "B" (Filter_Condition.Equal 5)
+                r3 = t3 |> materialize
+                r3.at "A" . to_vector . should_equal ["b"]
+                r3.at "B" . to_vector . should_equal [5]
+
+                t4 = t.filter "B" (Filter_Condition.Equal 5)
+                t5 = t4.distinct ["A"] on_problems=Report_Error
+                r5 = t5 |> materialize
+                r5.at "A" . to_vector . should_equal ["b", "a"]
+                r5.at "B" . to_vector . should_equal [5, 5]
+
+        Test.specify "aggregates and ordering" pending="TODO" <|
             # TODO order by sum and then group by and order again but in different direction?
             Nothing
