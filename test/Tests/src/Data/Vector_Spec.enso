@@ -341,6 +341,9 @@ spec = Test.group "Vectors" <|
         input.find (x -> x%3 == 2) . should_equal 2
         input.find (x -> x%3 == 3) . should_fail_with Not_Found
         input.find (x -> x%3 == 2) start=3 . should_equal 5
+        input.find (x -> x%3 == 2) start=-3 . should_equal 8
+        input.find (x -> x%3 == 2) start=100 . should_fail_with Index_Out_Of_Bounds.Error
+        input.find (x -> x%3 == 2) start=-100 . should_fail_with Index_Out_Of_Bounds.Error
         input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
 
     Test.specify "should allow finding the index of a value" <|
