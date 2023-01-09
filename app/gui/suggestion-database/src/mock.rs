@@ -39,8 +39,8 @@ pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 /// # Example
 ///
 /// ```
-/// use enso_gui::entry::IconName;
-/// use enso_gui::mock::Builder;
+/// use enso_suggestion_database::entry::IconName;
+/// use enso_suggestion_database::mock::Builder;
 ///
 /// let mut builder = Builder::new();
 /// builder.add_and_enter_module("local.Project", |e| e);
@@ -244,8 +244,8 @@ macro_rules! mock_suggestion_database_entries {
 ///
 /// This macro takes a declaration of suggestion database entries in a kind of pseudo code:
 /// ```
-/// use enso_gui::entry;
-/// use enso_gui::mock_suggestion_database;
+/// use enso_suggestion_database::entry;
+/// use enso_suggestion_database::mock_suggestion_database;
 ///
 /// let db = mock_suggestion_database! {
 ///    Standard.Base {
@@ -341,25 +341,25 @@ macro_rules! doc_section_mark {
 ///
 /// ### [`DocSection::Paragrah`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!("Some text.");
 /// ```
 ///
 /// ### [`DocSection::Tag`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!(@ "Tag name", "Tag body.");
 /// ```
 ///
 /// ### [`DocSection::Keyed`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!("Key" => "Value");
 /// ```
 ///
 /// ### [`DocSection::Marked`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!(! "Marked as important");
 /// doc_section!(! "Optional header", "Marked as important");
 /// doc_section!(? "Marked as info");
