@@ -50,7 +50,11 @@ spec =
             new_arr . should_equal [1, 2, 3]
 
     Test.group "ArrayOverBuffer" <|
-        Test.specify "should behave like an Array" <|
+        location_pending = case Platform.os of
+            Platform.OS.Windows -> "This test is disabled on Windows."
+            _ -> Nothing
+
+        Test.specify "should behave like an Array" pending=location_pending <|
             array_over_buffer = (File.new (enso_project.data / "sample.txt") . read_last_bytes 10).to_array
 
             case array_over_buffer of

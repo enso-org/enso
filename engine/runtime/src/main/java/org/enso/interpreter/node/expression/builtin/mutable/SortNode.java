@@ -27,10 +27,7 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
-@BuiltinMethod(
-    type = "Array",
-    name = "sort_builtin",
-    description = "Returns a sorted array.")
+@BuiltinMethod(type = "Array", name = "sort_builtin", description = "Returns a sorted array.")
 public abstract class SortNode extends Node {
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private @Child InvalidComparisonNode invalidComparisonNode = InvalidComparisonNode.build();
