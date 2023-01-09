@@ -269,15 +269,17 @@ type Vector a
        - predicate: A function that takes a list element and returns a boolean
          value that says whether that value satisfies the conditions of the
          function.
+       - start: The index to start searching from.
 
        > Example
-         Finding a first element of the list that is larger than 3.
+         Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Integer -> Any ! Nothing
     find self predicate start=0 =
-        found = start.up_to self.length . find (idx -> (predicate (self.at idx)))
-        if found.is_nothing then Error.throw Nothing else self.at found
+        if start<0 then Error.throw (Index_Out_Of_Bounds.Error start self.length) else
+            found = start.up_to self.length . find (idx -> (predicate (self.at idx)))
+            if found.is_nothing then Error.throw Nothing else self.at found
 
     ## Returns the index of an element in the vector. Returns -1 if the element
        is not found.

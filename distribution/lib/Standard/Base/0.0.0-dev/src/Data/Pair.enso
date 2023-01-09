@@ -121,3 +121,23 @@ type Pair
              Pair.new 1 42 . contains 72
     contains : Any -> Boolean
     contains self elem = self.first == elem || self.second == elem
+
+    ## Returns the first element of the pair that satisfies the predicate or
+       if no elements satisfy the predicate, it throws nothing.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+       - start: The index to start searching from.
+
+       > Example
+         Finding a first element of the pair that is larger than 3.
+
+             Pair.new 1 6 .find (> 3)
+    find : (Any -> Boolean) -> Integer -> Any ! Nothing
+    find self predicate start=0 =
+        if start<0 then Error.throw (Index_Out_Of_Bounds.Error start 2) else
+            if start<1 && predicate self.first then self.first else
+                if start<2 && predicate self.second then self.second else
+                    Error.throw Nothing

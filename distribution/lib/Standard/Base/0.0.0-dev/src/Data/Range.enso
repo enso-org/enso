@@ -304,20 +304,22 @@ type Range
        - predicate: A function that takes a list element and returns a boolean
          value that says whether that value satisfies the conditions of the
          function.
+       - start: The index to start searching from.
 
        > Example
          Get the first number in the range divisible by 2, 3 and 5.
 
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
-    find : (Integer -> Boolean) -> Integer | Nothing
-    find self predicate =
+    find : (Integer -> Boolean) -> Integer -> Integer | Nothing
+    find self predicate start=0 =
         if self.step == 0 then throw_zero_step_error else
             end_condition = if self.step > 0 then (>=) else (<=)
+            start_value = self.start + start*self.step
             go current =
                 if end_condition current self.end then Nothing else
                     if predicate current then current else
                         @Tail_Call go current+self.step
-            go self.start
+            go start_value
 
     ## Checks if the range contains the specified value.
 
