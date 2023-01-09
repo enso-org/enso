@@ -3,8 +3,10 @@ use crate::prelude::*;
 use crate::paths::generated::RepoRoot;
 use crate::paths::ComponentPaths;
 use crate::paths::IsArtifact;
+
 use anyhow::Context;
 use ide_ci::programs::java::JAVA_HOME;
+
 
 
 //
@@ -106,7 +108,7 @@ pub async fn place_component_at(
 #[async_trait]
 pub trait IsBundle: AsRef<Path> + IsArtifact {
     fn clear(&self) -> Result {
-        ide_ci::fs::remove_dir_if_exists(&self.as_ref())
+        ide_ci::fs::remove_dir_if_exists(self.as_ref())
     }
 
     /// Path to the directory where GraalVM is placed.

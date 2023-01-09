@@ -1,14 +1,16 @@
 use crate::prelude::*;
 
+use crate::engine::sbt::SbtCommandProvider;
 use crate::version::Versions;
 
-use crate::engine::sbt::SbtCommandProvider;
 use ide_ci::github::release::ReleaseHandle;
 use ide_ci::github::release::ARCHIVE_EXTENSION;
 use octocrab::models::repos::Asset;
 use std::env::consts::EXE_EXTENSION;
 use std::env::consts::EXE_SUFFIX;
 use std::fmt::Formatter;
+
+
 
 #[derive(Clone, Copy, Debug)]
 pub enum ArtifactKind {

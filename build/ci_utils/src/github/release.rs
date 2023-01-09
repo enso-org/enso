@@ -11,6 +11,8 @@ use octocrab::models::ReleaseId;
 use reqwest::Body;
 use tracing::instrument;
 
+
+
 /// The extensions that will be used for the archives in the GitHub release assets.
 ///
 /// On Windows we use `.zip`, because it has out-of-the-box support in the Explorer.

@@ -1,7 +1,8 @@
 use crate::prelude::*;
-use ide_ci::github::release::ARCHIVE_EXTENSION;
 
 use crate::paths::TargetTriple;
+
+use ide_ci::github::release::ARCHIVE_EXTENSION;
 
 
 

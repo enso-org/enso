@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::cell::OnceCell;
 
 use anyhow::Context;
 use convert_case::Case;
@@ -9,6 +8,7 @@ use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::quote;
 use regex::Regex;
+use std::cell::OnceCell;
 use std::collections::BTreeSet;
 use std::iter::zip;
 

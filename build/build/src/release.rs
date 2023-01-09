@@ -1,7 +1,6 @@
 //! Support code for managing Enso releases.
 
 use crate::prelude::*;
-use std::env::consts::EXE_SUFFIX;
 
 use crate::changelog::Changelog;
 use crate::context::BuildContext;
@@ -26,6 +25,7 @@ use octocrab::models::repos::Release;
 use octocrab::params::repos::Reference;
 use reqwest::Response;
 use serde_json::json;
+use std::env::consts::EXE_SUFFIX;
 use tempfile::tempdir;
 
 

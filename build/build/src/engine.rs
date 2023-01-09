@@ -9,8 +9,8 @@ use crate::get_java_major_version;
 use crate::paths::generated;
 use crate::paths::IsArtifact;
 use crate::paths::IsPackage;
-use bundle::IsBundle;
 
+use bundle::IsBundle;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
 use std::collections::BTreeSet;

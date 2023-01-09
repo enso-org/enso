@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use std::env::consts::DLL_EXTENSION;
-use std::env::consts::EXE_EXTENSION;
 
 use crate::engine;
 use crate::engine::download_project_templates;
@@ -32,7 +30,11 @@ use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
+use std::env::consts::DLL_EXTENSION;
+use std::env::consts::EXE_EXTENSION;
 use sysinfo::SystemExt;
+
+
 
 pub type FutureEnginePackage = BoxFuture<'static, Result<crate::paths::generated::EnginePackage>>;
 
@@ -110,26 +112,6 @@ impl RunContext {
             }),
         }
     }
-
-    // pub fn expected_packages(&self) -> Vec<&dyn IsPackage> {
-    //     let mut ret = vec![];
-    //     if self.config.build_engine_package() {
-    //         ret.push(&self.repo_root.built_distribution.enso_engine_triple.engine_package as _);
-    //     }
-    //     if self.config.build_launcher_package() {
-    //         ret.push(&self.repo_root.built_distribution.enso_launcher_triple.launcher_package as
-    // _);     }
-    //     if self.config.build_project_manager_package() {
-    //         ret.push(
-    //             &self
-    //                 .repo_root
-    //                 .built_distribution
-    //                 .enso_project_manager_triple
-    //                 .project_manager_package as _,
-    //         );
-    //     }
-    //     ret
-    // }
 
     /// Check that required programs are present (if not, installs them, if supported). Set
     /// environment variables for the build to follow.
@@ -253,7 +235,7 @@ impl RunContext {
             let test_results_dir = ENSO_TEST_JUNIT_DIR
                 .get()
                 .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-            ide_ci::fs::reset_dir(&test_results_dir)?;
+            ide_ci::fs::reset_dir(test_results_dir)?;
         }
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
@@ -487,7 +469,7 @@ impl RunContext {
             // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
             // Compile the Standard Libraries (Unix)
             debug!("Compiling standard libraries under {}", std_libs.display());
-            for entry in ide_ci::fs::read_dir(&std_libs)? {
+            for entry in ide_ci::fs::read_dir(std_libs)? {
                 let entry = entry?;
                 let target = entry.path().join(self.paths.version().to_string());
                 enso.compile_lib(target)?.run_ok().await?;
@@ -567,30 +549,6 @@ impl RunContext {
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root).await?;
         }
-        //
-        // if self.config.build_launcher_bundle {
-        //     ret.launcher_bundle = Some(
-        //         generated::LauncherBundle::create(
-        //             &self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle,
-        //             &self.paths,
-        //         )
-        //         .await?,
-        //     );
-        // }
-        //
-        // if self.config.build_project_manager_bundle {
-        //     ret.project_manager_bundle = Some(
-        //         generated::ProjectManagerBundle::create(
-        //             &self
-        //                 .repo_root
-        //                 .built_distribution
-        //                 .project_manager_bundle_triple
-        //                 .project_manager_bundle,
-        //             &self.paths,
-        //         )
-        //         .await?,
-        //     );
-        // }
 
         Ok(ret)
     }
