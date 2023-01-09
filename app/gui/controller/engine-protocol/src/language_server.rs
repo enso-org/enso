@@ -115,6 +115,10 @@ trait API {
     #[MethodInput=ApplyTextFileEditInput, rpc_name="text/applyEdit"]
     fn apply_text_file_edit(&self, edit: FileEdit) -> ();
 
+    /// Return a list of file edits made to files that have changed.
+    #[MethodInput=TextFileDidChangeInput, rpc_name="text/didChange"]
+    fn text_file_did_change(&self) -> FileEditList;
+
     /// Create a new execution context. Return capabilities executionContext/canModify and
     /// executionContext/receivesUpdates containing freshly created ContextId
     #[MethodInput=CreateExecutionContextInput, rpc_name="executionContext/create"]
@@ -203,7 +207,7 @@ trait API {
     /// Restore the project from the VCS at the specified root. The project is restored to the last
     /// VCS snapshot if no `commit_id` is provided.
     #[MethodInput=VcsRestoreInput, rpc_name="vcs/restore"]
-    fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> ();
+    fn restore_vcs(&self, root: Path, commit_id: Option<String>) -> response::RestoreVcs;
 }}
 
 
