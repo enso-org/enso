@@ -30,7 +30,7 @@ import org.enso.interpreter.runtime.state.State;
 @BuiltinMethod(
     type = "Array",
     name = "sort_builtin",
-    description = "Sorts a mutable array in place.")
+    description = "Returns a sorted array.")
 public abstract class SortNode extends Node {
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private @Child InvalidComparisonNode invalidComparisonNode = InvalidComparisonNode.build();
