@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Empty_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.Common.Not_Found
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
@@ -338,8 +339,9 @@ spec = Test.group "Vectors" <|
         input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         input.find (x -> x == 5) . should_equal 5
         input.find (x -> x%3 == 2) . should_equal 2
-        input.find (x -> x%3 == 3) . should_fail_with Nothing
+        input.find (x -> x%3 == 3) . should_fail_with Not_Found
         input.find (x -> x%3 == 2) start=3 . should_equal 5
+        input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
 
     Test.specify "should allow finding the index of a value" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]

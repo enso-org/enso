@@ -120,7 +120,7 @@ sort_and_merge_ranges ranges =
     if sorted.is_empty then [] else
         current_ref = Ref.new sorted.first
         builder = Vector.new_builder
-        sorted.drop.each range->
+        sorted.drop 1 . each range->
             current = current_ref.get
             case range.start <= current.end of
                 True -> current_ref.put (current.start.up_to (Math.max current.end range.end))

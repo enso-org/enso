@@ -1,8 +1,9 @@
 import project.Any.Any
 import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Common.Not_Found
+import project.Error.Error
 import project.Nothing.Nothing
 
 ## A pair of elements.
@@ -135,9 +136,9 @@ type Pair
          Finding a first element of the pair that is larger than 3.
 
              Pair.new 1 6 .find (> 3)
-    find : (Any -> Boolean) -> Integer -> Any ! Nothing
-    find self predicate start=0 =
-        if start<0 then Error.throw (Index_Out_Of_Bounds.Error start 2) else
-            if start<1 && predicate self.first then self.first else
-                if start<2 && predicate self.second then self.second else
-                    Error.throw Nothing
+    find : (Any -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
+        used_start = 0.max (if start < 0 then start + 2 else start)
+        if used_start<1 && predicate self.first then self.first else
+            if used_start<2 && predicate self.second then self.second else
+                if_missing

@@ -12,6 +12,7 @@ import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Common.No_Such_Method
+import project.Error.Common.Not_Found
 import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
@@ -270,16 +271,17 @@ type Vector a
          value that says whether that value satisfies the conditions of the
          function.
        - start: The index to start searching from.
+       - if_missing: Value returned if no element satisfies the predicate.
 
        > Example
          Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
-    find : (Any -> Boolean) -> Integer -> Any ! Nothing
-    find self predicate start=0 =
-        if start<0 then Error.throw (Index_Out_Of_Bounds.Error start self.length) else
-            found = start.up_to self.length . find (idx -> (predicate (self.at idx)))
-            if found.is_nothing then Error.throw Nothing else self.at found
+    find : (Any -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
+        used_start = 0.max (if start < 0 then start + self.length else start)
+        found = used_start.up_to self.length . find (idx -> (predicate (self.at idx)))
+        if found.is_nothing then if_missing else self.at found
 
     ## Returns the index of an element in the vector. Returns -1 if the element
        is not found.
