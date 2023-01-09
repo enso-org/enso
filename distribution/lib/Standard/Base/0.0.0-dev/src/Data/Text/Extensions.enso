@@ -19,6 +19,7 @@ import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Text.Text_Matcher.Text_Matcher
 import project.Data.Text.Text_Sub_Range.Codepoint_Ranges
+import project.Data.Text.Text_Sub_Range.Text_Sub_Range
 import project.Data.Vector.Vector
 import project.Error.Common.Compile_Error
 import project.Error.Common.Index_Out_Of_Bounds
@@ -30,6 +31,7 @@ import project.Meta
 import project.Nothing.Nothing
 
 from project.Data.Boolean import Boolean, True, False
+from project.Data.Text.Text_Sub_Range import Codepoint_Ranges, Text_Sub_Range
 
 import project.Data.Index_Sub_Range as Index_Sub_Range_Module
 
@@ -523,7 +525,7 @@ Text.is_whitespace self =
      Get the ASCII bytes of the text "Hello".
 
          "Hello".bytes (Encoding.ascii)
-Text.bytes : Encoding -> Problem_Behavior -> Vector Byte
+Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
 Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
     result = Encoding_Utils.get_bytes self (encoding . to_java_charset)
     vector = Vector.from_polyglot_array result.result
@@ -546,7 +548,7 @@ Text.bytes self encoding on_problems=Problem_Behavior.Report_Warning =
      Get the ASCII bytes of the text "Hello".
 
          "Hello".bytes (Encoding.ascii)
-Text.from_bytes : Vector Byte -> Encoding -> Problem_Behavior -> Text
+Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Warning =
     result = Encoding_Utils.from_bytes bytes.to_array (encoding . to_java_charset)
     if result.warnings.is_nothing then result.result else
@@ -569,7 +571,7 @@ Text.from_bytes bytes encoding on_problems=Problem_Behavior.Report_Warning =
      Get the UTF-8 bytes of the text "Hello".
 
          "Hello".utf_8
-Text.utf_8 : Problem_Behavior -> Vector Byte
+Text.utf_8 : Problem_Behavior -> Vector Integer
 Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
     self.bytes Encoding.utf_8 on_problems
 
@@ -590,7 +592,7 @@ Text.utf_8 self on_problems=Problem_Behavior.Report_Warning =
      Decoding the bytes to get a text.
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
-Text.from_utf_8 : Vector Byte -> Problem_Behavior -> Text
+Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
 Text.from_utf_8 bytes on_problems=Problem_Behavior.Report_Warning =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
