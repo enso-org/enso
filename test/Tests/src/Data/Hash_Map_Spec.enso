@@ -9,7 +9,6 @@ import Standard.Test.Extensions
 polyglot java import java.nio.file.Path as JavaPath
 polyglot java import java.util.Map as JavaMap
 
-# TODO: (Python + js) Interop specs
 foreign js js_str str = """
     return new String(str)
 
@@ -58,6 +57,14 @@ foreign python py_wrapper obj = """
 pending_python_missing = if Polyglot.is_language_installed "python" then Nothing else """
     Can't run Python tests, Python is not installed.
 
+type Child
+    Value data
+
+type Parent
+    Value child
+
+type GrandParent
+    Value parent
 
 spec =
     Test.group "Hash maps" <|
@@ -92,6 +99,21 @@ spec =
             (map.get (Pair.new "A" "B")).should_equal Nothing
             (map.get (Pair.new "two" "two")).should_equal Nothing
 
+        Test.specify "should use proper hash code for keys" <|
+            single_key_map key = Hash_Map.singleton key 42
+            grand_parent_1 = GrandParent.Value (Parent.Value (Child.Value 2))
+            grand_parent_2 = GrandParent.Value (Parent.Value (Child.Value 2.0))
+
+            (single_key_map 2 . at 2.0) . should_equal 42
+            (single_key_map -2 . at -2.0) . should_equal 42
+            (single_key_map 'ś' . at 's\u0301') . should_equal 42
+            (single_key_map 's\u0301' . at 'ś') . should_equal 42
+            (single_key_map 'éabc' . at 'e\u0301abc') . should_equal 42
+            (single_key_map 'e\u0301abc' . at 'éabc') . should_equal 42
+            (single_key_map grand_parent_1 . at grand_parent_2) . should_equal 42
+            (single_key_map (Json.parse '{"a": 1}') . at (Json.parse '{"a": 1}')) . should_equal 42
+            (single_key_map (Child.Value 1) . at (Child.Value 1.0)) . should_equal 42
+
         Test.specify "should support vectors as keys" <|
             map = Hash_Map.singleton [1, "a", 2] "Value"
             map.size.should_equal 1
@@ -122,7 +144,12 @@ spec =
             (Hash_Map.singleton 2 "Hello").should_equal (Hash_Map.singleton 2.0 "Hello")
 
         Test.specify "should handle Nothing as keys" <|
-            (Hash_Map.singleton Nothing 3).get Nothing . should_equal 3
+            Hash_Map.singleton Nothing 3 . get Nothing . should_equal 3
+            Hash_Map.singleton Nothing 1 . insert Nothing 2 . get Nothing . should_equal 2
+
+        Test.specify "should handle Nothing as values" <|
+            Hash_Map.singleton 1 Nothing . at 1 . should_equal Nothing
+            Hash_Map.singleton Nothing Nothing . at Nothing . should_equal Nothing
 
         Test.specify "should support rewriting values with same keys" <|
             map = Hash_Map.empty.insert "a" 1 . insert "a" 42
