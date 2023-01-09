@@ -511,6 +511,15 @@ impl Project {
                         }
                     });
                 }
+                Event::Notification(Notification::TextDidChange(changes)) => {
+                    warn!("{:?}", changes);
+                    let file_path = changes.edits[0].path.clone();
+                    let language_server = language_server.clone_ref();
+                    executor::global::spawn(async move {
+                        let opened = language_server.client.open_text_file(&file_path).await;
+                        warn!("{:?}", opened);
+                    });
+                }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
                     let execution_update = ExecutionUpdate::ExpressionUpdates(updates);
