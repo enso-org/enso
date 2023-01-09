@@ -6,7 +6,6 @@ import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 
-
 from project.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 polyglot java import org.enso.table.excel.ExcelHeaders
