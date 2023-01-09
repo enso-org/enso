@@ -250,15 +250,33 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
+  @Specialization
+  long hashCodeForText(Text text,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    if (text.is_normalized()) {
+      return text.toString().hashCode();
+    } else {
+      return hashCodeForString(text, interop);
+    }
+  }
+
+  @TruffleBoundary
   @Specialization(guards = {
       "interop.isString(selfStr)"
   }, limit = "3")
   long hashCodeForString(Object selfStr,
       @CachedLibrary("selfStr") InteropLibrary interop) {
+    String str;
     try {
-      return interop.asString(selfStr).hashCode();
+      str = interop.asString(selfStr);
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
+    }
+    Normalizer2 normalizer = Normalizer2.getNFDInstance();
+    if (normalizer.isNormalized(str)) {
+      return str.hashCode();
+    } else {
+      return normalizer.normalize(str).hashCode();
     }
   }
 
