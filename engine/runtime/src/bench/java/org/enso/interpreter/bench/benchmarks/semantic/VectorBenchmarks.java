@@ -1,4 +1,4 @@
-    package org.enso.interpreter.bench.benchmarks.semantic;
+package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
