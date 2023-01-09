@@ -90,7 +90,7 @@ type Postgres_Dialect
         distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression text_case_insensitive problem_builder)
         # TODO check order_by
         new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
-        table.updated_context_and_columns new_context new_columns
+        table.updated_context_and_columns new_context new_columns subquery=True
 
 ## PRIVATE
 make_internal_generator_dialect =

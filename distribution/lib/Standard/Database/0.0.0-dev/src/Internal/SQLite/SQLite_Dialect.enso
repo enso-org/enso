@@ -108,7 +108,7 @@ type SQLite_Dialect
         new_key_columns = key_columns.map c-> column_mapping.at c.name
         distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression text_case_insensitive problem_builder)
         new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
-        table.updated_context_and_columns new_context new_columns
+        table.updated_context_and_columns new_context new_columns subquery=True
 
 
 ## PRIVATE
