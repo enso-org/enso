@@ -95,13 +95,13 @@ postgres_specific_spec connection db_name =
 
         Test.specify "should return Table information" <|
             i = t.info
-            i.index . to_vector . should_equal ["strs", "ints", "bools", "reals", "doubles"]
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals", "doubles"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3, 2]
             i.at "SQL Type" . to_vector . should_equal ["varchar", "int4", "bool", "float4", "float8"]
 
         Test.specify "should return Table information, also for aggregated results" <|
             i = t.aggregate [Concatenate "strs", Sum "ints", Count_Distinct "bools"] . info
-            i.index . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
+            i.at "Column" . to_vector . should_equal ["Concatenate strs", "Sum ints", "Count Distinct bools"]
             i.at "Items Count" . to_vector . should_equal [1, 1, 1]
             i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "BIGINT", "BIGINT"]
 

@@ -35,13 +35,6 @@ spec =
             table  = Table.from_rows header [row_1, row_2]
             expect table 'α' [11,21]
 
-        Test.specify "plots first column if none recognized even if index" <|
-            header = ['α']
-            row_1  = [11 ]
-            row_2  = [21 ]
-            table  = Table.from_rows header [row_1, row_2] . set_index 'α'
-            expect table 'α' [11,21]
-
         Test.specify "plots 'value' numeric column if present" <|
             header = ['α', 'value']
             row_1  = [11 , 10 ]

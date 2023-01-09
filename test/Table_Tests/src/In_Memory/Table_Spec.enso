@@ -360,7 +360,7 @@ spec =
             c = ["objs", [1, "a", "c", Any]]
             r = Table.new [a, b, c]
             i = r.info
-            i.index . to_vector . should_equal ["strs", "ints", "objs"]
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "objs"]
             i.at "Items Count" . to_vector . should_equal [3, 2, 4]
             i.at "Storage Type" . to_vector . should_equal [Storage.Text, Storage.Integer, Storage.Any]
 
@@ -491,51 +491,23 @@ spec =
             r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', Nothing, Nothing, Nothing]
             r.at 'baz' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, False, True, False]
 
-        Test.specify 'should concatenate indexes' <|
-            i_1 = ['ix', [1, 2, 3]]
-            c_1 = ['col', [5, 6, 7]]
-
-            i_2 = ['ix_2', [False, True]]
-            c_2 = ['col', [7, 8]]
-
-            t_1 = Table.new [i_1, c_1] . set_index 'ix'
-            t_2 = Table.new [i_2, c_2] . set_index 'ix_2'
-
-            r = t_1.concat t_2
-
-            r.index.to_vector.should_equal [1, 2, 3, False, True]
-
-    Test.group "Index" <|
-        t = Table.new [['ix', [1, 2, 3]], ['c1', [4, 5, 6]]] . set_index 'ix'
-        c = Column.from_vector "name" ["a", "b", "c"]
-        Test.specify "should be accessible by `at` like other columns" <|
-            c = t.at 'ix'
-            i = t.index
-            c.to_vector . should_equal i.to_vector
-
-        Test.specify "should be able to be set by column" <|
-            with_index = t.set_index c
-            with_index.index.to_vector . should_equal c.to_vector
-
     Test.group "Slicing Tables" <|
         Test.specify 'should allow taking first n rows' <|
             i_1 = ['ix', [1, 2, 3]]
             c_1 = ['col', [5, 6, 7]]
             c_2 = ['col2', ["a", Nothing, "c"]]
             c_3 = ['col3', [False, True, Nothing]]
-            t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
+            t_1 = Table.new [i_1, c_1, c_2, c_3]
 
             t_1.take (First 10) . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
             t_1.take 10 . at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector)
 
             t_2 = t_1.take (First 2)
-            t_2.index.to_vector . should_equal (t_1.index.to_vector . take (First 2))
             t_2.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take (First 2))
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (First 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (First 2))
 
             t_3 = t_1.take 2
-            t_3.index.to_vector . should_equal (t_1.index.to_vector . take 2)
             t_3.at 'col' . to_vector . should_equal (t_1.at 'col' . to_vector . take 2)
             t_3.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take 2)
             t_3.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take 2)
@@ -548,12 +520,11 @@ spec =
             c_1 = ['col1', [5, 6, 7]]
             c_2 = ['col2', ["a", Nothing, "c"]]
             c_3 = ['col3', [False, True, Nothing]]
-            t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
+            t_1 = Table.new [i_1, c_1, c_2, c_3]
 
             t_1.take (Last 10) . at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector)
 
             t_2 = t_1.take (Last 2)
-            t_2.index.to_vector . should_equal (t_1.index.to_vector . take (Last 2))
             t_2.at 'col1' . to_vector . should_equal (t_1.at 'col1' . to_vector . take (Last 2))
             t_2.at 'col2' . to_vector . should_equal (t_1.at 'col2' . to_vector . take (Last 2))
             t_2.at 'col3' . to_vector . should_equal (t_1.at 'col3' . to_vector . take (Last 2))
@@ -588,17 +559,16 @@ spec =
             c_1 = ['col1', [5, 6, 7]]
             c_2 = ['col2', ["a", Nothing, "c"]]
             c_3 = ['col3', [False, True, Nothing]]
-            t_1 = Table.new [i_1, c_1, c_2, c_3] . set_index 'ix'
+            t_1 = Table.new [i_1, c_1, c_2, c_3]
 
             expected_i_1 = ['ix', [3, 2, 1]]
             expected_c_1 = ['col1', [7, 6, 5]]
             expected_c_2 = ['col2', ["c", Nothing, "a"]]
             expected_c_3 = ['col3', [Nothing, True, False]]
-            expected = Table.new [expected_i_1, expected_c_1, expected_c_2, expected_c_3] . set_index 'ix'
+            expected = Table.new [expected_i_1, expected_c_1, expected_c_2, expected_c_3]
 
             t_2 = t_1.reverse
 
-            t_2.index.to_vector . should_equal expected.index.to_vector
             t_2.at 'col1' . to_vector . should_equal (expected.at 'col1' . to_vector)
             t_2.at 'col2' . to_vector . should_equal (expected.at 'col2' . to_vector)
             t_2.at 'col3' . to_vector . should_equal (expected.at 'col3' . to_vector)

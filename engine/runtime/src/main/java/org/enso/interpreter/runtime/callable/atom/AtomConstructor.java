@@ -261,7 +261,7 @@ public final class AtomConstructor implements TruffleObject {
   @ExportMessage
   @TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
-    return "Constructor<" + name + ">";
+    return "Constructor<" + getDisplayName() + ">";
   }
 
   /** @return the fully qualified name of this constructor. */
