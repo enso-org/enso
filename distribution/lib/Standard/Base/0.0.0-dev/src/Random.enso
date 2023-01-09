@@ -51,40 +51,6 @@ type Random_Number_Generator
         if range < Java_Integer.MAX_VALUE then min + (self.java_random.nextInt range) else
             min + (self.decimal * range).floor
 
-## Gets the next random Boolean.
-
-   Arguments:
-    - generator: the random number generator to use.
-boolean : Random_Number_Generator -> Decimal
-boolean generator=(Random_Number_Generator.new) =
-    generator.boolean
-
-## Gets the next random Decimal between 0 and 1.
-
-   Arguments:
-    - generator: the random number generator to use.
-decimal : Random_Number_Generator -> Decimal
-decimal generator=(Random_Number_Generator.new) =
-    generator.decimal
-
-## Gets the next random Decimal from a normal distribution with mean 0 and std-dev 1.
-
-   Arguments:
-    - generator: the random number generator to use.
-gaussian : Random_Number_Generator -> Decimal
-gaussian generator=(Random_Number_Generator.new) =
-    generator.gaussian
-
-## Gets the next random integer between min (inclusive) and max (exclusive).
-
-   Arguments:
-    - min: the minimum value (inclusive) of the random integer.
-    - max: the maximum value (exclusive) of the random integer.
-    - generator: the random number generator to use.
-integer : Integer -> Integer -> Random_Number_Generator -> Integer
-integer min=0 max=100 generator=(Random_Number_Generator.new) =
-    generator.integer min max
-
 ## Returns a new vector containing a random sample of the input vector, without
    replacement.
 

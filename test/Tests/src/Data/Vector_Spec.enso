@@ -347,13 +347,13 @@ spec = Test.group "Vectors" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.index_of 4 . should_equal 3
         input.index_of 2 start=3 . should_equal 5
-        input.index_of 5 . should_equal -1
+        input.index_of 5 . should_equal Nothing
 
     Test.specify "should allow finding the last index of a value" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.last_index_of 2 . should_equal 8
         input.last_index_of 2 start=4 . should_equal 1
-        input.last_index_of 5 . should_equal -1
+        input.last_index_of 5 . should_equal Nothing
 
     Test.specify "should be convertible to a list" <|
         [].to_list . should_equal List.Nil
@@ -601,16 +601,17 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow inserting elements" <|
         [2, 3].insert . should_equal [2, 3, Nothing]
         [2, 3].insert item=1 . should_equal [2, 3, 1]
-        [2, 3].insert 100 item=1 . should_equal [2, 3, 1]
+        [2, 3].insert 100 item=1 . should_fail_with Index_Out_Of_Bounds.Error
         [2, 3].insert 0 item=1 . should_equal [1, 2, 3]
         [2, 3].insert 0 . should_equal [Nothing, 2, 3]
+        [2, 3].insert 2 . should_equal [2, 3, Nothing]
         [1, 2, 3].insert -1 item=4 . should_equal [1, 2, 4, 3]
-        [1, 2, 3].insert -20 item=4 . should_equal [4, 1, 2, 3]
+        [1, 2, 3].insert -20 item=4 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.specify "should allow removing elements" <|
-        [1, 2, 3].remove . should_equal [1, 2, 3]
-        [1, 2, 3].remove 100 . should_equal [1, 2, 3]
-        [1, 2, 3].remove -123 . should_equal [1, 2, 3]
+        [1, 2, 3].remove . should_equal [1, 2]
+        [1, 2, 3].remove 100 . should_fail_with Index_Out_Of_Bounds.Error
+        [1, 2, 3].remove -123 . should_fail_with Index_Out_Of_Bounds.Error
         [1, 2, 3].remove 0 . should_equal [2, 3]
         [1, 2, 3].remove -1 . should_equal [1, 2]
 

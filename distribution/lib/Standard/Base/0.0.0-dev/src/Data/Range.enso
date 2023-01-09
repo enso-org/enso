@@ -310,16 +310,19 @@ type Range
          Get the first number in the range divisible by 2, 3 and 5.
 
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
-    find : (Integer -> Boolean) -> Integer -> Integer | Nothing
-    find self predicate start=0 =
+    find : (Integer -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=Nothing =
         if self.step == 0 then throw_zero_step_error else
-            end_condition = if self.step > 0 then (>=) else (<=)
-            start_value = self.start + start*self.step
-            go current =
-                if end_condition current self.end then Nothing else
-                    if predicate current then current else
-                        @Tail_Call go current+self.step
-            go start_value
+            self_len = self.length
+            used_start = if start < 0 then start + self_len else start
+            if used_start < 0 || used_start > self_len then Error.throw (Index_Out_Of_Bounds.Error start self_len+1) else
+                end_condition = if self.step > 0 then (>=) else (<=)
+                start_value = self.start + used_start*self.step
+                go current =
+                    if end_condition current self.end then if_missing else
+                        if predicate current then current else
+                            @Tail_Call go current+self.step
+                go start_value
 
     ## Checks if the range contains the specified value.
 

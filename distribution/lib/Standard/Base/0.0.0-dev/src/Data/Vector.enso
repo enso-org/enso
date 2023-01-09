@@ -279,9 +279,11 @@ type Vector a
              [1, 2, 3, 4, 5].find (> 3)
     find : (Any -> Boolean) -> Integer -> Any -> Any
     find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
-        used_start = 0.max (if start < 0 then start + self.length else start)
-        found = used_start.up_to self.length . find (idx -> (predicate (self.at idx)))
-        if found.is_nothing then if_missing else self.at found
+        self_len = self.length
+        used_start = if start < 0 then start + self_len else start
+        if used_start < 0 || used_start > self_len then Error.throw (Index_Out_Of_Bounds.Error start self_len+1) else
+            found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
+            if found.is_nothing then if_missing else self.at found
 
     ## Returns the index of an element in the vector. Returns -1 if the element
        is not found.
@@ -295,13 +297,12 @@ type Vector a
          Find the index of an element in a vector.
 
              [1, 2, 3].index_of 2 == 1
-    index_of : (Any -> Boolean) -> Integer -> Any
+    index_of : (Any -> Boolean) -> Integer -> Integer | Nothing
     index_of self element start=0 =
         predicate = case element of
             _ : Function -> (i -> element (self.at i))
             _ -> (i -> self.at i == element)
-        found = start.up_to self.length . find predicate
-        found.if_nothing -1
+        start.up_to self.length . find if_missing=Nothing predicate
 
     ## Returns the last index of an element in the vector. Returns -1 if the
        element is not found.
@@ -315,13 +316,12 @@ type Vector a
          Find the last index of an element in a vector.
 
              [1, 2, 3, 1, 2, 3].last_index_of 2 == 4
-    last_index_of : (Any -> Boolean) -> Integer -> Any
+    last_index_of : (Any -> Boolean) -> Integer -> Integer | Nothing
     last_index_of self element start=self.length-1 =
         predicate = case element of
             _ : Function -> (i -> element (self.at i))
             _ -> (i -> self.at i == element)
-        found = start.down_to -1 . find predicate
-        found.if_nothing -1
+        start.down_to -1 . find if_missing=Nothing predicate
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -630,9 +630,10 @@ type Vector a
     + self that = case that of
         _ : Vector ->
             self_len = self.length
-            arr = Array.new (self_len + that.length)
+            that_len = that.length
+            arr = Array.new (self_len + that_len)
             Array.copy self.to_array 0 arr 0 self_len
-            Array.copy that.to_array 0 arr self_len that.length
+            Array.copy that.to_array 0 arr self_len that_len
             Vector.from_polyglot_array arr
         _ : Array -> self + Vector.from_polyglot_array that
         _ -> Error.throw (Type_Error.Error Vector that "Should be a Vector or Array to be appended.")
@@ -640,38 +641,45 @@ type Vector a
     ## Inserts the given item into the vector at the given index.
 
        Arguments:
-       - at: The index at which to insert the item.
-         If the index is greater than the length of the vector, the item will
-         be added at the end.
+       - at: The index at which to insert the item before.
          If the index is less than 0, the index will be counted back from the
-         end. If before the beginning will be added at the start.
+         end. If the index is equal to the length of the Vector, the item will
+         be appended to the end of the Vector.
        - item: The item to insert into the vector.
-    insert : Integer -> Any -> Vector
+
+       > Example
+         Insert 'X' into ['a', 'b', 'c'] at different locations:
+
+            ['a', 'b', 'c'].insert 1 'X' == ['a', 'X', 'b', 'c']
+            ['a', 'b', 'c'].insert -1 'X' == ['a', 'b', 'X', 'c']
+            ['a', 'b', 'c'].insert item='X' == ['a', 'b', 'c', 'X']
+    insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
     insert self at=self.length item=Nothing =
-        used_index = if at < 0 then self.length + at else at
-        if used_index >= self.length then self + [item] else
-            if used_index <= 0 then [item] + self else
-                arr = Array.new (self.length + 1)
-                Array.copy self.to_array 0 arr 0 used_index
-                Array.copy [item].to_array 0 arr used_index 1
-                Array.copy self.to_array used_index arr (used_index + 1) (self.length - used_index)
-                Vector.from_polyglot_array arr
+        self_len = self.length
+        used_index = if at < 0 then self_len + at else at
+        if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
+            if used_index == self_len then self + [item] else
+                if used_index == 0 then [item] + self else
+                    arr = Array.new (self_len + 1)
+                    Array.copy self.to_array 0 arr 0 used_index
+                    Array.copy [item].to_array 0 arr used_index 1
+                    Array.copy self.to_array used_index arr (used_index + 1) (self_len - used_index)
+                    Vector.from_polyglot_array arr
 
     ## Removes the item at the given index from the vector.
 
        Arguments:
        - at: The index at which to remove the item.
-         If the index is greater than the length of the vector, the vector
-         is returned unchanged.
          If the index is less than 0, the index will be counted back from the
-         end. If before the beginning will be returned unchanged.
+         end.
     remove : Integer -> Any -> Vector
-    remove self at=self.length =
-        used_index = if at < 0 then self.length + at else at
-        if used_index >= self.length || used_index < 0 then self else
-            arr = Array.new (self.length - 1)
+    remove self at=-1 =
+        self_len = self.length
+        used_index = if at < 0 then self_len + at else at
+        if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
+            arr = Array.new (self_len - 1)
             Array.copy self.to_array 0 arr 0 used_index
-            Array.copy self.to_array (used_index + 1) arr used_index (self.length - used_index - 1)
+            Array.copy self.to_array (used_index + 1) arr used_index (self_len - used_index - 1)
             Vector.from_polyglot_array arr
 
     ## When `self` is a vector of text values, concatenates all the values by
