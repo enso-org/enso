@@ -79,14 +79,3 @@ spec setup =
 
             va.at 2 . should_equal "b"
             [3, 5, 8].contains (vb.at 2) . should_be_true
-
-        Test.specify "should co-operate well with other operations" <|
-            t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]]
-
-            # These are 'adversarial' white-box examples constructed knowing that Postgres' DISTINCT ON does not play too well with ORDER BY and it needs to be handled carefully.
-            t2 = t1.order_by "X" . distinct "X" |> materialize
-            t2.row_count . should_equal 2
-            t3 = t1.order_by "Y" . distinct "X" |> materialize
-            t3.row_count . should_equal 2
-            t4 = t1.order_by "Y" . distinct "X" . order_by "Y" |> materialize
-            t4.row_count . should_equal 2

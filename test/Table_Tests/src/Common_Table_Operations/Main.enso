@@ -5,6 +5,7 @@ import project.Common_Table_Operations.Core_Spec
 import project.Common_Table_Operations.Distinct_Spec
 import project.Common_Table_Operations.Expression_Spec
 import project.Common_Table_Operations.Filter_Spec
+import project.Common_Table_Operations.Integration_Tests
 import project.Common_Table_Operations.Join_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
@@ -91,5 +92,6 @@ spec setup =
     Expression_Spec.spec detailed=False setup
     Join_Spec.spec setup
     Distinct_Spec.spec setup
+    Integration_Tests.spec setup
 
 main = run_default_backend spec

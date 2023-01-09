@@ -1,0 +1,70 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count, Sum
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    Test.group setup.prefix+" Interactions Between various operations" <|
+        Test.specify "aggregates and joins" <|
+            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]]
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "A", "C", "D", "D", "B", "B"]]]
+
+            t3 = t2.aggregate [Group_By "Letter", Count]
+            t4 = t3.join t1 on="Count" join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by "Letter"
+            t4.columns.map .name . should_equal ["Letter", "Count", "Class"]
+            rows = t4.rows . map .to_vector
+            rows.at 0 . should_equal ["A", 4, Nothing]
+            rows.at 1 . should_equal ["B", 3, "Z"]
+            rows.at 2 . should_equal ["C", 2, "Y"]
+            rows.at 3 . should_equal ["D", 2, "Y"]
+
+        Test.specify "aggregates and distinct" <|
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C"]], ["Points", [2, 5, 2, 1, 10, 3]]]
+
+            t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
+            t4 = t3.distinct "Sum Points" |> materialize |> _.order_by "Sum Points"
+            t4.columns.map .name . should_equal ["Letter", "Sum Points"]
+            t4.row_count . should_equal 2
+
+            rows = t4.rows . map .to_vector
+            r1 = rows.at 0
+            r1.second . should_equal 5
+            ["A", "B"].contains r1.first . should_be_true
+            rows.at 1 . should_equal ["C", 13]
+
+        Test.specify "aggregates and filtering" <|
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C", "B"]], ["Points", [2, 5, 2, 1, 10, 3, 0]]]
+
+            t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
+            t4 = t3.filter "Sum Points" (Filter_Condition.Equal 5)  |> materialize |> _.order_by "Letter"
+            t4.columns.map .name . should_equal ["Letter", "Sum Points"]
+            rows = t4.rows . map .to_vector
+            rows.at 0 . should_equal ["A", 5]
+            rows.at 1 . should_equal ["B", 5]
+
+        Test.specify "distinct and ordering" <|
+            t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]]
+
+            # These are 'adversarial' white-box examples constructed knowing that Postgres' DISTINCT ON does not play too well with ORDER BY and it needs to be handled carefully.
+            t2 = t1.order_by "X" . distinct "X" |> materialize
+            t2.row_count . should_equal 2
+            t3 = t1.order_by "Y" . distinct "X" |> materialize
+            t3.row_count . should_equal 2
+            t4 = t1.order_by "Y" . distinct "X" . order_by "Y" |> materialize
+            t4.row_count . should_equal 2
+
+            # TODO add a test exploiting the fact that actually SQLite and Postgres _will_ return first row on ordered distinct
+            Nothing
+
+        Test.specify "aggregates and ordering" <|
+            # TODO order by sum and then group by and order again but in different direction?
+            Nothing
