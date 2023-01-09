@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import project.Data.Table.Table
 import project.Data.Column.Column
+import project.Internal.IR.Internal_Column.Internal_Column
 
 from project.Errors import Unsupported_Name, Unsupported_Database_Operation
 

@@ -7,6 +7,7 @@ import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.File_Error.File_Error
 import project.Error.Problem_Behavior.Problem_Behavior
+import project.Network.URI.URI
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method

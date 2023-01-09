@@ -8,10 +8,12 @@ import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
+import Standard.Table.Data.Column_Type_Selection.Column_Type_Selection
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
 import Standard.Table.Data.Join_Condition.Join_Condition
 import Standard.Table.Data.Join_Kind.Join_Kind
+import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
 import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
@@ -21,7 +23,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import No_Index_Set_Error, No_Such_Column
+from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
@@ -1065,7 +1067,7 @@ type Table
          invalid, a `File_Error.Not_Found` is raised.
        - If another IO error occurs, such as access denied, an
          `File_Error.IO_Error` is raised.
-       - If appending and the columns do not match, a `Column_Mismatch` is
+       - If appending and the columns do not match, a `Column_Count_Mismatch` is
          raised.
        - Other specific errors or warnings that can be raised depend on the
          format argument.
@@ -1091,7 +1093,7 @@ type Table
                  connection = Database.connect (SQLite (File.new "db.sqlite"))
                  table = connection.query (SQL_Query.Table_Name "Table")
                  table.write (enso_project.data / "example_csv_output.csv")
-    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Mismatch | Illegal_Argument | File_Error
+    write : File|Text -> File_Format -> Existing_File_Behavior -> Match_Columns -> Problem_Behavior -> Nothing ! Column_Count_Mismatch | Illegal_Argument | File_Error
     write self path format=Auto_Detect on_existing_file=Existing_File_Behavior.Backup match_columns=Match_Columns.By_Name on_problems=Report_Warning =
         # TODO This should ideally be done in a streaming manner, or at least respect the row limits.
         self.read.write path format on_existing_file match_columns on_problems

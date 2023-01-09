@@ -98,6 +98,13 @@ type Stack_Trace_Element
     Value name source_location
 
 ## ADVANCED
+
+    Types indicating allowed IO operations
+type IO_Permissions
+    Input
+    Output
+
+## ADVANCED
    UNSTABLE
 
    Allows an action in the `Input` context to be performed in the given `env`,
