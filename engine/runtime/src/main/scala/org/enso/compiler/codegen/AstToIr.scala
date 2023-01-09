@@ -135,7 +135,7 @@ object AstToIr {
   def translateModuleSymbol(inputAst: AST): Module.Scope.Definition = {
     inputAst match {
       case AST.Ident.Annotation.any(annotation) =>
-        IR.Name.Annotation(annotation.name, getIdentifiedLocation(annotation))
+        IR.Name.BuiltinAnnotation(annotation.name, getIdentifiedLocation(annotation))
       case AstView.Atom(consName, args) =>
         val newArgs = args.map(translateArgumentDefinition(_))
 
@@ -315,7 +315,7 @@ object AstToIr {
             getIdentifiedLocation(inputAst)
           )
       case AST.Ident.Annotation.any(ann) =>
-        IR.Name.Annotation(ann.name, getIdentifiedLocation(ann))
+        IR.Name.BuiltinAnnotation(ann.name, getIdentifiedLocation(ann))
       case AstView.FunctionSugar(
             AST.Ident.Var("foreign"),
             header,
@@ -1040,7 +1040,7 @@ object AstToIr {
           buildName(identifier)
         }
       case AST.Ident.Annotation(name) =>
-        Name.Annotation(name, getIdentifiedLocation(identifier))
+        Name.BuiltinAnnotation(name, getIdentifiedLocation(identifier))
       case AST.Ident.Cons(name) =>
         if (name == Constants.Names.SELF_TYPE_ARGUMENT) {
           Name.SelfType(getIdentifiedLocation(identifier))

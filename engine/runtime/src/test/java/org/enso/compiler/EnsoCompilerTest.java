@@ -1239,7 +1239,16 @@ public class EnsoCompilerTest {
     equivalenceTest("a = x", "a = SKIP FREEZE x + y");
     equivalenceTest("a = x", "a = SKIP FREEZE x.f");
     equivalenceTest("a = x", "a = SKIP FREEZE x.f y");
+  }
 
+  @Test
+  public void testMethodAnnotation() throws Exception {
+    var ir = compile("""
+    @first_argument (Single_Choice [])
+    fn first_argument = 42
+    """);
+    System.out.println("===");
+    System.out.println(ir);
   }
 
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {

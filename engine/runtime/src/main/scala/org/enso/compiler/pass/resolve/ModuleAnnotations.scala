@@ -41,10 +41,10 @@ case object ModuleAnnotations extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[IR.Name.BuiltinAnnotation] = Seq()
     val newBindings = for (binding <- ir.bindings) yield {
       binding match {
-        case ann: Name.Annotation =>
+        case ann: Name.BuiltinAnnotation =>
           lastAnnotations :+= ann
           None
         case comment: IR.Comment => Some(comment)
@@ -75,9 +75,9 @@ case object ModuleAnnotations extends IRPass {
   def resolveComplexType(
     typ: Definition.SugaredType
   ): Definition.SugaredType = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[IR.Name.BuiltinAnnotation] = Seq()
     val newBodyElems = typ.body.flatMap {
-      case ann: Name.Annotation =>
+      case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
       case comment: IR.Comment => Some(comment)
@@ -116,7 +116,7 @@ case object ModuleAnnotations extends IRPass {
     *
     * @param annotations the initial annotations for the container
     */
-  case class Annotations(annotations: Seq[IR.Name.Annotation])
+  case class Annotations(annotations: Seq[IR.Name.BuiltinAnnotation])
       extends IRPass.Metadata {
     override val metadataName: String                 = "Annotations"
     override def duplicate(): Option[IRPass.Metadata] = Some(this.copy())
@@ -126,7 +126,7 @@ case object ModuleAnnotations extends IRPass {
       * @param annotation the annotation to add
       * @return `this`, with `annotation` added to it
       */
-    def addAnnotation(annotation: IR.Name.Annotation): Annotations =
+    def addAnnotation(annotation: IR.Name.BuiltinAnnotation): Annotations =
       this.copy(annotations = this.annotations :+ annotation)
 
     /** @inheritdoc */

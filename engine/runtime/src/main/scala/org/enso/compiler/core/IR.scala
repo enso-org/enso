@@ -2754,20 +2754,37 @@ object IR {
       override def showCode(indent: Int): String = name
     }
 
-    /** The representation of an annotation name.
+    /** Base trait for annotations */
+    sealed trait Annotation extends Name with IR.Module.Scope.Definition {
+
+      /** @inheritdoc */
+      override def mapExpressions(fn: Expression => Expression): Annotation
+
+      /** @inheritdoc */
+      override def setLocation(location: Option[IdentifiedLocation]): Annotation
+
+      /** @inheritdoc */
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
+      ): Annotation
+    }
+
+    /** The representation of builtin annotation.
       *
       * @param name the annotation text of the name
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
-    sealed case class Annotation(
+    sealed case class BuiltinAnnotation(
       override val name: String,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Name
-        with IR.Module.Scope.Definition
+    ) extends Annotation
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -2786,8 +2803,8 @@ object IR {
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
-      ): Annotation = {
-        val res = Annotation(name, location, passData, diagnostics)
+      ): BuiltinAnnotation = {
+        val res = BuiltinAnnotation(name, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2798,7 +2815,7 @@ object IR {
         keepMetadata: Boolean    = true,
         keepDiagnostics: Boolean = true,
         keepIdentifiers: Boolean = false
-      ): Annotation =
+      ): BuiltinAnnotation =
         copy(
           location = if (keepLocations) location else None,
           passData =
@@ -2811,17 +2828,19 @@ object IR {
       /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
-      ): Annotation =
+      ): BuiltinAnnotation =
         copy(location = location)
 
       /** @inheritdoc */
-      override def mapExpressions(fn: Expression => Expression): Annotation =
+      override def mapExpressions(
+        fn: Expression => Expression
+      ): BuiltinAnnotation =
         this
 
       /** @inheritdoc */
       override def toString: String =
         s"""
-           |IR.Name.Annotation(
+           |IR.Name.BuiltinAnnotation(
            |name = $name,
            |location = $location,
            |passData = ${this.showPassData},
@@ -2832,6 +2851,95 @@ object IR {
 
       /** @inheritdoc */
       override def children: List[IR] = List()
+
+      /** @inheritdoc */
+      override def showCode(indent: Int): String = name
+    }
+
+    /** The representation of annotations on method.
+      *
+      * @param name the annotation text of the name
+      * @param argument the annotation argument
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class MethodAnnotation(
+      override val name: String,
+      argument: Expression,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Annotation {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the annotation text of the name
+        * @param argument the annotation argument
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        name: String                         = name,
+        argument: Expression                 = argument,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): MethodAnnotation = {
+        val res =
+          MethodAnnotation(name, argument, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      /** @inheritdoc */
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true,
+        keepIdentifiers: Boolean = false
+      ): MethodAnnotation =
+        copy(
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = if (keepIdentifiers) id else randomId
+        )
+
+      /** @inheritdoc */
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): MethodAnnotation =
+        copy(location = location)
+
+      /** @inheritdoc */
+      override def mapExpressions(
+        fn: Expression => Expression
+      ): MethodAnnotation =
+        copy(argument = fn(argument))
+
+      /** @inheritdoc */
+      override def toString: String =
+        s"""
+           |IR.Name.MethodAnnotation(
+           |name = $name,
+           |argument = $argument,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      /** @inheritdoc */
+      override def children: List[IR] = List(argument)
 
       /** @inheritdoc */
       override def showCode(indent: Int): String = name

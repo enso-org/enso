@@ -71,7 +71,7 @@ case object ExpressionAnnotations extends IRPass {
   ): IR.Expression =
     ir.transformExpressions {
       case app @ IR.Application.Prefix(
-            ann: IR.Name.Annotation,
+            ann: IR.Name.BuiltinAnnotation,
             arguments,
             _,
             _,
@@ -104,7 +104,7 @@ case object ExpressionAnnotations extends IRPass {
             IR.Error.Resolution(ann, IR.Error.Resolution.UnknownAnnotation)
           app.copy(function = err)
         }
-      case ann: IR.Name.Annotation =>
+      case ann: IR.Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {
           IR.Error.Resolution(
             ann,
