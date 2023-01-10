@@ -264,7 +264,7 @@ type Vector a
                 fold_function (self.at 0) 1
 
     ## Returns the first element of the vector that satisfies the predicate or
-       if no elements of the vector satisfy the predicate, it throws nothing.
+       if no elements of the vector satisfy the predicate, throws `Not_Found`.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean
@@ -877,8 +877,6 @@ type Vector a
              [Pair 1 2, Pair -1 8].sort Sort_Direction.Descending (_.first)
     sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
     sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (_.compare_to _)) =
-           comparisons we need to construct a comparator for internal use that
-           does both.
         comp_ascending l r  = by (on l) (on r)
         comp_descending l r = by (on r) (on l)
         compare = if order == Sort_Direction.Ascending then comp_ascending else

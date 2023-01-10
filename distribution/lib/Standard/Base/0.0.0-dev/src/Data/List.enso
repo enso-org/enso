@@ -5,6 +5,7 @@ import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Common.Not_Found
 import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
@@ -107,7 +108,7 @@ type List
          In the following example, we'll compute the sum of all elements of a
          list.
 
-             import Standard.Eamples
+             import Standard.Examples
 
              example_fold = Examples.list.fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
@@ -117,6 +118,23 @@ type List
             Cons h t -> @Tail_Call go (f acc h) t
         res = go init self
         res
+
+    ## Combines all the elements of a non-empty list using a binary operation.
+       If the list is empty, it throws an `Empty_Error`.
+
+       Arguments:
+       - function: A binary operation that takes two items and combines them.
+
+       > Example
+         Compute the sum of all the elements in a list.
+
+             import Standard.Examples
+
+             example_fold = Examples.list.reduce (+)
+    reduce : (Any -> Any -> Any) -> Any ! Empty_Error
+    reduce self function = case self of
+        Nil -> Error.throw Empty_Error
+        Cons x xs -> xs.fold x function
 
     ## Checks whether any element of the list matches the given predicate.
 
@@ -182,7 +200,9 @@ type List
 
              example_empty = Examples.list.is_empty
     is_empty : Boolean
-    is_empty self = self.length == 0
+    is_empty self = case self of
+        Nil -> True
+        Cons _ _ -> False
 
     ## Checks if the list is not empty.
 
@@ -434,12 +454,50 @@ type List
             builder.append elem
         builder.to_vector
 
+    ## Generates a human-readable text representation of the list.
     to_text : Text
     to_text self =
         go l t e = case l of
             Nil -> t + "Nil" + e
             Cons x xs -> @Tail_Call go xs (t + "(Cons " + x.to_text + " ") (")" + e)
         go self "" ""
+
+
+    ## Returns the first element of the list that satisfies the predicate or
+       if no elements of the vector satisfy the predicate, throws `Not_Found`.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the vector.
+       - if_missing: Value returned if no element satisfies the predicate.
+
+       > Example
+         Finding a first element of the vector that is larger than 3.
+
+             [1, 2, 3, 4, 5].find (> 3)
+    find : (Any -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=(Error.throw Not_Found) = case start.signum of
+        0 -> case self of
+            Nil -> if_missing
+            Cons a b -> if predicate a then a else @Tail_Call b.find predicate 0 if_missing
+        1 ->
+            loop current count = case count of
+                0 -> current.find predicate 0 if_missing
+                _ -> case current of
+                    Nil -> Error.throw (Index_Out_Of_Bounds.Error start start-count)
+                    Cons _ b -> @Tail_Call loop b count-1
+            loop self start
+        -1 ->
+            loop current count point = case point of
+                Nil -> if count == 0 then current else Error.throw (Index_Out_Of_Bounds.Error start -start-count)
+                Cons _ xs ->
+                    new_current = if count > 0 then current else current.xs
+                    @Tail_Call loop new_current (0.max count-1) xs
+            start_node = loop self -start self
+            start_node.find predicate 0 if_missing
 
 ## UNSTABLE
 
@@ -450,4 +508,3 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The List is empty."
-

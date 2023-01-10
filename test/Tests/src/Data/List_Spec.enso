@@ -1,6 +1,8 @@
 from Standard.Base import all
+import Standard.Base.Data.List.Empty_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.Common.Not_Found
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
 
@@ -15,10 +17,12 @@ spec = Test.group "List" <|
     Test.specify "should have well defined length when empty" <|
         List.Nil.length.should_equal 0
     Test.specify "should allow folding the list with an arbitrary operation with .fold" <|
-        sum = l.fold 0 (+)
-        prod = l.fold 1 (*)
-        sum.should_equal 6
-        prod.should_equal 6
+        l.fold 0 (+) . should_equal 6
+        l.fold 1 (*) . should_equal 6
+    Test.specify "should allow reducing the list with an arbitrary operation with .reduce" <|
+        l.reduce (+) . should_equal 6
+        l.reduce (*) . should_equal 6
+        empty.reduce (+) . should_fail_with Empty_Error
     Test.specify "should allow checking if an element satisfies a predicate with .any" <|
         any_even = l.any (x -> x % 2 == 0)
         any_eq_five = l.any (== 5)
@@ -33,6 +37,16 @@ spec = Test.group "List" <|
         l.contains 4 . should_be_false
         l.contains 3 . should_be_true
         empty.contains 10 . should_be_false
+    Test.specify "should allow finding an element in the list with `.find`" <|
+        l.find (==2) . should_equal 2
+        l.find (==3) . should_equal 3
+        l.find (==4) . should_fail_with Not_Found
+        l.find (==2) start=1 . should_equal 2
+        l.find (==2) start=2 . should_fail_with Not_Found
+        l.find (==2) start=-1 . should_fail_with Not_Found
+        l.find (==2) start=-2 . should_equal 2
+        empty.find (==1) . should_fail_with Not_Found
+        empty.find (==1) if_missing=Nothing . should_equal Nothing
     Test.specify "should allow checking if the list is empty with `.is_empty`" <|
         l.is_empty . should_be_false
         empty.is_empty . should_be_true

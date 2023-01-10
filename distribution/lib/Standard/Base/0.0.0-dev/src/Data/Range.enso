@@ -2,7 +2,7 @@ import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
-import project.Data.Vector.Empty_Error
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
@@ -458,3 +458,13 @@ get_index range min max value =
         index = (diff / range.step).floor
         if index < min || index > max then Nothing else
             index
+
+## UNSTABLE
+
+   An error representing that the list is empty.
+type Empty_Error
+    ## PRIVATE
+
+       Pretty prints the empty error.
+    to_display_text : Text
+    to_display_text self = "The Range is empty."
