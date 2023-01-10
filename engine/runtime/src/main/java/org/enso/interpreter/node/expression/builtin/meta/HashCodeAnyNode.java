@@ -177,19 +177,22 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "interop.isDate(selfZonedDateTime)",
-      "interop.isTime(selfZonedDateTime)",
-      "interop.isTimeZone(selfZonedDateTime)",
-  }, limit = "3")
-  long hashCodeForZonedDateTimeInterop(Object selfZonedDateTime,
-      @CachedLibrary("selfZonedDateTime") InteropLibrary interop) {
+  @TruffleBoundary
+  @Specialization(
+      guards = {
+        "interop.isDate(selfZonedDateTime)",
+        "interop.isTime(selfZonedDateTime)",
+        "interop.isTimeZone(selfZonedDateTime)",
+      },
+      limit = "3")
+  long hashCodeForZonedDateTimeInterop(
+      Object selfZonedDateTime, @CachedLibrary("selfZonedDateTime") InteropLibrary interop) {
     try {
       return ZonedDateTime.of(
-          interop.asDate(selfZonedDateTime),
-          interop.asTime(selfZonedDateTime),
-          interop.asTimeZone(selfZonedDateTime)
-      ).hashCode();
+              interop.asDate(selfZonedDateTime),
+              interop.asTime(selfZonedDateTime),
+              interop.asTimeZone(selfZonedDateTime))
+          .hashCode();
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
