@@ -198,30 +198,31 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "interop.isDate(selfDateTime)",
-      "interop.isTime(selfDateTime)",
-      "!interop.isTimeZone(selfDateTime)",
-  }, limit = "3")
-  long hashCodeForDateTimeInterop(Object selfDateTime,
-      @CachedLibrary("selfDateTime") InteropLibrary interop) {
+  @Specialization(
+      guards = {
+        "interop.isDate(selfDateTime)",
+        "interop.isTime(selfDateTime)",
+        "!interop.isTimeZone(selfDateTime)",
+      },
+      limit = "3")
+  long hashCodeForDateTimeInterop(
+      Object selfDateTime, @CachedLibrary("selfDateTime") InteropLibrary interop) {
     try {
-      return LocalDateTime.of(
-          interop.asDate(selfDateTime),
-          interop.asTime(selfDateTime)
-      ).hashCode();
+      return LocalDateTime.of(interop.asDate(selfDateTime), interop.asTime(selfDateTime))
+          .hashCode();
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  @Specialization(guards = {
-      "!interop.isDate(selfTime)",
-      "interop.isTime(selfTime)",
-      "!interop.isTimeZone(selfTime)",
-  }, limit = "3")
-  long hashCodeForTimeInterop(Object selfTime,
-      @CachedLibrary("selfTime") InteropLibrary interop) {
+  @Specialization(
+      guards = {
+        "!interop.isDate(selfTime)",
+        "interop.isTime(selfTime)",
+        "!interop.isTimeZone(selfTime)",
+      },
+      limit = "3")
+  long hashCodeForTimeInterop(Object selfTime, @CachedLibrary("selfTime") InteropLibrary interop) {
     try {
       return interop.asTime(selfTime).hashCode();
     } catch (UnsupportedMessageException e) {
@@ -229,13 +230,14 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "interop.isDate(selfDate)",
-      "!interop.isTime(selfDate)",
-      "!interop.isTimeZone(selfDate)",
-  }, limit = "3")
-  long hashCodeForDateInterop(Object selfDate,
-      @CachedLibrary("selfDate") InteropLibrary interop) {
+  @Specialization(
+      guards = {
+        "interop.isDate(selfDate)",
+        "!interop.isTime(selfDate)",
+        "!interop.isTimeZone(selfDate)",
+      },
+      limit = "3")
+  long hashCodeForDateInterop(Object selfDate, @CachedLibrary("selfDate") InteropLibrary interop) {
     try {
       return interop.asDate(selfDate).hashCode();
     } catch (UnsupportedMessageException e) {
@@ -243,11 +245,13 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "interop.isDuration(selfDuration)",
-  }, limit = "3")
-  long hashCodeForDurationInterop(Object selfDuration,
-      @CachedLibrary("selfDuration") InteropLibrary interop) {
+  @Specialization(
+      guards = {
+        "interop.isDuration(selfDuration)",
+      },
+      limit = "3")
+  long hashCodeForDurationInterop(
+      Object selfDuration, @CachedLibrary("selfDuration") InteropLibrary interop) {
     try {
       return interop.asDuration(selfDuration).hashCode();
     } catch (UnsupportedMessageException e) {
@@ -256,8 +260,7 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization
-  long hashCodeForText(Text text,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+  long hashCodeForText(Text text, @CachedLibrary(limit = "3") InteropLibrary interop) {
     if (text.is_normalized()) {
       return text.toString().hashCode();
     } else {
@@ -266,11 +269,10 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @TruffleBoundary
-  @Specialization(guards = {
-      "interop.isString(selfStr)"
-  }, limit = "3")
-  long hashCodeForString(Object selfStr,
-      @CachedLibrary("selfStr") InteropLibrary interop) {
+  @Specialization(
+      guards = {"interop.isString(selfStr)"},
+      limit = "3")
+  long hashCodeForString(Object selfStr, @CachedLibrary("selfStr") InteropLibrary interop) {
     String str;
     try {
       str = interop.asString(selfStr);
@@ -285,10 +287,11 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "interop.hasArrayElements(selfArray)"
-  }, limit = "3")
-  long hashCodeForArray(Object selfArray,
+  @Specialization(
+      guards = {"interop.hasArrayElements(selfArray)"},
+      limit = "3")
+  long hashCodeForArray(
+      Object selfArray,
       @CachedLibrary("selfArray") InteropLibrary interop,
       @Cached HashCodeAnyNode hashCodeNode,
       @Cached("createCountingProfile()") LoopConditionProfile loopProfile) {
@@ -298,9 +301,7 @@ public abstract class HashCodeAnyNode extends Node {
       int[] elemHashCodes = new int[(int) arraySize];
       for (int i = 0; loopProfile.inject(i < arraySize); i++) {
         if (interop.isArrayElementReadable(selfArray, i)) {
-          elemHashCodes[i] = (int) hashCodeNode.execute(
-              interop.readArrayElement(selfArray, i)
-          );
+          elemHashCodes[i] = (int) hashCodeNode.execute(interop.readArrayElement(selfArray, i));
         }
       }
       return Arrays.hashCode(elemHashCodes);
@@ -309,9 +310,9 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "interop.hasIdentity(selfWithIdentity)"
-  }, limit = "3")
+  @Specialization(
+      guards = {"interop.hasIdentity(selfWithIdentity)"},
+      limit = "3")
   long hashCodeForInteropWithIdentity(
       Object selfWithIdentity,
       @CachedLibrary("selfWithIdentity") InteropLibrary interop,
@@ -323,12 +324,10 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "interop.isNull(selfNull)"
-  }, limit = "3")
-  long hashCodeForNull(Object selfNull,
-      @CachedLibrary("selfNull") InteropLibrary interop
-  ) {
+  @Specialization(
+      guards = {"interop.isNull(selfNull)"},
+      limit = "3")
+  long hashCodeForNull(Object selfNull, @CachedLibrary("selfNull") InteropLibrary interop) {
     return 0;
   }
 
