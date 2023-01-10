@@ -27,17 +27,21 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 /**
- * Hashing contract:
- * Whenever two objects are equal ({@code EqualsAnyNode} returns {@code true}), their hashcode
- * should equal.
- * More formally:
- * {@code For all objects o1, o2: if o1 == o2 then hash(o1) == hash(o2)}
+ * Implements {@code hash_code} functionality.
+ *
+ * <p>Make sure that the hashing contract is retained after any modification.
+ *
+ * <h3>Hashing contract:</h3>
+ *
+ * <ul>
+ *   <li>Whenever two objects are equal ({@code EqualsAnyNode} returns {@code true}), their hashcode
+ *       should equal. More formally: {@code For all objects o1, o2: if o1 == o2 then hash(o1) ==
+ *       hash(o2)}
+ *   <li>Whenever two objects are different, their hash codes are different: {@code For all objects
+ *       o1, o2: if o1 != o2 then hash(o1) != hash(o2)}
+ * </ul>
  */
-@BuiltinMethod(
-    type = "Any",
-    name = "hash_code",
-    description = "Returns has code of the object."
-)
+@BuiltinMethod(type = "Any", name = "hash_code", description = "Returns hash code of the object.")
 @GenerateUncached
 public abstract class HashCodeAnyNode extends Node {
 
@@ -80,9 +84,7 @@ public abstract class HashCodeAnyNode extends Node {
     return System.identityHashCode(atomConstructor);
   }
 
-  /**
-   * How many {@link HashCodeAnyNode} nodes should be created for fields in atoms.
-   */
+  /** How many {@link HashCodeAnyNode} nodes should be created for fields in atoms. */
   static final int hashCodeNodeCountForFields = 10;
 
   static HashCodeAnyNode[] createHashCodeNodes(int size) {
@@ -92,8 +94,10 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization
-  long hashCodeForAtom(Atom atom,
-      @Cached(value = "createHashCodeNodes(hashCodeNodeCountForFields)", allowUncached = true) HashCodeAnyNode[] fieldHashCodeNodes,
+  long hashCodeForAtom(
+      Atom atom,
+      @Cached(value = "createHashCodeNodes(hashCodeNodeCountForFields)", allowUncached = true)
+          HashCodeAnyNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
       @Cached ConditionProfile enoughHashCodeNodesForFields,
       @Cached LoopConditionProfile loopProfile) {
@@ -129,45 +133,43 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  @Specialization(guards = {
-      "warnLib.hasWarnings(selfWithWarning)"
-  }, limit = "3")
-  long hashCodeForWarning(Object selfWithWarning,
+  @Specialization(
+      guards = {"warnLib.hasWarnings(selfWithWarning)"},
+      limit = "3")
+  long hashCodeForWarning(
+      Object selfWithWarning,
       @CachedLibrary("selfWithWarning") WarningsLibrary warnLib,
-      @Cached HashCodeAnyNode hashCodeNode
-  ) {
+      @Cached HashCodeAnyNode hashCodeNode) {
     try {
-      return hashCodeNode.execute(
-          warnLib.removeWarnings(selfWithWarning)
-      );
+      return hashCodeNode.execute(warnLib.removeWarnings(selfWithWarning));
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  /** Specializations for interop values **/
-
-  @Specialization(guards = {
-      "interop.isBoolean(selfBool)"
-  }, limit = "3")
-  long hashCodeForBooleanInterop(Object selfBool,
-      @CachedLibrary("selfBool") InteropLibrary interop) {
+  /** Specializations for interop values * */
+  @Specialization(
+      guards = {"interop.isBoolean(selfBool)"},
+      limit = "3")
+  long hashCodeForBooleanInterop(
+      Object selfBool, @CachedLibrary("selfBool") InteropLibrary interop) {
     try {
-      return Boolean.hashCode(
-          interop.asBoolean(selfBool)
-      );
+      return Boolean.hashCode(interop.asBoolean(selfBool));
     } catch (UnsupportedMessageException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  @Specialization(guards = {
-      "!interop.isDate(selfTimeZone)",
-      "!interop.isTime(selfTimeZone)",
-      "interop.isTimeZone(selfTimeZone)",
-  }, limit = "3")
-  long hashCodeForTimeZoneInterop(Object selfTimeZone,
-      @CachedLibrary("selfTimeZone") InteropLibrary interop) {
+  @TruffleBoundary
+  @Specialization(
+      guards = {
+        "!interop.isDate(selfTimeZone)",
+        "!interop.isTime(selfTimeZone)",
+        "interop.isTimeZone(selfTimeZone)",
+      },
+      limit = "3")
+  long hashCodeForTimeZoneInterop(
+      Object selfTimeZone, @CachedLibrary("selfTimeZone") InteropLibrary interop) {
     try {
       return interop.asTimeZone(selfTimeZone).hashCode();
     } catch (UnsupportedMessageException e) {

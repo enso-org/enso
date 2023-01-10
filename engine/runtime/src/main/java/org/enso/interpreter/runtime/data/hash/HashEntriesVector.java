@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
-import com.oracle.truffle.api.CompilerDirectives.ValueType;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
@@ -9,6 +9,11 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.runtime.data.Vector;
 
+/**
+ * A vector used to hold hash map entries, where each entry is represented as a 2-element vector.
+ * Used for both Truffle interop, where {@code getHashEntriesIterator} expects this form of vector
+ * (array), and for Enso {@code Map.to_vector} method. May be empty.
+ */
 @ExportLibrary(InteropLibrary.class)
 final class HashEntriesVector implements TruffleObject {
   private final Vector[] entryPairs;
@@ -17,8 +22,7 @@ final class HashEntriesVector implements TruffleObject {
     assert keys.length == values.length;
     this.entryPairs = new Vector[keys.length];
     for (int i = 0; i < keys.length; i++) {
-      entryPairs[i] =
-          Vector.fromArray(new EntryPair(keys[i], values[i]));
+      entryPairs[i] = Vector.fromArray(new EntryPair(keys[i], values[i]));
     }
   }
 
@@ -27,7 +31,7 @@ final class HashEntriesVector implements TruffleObject {
   }
 
   static HashEntriesVector createEmpty() {
-    return new HashEntriesVector(new Object[]{}, new Object[]{});
+    return new HashEntriesVector(new Object[] {}, new Object[] {});
   }
 
   @ExportMessage
@@ -120,6 +124,7 @@ final class HashEntriesVector implements TruffleObject {
       throw UnsupportedMessageException.create();
     }
 
+    @TruffleBoundary
     @ExportMessage
     Object toDisplayString(boolean sideEffectsAllowed) {
       return "(" + key + ", " + value + ")";
