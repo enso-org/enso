@@ -100,7 +100,7 @@ pub trait IsReleaseExt: IsRelease + Sync {
         let temp_dir = tempfile::tempdir()?;
         let archive_path =
             custom_name.with_parent(temp_dir.path()).with_appended_extension(ARCHIVE_EXTENSION);
-        crate::archive::compress_directory(&archive_path, &dir_to_upload).await?;
+        crate::archive::create(&archive_path, [&dir_to_upload]).await?;
         self.upload_asset_file(archive_path).await
     }
 
