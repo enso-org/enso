@@ -540,16 +540,23 @@ final class SuggestionBuilder[A: IndexedSource](
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
       tagValues = targ match {
-        case s: TypeArg.Sum => Some(pluckVariants(s))
-        case _              => None
+        case s: TypeArg.Sum => {
+          val tagValues = pluckVariants(s)
+          if (tagValues.nonEmpty) {
+            Some(tagValues)
+          } else {
+            None
+          }
+        }
+        case _ => None
       }
     )
 
   private def pluckVariants(arg: TypeArg): Seq[String] = arg match {
-    case TypeArg.Sum(Some(n), List()) => Seq(n.toString)
-    case TypeArg.Sum(_, variants)     => variants.flatMap(pluckVariants)
-    case TypeArg.Value(n)             => Seq(n.toString)
-    case _                            => Seq()
+    case TypeArg.Sum(_, List())   => Seq()
+    case TypeArg.Sum(_, variants) => variants.flatMap(pluckVariants)
+    case TypeArg.Value(n)         => Seq(n.toString)
+    case _                        => Seq()
   }
 
   /** Build the name of type argument.
