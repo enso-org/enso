@@ -132,7 +132,8 @@ type Pair
        - predicate: A function that takes a list element and returns a boolean
          value that says whether that value satisfies the conditions of the
          function.
-       - start: The index to start searching from.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the pair.
 
        > Example
          Finding a first element of the pair that is larger than 3.
@@ -151,7 +152,8 @@ type Pair
        Arguments:
        - element: The element to search for or a predicate function to test for
          each element.
-       - start: The index to start searching from.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the pair.
 
        > Example
          Find the index of an element in a pair.
@@ -173,14 +175,15 @@ type Pair
        Arguments:
        - element: The element to search for or a predicate function to test for
          each element.
-       - start: The index to start searching backwards from.
+       - start: The index to start searching backwards from. If the index is
+         negative, it is counted from the end of the pair.
 
        > Example
          Find the last index of an element in a pair.
 
              Pair.new 2 2 . last_index_of 2 == 1
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=1 = check_start_valid start used_start->
+    last_index_of self element start=-1 = check_start_valid start used_start->
         predicate = case element of
             _ : Function -> element
             _ -> (==element)
@@ -202,6 +205,19 @@ type Pair
     fold : Any -> (Any -> Any -> Any) -> Any
     fold self init function =
         function (function init self.first) self.second
+
+    ## Combines all the elements of the pair using a binary operation.
+
+       Arguments:
+       - function: A binary operation that takes two items and combines them.
+
+       > Example
+         Compute the sum of all the elements in a Pair.
+
+             Pair.new 10 20 . reduce (+)
+    reduce : (Any -> Any -> Any) -> Any
+    reduce self function =
+        function self.first self.second
 
     ## Reverses the pair, returning a pair with the same elements, but in
        the opposite order.

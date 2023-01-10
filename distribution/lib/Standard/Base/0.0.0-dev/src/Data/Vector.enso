@@ -270,7 +270,8 @@ type Vector a
        - predicate: A function that takes a list element and returns a boolean
          value that says whether that value satisfies the conditions of the
          function.
-       - start: The index to start searching from.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the vector.
        - if_missing: Value returned if no element satisfies the predicate.
 
        > Example
@@ -290,7 +291,8 @@ type Vector a
        Arguments:
        - element: The element to search for or a predicate function to test for
          each element.
-       - start: The index to start searching from.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the vector.
 
        > Example
          Find the index of an element in a vector.
@@ -311,14 +313,15 @@ type Vector a
        Arguments:
        - element: The element to search for or a predicate function to test for
          each element.
-       - start: The index to start searching backwards from.
+       - start: The index to start searching backwards from. If the index is
+         negative, it is counted from the end of the vector.
 
        > Example
          Find the last index of an element in a vector.
 
              [1, 2, 3, 1, 2, 3].last_index_of 2 == 4
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=self.length-1 =
+    last_index_of self element start=-1 =
         self_len = self.length
         check_start_valid start self_len used_start->
             predicate = case element of
@@ -799,7 +802,7 @@ type Vector a
         if self.length >= n then self else
             self + (Vector.fill n-self.length elem)
 
-    ## Get the first element from the vector, or an `Empty_Error` if the vector
+    ## Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
        > Example
@@ -809,7 +812,7 @@ type Vector a
     first : Any ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## Get the last element of the vector, or an `Empty_Error` if the vector is
+    ## Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
        > Example
@@ -1066,7 +1069,7 @@ type Builder
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
-    ## Get the first element from the vector, or an `Empty_Error` if the vector
+    ## Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
        > Example
@@ -1076,7 +1079,7 @@ type Builder
     first : Vector ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## Get the last element of the vector, or an `Empty_Error` if the vector is
+    ## Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
        > Example

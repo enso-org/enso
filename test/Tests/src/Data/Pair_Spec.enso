@@ -87,6 +87,11 @@ spec = Test.group "Pair" <|
 
     Test.specify "should allow folding an operator over its elements" <|
         Pair.new 10 20 . fold 0 (+) . should_equal 30
+        Pair.new "A" "B" . fold "" (+) . should_equal "AB"
+
+    Test.specify "should allow reducing an operator over its elements" <|
+        Pair.new 10 20 . reduce (*) . should_equal 200
+        Pair.new "Hello" "World" . reduce (a->b-> a+" "+b) . should_equal "Hello World"
 
     Test.specify "should allow applying a function to each element" <|
         vec_mut = Vector.new_builder

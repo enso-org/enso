@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Vector.Empty_Error
 import project.Data.Vector.Vector
 import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
@@ -298,7 +299,8 @@ type Range
        - predicate: A function that takes a list element and returns a boolean
          value that says whether that value satisfies the conditions of the
          function.
-       - start: The index to start searching from.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the range.
 
        > Example
          Get the first number in the range divisible by 2, 3 and 5.
@@ -335,13 +337,15 @@ type Range
        Arguments:
        - element: The integer to search for or a predicate function to test for
          each element.
-       - start: The index to start searching from.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the range.
 
        > Example
-         Find the index of an element in a pair.
+         Find the index of an element in a range.
 
-             Pair.new 1 2 . index_of 2 == 1
-             Pair.new 2 2 . index_of 2 == 0
+             0.up_to 100 . index_of 20 == 20
+             0.up_to 100 . with_step 5 . index_of 20 == 4
+             0.up_to 100 . with_step 5 . index_of (>10) == 3
     index_of : (Integer | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self element start=0 =
         check_start_valid start self used_start->
@@ -358,20 +362,26 @@ type Range
        Arguments:
        - element: The integer to search for or a predicate function to test for
          each element.
-       - start: The index to start searching backwards from.
+       - start: The index to start searching backwards from. If the index is
+         negative, it is counted from the end of the range.
 
        > Example
          Find the last index of an element in a pair.
 
              Pair.new 2 2 . last_index_of 2 == 1
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=1 = check_start_valid start used_start->
-        predicate = case element of
-            _ : Function -> element
-            _ -> (==element)
-        if used_start>0 && predicate self.second then 1 else
-            if used_start>=0 && predicate self.first then 0 else
-                Nothing
+    last_index_of self element start=-1 =
+        check_start_valid start self used_start->
+            case element of
+                _ : Integer -> get_index self 0 used_start element
+                _ : Function ->
+                    start_value = self.start + used_start*self.step
+                    go current idx =
+                        if element current then idx else
+                            if current == self.start then Nothing else
+                                @Tail_Call go current-self.step idx-1
+                    go start_value used_start
+                _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integers or a predicate.")
 
     ## Reverses the range, returning a range with the same elements, but in
        the opposite order.
@@ -393,6 +403,29 @@ type Range
              1.up_to 6 . to_vector
     to_vector : Vector
     to_vector self = self.map x->x
+
+    ## Combines all the elements of a non-empty range using a binary operation.
+       If the range is empty, it throws an `Empty_Error`.
+
+       Arguments:
+       - function: A binary operation that takes two items and combines them.
+
+       > Example
+         Compute the sum of all the elements in a range.
+
+             0.up_to 10 . reduce (+)
+    reduce : (Any -> Any -> Any) -> Any ! Empty_Error
+    reduce self function =
+        len = self.length
+        case len of
+            0 -> Error.throw Empty_Error
+            1 -> self.start
+            _ ->
+                end_condition = if self.step > 0 then (>=self.end) else (<=self.end)
+                fold_function current value =
+                    if end_condition value then current else
+                        @Tail_Call fold_function (function current value) (value + self.step)
+                fold_function self.start self.start+self.step
 
 ## PRIVATE
 throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")

@@ -1398,16 +1398,6 @@ type Table
     columns_helper self =
         Table_Helpers.Table_Column_Helper.Value self.columns (x->x) self (x->x)
 
-## UNSTABLE
-
-   An error returned when the table contains no rows.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty table error.
-    to_display_text : Text
-    to_display_text self = "The table is empty."
-
 ## PRIVATE
 
    Ensures that the `txt` has at least `len` characters by appending spaces at

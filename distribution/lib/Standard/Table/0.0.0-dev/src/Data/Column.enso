@@ -1168,7 +1168,7 @@ type Column
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
+       containing an `Index_Out_Of_Bounds`.
 
        > Example
          Get the first element of a column.
@@ -1176,15 +1176,15 @@ type Column
              import Standard.Examples
 
              example_first = Examples.integer_column.first
-    first : Any ! Empty_Error
-    first self = self.at 0 . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
+    first : Any ! Index_Out_Of_Bounds
+    first self = self.at 0
 
     ## UNSTABLE
 
        Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
+       containing an `Index_Out_Of_Bounds`.
 
        > Example
          Get the last element of a column.
@@ -1192,8 +1192,8 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last : Any ! Empty_Error
-    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
+    last : Any ! Index_Out_Of_Bounds
+    last self = self.at (self.length - 1)
 
     ## UNSTABLE
 
@@ -1229,16 +1229,6 @@ type Column
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Vector
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
-## UNSTABLE
-
-   An error for when the column contains no elements.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty column error.
-    to_display_text : Text
-    to_display_text self = "The column is empty."
 
 ## PRIVATE
 
