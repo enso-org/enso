@@ -87,7 +87,10 @@ object Suggestions {
     ),
     returnType = "IO",
     scope =
-      Suggestion.Scope(Suggestion.Position(1, 9), Suggestion.Position(1, 22))
+      Suggestion.Scope(Suggestion.Position(1, 9), Suggestion.Position(1, 22)),
+    documentation         = Some("My Function"),
+    documentationHtml     = None,
+    documentationSections = Some(docSectionsBuilder.build("My Function"))
   )
 
   val local: Suggestion.Local = Suggestion.Local(
@@ -96,7 +99,8 @@ object Suggestions {
     name       = "x",
     returnType = "Number",
     scope =
-      Suggestion.Scope(Suggestion.Position(21, 0), Suggestion.Position(89, 0))
+      Suggestion.Scope(Suggestion.Position(21, 0), Suggestion.Position(89, 0)),
+    documentation = None
   )
 
   val methodOnAny: Suggestion.Method = Suggestion.Method(
