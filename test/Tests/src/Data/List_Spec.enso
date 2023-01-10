@@ -56,6 +56,17 @@ spec = Test.group "List" <|
         l.index_of (2) start=-1 . should_equal Nothing
         l.index_of (==2) start=-2 . should_equal 1
         empty.index_of (==1) . should_equal Nothing
+    Test.specify "should allow finding the last index of an element in the list with `.last_index_of`" <|
+        ll = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
+        ll.last_index_of (==2) . should_equal 4
+        ll.last_index_of (3) . should_equal 5
+        ll.last_index_of (==4) . should_equal Nothing
+        ll.last_index_of (==2) start=3 . should_equal 1
+        ll.last_index_of (3) start=1 . should_equal Nothing
+        ll.last_index_of (2) start=-3 . should_equal 1
+        ll.last_index_of (2) start=-6 . should_equal Nothing
+        ll.last_index_of (==2) start=-2 . should_equal 4
+        empty.last_index_of (==1) . should_equal Nothing
     Test.specify "should allow checking if the list is empty with `.is_empty`" <|
         l.is_empty . should_be_false
         empty.is_empty . should_be_true
