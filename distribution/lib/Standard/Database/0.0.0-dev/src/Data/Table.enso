@@ -685,6 +685,9 @@ type Table
            and an empty result is reported.
          - If a column index is invalid, an `Index_Out_Of_Bounds` is
            reported and an empty result is reported.
+         - If there are column names that are clashing between the two tables, a
+           `Duplicate_Output_Column_Names` is reported and the columns from the
+           table are renamed as described below.
          - If a join condition correlates columns whose types are not compatible
            (for example comparing numeric types with text), an
            `Invalid_Value_Type` is reported.
