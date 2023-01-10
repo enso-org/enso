@@ -280,8 +280,7 @@ type Vector a
     find : (Any -> Boolean) -> Integer -> Any -> Any
     find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
         self_len = self.length
-        used_start = if start < 0 then start + self_len else start
-        if used_start < 0 || used_start > self_len then Error.throw (Index_Out_Of_Bounds.Error start self_len+1) else
+        check_start_valid start self_len used_start->
             found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
             if found.is_nothing then if_missing else self.at found
 
@@ -297,12 +296,14 @@ type Vector a
          Find the index of an element in a vector.
 
              [1, 2, 3].index_of 2 == 1
-    index_of : (Any -> Boolean) -> Integer -> Integer | Nothing
+    index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
     index_of self element start=0 =
-        predicate = case element of
-            _ : Function -> (i -> element (self.at i))
-            _ -> (i -> self.at i == element)
-        start.up_to self.length . find if_missing=Nothing predicate
+        self_len = self.length
+        check_start_valid start self_len used_start->
+            predicate = case element of
+                _ : Function -> (i -> element (self.at i))
+                _ -> (i -> self.at i == element)
+            used_start.up_to self.length . find if_missing=Nothing predicate
 
     ## Returns the last index of an element in the vector.
        Returns Nothing if the element is not found.
@@ -310,18 +311,20 @@ type Vector a
        Arguments:
        - element: The element to search for or a predicate function to test for
          each element.
-       - start: The index to start searching from.
+       - start: The index to start searching backwards from.
 
        > Example
          Find the last index of an element in a vector.
 
              [1, 2, 3, 1, 2, 3].last_index_of 2 == 4
-    last_index_of : (Any -> Boolean) -> Integer -> Integer | Nothing
+    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self element start=self.length-1 =
-        predicate = case element of
-            _ : Function -> (i -> element (self.at i))
-            _ -> (i -> self.at i == element)
-        start.down_to -1 . find if_missing=Nothing predicate
+        self_len = self.length
+        check_start_valid start self_len used_start->
+            predicate = case element of
+                _ : Function -> (i -> element (self.at i))
+                _ -> (i -> self.at i == element)
+            used_start.down_to -1 . find if_missing=Nothing predicate
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -1153,3 +1156,9 @@ slice_many_ranges vector ranges =
                 descriptor.each ix->
                     builder.append (vector.at ix)
     builder.to_vector
+
+## PRIVATE
+check_start_valid start length function =
+    used_start = if start < 0 then start + length else start
+    if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
+        function used_start

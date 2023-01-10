@@ -67,15 +67,8 @@ type Range
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
     last : Integer | Nothing
-    last self = if self.is_empty then Nothing else case self.step > 0 of
-        True ->
-            diff = self.end - self.start
-            rem = diff % self.step
-            if rem == 0 then self.end - self.step else self.end - rem
-        False ->
-            diff = self.start - self.end
-            rem = diff % (-self.step)
-            if rem == 0 then self.end - self.step else self.end + rem
+    last self = if self.is_empty then Nothing else
+        self.start + self.step*(self.length - 1)
 
     ## Get the number of elements in the range.
 
@@ -84,9 +77,10 @@ type Range
 
             0.up_to 100 . length
     length : Number
-    length self = case self.last of
-        Nothing -> 0
-        last -> ((last - self.start) . div self.step) + 1
+    length self = if self.is_empty then 0 else
+        diff = self.end - self.start
+        steps = diff . div self.step
+        if self.start + steps*self.step == self.end then steps else steps+1
 
     ## Gets an element from the Range at a specified index (0-based).
 
@@ -312,17 +306,9 @@ type Range
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
     find : (Integer -> Boolean) -> Integer -> Any -> Any
     find self predicate start=0 ~if_missing=Nothing =
-        if self.step == 0 then throw_zero_step_error else
-            self_len = self.length
-            used_start = if start < 0 then start + self_len else start
-            if used_start < 0 || used_start > self_len then Error.throw (Index_Out_Of_Bounds.Error start self_len+1) else
-                end_condition = if self.step > 0 then (>=) else (<=)
-                start_value = self.start + used_start*self.step
-                go current =
-                    if end_condition current self.end then if_missing else
-                        if predicate current then current else
-                            @Tail_Call go current+self.step
-                go start_value
+        check_start_valid start self used_start->
+            result = find_internal self used_start predicate
+            if result.is_nothing then if_missing else result.first
 
     ## Checks if the range contains the specified value.
 
@@ -341,8 +327,51 @@ type Range
            add this so that we avoid a confusing
            `Range 0 10 . contains 3.0 == False` and get a type error for
            decimals instead.
-        _ ->
-            Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
+        _ -> Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
+
+    ## Returns the index of an element in the range.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The integer to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from.
+
+       > Example
+         Find the index of an element in a pair.
+
+             Pair.new 1 2 . index_of 2 == 1
+             Pair.new 2 2 . index_of 2 == 0
+    index_of : (Integer | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self element start=0 =
+        check_start_valid start self used_start->
+            case element of
+                _ : Integer -> get_index self used_start self.length-1 element
+                _ : Function ->
+                    result = find_internal self used_start element
+                    if result.is_nothing then Nothing else result.second
+                _ -> Error.throw (Illegal_Argument.Error "`Range.index_of` only accepts Integers or a predicate.")
+
+    ## Returns the last index of an element in the range.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The integer to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching backwards from.
+
+       > Example
+         Find the last index of an element in a pair.
+
+             Pair.new 2 2 . last_index_of 2 == 1
+    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self element start=1 = check_start_valid start used_start->
+        predicate = case element of
+            _ : Function -> element
+            _ -> (==element)
+        if used_start>0 && predicate self.second then 1 else
+            if used_start>=0 && predicate self.first then 0 else
+                Nothing
 
     ## Reverses the range, returning a range with the same elements, but in
        the opposite order.
@@ -367,3 +396,32 @@ type Range
 
 ## PRIVATE
 throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")
+
+## PRIVATE
+   Check inputs are valid for a range
+check_start_valid start range function =
+    if range.step == 0 then throw_zero_step_error else
+        self_len = range.length
+        used_start = if start < 0 then start + self_len else start
+        if used_start < 0 || used_start > self_len then Error.throw (Index_Out_Of_Bounds.Error start self_len+1) else
+            function used_start
+
+## PRIVATE
+   Find value and index for a predicate
+find_internal range start predicate =
+    end_condition = if range.step > 0 then (>=) else (<=)
+    start_value = range.start + start*range.step
+    go current idx =
+        if end_condition current range.end then Nothing else
+            if predicate current then [current, idx] else
+                @Tail_Call go current+range.step idx+1
+    go start_value start
+
+## PRIVATE
+   Work out the index of a value in a range
+get_index range min max value =
+    diff = value - range.start
+    if diff % range.step != 0 then Nothing else
+        index = (diff / range.step).floor
+        if index < min || index > max then Nothing else
+            index
