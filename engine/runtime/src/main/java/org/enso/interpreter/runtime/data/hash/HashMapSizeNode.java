@@ -10,11 +10,10 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(
-    type = "Hash_Map",
+    type = "Map",
     name = "size",
-    description = "Returns the size (number of mappings) of this hash map",
-    autoRegister = false
-)
+    description = "Returns the number of entries in this hash map",
+    autoRegister = false)
 @GenerateUncached
 public abstract class HashMapSizeNode extends Node {
 
@@ -22,11 +21,10 @@ public abstract class HashMapSizeNode extends Node {
     return HashMapSizeNodeGen.create();
   }
 
-  abstract long execute(Object self);
+  public abstract long execute(Object self);
 
   @Specialization(guards = "interop.hasHashEntries(hashMap)", limit = "3")
-  long getHashMapSize(Object hashMap,
-      @CachedLibrary("hashMap") InteropLibrary interop) {
+  long getHashMapSize(Object hashMap, @CachedLibrary("hashMap") InteropLibrary interop) {
     try {
       return interop.getHashSize(hashMap);
     } catch (UnsupportedMessageException e) {

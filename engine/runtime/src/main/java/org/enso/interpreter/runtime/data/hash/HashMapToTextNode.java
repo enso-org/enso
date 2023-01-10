@@ -11,7 +11,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(
-    type = "Hash_Map",
+    type = "Map",
     name = "to_text",
     description = """
         Returns text representation of this hash map
@@ -24,7 +24,7 @@ public abstract class HashMapToTextNode extends Node {
     return HashMapToTextNodeGen.create();
   }
 
-  abstract Object execute(Object self);
+  public abstract Object execute(Object self);
 
   @TruffleBoundary
   @Specialization(guards = "interop.hasHashEntries(hashMap)")

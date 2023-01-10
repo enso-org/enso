@@ -9,7 +9,7 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(
-    type = "Hash_Map",
+    type = "Map",
     name = "contains_key",
     description = """
         Returns True if the hash map contains mapping with the given key, False otherwise.
@@ -23,7 +23,7 @@ public abstract class HashMapContainsKeyNode extends Node {
     return HashMapContainsKeyNodeGen.create();
   }
 
-  abstract boolean execute(Object self, Object key);
+  public abstract boolean execute(Object self, Object key);
 
   @Specialization(guards = {
       "interop.hasHashEntries(foreignMap)"

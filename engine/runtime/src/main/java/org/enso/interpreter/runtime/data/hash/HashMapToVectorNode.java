@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.data.Vector;
 
 
 @BuiltinMethod(
-    type = "Hash_Map",
+    type = "Map",
     name = "to_vector",
     description = """
         Transforms the hash map into a vector of key value pairs. If possible, caches
@@ -31,10 +31,10 @@ public abstract class HashMapToVectorNode extends Node {
     return HashMapToVectorNodeGen.create();
   }
 
-  abstract Object execute(Object self);
+  public abstract Object execute(Object self);
 
   @Specialization
-  Object ensoMapToFlatVec(EnsoHashMap hashMap,
+  Object ensoMapToVector(EnsoHashMap hashMap,
       @Cached ConditionProfile vectorReprNotCached) {
     if (vectorReprNotCached.profile(!hashMap.isVectorRepresentationCached())) {
       hashMap.cacheVectorRepresentation();
@@ -43,7 +43,7 @@ public abstract class HashMapToVectorNode extends Node {
   }
 
   @Specialization(guards = "mapInterop.hasHashEntries(hashMap)", limit = "3")
-  Object interopMapToFlatVec(Object hashMap,
+  Object foreignMapToVector(Object hashMap,
       @CachedLibrary("hashMap") InteropLibrary mapInterop,
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop) {
     return createEntriesVectorFromForeignMap(hashMap, mapInterop, iteratorInterop);

@@ -82,7 +82,7 @@ public abstract class HostMethodCallNode extends Node {
     CONVERT_TO_TIME_ZONE,
     /**
      * The method call should be handled by converting {@code self} to a {@code
-     * Standard.Base.Data.Hash_Map} and dispatching natively.
+     * Standard.Base.Data.Map} and dispatching natively.
      */
     CONVERT_TO_HASH_MAP,
     /** The method call should be handled by dispatching through the {@code Any} type. */

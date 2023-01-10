@@ -32,7 +32,6 @@ import project.Data.Json_Spec
 import project.Data.List_Spec
 import project.Data.Locale_Spec
 import project.Data.Map_Spec
-import project.Data.Hash_Map_Spec
 import project.Data.Maybe_Spec
 import project.Data.Noise.Generator_Spec as Noise_Generator_Spec
 import project.Data.Noise_Spec
@@ -106,7 +105,6 @@ main = Test_Suite.run_main <|
     List_Spec.spec
     Locale_Spec.spec
     Map_Spec.spec
-    Hash_Map_Spec.spec
     Maybe_Spec.spec
     Meta_Spec.spec
     Meta_Location_Spec.spec

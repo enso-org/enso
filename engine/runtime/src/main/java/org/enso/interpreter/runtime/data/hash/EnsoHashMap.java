@@ -26,7 +26,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  */
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
-@Builtin(stdlibName = "Standard.Base.Data.Hash_Map.Hash_Map", name = "Hash_Map")
+@Builtin(stdlibName = "Standard.Base.Data.Map.Map", name = "Map")
 public final class EnsoHashMap implements TruffleObject {
   private final EnsoHashMapBuilder mapBuilder;
   private final int snapshotSize;

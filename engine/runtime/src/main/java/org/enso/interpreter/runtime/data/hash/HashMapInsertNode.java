@@ -13,7 +13,7 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 
 @BuiltinMethod(
-    type = "Hash_Map",
+    type = "Map",
     name = "insert",
     description = """
         Returns newly created hash map with the given key value mapping.
@@ -26,7 +26,7 @@ public abstract class HashMapInsertNode extends Node {
     return HashMapInsertNodeGen.create();
   }
 
-  abstract EnsoHashMap execute(Object self, Object key, Object value);
+  public abstract EnsoHashMap execute(Object self, Object key, Object value);
 
   @Specialization
   EnsoHashMap doEnsoHashMap(EnsoHashMap hashMap, Object key, Object value) {
@@ -34,6 +34,10 @@ public abstract class HashMapInsertNode extends Node {
     return hashMap.getMapBuilder().build();
   }
 
+  /**
+   * Creates a new {@link EnsoHashMapBuilder} for the given {@code foreignMap} - iterates through
+   * all the entries of the foreign map. The returned map is {@link EnsoHashMap}.
+   */
   @Specialization(guards = "mapInterop.hasHashEntries(foreignMap)", limit = "3")
   EnsoHashMap doForeign(Object foreignMap, Object keyToInsert, Object valueToInsert,
       @CachedLibrary("foreignMap") InteropLibrary mapInterop,

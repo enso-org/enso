@@ -16,10 +16,10 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
-    type = "Hash_Map",
+    type = "Map",
     name = "get_builtin",
     description = """
-        Gets a value from the map on the specified key, or default.
+        Gets a value from the map on the specified key, or the given default.
         """,
     autoRegister = false
 )
@@ -30,7 +30,7 @@ public abstract class HashMapGetNode extends Node {
     return HashMapGetNodeGen.create();
   }
 
-  abstract Object execute(State state, Object self, Object key, @Suspend Object defaultValue);
+  public abstract Object execute(State state, Object self, Object key, @Suspend Object defaultValue);
 
   @Specialization(guards = "interop.hasHashEntries(self)", limit = "3")
   Object hashMapGet(State state, Object self, Object key, Object defaultValue,
