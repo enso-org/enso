@@ -553,10 +553,10 @@ final class SuggestionBuilder[A: IndexedSource](
     )
 
   private def pluckVariants(arg: TypeArg): Seq[String] = arg match {
-    case TypeArg.Sum(Some(_), List()) => Seq()
-    case TypeArg.Sum(_, variants)     => variants.flatMap(pluckVariants)
-    case TypeArg.Value(n)             => Seq(n.toString)
-    case _                            => Seq()
+    case TypeArg.Sum(_, List())   => Seq()
+    case TypeArg.Sum(_, variants) => variants.flatMap(pluckVariants)
+    case TypeArg.Value(n)         => Seq(n.toString)
+    case _                        => Seq()
   }
 
   /** Build the name of type argument.
