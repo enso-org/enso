@@ -759,7 +759,7 @@ impl<'a> ViewChange<'a> {
         let span = port_ref.span();
         let span_as_range = enso_text::Range::new(span.start, span.end);
         let span_expression = &code[span_as_range];
-        warn!("Checking expression span update: {} -> {}", span_expression, new_span_expression);
+        debug!("Checking expression span update: {} -> {}", span_expression, new_span_expression);
         let expression_has_changed = span_expression != new_span_expression;
         expression_has_changed.then_some(ast_id)
     }

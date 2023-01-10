@@ -288,6 +288,7 @@ impl Model {
         let code = &expression.viz_code;
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
             let is_parensed = node.is_parensed();
+            let last_argument = node.children.iter().rposition(|child| child.is_argument());
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
             } else {
@@ -438,10 +439,17 @@ impl Model {
                     builder.parent.add_child(&port_widget);
                     let range = port.payload.range();
                     let code = &expression.viz_code[range];
+                    let last_arg_crumb = builder.parent_last_argument;
                     port_widget.set_current_value(Some(code.into()));
                     frp::extend! { port_network
                         area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
-                            f!([crumbs](v) (crumbs.clone_ref(), v.clone().unwrap_or_default()))
+                            f!([crumbs](v) {
+                                let crumbs = crumbs.clone_ref();
+                                let is_last_argument = crumbs.last().copied() == last_arg_crumb;
+                                (crumbs.clone_ref(), v.clone().unwrap_or_else(|| {
+                                    if is_last_argument { default() } else { "_".into() }
+                                }))
+                            })
                         );
                     }
                 }
@@ -461,7 +469,7 @@ impl Model {
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
             let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
-            builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
+            builder.nested(new_parent, new_parent_frp, is_parensed, last_argument, new_shift)
         });
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
     }
@@ -930,17 +938,19 @@ impl Area {
 /// parent layer when building the nested one.
 #[derive(Clone, Debug)]
 struct PortLayerBuilder {
-    parent_frp:      Option<port::FrpEndpoints>,
+    parent_frp:           Option<port::FrpEndpoints>,
     /// Parent port display object.
-    parent:          display::object::Instance,
+    parent:               display::object::Instance,
     /// Information whether the parent port was a parensed expression.
-    parent_parensed: bool,
+    parent_parensed:      bool,
     /// The number of chars the expression should be shifted. For example, consider
     /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
     /// shift should be applied when considering its children.
-    shift:           usize,
+    shift:                usize,
     /// The depth at which the current expression is, where root is at depth 0.
-    depth:           usize,
+    depth:                usize,
+    /// The crumb of last child argument of parent node. Does not count insertion points.
+    parent_last_argument: Option<Crumb>,
 }
 
 impl PortLayerBuilder {
@@ -950,15 +960,16 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
+        parent_last_argument: Option<Crumb>,
         shift: usize,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
-        Self { parent_frp, parent, parent_parensed, shift, depth }
+        Self { parent_frp, parent, parent_parensed, shift, depth, parent_last_argument }
     }
 
     fn empty(parent: impl display::Object) -> Self {
-        Self::new(parent, default(), default(), default(), default())
+        Self::new(parent, default(), default(), default(), default(), default())
     }
 
     /// Create a nested builder with increased depth and updated `parent_frp`.
@@ -968,11 +979,12 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
+        parent_last_argument: Option<Crumb>,
         shift: usize,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
-        Self::new(parent, parent_frp, parent_parensed, shift, depth)
+        Self::new(parent, parent_frp, parent_parensed, parent_last_argument, shift, depth)
     }
 }
 

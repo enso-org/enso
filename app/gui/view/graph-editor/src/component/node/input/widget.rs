@@ -137,6 +137,7 @@ impl SingleChoice {
         if !argument_info.tag_values.is_empty() {
             let entries: Vec<ImString> = argument_info.tag_values.iter().map(Into::into).collect();
             dropdown.set_all_entries(entries);
+            dropdown.allow_deselect_all(true);
         } else {
             // TODO [PG]: Support dynamic entries.
             // https://www.pivotaltracker.com/story/show/184012743

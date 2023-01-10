@@ -882,11 +882,19 @@ impl Handle {
         expression_text: impl Str,
         context: &impl SpanTreeContext,
     ) -> FallibleResult {
-        let new_expression_ast = self.parse_node_expression(expression_text)?;
         let node_ast = self.node_info(id)?.expression();
         let node_span_tree: SpanTree = SpanTree::new(&node_ast, context)?;
         let port = node_span_tree.get_node(crumbs)?;
-        let new_node_ast = port.set(&node_ast, new_expression_ast)?;
+        let new_node_ast = if expression_text.as_ref().is_empty() {
+            if port.is_action_available(Action::Erase) {
+                port.erase(&node_ast)?
+            } else {
+                port.set(&node_ast, Ast::blank())?
+            }
+        } else {
+            let new_expression_ast = self.parse_node_expression(expression_text)?;
+            port.set(&node_ast, new_expression_ast)?
+        };
         self.set_expression_ast(id, new_node_ast)
     }
 
