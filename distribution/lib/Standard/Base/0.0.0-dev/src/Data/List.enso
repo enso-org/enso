@@ -539,8 +539,7 @@ type List
              [1, 2, 3, 4, 5].find (> 3)
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self element start=-1 = case self of
-        Nil ->
-            if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
+        Nil -> if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
         Cons _ _ ->
             length = self.length
             used_start = if start < 0 then length+start else start

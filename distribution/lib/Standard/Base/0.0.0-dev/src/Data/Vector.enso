@@ -323,11 +323,12 @@ type Vector a
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self element start=-1 =
         self_len = self.length
-        check_start_valid start self_len used_start->
-            predicate = case element of
-                _ : Function -> (i -> element (self.at i))
-                _ -> (i -> self.at i == element)
-            used_start.down_to -1 . find if_missing=Nothing predicate
+        if self_len == 0 && (start==0 || start==-1) then Nothing else
+            check_start_valid start self_len used_start->
+                predicate = case element of
+                    _ : Function -> (i -> element (self.at i))
+                    _ -> (i -> self.at i == element)
+                used_start.down_to -1 . find if_missing=Nothing predicate
 
     ## Checks whether a predicate holds for at least one element of self vector.
 

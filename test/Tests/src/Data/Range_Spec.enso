@@ -200,6 +200,16 @@ spec = Test.group "Range" <|
         1.up_to 10 . index_of (v-> v%4 == 0) start=6 . should_equal 7
         1.up_to 10 . index_of 2.5 . should_fail_with Illegal_Argument.Error
         0.up_to 0 . index_of 1 . should_be_a Nothing
+    Test.specify "should find last index of elements" <|
+        1.up_to 10 . last_index_of (> 5) . should_equal 8
+        1.up_to 10 . last_index_of 7 . should_equal 6
+        1.up_to 10 . with_step 2 . last_index_of (> 4) . should_equal 4
+        1.up_to 10 . with_step 2 . last_index_of 7 . should_equal 3
+        1.up_to 10 . last_index_of (> 10) . should_be_a Nothing
+        1.up_to 10 . last_index_of (< 5) start=6 . should_equal 3
+        1.up_to 10 . last_index_of (v-> v%4 == 0) start=6 . should_equal 3
+        1.up_to 10 . last_index_of 2.5 . should_fail_with Illegal_Argument.Error
+        0.up_to 0 . last_index_of 1 . should_be_a Nothing
     Test.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]
     Test.specify "should allow reversing" <|

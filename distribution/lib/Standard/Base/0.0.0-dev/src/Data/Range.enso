@@ -371,17 +371,18 @@ type Range
              Pair.new 2 2 . last_index_of 2 == 1
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self element start=-1 =
-        check_start_valid start self used_start->
-            case element of
-                _ : Integer -> get_index self 0 used_start element
-                _ : Function ->
-                    start_value = self.start + used_start*self.step
-                    go current idx =
-                        if element current then idx else
-                            if current == self.start then Nothing else
-                                @Tail_Call go current-self.step idx-1
-                    go start_value used_start
-                _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integers or a predicate.")
+        if self.is_empty && (start==-1 || start==0) then Nothing else
+            check_start_valid start self used_start->
+                case element of
+                    _ : Integer -> get_index self 0 used_start element
+                    _ : Function ->
+                        start_value = self.start + used_start*self.step
+                        go current idx =
+                            if element current then idx else
+                                if current == self.start then Nothing else
+                                    @Tail_Call go current-self.step idx-1
+                        go start_value used_start
+                    _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integers or a predicate.")
 
     ## Reverses the range, returning a range with the same elements, but in
        the opposite order.

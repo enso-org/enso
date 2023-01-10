@@ -1141,9 +1141,9 @@ spec =
 
         Test.specify "locate should work as shown in examples" <|
             example_1 =
-                "Hello World!".locate "J" == Nothing
-                "Hello World!".locate "o" == Span.Value (4.up_to 5) "Hello World!"
-                "Hello World!".locate "o" mode=Matching_Mode.Last == Span.Value (4.up_to 5) "Hello World!"
+                "Hello World!".locate "J" . should_equal Nothing
+                "Hello World!".locate "o" . should_equal Span.Value (4.up_to 5) "Hello World!"
+                "Hello World!".locate "o" mode=Matching_Mode.Last . should_equal Span.Value (4.up_to 5) "Hello World!"
 
             example_2 =
                 term = "straße"
