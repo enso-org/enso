@@ -4,6 +4,7 @@ package org.enso.interpreter.runtime.callable.atom;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -183,6 +184,7 @@ public final class Atom implements TruffleObject {
     try {
       return TypesGen.expectText(atoms.invokeMember(this, "to_text"));
     } catch (UnsupportedMessageException
+        | AbstractTruffleException
         | ArityException
         | UnknownIdentifierException
         | UnsupportedTypeException
