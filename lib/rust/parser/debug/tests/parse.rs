@@ -205,6 +205,25 @@ fn type_methods() {
            ((Binding (Function (Ident area) #((() (Ident self) () ())) "="
                                (OprApp (Ident x) (Ok "+") (Ident x)))))))];
     test(&code.join("\n"), expected);
+    let code = [
+        "type Problem_Builder",
+        "    ## Returns a vector containing all reported problems, aggregated.",
+        "    build_problemset : Vector",
+        "    build_problemset self =",
+        "        self",
+    ];
+    #[rustfmt::skip]
+    let expected = block![
+        (TypeDef type Problem_Builder #() #(
+         ((Binding
+           (Documented
+            (#((Section " Returns a vector containing all reported problems, aggregated.")) #(()))
+            (TypeSignature (Ident build_problemset) ":" (Ident Vector)))))
+         ((Binding
+           (Function (Ident build_problemset) #((() (Ident self) () ()))
+                     "=" (BodyBlock #((Ident self))))))))
+    ];
+    test(&code.join("\n"), expected);
 }
 
 #[test]
