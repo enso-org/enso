@@ -62,16 +62,30 @@ impl IsPackage for crate::paths::generated::LauncherPackage {
     }
 }
 
+/// A standalone SBT-generated artifact.
+///
+/// Either a package or a bundle with one of our backend components.
 pub trait IsArtifact: AsRef<Path> + Send + Sync {
+    /// Get the kind of this artifact.
     fn kind(&self) -> ArtifactKind;
 
+    /// Remove the artifact from the disk.
     fn clear(&self) -> Result {
         ide_ci::fs::remove_dir_if_exists(self)
     }
 
+    /// Get a filename stem for the compressed artifact.
+    ///
+    /// It will be used for naming release assets, so this should include the target triple.
+    fn asset_file_stem(&self) -> Result<OsString> {
+        // By the convention, the parent directory to the artifact bears its asset name.
+        Ok(self.as_ref().try_parent()?.try_file_name()?.to_os_string())
+    }
+
     fn upload_as_asset(&self, release: ReleaseHandle) -> BoxFuture<'static, Result<Asset>> {
         let path = self.as_ref().to_path_buf();
-        async move { release.upload_compressed_dir(path).await }.boxed()
+        let name = self.asset_file_stem();
+        async move { release.upload_compressed_dir_as(path, name?).await }.boxed()
     }
 }
 
