@@ -462,7 +462,6 @@ type List
             Cons x xs -> @Tail_Call go xs (t + "(Cons " + x.to_text + " ") (")" + e)
         go self "" ""
 
-
     ## Returns the first element of the list that satisfies the predicate or
        if no elements of the vector satisfy the predicate, throws `Not_Found`.
 
@@ -475,29 +474,55 @@ type List
        - if_missing: Value returned if no element satisfies the predicate.
 
        > Example
-         Finding a first element of the vector that is larger than 3.
+         Finding a first element of the list that is larger than 2.
 
-             [1, 2, 3, 4, 5].find (> 3)
+             import Standard.Examples
+
+             example_first = Examples.list.find (> 2)
     find : (Any -> Boolean) -> Integer -> Any -> Any
     find self predicate start=0 ~if_missing=(Error.throw Not_Found) = case start.signum of
-        0 -> case self of
-            Nil -> if_missing
-            Cons a b -> if predicate a then a else @Tail_Call b.find predicate 0 if_missing
-        1 ->
+        -1 ->
+            start_node = find_start_node self start
+            start_node.first.find predicate 0 if_missing
+        _ ->
             loop current count = case count of
-                0 -> current.find predicate 0 if_missing
+                0 -> case current of
+                    Nil -> if_missing
+                    Cons x xs -> if predicate x then x else @Tail_Call loop xs 0
                 _ -> case current of
                     Nil -> Error.throw (Index_Out_Of_Bounds.Error start start-count)
                     Cons _ b -> @Tail_Call loop b count-1
             loop self start
+
+    ## Returns the index of the element in the list.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the list.
+
+       > Example
+         Finding a first element of the vector that is larger than 3.
+
+             [1, 2, 3, 4, 5].find (> 3)
+    index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self element start=0 = case start.signum of
         -1 ->
-            loop current count point = case point of
-                Nil -> if count == 0 then current else Error.throw (Index_Out_Of_Bounds.Error start -start-count)
-                Cons _ xs ->
-                    new_current = if count > 0 then current else current.xs
-                    @Tail_Call loop new_current (0.max count-1) xs
-            start_node = loop self -start self
-            start_node.find predicate 0 if_missing
+            start_node = find_start_node self start
+            found = start_node.first.index_of element 0
+            if found.is_nothing then Nothing else found+start_node.second
+        _ ->
+            predicate = if element.is_a Function then element else (==element)
+            loop current count idx = case count of
+                0 -> case current of
+                    Nil -> Nothing
+                    Cons x xs -> if predicate x then idx else @Tail_Call loop xs 0 idx+1
+                _ -> case current of
+                    Nil -> Error.throw (Index_Out_Of_Bounds.Error start start-count)
+                    Cons _ b -> @Tail_Call loop b count-1 idx+1
+            loop self start 0
 
 ## UNSTABLE
 
@@ -508,3 +533,13 @@ type Empty_Error
        Pretty prints the empty error.
     to_display_text : Text
     to_display_text self = "The List is empty."
+
+## PRIVATE
+find_start_node list start =
+    loop current count point idx = case point of
+        Nil -> if count == 0 then [current, idx] else Error.throw (Index_Out_Of_Bounds.Error start -start-count)
+        Cons _ xs ->
+            new_current = if count > 0 then current else current.xs
+            new_idx = if count > 0 then idx else idx+1
+            @Tail_Call loop new_current (0.max count-1) xs new_idx
+    loop list -start list 0
