@@ -577,7 +577,7 @@ type Decimal
     ## ALIAS From Text
 
        Parses a textual representation of a decimal into a decimal number, returning
-       a `Parse_Error` if the text does not represent a valid decimal.
+       a `Number_Parse_Error` if the text does not represent a valid decimal.
 
        Arguments:
        - text: The text to parse into a decimal.
@@ -587,7 +587,7 @@ type Decimal
          Parse the text "7.6" into a decimal number.
 
              Decimal.parse "7.6"
-    parse : Text -> Locale | Nothing -> Decimal ! Parse_Error
+    parse : Text -> Locale | Nothing -> Decimal ! Number_Parse_Error
     parse text locale=Nothing = case locale of
         Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
             Error.throw (Number_Parse_Error.Error text)
@@ -945,7 +945,7 @@ type Integer
     ## ALIAS From Text
 
        Parses a textual representation of an integer into an integer number, returning
-       a `Parse_Error` if the text does not represent a valid integer.
+       a `Number_Parse_Error` if the text does not represent a valid integer.
 
        Arguments:
        - text: The text to parse into a integer.

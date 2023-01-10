@@ -7,8 +7,10 @@ import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
+import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.Query.Query
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Redshift.Redshift_Dialect
 import project.Internal.SQLite.SQLite_Dialect

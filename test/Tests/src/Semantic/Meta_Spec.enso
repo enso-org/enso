@@ -11,6 +11,7 @@ polyglot java import java.util.Locale as JavaLocale
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
+from Standard.Base.Error.Common import Uninitialized_State
 
 type My_Type
     Value foo bar baz
@@ -20,154 +21,222 @@ My_Type.my_method self = self.foo + self.bar + self.baz
 type Test_Type
     Value x
 
-spec = Test.group "Meta-Value Manipulation" <|
-    Test.specify "should allow manipulating unresolved symbols" <|
-        sym = .does_not_exist
-        meta_sym = Meta.meta sym
-        meta_sym.name.should_equal "does_not_exist"
-        new_sym = meta_sym . rename "my_method"
-        object = My_Type.Value 1 2 3
-        new_sym object . should_equal 6
-    Test.specify "should allow manipulating atoms" <|
-        atom = My_Type.Value 1 "foo" Nothing
-        meta_atom = Meta.meta atom
-        meta_atom.constructor.value.should_equal My_Type.Value
-        meta_atom.fields.should_equal [1, "foo", Nothing]
-        Meta.meta (meta_atom.constructor.value) . new [1, "foo", Nothing] . should_equal atom
-    Test.specify "should allow getting a value's constructor's name" <|
-        Meta.meta List.Nil . constructor . name . should_equal "Nil"
-        Meta.meta (List.Cons 1 List.Nil) . constructor . name . should_equal "Cons"
-    Test.specify "should allow getting a value's constructor's fields" <|
-        Meta.meta List.Nil . constructor . fields . should_equal []
-        Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
-    Test.specify "should allow creating atoms from atom constructors" <|
-        atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
-        (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
-        atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
-        (Meta.meta atom_2).constructor.value . should_equal My_Type.Value
-    Test.specify "should correctly return representations of different classes of objects" <|
-        Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
-        Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
-    Test.specify "should allow manipulation of error values" <|
-        err = Error.throw "My Error"
-        meta_err = Meta.meta err
-        meta_err.is_a Meta.Error.Value . should_be_true
-        meta_err.value . should_equal "My Error"
-    Test.specify "should allow checking if a value is of a certain type" <|
-        1.is_a Any . should_be_true
-        1.2.is_a Any . should_be_true
-        (My_Type.Value 1 "foo" Nothing).is_a Any . should_be_true
-        
-        Array.is_a Array . should_be_false
-        [].to_array.is_a Array . should_be_true
-        [].to_array.is_a Decimal . should_be_false
-        [1,2,3].is_a Vector . should_be_true
-        [1,2,3].is_a Array . should_be_false
+spec =
+    Test.group "Meta-Value Manipulation" <|
+        Test.specify "should allow manipulating unresolved symbols" <|
+            sym = .does_not_exist
+            meta_sym = Meta.meta sym
+            meta_sym.name.should_equal "does_not_exist"
+            new_sym = meta_sym . rename "my_method"
+            object = My_Type.Value 1 2 3
+            new_sym object . should_equal 6
+        Test.specify "should allow manipulating atoms" <|
+            atom = My_Type.Value 1 "foo" Nothing
+            meta_atom = Meta.meta atom
+            meta_atom.constructor.value.should_equal My_Type.Value
+            meta_atom.fields.should_equal [1, "foo", Nothing]
+            Meta.meta (meta_atom.constructor.value) . new [1, "foo", Nothing] . should_equal atom
+        Test.specify "should allow getting a value's constructor's name" <|
+            Meta.meta List.Nil . constructor . name . should_equal "Nil"
+            Meta.meta (List.Cons 1 List.Nil) . constructor . name . should_equal "Cons"
+        Test.specify "should allow getting a value's constructor's fields" <|
+            Meta.meta List.Nil . constructor . fields . should_equal []
+            Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
+        Test.specify "should allow creating atoms from atom constructors" <|
+            atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
+            (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
+            atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
+            (Meta.meta atom_2).constructor.value . should_equal My_Type.Value
+        Test.specify "should correctly return representations of different classes of objects" <|
+            Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
+            Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
+        Test.specify "should allow manipulation of error values" <|
+            err = Error.throw "My Error"
+            meta_err = Meta.meta err
+            meta_err.is_a Meta.Error.Value . should_be_true
+            meta_err.value . should_equal "My Error"
+        Test.specify "should allow checking if a value is of a certain type" <|
+            1.is_a Any . should_be_true
+            1.2.is_a Any . should_be_true
+            (My_Type.Value 1 "foo" Nothing).is_a Any . should_be_true
 
-        Boolean.is_a Boolean . should_be_false
-        True.is_a Boolean . should_be_true
-        False.is_a Boolean . should_be_true
-        True.is_a Integer . should_be_false
+            Array.is_a Array . should_be_false
+            [].to_array.is_a Array . should_be_true
+            [].to_array.is_a Decimal . should_be_false
+            [1,2,3].is_a Vector . should_be_true
+            [1,2,3].is_a Array . should_be_false
 
-        "".is_a Text . should_be_true
-        "".is_a Decimal . should_be_false
+            Boolean.is_a Boolean . should_be_false
+            True.is_a Boolean . should_be_true
+            False.is_a Boolean . should_be_true
+            True.is_a Integer . should_be_false
 
-        1.is_a Array . should_be_false
-        1.is_a Integer . should_be_true
-        1.is_a Number . should_be_true
-        1.is_a Decimal . should_be_false
-        1.is_a Date . should_be_false
+            "".is_a Text . should_be_true
+            "".is_a Decimal . should_be_false
 
-        1.0.is_a Number . should_be_true
-        1.0.is_a Decimal . should_be_true
-        1.0.is_a Integer . should_be_false
-        1.0.is_a Text . should_be_false
+            1.is_a Array . should_be_false
+            1.is_a Integer . should_be_true
+            1.is_a Number . should_be_true
+            1.is_a Decimal . should_be_false
+            1.is_a Date . should_be_false
 
-        random_gen = Random.new
-        Meta.is_a random_gen Random . should_be_true
-        Meta.is_a random_gen Integer . should_be_false
+            1.0.is_a Number . should_be_true
+            1.0.is_a Decimal . should_be_true
+            1.0.is_a Integer . should_be_false
+            1.0.is_a Text . should_be_false
 
-        (My_Type.Value 1 "foo" Nothing).is_a My_Type.Value . should_be_true
-        (My_Type.Value 1 "foo" Nothing).is_a Test_Type.Value . should_be_false
-        (My_Type.Value 1 "foo" Nothing).is_a Number . should_be_false
+            random_gen = Random.new
+            Meta.is_a random_gen Random . should_be_true
+            Meta.is_a random_gen Integer . should_be_false
 
-        err = Error.throw "Error Value"
-        1.is_a Error . should_be_false
-        err.is_a Error . should_be_true
-        err.is_a Text . should_be_false
-        Meta.is_a err Error . should_be_true
-        Meta.is_a err Text . should_be_false
+            (My_Type.Value 1 "foo" Nothing).is_a My_Type.Value . should_be_true
+            (My_Type.Value 1 "foo" Nothing).is_a Test_Type.Value . should_be_false
+            (My_Type.Value 1 "foo" Nothing).is_a Number . should_be_false
 
-        Meta.is_a Date.now Date . should_be_true
-        Meta.is_a Date_Time.now Date_Time . should_be_true
-        Meta.is_a Date_Time.now Date . should_be_false
-        Meta.is_a Time_Of_Day.now Time_Of_Day . should_be_true
-        Meta.is_a Time_Of_Day.now Date . should_be_false
-        Meta.is_a Date_Time.now.zone Time_Zone . should_be_true
-        Meta.is_a Date_Time.now.zone Date . should_be_false
+            err = Error.throw "Error Value"
+            1.is_a Error . should_be_false
+            err.is_a Error . should_be_true
+            err.is_a Text . should_be_false
+            Meta.is_a err Error . should_be_true
+            Meta.is_a err Text . should_be_false
 
-    Test.specify "should allow for returning the type of a value" <|
-        n_1 = Meta.type_of 42
-        n_1 . should_equal_type Integer
-        n_1 . should_not_equal_type Decimal
+            Meta.is_a Date.now Date . should_be_true
+            Meta.is_a Date_Time.now Date_Time . should_be_true
+            Meta.is_a Date_Time.now Date . should_be_false
+            Meta.is_a Time_Of_Day.now Time_Of_Day . should_be_true
+            Meta.is_a Time_Of_Day.now Date . should_be_false
+            Meta.is_a Date_Time.now.zone Time_Zone . should_be_true
+            Meta.is_a Date_Time.now.zone Date . should_be_false
 
-        n_2 = Meta.type_of 2.81
-        n_2 . should_equal_type Decimal
-        n_2 . should_not_equal_type Integer
+        Test.specify "should allow for returning the type of a value" <|
+            n_1 = Meta.type_of 42
+            n_1 . should_equal_type Integer
+            n_1 . should_not_equal_type Decimal
 
-        n_3 = Meta.type_of (JLong.MAX_VALUE * 2)
-        n_3 . should_equal_type Integer
-        n_3 . should_not_equal_type Decimal
+            n_2 = Meta.type_of 2.81
+            n_2 . should_equal_type Decimal
+            n_2 . should_not_equal_type Integer
 
-        v_tpe = Meta.type_of [1,2,3]
-        v_tpe . should_equal_type Vector
-        v_tpe . should_not_equal_type Array
-        Meta.type_of [1,2,3].to_array . should_equal_type Array
+            n_3 = Meta.type_of (JLong.MAX_VALUE * 2)
+            n_3 . should_equal_type Integer
+            n_3 . should_not_equal_type Decimal
 
-        Meta.type_of "foo" . should_equal_type Text
-        Meta.type_of "0" . should_not_equal_type Integer
+            v_tpe = Meta.type_of [1,2,3]
+            v_tpe . should_equal_type Vector
+            v_tpe . should_not_equal_type Array
+            Meta.type_of [1,2,3].to_array . should_equal_type Array
 
-        Meta.type_of True . should_equal_type Boolean
-        Meta.type_of False . should_not_equal_type Any
+            Meta.type_of "foo" . should_equal_type Text
+            Meta.type_of "0" . should_not_equal_type Integer
 
-        (Meta.type_of Date.now) . should_equal_type Date
-        (Meta.type_of Date.now) . should_not_equal_type Date_Time
-        (Meta.type_of Date_Time.now) . should_equal_type Date_Time
-        (Meta.type_of Date_Time.now) . should_not_equal_type Date
-        (Meta.type_of Time_Of_Day.now) . should_equal_type Time_Of_Day
-        (Meta.type_of Time_Of_Day.now) . should_not_equal_type Date
-        (Meta.type_of Date_Time.now.zone) . should_equal_type Time_Zone
-        (Meta.type_of Date_Time.now.zone) . should_not_equal_type Date
-        (Meta.type_of Time_Zone.local) . should_equal_type Time_Zone
-        (Meta.type_of Time_Zone.system) . should_equal_type Time_Zone
+            Meta.type_of True . should_equal_type Boolean
+            Meta.type_of False . should_not_equal_type Any
 
-        list = ArrayList.new
-        list.add 123
-        list_tpe = Meta.type_of list
-        list_tpe . should_not_equal_type JObject
-        list_tpe . should_equal_type ArrayList
+            (Meta.type_of Date.now) . should_equal_type Date
+            (Meta.type_of Date.now) . should_not_equal_type Date_Time
+            (Meta.type_of Date_Time.now) . should_equal_type Date_Time
+            (Meta.type_of Date_Time.now) . should_not_equal_type Date
+            (Meta.type_of Time_Of_Day.now) . should_equal_type Time_Of_Day
+            (Meta.type_of Time_Of_Day.now) . should_not_equal_type Date
+            (Meta.type_of Date_Time.now.zone) . should_equal_type Time_Zone
+            (Meta.type_of Date_Time.now.zone) . should_not_equal_type Date
+            (Meta.type_of Time_Zone.local) . should_equal_type Time_Zone
+            (Meta.type_of Time_Zone.system) . should_equal_type Time_Zone
 
-        e = IOException.new "meh"
-        e_tpe = Meta.type_of e
-        e_tpe . should_equal_type IOException
-        e_tpe . should_not_equal_type JException
+            list = ArrayList.new
+            list.add 123
+            list_tpe = Meta.type_of list
+            list_tpe . should_not_equal_type JObject
+            list_tpe . should_equal_type ArrayList
 
-    Test.specify "should correctly handle Java values" <|
-        java_meta = Meta.meta Random.new
-        java_meta . should_be_a Meta.Polyglot.Value
-        java_meta . get_language . should_equal Meta.Language.Java
+            e = IOException.new "meh"
+            e_tpe = Meta.type_of e
+            e_tpe . should_equal_type IOException
+            e_tpe . should_not_equal_type JException
 
-    Test.specify "should correctly handle equality of Java values" <|
-        a = JavaLocale.new "en"
-        b = JavaLocale.new "en"
-        c = JavaLocale.new "pl"
+        Test.specify "should correctly handle Java values" <|
+            java_meta = Meta.meta Random.new
+            java_meta . should_be_a Meta.Polyglot.Value
+            java_meta . get_language . should_equal Meta.Language.Java
 
-        a==a . should_be_true
-        a==b . should_be_true
-        a==c . should_be_false
+        Test.specify "should correctly handle equality of Java values" <|
+            a = JavaLocale.new "en"
+            b = JavaLocale.new "en"
+            c = JavaLocale.new "pl"
 
-        (Test_Type.Value a)==(Test_Type.Value a) . should_be_true
-        (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
-        (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
+            a==a . should_be_true
+            a==b . should_be_true
+            a==c . should_be_false
+
+            (Test_Type.Value a)==(Test_Type.Value a) . should_be_true
+            (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
+            (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
+
+    Test.group "Atom with holes" <|
+        Test.specify "construct and fill" <|
+            pair = Meta.atom_with_hole (e -> My_Type.Value 1 e 3)
+
+            atom = pair.value
+            fill = pair.fill
+
+            Meta.is_atom atom . should_be_true
+
+            atom.foo . should_equal 1
+            atom.baz . should_equal 3
+            case atom.bar of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+
+            fill 2
+            atom.bar . should_equal 2
+
+            fill 10 # no change
+            atom.bar . should_equal 2
+
+        Test.specify "fail if atom_with_hole isn't used" <|
+            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+                Meta.atom_with_hole (_ -> My_Type.Value 1 2 3)
+            case key of
+                t : My_Type ->
+                    t.foo . should_equal 1
+                    t.bar . should_equal 2
+                    t.baz . should_equal 3
+
+        Test.specify "fail if non-atom is created" <|
+            key = Panic.catch Uninitialized_State.Error handler=(caught_panic-> caught_panic.payload.key) <|
+                Meta.atom_with_hole (_ -> 2)
+            case key of
+                t : Number ->
+                    t . should_equal 2
+
+        Test.specify "only one atom_with_hole is used" <|
+            pair = Meta.atom_with_hole (e -> My_Type.Value e e e)
+            atom = pair.value
+            fill = pair.fill
+
+            Meta.is_atom atom . should_be_true
+
+            case atom.foo of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+            case atom.baz of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+            case atom.bar of
+                n : Number -> Test.fail "Shouldn't be number yet: "+n
+                _ -> Nothing
+
+            fill 2
+            atom.foo . should_equal 2
+
+            fill 10 # no change
+            atom.foo . should_equal 2
+
+            case atom.baz of
+                n : Number -> Test.fail "Not changed to number: "+n
+                _ -> Nothing
+            case atom.bar of
+                n : Number -> Test.fail "Not changed to number: "+n
+                _ -> Nothing
 
 main = Test_Suite.run_main spec
