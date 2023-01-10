@@ -554,7 +554,8 @@ type Table
     rows self max_rows=1000 =
         self.read max_rows=max_rows . rows
 
-    ## Sorts the rows of the table according to the specified columns and order.
+    ## ALIAS sort
+       Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
        - columns: The columns and order to sort the table.
@@ -911,7 +912,8 @@ type Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
-    ## Returns the amount of rows in this table.
+    ## ALIAS count
+       Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
         expr = SQL_Expression.Operation "COUNT_ROWS" []

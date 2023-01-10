@@ -516,7 +516,8 @@ type Table
                 problems = java_table.getProblems
                 Java_Problems.parse_aggregated_problems problems
 
-    ## Sorts the rows of the table according to the specified columns and order.
+    ## ALIAS sort
+       Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
        - columns: The columns and order to sort the table.
@@ -1097,7 +1098,8 @@ type Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
-    ## Returns the number of rows in this table.
+    ## ALIAS count
+       Returns the number of rows in this table.
 
        > Example
          Count the number of rows in the table.
