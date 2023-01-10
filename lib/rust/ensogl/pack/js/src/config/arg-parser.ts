@@ -44,7 +44,6 @@ export class Args {
     )
 
     parse() {
-        console.log('PARSE!!!')
         const optionToFieldNameMap: Map<string, string> = new Map()
         const options: any = {}
         for (let [fieldName, option] of Object.entries(this)) {

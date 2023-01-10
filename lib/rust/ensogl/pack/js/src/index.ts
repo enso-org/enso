@@ -129,6 +129,9 @@ export class App {
     init(appArgs?: AppArgs): boolean {
         this.initialized = true
         this.initBrowser()
+        if (host.node) {
+            this.args = parseArgs()
+        }
         const inputConfig = appArgs?.config ?? {}
         const unrecognizedParams = this.config.resolve({
             overrides: [inputConfig, host.urlParams()],
@@ -155,7 +158,6 @@ export class App {
             await this.loadWasm()
             this.runEntryPoints()
         } else {
-            this.args = parseArgs()
             if (this.args.genShadersCode.value) {
                 await this.loadWasm()
                 this.runBeforeMainEntryPoints()
@@ -421,6 +423,11 @@ function registerGetShadersRustFn(fn: any) {
     rustGenShadersFn = fn
 }
 host.exportGlobal({ registerGetShadersRustFn })
+
+if (host.node) {
+    const app = new App()
+    app.run()
+}
 
 // ==============
 // === FIXMES ===

@@ -4,18 +4,14 @@
 
 // @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
-// @ts-ignore
 import buildCfg from '../../../build.json'
-
-import * as semver from 'semver'
 import { SemVer, Comparator } from 'semver'
+import { App, logger, Param } from 'ensogl_app'
+import { MixpanelLogger } from './mixpanel'
 
-import * as https from 'https'
-
-const authInfo = 'auth-info'
-
-import { App, LogLevel, Consumer, logger, Param } from 'ensogl_app'
-import { Mixpanel } from 'mixpanel-browser'
+// =============
+// === Fetch ===
+// =============
 
 const Timeout = (time: number) => {
     let controller = new AbortController()
@@ -34,28 +30,90 @@ async function fetchTimeout(url: string, timeout: number): Promise<any> {
     })
 }
 
-class Versions {
+// ===============
+// === Version ===
+// ===============
+
+class Version {
     /// Development version.
-    static devVersion = new SemVer('0.0.0')
+    static dev = new SemVer('0.0.0')
     static devPrerelease = 'dev'
 
     /// Version of the `client` js package.
-    static ideVersion = new SemVer(buildCfg.version, { loose: true })
+    static ide = new SemVer(buildCfg.version, { loose: true })
 
-    static isDevVersion(): boolean {
-        const clientVersion = Versions.ideVersion
-        const releaseDev = clientVersion.compareMain(Versions.devVersion) === 0
-        const prereleaseDev = clientVersion.prerelease.toString().includes(Versions.devPrerelease)
+    static isDev(): boolean {
+        const clientVersion = Version.ide
+        const releaseDev = clientVersion.compareMain(Version.dev) === 0
+        const prereleaseDev = clientVersion.prerelease.toString().includes(Version.devPrerelease)
         return releaseDev || prereleaseDev
     }
 }
 
+/// Return `true` if the current application version is still supported
+/// and `false` otherwise.
+///
+/// Function downloads the application config containing the minimum supported
+/// version from GitHub and compares it with the version of the `client` js
+/// package. When the function is unable to download the application config, or
+/// one of the compared versions does not match the semver scheme, it returns
+/// `true`.
+async function checkMinSupportedVersion(config: Config) {
+    if (config.skipMinVersionCheck.value === true) {
+        return true
+    }
+    try {
+        const appConfig: any = await fetchTimeout(config.applicationConfigUrl.value, 300)
+        const minSupportedVersion = appConfig.minimumSupportedVersion
+        const comparator = new Comparator(`>=${minSupportedVersion}`)
+        return comparator.test(Version.ide)
+    } catch (e) {
+        console.error('Minimum version check failed.', e)
+        return true
+    }
+}
+
+function displayDeprecatedVersionDialog() {
+    const versionCheckText = document.createTextNode(
+        'This version is no longer supported. Please download a new one.'
+    )
+
+    let root = document.getElementById('root')
+    let versionCheckDiv = document.createElement('div')
+    versionCheckDiv.id = 'version-check'
+    versionCheckDiv.className = 'auth-info'
+    versionCheckDiv.style.display = 'block'
+    versionCheckDiv.appendChild(versionCheckText)
+    root.appendChild(versionCheckDiv)
+}
+
+// ==============
+// === Config ===
+// ==============
+
 class Config {
     project: Param<string | null> = new Param(null, 'Project name to open on startup.')
-    projectManager: Param<string | null> = new Param(null, 'TODO')
-    languageServerRpc: Param<string | null> = new Param(null, 'TODO')
-    languageServerData: Param<string | null> = new Param(null, 'TODO')
-    namespace: Param<string | null> = new Param(null, 'TODO')
+    projectManager: Param<string | null> = new Param(
+        null,
+        'An address of the Project Manager service.'
+    )
+    languageServerRpc: Param<string | null> = new Param(
+        null,
+        `An address of the Language Server RPC endpoint. This argument should be provided together \
+        with \`languageServerData\` , \`namespace\`, and \`project\` options. They make Enso \
+        connect directly to the already spawned Language Server of some project.`
+    )
+    languageServerData: Param<string | null> = new Param(
+        null,
+        `An address of the Language Server Data endpoint. This argument should be provided \
+        together with \`languageServerRpc\`, \`namespace\`, and \`project\` options. They make \
+        Enso connect directly to the already spawned Language Server of some project.`
+    )
+    namespace: Param<string | null> = new Param(
+        null,
+        `Informs the Enso about namespace of the opened project. May be used when connecting \
+        to existing Language Server process. Defaults to "local".`
+    )
     platform: Param<string | null> = new Param(
         null,
         `The host platform the app is running on. This is used to adjust some UI elements. For \
@@ -85,170 +143,33 @@ class Config {
         'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
         'The application config URL. Used to check for available updates.'
     )
-    testWorkflow: Param<string | null> = new Param(null, 'TODO')
+    testWorkflow: Param<string | null> = new Param(
+        null,
+        `When profiling the application (e.g. with the \`./run profile\` command), this argument \
+        chooses what is profiled.`
+    )
     skipMinVersionCheck: Param<boolean> = new Param(
-        false,
+        Version.isDev(),
         `Controls whether the minimum engine version check should be performed. It is set to \
          \`true\` in local builds.`
     )
     debug: Param<boolean> = new Param(
-        Versions.isDevVersion(),
+        Version.isDev(),
         `Controls whether the application should be run in the debug mode. In this mode all logs \
         are printed to the console. Otherwise, the logs are hidden unless explicitly shown by \
         calling \`showLogs\`. Moreover, additional logs from libraries are printed in this mode, \
         including Mixpanel logs. The debug mode is set to \`true\` by default in local builds.`
     )
-    preferredEngineVersion: Param<SemVer> = new Param(
-        Versions.ideVersion,
-        `The preferred engine version.`
-    )
+    preferredEngineVersion: Param<SemVer> = new Param(Version.ide, `The preferred engine version.`)
     enableNewComponentBrowser: Param<boolean> = new Param(
         true,
         `Controls whether the new component browser should be enabled.`
     )
 }
 
-// ======================
-// === MixpanelLogger ===
-// ======================
-
-class MixpanelLogger extends Consumer {
-    mixpanel: Mixpanel
-    groups: (string | null)[] = []
-
-    constructor(debug: boolean) {
-        super()
-        this.mixpanel = require('mixpanel-browser')
-        this.mixpanel.init(
-            '5b541aeab5e08f313cdc1d1bbebc12ac',
-            { debug, api_host: 'https://api-eu.mixpanel.com' },
-            ''
-        )
-    }
-
-    message(level: LogLevel, ...args: any[]) {
-        if (args.length > 0) {
-            this.mixpanelLog(level, args[0].toString(), args.slice(1))
-        }
-    }
-
-    group(...args: any[]) {
-        if (args.length > 0) {
-            let message = args[0].toString()
-            this.mixpanelLog('log', `start: ${message}`, args.slice(1))
-            this.groups.push(message)
-        } else {
-            this.groups.push(null)
-        }
-    }
-
-    groupCollapsed(...args: any[]) {
-        this.group(...args)
-    }
-
-    groupEnd(...args: any[]) {
-        let message = this.groups.pop()
-        if (message != null) {
-            this.mixpanelLog('log', `end: ${message}`, args)
-        }
-    }
-
-    mixpanelLog(level: LogLevel, message: string, data: any) {
-        const trimmedMessage = this.trim_message(message)
-        try {
-            let payload: any = { level }
-            if (data != null) {
-                // FIXME: make data passing more intelligent here. If arg is object, just pass it to mixpanel with stringified vlaues - to be checked in mixpanel manual
-                payload.data = this.trim_message(JSON.stringify(data))
-            }
-            this.mixpanel.track(trimmedMessage, payload, response => {
-                // Mixpanel returns 1 on success. To learn more, see
-                // https://mixpanel.com/help/reference/http#tracking-events
-                if (typeof response == 'number') {
-                    if (response == 0) {
-                        console.error('Failed to log the event with Mixpanel.')
-                    }
-                } else {
-                    if (response.status == 0) {
-                        console.warn(`Failed to log the event with Mixpanel: '${response.error}'.`)
-                    }
-                }
-            })
-        } catch {
-            console.warn(`Failed to log the event with Mixpanel: '${trimmedMessage}'.`)
-        }
-    }
-
-    trim_message(message: string): string {
-        const MAX_MESSAGE_LENGTH = 500
-        let trimmed = message.substring(0, MAX_MESSAGE_LENGTH)
-        if (trimmed.length < message.length) {
-            trimmed += '...'
-        }
-        return trimmed
-    }
-
-    identify(uniqueId: string) {
-        this.mixpanel.identify(uniqueId)
-    }
-}
-
-// =====================
-// === Version Check ===
-// =====================
-
-// An error with the payload.
-class ErrorDetails {
-    public readonly message: string
-    public readonly payload: any
-
-    constructor(message: string, payload: any) {
-        this.message = message
-        this.payload = payload
-    }
-}
-
-//
-/// Return `true` if the current application version is still supported
-/// and `false` otherwise.
-///
-/// Function downloads the application config containing the minimum supported
-/// version from GitHub and compares it with the version of the `client` js
-/// package. When the function is unable to download the application config, or
-/// one of the compared versions does not match the semver scheme, it returns
-/// `true`.
-async function checkMinSupportedVersion(config: Config) {
-    if (config.skipMinVersionCheck.value === true) {
-        return true
-    }
-    try {
-        const appConfig: any = await fetchTimeout(config.applicationConfigUrl.value, 300)
-        const minSupportedVersion = appConfig.minimumSupportedVersion
-        const comparator = new Comparator(`>=${minSupportedVersion}`)
-        return comparator.test(Versions.ideVersion)
-    } catch (e) {
-        console.error('Minimum version check failed.', e)
-        return true
-    }
-}
-
 // ========================
 // === Main Entry Point ===
 // ========================
-
-function createVersionCheckHtml() {
-    const versionCheckText = document.createTextNode(
-        'This version is no longer supported. Please download a new one.'
-    )
-
-    let root = document.getElementById('root')
-    let versionCheckDiv = document.createElement('div')
-    versionCheckDiv.id = 'version-check'
-    versionCheckDiv.className = authInfo
-    versionCheckDiv.style.display = 'block'
-    versionCheckDiv.appendChild(versionCheckText)
-    root.appendChild(versionCheckDiv)
-}
 
 class Main {
     async main(inputConfig: any) {
@@ -259,35 +180,37 @@ class Main {
                 engineVersion: BUILD_INFO.default.engineVersion,
             },
         })
-        app.init({
-            config: {
+        const config = Object.assign(
+            {
                 mainWasmUrl: 'assets/main-opt.wasm',
                 mainJsUrl: 'assets/main.js',
             },
-        })
-
-        let mixpanelLogger = null
-        if (app.config.dataGathering.value) {
-            logger.log('Data gathering enabled. Initializing Mixpanel.')
-            mixpanelLogger = new MixpanelLogger(app.config.debug.value)
-            logger.addConsumer(mixpanelLogger)
-        }
-        if (!(await checkMinSupportedVersion(app.config))) {
-            createVersionCheckHtml()
-        } else {
-            if (
-                app.config.authenticationEnabled.value &&
-                app.config.entry.value != app.config.entry.default
-            ) {
-                // TODO: authentication here
-                // app.config.email.value = user.email
-                app.run()
-            } else {
-                app.run()
+            inputConfig
+        )
+        if (app.init({ config })) {
+            let mixpanelLogger = null
+            if (app.config.dataGathering.value) {
+                logger.log('Data gathering enabled. Initializing Mixpanel.')
+                mixpanelLogger = new MixpanelLogger(app.config.debug.value)
+                logger.addConsumer(mixpanelLogger)
             }
-            if (app.config.email.value && mixpanelLogger) {
-                logger.log(`User identified as '${app.config.email.value}'.`)
-                mixpanelLogger.identify(app.config.email.value)
+            if (!(await checkMinSupportedVersion(app.config))) {
+                displayDeprecatedVersionDialog()
+            } else {
+                if (
+                    app.config.authenticationEnabled.value &&
+                    app.config.entry.value != app.config.entry.default
+                ) {
+                    // TODO: authentication here
+                    // app.config.email.value = user.email
+                    app.run()
+                } else {
+                    app.run()
+                }
+                if (app.config.email.value && mixpanelLogger) {
+                    logger.log(`User identified as '${app.config.email.value}'.`)
+                    mixpanelLogger.identify(app.config.email.value)
+                }
             }
         }
     }
