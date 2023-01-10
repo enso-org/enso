@@ -10,7 +10,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
 
 type My_Type
     Value x y
@@ -23,8 +23,6 @@ type My_Type
     == self other = self.compare_to other == Ordering.Equal
 
 main = run_default_backend spec
-
-within_table table = Test.with_clue 'Resulting table:\n'+table.display+'\n\n'
 
 spec setup =
     prefix = setup.prefix

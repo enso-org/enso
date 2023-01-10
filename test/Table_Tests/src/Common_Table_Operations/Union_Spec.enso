@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+import Standard.Table.Data.Value_Type.Value_Type
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+
+type My_Type
+    Value x y
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    db_todo = if prefix.contains "In-Memory" then Nothing else "Union API is not yet implemented for the DB backend."
+    Test.group prefix+"Table.union" pending=db_todo <|
+        Test.specify "TODO" <|
+            Nothing
