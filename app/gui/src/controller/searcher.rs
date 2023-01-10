@@ -822,7 +822,7 @@ impl Searcher {
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
-        let transaction_name = "Previewing Component Browser suggestion";
+        let transaction_name = "Previewing Component Browser suggestion.";
         let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
 
         debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
@@ -970,7 +970,7 @@ impl Searcher {
         if let Some(this) = self.this_arg.deref().as_ref() {
             this.introduce_pattern(graph.clone_ref())?;
         }
-        // Should go last, as we want to prevent revert only when the committing process was
+        // Should go last, as we want to prevent a revert only when the committing process was
         // successful.
         if let Some(guard) = self.node_edit_guard.deref().as_ref() {
             guard.prevent_revert()
@@ -1086,7 +1086,7 @@ impl Searcher {
     }
 
     fn clear_temporary_imports(&self) {
-        let transaction_name = "Clearing temporary imports after closing searcher";
+        let transaction_name = "Clearing temporary imports after closing searcher.";
         let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let mut module = self.module();
         let import_metadata = self.graph.graph().module.all_import_metadata();

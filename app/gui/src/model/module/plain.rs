@@ -297,7 +297,7 @@ fn remove_temporary_imports(content: &mut Content) {
     let temp_imports = imports_md.drain_filter(|_, import| import.is_temporary);
     for (id, _) in temp_imports {
         debug!("Removing temporary import {id}.");
-        info.remove_import_by_id(id).log_err("Error while removing temporary import");
+        info.remove_import_by_id(id).log_err("Error while removing temporary import.");
     }
     content.ast = info.ast;
 }
@@ -335,7 +335,7 @@ fn restore_edited_nodes_in_graph(
     for node in graph.nodes() {
         let node_id = node.id();
         restore_edited_node_in_graph(graph, node_id, metadata)
-            .log_err_fmt(format_args!("Error while restoring edited node {node_id}"));
+            .log_err_fmt(format_args!("Error while restoring edited node {node_id}."));
     }
 }
 

@@ -55,7 +55,7 @@ impl<T, E> ResultOps for Result<T, E> {
 pub trait ResultUnwrapBoth {
     type Item;
 
-    /// Unwrap either `Ok` or `Err`. Possible onl if both have the same type
+    /// Unwrap either `Ok` or `Err`. Possible only if both have the same type
     fn unwrap_both(self) -> Self::Item;
 }
 
