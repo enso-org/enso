@@ -108,7 +108,7 @@ Text.each self function =
          "건반(Korean)".at 1 == "반"
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
-    self.get index Error.throw (Index_Out_Of_Bounds.Error index self.length)
+    self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
 ## ALIAS Get Character
 
@@ -131,7 +131,7 @@ Text.at self index =
 
          "건반(Korean)".get 1 == "반"
 Text.get : Integer -> Any -> Any
-Text.get self index if_missing=Nothing =
+Text.get self index ~if_missing=Nothing =
     case index < 0 of
         True ->
             length = self.length

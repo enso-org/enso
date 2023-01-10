@@ -184,6 +184,9 @@ spec =
             str.get -5 . should_equal Nothing
             str.get 4 . should_equal Nothing
             str.get -5 "?" . should_equal "?"
+            "".first.should_fail_with Index_Out_Of_Bounds.Error
+            "".second.should_fail_with Index_Out_Of_Bounds.Error
+            "".last.should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
