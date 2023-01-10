@@ -16,7 +16,6 @@ use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
 use crate::enso::IrCaches;
 use crate::paths::cache_directory;
-use crate::paths::ComponentPaths;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
 use crate::paths::ENSO_TEST_JUNIT_DIR;
@@ -49,14 +48,6 @@ pub fn format_option_variant<T>(value: &Option<T>, f: &mut Formatter) -> std::fm
         Some(_) => write!(f, "Some(...)"),
         None => write!(f, "None"),
     }
-}
-
-pub fn store_output_package_path(
-    package: &mut Option<ComponentPaths>,
-    is_built: bool,
-    package_paths: &ComponentPaths,
-) {
-    *package = is_built.then(|| package_paths.clone());
 }
 
 #[derive(derive_more::Deref, derive_more::DerefMut, derivative::Derivative)]

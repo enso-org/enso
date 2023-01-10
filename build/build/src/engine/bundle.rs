@@ -1,110 +1,16 @@
 use crate::prelude::*;
 
+use crate::engine::artifact::IsArtifact;
 use crate::paths::generated::RepoRoot;
-use crate::paths::ComponentPaths;
-use crate::paths::IsArtifact;
 
-use anyhow::Context;
-use ide_ci::programs::java::JAVA_HOME;
+use ide_ci::cache::goodie::graalvm::locate_graal;
 
 
 
-//
-// #[async_trait]
-// pub trait Bundle {
-//     const PREFIX: &'static str;
-//     const DIRNAME: &'static str;
-//
-//     fn base_distribution(paths: &Paths) -> &ComponentPaths;
-//
-//     fn suggest_paths(paths: &Paths) -> ComponentPaths {
-//         ComponentPaths::new(&paths.build_dist_root, Self::PREFIX, Self::DIRNAME, &paths.triple)
-//     }
-//
-//     async fn create(paths: &Paths) -> Result<ComponentPaths> {
-//         let bundle = Self::suggest_paths(paths);
-//
-//         bundle.clear()?;
-//
-//         let base_component = Self::base_distribution(paths);
-//         ide_ci::fs::copy(&base_component.root, &bundle.root)?;
-//
-//         // Add engine.
-//         let bundled_engine_dir = bundle.dir.join("dist").join(paths.version().to_string());
-//         place_component_at(&paths.engine, &bundled_engine_dir).await?;
-//
-//         // Add GraalVM runtime.
-//         place_graal_under(bundle.dir.join("runtime")).await?;
-//
-//         // Add portable distribution marker.
-//         ide_ci::fs::copy(
-//             &paths.repo_root.distribution.enso_bundle_template,
-//             bundle.dir.join(".enso.bundle"),
-//         )?;
-//         Ok(bundle)
-//     }
-// }
-//
-// #[derive(Clone, Copy, Debug)]
-// pub struct Launcher;
-// impl Bundle for Launcher {
-//     const PREFIX: &'static str = "enso-bundle";
-//     const DIRNAME: &'static str = "enso";
-//     fn base_distribution(paths: &Paths) -> &ComponentPaths {
-//         &paths.launcher
-//     }
-// }
-//
-// #[derive(Clone, Copy, Debug)]
-// pub struct ProjectManager;
-// impl Bundle for ProjectManager {
-//     const PREFIX: &'static str = "project-manager-bundle";
-//     const DIRNAME: &'static str = "enso";
-//     fn base_distribution(paths: &Paths) -> &ComponentPaths {
-//         &paths.project_manager
-//     }
-// }
-
-// #[context("Failed to locate GraalVM installation.")]
-pub fn locate_graal() -> Result<PathBuf> {
-    let java_home = JAVA_HOME.get()?;
-    Ok(if TARGET_OS == OS::MacOS {
-        // On macOS we need to drop trailing `/Contents/Home` from the path.
-        java_home.try_parent()?.try_parent()?.to_path_buf()
-    } else {
-        java_home
-    })
-}
-
-#[context("Placing a GraalVM package under {}", target_directory.as_ref().display())]
-pub async fn place_graal_under(target_directory: impl AsRef<Path>) -> Result {
-    let graal_path = {
-        let java_home = JAVA_HOME.get()?;
-        if TARGET_OS == OS::MacOS {
-            // On macOS we need to drop trailing `/Contents/Home` from the path.
-            java_home
-                .parent()
-                .and_then(|p| p.parent())
-                .context(format!("Invalid Java home for macOS: {}", java_home.display()))?
-                .to_path_buf()
-        } else {
-            java_home
-        }
-    };
-    let graal_dirname = graal_path
-        .file_name()
-        .context(anyhow!("Invalid Graal Path deduced from JAVA_HOME: {}", graal_path.display()))?;
-    ide_ci::fs::mirror_directory(&graal_path, target_directory.as_ref().join(graal_dirname)).await
-}
-
-#[context("Placing a Enso Engine package in {}", target_engine_dir.as_ref().display())]
-pub async fn place_component_at(
-    engine_paths: &ComponentPaths,
-    target_engine_dir: impl AsRef<Path>,
-) -> Result {
-    ide_ci::fs::mirror_directory(&engine_paths.dir, &target_engine_dir).await
-}
-
+/// Bundle is like a [package][crate::paths::IsPackage] but with additional components bundled to
+/// make it redistributable.
+///
+/// See the [official docs](https://enso.org/docs/developer/enso/distribution/bundles.html).
 #[async_trait]
 pub trait IsBundle: AsRef<Path> + IsArtifact {
     fn clear(&self) -> Result {
@@ -117,8 +23,13 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     /// Path to the directory where Engine package is placed.
     fn engine_dir(&self) -> PathBuf;
 
+    /// Path to the component that will be used as a bundle base.
     fn base_component(&self, repo_root: &RepoRoot) -> PathBuf;
 
+    /// Path to the bundle marker file.
+    ///
+    /// It is a file used by bundled executable to discern whether it is running from a bundle or
+    /// from a regular installation.
     fn distribution_marker(&self) -> PathBuf;
 
     /// Creates a bundle for a given component. This requires already built:
@@ -142,39 +53,14 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
 
         async move {
             ide_ci::fs::tokio::remove_dir_if_exists(&bundle_dir).await?;
-
             // Start with bundled component.
             ide_ci::fs::copy(&base_component, bundle_dir)?;
-
             // Add engine.
             ide_ci::fs::mirror_directory(&engine_src_path, &engine_target_dir).await?;
-
             // Add GraalVM runtime.
             place_graal_under(graalvm_dir).await?;
-
             // Add portable distribution marker.
             ide_ci::fs::create(distribution_marker)?;
-
-            // let bundle = Self::suggest_paths(paths);
-            //
-            // bundle.clear()?;
-            //
-            // let base_component = Self::base_distribution(paths);
-            // ide_ci::fs::copy(&base_component.root, &bundle.root)?;
-            //
-            // // Add engine.
-            // let bundled_engine_dir = bundle.dir.join("dist").join(paths.version().to_string());
-            // place_component_at(&paths.engine, &bundled_engine_dir).await?;
-            //
-            // // Add GraalVM runtime.
-            // place_graal_under(bundle.dir.join("runtime")).await?;
-            //
-            // // Add portable distribution marker.
-            // ide_ci::fs::copy(
-            //     &paths.repo_root.distribution.enso_bundle_template,
-            //     bundle.dir.join(".enso.bundle"),
-            // )?;
-            // Ok(bundle)
             Ok(())
         }
         .boxed()
@@ -219,4 +105,14 @@ impl IsBundle for crate::paths::generated::LauncherBundle {
     fn distribution_marker(&self) -> PathBuf {
         self.enso_portable.to_path_buf()
     }
+}
+
+/// Places a copy of the GraalVM's installation directory in the target directory.
+///
+/// The GraalVM installation will be located using [`locate_graal`] function.
+#[context("Failed to place a GraalVM package under {}.", target_directory.as_ref().display())]
+pub async fn place_graal_under(target_directory: impl AsRef<Path>) -> Result {
+    let graal_path = locate_graal()?;
+    let graal_dirname = graal_path.try_file_name()?;
+    ide_ci::fs::mirror_directory(&graal_path, target_directory.as_ref().join(graal_dirname)).await
 }

@@ -7,12 +7,12 @@ use crate::prelude::*;
 use crate::get_graal_version;
 use crate::get_java_major_version;
 use crate::paths::generated;
-use crate::paths::IsArtifact;
-use crate::paths::IsPackage;
 
+use artifact::IsArtifact;
 use bundle::IsBundle;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
+use package::IsPackage;
 use std::collections::BTreeSet;
 
 
@@ -20,9 +20,11 @@ use std::collections::BTreeSet;
 // === Export ===
 // ==============
 
+pub mod artifact;
 pub mod bundle;
 pub mod context;
 pub mod env;
+pub mod package;
 pub mod sbt;
 
 pub use context::RunContext;

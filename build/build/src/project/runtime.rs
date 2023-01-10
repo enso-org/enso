@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
+use crate::engine::package::IsPackage;
 use crate::engine::BuildConfigurationFlags;
 use crate::paths::generated::EnginePackage;
-use crate::paths::IsPackage;
 use crate::paths::TargetTriple;
 use crate::project::Context;
 use crate::project::IsArtifact;

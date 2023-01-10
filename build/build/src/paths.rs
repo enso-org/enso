@@ -1,123 +1,11 @@
 use crate::prelude::*;
 
-use crate::engine::sbt::SbtCommandProvider;
 use crate::version::Versions;
 
-use ide_ci::github::release::ReleaseHandle;
-use ide_ci::github::release::ARCHIVE_EXTENSION;
-use octocrab::models::repos::Asset;
 use std::env::consts::EXE_EXTENSION;
 use std::env::consts::EXE_SUFFIX;
 use std::fmt::Formatter;
 
-
-
-#[derive(Clone, Copy, Debug)]
-pub enum ArtifactKind {
-    EnginePackage,
-    ProjectManagerPackage,
-    LauncherPackage,
-    ProjectManagerBundle,
-    LauncherBundle,
-}
-
-pub trait IsPackage: IsArtifact {
-    /// Get the package name that is recognized by the SBT build scripts.
-    ///
-    /// It can be used e.g. to verify the package by invoking `enso/verifyGeneratedPackage` task.
-    fn sbt_package_name(&self) -> &str;
-
-    /// Primary directory of the package.
-    ///
-    /// E.g. for the Engine package it is like
-    /// `H:\NBO\enso\built-distribution\enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64\enso-0.
-    /// 0.0-SNAPSHOT.2022-01-19`.
-    fn dir(&self) -> &Path {
-        self.as_ref()
-    }
-
-    /// Invokes `enso/verifyGeneratedPackage` task on this package.
-    fn verify_package_sbt(&self, sbt: &crate::engine::sbt::Context) -> BoxFuture<'static, Result> {
-        let package_name = self.sbt_package_name();
-        let dir = self.dir();
-        sbt.verify_generated_package(package_name, dir)
-    }
-}
-
-impl IsPackage for crate::paths::generated::EnginePackage {
-    fn sbt_package_name(&self) -> &str {
-        "engine"
-    }
-}
-
-impl IsPackage for crate::paths::generated::ProjectManagerPackage {
-    fn sbt_package_name(&self) -> &str {
-        "project-manager"
-    }
-}
-
-impl IsPackage for crate::paths::generated::LauncherPackage {
-    fn sbt_package_name(&self) -> &str {
-        "launcher"
-    }
-}
-
-/// A standalone SBT-generated artifact.
-///
-/// Either a package or a bundle with one of our backend components.
-pub trait IsArtifact: AsRef<Path> + Send + Sync {
-    /// Get the kind of this artifact.
-    fn kind(&self) -> ArtifactKind;
-
-    /// Remove the artifact from the disk.
-    fn clear(&self) -> Result {
-        ide_ci::fs::remove_dir_if_exists(self)
-    }
-
-    /// Get a filename stem for the compressed artifact.
-    ///
-    /// It will be used for naming release assets, so this should include the target triple.
-    fn asset_file_stem(&self) -> Result<OsString> {
-        // By the convention, the parent directory to the artifact bears its asset name.
-        Ok(self.as_ref().try_parent()?.try_file_name()?.to_os_string())
-    }
-
-    fn upload_as_asset(&self, release: ReleaseHandle) -> BoxFuture<'static, Result<Asset>> {
-        let path = self.as_ref().to_path_buf();
-        let name = self.asset_file_stem();
-        async move { release.upload_compressed_dir_as(path, name?).await }.boxed()
-    }
-}
-
-impl IsArtifact for crate::paths::generated::EnginePackage {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::EnginePackage
-    }
-}
-
-impl IsArtifact for crate::paths::generated::ProjectManagerPackage {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::ProjectManagerPackage
-    }
-}
-
-impl IsArtifact for crate::paths::generated::ProjectManagerBundle {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::ProjectManagerBundle
-    }
-}
-
-impl IsArtifact for crate::paths::generated::LauncherPackage {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::LauncherPackage
-    }
-}
-
-impl IsArtifact for crate::paths::generated::LauncherBundle {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::LauncherBundle
-    }
-}
 
 
 #[allow(clippy::all)] // [mwu] Little reason to bother in the generated code.
@@ -164,34 +52,6 @@ pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> ge
         triple.to_string(),
         triple.versions.version.to_string(),
     )
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub struct ComponentPaths {
-    // e.g. `enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64`
-    pub name:             PathBuf,
-    // e.g. H:\NBO\enso\built-distribution\enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64
-    pub root:             PathBuf,
-    // e.g. H:\NBO\enso\built-distribution\enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64\
-    // enso-0.0.0-SNAPSHOT.2022-01-19
-    pub dir:              PathBuf,
-    // e.g. H:\NBO\enso\built-distribution\enso-engine-0.0.0-SNAPSHOT.2022-01-19-windows-amd64.zip
-    pub artifact_archive: PathBuf,
-}
-
-impl ComponentPaths {
-    pub fn new(
-        build_root: &Path, // e.g. H:\NBO\enso\built-distribution
-        name_prefix: &str,
-        dirname: &str,
-        triple: &TargetTriple,
-    ) -> Self {
-        let name = PathBuf::from(iformat!("{name_prefix}-{triple.engine()}"));
-        let root = build_root.join(&name);
-        let dir = root.join(dirname);
-        let artifact_archive = root.with_appended_extension(ARCHIVE_EXTENSION);
-        Self { name, root, dir, artifact_archive }
-    }
 }
 
 pub fn pretty_print_arch(arch: Arch) -> &'static str {
