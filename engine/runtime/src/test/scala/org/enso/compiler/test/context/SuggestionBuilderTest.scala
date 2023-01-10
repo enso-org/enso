@@ -607,7 +607,6 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   Some(
                     Seq(
                       "Number",
-                      "Unnamed.Test.Other_Atom",
                       "Unnamed.Test.Variant_1",
                       "Unnamed.Test.Variant_2"
                     )
@@ -692,7 +691,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                   false,
                   false,
                   None,
-                  Some(List("Unnamed.Test.A"))
+                  None
                 )
               ),
               selfType      = "Unnamed.Test",
@@ -1112,7 +1111,7 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
                         false,
                         false,
                         None,
-                        Some(List("Unnamed.Test.A"))
+                        None
                       )
                   ),
                   returnType = "Unnamed.Test.A",
@@ -2302,6 +2301,29 @@ class SuggestionBuilderTest extends AnyWordSpecLike with Matchers {
       fooArg.tagValues shouldEqual Some(
         List("Unnamed.Test.Variant_A", "Unnamed.Test.Variant_B")
       )
+    }
+
+    "parse Text.trim properly" in {
+      val code =
+        """|import Standard.Base.Data.Text.Text
+           |
+           |Text.trim : (Location.Start | Location.End | Location.Both) -> (Text | (Text -> Boolean)) -> Text
+           |Text.trim self where=Location.Both what=_.is_whitespace = self
+           |""".stripMargin
+      val module      = code.preprocessModule
+      val suggestions = build(code, module)
+      val method = suggestions.collectFirst {
+        case s: Suggestion.Method if s.name == "trim" => s
+      }
+      method.get.arguments.size shouldEqual 3
+      val arg1 = method.get.arguments(1)
+      arg1.reprType shouldEqual "Location.Start | Location.End | Location.Both"
+      arg1.tagValues shouldEqual Some(
+        List("Location.Start", "Location.End", "Location.Both")
+      )
+      val arg2 = method.get.arguments(2)
+      arg2.reprType shouldEqual "Standard.Base.Data.Text.Text | (Standard.Base.Data.Text.Text -> Boolean)"
+      arg2.tagValues shouldEqual None
     }
   }
 
