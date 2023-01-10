@@ -2856,7 +2856,8 @@ object IR {
       override def showCode(indent: Int): String = name
     }
 
-    /** The representation of annotations on method.
+    /** The representation of annotations that can be found on module-level
+      * definitions.
       *
       * @param name the annotation text of the name
       * @param argument the annotation argument
@@ -2864,7 +2865,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
-    sealed case class MethodAnnotation(
+    sealed case class ModuleAnnotation(
       override val name: String,
       argument: Expression,
       override val location: Option[IdentifiedLocation],
@@ -2890,9 +2891,9 @@ object IR {
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
-      ): MethodAnnotation = {
+      ): ModuleAnnotation = {
         val res =
-          MethodAnnotation(name, argument, location, passData, diagnostics)
+          ModuleAnnotation(name, argument, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2903,7 +2904,7 @@ object IR {
         keepMetadata: Boolean    = true,
         keepDiagnostics: Boolean = true,
         keepIdentifiers: Boolean = false
-      ): MethodAnnotation =
+      ): ModuleAnnotation =
         copy(
           location = if (keepLocations) location else None,
           passData =
@@ -2916,19 +2917,19 @@ object IR {
       /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
-      ): MethodAnnotation =
+      ): ModuleAnnotation =
         copy(location = location)
 
       /** @inheritdoc */
       override def mapExpressions(
         fn: Expression => Expression
-      ): MethodAnnotation =
+      ): ModuleAnnotation =
         copy(argument = fn(argument))
 
       /** @inheritdoc */
       override def toString: String =
         s"""
-           |IR.Name.MethodAnnotation(
+           |IR.Name.ModuleAnnotation(
            |name = $name,
            |argument = $argument,
            |location = $location,

@@ -1242,10 +1242,23 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testMethodAnnotation() throws Exception {
+  public void testModuleAnnotation1() throws Exception {
     var ir = compile("""
-    @first_argument (Single_Choice [])
-    fn first_argument = 42
+    @a (x y)
+    fn a = a
+    """);
+    System.out.println("===");
+    System.out.println(ir);
+  }
+
+  @Test
+  public void testModuleAnnotation2() throws Exception {
+    var ir = compile("""
+    type Foo
+        Foo
+
+        @a expression
+        fn a = a
     """);
     System.out.println("===");
     System.out.println(ir);

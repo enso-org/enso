@@ -12,6 +12,8 @@ class ModuleAnnotationsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
+  override val useRustParser = true
+
   val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup = passes.getPrecursors(ModuleAnnotations).get
@@ -115,6 +117,23 @@ class ModuleAnnotationsTest extends CompilerTest {
       anns.length shouldEqual 1
       anns.head.asInstanceOf[IR.Name].name shouldEqual "@My_Annotation"
     }
+
+    "associate module annotations with method definitions" in {
+      val ir =
+        """@a expr_1
+          |@b expr_2
+          |My_Type.add a b = this.frob(a + b)
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 1
+      ir.bindings.head shouldBe a[Definition.Method.Binding]
+      val anns =
+        ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
+      anns.length shouldEqual 2
+      anns(0).asInstanceOf[IR.Name].name shouldEqual "@a"
+      anns(1).asInstanceOf[IR.Name].name shouldEqual "@b"
+    }
+
   }
 
   "Annotation desugaring in complex types" should {

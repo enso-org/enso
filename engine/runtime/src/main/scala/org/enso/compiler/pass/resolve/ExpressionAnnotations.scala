@@ -120,7 +120,7 @@ case object ExpressionAnnotations extends IRPass {
     * @param name the annotation name to check
     * @return `true` if `name` is a known annotation, otherwise `false`
     */
-  def isKnownAnnotation(name: String): Boolean = {
+  private def isKnownAnnotation(name: String): Boolean = {
     knownAnnotations.contains(name)
   }
 }
