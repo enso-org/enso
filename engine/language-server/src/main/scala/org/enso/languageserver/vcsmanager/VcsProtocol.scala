@@ -25,8 +25,8 @@ object VcsProtocol {
     revName: Option[String]
   )
 
-  case class RestoreRepoResponse(result: Either[VcsFailure, Unit])
-      extends VCSResponse[Unit]
+  case class RestoreRepoResponse(result: Either[VcsFailure, List[Path]])
+      extends VCSResponse[List[Path]]
 
   case class StatusRepo(clientId: ClientId, root: Path)
 

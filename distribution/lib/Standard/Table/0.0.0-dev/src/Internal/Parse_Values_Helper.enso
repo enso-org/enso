@@ -6,12 +6,13 @@ from project.Errors import Invalid_Format, Leading_Zeros
 polyglot java import org.enso.table.parsing.problems.InvalidFormat
 polyglot java import org.enso.table.parsing.problems.LeadingZeros
 
-translate_parsing_problem expected_datatype problem =
-    invalid_format = [InvalidFormat, (java_problem-> Invalid_Format.Error java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells))]
-    leading_zeros = [LeadingZeros, (java_problem-> Leading_Zeros.Error java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells))]
-
-    translations = [invalid_format, leading_zeros]
-    found = translations.find t-> Java.is_instance problem t.first
-    translation = found.catch Any _->
-        Error.throw (Illegal_State.Error "Reported an unknown problem type: "+problem.to_text)
-    translation.second problem
+## PRIVATE
+   Translates a parse related problem additionally enriching it with expected
+   datatype information that is not originally present on the Java side.
+translate_parsing_problem expected_datatype problem = case problem of
+    java_problem : InvalidFormat ->
+        Invalid_Format.Error java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells)
+    java_problem : LeadingZeros ->
+        Leading_Zeros.Error java_problem.column expected_datatype (Vector.from_polyglot_array java_problem.cells)
+    _ ->
+        Panic.throw (Illegal_State.Error "Reported an unknown problem type: "+problem.to_text)

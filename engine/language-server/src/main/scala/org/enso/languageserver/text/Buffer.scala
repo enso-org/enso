@@ -1,9 +1,10 @@
 package org.enso.languageserver.text
 
 import java.io.File
-
 import org.enso.text.{ContentBasedVersioning, ContentVersion}
 import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.Position
+import org.enso.text.editing.model.Range
 
 /** A buffer state representation.
   *
@@ -17,7 +18,18 @@ case class Buffer(
   contents: Rope,
   inMemory: Boolean,
   version: ContentVersion
-)
+) {
+
+  /** Returns a range covering the whole buffer.
+    */
+  lazy val fullRange: Range = {
+    val lines = contents.lines.length
+    Range(
+      Position(0, 0),
+      Position(lines - 1, contents.lines.drop(lines - 1).characters.length)
+    )
+  }
+}
 
 object Buffer {
 

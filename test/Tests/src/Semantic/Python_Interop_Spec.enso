@@ -45,7 +45,10 @@ foreign python make_array = """
             self.x = x
         def compare(self, guess):
             return self.x < guess
-    return [My(10), My(20), My(30)]
+    return [My(30), My(10), My(20)]
+
+foreign python make_num_array = """
+    return [30, 10, 20]
 
 foreign python make_str str = """
     return ("foo " + str + " bar")
@@ -87,7 +90,18 @@ spec =
 
         Test.specify "should expose array interfaces for Python arrays" <|
             vec = Vector.from_polyglot_array make_array
-            vec.map .x . should_equal [10, 20, 30]
+            vec.map .x . should_equal [30, 10, 20]
+
+            arr = vec.map .x . to_array
+            sorted = arr.sort
+            arr . should_equal [30, 10, 20]
+            sorted . should_equal [10, 20, 30]
+
+            arr_2 = make_num_array
+            sorted_2 = arr_2.sort
+            arr_2 . should_equal [30, 10, 20]
+            sorted_2 . should_equal [10, 20, 30]
+
 
         Test.specify "should correctly marshall strings" <|
             str = make_str "x" + " baz"

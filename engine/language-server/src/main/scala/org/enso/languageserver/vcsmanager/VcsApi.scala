@@ -43,7 +43,7 @@ abstract class VcsApi[F[_, _]] {
     * @param commitId optional commit to which the project should be reverted to
     * @return any failures during the commit
     */
-  def restore(root: Path, commitId: Option[String]): F[VcsFailure, Unit]
+  def restore(root: Path, commitId: Option[String]): F[VcsFailure, List[Path]]
 
   /** Report the current status of the project, reporting all modified, new or deleted projects.
     *

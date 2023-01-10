@@ -316,8 +316,20 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
             pub right: token::CloseSymbol<'s>,
         },
-        /// An expression preceded by an annotation, e.g. `@Builtin_Method foo`.
+        /// An expression preceded by an annotation. For example:
+        /// ```enso
+        /// @on_problems Problem_Behavior.get_widget_attribute
+        /// Table.select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
+        /// ```
         Annotated {
+            pub token:      token::Operator<'s>,
+            pub annotation: token::Ident<'s>,
+            pub argument:   Option<Tree<'s>>,
+            pub newlines:   Vec<token::Newline<'s>>,
+            pub expression: Option<Tree<'s>>,
+        },
+        /// An expression preceded by a special built-in annotation, e.g. `@Tail_Call foo 4`.
+        AnnotatedBuiltin {
             pub token:      token::Operator<'s>,
             pub annotation: token::Ident<'s>,
             pub newlines:   Vec<token::Newline<'s>>,
@@ -796,12 +808,12 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func_.fractional_digits = mem::take(fractional_digits);
             func
         }
-        (Variant::Annotated(func_ @ Annotated { expression: None, .. }), _) => {
-            func_.expression = arg.into();
+        (Variant::Annotated(func_ @ Annotated { argument: None, .. }), _) => {
+            func_.argument = maybe_apply(mem::take(&mut func_.argument), arg).into();
             func
         }
-        (Variant::Annotated(Annotated { expression: Some(expression), .. }), _) => {
-            *expression = apply(mem::take(expression), arg);
+        (Variant::AnnotatedBuiltin(func_), _) => {
+            func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
             func
         }
         (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs }),
@@ -850,6 +862,13 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)
+    }
+}
+
+fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
+    match f {
+        Some(f) => apply(f, x),
+        None => x,
     }
 }
 
@@ -941,7 +960,10 @@ pub fn apply_operator<'s>(
 pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
     if opr.properties.is_annotation()
             && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
-        Tree::annotated(opr, token, vec![], None)
+        match token.is_type {
+            true => Tree::annotated_builtin(opr, token, vec![], None),
+            false => Tree::annotated(opr, token, None, vec![], None),
+        }
     } else {
         Tree::unary_opr_app(opr, rhs)
     }
