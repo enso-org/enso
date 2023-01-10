@@ -156,6 +156,13 @@ spec =
             str.at 1 . should_equal facepalm
             str.at 2 . should_equal accent_1
             str.at 3 . should_equal accent_2
+            str.get 0 . should_equal kshi
+            str.get 1 . should_equal facepalm
+            str.get 2 . should_equal accent_1
+            str.get 3 . should_equal accent_2
+            str.first . should_equal kshi
+            str.second . should_equal facepalm
+            str.last . should_equal accent_2
 
         Test.specify "should allow access by negative index to a grapheme cluster" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -163,6 +170,10 @@ spec =
             str.at -3 . should_equal facepalm
             str.at -2 . should_equal accent_1
             str.at -1 . should_equal accent_2
+            str.get -4 . should_equal kshi
+            str.get -3 . should_equal facepalm
+            str.get -2 . should_equal accent_1
+            str.get -1 . should_equal accent_2
 
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -170,6 +181,9 @@ spec =
             str.at -5 . catch . should_equal (Index_Out_Of_Bounds.Error -5 4)
             str.at 4 . should_fail_with Index_Out_Of_Bounds.Error
             str.at 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
+            str.get -5 . should_equal Nothing
+            str.get 4 . should_equal Nothing
+            str.get -5 "?" . should_equal "?"
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']

@@ -108,19 +108,85 @@ Text.each self function =
          "건반(Korean)".at 1 == "반"
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
+    self.get index Error.throw (Index_Out_Of_Bounds.Error index self.length)
+
+## ALIAS Get Character
+
+   Returns a character from the text at the specified index (0-based).
+
+   Arguments:
+     - index: The location in the text to get the character from. The
+       index is also allowed be negative, then the characters are
+       counted from the end of the text, i.e. -1 will correspond to the
+       last character.
+     - if_missing: The value to return if the index is out of bounds.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the individual characters in the text "건반(Korean)".
+
+         "건반(Korean)".get 1 == "반"
+Text.get : Integer -> Any -> Any
+Text.get self index if_missing=Nothing =
     case index < 0 of
         True ->
             length = self.length
             new_index = index + length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds.Error index length) else
+            if new_index < 0 then if_missing else
                 self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds.Error index self.length)) else
+            if (next == -1) then if_missing else
                 Text_Utils.substring self first next
+
+## Returns the first character from the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the first character in the text "건반(Korean)".
+
+         "건반(Korean)".first == "건"
+Text.first : Text | Index_Out_Of_Bounds
+Text.first self = self.at 0
+
+## Returns the second character from the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the second character in the text "건반(Korean)".
+
+         "건반(Korean)".second == "반"
+Text.second : Text | Index_Out_Of_Bounds
+Text.second self = self.at 1
+
+## Returns the last character from the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the last character in the text "건반(Korean)".
+
+         "건반(Korean)".last == ")"
+Text.last : Text | Index_Out_Of_Bounds
+Text.last self = self.at -1
 
 ## ALIAS Get Characters
 
