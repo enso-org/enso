@@ -90,10 +90,7 @@ type Column
        Returns a vector containing all the elements in this column.
     to_vector : Vector Any
     to_vector self =
-        ## We remove the index to avoid fetching index data that will not be
-           used anyway when constructing the raw Vector.
-        without_ix = self.to_table.set_index []
-        without_ix . read  . at self.name . to_vector
+        self.to_table.read . at self.name . to_vector
 
     ## UNSTABLE TODO this is a very early prototype that will be revisited later
        This implementation is really just so that we can use the types in
@@ -229,6 +226,20 @@ type Column
        between corresponding elements of `self` and `other`.
     == : Column | Any -> Column
     == self other = self.make_binary_op "=" other new_type=SQL_Type.boolean
+
+    ## Element-wise case-insensitive text equality comparison.
+
+       Arguments:
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
+    equals_ignore_case : Column | Any -> Locale -> Column
+    equals_ignore_case self other locale=Locale.default =
+        Helpers.assume_default_locale locale <|
+            self.make_binary_op "equals_ignore_case" other new_type=SQL_Type.boolean
 
     ## UNSTABLE
 
@@ -604,11 +615,7 @@ type Column
     rename : Text -> Column
     rename self new_name = case Helpers.ensure_name_is_sane new_name of
         True ->
-            is_used_in_index = self.context.meta_index.exists i-> i.name == new_name
-            case is_used_in_index of
-                True -> Error.throw <| Illegal_State.Error "Cannot rename the column to "+new_name+", because it has an index with the same name."
-                False ->
-                    Column.Value new_name self.connection self.sql_type self.expression self.context
+            Column.Value new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 

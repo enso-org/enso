@@ -5,11 +5,11 @@ from Standard.Test import Test_Suite
 import project.In_Memory.Aggregate_Column_Spec
 import project.In_Memory.Column_Spec
 import project.In_Memory.Common_Spec
+import project.In_Memory.Join_Performance_Spec
 import project.In_Memory.Table_Spec
 import project.In_Memory.Table_Date_Spec
 import project.In_Memory.Table_Date_Time_Spec
 import project.In_Memory.Table_Time_Of_Day_Spec
-import project.In_Memory.Unique_Naming_Strategy_Spec
 
 spec =
     Table_Spec.spec
@@ -19,6 +19,6 @@ spec =
     Table_Date_Time_Spec.spec
     Table_Time_Of_Day_Spec.spec
     Aggregate_Column_Spec.spec
-    Unique_Naming_Strategy_Spec.spec
+    Join_Performance_Spec.spec
 
 main = Test_Suite.run_main spec

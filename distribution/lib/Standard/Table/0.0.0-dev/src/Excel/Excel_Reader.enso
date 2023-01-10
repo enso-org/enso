@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.File_Error.File_Error
+import Standard.Base.System.File.Input_Stream
 
 import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range

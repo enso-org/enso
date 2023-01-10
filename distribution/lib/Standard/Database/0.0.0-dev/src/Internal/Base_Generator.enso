@@ -6,7 +6,7 @@ import project.Data.SQL.Builder
 import project.Internal.IR.Context.Context
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.From_Spec.From_Spec
-import project.Internal.IR.Join_Kind.Join_Kind
+import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.Nulls_Order.Nulls_Order
 import project.Internal.IR.Query.Query
@@ -171,12 +171,14 @@ base_dialect =
     fun = name -> [name, make_function name]
 
     arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["^", make_function "POWER"]]
-    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif]]
-    compare = [bin "=", bin "!=", bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
+    logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["TRUE", make_constant "TRUE"], ["FALSE", make_constant "FALSE"]]
+    eq = lift_binary_op "=" make_equals
+    neq = lift_binary_op "!=" make_not_equals
+    compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
-    text = [is_empty, bin "LIKE"]
+    text = [is_empty, bin "LIKE", simple_equals_ignore_case]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
@@ -285,16 +287,23 @@ generate_from_part dialect from_spec = case from_spec of
     From_Spec.Join kind left_spec right_spec on ->
         left = generate_from_part dialect left_spec
         right = generate_from_part dialect right_spec
-        prefix = case kind of
-            Join_Kind.Inner -> "INNER JOIN"
-            Join_Kind.Left -> "LEFT JOIN"
-            Join_Kind.Right -> "RIGHT JOIN"
-            Join_Kind.Cross -> "CROSS JOIN"
         ons = SQL.join " AND " (on.map (generate_expression dialect)) . prefix_if_present " ON "
-        left ++ (" " + prefix + " ") ++ right ++ ons
+        left ++ (" " + kind.to_sql + " ") ++ right ++ ons
     From_Spec.Sub_Query columns context as_name ->
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
+
+## PRIVATE
+simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
+    code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
+
+## PRIVATE
+make_equals a b =
+    a.paren ++ " = " ++ b.paren
+
+## PRIVATE
+make_not_equals a b =
+    a.paren ++ " != " ++ b.paren
 
 ## PRIVATE
 

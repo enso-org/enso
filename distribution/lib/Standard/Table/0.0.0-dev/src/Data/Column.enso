@@ -126,6 +126,24 @@ type Column
     == self other =
         run_vectorized_binary_op self "==" (==) other
 
+    ## Element-wise case-insensitive text equality comparison.
+
+       Arguments:
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
+    equals_ignore_case : Column | Any -> Locale -> Column
+    equals_ignore_case self other locale=Locale.default =
+        ## TODO currently this always runs the fallback which is slow due to the
+           cost of Java-to-Enso calls. We want to have a vectorized
+           implementation, but we need to extend the architecture to allow
+           passing the locale to it.
+           See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
+        run_vectorized_binary_op self "equals_ignore_case" (x-> y-> x.equals_ignore_case y locale=locale) other
+
     ## Element-wise non-equality comparison.
 
        Arguments:
@@ -532,7 +550,6 @@ type Column
     iif self when_true when_false = case self.storage_type of
         Storage.Boolean ->
             s = self.java_column.getStorage
-            ix = self.java_column.getIndex
 
             true_val = case when_true of
                 _ : Column -> when_true.java_column.getStorage
@@ -543,7 +560,7 @@ type Column
                 _ -> when_false
 
             rs = s.iif true_val false_val
-            Column.Value (Java_Column.new "Result" ix rs)
+            Column.Value (Java_Column.new "Result" rs)
         _ -> Error.throw (Illegal_Argument.Error "`iif` can only be used with boolean columns.")
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
@@ -676,7 +693,6 @@ type Column
     fill_missing : Column | Any -> Column
     fill_missing self default =
         storage = self.java_column.getStorage
-        index = self.java_column.getIndex
         name = self.java_column.getName
         new_st = case default of
             Column.Value java_col ->
@@ -684,7 +700,7 @@ type Column
                 storage.fillMissingFrom other_storage
             _ ->
                 storage.fillMissing default
-        col = Java_Column.new name index new_st
+        col = Java_Column.new name new_st
         Column.Value col
 
     ## Checks for each element of the column if it starts with `other`.
@@ -848,9 +864,8 @@ type Column
     map : (Any -> Any) -> Column
     map self function on_missing=Nothing =
         storage = self.java_column.getStorage
-        index = self.java_column.getIndex
         new_st = storage.map Nothing function on_missing
-        col = Java_Column.new "Result" index new_st
+        col = Java_Column.new "Result" new_st
         Column.Value col
 
     ## ALIAS Transform Columns
@@ -878,10 +893,9 @@ type Column
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
     zip self that function skip_missing=True =
         s1 = self.java_column.getStorage
-        ix = self.java_column.getIndex
         s2 = that.java_column.getStorage
         rs = s1.zip Nothing function s2 skip_missing
-        Column.Value (Java_Column.new "Result" ix rs)
+        Column.Value (Java_Column.new "Result" rs)
 
     ## ALIAS Rename Column
 
@@ -943,36 +957,6 @@ type Column
              example_count = Examples.text_column_2.count
     count : Integer
     count self = self.length - self.count_missing
-
-    ## Returns the index of this column, as a column (indexed by itself).
-
-       Throws `No_Index_Set_Error` if there is no index set.
-
-       > Example
-         Get the index from a column.
-
-             import Standard.Examples
-
-             example_index = Examples.decimal_column.index
-    index : Column ! No_Index_Set_Error
-    index self = case self.java_column.getIndex.toColumn of
-        Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Value i
-
-    ## Sets the index of this column, using the provided column.
-
-       Arguments:
-       - index: The column to use as the index to this column.
-
-       > Example
-         Index the decimal column by the integer column.
-
-             import Standard.Examples
-
-             example_set_index =
-                Examples.decimal_column.set_index Examples.integer_column
-    set_index : Column -> Column
-    set_index self index = Column.Value (self.java_column.setIndex index.java_column)
 
     ## Returns the value contained in this column at the given index.
 
@@ -1279,7 +1263,7 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
                 case operand of
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
                     _ -> current.bimap name fallback_fn operand skip_nulls
-            Column.Value (Java_Column.new new_name column.java_column.getIndex folded)
+            Column.Value (Java_Column.new new_name folded)
         _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
         _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
 
@@ -1301,15 +1285,13 @@ run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Boole
 run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
     Column.Value col2 ->
         s1 = column.java_column.getStorage
-        ix = column.java_column.getIndex
         s2 = col2.getStorage
         rs = s1.zip name fallback_fn s2 skip_nulls
-        Column.Value (Java_Column.new new_name ix rs)
+        Column.Value (Java_Column.new new_name rs)
     _ ->
         s1 = column.java_column.getStorage
-        ix = column.java_column.getIndex
         rs = s1.bimap name fallback_fn operand skip_nulls
-        Column.Value (Java_Column.new new_name ix rs)
+        Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
 
@@ -1325,9 +1307,8 @@ run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_nam
 run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_unary_op column name fallback_fn on_missing=Nothing =
     s = column.java_column.getStorage
-    ix = column.java_column.getIndex
     rs = s.map name fallback_fn on_missing
-    Column.Value (Java_Column.new "Result" ix rs)
+    Column.Value (Java_Column.new "Result" rs)
 
 ## PRIVATE
 

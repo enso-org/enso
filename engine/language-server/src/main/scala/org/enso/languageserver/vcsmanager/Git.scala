@@ -15,6 +15,8 @@ import org.eclipse.jgit.errors.{
 import org.eclipse.jgit.lib.{ObjectId, Repository}
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.revwalk.{RevCommit, RevWalk}
+import org.eclipse.jgit.treewalk.filter.PathFilter
+import org.eclipse.jgit.treewalk.{CanonicalTreeParser, FileTreeIterator}
 import org.eclipse.jgit.util.SystemReader
 import org.enso.languageserver.vcsmanager.Git.{
   AuthorEmail,
@@ -27,7 +29,6 @@ import scala.jdk.CollectionConverters._
 import zio.blocking.effectBlocking
 
 import java.time.Instant
-import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
@@ -162,7 +163,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
   override def restore(
     root: Path,
     commitId: Option[String]
-  ): BlockingIO[VcsFailure, Unit] = {
+  ): BlockingIO[VcsFailure, List[Path]] = {
     effectBlocking {
       val repo = repository(root)
 
@@ -176,17 +177,47 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
           val foundRev = findRevision(repo, name).getOrElse(
             throw new RefNotFoundException(name)
           )
+          val diff = inferDiff(jgit, foundRev, repo)
           // Reset first to avoid checkout conflicts
           resetCmd.call()
           jgit
             .checkout()
             .setName(foundRev.getName)
             .call()
+          diff
         case None =>
+          val latest = jgit.log.setMaxCount(1).call().iterator().next()
+          val diff   = inferDiff(jgit, latest, repo)
           resetCmd.call()
+          diff
       }
-      ()
     }.mapError(errorHandling)
+  }
+
+  private def inferDiff(
+    jgit: JGit,
+    targetRevision: RevCommit,
+    repo: Repository
+  ): List[Path] = {
+    val oldTree = new FileTreeIterator(repo)
+    val newTree = {
+      val reader = repo.newObjectReader()
+      val treeId = targetRevision.getTree.getId
+      try new CanonicalTreeParser(null, reader, treeId)
+      finally if (reader != null) reader.close()
+    }
+
+    val diffResult = jgit
+      .diff()
+      .setOldTree(oldTree)
+      .setNewTree(newTree)
+      .setPathFilter(
+        PathFilter.create(ensureUnixPathSeparator(gitDir.toString)).negate()
+      )
+      .call()
+    diffResult.asScala.map { diff =>
+      Path.of(diff.getOldPath)
+    }.toList
   }
 
   private def findRevision(

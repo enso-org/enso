@@ -4,6 +4,7 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 polyglot java import java.util.HashMap
+polyglot java import java.util.Random as Java_Random
 
 type CustomEqType
     C1 f1
