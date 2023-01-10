@@ -2,6 +2,7 @@ from Standard.Base import all
 
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
+
 type Missing_Input_Columns
     ## PRIVATE
        One or more columns not found in the input table.
@@ -319,3 +320,41 @@ type Invalid_JSON_Format
     to_display_text : Text
     to_display_text self =
         "The input " + self.input.to_text + " had an invalid format due to: " + self.message.to_text + "."
+
+type Column_Type_Mismatch
+    ## UNSTABLE
+
+       An error indicating a mismatch of column types of merged columns.
+    Error (column_name : Text) (expected_type : Text) (got_type : Text)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "The column ["+self.column_name+"] expects type "+self.expected_type+" but one of the provided tables had type "+self.got_type+" which is not compatible with it."
+
+type No_Common_Type
+    ## UNSTABLE
+
+       An error indicating that no common type could be found for the merged
+       columns.
+    Error (column_name : Text)
+
+    ## PRIVATE
+
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        "No common type could have been found for the columns corresponding to ["+self.column_name+"]. If you want to allow mixed types, please retype the columns to the `Mixed` before the concatenation (note however that most Database backends do not support `Mixed` types, so it may work only for the in-memory backend)."
+
+type Unmatched_Columns
+    ## UNSTABLE
+
+       An error indicating that some columns were not present in all of the
+       merged tables.
+    Error (column_names : Vector Text)
+
+    to_display_text : Text
+    to_display_text self =
+        "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + ". The missing values have been filled with `Nothing`."
