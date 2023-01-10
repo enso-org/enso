@@ -497,7 +497,8 @@ impl Project {
             // Event Handling
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
-                Event::Notification(Notification::TextAutoSave(_)) => {
+                Event::Notification(Notification::TextAutoSave(path)) => {
+                    warn!("autosave: {:?}", path);
                     let publisher = publisher.clone_ref();
                     let language_server = language_server.clone_ref();
                     executor::global::spawn(async move {
@@ -512,12 +513,12 @@ impl Project {
                     });
                 }
                 Event::Notification(Notification::TextDidChange(changes)) => {
-                    warn!("{:?}", changes);
+                    warn!("text changed: {:?}", changes);
                     let file_path = changes.edits[0].path.clone();
                     let language_server = language_server.clone_ref();
                     executor::global::spawn(async move {
                         let opened = language_server.client.open_text_file(&file_path).await;
-                        warn!("{:?}", opened);
+                        warn!("File content: {:?}", opened);
                     });
                 }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {

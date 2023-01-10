@@ -258,8 +258,9 @@ impl Project {
         let model = self.model.clone_ref();
         async move {
             let changed = language_server.restore_vcs(&root_path, &None).await?;
-            warn!("{:?}", changed);
+            warn!("VCS changed: {:?}", changed);
             let module = model.main_module_model().await?;
+            let file_path = module.path();
             //let content = language_server.read_file(&file_path).await?.contents;
             //language_server.client.close_text_file(&file_path).await?;
             let content = language_server.client.open_text_file(&file_path).await?.content;
