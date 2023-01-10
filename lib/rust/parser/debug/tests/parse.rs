@@ -1216,7 +1216,6 @@ fn at_operator() {
     test!("foo @ bar", (OprApp (Ident foo) (Ok "@") (Ident bar)));
 }
 
-
 #[test]
 fn attributes() {
     test!("@on_problems P.g\nTable.select_columns : Text -> Table",
@@ -1228,6 +1227,13 @@ fn attributes() {
                         (OprApp (Ident Text) (Ok "->") (Ident Table)))));
     test!("@a z\n@b\nx", (Annotated "@" a (Ident z) #(()) (Annotated "@" b () #(()) (Ident x))));
     test!("@a\n@b\nx", (Annotated "@" a () #(()) (Annotated "@" b () #(()) (Ident x))));
+}
+
+#[test]
+fn attributes_in_types() {
+    test!("type A\n @a z\n @b\n x",
+        (TypeDef type A #() #(
+         ((Binding (Annotated "@" a (Ident z) #(()) (Annotated "@" b () #(()) (Ident x))))))));
 }
 
 #[test]
