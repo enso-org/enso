@@ -352,12 +352,14 @@ spec = Test.group "Vectors" <|
         input.index_of (>3) . should_equal 3
         input.index_of 2 start=3 . should_equal 5
         input.index_of 5 . should_equal Nothing
+        [].index_of 5 . should_equal Nothing
 
     Test.specify "should allow finding the last index of a value" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.last_index_of 2 . should_equal 8
         input.last_index_of 2 start=4 . should_equal 1
         input.last_index_of 5 . should_equal Nothing
+        [].last_index_of 5 . should_equal Nothing
 
     Test.specify "should be convertible to a list" <|
         [].to_list . should_equal List.Nil
