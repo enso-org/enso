@@ -138,7 +138,7 @@ public class Builtins {
     text = builtins.get(Text.class);
     array = builtins.get(Array.class);
     vector = builtins.get(Vector.class);
-    hashMap = builtins.get(Map.class);
+    hashMap = builtins.get(org.enso.interpreter.node.expression.builtin.Map.class);
     dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = builtins.get(Ref.class);
     managedResource = builtins.get(ManagedResource.class);

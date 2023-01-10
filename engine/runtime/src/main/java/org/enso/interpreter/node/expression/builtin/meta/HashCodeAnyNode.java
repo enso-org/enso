@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 /**
  * Implements {@code hash_code} functionality.
@@ -65,18 +66,12 @@ public abstract class HashCodeAnyNode extends Node {
 
   @Specialization
   long hashCodeForDouble(double d) {
-    // TODO: More precise conversion?
-    return Double.valueOf(d).longValue();
+    return d % 1.0 == 0.0 ? (int) d : Double.hashCode(d);
   }
 
   @Specialization
-  long hashCodeForUnresolvedSymbol(UnresolvedSymbol selfSymbol) {
-    throw new UnsupportedOperationException("unimplemented");
-  }
-
-  @Specialization
-  long hashCodeForUnresolvedConversion(UnresolvedConversion selfConversion) {
-    throw new UnsupportedOperationException("unimplemented");
+  long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
+    return bigInteger.hashCode();
   }
 
   @Specialization
@@ -329,11 +324,5 @@ public abstract class HashCodeAnyNode extends Node {
       limit = "3")
   long hashCodeForNull(Object selfNull, @CachedLibrary("selfNull") InteropLibrary interop) {
     return 0;
-  }
-
-  @TruffleBoundary
-  @Fallback
-  long hashCodeGeneric(Object self) {
-    return self.hashCode();
   }
 }
