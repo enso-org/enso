@@ -13,6 +13,7 @@ use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::PruneUnusedIds;
 use parser_scala::api::SourceFile;
 use parser_scala::Parser;
 use serde::Deserialize;
@@ -332,6 +333,12 @@ pub struct Metadata {
     rest:    serde_json::Value,
 }
 
+impl PruneUnusedIds for Metadata {
+    fn prune_unused_ids(&mut self, id_map: &ast::IdMap) {
+        self.ide.prune_unused_ids(id_map);
+    }
+}
+
 impl parser_scala::api::Metadata for Metadata {}
 
 impl Default for Metadata {
@@ -364,6 +371,13 @@ pub struct IdeMetadata {
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     project: Option<ProjectMetadata>,
+}
+
+impl PruneUnusedIds for IdeMetadata {
+    fn prune_unused_ids(&mut self, id_map: &ast::IdMap) {
+        let used_ids: HashSet<_> = id_map.vec.iter().map(|(_, id)| *id).collect();
+        self.node.retain(|id, _| used_ids.contains(id));
+    }
 }
 
 /// Metadata about a nodes edit status.
