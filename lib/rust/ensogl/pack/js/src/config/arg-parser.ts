@@ -46,17 +46,17 @@ export class Args {
     parse() {
         const optionToFieldNameMap: Map<string, string> = new Map()
         const options: any = {}
-        for (let [fieldName, option] of Object.entries(this)) {
-            let optionName = camelToKebabCase(fieldName)
+        for (const [fieldName, option] of Object.entries(this)) {
+            const optionName = camelToKebabCase(fieldName)
             optionToFieldNameMap.set(optionName, fieldName)
             options[optionName] = { type: option.type, default: option.value }
         }
         try {
             const nodeUtil = require('node:util')
-            let out = nodeUtil.parseArgs({ options })
-            for (let [optionName, optionValue] of Object.entries(out.values)) {
-                let fieldName = optionToFieldNameMap.get(optionName)
-                let self: any = this
+            const out = nodeUtil.parseArgs({ options })
+            for (const [optionName, optionValue] of Object.entries(out.values)) {
+                const fieldName = optionToFieldNameMap.get(optionName)
+                const self: any = this
                 if (fieldName) {
                     self[fieldName].value = optionValue
                 } else {
@@ -65,7 +65,7 @@ export class Args {
                 }
             }
         } catch (error) {
-            let msg = error instanceof Error ? `${error.message}. ` : ''
+            const msg = error instanceof Error ? `${error.message}. ` : ''
             console.error(`${msg}Use --help to learn about possible options.`)
             process.exit(1)
         }
@@ -76,8 +76,8 @@ export class Args {
 
     printHelp() {
         console.log(`Options:`)
-        for (let [fieldName, option] of Object.entries(this)) {
-            let optionName = camelToKebabCase(fieldName)
+        for (const [fieldName, option] of Object.entries(this)) {
+            const optionName = camelToKebabCase(fieldName)
             console.log()
             console.log(`--${optionName}`)
             console.log(option.description)

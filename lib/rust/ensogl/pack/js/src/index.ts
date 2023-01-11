@@ -111,7 +111,7 @@ export class App {
     mainEntryPoints: Map<string, EntryPoint> = new Map()
     initialized = false
 
-    constructor(opts?: { configExtension?: ExternalConfig; packageInfo: any; config?: Object }) {
+    constructor(opts?: { configExtension?: ExternalConfig; packageInfo: any; config?: object }) {
         this.packageInfo = new PackageInfo(opts?.packageInfo ?? {})
         this.config = new Config()
         if (opts?.configExtension) {

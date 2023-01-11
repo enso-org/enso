@@ -6,8 +6,8 @@ import { logger } from 'log/logger'
 
 export class Task {
     message: string
-    startTime: number = 0
-    endTime: number = 0
+    startTime = 0
+    endTime = 0
     constructor(message: string) {
         this.message = message
     }

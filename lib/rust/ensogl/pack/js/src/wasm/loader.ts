@@ -10,9 +10,9 @@ import { easeInOutElastic, easeOutElastic, elasticOut } from 'animation'
 // === ProgressIndicator ===
 // =========================
 
-let loaderColor = '#3c3c3c'
-let ghostColor = '#00000020'
-let topLayerIndex = '1000'
+const loaderColor = '#3c3c3c'
+const ghostColor = '#00000020'
+const topLayerIndex = '1000'
 
 /// Visual representation of the loader.
 class ProgressIndicator {
@@ -45,7 +45,7 @@ class ProgressIndicator {
         this.dom.style.background = 'white'
         this.dom.style.opacity = '1'
 
-        let center = document.createElement('div')
+        const center = document.createElement('div')
         center.style.width = '100%'
         center.style.height = '100%'
         center.style.display = 'flex'
@@ -54,12 +54,12 @@ class ProgressIndicator {
         this.dom.appendChild(center)
         this.center = center
 
-        let outerRadius = this.ringInnerRadius + this.ringWidth
-        let size = outerRadius * 2
+        const outerRadius = this.ringInnerRadius + this.ringWidth
+        const size = outerRadius * 2
 
-        let progress_bar_svg = this.init_svg()
-        let logo = document.createElement('div')
-        let progressBar = document.createElement('div')
+        const progress_bar_svg = this.init_svg()
+        const logo = document.createElement('div')
+        const progressBar = document.createElement('div')
         progressBar.style.position = 'absolute'
         logo.innerHTML = new Logo({
             size,
@@ -98,9 +98,9 @@ class ProgressIndicator {
 
     /// Initializes the SVG view.
     init_svg(): string {
-        let outerRadius = this.ringInnerRadius + this.ringWidth
-        let ringCenterRadius = this.ringInnerRadius + this.ringWidth / 2
-        let size = outerRadius * 2
+        const outerRadius = this.ringInnerRadius + this.ringWidth
+        const ringCenterRadius = this.ringInnerRadius + this.ringWidth / 2
+        const size = outerRadius * 2
 
         return svg.new_svg(
             size,
@@ -183,10 +183,8 @@ class ProgressIndicator {
 
     /// Start show animation. It is used after the loader is created.
     animateShow(): Promise<void> {
-        let self = this
-        let startTime = window.performance.now()
-        let outerRadius = this.ringInnerRadius + this.ringWidth
-        let size = outerRadius * 2
+        const self = this
+        const startTime = window.performance.now()
         return new Promise(function (resolve) {
             function showStep(time: DOMHighResTimeStamp) {
                 const opacitySampler = Math.min((time - startTime) / (1000 * 1), 1)
@@ -202,10 +200,10 @@ class ProgressIndicator {
     }
 
     animateShowLogo(): Promise<void> {
-        let self = this
-        let startTime = window.performance.now()
-        let outerRadius = this.ringInnerRadius + this.ringWidth
-        let size = outerRadius * 2
+        const self = this
+        const startTime = window.performance.now()
+        const outerRadius = this.ringInnerRadius + this.ringWidth
+        const size = outerRadius * 2
         return new Promise(function (resolve) {
             function showStep(time: DOMHighResTimeStamp) {
                 const opacitySampler = Math.min((time - startTime) / (1000 * 2), 1)
@@ -236,8 +234,8 @@ class ProgressIndicator {
     }
 
     animateHide(): Promise<void> {
-        let self = this
-        let startTime = window.performance.now()
+        const self = this
+        const startTime = window.performance.now()
         return new Promise(function (resolve) {
             function hideStep(time: DOMHighResTimeStamp) {
                 const opacitySampler = 1 - Math.min((time - startTime) / (1000 * 0.3), 1)
@@ -254,7 +252,7 @@ class ProgressIndicator {
 
     /// Start the spinning animation.
     animate_rotation() {
-        let indicator = this
+        const indicator = this
         let rotation = 0
         function rotate_step(time: DOMHighResTimeStamp) {
             indicator.set_rotation(rotation)
@@ -296,14 +294,14 @@ export class Loader {
         })
 
         let missing_content_length = false
-        for (let resource of resources) {
-            let content_length = resource.headers.get('content-length')
+        for (const resource of resources) {
+            const content_length = resource.headers.get('content-length')
             if (content_length) {
                 this.total_bytes += parseInt(content_length)
             } else {
                 missing_content_length = true
             }
-            let body = resource.clone().body
+            const body = resource.clone().body
             if (body) {
                 body.pipeTo(this.input_stream())
             } else {
@@ -341,18 +339,18 @@ export class Loader {
     /// Callback run on every new received byte stream.
     on_receive(new_bytes: number) {
         this.received_bytes += new_bytes
-        let time = performance.now()
-        let timeDiff = time - this.lastReceiveTime
+        const time = performance.now()
+        const timeDiff = time - this.lastReceiveTime
         if (timeDiff > 0) {
             this.download_speed = new_bytes / timeDiff
             this.lastReceiveTime = time
 
-            let percent = this.show_percentage_value()
-            let speed = this.show_download_speed()
-            let received = this.show_received_bytes()
+            const percent = this.show_percentage_value()
+            const speed = this.show_download_speed()
+            const received = this.show_received_bytes()
             console.log(`${percent}% (${received}) (${speed}).`)
 
-            let indicator_progress = this.value() * this.capProgressAt
+            const indicator_progress = this.value() * this.capProgressAt
             this.indicator.set(indicator_progress)
         }
         if (this.is_done()) {
@@ -384,7 +382,7 @@ export class Loader {
 
     /// Internal function for attaching new fetch responses.
     input_stream() {
-        let loader = this
+        const loader = this
         return new WritableStream({
             write(t) {
                 loader.on_receive(t.length)

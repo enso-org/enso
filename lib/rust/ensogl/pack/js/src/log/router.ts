@@ -25,7 +25,7 @@ class Router {
         this.buffer = []
         this.console = {}
         this.autoFlush = true
-        for (let name of consoleLogNames) {
+        for (const name of consoleLogNames) {
             this.console[name] = console[name]
             console[name] = (...args: any[]) => {
                 this.consume(name, args)
@@ -35,7 +35,7 @@ class Router {
 
     private auto_flush_on() {
         this.autoFlush = true
-        for (let { name, args } of this.buffer) {
+        for (const { name, args } of this.buffer) {
             this.console[name](...args)
         }
         this.buffer = []

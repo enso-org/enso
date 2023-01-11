@@ -9,7 +9,7 @@ export function polar_to_cartesian(
     radius: number,
     angle_degrees: number
 ): { x: number; y: number } {
-    let angle = ((angle_degrees - 90) * Math.PI) / 180.0
+    const angle = ((angle_degrees - 90) * Math.PI) / 180.0
     return {
         x: radius * Math.cos(angle),
         y: radius * Math.sin(angle),

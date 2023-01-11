@@ -93,8 +93,8 @@ fn compile_js(main: &str, out: &Path) {
 fn compile_ts(main: &str, out: &Path) {
     println!("Type checking TypeScript sources.");
     execute("npm", &["run", "typecheck"]);
-    // println!("Linting TypeScript sources.");
-    // execute("npm", &["run", "lint"]);
+    println!("Linting TypeScript sources.");
+    execute("npm", &["run", "lint"]);
     println!("Building TypeScript sources.");
     execute("npm", &["run", "build", "--", &format!("--outfile={}", out.display())]);
 }

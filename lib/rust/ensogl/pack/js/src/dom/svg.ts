@@ -23,8 +23,8 @@ export function arc(radius: number, end_angle: number): string {
         start_angle = end_angle
         end_angle = 0
     }
-    let start = math.polar_to_cartesian(radius, end_angle)
-    let end = math.polar_to_cartesian(radius, start_angle)
-    let large_arc = end_angle - start_angle <= 180 ? '0' : '1'
+    const start = math.polar_to_cartesian(radius, end_angle)
+    const end = math.polar_to_cartesian(radius, start_angle)
+    const large_arc = end_angle - start_angle <= 180 ? '0' : '1'
     return `M 0 0 L ${start.x} ${start.y} A ${radius} ${radius} 0 ${large_arc} 0 ${end.x} ${end.y}`
 }

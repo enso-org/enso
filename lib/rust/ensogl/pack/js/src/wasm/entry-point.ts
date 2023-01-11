@@ -38,7 +38,7 @@ export class EntryPoint {
      * 'file/path/from/repo/root.rs:line:column'. */
     displayName(): string {
         return this.strippedName.replace(NAME_REGEX, (...args) => {
-            let groups = args.at(-1)
+            const groups = args.at(-1)
             if (groups.underscore) {
                 return '_'
             } else {
@@ -94,7 +94,7 @@ export class EntryPoint {
 /** Return list of all WASM functions. The functions will be sorted by name in order to be sure that
  * the runtime results are always reproducible between builds. */
 export function wasmFunctions(wasm: any): string[] {
-    let names = Object.getOwnPropertyNames(wasm)
+    const names = Object.getOwnPropertyNames(wasm)
     names.sort()
     return names
 }

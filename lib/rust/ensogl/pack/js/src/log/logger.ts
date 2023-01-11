@@ -80,28 +80,28 @@ export abstract class Consumer {
 
     with<T>(message: string, f: () => T): T {
         this.group(message)
-        let out = f()
+        const out = f()
         this.groupEnd()
         return out
     }
 
     withCollapsed<T>(message: string, f: () => T): T {
         this.groupCollapsed(message)
-        let out = f()
+        const out = f()
         this.groupEnd()
         return out
     }
 
     async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
         this.group(message)
-        let out = await f()
+        const out = await f()
         this.groupEnd()
         return out
     }
 
     async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
         this.groupCollapsed(message)
-        let out = await f()
+        const out = await f()
         this.groupEnd()
         return out
     }
@@ -119,25 +119,25 @@ export class Logger extends Consumer {
     }
 
     message(fn: LogLevel, ...args: any[]) {
-        for (let consumer of this.consumers) {
+        for (const consumer of this.consumers) {
             consumer.message(fn, ...args)
         }
     }
 
     group(...args: any[]) {
-        for (let consumer of this.consumers) {
+        for (const consumer of this.consumers) {
             consumer.group(...args)
         }
     }
 
     groupCollapsed(...args: any[]) {
-        for (let consumer of this.consumers) {
+        for (const consumer of this.consumers) {
             consumer.groupCollapsed(...args)
         }
     }
 
     groupEnd(...args: any[]) {
-        for (let consumer of this.consumers) {
+        for (const consumer of this.consumers) {
             consumer.groupEnd(...args)
         }
     }
@@ -159,7 +159,7 @@ function replacer(key: string, value: any) {
 }
 
 export class Console extends Consumer {
-    private indent_lvl: number = 0
+    private indent_lvl = 0
 
     message(fn: LogLevel, ...args: any[]) {
         const strArgs = args.map(arg => {
@@ -188,7 +188,7 @@ export class Console extends Consumer {
             //@ts-ignore
             const coloredArgs = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
             if (this.indent_lvl > 0) {
-                let indent = this.indent()
+                const indent = this.indent()
                 const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}`))
                 c.log(this.indent_shorter(), ...indentedArgs)
             } else {
@@ -236,7 +236,7 @@ export class Console extends Consumer {
     private indent(): string {
         let out = ''
         for (let i = 0; i < this.indent_lvl; i++) {
-            let box = Colors.level(i, '│')
+            const box = Colors.level(i, '│')
             out += `${box} `
         }
         return out

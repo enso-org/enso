@@ -27,7 +27,7 @@ export class Param<T> {
     default: T
     value: T
     description: string
-    setByUser: boolean = false
+    setByUser = false
     constructor(value: T, description: string) {
         this.default = value
         this.value = value
@@ -88,7 +88,7 @@ export class Config {
 
     resolve(cfg: { overrides: any[] }): null | string[] {
         const allOverrides = {}
-        for (let override of cfg.overrides) {
+        for (const override of cfg.overrides) {
             Object.assign(allOverrides, override)
         }
         const unrecognizedParams = this.updateFromObject(allOverrides)
@@ -103,15 +103,15 @@ export class Config {
     // FIXME: handle numbers
     updateFromObject(other: { [key: string]: any }): null | string[] {
         const unrecognizedParams = new Set(Object.keys(other))
-        for (let key of Object.keys(this)) {
+        for (const key of Object.keys(this)) {
             unrecognizedParams.delete(key)
-            let self: any = this
-            let otherVal = other[key]
-            let selfParam = self[key]
-            let selfVal = selfParam.value
+            const self: any = this
+            const otherVal = other[key]
+            const selfParam = self[key]
+            const selfVal = selfParam.value
             if (otherVal != null) {
                 if (typeof selfVal === 'boolean') {
-                    let newVal = parseBoolean(otherVal)
+                    const newVal = parseBoolean(otherVal)
                     if (newVal == null) {
                         this.printValueUpdateError(key, selfVal, otherVal)
                     } else {
@@ -146,7 +146,7 @@ export class Config {
 
     strigifiedKeyValueMap(): { [key: string]: any } {
         const map: any = {}
-        for (let [key, param] of Object.entries(this)) {
+        for (const [key, param] of Object.entries(this)) {
             if (param.value) {
                 map[key] = param.value.toString()
             } else {
