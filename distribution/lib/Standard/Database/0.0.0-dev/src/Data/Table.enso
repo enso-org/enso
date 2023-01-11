@@ -23,7 +23,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column
+from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
@@ -624,7 +624,9 @@ type Table
        input table.
 
        When multiple rows have the same values within the specified columns, the
-       first row of each such set is returned.
+       first row of each such set is returned if possible, but in database
+       backends any row from each set may be returned (for example if the row
+       ordering is unspecified).
 
        For the in-memory table, the unique rows will be in the order they
        occurred in the input (this is not guaranteed for database operations).
@@ -649,8 +651,19 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
-        _ = [columns, case_sensitivity, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "`Table.distinct` is not yet implemented for the database backend.")
+        problem_builder = Problem_Builder.new
+        warning_mapper error = case error of
+            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
+            _ -> Nothing
+        key_columns = Warning.map_warnings_and_errors warning_mapper <|
+            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
+        text_case_insensitive = case case_sensitivity of
+            Case_Sensitivity.Sensitive -> False
+            Case_Sensitivity.Insensitive locale ->
+                Helpers.assume_default_locale locale <|
+                    True
+        new_table = self.connection.dialect.prepare_distinct self key_columns text_case_insensitive problem_builder
+        problem_builder.attach_problems_before on_problems new_table
 
     ## Joins two tables according to the specified join conditions.
 
@@ -800,7 +813,7 @@ type Table
             new_columns = partitioned.first
             problems = partitioned.second
             on_problems.attach_problems_before problems <|
-                self.updated_context_and_columns new_ctx new_columns
+                self.updated_context_and_columns new_ctx new_columns subquery=True
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -908,7 +921,7 @@ type Table
            computing too much we do not pass all the columns but only the first
            one.
         setup = self.context.as_subquery self.name [[self.internal_columns.first]]
-        new_ctx = Context.for_subquery setup.first
+        new_ctx = Context.for_subquery setup.subquery
         query = Query.Select [[column_name, expr]] new_ctx
         sql = self.connection.dialect.generate_sql query
         table = self.connection.read_statement sql
@@ -957,8 +970,8 @@ type Table
                Naively wrapping each column in a `COUNT(...)` will not
                always work as aggregates cannot be nested.
             setup = self.context.as_subquery self.name [self.internal_columns]
-            new_ctx = Context.for_subquery setup.first
-            new_columns = setup.second.first.map column->
+            new_ctx = Context.for_subquery setup.subquery
+            new_columns = setup.new_columns.first.map column->
                 [column.name, SQL_Expression.Operation "COUNT" [column.expression]]
             query = Query.Select new_columns new_ctx
             self.connection.dialect.generate_sql query
@@ -1007,8 +1020,24 @@ type Table
        Arguments:
        - ctx: The new context for this table.
        - internal_columns: The new columns to include in the table.
+       - subquery: A boolean indicating whether the operation should be wrapped
+         in a subquery. This is a simple workaround for operations which may be
+         affected by further operations if not wrapped. For example, a group-by
+         may need to be wrapped in this way if a filter is to be performed on it
+         later on. Ideally, this should be done only on demand, if the
+         subsequent operation needs it and operations like join should try to
+         avoid nesting subqueries without necessity. However, for now, for
+         simplicity, we are always wrapping brittle operations. This may be
+         revised in the future, to generate better and more concise SQL code.
     updated_context_and_columns : Context -> Vector Internal_Column -> Table
-    updated_context_and_columns self ctx internal_columns = Table.Value self.name self.connection internal_columns ctx
+    updated_context_and_columns self ctx internal_columns subquery=False = case subquery of
+        True ->
+            setup = ctx.as_subquery self.name [internal_columns]
+            new_ctx = Context.for_subquery setup.subquery
+            new_columns = setup.new_columns.first
+            Table.Value self.name self.connection new_columns new_ctx
+        False ->
+            Table.Value self.name self.connection internal_columns ctx
 
     ## PRIVATE
 

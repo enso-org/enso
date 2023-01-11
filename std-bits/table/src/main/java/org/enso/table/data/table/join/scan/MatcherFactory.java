@@ -13,7 +13,7 @@ import org.enso.table.data.table.join.Between;
 import org.enso.table.data.table.join.Equals;
 import org.enso.table.data.table.join.EqualsIgnoreCase;
 import org.enso.table.data.table.join.JoinCondition;
-import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 
 public class MatcherFactory {

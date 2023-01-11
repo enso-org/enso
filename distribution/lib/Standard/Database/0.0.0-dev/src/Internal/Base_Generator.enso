@@ -178,7 +178,7 @@ base_dialect =
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
-    text = [is_empty, bin "LIKE", simple_equals_ignore_case]
+    text = [is_empty, bin "LIKE", simple_equals_ignore_case, fold_case]
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     base_map = Map.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains)
@@ -293,6 +293,11 @@ generate_from_part dialect from_spec = case from_spec of
         sub = generate_query dialect (Query.Select columns context)
         sub.paren ++ alias dialect as_name
 
+
+## PRIVATE
+fold_case = lift_unary_op "FOLD_CASE" arg->
+    code "LOWER(UPPER(" ++ arg ++ "))"
+
 ## PRIVATE
 simple_equals_ignore_case = Base_Generator.lift_binary_op "equals_ignore_case" a-> b->
     code "LOWER(UPPER(" ++ a ++ ")) = LOWER(UPPER(" ++ b ++ "))"
@@ -377,10 +382,16 @@ generate_query : Internal_Dialect -> Query -> Builder
 generate_query dialect query = case query of
     Query.Select columns ctx ->
         gen_column pair = (generate_expression dialect pair.second) ++ alias dialect pair.first
-        cols = SQL.join ", " (columns.map gen_column)
-        code "SELECT " ++ cols ++ generate_select_context dialect ctx
-    Query.Select_All ctx ->
-        code "SELECT * " ++ generate_select_context dialect ctx
+        cols = case columns of
+            Nothing -> code "*"
+            _ -> SQL.join ", " (columns.map gen_column)
+        prefix = case ctx.distinct_on of
+            Nothing -> code ""
+            expressions : Vector ->
+                # TODO I just realised this does not make sense in other backends than Postgres, so we should probably fail in such cases; probably rewrite into a generic modifier? or a transform?
+                generated = SQL.join ", " (expressions.map (generate_expression dialect))
+                code "DISTINCT ON (" ++ generated ++ ") "
+        code "SELECT " ++ prefix ++ cols ++ generate_select_context dialect ctx
     Query.Insert table_name pairs ->
         generate_insert_query dialect table_name pairs
     _ -> Error.throw <| Unsupported_Database_Operation.Error "Unsupported query type."

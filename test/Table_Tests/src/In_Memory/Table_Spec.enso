@@ -709,33 +709,18 @@ spec =
        row of ones sharing the same distinctness key. For database tests (to be
        added later) we can not rely on ordering.
     Test.group "[In-Memory] Table.distinct" <|
-        Test.specify "should allow to select distinct rows based on a subset of columns" <|
+        Test.specify "should allow to select distinct rows based on a subset of columns, returning the first row from each group" <|
             a = ["A", ["a", "a", "a", "a", "a", "a"]]
             b = ["B", [1, 1, 2, 2, 1, 2]]
             c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
             t = Table.new [a, b, c]
-
-            r1 = t.distinct (Column_Selector.By_Name ["A"]) on_problems=Report_Error
-            r1.at "A" . to_vector . should_equal ["a"]
-            r1.at "B" . to_vector . should_equal [1]
-            r1.at "C" . to_vector . should_equal [0.1]
 
             r2 = t.distinct (Column_Selector.By_Name ["A", "B"]) on_problems=Report_Error
             r2.at "A" . to_vector . should_equal ["a", "a"]
             r2.at "B" . to_vector . should_equal [1, 2]
             r2.at "C" . to_vector . should_equal [0.1, 0.3]
 
-            r3 = t.distinct ["A"] on_problems=Report_Error
-            r3.at "A" . to_vector . should_equal ["a"]
-            r3.at "B" . to_vector . should_equal [1]
-            r3.at "C" . to_vector . should_equal [0.1]
-
-            r4 = t.distinct ["A", "B"] on_problems=Report_Error
-            r4.at "A" . to_vector . should_equal ["a", "a"]
-            r4.at "B" . to_vector . should_equal [1, 2]
-            r4.at "C" . to_vector . should_equal [0.1, 0.3]
-
-        Test.specify "should handle nulls correctly" <|
+        Test.specify "should handle nulls correctly and preserve original ordering" <|
             a = ["A", ["a", Nothing, "b", "a", "b", Nothing, "a", "b"]]
             b = ["B", [1, 2, 3, 4, 5, 6, 7, 8]]
             t = Table.new [a, b]
@@ -747,7 +732,7 @@ spec =
             t1 = Table.new [["X", ['ś', 's\u0301', 's', 'ś']]]
             t1.distinct . at "X" . to_vector . should_equal ['ś', 's']
 
-        Test.specify "should allow to control case-sensitivity of keys" <|
+        Test.specify "should allow to control case-sensitivity of keys, correctly handling Unicode folding" <|
             x = ["X", ['A', 'a', 'enso', 'śledź', 'Enso', 'A', 's\u0301ledz\u0301']]
             y = ["Y", [1, 2, 3, 4, 5, 6, 7]]
             t1 = Table.new [x, y]
@@ -767,14 +752,14 @@ spec =
             action1 = t1.distinct on_problems=_
             tester1 table =
                 table.at "X" . to_vector . should_equal [3.0, 1.0, 2.0]
-            problems1 = [Floating_Point_Grouping.Error "Distinct"]
+            problems1 = [Floating_Point_Grouping.Error "X"]
             Problems.test_problem_handling action1 problems1 tester1
 
             t2 = Table.new [["X", [1.00000000000001, -0.3, 1.00000000000002, 1.5, 1.00000000000002, 1.00000000000002]]]
             action2 = t2.distinct on_problems=_
             tester2 table =
                 table.at "X" . to_vector . should_equal [1.00000000000001, -0.3, 1.00000000000002, 1.5]
-            problems2 = [Floating_Point_Grouping.Error "Distinct"]
+            problems2 = [Floating_Point_Grouping.Error "X"]
             Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should report a warning and report the whole table if no columns were selected" <|
@@ -792,14 +777,6 @@ spec =
         Test.specify "until hashing is supported, should throw an error when trying to aggregate a custom object" <|
             t = Table.new [["X", [My.Data 1 2, My.Data 3 4, My.Data 1 2]]]
             t.distinct . should_fail_with Illegal_Argument.Error
-
-        Test.specify "should group by all columns by default" <|
-            a = ["A", ["a", "b", "a", "b", "a", "b"]]
-            b = ["B", [2, 1, 2, 2, 2, 1]]
-            t = Table.new [a, b]
-            r = t.distinct on_problems=Report_Error
-            r.at "A" . to_vector . should_equal ["a", "b", "b"]
-            r.at "B" . to_vector . should_equal [2, 1, 2]
 
     Test.group "[In-Memory] Table.filter" <|
         Test.specify "by a custom predicate" <|
