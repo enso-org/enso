@@ -41,6 +41,7 @@ public class PolyglotErrorTest {
     import Standard.Base.Error.Error
     import Standard.Base.Error.Illegal_State.Illegal_State
     import Standard.Base.Nothing.Nothing
+    import Standard.Base.Warning.Warning
     polyglot java import org.enso.interpreter.test.PolyglotErrorTest
 
     type TypeCa
@@ -66,12 +67,18 @@ public class PolyglotErrorTest {
 
         to_text self = 42
 
+    type TypeCe
+        Ce x
+
+        to_text self = Warning.attach "Some random warning" self.x
 
     panic x = case x of
         1 -> panic1
         2 -> panic2
         3 -> panic3
-        _ -> panic4
+        4 -> panic4
+        5 -> panic5
+        _ -> panic6
 
     panic1 = PolyglotErrorTest.bar (TypeCa.Ca 'x')
 
@@ -84,6 +91,9 @@ public class PolyglotErrorTest {
             "{Panic: "+caught_panic.payload.to_text+"}"
 
     panic4 = PolyglotErrorTest.bar (TypeCd.Cd Nothing)
+
+    panic5 = PolyglotErrorTest.bar (TypeCe.Ce "Foo")
+    panic6 = PolyglotErrorTest.bar (TypeCe.Ce 44)
     """;
     var src = Source.newBuilder("enso", code, "test.enso").build();
     var module = ctx.eval(src);
@@ -118,5 +128,19 @@ public class PolyglotErrorTest {
     var v = panic.execute(4);
     assertTrue("Is string", v.isString());
     assertEquals("[[Error in method `to_text` of [Cd Nothing]: Expected Text but got 42]]", v.asString());
+  }
+
+  @Test
+  public void panic5() {
+    var v = panic.execute(5);
+    assertTrue("Is string", v.isString());
+    assertEquals("[[Foo]]", v.asString());
+  }
+
+  @Test
+  public void panic6() {
+    var v = panic.execute(6);
+    assertTrue("Is string", v.isString());
+    assertEquals("[[Error in method `to_text` of [Ce 44]: Expected Text but got 44]]", v.asString());
   }
 }

@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Map;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -194,11 +195,19 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms, @Cached BranchProfile handleError) {
+  Text toDisplayString(
+    boolean allowSideEffects,
+    @CachedLibrary("this") InteropLibrary atoms,
+    @CachedLibrary(limit="3") WarningsLibrary warnings,
+    @Cached BranchProfile handleError
+  ) {
     Object result = null;
     String msg;
     try {
       result = atoms.invokeMember(this, "to_text");
+      if (warnings.hasWarnings(result)) {
+        result = warnings.removeWarnings(result);
+      }
       if (result instanceof DataflowError) {
         msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
       } else {
