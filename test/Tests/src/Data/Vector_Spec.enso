@@ -351,16 +351,23 @@ spec = Test.group "Vectors" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.index_of 4 . should_equal 3
         input.index_of (>3) . should_equal 3
-        input.index_of 2 start=3 . should_equal 5
         input.index_of 5 . should_equal Nothing
         [].index_of 5 . should_equal Nothing
+        input.index_of 2 start=3 . should_equal 5
+        input.index_of 2 start=-2 . should_equal 8
+        input.index_of 2 start=10 . should_equal Nothing
+        input.index_of 2 start=11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.specify "should allow finding the last index of a value" <|
         input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
         input.last_index_of 2 . should_equal 8
-        input.last_index_of 2 start=4 . should_equal 1
         input.last_index_of 5 . should_equal Nothing
         [].last_index_of 5 . should_equal Nothing
+        input.last_index_of 2 start=4 . should_equal 1
+        input.last_index_of 2 start=-1 . should_equal 8
+        input.last_index_of 2 start=10 . should_fail_with Index_Out_Of_Bounds.Error
+        input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.specify "should be convertible to a list" <|
         [].to_list . should_equal List.Nil

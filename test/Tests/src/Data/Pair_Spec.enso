@@ -101,7 +101,7 @@ spec =
             Pair.new 1 2 . should_equal (Pair.Value 1 2)
 
     type_spec "Pair - from Pair.new" Pair.new
-    type_spec "Pair - from Pair.Value" Pair.new
+    type_spec "Pair - from Pair.Value" Pair.Value
     type_spec "Pair - from 2-Item Vector" a->b->[a,b]
     type_spec "Pair - from 2-Item List" a->b->(List.Cons a (List.Cons b List.Nil))
 

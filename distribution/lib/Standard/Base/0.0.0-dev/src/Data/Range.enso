@@ -373,7 +373,7 @@ type Range
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
     last_index_of self element start=-1 =
         if self.is_empty && (start==-1 || start==0) then Nothing else
-            check_start_valid start self used_start->
+            check_start_valid start self include_end=False used_start->
                 case element of
                     _ : Integer -> get_index self 0 used_start element
                     _ : Function ->
@@ -435,11 +435,12 @@ throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 
 
 ## PRIVATE
    Check inputs are valid for a range
-check_start_valid start range function =
+check_start_valid start range function include_end=True =
     if range.step == 0 then throw_zero_step_error else
         self_len = range.length
         used_start = if start < 0 then start + self_len else start
-        if used_start < 0 || used_start > self_len then Error.throw (Index_Out_Of_Bounds.Error start self_len+1) else
+        max = if include_end then self_len+1 else self_len
+        if used_start < 0 || used_start >= max then Error.throw (Index_Out_Of_Bounds.Error start max) else
             function used_start
 
 ## PRIVATE
