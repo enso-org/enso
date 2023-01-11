@@ -93,13 +93,13 @@ public class PolyglotErrorTest {
   public void panic2() {
     var v = panic.execute(2);
     assertTrue("Is string", v.isString());
-    assertEquals("[[Cb y]]", v.asString());
+    assertEquals("[[Error in method `to_text` of [Cb y]: (Error: (Illegal_State.Error 'B' Nothing))]]", v.asString());
   }
 
   @Test
   public void panic3() {
     var v = panic.execute(3);
     assertTrue("Is string", v.isString());
-    assertEquals("[[Cc z]]", v.asString());
+    assertEquals("[[Panic in method `to_text` of [Cc z]: (Illegal_State.Error 'C' Nothing)]]", v.asString());
   }
 }

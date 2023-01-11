@@ -11,6 +11,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
@@ -87,13 +88,25 @@ public final class Atom implements TruffleObject {
    */
   @Override
   public String toString() {
-    return toString(10);
+    return toString(null, 10, null, null);
   }
 
   @CompilerDirectives.TruffleBoundary
-  private String toString(int depth) {
+  private String toString(String prefix, int depth, String suffix, Object obj) {
     StringBuilder sb = new StringBuilder();
+    if (prefix != null) {
+      sb.append(prefix);
+    }
     toString(sb, false, depth);
+    if (suffix != null) {
+      sb.append(suffix);
+    }
+    if (obj != null) {
+      var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
+      if (errorMessage != null) {
+        sb.append(errorMessage);
+      }
+    }
     return sb.toString();
   }
 
@@ -180,17 +193,25 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms) {
+  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms, @Cached BranchProfile handleError) {
+    Object result = null;
+    String msg;
     try {
-      return TypesGen.expectText(atoms.invokeMember(this, "to_text"));
-    } catch (UnsupportedMessageException
-        | AbstractTruffleException
-        | ArityException
-        | UnknownIdentifierException
-        | UnsupportedTypeException
-        | UnexpectedResultException e) {
-      return Text.create(this.toString(10));
+      result = atoms.invokeMember(this, "to_text");
+      return TypesGen.expectText(result);
+    } catch (AbstractTruffleException panic) {
+      handleError.enter();
+      msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
+    } catch (UnexpectedResultException dataflowError) {
+      handleError.enter();
+      msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
+    } catch (
+      UnsupportedMessageException | ArityException | UnknownIdentifierException | UnsupportedTypeException e
+    ) {
+      handleError.enter();
+      msg = this.toString(null, 10, null, null);
     }
+    return Text.create(msg);
   }
 
   @ExportMessage
