@@ -283,6 +283,8 @@ pub enum NotificationKind {
     },
     /// The metadata (e.g. some node's position) has been changed.
     MetadataChanged,
+    /// The whole content was reloaded from the language server.
+    Reloaded,
 }
 
 /// Notification about change in module content.

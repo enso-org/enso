@@ -676,7 +676,7 @@ pub struct FileEdit {
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct FileEditList {
-    pub edits:       Vec<FileEdit>,
+    pub edits: Vec<FileEdit>,
 }
 
 

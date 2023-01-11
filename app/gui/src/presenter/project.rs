@@ -346,7 +346,8 @@ impl Project {
             match notification.kind {
                 NotificationKind::Invalidate
                 | NotificationKind::CodeChanged { .. }
-                | NotificationKind::MetadataChanged => model.set_project_changed(true),
+                | NotificationKind::MetadataChanged
+                | NotificationKind::Reloaded => model.set_project_changed(true),
             }
             futures::future::ready(())
         });

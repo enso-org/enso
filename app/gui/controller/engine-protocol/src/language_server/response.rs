@@ -139,5 +139,5 @@ pub struct VcsStatus {
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct RestoreVcs {
-    pub changed:   Vec<Path>,
+    pub changed: Vec<Path>,
 }

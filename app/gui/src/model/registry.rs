@@ -18,7 +18,7 @@ use flo_stream::Subscriber;
 /// for sending through `Publisher`.
 #[derive(Clone, Debug, Fail)]
 #[fail(display = "Error while loading item")]
-struct LoadingError {}
+pub struct LoadingError {}
 
 
 
@@ -111,7 +111,7 @@ where K: Clone + Eq + Hash
         }
     }
 
-    async fn get(&self, key: &K) -> Result<Option<Rc<V>>, LoadingError> {
+    pub async fn get(&self, key: &K) -> Result<Option<Rc<V>>, LoadingError> {
         loop {
             let entry = self.registry.borrow_mut().get(key);
             match entry {

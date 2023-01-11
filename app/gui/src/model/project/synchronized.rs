@@ -480,8 +480,10 @@ impl Project {
         let publisher = self.notifications.clone_ref();
         let project_root_id = self.project_content_root_id();
         let language_server = self.json_rpc().clone_ref();
+        let parser = self.parser().clone_ref();
         let weak_suggestion_db = Rc::downgrade(&self.suggestion_db);
         let weak_content_roots = Rc::downgrade(&self.content_roots);
+        let weak_module_registry = Rc::downgrade(&self.module_registry);
         let execution_update_handler = self.execution_update_handler();
         move |event| {
             debug!("Received an event from the json-rpc protocol: {event:?}");
@@ -513,12 +515,18 @@ impl Project {
                     });
                 }
                 Event::Notification(Notification::TextDidChange(changes)) => {
-                    warn!("text changed: {:?}", changes);
-                    let file_path = changes.edits[0].path.clone();
-                    let language_server = language_server.clone_ref();
+                    let parser = parser.clone();
+                    let weak_module_registry = weak_module_registry.clone();
                     executor::global::spawn(async move {
-                        let opened = language_server.client.open_text_file(&file_path).await;
-                        warn!("File content: {:?}", opened);
+                        if let Some(module_registry) = weak_module_registry.upgrade() {
+                            for edit in changes.edits {
+                                let file_path = edit.path.clone();
+                                let module_path = module::Path::from_file_path(file_path).unwrap();
+                                let module =
+                                    module_registry.get(&module_path).await.unwrap().unwrap();
+                                module.reload_text_file(parser.clone()).await;
+                            }
+                        }
                     });
                 }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {

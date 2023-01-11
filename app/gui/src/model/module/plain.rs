@@ -63,7 +63,7 @@ impl Module {
     /// the module's state is guaranteed to remain unmodified and the notification will not be
     /// emitted.
     #[profile(Debug)]
-    fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
+    pub fn set_content(&self, new_content: Content, kind: NotificationKind) -> FallibleResult {
         if new_content == *self.content.borrow() {
             debug!("Ignoring spurious update.");
             return Ok(());

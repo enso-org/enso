@@ -193,6 +193,16 @@ impl Module {
         let language_server = language_server::Connection::new_mock_rc(client);
         Rc::new(Module { model, language_server })
     }
+
+    /// Reload file from language server.
+    pub async fn reload_text_file(&self, parser: Parser) -> FallibleResult {
+        let file_path = self.path();
+        self.language_server.client.close_text_file(file_path).await?;
+        let opened = self.language_server.client.open_text_file(file_path).await?;
+        let source = parser.parse_with_metadata(opened.content)?;
+        self.model.set_content(source, NotificationKind::Reloaded);
+        Ok(())
+    }
 }
 
 impl API for Module {
@@ -380,6 +390,10 @@ impl Module {
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
                     profiler::await_!(notify_ls, _profiler)
                 }
+                NotificationKind::Reloaded => {
+                    let verify_version = self.verify_ls_file_version(&new_file);
+                    profiler::await_!(verify_version, _profiler)
+                }
             },
         }
     }
@@ -487,6 +501,25 @@ impl Module {
         async move {
             ls_future_reply.await?;
             Ok(summary)
+        }
+    }
+
+    #[profile(Debug)]
+    fn verify_ls_file_version(
+        &self,
+        new_file: &SourceFile,
+    ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
+        let summary = ParsedContentSummary::from_source(new_file);
+        let client_version = Sha3_224::new(new_file.content.as_bytes());
+        let path = self.path().file_path();
+        let ls_future_reply = self.language_server.client.file_checksum(path);
+        async move {
+            let server_version = ls_future_reply.await?.checksum;
+            if server_version == client_version {
+                Ok(summary)
+            } else {
+                Err(failure::err_msg("Version mismatch!"))
+            }
         }
     }
 }
