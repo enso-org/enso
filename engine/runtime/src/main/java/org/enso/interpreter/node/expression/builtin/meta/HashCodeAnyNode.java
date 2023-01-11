@@ -6,9 +6,12 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -19,8 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.runtime.callable.UnresolvedConversion;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -38,8 +40,8 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
  *   <li>Whenever two objects are equal ({@code EqualsAnyNode} returns {@code true}), their hashcode
  *       should equal. More formally: {@code For all objects o1, o2: if o1 == o2 then hash(o1) ==
  *       hash(o2)}
- *   <li>Whenever two objects are different, their hash codes are different: {@code For all objects
- *       o1, o2: if o1 != o2 then hash(o1) != hash(o2)}
+ *   <li>Whenever two hash codes are different, their associated objects are different: {@code For all objects
+ *       o1, o2: if hash(o1) != hash(o2) then o1 != o2.
  * </ul>
  */
 @BuiltinMethod(type = "Any", name = "hash_code", description = "Returns hash code of the object.")
@@ -55,6 +57,16 @@ public abstract class HashCodeAnyNode extends Node {
   /** Specializations for primitive values **/
 
   @Specialization
+  long hashCodeForShort(short s) {
+    return s;
+  }
+
+  @Specialization
+  long hashCodeForByte(byte b) {
+    return b;
+  }
+
+  @Specialization
   long hashCodeForLong(long l) {
     return l;
   }
@@ -65,13 +77,18 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization
+  long hashCodeForFloat(float f) {
+    return Float.hashCode(f);
+  }
+
+  @Specialization
   long hashCodeForDouble(double d) {
     return d % 1.0 == 0.0 ? (int) d : Double.hashCode(d);
   }
 
   @Specialization
   long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-    return bigInteger.hashCode();
+    return bigInteger.getValue().hashCode();
   }
 
   @Specialization
