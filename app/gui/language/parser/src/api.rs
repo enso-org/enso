@@ -177,19 +177,22 @@ pub struct ParsedSourceFile<M> {
     pub metadata: M,
 }
 
-/// Helper for deserialization. `metadata` is filled with `default()` value if not present.
+/// Helper for deserialization. `metadata` is filled with `default()` value if not present or is
+/// invalid.
 ///
 /// [`PruneUnusedIds::prune_unused_ids`] is called on deserialization.
 #[derive(Deserialize)]
 struct ParsedSourceFileWithUnusedIds<Metadata> {
     ast:      ast::known::Module,
-    metadata: Option<Metadata>,
+    #[serde(bound(deserialize = "Metadata:Default+DeserializeOwned"))]
+    #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
+    metadata: Metadata,
 }
 
 impl<M: Metadata> From<ParsedSourceFileWithUnusedIds<M>> for ParsedSourceFile<M> {
     fn from(file: ParsedSourceFileWithUnusedIds<M>) -> Self {
         let ast = file.ast;
-        let mut metadata = file.metadata.unwrap_or_default();
+        let mut metadata = file.metadata;
         metadata.prune_unused_ids(&ast.id_map());
         Self { ast, metadata }
     }
