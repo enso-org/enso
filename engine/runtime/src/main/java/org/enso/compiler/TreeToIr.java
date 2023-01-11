@@ -69,7 +69,6 @@ import org.enso.syntax2.Line;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
-import org.enso.syntax2.TypeDefStatement;
 
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
@@ -210,22 +209,7 @@ final class TreeToIr {
         List<IR> irBody = nil();
         var typeName = buildName(def.getName(), true);
         for (var line : def.getBody()) {
-          var definition = line.getStatement();
-          switch (definition) {
-            case null -> {}
-            case TypeDefStatement.Binding bind -> irBody = translateTypeBodyExpression(bind.getStatement(), irBody);
-            case TypeDefStatement.TypeConstructorDef cons -> {
-              if (cons.getDocumentation() != null) {
-                irBody = cons(translateComment(def, cons.getDocumentation()), irBody);
-              }
-              var constructorName = buildName(inputAst, cons.getConstructor());
-              List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
-              var cAt = getIdentifiedLocation(inputAst);
-              var ir = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
-              irBody = cons(ir, irBody);
-            }
-            default -> {}
-          }
+          translateTypeBodyExpression(line.getExpression(), irBody);
         }
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         var type = new IR$Module$Scope$Definition$SugaredType(
@@ -328,6 +312,13 @@ final class TreeToIr {
     var inputAst = maybeManyParensed(exp);
     return switch (inputAst) {
       case null -> appendTo;
+      case Tree.ConstructorDefinition cons -> {
+        var constructorName = buildName(inputAst, cons.getConstructor());
+        List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
+        var cAt = getIdentifiedLocation(inputAst);
+        var ir = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+        yield cons(ir, appendTo);
+      }
       case Tree.TypeDef def -> {
         var ir = translateSyntaxError(def, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
         yield cons(ir, appendTo);

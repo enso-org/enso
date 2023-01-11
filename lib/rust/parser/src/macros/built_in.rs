@@ -300,39 +300,33 @@ fn type_def_body(matched_segments: NonEmptyVec<MatchedSegment>) -> syntax::Tree 
             *variant = syntax::token::Variant::Ident(opr_ident);
         }
     }
-    let lines = block.into_iter().map(|syntax::item::Line { newline, items }| block::Line {
+    let parse_line = |syntax::item::Line { newline, items }| block::Line {
         newline,
         expression: precedence.resolve(items),
-    });
-    let body = block::compound_lines(lines)
-        .map(|line| TypeDefLine {
-            newline:   line.newline,
-            statement: line.expression.map(to_body_statement),
-        })
+    };
+    let body = block::compound_lines(block.into_iter().map(parse_line))
+        .map(|line| line.map_expression(to_body_statement))
         .collect();
     Tree::type_def(header, name, params, body)
 }
 
-fn to_body_statement(line_expression: syntax::Tree<'_>) -> syntax::tree::TypeDefStatement<'_> {
+fn to_body_statement(mut line_expression: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
+    if let Tree { variant: box Variant::Documented(Documented { expression, .. }), .. } =
+        &mut line_expression
+    {
+        *expression = expression.take().map(to_body_statement);
+        return line_expression;
+    }
+    if let Tree { variant: box Variant::Annotated(Annotated { expression, .. }), .. } =
+        &mut line_expression
+    {
+        *expression = expression.take().map(to_body_statement);
+        return line_expression;
+    }
     let mut last_argument_default = default();
     let mut left_offset = crate::source::Offset::default();
-    let (documentation, inner) = match &line_expression {
-        Tree {
-            variant: box Variant::Documented(Documented { documentation, expression }),
-            span,
-        } =>
-            if let Some(expression) = expression {
-                let mut doc = documentation.clone();
-                doc.open.left_offset += span.left_offset.clone();
-                (Some(doc), expression)
-            } else {
-                let statement = crate::expression_to_statement(line_expression);
-                return TypeDefStatement::Binding { statement };
-            },
-        _ => (None, &line_expression),
-    };
-    let lhs = match &inner {
+    let lhs = match &line_expression {
         Tree {
             variant: box Variant::OprApp(OprApp { lhs: Some(lhs), opr: Ok(opr), rhs: Some(rhs) }),
             span,
@@ -361,28 +355,25 @@ fn to_body_statement(line_expression: syntax::Tree<'_>) -> syntax::tree::TypeDef
                 })
                 .collect();
             let arguments = default();
-            let constructor = TypeConstructorDef { documentation, constructor, arguments, block };
-            return TypeDefStatement::Constructor { constructor };
+            return Tree::constructor_definition(constructor, arguments, block);
         }
-        _ => inner,
+        _ => &line_expression,
     };
     let (constructor, mut arguments) = crate::collect_arguments(lhs.clone());
-    if let Tree { variant: box Variant::Ident(Ident { token }), span } = constructor && token.is_type {
-            let mut constructor = token;
-            constructor.left_offset += left_offset;
-            constructor.left_offset += span.left_offset;
-            if let Some((equals, expression)) = last_argument_default
-                    && let Some(ArgumentDefinition { open: None, default, close: None, .. })
-                    = arguments.last_mut() && default.is_none() {
-                *default = Some(ArgumentDefault { equals, expression });
-            }
-            let block = default();
-            let constructor =
-                TypeConstructorDef { documentation, constructor, arguments, block };
-            return TypeDefStatement::Constructor { constructor };
+    if let Tree { variant: box Variant::Ident(Ident { token }), span } = constructor
+            && token.is_type {
+        let mut constructor = token;
+        constructor.left_offset += left_offset;
+        constructor.left_offset += span.left_offset;
+        if let Some((equals, expression)) = last_argument_default
+                && let Some(ArgumentDefinition { open: None, default, close: None, .. })
+                = arguments.last_mut() && default.is_none() {
+            *default = Some(ArgumentDefault { equals, expression });
         }
-    let statement = crate::expression_to_statement(line_expression);
-    TypeDefStatement::Binding { statement }
+        let block = default();
+        return Tree::constructor_definition(constructor, arguments, block);
+    }
+    crate::expression_to_statement(line_expression)
 }
 
 /// Lambda expression.
