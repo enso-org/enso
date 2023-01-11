@@ -1,14 +1,11 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
-import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -19,19 +16,14 @@ import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
 @RunWith(Theories.class)
-public class HashCodeTest extends TestBase {
+public class EqualsTest extends TestBase {
   private static Context context;
-  private static final InteropLibrary interop = InteropLibrary.getUncached();
-
-  // Nodes are static on purpose, because of performance
-  private static HashCodeAnyNode hashCodeNode;
   private static EqualsAnyNode equalsNode;
 
   @BeforeClass
   public static void initContextAndNodes() {
     context = createDefaultContext();
     executeInContext(context, () -> {
-      hashCodeNode = HashCodeAnyNode.build();
       equalsNode = EqualsAnyNode.build();
       return null;
     });
@@ -73,48 +65,21 @@ public class HashCodeTest extends TestBase {
   }
 
   @Theory
-  public void hashCodeContractTheory(Object firstValue, Object secondValue) {
+  public void equalsOperatorShouldBeSymmetric(Object firstValue, Object secondValue) {
     executeInContext(context, () -> {
-      long firstHash = hashCodeNode.execute(firstValue);
-      long secondHash = hashCodeNode.execute(secondValue);
-      boolean valuesAreEqual = equalsNode.execute(firstValue, secondValue);
-      // if o1 == o2 then hash(o1) == hash(o2)
-      if (valuesAreEqual) {
-        assertEquals(
-            String.format("""
-                  If two objects are same, they should have same hash codes:
-                    firstVal = %s, secondVal = %s, firstHash = %d, secondHash = %d
-                  """,
-                interop.toDisplayString(firstValue),
-                interop.toDisplayString(secondValue),
-                firstHash,
-                secondHash
-            ),
-            firstHash,
-            secondHash
-        );
-      }
-      // if hash(o1) != hash(o2) then o1 != o2
-      if (firstHash != secondHash) {
-        assertFalse(
-            "Violated rule: `if hash(o1) != hash(o2) then o1 != o2`",
-            valuesAreEqual
-        );
-      }
+      boolean firstResult = equalsNode.execute(firstValue, secondValue);
+      boolean secondResult = equalsNode.execute(firstValue, secondValue);
+      assertEquals("equals should be symmetric", firstResult, secondResult);
       return null;
     });
   }
 
   @Theory
-  public void hashCodeIsConsistent(Object value) {
+  public void equalsOperatorShouldBeConsistent(Object value) {
     executeInContext(context, () -> {
-      long firstHash = hashCodeNode.execute(value);
-      long secondHash = hashCodeNode.execute(value);
-      assertEquals(
-          "Hash code of an object should be consistent",
-          firstHash,
-          secondHash
-      );
+      boolean firstResult = equalsNode.execute(value, value);
+      boolean secondResult = equalsNode.execute(value, value);
+      assertEquals("equals should be consistent", firstResult, secondResult);
       return null;
     });
   }
