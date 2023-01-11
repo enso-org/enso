@@ -206,10 +206,10 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
       case Tree.TypeDef def -> {
-        List<IR> irBody = nil();
         var typeName = buildName(def.getName(), true);
+        List<IR> irBody = nil();
         for (var line : def.getBody()) {
-          translateTypeBodyExpression(line.getExpression(), irBody);
+          irBody = translateTypeBodyExpression(line.getExpression(), irBody);
         }
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         var type = new IR$Module$Scope$Definition$SugaredType(
@@ -301,6 +301,13 @@ final class TreeToIr {
     return CollectionConverters.asScala(args.stream().map(p -> translateArgumentDefinition(p)).iterator()).toList();
   }
 
+  IR translateConstructorDefinition(Tree.ConstructorDefinition cons, Tree inputAst) {
+    var constructorName = buildName(inputAst, cons.getConstructor());
+    List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
+    var cAt = getIdentifiedLocation(inputAst);
+    return new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+  }
+
   /** Translates any expression that can be found in the body of a type
     * declaration from [[AST]] into [[IR]].
     *
@@ -312,13 +319,7 @@ final class TreeToIr {
     var inputAst = maybeManyParensed(exp);
     return switch (inputAst) {
       case null -> appendTo;
-      case Tree.ConstructorDefinition cons -> {
-        var constructorName = buildName(inputAst, cons.getConstructor());
-        List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
-        var cAt = getIdentifiedLocation(inputAst);
-        var ir = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
-        yield cons(ir, appendTo);
-      }
+      case Tree.ConstructorDefinition cons -> cons(translateConstructorDefinition(cons, inputAst), appendTo);
       case Tree.TypeDef def -> {
         var ir = translateSyntaxError(def, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
         yield cons(ir, appendTo);
