@@ -613,69 +613,6 @@ public class DebuggingEnsoTest {
     }
   }
 
-  // TODO[PM]: Re-enable (https://www.pivotaltracker.com/story/show/183854585)
-  @Test
-  @Ignore
-  public void unsafeRecursiveAtom() throws Exception {
-    Engine eng = Engine.newBuilder()
-      .allowExperimentalOptions(true)
-      .option(
-        RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-        Paths.get("../../test/micro-distribution/component").toFile().getAbsolutePath()
-      ).build();
-    Context ctx = Context.newBuilder()
-      .engine(eng)
-      .allowIO(true)
-      .allowHostClassLoading(true)
-      .allowHostClassLookup((c) -> true)
-      .build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    org.junit.Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
-
-    final URI onceUri = new URI("memory://once.enso");
-    final Source onesSrc = Source.newBuilder("enso", """
-        import Standard.Base.Runtime.Unsafe
-
-        type Gen
-            Empty
-            Generator a:Int tail:Gen
-
-        ones : Gen
-        ones =
-            g = Gen.Generator 1 Gen.Empty
-            Unsafe.set_atom_field g 1 g
-            g
-
-        next g = case g of
-            Gen.Generator a tail -> a
-            Gen.Empty -> -1
-        """, "ones.enso")
-            .uri(onceUri)
-            .buildLiteral();
-
-    var module = ctx.eval(onesSrc);
-    var ones = module.invokeMember("eval_expression", "ones");
-    var next = module.invokeMember("eval_expression", "next");
-
-
-    final var dbg = Debugger.find(eng);
-    final var values = new HashSet<String>();
-    try (var session = dbg.startSession((event) -> {
-      final DebugValue gVariable = findDebugValue(event, "g");
-      if (gVariable != null) {
-        final String str = gVariable.toDisplayString(false);
-        assertNotNull("The string shall always be computed for " + gVariable, str);
-        values.add(str);
-      }
-      event.getSession().suspendNextExecution();
-    })) {
-      session.suspendNextExecution();
-      var one = next.execute(ones);
-      Assert.assertEquals("First element from list of ones", 1, one.asInt());
-    }
-    Assert.assertEquals("Some values of g variable found: " + values, 1, values.size());
-  }
-
   private static DebugValue findDebugValue(SuspendedEvent event, final String n) throws DebugException {
     for (var v : event.getTopStackFrame().getScope().getDeclaredValues()) {
       if (v.getName().contains(n)) {

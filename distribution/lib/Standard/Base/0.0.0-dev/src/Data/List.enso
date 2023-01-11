@@ -7,7 +7,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
-import project.Runtime.Unsafe
+import project.Meta
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -185,13 +185,19 @@ type List
     filter : (Filter_Condition | (Any -> Boolean)) -> Vector Any
     filter self filter = case filter of
         _ : Filter_Condition -> self.filter filter.to_predicate
-        predicate : Function ->
-            go_filter list = case list of
-                Nil -> Nil
-                Cons h t ->
-                    rest = go_filter t
-                    if predicate h then Cons h rest else rest
-            go_filter self
+        predicate : Function -> case self of
+            Nil -> Nil
+            Cons x xs -> if predicate x . not then @Tail_Call xs.filter filter else
+                go list fill = case list of
+                    Nil -> fill Nil
+                    Cons h t -> if predicate h . not then @Tail_Call go t fill else
+                        res = Meta.atom_with_hole (Cons h _)
+                        fill res.value
+                        @Tail_Call go t res.fill
+
+                res = Meta.atom_with_hole (Cons x _)
+                go xs res.fill
+                res.value
 
     ## Applies a function to each element of the list, returning the list of
        results.
@@ -209,9 +215,18 @@ type List
     map self f = case self of
         Nil -> Nil
         Cons h t ->
-            res = Cons (f h) Nil
-            map_helper t res f
-            res
+            go : List -> Any -> (Any -> Any) -> Nothing
+            go list fill = case list of
+                Nil -> fill Nil
+                Cons h t ->
+                    v = f h
+                    res = Meta.atom_with_hole (Cons v _)
+                    fill res.value
+                    @Tail_Call go t res.fill
+            v = f h
+            res = Meta.atom_with_hole (Cons v _)
+            go t res.fill
+            res.value
 
     ## Applies a function to each element of the list.
 
@@ -281,7 +296,16 @@ type List
     take_start : Integer -> List
     take_start self count = if count <= 0 then Nil else case self of
         Nil -> Nil
-        Cons a b -> Cons a (b.take_start count-1)
+        Cons a b ->
+            go c l fill = if c <= 0 then fill Nil else case l of
+                Nil -> fill Nil
+                Cons a b ->
+                    res = Meta.atom_with_hole (Cons a _)
+                    fill res.value
+                    @Tail_Call go c-1 b res.fill
+            res = Meta.atom_with_hole (Cons a _)
+            go count-1 b res.fill
+            res.value
 
     ## Get the first element from the list.
 
@@ -319,12 +343,21 @@ type List
              example_init = Examples.list.init
     init : List ! Empty_Error
     init self =
-        init_fn x y = case y of
-            Nil -> Nil
-            Cons a b -> Cons x (init_fn a b)
         case self of
             Nil -> Error.throw Empty_Error
-            Cons a b -> init_fn a b
+            Cons _ Nil -> Nil
+            Cons a b ->
+                go l fill = case l of
+                    Cons x xs -> case xs of
+                        Nil -> fill Nil
+                        Cons _ _ ->
+                            res = Meta.atom_with_hole (Cons x _)
+                            fill res.value
+                            @Tail_Call go xs res.fill
+
+                res = Meta.atom_with_hole (Cons a _)
+                go b res.fill
+                res.value
 
     ## Get the last element of the list.
 
@@ -369,6 +402,13 @@ type List
             builder.append elem
         builder.to_vector
 
+    to_text : Text
+    to_text self =
+        go l t = case l of
+            Nil -> t + "Nil"
+            Cons x xs -> @Tail_Call go xs (t + "Cons " + x.to_text + " ")
+        go self ""
+
 ## UNSTABLE
 
    An error representing that the list is empty.
@@ -379,21 +419,3 @@ type Empty_Error
     to_display_text : Text
     to_display_text self = "The List is empty."
 
-## PRIVATE
-   A helper for the `map` function.
-
-   Arguments:
-   - list: The list to map over.
-   - cons: The current field to set.
-   - f: The function to apply to the value.
-
-   Uses unsafe field mutation under the hood, to rewrite `map` in
-   a tail-recursive manner. The mutation is purely internal and does not leak
-   to the user-facing API.
-map_helper : List -> Any -> (Any -> Any) -> Nothing
-map_helper list cons f = case list of
-    Nil -> Unsafe.set_atom_field cons 1 Nil
-    Cons h t ->
-        res = Cons (f h) Nil
-        Unsafe.set_atom_field cons 1 res
-        @Tail_Call map_helper t res f
