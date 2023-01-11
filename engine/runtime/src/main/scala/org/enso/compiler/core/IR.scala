@@ -2853,7 +2853,7 @@ object IR {
       override def children: List[IR] = List()
 
       /** @inheritdoc */
-      override def showCode(indent: Int): String = name
+      override def showCode(indent: Int): String = s"@$name"
     }
 
     /** The representation of annotations that can be found on module-level
@@ -2943,7 +2943,7 @@ object IR {
       override def children: List[IR] = List(argument)
 
       /** @inheritdoc */
-      override def showCode(indent: Int): String = name
+      override def showCode(indent: Int): String = s"@$name"
     }
 
     /** A representation of the name `self`, used to refer to the current type.

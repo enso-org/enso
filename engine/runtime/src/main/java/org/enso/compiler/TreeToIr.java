@@ -270,7 +270,7 @@ final class TreeToIr {
 
       case Tree.Annotated anno -> {
         var annotationArgument = translateExpression(anno.getArgument());
-        var annotation = new IR$Name$ModuleAnnotation("@" + anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
+        var annotation = new IR$Name$ModuleAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
         yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
       }
 
@@ -402,7 +402,7 @@ final class TreeToIr {
 
       case Tree.Annotated anno -> {
         var annotationArgument = translateExpression(anno.getArgument());
-        var annotation = new IR$Name$ModuleAnnotation("@" + anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
+        var annotation = new IR$Name$ModuleAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
         yield translateTypeBodyExpression(anno.getExpression(), cons(annotation, appendTo));
       }
 

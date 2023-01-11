@@ -12,6 +12,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
@@ -119,6 +120,14 @@ public final class Function implements TruffleObject {
   /** @return the name of this function. */
   public String getName() {
     return getCallTarget().getRootNode().getName();
+  }
+
+  public String getMethodName() {
+    RootNode rootNode = getCallTarget().getRootNode();
+    if (rootNode instanceof MethodRootNode methodRootNode) {
+      return methodRootNode.getMethodName();
+    }
+    return rootNode.getName();
   }
 
   /** @return the source section this function was defined in. */

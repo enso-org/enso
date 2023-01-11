@@ -232,7 +232,7 @@ public final class FunctionSchema {
    */
   public Function getAnnotation(String name) {
     return Arrays.stream(annotations)
-        .filter(fun -> name.equals(fun.getName()))
+        .filter(fun -> name.equals(fun.getMethodName()))
         .findFirst()
         .orElse(null);
   }

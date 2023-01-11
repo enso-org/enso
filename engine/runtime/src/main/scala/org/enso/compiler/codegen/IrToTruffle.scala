@@ -408,7 +408,7 @@ class IrToTruffle(
             val arguments  = bodyBuilder.args()
             // build annotations
             val annotationFunctions =
-              fn.getMetadata(ModuleAnnotations).toVector.flatMap { meta =>
+              methodDef.getMetadata(ModuleAnnotations).toVector.flatMap { meta =>
                 meta.annotations
                   .collect { case annotation: IR.Name.ModuleAnnotation =>
                     val annotationBodyBuilder =
