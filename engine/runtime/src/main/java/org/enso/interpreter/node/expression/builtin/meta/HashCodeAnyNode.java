@@ -3,7 +3,6 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
@@ -16,7 +15,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
-import com.oracle.truffle.api.profiles.ValueProfile;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -323,23 +321,27 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization(
-      guards = {"interop.hasIdentity(selfWithIdentity)"},
-      limit = "3")
-  long hashCodeForInteropWithIdentity(
-      Object selfWithIdentity,
-      @CachedLibrary("selfWithIdentity") InteropLibrary interop,
-      @Cached("createClassProfile()") ValueProfile objectClassProfile) {
-    try {
-      return interop.identityHashCode(objectClassProfile.profile(selfWithIdentity));
-    } catch (UnsupportedMessageException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Specialization(
       guards = {"interop.isNull(selfNull)"},
       limit = "3")
   long hashCodeForNull(Object selfNull, @CachedLibrary("selfNull") InteropLibrary interop) {
     return 0;
+  }
+
+  @Specialization(guards = "isHostObject(hostObject)")
+  long hashCodeForHostObject(Object hostObject,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
+    try {
+      Object hashCodeRes = interop.invokeMember(hostObject, "hashCode");
+      assert interop.fitsInInt(hashCodeRes);
+      return interop.asInt(hashCodeRes);
+    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
+             UnsupportedTypeException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  @TruffleBoundary
+  boolean isHostObject(Object object) {
+    return EnsoContext.get(this).getEnvironment().isHostObject(object);
   }
 }
