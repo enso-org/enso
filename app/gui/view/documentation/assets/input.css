@@ -8,3 +8,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.docs {
+    font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
+}

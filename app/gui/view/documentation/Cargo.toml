@@ -17,7 +17,7 @@ ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcod
 ide-view-graph-editor = { path = "../graph-editor" }
 wasm-bindgen = { workspace = true }
 serde_json = { version = "1.0" }
-xmlem = "0.2.1"
+horrorshow = "0.8.4"
 enso-suggestion-database = { path = "../../suggestion-database" }
 
 [dependencies.web-sys]

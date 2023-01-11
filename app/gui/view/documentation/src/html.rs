@@ -1,33 +1,34 @@
 use enso_prelude::*;
+use horrorshow::html;
+use horrorshow::owned_html;
+use horrorshow::prelude::*;
+
 use enso_suggestion_database::documentation_ir::Documentation;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::TypeDocumentation;
-use xmlem::Document;
-use xmlem::Element;
 
 const ICON_TYPE: &str = include_str!("../assets/icon-type.svg");
+const ICON_LIB: &str = include_str!("../assets/icon-lib.svg");
 
-fn append_element(
-    document: &mut Document,
-    root: &Element,
-    name: impl Str,
-    class: impl Str,
-) -> Element {
-    root.append_new_element(document, (name.as_ref(), [("class", class.as_ref())]))
+fn header(icon: &'static str, content: impl Render) -> impl Render {
+    owned_html! {
+        div(class="flex flex-row items-center") {
+            : Raw(icon);
+            div(class="ml-2") {
+                : &content;
+            }
+        }
+    }
 }
 
 pub fn render(docs: EntryDocumentation) -> String {
-    let mut result = xmlem::Document::new("div");
-    let root = result.root();
     match docs {
-        EntryDocumentation::Placeholder(_) => return String::from("Placeholder"),
+        EntryDocumentation::Placeholder(_) => String::from("Placeholder"),
         EntryDocumentation::Docs(docs) => match docs {
-            Documentation::Module(_) => {
-                append_element(&mut result, &root, "h1", "text-xl")
-                    .append_text(&mut result, "Module");
-                append_element(&mut result, &root, "p", "text-base")
-                    .append_text(&mut result, "Module docs");
+            Documentation::Module(_) => owned_html! {
+                : "Module docs";
             }
+            .to_string(),
             Documentation::Type(type_docs) => {
                 let TypeDocumentation {
                     name,
@@ -39,43 +40,61 @@ pub fn render(docs: EntryDocumentation) -> String {
                     examples,
                 } = &*type_docs;
 
-                let header_div = append_element(&mut result, &root, "div", "flex flex-row");
-                // let icon = Document::from_str("<svg></svg>").unwrap();
-                // header_div.append_element(&mut result, icon.root());
-
-                let header = append_element(&mut result, &header_div, "span", "text-xl");
-                append_element(&mut result, &header, "span", "text-fuchsia-600")
-                    .append_text(&mut result, name.name());
-                let arguments = arguments.iter().map(|arg| arg.name.clone()).join(", ");
-                append_element(&mut result, &header, "span", "text-fuchsia-300")
-                    .append_text(&mut result, &arguments);
-
-                append_element(&mut result, &root, "p", "text-base")
-                    .append_text(&mut result, "Type docs");
-                let list = append_element(&mut result, &root, "ul", "list-disc");
-                for constructor in constructors.iter() {
-                    append_element(&mut result, &list, "li", "text-base")
-                        .append_text(&mut result, &constructor.name.name());
+                let arguments =
+                    format!(" {}", arguments.iter().map(|arg| arg.name.clone()).join(", "));
+                let type_header = || {
+                    html! {
+                        span(class="text-2xl font-bold") {
+                            span(class="text-fuchsia-600") {
+                                : name.name()
+                            }
+                            span(class="text-fuchsia-300") {
+                                : &arguments
+                            }
+                        }
+                    }
+                };
+                let methods_header = || {
+                    owned_html! {
+                        h1(class="text-xl font-semibold text-blue-600") {
+                            : "Methods"
+                        }
+                    }
+                };
+                let examples_header = || {
+                    owned_html! {
+                        h1(class="text-xl font-semibold text-green-600") {
+                            : "Examples"
+                        }
+                    }
+                };
+                owned_html! {
+                    div(class="docs") {
+                        : header(ICON_TYPE, type_header());
+                        p(class="text-base") {
+                            : "Type docs"
+                        }
+                        ul(class="list-disc") {
+                            @ for constructor in constructors.iter() {
+                                li(class="text-base") {
+                                    : constructor.name.name()
+                                }
+                            }
+                        }
+                        : header(ICON_LIB, methods_header());
+                        ul(class="list-disc") {
+                            @ for method in methods.iter() {
+                                li(class="text-base") {
+                                    : method.name.name()
+                                }
+                            }
+                        }
+                        : header(ICON_LIB, examples_header());
+                    }
                 }
-
-                append_element(&mut result, &root, "h1", "text-xl text-blue-600")
-                    .append_text(&mut result, "Methods");
-                let list = append_element(&mut result, &root, "ul", "list-disc");
-                for method in methods.iter() {
-                    append_element(&mut result, &list, "li", "text-base")
-                        .append_text(&mut result, &method.name.name());
-                }
-
-
-                append_element(&mut result, &root, "h1", "text-xl text-green-600")
-                    .append_text(&mut result, "Examples");
+                .to_string()
             }
-            Documentation::Constructor { .. } => {}
-            Documentation::Method { .. } => {}
-            Documentation::ModuleMethod { .. } => {}
-            Documentation::Function { .. } => {}
-            Documentation::Local { .. } => {}
+            _ => String::from("Not implemented"),
         },
     }
-    root.display(&result)
 }
