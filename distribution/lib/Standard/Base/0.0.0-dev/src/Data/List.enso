@@ -80,12 +80,12 @@ type List
     get : Integer -> Any -> Any
     get self index ~if_missing=Nothing = case index >= 0 of
         True ->
-            loop index point = case point of
+            loop current index = case current of
                 Nil -> if_missing
-                Cons x xs -> if index == 0 then x else @Tail_Call loop (index - 1) xs
-            loop index self
+                Cons x xs -> if index == 0 then x else @Tail_Call loop xs (index - 1)
+            loop self index
         False ->
-            loop current count point = case point of
+            loop current count lagged = case lagged of
                 Nil -> if count == 0 then current.x else if_missing
                 Cons _ xs ->
                     new_current = if count > 0 then current else current.xs
