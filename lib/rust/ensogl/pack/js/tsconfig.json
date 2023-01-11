@@ -16,7 +16,7 @@
     "resolveJsonModule": true,
     "strict": true,
     "strictNullChecks": true,
-    "strictPropertyInitialization": false,
+    "strictPropertyInitialization": true,
     "target": "ES2019"
   },
   "ts-node": {

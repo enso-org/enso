@@ -98,79 +98,76 @@ async function compile_and_run_wasm(snippets_code: string, wasm: Buffer | Respon
 // === App ===
 // ===========
 
-type AppArgs = {
-    config?: Object
-}
-
 /** The main application class. */
 export class App {
-    args: Args
+    args: Args = new Args()
     packageInfo: PackageInfo
     config: Config
-    wasm: any
-    loader: Loader | null
+    wasm: any = null
+    loader: Loader | null = null
     logger: Logger
-    wasmFunctions: string[]
-    beforeMainEntryPoints: Map<string, EntryPoint>
-    mainEntryPoints: Map<string, EntryPoint>
-    task: Task | null
-    private initialized = false
+    wasmFunctions: string[] = []
+    beforeMainEntryPoints: Map<string, EntryPoint> = new Map()
+    mainEntryPoints: Map<string, EntryPoint> = new Map()
+    initialized = false
 
-    constructor(opts?: { config?: ExternalConfig; packageInfo: any }) {
+    constructor(opts?: { configExtension?: ExternalConfig; packageInfo: any; config?: Object }) {
         this.packageInfo = new PackageInfo(opts?.packageInfo ?? {})
         this.config = new Config()
-        if (opts?.config) {
-            this.config.extend(opts.config)
+        if (opts?.configExtension) {
+            this.config.extend(opts.configExtension)
         }
 
         this.logger = logger
-    }
 
-    init(appArgs?: AppArgs): boolean {
-        this.initialized = true
-        this.initBrowser()
         if (host.node) {
             this.args = parseArgs()
+        } else {
+            this.initBrowser()
         }
-        const inputConfig = appArgs?.config ?? {}
+        const inputConfig = opts?.config ?? {}
         const unrecognizedParams = this.config.resolve({
             overrides: [inputConfig, host.urlParams()],
         })
-        logger.log(`Resolved config:`, this.config.strigifiedKeyValueMap())
         if (unrecognizedParams) {
+            this.printResolvedConfig()
             this.showConfigOptions(unrecognizedParams)
-            return false
         } else {
-            return true
+            this.initialized = true
         }
+    }
+
+    printResolvedConfig() {
+        logger.log(`Resolved config:`, this.config.strigifiedKeyValueMap())
     }
 
     /** Runs the application. If it is run in the browser, it will initialize DOM elements, display
      * a loader, and list of entry points if the provided entry point is missing. If it is run in
      * node, it will run before main entry points and then the provided command. */
-    async run(appArgs?: AppArgs): Promise<void> {
+    async run(): Promise<void> {
         if (!this.initialized) {
-            if (!this.init(appArgs)) {
-                return
-            }
-        }
-        if (host.browser) {
-            await this.loadWasm()
-            this.runEntryPoints()
+            logger.log("App wasn't initialized properly. Skipping run.")
         } else {
-            if (this.args.genShadersCode.value) {
+            if (host.browser) {
+                this.printResolvedConfig()
                 await this.loadWasm()
-                this.runBeforeMainEntryPoints()
-                this.generateShadersCode()
+                this.runEntryPoints()
             } else {
-                this.args.printHelpAndExit()
+                await Task.asyncWith('Running the program.', async () => {
+                    if (this.args.genShadersCode.value) {
+                        this.printResolvedConfig()
+                        await this.loadWasm()
+                        this.runBeforeMainEntryPoints()
+                        this.generateShadersCode()
+                    } else {
+                        this.args.printHelpAndExit()
+                    }
+                })
             }
         }
-        if (this.task) this.task.end()
     }
 
     async loadWasm() {
-        if (host.node) this.task = Task.start('Running the program.')
         const { wasm, loader } = await load_wasm(this.config)
         this.wasm = wasm
         this.loader = loader

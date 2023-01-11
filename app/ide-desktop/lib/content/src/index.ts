@@ -173,13 +173,6 @@ class Config {
 
 class Main {
     async main(inputConfig: any) {
-        const app = new App({
-            config: new Config(),
-            packageInfo: {
-                version: BUILD_INFO.default.version,
-                engineVersion: BUILD_INFO.default.engineVersion,
-            },
-        })
         const config = Object.assign(
             {
                 mainWasmUrl: 'assets/main-opt.wasm',
@@ -187,7 +180,16 @@ class Main {
             },
             inputConfig
         )
-        if (app.init({ config })) {
+        const app = new App({
+            config,
+            configExtension: new Config(),
+            packageInfo: {
+                version: BUILD_INFO.default.version,
+                engineVersion: BUILD_INFO.default.engineVersion,
+            },
+        })
+
+        if (app.initialized) {
             let mixpanelLogger = null
             if (app.config.dataGathering.value) {
                 logger.log('Data gathering enabled. Initializing Mixpanel.')

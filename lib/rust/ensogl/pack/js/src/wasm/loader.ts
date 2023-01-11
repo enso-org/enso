@@ -281,7 +281,7 @@ export class Loader {
     initialized: Promise<void[]>
     capProgressAt: number
     done: Promise<void>
-    done_resolve: (value: void | PromiseLike<void>) => void
+    done_resolve: null | ((value: void | PromiseLike<void>) => void) = null
     constructor(resources: Response[], cfg: Config) {
         this.indicator = new ProgressIndicator(cfg)
         this.total_bytes = 0
@@ -356,7 +356,9 @@ export class Loader {
             this.indicator.set(indicator_progress)
         }
         if (this.is_done()) {
-            this.done_resolve()
+            if (this.done_resolve) {
+                this.done_resolve()
+            }
         }
     }
 

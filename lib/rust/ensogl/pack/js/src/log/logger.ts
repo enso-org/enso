@@ -189,7 +189,7 @@ export class Console extends Consumer {
             const coloredArgs = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
             if (this.indent_lvl > 0) {
                 let indent = this.indent()
-                const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}    `))
+                const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}`))
                 c.log(this.indent_shorter(), ...indentedArgs)
             } else {
                 c.log(...strArgs)
