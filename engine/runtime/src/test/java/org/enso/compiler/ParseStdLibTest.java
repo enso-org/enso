@@ -160,6 +160,7 @@ public final class ParseStdLibTest extends TestCase {
             // Files containing type expressions not supported by old parser.
             "Data/Index_Sub_Range.enso",
             "Data/Json.enso",
+            "Data/List.enso",
             "Data/Pair.enso",
             "Data/Range.enso",
             "Data/Sort_Column_Selector.enso",
