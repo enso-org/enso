@@ -16,7 +16,6 @@ use ide_view::graph_editor::component::visualization as visualization_view;
 use ide_view::graph_editor::EdgeEndpoint;
 
 
-
 // =============
 // === Nodes ===
 // =============
@@ -741,6 +740,28 @@ impl<'a> ViewChange<'a> {
         } else {
             None
         }
+    }
+
+    /// Determine if an expression span change is valid and has any effect. Returns node AST id.
+    /// Returns `None` if no changes to the expression are needed or when the span doesn't exist.
+    pub fn check_node_expression_span_update(
+        &self,
+        id: ViewNodeId,
+        crumbs: &span_tree::Crumbs,
+        new_span_expression: &str,
+    ) -> Option<AstNodeId> {
+        let mut nodes = self.nodes.borrow_mut();
+        let ast_id = nodes.ast_id_of_view(id)?;
+        let displayed = nodes.get_mut(ast_id)?;
+        let code = displayed.expression.code.as_str();
+
+        let port_ref = displayed.expression.input_span_tree.get_node(crumbs).ok()?;
+        let span = port_ref.span();
+        let span_as_range = enso_text::Range::new(span.start, span.end);
+        let span_expression = &code[span_as_range];
+        debug!("Checking expression span update: {} -> {}", span_expression, new_span_expression);
+        let expression_has_changed = span_expression != new_span_expression;
+        expression_has_changed.then_some(ast_id)
     }
 }
 
