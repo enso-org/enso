@@ -336,7 +336,7 @@ pub struct ShapeSystemModel {
     /// code. For example, the text system uses this field, as its material fully describes how to
     /// render glyphs.
     pub do_not_use_shape_definition: Rc<Cell<bool>>,
-    pub definition_path: Rc<Cell<&'static str>>,
+    pub definition_path: Rc<&'static str>,
 }
 
 impl ShapeSystemModel {
@@ -349,7 +349,7 @@ impl ShapeSystemModel {
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
-        let definition_path = Rc::new(Cell::new(definition_path));
+        let definition_path = Rc::new(definition_path);
         Self {
             sprite_system,
             shape,
@@ -440,7 +440,7 @@ impl ShapeSystemModel {
     /// Generates the shape again. It is called on shape definition change, e.g. after theme update.
     fn reload_shape(&self) {
         if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
-            .with_borrow(|map| map.get(self.definition_path.get()).cloned())
+            .with_borrow(|map| map.get(*self.definition_path).cloned())
         {
             self.material
                 .borrow_mut()

@@ -61,6 +61,7 @@ function git(command: string): string {
 
 // FIXME:
 const ensogl_app_path = path.resolve(js_glue_path, '..', 'app.js')
+const shaders_path = path.resolve(js_glue_path, '..', 'shaders')
 /**
  * Static set of files that are always copied to the output directory.
  */
@@ -71,6 +72,7 @@ const always_copied_files = [
     path.resolve(thisPath, 'src', 'docsStyle.css'),
     wasm_path,
     js_glue_path,
+    shaders_path,
 ]
 
 /**

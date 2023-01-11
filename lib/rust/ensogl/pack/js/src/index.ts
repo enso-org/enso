@@ -1,5 +1,7 @@
 import * as html_utils from 'dom/dom'
 import * as fs from 'system/fs'
+import * as path from 'path'
+import * as name from 'name'
 import host from 'system/host'
 import { Loader } from 'wasm/loader'
 import { Task } from 'log/task'
@@ -58,6 +60,9 @@ class PackageInfo {
  * initialized. */
 async function load_wasm(config: Config) {
     if (host.browser) {
+        const shadersList = await fetch(`${config.shadersUrl.value}/list.txt`)
+        console.log('!!!', shadersList)
+
         const mainJsUrl = config.mainJsUrl.value
         const mainWasmUrl = config.mainWasmUrl.value
         const task = Task.start(`Downloading files '${mainJsUrl}' and '${mainWasmUrl}'.`)
@@ -154,11 +159,12 @@ export class App {
                 this.runEntryPoints()
             } else {
                 await Task.asyncWith('Running the program.', async () => {
-                    if (this.args.genShadersCode.value) {
+                    const extractShadersPath = this.args.extractShaders.value
+                    if (extractShadersPath) {
                         this.printResolvedConfig()
                         await this.loadWasm()
                         this.runBeforeMainEntryPoints()
-                        this.generateShadersCode()
+                        await this.extractShaders(extractShadersPath)
                     } else {
                         this.args.printHelpAndExit()
                     }
@@ -213,11 +219,34 @@ export class App {
         }
     }
 
-    generateShadersCode() {
-        Task.with('Getting shaders code from EnsoGL.', () => {
-            // @ts-ignore
-            const out = rustGenShadersFn()
-            // console.log('got', out)
+    async extractShaders(target: string) {
+        await Task.asyncWith('Extracting shaders code.', async () => {
+            const shadersMap = Task.with('Getting shaders from Rust.', () => {
+                if (!rustGenShadersFn) {
+                    logger.error('The Rust shader extraction function was not registered.')
+                    return null
+                } else {
+                    const result = rustGenShadersFn()
+                    logger.log(`Got ${result.size} shader definitions.`)
+                    return result
+                }
+            })
+            if (shadersMap) {
+                await Task.asyncWith(`Writing shaders to '${target}'.`, async () => {
+                    await fs.rm(target, { recursive: true, force: true })
+                    await fs.mkdir(target)
+                    const fileNames = []
+                    for (const [codePath, code] of shadersMap) {
+                        const fileName = name.mangle(codePath)
+                        const filePath = path.join(target, fileName)
+                        await fs.writeFile(`${filePath}.vertex.glsl`, code.vertex)
+                        await fs.writeFile(`${filePath}.fragment.glsl`, code.fragment)
+                        fileNames.push(fileName)
+                    }
+                    const fileListPath = path.join(target, 'list.txt')
+                    await fs.writeFile(fileListPath, fileNames.join('\n'))
+                })
+            }
         })
     }
 
@@ -414,8 +443,10 @@ class HelpScreen {
 // // app.run()
 //
 
-let rustGenShadersFn: any = null
-function registerGetShadersRustFn(fn: any) {
+type ExtractShadersFn = () => Map<string, { vertex: string; fragment: string }>
+
+let rustGenShadersFn: null | ExtractShadersFn = null
+function registerGetShadersRustFn(fn: ExtractShadersFn) {
     logger.log(`Registering 'getShadersFn'.`)
     rustGenShadersFn = fn
 }

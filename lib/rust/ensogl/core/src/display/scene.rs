@@ -719,10 +719,13 @@ pub fn register_get_shaders() {
         // warn!(">>x2, {:?}", web_sys::window());
         // let world = World::new();
         // let scene = &world.default_scene;
-        let map = precompile_shaders();
+        let map = gather_shaders();
         let js_map = js_sys::Map::new();
-        for (key, value) in map {
-            js_map.set(&key.into(), &value.into());
+        for (key, code) in map {
+            let value = js_sys::Object::new();
+            js_sys::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
+            js_sys::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
+            js_map.set(&key.into(), &value);
         }
         js_map.into()
     }) as Box<dyn FnMut() -> JsValue>);
@@ -730,13 +733,14 @@ pub fn register_get_shaders() {
     mem::forget(closure);
 }
 
-pub fn precompile_shaders() -> HashMap<usize, String> {
+pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     let mut map = HashMap::new();
     display::world::STATIC_SHAPES.with(|shapes| {
-        for (i, shape_cons) in shapes.borrow().iter().enumerate() {
+        for shape_cons in shapes.borrow().iter() {
             let shape = shape_cons();
-            let code = shape.optimize_shader();
-            map.insert(i, code.fragment);
+            let path = shape.definition_path();
+            let code = shape.abstract_shader_code();
+            map.insert(path, code);
         }
     });
     map

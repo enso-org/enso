@@ -17,11 +17,11 @@ function camelToKebabCase(name: string) {
 // === Option ===
 // ==============
 
-class Option {
-    value: string | boolean
+class Option<T> {
+    value: T
     description: string
     type: string
-    constructor(value: string | boolean, description: string) {
+    constructor(value: T, description: string) {
         this.value = value
         this.description = description
         if (value === true || value === false) {
@@ -38,9 +38,10 @@ class Option {
 
 export class Args {
     help = new Option(false, 'Print help message.')
-    genShadersCode = new Option(
-        false,
-        'Generate a non-optimized shader code for static EnsoGL shape definitions.'
+    extractShaders = new Option(
+        'shaders',
+        'Extract non-optimized shaders code for static EnsoGL shape definitions. The argument is ' +
+            'the directory the shaders will be written to.'
     )
 
     parse() {
@@ -78,8 +79,12 @@ export class Args {
         console.log(`Options:`)
         for (const [fieldName, option] of Object.entries(this)) {
             const optionName = camelToKebabCase(fieldName)
+            let header = `--${optionName}`
+            if (option.type == 'string') {
+                header += `=[${option.value}]`
+            }
             console.log()
-            console.log(`--${optionName}`)
+            console.log(header)
             console.log(option.description)
         }
     }

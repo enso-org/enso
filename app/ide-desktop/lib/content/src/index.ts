@@ -99,71 +99,72 @@ class Config {
     )
     languageServerRpc: Param<string | null> = new Param(
         null,
-        `An address of the Language Server RPC endpoint. This argument should be provided together \
-        with \`languageServerData\` , \`namespace\`, and \`project\` options. They make Enso \
-        connect directly to the already spawned Language Server of some project.`
+        'An address of the Language Server RPC endpoint. This argument should be provided ' +
+            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
+            'Enso connect directly to the already spawned Language Server of some project.'
     )
     languageServerData: Param<string | null> = new Param(
         null,
-        `An address of the Language Server Data endpoint. This argument should be provided \
-        together with \`languageServerRpc\`, \`namespace\`, and \`project\` options. They make \
-        Enso connect directly to the already spawned Language Server of some project.`
+        'An address of the Language Server Data endpoint. This argument should be provided ' +
+            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
+            'Enso connect directly to the already spawned Language Server of some project.'
     )
     namespace: Param<string | null> = new Param(
         null,
-        `Informs the Enso about namespace of the opened project. May be used when connecting \
-        to existing Language Server process. Defaults to "local".`
+        'Informs Enso about namespace of the opened project. May be used when connecting to ' +
+            'existing Language Server process. Defaults to "local".'
     )
     platform: Param<string | null> = new Param(
         null,
-        `The host platform the app is running on. This is used to adjust some UI elements. For \
-        example, on macOS, the window close buttons are integrated to the top app panel.`
+        'The host platform the app is running on. This is used to adjust some UI elements. For ' +
+            'example, on macOS, the window close buttons are integrated to the top app panel.'
     )
     frame: Param<boolean> = new Param(
         false,
-        `Controls whether a window frame should be visible. Works in native app only.`
+        'Controls whether a window frame should be visible. Works in native app only.'
     )
     darkTheme: Param<boolean> = new Param(
         false,
-        `Controls whether the dark theme should be used. Please note that the dark theme is not \
-        fully implemented yet.`
+        'Controls whether the dark theme should be used. Please note that the dark theme is not ' +
+            'fully implemented yet.'
     )
     nodeLabels: Param<boolean> = new Param(true, `Controls whether node labels should be visible.`)
     dataGathering: Param<boolean> = new Param(
         true,
-        `Controls whether anonymous data gathering should be enabled.`
+        'Controls whether anonymous data gathering should be enabled.'
     )
-    isInCloud: Param<boolean> = new Param(false, `Information if the app is running in the cloud.`)
+    isInCloud: Param<boolean> = new Param(false, 'Information if the app is running in the cloud.')
     authenticationEnabled: Param<boolean> = new Param(
         true,
-        `Controls whether user authentication is enabled.`
+        'Controls whether user authentication is enabled.'
     )
-    email: Param<string | null> = new Param(null, `The user email, if any.`)
+    email: Param<string | null> = new Param(null, 'The user email, if any.')
     applicationConfigUrl: Param<string> = new Param(
         'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
         'The application config URL. Used to check for available updates.'
     )
     testWorkflow: Param<string | null> = new Param(
         null,
-        `When profiling the application (e.g. with the \`./run profile\` command), this argument \
-        chooses what is profiled.`
+        'When profiling the application (e.g. with the `./run profile` command), this argument ' +
+            'chooses what is profiled.'
     )
     skipMinVersionCheck: Param<boolean> = new Param(
         Version.isDev(),
-        `Controls whether the minimum engine version check should be performed. It is set to \
-         \`true\` in local builds.`
+        'Controls whether the minimum engine version check should be performed. It is set to ' +
+            '`true` in local builds.'
     )
     debug: Param<boolean> = new Param(
         Version.isDev(),
-        `Controls whether the application should be run in the debug mode. In this mode all logs \
-        are printed to the console. Otherwise, the logs are hidden unless explicitly shown by \
-        calling \`showLogs\`. Moreover, additional logs from libraries are printed in this mode, \
-        including Mixpanel logs. The debug mode is set to \`true\` by default in local builds.`
+        'Controls whether the application should be run in the debug mode. In this mode all logs ' +
+            'are printed to the console. Otherwise, the logs are hidden unless explicitly shown ' +
+            'by calling `showLogs`. Moreover, additional logs from libraries are printed in ' +
+            'this mode, including Mixpanel logs. The debug mode is set to `true` by default in ' +
+            'local builds.'
     )
     preferredEngineVersion: Param<SemVer> = new Param(Version.ide, `The preferred engine version.`)
     enableNewComponentBrowser: Param<boolean> = new Param(
         true,
-        `Controls whether the new component browser should be enabled.`
+        'Controls whether the new component browser should be enabled.'
     )
 }
 
@@ -177,6 +178,7 @@ class Main {
             {
                 mainWasmUrl: 'assets/main-opt.wasm',
                 mainJsUrl: 'assets/main.js',
+                shadersUrl: 'assets/shaders',
             },
             inputConfig
         )

@@ -1,13 +1,14 @@
 /* WASM entry point definition. An entry point is a WASM function exported from Rust that was marked
 as an entry point. */
 
+import * as name from '../name'
+
 // =================
 // === Constants ===
 // =================
 
 export const MAIN_ENTRY_POINT_PREFIX = 'entry_point_'
 export const BEFORE_MAIN_ENTRY_POINT_PREFIX = 'before_main_entry_point_'
-export const NAME_REGEX = new RegExp(String.raw`(?<underscore>__)|(_(?<specialChar>[0-9]+)_)`, 'g')
 
 // ==================
 // === EntryPoint ===
@@ -37,14 +38,7 @@ export class EntryPoint {
      * mangled to contain the path and location information. This converts them to a form of
      * 'file/path/from/repo/root.rs:line:column'. */
     displayName(): string {
-        return this.strippedName.replace(NAME_REGEX, (...args) => {
-            const groups = args.at(-1)
-            if (groups.underscore) {
-                return '_'
-            } else {
-                return String.fromCharCode(parseInt(groups.specialChar))
-            }
-        })
+        return name.unmangle(this.strippedName)
     }
 
     /** Try parsing the name as the provided entry point type. If the name does not start with the

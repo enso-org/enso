@@ -119,7 +119,7 @@ impl {
         }
     }
 
-    pub fn optimize_shader(&self) -> crate::system::gpu::shader::Code {
+    pub fn abstract_shader_code(&self) -> crate::system::gpu::shader::Code {
         let bindings = self.collect_variables().into_iter().map(|mut binding| {
             binding.scope = Some(ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance));
             binding

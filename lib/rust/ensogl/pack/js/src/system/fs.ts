@@ -1,11 +1,22 @@
 /** This module redefines some `node:fs` functions with embedded logging, so it is easy to track
  * what they do.*/
 
-import { ObjectEncodingOptions, OpenMode, PathLike } from 'node:fs'
+import {
+    MakeDirectoryOptions,
+    Mode,
+    ObjectEncodingOptions,
+    OpenMode,
+    PathLike,
+    RmDirOptions,
+    RmOptions,
+} from 'node:fs'
 import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'
 import { promises as fs } from 'fs'
 import { Task as LoggedTask } from 'log/task'
+import * as path from 'path'
+import { logger } from '../log/logger'
+import { Stream } from 'node:stream'
 
 // ================
 // === readFile ===
@@ -44,4 +55,67 @@ export async function readFile(
     return LoggedTask.asyncWith(`Reading file '${path}'.`, async () => {
         return await fs.readFile(path, options)
     })
+}
+
+// ==============
+// === unlink ===
+// ==============
+
+export async function unlink(path: PathLike): Promise<void> {
+    logger.log(`Removing file '${path}'.`)
+    return await fs.unlink(path)
+}
+
+// =============
+// === rmdir ===
+// =============
+
+export async function rmdir(path: PathLike, options?: RmDirOptions): Promise<void> {
+    logger.log(`Removing directory '${path}'.`)
+    return await fs.rmdir(path)
+}
+
+// =============
+// === mkdir ===
+// =============
+
+export async function mkdir(
+    path: PathLike,
+    options?: Mode | MakeDirectoryOptions | null
+): Promise<string | undefined> {
+    logger.log(`Creating directory '${path}'.`)
+    return await fs.mkdir(path, options)
+}
+
+// ==========
+// === rm ===
+// ==========
+
+export async function rm(path: PathLike, options?: RmOptions): Promise<void> {
+    logger.log(`Removing '${path}'.`)
+    return await fs.rm(path, options)
+}
+
+// =================
+// === writeFile ===
+// =================
+
+export async function writeFile(
+    file: PathLike | FileHandle,
+    data:
+        | string
+        | NodeJS.ArrayBufferView
+        | Iterable<string | NodeJS.ArrayBufferView>
+        | AsyncIterable<string | NodeJS.ArrayBufferView>
+        | Stream,
+    options?:
+        | (ObjectEncodingOptions & {
+              mode?: Mode | undefined
+              flag?: OpenMode | undefined
+          } & Abortable)
+        | BufferEncoding
+        | null
+): Promise<void> {
+    logger.log(`Writing file '${file}'.`)
+    return await fs.writeFile(file, data, options)
 }

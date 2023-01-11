@@ -148,6 +148,11 @@ fn main() {
         for path in paths {
             println!("Name: {}", path.unwrap().path().display())
         }
+
+        let shaders_dir = target_dist_dir.join("shaders");
+        let shaders_list_path = shaders_dir.join("list.txt");
+        std::fs::create_dir(&shaders_dir);
+        std::fs::write(&shaders_list_path, "test").unwrap();
         println!("DONE!");
 
 
