@@ -787,7 +787,6 @@ pub mod test {
         assert_eq!(qualified.to_string(), "n.P.Foo.Bar");
     }
 
-    /// Test that the format of metadata did not change.
     #[wasm_bindgen_test]
     fn outdated_metadata_parses() {
         // Metadata here will fail to serialize because `File` is not a valid qualified name.
@@ -796,7 +795,7 @@ pub mod test {
 
 
 #### METADATA ####
-[[{"index":{"value":5},"size":{"value":8}},"bd891b65-4c2f-4c05-bc3b-6077b4417cc1"]]
+[]
 {"ide":{"node":{"bd891b65-4c2f-4c05-bc3b-6077b4417cc1":{"position":{"vector":[-75.5,52]},"intended_method":{"module":"Base.System.File","defined_on_type":"File","name":"read"}}}}}"#;
         let result = Parser::new_or_panic().parse_with_metadata::<Metadata>(code.into());
         let file = result.unwrap();
@@ -806,26 +805,6 @@ pub mod test {
         let node = file.metadata.ide.node.get(&id).unwrap();
         assert_eq!(node.position, Some(Position::new(-75.5, 52.0)));
         assert_eq!(node.intended_method, None);
-    }
-
-    /// Test that nodes with IDs not present in the idmap are removed on loading.
-    #[wasm_bindgen_test]
-    fn unused_ids_are_removed() {
-        let code = r#"main = 5
-
-
-#### METADATA ####
-[[{"index":{"value":5},"size":{"value":8}},"bd891b65-4c2f-4c05-bc3b-6077b4417cc1"],[{"index":{"value":13},"size":{"value":1}},"b07eaee6-4bce-4e5e-8b02-5ab38a9c2225"]]
-{"ide":{"node":{"bd891b65-4c2f-4c05-bc3b-6077b4417cc1":{"position":{"vector":[-75.5,52]},"intended_method":{"module":"Base.System.File","defined_on_type":"File","name":"read"}},"785c052b-da86-473c-a52e-928501f54715":{"position":{"vector":[-100.0,80.0]},"intended_method":null,"uploading_file":null,"selected":false,"visualization":null}}}}"#;
-        let result = Parser::new_or_panic().parse_with_metadata::<Metadata>(code.into());
-        let file = result.unwrap();
-        assert_eq!(file.ast.repr(), "main = 5");
-        assert_eq!(file.metadata.ide.node.len(), 1);
-        let present_id = ast::Id::from_str("bd891b65-4c2f-4c05-bc3b-6077b4417cc1").unwrap();
-        let node = file.metadata.ide.node.get(&present_id).unwrap();
-        assert_eq!(node.position, Some(Position::new(-75.5, 52.0)));
-        assert_eq!(node.intended_method, None);
-        let missing_id = ast::Id::from_str("785c052b-da86-473c-a52e-928501f54715").unwrap();
-        assert!(file.metadata.ide.node.get(&missing_id).is_none());
+        assert_eq!(file.metadata.rest, serde_json::Value::Object(default()));
     }
 }
