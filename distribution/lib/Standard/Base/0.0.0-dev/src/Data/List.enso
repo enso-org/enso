@@ -120,10 +120,11 @@ type List
         res
 
     ## Combines all the elements of a non-empty list using a binary operation.
-       If the list is empty, it throws an `Empty_Error`.
+       If the list is empty, it returns `if_empty`.
 
        Arguments:
        - function: A binary operation that takes two items and combines them.
+       - if_empty: Value returned if the list is empty.
 
        > Example
          Compute the sum of all the elements in a list.
@@ -131,9 +132,9 @@ type List
              import Standard.Examples
 
              example_fold = Examples.list.reduce (+)
-    reduce : (Any -> Any -> Any) -> Any ! Empty_Error
-    reduce self function = case self of
-        Nil -> Error.throw Empty_Error
+    reduce : (Any -> Any -> Any) -> Any -> Any
+    reduce self function ~if_empty=(Error.throw Empty_Error) = case self of
+        Nil -> if_empty
         Cons x xs -> xs.fold x function
 
     ## Checks whether any element of the list matches the given predicate.
@@ -463,7 +464,7 @@ type List
         go self "" ""
 
     ## Returns the first element of the list that satisfies the predicate or
-       if no elements of the vector satisfy the predicate, throws `Not_Found`.
+       if no elements of the list satisfy the predicate, returns `if_missing`.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean

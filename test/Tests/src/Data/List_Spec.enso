@@ -23,6 +23,7 @@ spec = Test.group "List" <|
         l.reduce (+) . should_equal 6
         l.reduce (*) . should_equal 6
         empty.reduce (+) . should_fail_with Empty_Error
+        empty.reduce (+) 0 . should_equal 0
     Test.specify "should allow checking if an element satisfies a predicate with .any" <|
         any_even = l.any (x -> x % 2 == 0)
         any_eq_five = l.any (== 5)

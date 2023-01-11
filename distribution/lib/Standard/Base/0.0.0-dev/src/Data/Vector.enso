@@ -241,21 +241,21 @@ type Vector a
         built.to_vector
 
     ## Combines all the elements of a non-empty vector using a binary operation.
+       If the vector is empty, it returns `if_empty`.
 
        Arguments:
        - function: A binary operation that takes two items and combines them.
-
-       If the vector is empty, it throws an `Empty_Error`.
+       - if_empty: Value returned if the vector is empty.
 
        > Example
          Compute the sum of all the elements in a vector.
 
              [0, 1, 2] . reduce (+)
-    reduce : (Any -> Any -> Any) -> Any ! Empty_Error
-    reduce self function =
+    reduce : (Any -> Any -> Any) -> Any -> Any
+    reduce self function ~if_empty=(Error.throw Empty_Error) =
         len = self.length
         case len of
-            0 -> Error.throw Empty_Error
+            0 -> if_empty
             1 -> self.at 0
             _ ->
                 fold_function current idx =
@@ -264,7 +264,8 @@ type Vector a
                 fold_function (self.at 0) 1
 
     ## Returns the first element of the vector that satisfies the predicate or
-       if no elements of the vector satisfy the predicate, throws `Not_Found`.
+       if no elements of the vector satisfy the predicate, returns
+       `if_missing`.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean

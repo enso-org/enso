@@ -131,6 +131,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow to reduce elements if it is non-empty" <|
         [1,2,3].reduce (+) . should_equal 6
         [].reduce (+) . should_fail_with Empty_Error
+        [].reduce (+) 0 . should_equal 0
 
     Test.specify "should check any" <|
         vec = [1, 2, 3, 4, 5]
