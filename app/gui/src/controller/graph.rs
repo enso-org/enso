@@ -870,6 +870,34 @@ impl Handle {
         Ok(())
     }
 
+    /// Updates the given node's expression by rewriting a part of it, as specified by span crumbs.
+    ///
+    /// This will not modify AST IDs of any part of the expression that is not selected by the
+    /// crumbs.
+    #[profile(Debug)]
+    pub fn set_expression_span(
+        &self,
+        id: ast::Id,
+        crumbs: &span_tree::Crumbs,
+        expression_text: impl Str,
+        context: &impl SpanTreeContext,
+    ) -> FallibleResult {
+        let node_ast = self.node_info(id)?.expression();
+        let node_span_tree: SpanTree = SpanTree::new(&node_ast, context)?;
+        let port = node_span_tree.get_node(crumbs)?;
+        let new_node_ast = if expression_text.as_ref().is_empty() {
+            if port.is_action_available(Action::Erase) {
+                port.erase(&node_ast)?
+            } else {
+                port.set(&node_ast, Ast::blank())?
+            }
+        } else {
+            let new_expression_ast = self.parse_node_expression(expression_text)?;
+            port.set(&node_ast, new_expression_ast)?
+        };
+        self.set_expression_ast(id, new_node_ast)
+    }
+
     /// Set node's position.
     pub fn set_node_position(
         &self,

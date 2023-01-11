@@ -408,20 +408,22 @@ object SearchProtocol {
       * @param returnType the return type to update
       * @param documentation the documentation string to update
       * @param documentationHtml the HTML documentation to update
+      * @param documentationSections the documentation sections to update
       * @param scope the scope to update
       * @param reexport the module reexporting the suggestion
       */
     case class Modify(
       id: SuggestionId,
-      externalId: Option[FieldUpdate[Suggestion.ExternalId]] = None,
-      arguments: Option[Seq[SuggestionArgumentUpdate]]       = None,
-      module: Option[FieldUpdate[String]]                    = None,
-      selfType: Option[FieldUpdate[String]]                  = None,
-      returnType: Option[FieldUpdate[String]]                = None,
-      documentation: Option[FieldUpdate[String]]             = None,
-      documentationHtml: Option[FieldUpdate[String]]         = None,
-      scope: Option[FieldUpdate[Suggestion.Scope]]           = None,
-      reexport: Option[FieldUpdate[String]]                  = None
+      externalId: Option[FieldUpdate[Suggestion.ExternalId]]      = None,
+      arguments: Option[Seq[SuggestionArgumentUpdate]]            = None,
+      module: Option[FieldUpdate[String]]                         = None,
+      selfType: Option[FieldUpdate[String]]                       = None,
+      returnType: Option[FieldUpdate[String]]                     = None,
+      documentation: Option[FieldUpdate[String]]                  = None,
+      documentationHtml: Option[FieldUpdate[String]]              = None,
+      documentationSections: Option[FieldUpdate[Seq[DocSection]]] = None,
+      scope: Option[FieldUpdate[Suggestion.Scope]]                = None,
+      reexport: Option[FieldUpdate[String]]                       = None
     ) extends SuggestionsDatabaseUpdate
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
