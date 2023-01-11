@@ -222,6 +222,9 @@ object SuggestionDiff {
     if (e1.scope != e2.scope) {
       op = op.copy(scope = Some(e2.scope))
     }
+    if (e1.documentation != e2.documentation) {
+      op = op.copy(documentation = Some(e2.documentation))
+    }
     Api.SuggestionUpdate(e1, op)
   }
 
@@ -238,6 +241,9 @@ object SuggestionDiff {
     }
     if (e1.scope != e2.scope) {
       op = op.copy(scope = Some(e2.scope))
+    }
+    if (e1.documentation != e2.documentation) {
+      op = op.copy(documentation = Some(e2.documentation))
     }
     Api.SuggestionUpdate(e1, op)
   }

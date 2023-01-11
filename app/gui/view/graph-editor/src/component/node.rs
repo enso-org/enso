@@ -325,7 +325,12 @@ ensogl::define_endpoints_2! {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
+        /// Emitted when node expression is modified as a whole. Does not include partial changes on
+        /// individual spans, which are emitted via `expression_span` output.
         expression               (ImString),
+        /// Emitted when node expression is edited in context of specific span. Does not include
+        /// changes to the expression as a whole, which are emitted via `expression` output.
+        expression_span          (span_tree::Crumbs, ImString),
         comment                  (Comment),
         skip                     (bool),
         freeze                   (bool),
@@ -740,6 +745,7 @@ impl Node {
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
             out.expression                  <+ model.input.frp.expression;
+            out.expression_span             <+ model.input.frp.on_port_code_update;
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;

@@ -602,6 +602,15 @@ interface Function {
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface Local {
@@ -619,6 +628,15 @@ interface Local {
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 ```
 
@@ -939,6 +957,11 @@ interface Modify {
    * The documentation string to update.
    */
   documentation?: FieldUpdate<String>;
+
+  /**
+   * New documentation sections.
+   */
+  documentationSections?: FieldUpdate<DocSection[]>;
 
   /**
    * The scope to update.
