@@ -103,9 +103,6 @@ type Any
     == : Any -> Boolean
     == self that = @Builtin_Method "Any.=="
 
-    hash_code : Integer
-    hash_code self = @Builtin_Method "Any.hash_code"
-
     ## ALIAS Inequality
 
        Checks if `self` is not equal to `that`.
