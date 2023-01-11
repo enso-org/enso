@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+import project.Data.Match_Columns.Match_Columns
+import project.Data.Report_Unmatched.Report_Unmatched
+import project.Internal.Problem_Builder.Problem_Builder
+
+## PRIVATE
+   A helper that encapsulates the common backend-agnostic logic of matching
+   columns in `Table.union`.
+
+   It matches columns according to the provided matching settings and returns a
+   list of lists of columns to be merged.
+
+   Each list of columns corresponds to one resulting column in the merged table.
+   All columns in a given list are in the same order as the input tables - the
+   first column corresponds to the first table etc. That row order should be
+   preserved in the resulting table.
+
+   In case a table did not contain a column that has been matched to one of the
+   groups, the column list will contain `Nothing` on the place corresponding to
+   that table to indicate the lack of matched column there. In that case, an
+   appropriate amount of missing values will need to be added to the resulting
+   column.
+
+   The lists of columns are present in the order in which the corresponding
+   merged columns should appear in the resulting table.
+match_columns tables matching_mode keep_unmatched_columns = case matching_mode of
+    Match_Columns.By_Name ->
+        ## TODO do actual matching!
+        case tables.all table-> table.column_names == tables.first.column_names of
+            True ->
+                Vector.new tables.first.columns.length i->
+                    tables.map table-> table.at i
+            False -> Error.throw "TODO!"
+    Match_Columns.By_Position -> Error.throw "TODO"

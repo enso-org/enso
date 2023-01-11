@@ -19,8 +19,24 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    materialize = setup.materialize
     db_todo = if prefix.contains "In-Memory" then Nothing else "Union API is not yet implemented for the DB backend."
     Test.group prefix+"Table.union" pending=db_todo <|
-        Test.specify "TODO" <|
-            Nothing
+        Test.specify "should merge columns from multiple tables" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", ["d", "e", "f"]]]
+            t3 = table_builder [["A", [7, 8, 9]], ["B", ["g", "h", "i"]]]
+
+            t4 = t1.union t2
+            expect_column_names ["A", "B"] t4
+            t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            t4.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
+
+            t5 = t3.union [t1, t2]
+            expect_column_names ["A", "B"] t5
+            t5.at "A" . to_vector . should_equal [7, 8, 9, 1, 2, 3, 4, 5, 6]
+            t5.at "B" . to_vector . should_equal ["g", "h", "i", "a", "b", "c", "d", "e", "f"]
+
+        ## TODO tests for matching columns by position - happy path
+        ## TODO tests for missing columns - drop, keep, warn - by name and by position too
+        ## TODO tests for type coercions (later)
+        Nothing

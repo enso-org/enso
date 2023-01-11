@@ -29,10 +29,11 @@ import project.Data.Storage.Storage
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
-import project.Internal.Table_Helpers
-import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+import project.Internal.Table_Helpers.Table_Column_Helper
+import project.Internal.Union_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
@@ -1167,7 +1168,33 @@ type Table
          retyped to the `Mixed` type to indicate that intention.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
-        Error.throw "TODO"
+        tables_vector = case tables of
+            v : Vector -> v
+            single_table -> [single_table]
+        is_everything_ok = tables_vector.all table->
+            if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table "tables") else
+                same_backend = case table of
+                    _ : Table -> True
+                    _ -> False
+                if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend union is not supported. Materialize the table using `.read` before merging it with an in-memory Table.") else
+                    True
+        ## `is_everything_ok` should actually never be False, it will either be
+           True or will contain a dataflow error which will propagate through
+           the if statement.
+        if  is_everything_ok then
+            ## TODO problem handling
+            all_tables = [self] + tables_vector
+            matched_columns = Union_Helpers.match_columns all_tables match_columns keep_unmatched_columns
+            ## TODO type coercion
+            merged_columns = matched_columns.map columns_to_merge->
+                ## TODO actually an efficient merge algorithm - materializing the vector and rebuilding is not very efficient
+                vectors = columns_to_merge.zip all_tables column-> parent_table->
+                    case column of
+                        Nothing -> Vector.fill length=parent_table.row_count item=Nothing
+                        _ : Column -> column.to_vector
+                name = columns_to_merge.first.name
+                Column.from_vector name vectors.flatten
+            Table.new merged_columns
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1211,33 +1238,6 @@ type Table
     info self =
         cols = self.columns
         Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
-
-    ## UNSTABLE
-
-       Concatenates `other` to `self`, resulting in a table with the number of rows
-       being the sum of numbers of rows of `tables`. Any column that is present in
-       some tables, but missing in others, will be `Nothing`-padded in the positions
-       corresponding to the missing values.
-
-       Arguments:
-       - other: The table or vector of tables to concatenate to `self`.
-
-       Any column that is present in one table, but missing in another, will be
-       `Nothing`-padded in the positions corresponding to the missing column.
-
-       > Example
-         Concatenate two tables together.
-
-             import Standard.Examples
-
-             example_concat =
-                 Examples.inventory_table.concat Examples.popularity_table
-    concat : Table | Vector Table -> Table
-    concat self other = case other of
-        _ : Vector ->
-            java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
-            Table.Value (Java_Table.concat java_tables.to_array)
-        Table.Value other_java_table -> Table.Value (Java_Table.concat [self.java_table, other_java_table].to_array)
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
