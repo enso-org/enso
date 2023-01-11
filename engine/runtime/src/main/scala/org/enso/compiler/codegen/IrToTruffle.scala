@@ -25,6 +25,7 @@ import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
   GlobalNames,
   MethodDefinitions,
+  ModuleAnnotations,
   Patterns,
   TypeSignatures
 }
@@ -80,6 +81,7 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -87,8 +89,7 @@ import scala.jdk.OptionConverters._
 import scala.jdk.CollectionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
-  * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
-  * are actually executed.
+  * [[IR]] into the truffle structures that are actually executed.
   *
   * It should be noted that, as is, there is no support for cross-module links,
   * with each lowering pass operating solely on a single module.
@@ -384,7 +385,7 @@ class IrToTruffle(
               .map(fOpt =>
                 // Register builtin iff it has not been automatically registered at an early stage
                 // of builtins initialization.
-                fOpt.filter(m => !m.isAutoRegister()).map(m => m.getFunction)
+                fOpt.filter(m => !m.isAutoRegister).map(m => m.getFunction)
               )
           case fn: IR.Function =>
             val bodyBuilder =
@@ -405,12 +406,38 @@ class IrToTruffle(
             )
             val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
+            // build annotations
+            val annotationFunctions =
+              fn.getMetadata(ModuleAnnotations).toVector.flatMap { meta =>
+                meta.annotations
+                  .collect { case annotation: IR.Name.ModuleAnnotation =>
+                    val annotationBodyBuilder =
+                      new expressionProcessor.BuildFunctionBody(
+                        Nil,
+                        annotation.argument,
+                        effectContext,
+                        false
+                      )
+                    val annotationRootNode = MethodRootNode.build(
+                      language,
+                      expressionProcessor.scope,
+                      moduleScope,
+                      () => annotationBodyBuilder.bodyNode(),
+                      makeSection(moduleScope, annotation.location),
+                      cons,
+                      annotation.name
+                    )
+                    RuntimeFunction
+                      .thunk(annotationRootNode.getCallTarget, null)
+                  }
+              }
+
             Right(
               Some(
                 new RuntimeFunction(
                   callTarget,
                   null,
-                  new FunctionSchema(arguments: _*)
+                  new FunctionSchema(annotationFunctions.toArray, arguments: _*)
                 )
               )
             )

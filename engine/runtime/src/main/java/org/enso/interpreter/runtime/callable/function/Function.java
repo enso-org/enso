@@ -102,7 +102,8 @@ public final class Function implements TruffleObject {
   public static Function fromBuiltinRootNodeWithCallerFrameAccess(
       BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = node.getCallTarget();
-    FunctionSchema schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, args);
+    FunctionSchema schema =
+        new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, new Function[0], args);
     return new Function(callTarget, null, schema);
   }
 

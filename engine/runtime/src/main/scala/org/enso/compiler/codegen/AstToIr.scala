@@ -135,7 +135,10 @@ object AstToIr {
   def translateModuleSymbol(inputAst: AST): Module.Scope.Definition = {
     inputAst match {
       case AST.Ident.Annotation.any(annotation) =>
-        IR.Name.BuiltinAnnotation(annotation.name, getIdentifiedLocation(annotation))
+        IR.Name.BuiltinAnnotation(
+          annotation.name,
+          getIdentifiedLocation(annotation)
+        )
       case AstView.Atom(consName, args) =>
         val newArgs = args.map(translateArgumentDefinition(_))
 

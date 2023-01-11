@@ -8,7 +8,6 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
@@ -18,12 +17,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.profiles.ValueProfile;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.state.State;
 
@@ -94,7 +91,7 @@ public abstract class AtomWithAHoleNode extends Node {
         };
     }
 
-    @ExportMessage Object getMembers(boolean includeInternal) throws UnsupportedMessageException {
+    @ExportMessage Object getMembers(boolean includeInternal) {
         return new Array("value", "fill");
     }
 
@@ -116,7 +113,6 @@ public abstract class AtomWithAHoleNode extends Node {
   }
   static final class SwapAtomFieldNode extends RootNode {
     private final FunctionSchema schema;
-    private final ValueProfile sameAtom = ValueProfile.createClassProfile();
     @CompilerDirectives.CompilationFinal
     private int lastIndex = -1;
 
@@ -127,7 +123,7 @@ public abstract class AtomWithAHoleNode extends Node {
         new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
         true, false
-      }, new CallArgumentInfo[0]);
+      }, new CallArgumentInfo[0], new Function[0]);
     }
 
     static SwapAtomFieldNode create() {

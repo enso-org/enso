@@ -1257,8 +1257,19 @@ public class EnsoCompilerTest {
     type Foo
         Foo
 
-        @a expression
+        @a expr
         fn a = a
+    """);
+    System.out.println("===");
+    System.out.println(ir);
+  }
+
+  @Test
+  public void testModuleAnnotation3() throws Exception {
+    var ir = compile("""
+    type Foo
+        @x expr
+        Foo x
     """);
     System.out.println("===");
     System.out.println(ir);
