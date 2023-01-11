@@ -21,6 +21,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Map;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -198,18 +199,19 @@ public final class Atom implements TruffleObject {
     String msg;
     try {
       result = atoms.invokeMember(this, "to_text");
-      return TypesGen.expectText(result);
+      if (result instanceof DataflowError) {
+        msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
+      } else {
+        return TypesGen.expectText(result);
+      }
     } catch (AbstractTruffleException panic) {
       handleError.enter();
       msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
-    } catch (UnexpectedResultException dataflowError) {
-      handleError.enter();
-      msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
     } catch (
-      UnsupportedMessageException | ArityException | UnknownIdentifierException | UnsupportedTypeException e
+      UnexpectedResultException | UnsupportedMessageException | ArityException | UnknownIdentifierException | UnsupportedTypeException e
     ) {
       handleError.enter();
-      msg = this.toString(null, 10, null, null);
+      msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
     }
     return Text.create(msg);
   }
