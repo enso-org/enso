@@ -933,6 +933,11 @@ type Vector a
             if result.is_error then result else builder.to_vector
 
     ## UNSTABLE
+       Returns the Vector as a Vector.
+    to_vector : Vector
+    to_vector self = self
+
+    ## UNSTABLE
        Converts the vector to a list with the same elements.
     to_list : List
     to_list self =

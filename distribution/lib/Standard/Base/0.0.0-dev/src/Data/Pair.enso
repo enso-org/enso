@@ -184,7 +184,7 @@ type Pair
 
              Pair.new 2 2 . last_index_of 2 == 1
     last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
-    last_index_of self element start=-1 = check_start_valid start used_start->
+    last_index_of self element start=-1 = check_start_valid start max=2 used_start->
         predicate = case element of
             _ : Function -> element
             _ -> (==element)
@@ -248,7 +248,7 @@ type Pair
         f self.second
 
 ## PRIVATE
-check_start_valid start function =
+check_start_valid start function max=3 =
     used_start = if start < 0 then start + 2 else start
-    if used_start < 0 || used_start > 2 then Error.throw (Index_Out_Of_Bounds.Error start 3) else
+    if used_start < 0 || used_start >= max then Error.throw (Index_Out_Of_Bounds.Error start max) else
         function used_start
