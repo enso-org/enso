@@ -234,7 +234,7 @@ impl Model {
         let components = self.controller.components();
         let section_names = components.section_names();
         match section_id {
-            component_grid::SectionId::ModuleNamespace(n) =>
+            component_grid::SectionId::Namespace(n) =>
                 self.set_section_name_crumb(section_names.get(n).cloned().unwrap_or_default()),
             section_id => self.set_section_name_crumb(ImString::new(section_id.as_str())),
         }

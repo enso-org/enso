@@ -198,7 +198,7 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
             component_grid::SectionId::LocalScope =>
                 (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
-            component_grid::SectionId::ModuleNamespace(id_section) => match self.top_modules() {
+            component_grid::SectionId::Namespace(id_section) => match self.top_modules() {
                 TopModules::All(modules) => modules.get(id_section)?.get(id.index).cloned(),
                 TopModules::Subset(modules, top_section) if id_section == top_section =>
                     modules.get(id.index).cloned(),
@@ -218,7 +218,7 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             TopModules::All(modules) => {
                 let submodules = modules.iter().enumerate().flat_map(|(section, list)| {
                     group_list_to_grid_group_infos(
-                        component_grid::SectionId::ModuleNamespace(section),
+                        component_grid::SectionId::Namespace(section),
                         list,
                     )
                 });
@@ -226,7 +226,7 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             }
             TopModules::Subset(list, section) => {
                 let submodules = group_list_to_grid_group_infos(
-                    component_grid::SectionId::ModuleNamespace(section),
+                    component_grid::SectionId::Namespace(section),
                     &list,
                 );
                 popular_section.chain(submodules).collect()
@@ -252,7 +252,7 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         let can_be_entered = match group_id.section {
             component_grid::SectionId::Popular => false,
             component_grid::SectionId::LocalScope => true,
-            component_grid::SectionId::ModuleNamespace(_) => true,
+            component_grid::SectionId::Namespace(_) => true,
         };
         Some(group_to_header_model(&group, can_be_entered))
     }

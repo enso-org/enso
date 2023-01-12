@@ -98,7 +98,7 @@ impl Colors {
         match section {
             SectionId::Popular => self.popular,
             SectionId::LocalScope => self.local_scope,
-            SectionId::ModuleNamespace(_) => self.submodules,
+            SectionId::Namespace(_) => self.submodules,
         }
     }
 }
@@ -108,7 +108,7 @@ fn section_id_to_icon_id(section: SectionId) -> icon::Id {
     match section {
         SectionId::Popular => icon::Id::Star,
         SectionId::LocalScope => icon::Id::LocalScope,
-        SectionId::ModuleNamespace(_) => icon::Id::SubModules,
+        SectionId::Namespace(_) => icon::Id::SubModules,
     }
 }
 
@@ -125,7 +125,7 @@ fn section_id_to_grid_loc(id: SectionId, sections_count: usize) -> (Row, Col) {
     match id {
         SectionId::Popular => (namespace_section_offset, COLUMN),
         SectionId::LocalScope => (namespace_section_offset + 1, COLUMN),
-        SectionId::ModuleNamespace(n) => (namespace_section_offset - n - 1, COLUMN),
+        SectionId::Namespace(n) => (namespace_section_offset - n - 1, COLUMN),
     }
 }
 
@@ -136,11 +136,10 @@ fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId
     match row {
         n if n == namespace_section_offset => SectionId::Popular,
         n if n == namespace_section_offset + 1 => SectionId::LocalScope,
-        n if n < namespace_section_offset =>
-            SectionId::ModuleNamespace(namespace_section_offset - n - 1),
+        n if n < namespace_section_offset => SectionId::Namespace(namespace_section_offset - n - 1),
         _ => {
             error!("Tried to create SectionId from too high Navigator List row ({}).", row);
-            SectionId::ModuleNamespace(0)
+            SectionId::Namespace(0)
         }
     }
 }
