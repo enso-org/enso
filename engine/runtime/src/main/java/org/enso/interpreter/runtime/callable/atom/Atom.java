@@ -107,6 +107,8 @@ public final class Atom implements TruffleObject {
       var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
       if (errorMessage != null) {
         sb.append(errorMessage);
+      } else {
+        sb.append("Nothing");
       }
     }
     return sb.toString();
