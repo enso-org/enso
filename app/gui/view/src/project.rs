@@ -572,6 +572,23 @@ impl View {
             graph.stop_editing <+ any(&committed_in_searcher_event, &aborted_in_searcher_event);
 
 
+            // === Editing ===
+
+            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
+            frp.source.searcher <+ existing_node_edited.map(
+                |&node| Some(SearcherParams::new_for_edited_node(node))
+            );
+            searcher_input_change_opt <- graph.node_expression_set.map2(&frp.searcher, |(node_id, expr), searcher| {
+                (searcher.as_ref()?.input == *node_id).then(|| expr.clone_ref())
+            });
+            searcher_input_change <- searcher_input_change_opt.filter_map(|expr| expr.clone());
+            input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
+            update_searcher_input_on_commit <- frp.output.editing_committed.constant(());
+            input_change_delay.cancel <+ update_searcher_input_on_commit;
+            update_searcher_input <- any(&input_change_delay.on_expired, &update_searcher_input_on_commit);
+            frp.source.searcher_input_changed <+ searcher_input_change.sample(&update_searcher_input);
+
+
             // === Adding Node ===
 
             node_added_by_user <- graph.node_added.filter(|(_, _, should_edit)| *should_edit);
@@ -594,21 +611,6 @@ impl View {
                 graph.deselect_all_nodes();
                 graph.select_node(node);
             });
-
-
-            // === Editing ===
-
-            existing_node_edited <- graph.node_being_edited.filter_map(|x| *x).gate_not(&frp.adding_new_node);
-            frp.source.searcher <+ existing_node_edited.map(
-                |&node| Some(SearcherParams::new_for_edited_node(node))
-            );
-            searcher_input_change_opt <- graph.node_expression_set.map2(&frp.searcher, |(node_id, expr), searcher| {
-                (searcher.as_ref()?.input == *node_id).then(|| expr.clone_ref())
-            });
-            searcher_input_change <- searcher_input_change_opt.filter_map(|expr| expr.clone());
-            input_change_delay.restart <+ searcher_input_change.constant(INPUT_CHANGE_DELAY_MS);
-            frp.source.searcher_input_changed <+ searcher_input_change.sample(&input_change_delay.on_expired);
-
 
 
             // === Searcher Position and Visibility ===
