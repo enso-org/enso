@@ -556,7 +556,7 @@ impl ComponentsProvider {
     }
 
     /// Returns the number of namespace sections.
-    pub fn namespace_section_count(&self) -> usize {
+    pub fn top_section_count(&self) -> usize {
         self.list.top_section_names().len()
     }
 }
