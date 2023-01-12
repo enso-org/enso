@@ -73,9 +73,9 @@ sqlite_specific_spec connection =
             action . should_fail_with SQL_Error.Error
             action.catch.to_text . should_equal "There was an SQL error: [SQLITE_ERROR] SQL error or missing database (no such table: undefined_table). [Query was: SELECT A FROM undefined_table]"
 
+    tinfo = Name_Generator.random_name "Tinfo"
+    connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     Test.group "[SQLite] Metadata" <|
-        tinfo = Name_Generator.random_name "Tinfo"
-        connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         t = connection.query (SQL_Query.Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2]
         t.insert ["abc", Nothing, Nothing, 1.3]
@@ -95,6 +95,13 @@ sqlite_specific_spec connection =
             t.at "strs" . sql_type . is_definitely_integer . should_be_false
             t.at "reals" . sql_type . is_definitely_boolean . should_be_false
             t.at "bools" . sql_type . is_definitely_double . should_be_false
+
+    Test.group "[SQLite] Dialect-specific codegen" <|
+        Test.specify "should generate queries for the Distinct operation" <|
+            t = connection.query (SQL_Query.Table_Name tinfo)
+            code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM (SELECT "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."reals" AS "reals" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner" GROUP BY "{Tinfo}_inner"."strs") AS "{Tinfo}"'
+            expected_code = code_template.replace "{Tinfo}" tinfo
+            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
 sqlite_spec connection prefix =
     name_counter = Ref.new 0

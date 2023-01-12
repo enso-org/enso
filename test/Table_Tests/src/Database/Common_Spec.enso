@@ -168,7 +168,7 @@ spec prefix connection =
             r_1 = c.sort
             r_1.to_vector.should_equal [Nothing, Nothing, 2.2, 3.0, 3.0, 7.3]
 
-            r_2 = c.sort order=Sort_Direction.Descending
+            r_2 = c.sort Sort_Direction.Descending
             r_2.to_vector.should_equal [7.3, 3.0, 3.0, 2.2, Nothing, Nothing]
 
     Test.group prefix+"Aggregation" <|

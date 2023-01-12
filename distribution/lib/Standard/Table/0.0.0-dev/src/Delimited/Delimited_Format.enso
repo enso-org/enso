@@ -62,8 +62,8 @@ type Delimited_Format
     for_web content_type _ =
         parts = content_type.split ";" . map .trim
 
-        charset_part = parts.find (x->x.starts_with "charset=")
-        encoding = if charset_part.is_error then Encoding.utf_8 else
+        charset_part = parts.find if_missing=Nothing (x->x.starts_with "charset=")
+        encoding = if charset_part.if_nothing then Encoding.utf_8 else
             parsed = Encoding.from_name (charset_part.drop 8)
             if parsed.is_error then Encoding.utf_8 else parsed
 

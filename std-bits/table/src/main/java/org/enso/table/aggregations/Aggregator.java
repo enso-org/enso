@@ -1,6 +1,6 @@
 package org.enso.table.aggregations;
 
-import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.problems.Problem;
 
 import java.util.Arrays;

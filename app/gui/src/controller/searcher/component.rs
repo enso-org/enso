@@ -306,8 +306,8 @@ impl List {
 pub(crate) mod tests {
     use super::*;
 
-    use crate::mock_suggestion_database;
     use double_representation::name::project;
+    use enso_suggestion_database::mock_suggestion_database;
 
     pub fn mock_suggestion_db() -> model::SuggestionDatabase {
         mock_suggestion_database! {

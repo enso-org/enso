@@ -15,17 +15,10 @@ type Query
        Arguments:
        - expressions: List of pairs specifying the columns to materialize; each
          is a pair whose first element is the name of the materialized column
-         and the second element is the expression to compute.
+         and the second element is the expression to compute. If `Nothing` is
+         provided, all available columns will be selected.
        - context: The query context, see `Context` for more detail.
-    Select (expressions : Vector (Pair Text SQL_Expression)) (context : Context)
-
-    ## PRIVATE
-
-       A Select SQL query that gets all columns in a table.
-
-       Arguments:
-       - context: The query context, see `Context` for more detail.
-    Select_All context
+    Select (expressions : Nothing | Vector (Pair Text SQL_Expression)) (context : Context)
 
     ## PRIVATE
 

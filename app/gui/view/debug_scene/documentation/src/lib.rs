@@ -1,15 +1,18 @@
 //! Example scene showing a documentation panel of the component browser.
 
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
+
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
 use wasm_bindgen::prelude::*;
 
-use crate::doc_section;
-use crate::mock_suggestion_database;
-use crate::model::suggestion_database;
-use crate::model::suggestion_database::Entry;
-use crate::model::SuggestionDatabase;
-
+use enso_suggestion_database as suggestion_database;
+use enso_suggestion_database::doc_section;
+use enso_suggestion_database::mock_suggestion_database;
 use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
@@ -19,9 +22,16 @@ use ensogl::frp;
 use ensogl::shape;
 use ensogl::system::web;
 use ensogl_hardcoded_theme::application::component_browser as theme;
-use ide_view::documentation;
-use ide_view::graph_editor::component::visualization::Registry;
+use ide_view_documentation as documentation;
+use ide_view_graph_editor::component::visualization::Registry;
 use std::f32::consts::PI;
+use std::fmt::Write;
+use suggestion_database::documentation_ir::Documentation;
+use suggestion_database::documentation_ir::EntryDocumentation;
+use suggestion_database::documentation_ir::ModuleDocumentation;
+use suggestion_database::documentation_ir::Placeholder;
+use suggestion_database::documentation_ir::TypeDocumentation;
+use suggestion_database::SuggestionDatabase;
 
 
 
@@ -63,12 +73,83 @@ impl DatabaseWrapper {
         let index = self.current_entry.get();
         let ids = self.database.keys();
         let id = ids[index];
-        self.database.lookup(id).map(entry_documentation).unwrap_or_default()
+        render_documentation(self.database.documentation_for_entry(id))
     }
 }
 
-fn entry_documentation(entry: Rc<Entry>) -> String {
-    format!("{:#?}", entry.documentation)
+/// This is a temporary function for easier testing of the documentation panel. It will be replaced
+/// by a proper HTML generation in the future. See https://www.pivotaltracker.com/story/show/180872953.
+fn render_documentation(doc: EntryDocumentation) -> String {
+    let mut result = String::new();
+    match doc {
+        EntryDocumentation::Placeholder(placeholder) => match placeholder {
+            Placeholder::NoDocumentation => result.push_str("No documentation available."),
+            Placeholder::Local { name } => writeln!(result, "Local variable: {}", name).unwrap(),
+            Placeholder::Function { name } => writeln!(result, "Function: {}", name).unwrap(),
+        },
+        EntryDocumentation::Docs(docs) => match docs {
+            Documentation::Module(docs) => {
+                write_module_docs(&mut result, &docs);
+            }
+            Documentation::Type(docs) => {
+                write_type_docs(&mut result, docs);
+            }
+            Documentation::Constructor { name, type_docs } => {
+                let name = name.to_string_with_main_segment();
+                let type_name = type_docs.name.to_string_with_main_segment();
+                writeln!(result, "Constructor {} of type {}", name, type_name).unwrap();
+                write_type_docs(&mut result, type_docs);
+            }
+            Documentation::Method { name, type_docs } => {
+                let name = name.to_string_with_main_segment();
+                let type_name = type_docs.name.to_string_with_main_segment();
+                writeln!(result, "Method {} of type {}", name, type_name).unwrap();
+                write_type_docs(&mut result, type_docs);
+            }
+            Documentation::ModuleMethod { name, module_docs } => {
+                let name = name.to_string_with_main_segment();
+                let module_name = module_docs.name.to_string_with_main_segment();
+                writeln!(result, "Method {} of module {}", name, module_name).unwrap();
+                write_module_docs(&mut result, &module_docs);
+            }
+            Documentation::Function { .. } => {}
+            Documentation::Local { .. } => {}
+        },
+    }
+    result.replace('\n', "<br/>")
+}
+
+fn write_module_docs(result: &mut String, docs: &Rc<ModuleDocumentation>) {
+    writeln!(result, "Module: {}", docs.name.to_string_with_main_segment()).unwrap();
+    writeln!(result, "Tags: {:?}", docs.tags).unwrap();
+    writeln!(result, "Summary: {:?}", docs.synopsis).unwrap();
+    writeln!(result, "Types:").unwrap();
+    for ty in docs.types.iter() {
+        writeln!(result, "{:?}", ty).unwrap();
+    }
+    writeln!(result, "Functions:").unwrap();
+    for ty in docs.methods.iter() {
+        writeln!(result, "{:?}", ty).unwrap();
+    }
+    writeln!(result, "Examples:").unwrap();
+    for ty in docs.examples.iter() {
+        writeln!(result, "{:?}", ty).unwrap();
+    }
+}
+
+fn write_type_docs(result: &mut String, docs: Rc<TypeDocumentation>) {
+    writeln!(result, "Type: {}", docs.name.to_string_with_main_segment()).unwrap();
+    writeln!(result, "Tags: {:?}", docs.tags).unwrap();
+    writeln!(result, "Summary: {:?}", docs.synopsis).unwrap();
+    writeln!(result, "Constructors:").unwrap();
+    for constructor in docs.constructors.iter() {
+        writeln!(result, "{:?}", constructor).unwrap();
+    }
+    writeln!(result, "Methods:").unwrap();
+    for method in docs.methods.iter() {
+        writeln!(result, "{:?}", method).unwrap();
+    }
+    writeln!(result, "Examples: {:?}", docs.examples).unwrap();
 }
 
 fn database() -> SuggestionDatabase {

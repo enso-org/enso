@@ -105,16 +105,14 @@ prepare_subqueries left right needs_left_indicator needs_right_indicator =
     # TODO [RW] Not all of these included columns are actually usable from the external context, so
     # in the future we may consider pruning some of them as additional optimization and simplification of the query
     # (the only columns that are needed are ones that the later performed join resolution needs).
-    left_config = left.context.as_subquery left_alias [left.internal_columns, left_indicators]
-    right_config = right.context.as_subquery right_alias [right.internal_columns, right_indicators]
+    left_sub = left.context.as_subquery left_alias [left.internal_columns, left_indicators]
+    right_sub = right.context.as_subquery right_alias [right.internal_columns, right_indicators]
 
-    left_subquery = left_config.first
-    new_left_columns = left_config.second.at 0
-    new_left_indicators = left_config.second.at 1
-    right_subquery = right_config.first
-    new_right_columns = right_config.second.at 0
-    new_right_indicators = right_config.second.at 1
+    new_left_columns = left_sub.new_columns.first
+    new_left_indicators = left_sub.new_columns.second
+    new_right_columns = right_sub.new_columns.first
+    new_right_indicators = right_sub.new_columns.second
 
-    left_setup = Join_Subquery_Setup.Value left_subquery new_left_columns left.internal_columns (new_left_indicators.get 0)
-    right_setup = Join_Subquery_Setup.Value right_subquery new_right_columns right.internal_columns (new_right_indicators.get 0)
+    left_setup = Join_Subquery_Setup.Value left_sub.subquery new_left_columns left.internal_columns (new_left_indicators.get 0)
+    right_setup = Join_Subquery_Setup.Value right_sub.subquery new_right_columns right.internal_columns (new_right_indicators.get 0)
     Pair.new left_setup right_setup

@@ -12,12 +12,14 @@ import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +34,8 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Map;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -109,13 +113,27 @@ public final class Atom implements TruffleObject {
    */
   @Override
   public String toString() {
-    return toString(10);
+    return toString(null, 10, null, null);
   }
 
   @CompilerDirectives.TruffleBoundary
-  private String toString(int depth) {
+  private String toString(String prefix, int depth, String suffix, Object obj) {
     StringBuilder sb = new StringBuilder();
+    if (prefix != null) {
+      sb.append(prefix);
+    }
     toString(sb, false, depth);
+    if (suffix != null) {
+      sb.append(suffix);
+    }
+    if (obj != null) {
+      var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
+      if (errorMessage != null) {
+        sb.append(errorMessage);
+      } else {
+        sb.append("Nothing");
+      }
+    }
     return sb.toString();
   }
 
@@ -202,16 +220,31 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms) {
+  Text toDisplayString(
+    boolean allowSideEffects,
+    @CachedLibrary("this") InteropLibrary atoms,
+    @CachedLibrary(limit="3") WarningsLibrary warnings,
+    @Cached BranchProfile handleError
+  ) {
+    Object result = null;
+    String msg;
     try {
-      return TypesGen.expectText(atoms.invokeMember(this, "to_text"));
-    } catch (UnsupportedMessageException
-        | ArityException
-        | UnknownIdentifierException
-        | UnsupportedTypeException
-        | UnexpectedResultException e) {
-      return Text.create(this.toString(10));
+      result = atoms.invokeMember(this, "to_text");
+      if (warnings.hasWarnings(result)) {
+        result = warnings.removeWarnings(result);
+      }
+      if (TypesGen.isDataflowError(result)) {
+        msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
+      } else if (TypesGen.isText(result)) {
+        return TypesGen.asText(result);
+      } else {
+        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
+      }
+    } catch (AbstractTruffleException | UnsupportedMessageException | ArityException | UnknownIdentifierException | UnsupportedTypeException panic) {
+      handleError.enter();
+      msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
     }
+    return Text.create(msg);
   }
 
   @ExportMessage

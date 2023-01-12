@@ -1,15 +1,18 @@
 package org.enso.table.operations;
 
-import java.util.*;
-
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.UnorderedMultiValueKey;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.util.ConstantList;
+
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
 
 public class Distinct {
   /** Creates a row mask containing only the first row from sets of rows grouped by key columns. */
@@ -29,7 +32,11 @@ public class Distinct {
         UnorderedMultiValueKey key = new UnorderedMultiValueKey(storage, i, strategies);
 
         if (key.hasFloatValues()) {
-          problems.add(new FloatingPointGrouping("Distinct", i));
+          final int row = i;
+          key.floatColumnPositions()
+              .forEach(
+                  columnIx ->
+                      problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
         }
 
         if (!visitedRows.contains(key)) {

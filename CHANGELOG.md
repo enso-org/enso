@@ -270,6 +270,9 @@
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
 - [Enable Date, Time and DateTime to be read and written to Excel.][3997]
+- [Aligning core APIs for Vector, List and Range. Adding some missing functions
+  to the types.][4026]
+- [Implemented `Table.distinct` for Database backends.][4027]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -424,6 +427,8 @@
 [3878]: https://github.com/enso-org/enso/pull/3878
 [3997]: https://github.com/enso-org/enso/pull/3997
 [4013]: https://github.com/enso-org/enso/pull/4013
+[4026]: https://github.com/enso-org/enso/pull/4026
+[4027]: https://github.com/enso-org/enso/pull/4027
 
 #### Enso Compiler
 

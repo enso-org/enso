@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+from Standard.Table.Errors import Floating_Point_Grouping
+
+import project.Internal.IR.SQL_Expression.SQL_Expression
+
+## PRIVATE
+make_distinct_expression text_case_insensitive problem_builder key_column =
+    if key_column.sql_type.is_definitely_double then
+        problem_builder.report_other_warning (Floating_Point_Grouping.Error key_column.name)
+
+    expr = key_column.expression
+
+    needs_case_fold = text_case_insensitive && key_column.sql_type.is_definitely_text
+    case needs_case_fold of
+        True -> SQL_Expression.Operation "FOLD_CASE" [expr]
+        False -> expr

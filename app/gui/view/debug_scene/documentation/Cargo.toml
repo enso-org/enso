@@ -1,0 +1,17 @@
+[package]
+name = "debug-scene-documentation"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ensogl = { path = "../../../../../lib/rust/ensogl" }
+ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
+enso-suggestion-database = { path = "../../../suggestion-database" }
+ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
+ide-view-documentation = { path = "../../documentation" }
+ide-view-graph-editor = { path = "../../graph-editor" }
+wasm-bindgen = { workspace = true }
