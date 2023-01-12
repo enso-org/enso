@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.State
 
 import project.Data.Report_Unmatched.Report_Unmatched
 from project.Errors import Column_Count_Mismatch, Unmatched_Columns, No_Output_Columns
@@ -38,21 +39,19 @@ match_columns tables matching_mode keep_unmatched_columns problem_builder = case
             common_column_names = tables.first.column_names.filter name->
                 column_counts.get name Nothing == tables.length
             if common_column_names.is_empty then Error.throw No_Output_Columns else
-            common_column_names.map name->
-                column_indices = tables.each table->
-                    table.columns.index_of col-> col.name==name
-                Column_Set.Value name column_indices
+                common_column_names.map name->
+                    column_indices = tables.map table->
+                        table.columns.index_of col-> col.name==name
+                    Column_Set.Value name column_indices
         _ ->
             output_column_names = distinct_columns_in_appearance_order tables
             if keep_unmatched_columns == Report_Unmatched then
                 # TODO handle problems
                 Nothing
             output_column_names.map name->
-                column_indices = tables.each table->
+                column_indices = tables.map table->
                     table.columns.index_of col-> col.name==name
                 Column_Set.Value name column_indices
-
-
     Match_Columns.By_Position ->
         column_counts = tables.map table-> table.columns.length
         minmax = column_counts.compute_bulk [Statistic.Minimum, Statistic.Maximum]
@@ -82,13 +81,13 @@ find_column_counts tables =
                 column_counts = State.get Map
                 name = column.name
                 new_count = (column_counts.get name 0) + 1
-                State.put Map column_counts.insert name new_count
+                State.put Map (column_counts.insert name new_count)
         State.get Map
 
 ## PRIVATE
    Returns a list of distinct column names, in the order of first appearance,
    starting from the first table.
-distinct_columns_in_appearance_order table =
+distinct_columns_in_appearance_order tables =
     names_builder = Vector.new_builder
     State.run Map Map.empty <|
         tables.each table->
