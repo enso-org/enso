@@ -160,10 +160,10 @@ spec =
     Test.group "[Codegen] Aggregation" <|
         Test.specify "should allow to count rows" <|
             code = t1.aggregate [Group_By "A" "A grp", Count "counter"] . to_sql . prepare
-            code . should_equal ['SELECT "T1"."A" AS "A grp", COUNT(*) AS "counter" FROM "T1" AS "T1" GROUP BY "T1"."A"', []]
+            code . should_equal ['SELECT "T1"."A grp" AS "A grp", "T1"."counter" AS "counter" FROM (SELECT "T1"."A" AS "A grp", COUNT(*) AS "counter" FROM "T1" AS "T1" GROUP BY "T1"."A") AS "T1"', []]
 
         Test.specify "should allow to group by multiple fields" <|
             code = t1.aggregate [Sum "A" "sum_a", Group_By "C" Nothing, Group_By "B" "B grp"] . to_sql . prepare
-            code . should_equal ['SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B"', []]
+            code . should_equal ['SELECT "T1"."sum_a" AS "sum_a", "T1"."C" AS "C", "T1"."B grp" AS "B grp" FROM (SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B") AS "T1"', []]
 
 main = Test_Suite.run_main spec

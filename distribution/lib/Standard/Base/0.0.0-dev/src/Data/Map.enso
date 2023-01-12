@@ -229,6 +229,28 @@ type Map
         result = go self
         result
 
+    ## Checks if a key is in the map.
+
+       Arguments:
+       - key: The key to look up in the map.
+
+       > Example
+         Checks the key 2 is in a map.
+
+             import Standard.Base.Data.Map.Map
+             import Standard.Examples
+
+             example_contains = Examples.map.contains_key 2
+    contains_key : Any -> Any
+    contains_key self key =
+        go map = case map of
+            Map.Tip -> False
+            Map.Bin _ k _ l r -> case Internal.compare_allow_nothing key k of
+                Ordering.Equal -> True
+                Ordering.Less -> @Tail_Call go l
+                Ordering.Greater -> @Tail_Call go r
+        go self
+
     ## Transforms the map's keys and values to create a new map.
 
        Arguments:

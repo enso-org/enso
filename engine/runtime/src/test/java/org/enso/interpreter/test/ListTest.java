@@ -144,6 +144,18 @@ public class ListTest {
     assertLength("Generated all", size, list);
     var str = asText.execute(list);
     assertTrue("It is a string", str.isString());
+
+    String s = str.asString();
+    int open = 0;
+    int close = 0;
+    for (int i = 0; i < s.length(); i++) {
+      switch (s.charAt(i)) {
+        case '(' -> open++;
+        case ')' -> close++;
+      }
+    }
+    assertEquals("Correct number of opening braces", size, open);
+    assertEquals("Correct number of closing braces", size, close);
   }
 
   private Value evalCode(final String code, final String methodName) throws URISyntaxException {

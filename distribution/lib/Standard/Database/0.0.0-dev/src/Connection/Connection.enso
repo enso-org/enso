@@ -126,7 +126,7 @@ type Connection
             Database_Table_Module.make_table self name columns ctx
         SQL_Query.Table_Name name ->
             ctx = Context.for_table name (if alias == "" then name else alias)
-            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select_All ctx))
+            columns = self.jdbc_connection.fetch_columns (self.dialect.generate_sql (Query.Select Nothing ctx))
             Database_Table_Module.make_table self name columns ctx
 
     ## Execute the query and load the results into memory as a Table.
