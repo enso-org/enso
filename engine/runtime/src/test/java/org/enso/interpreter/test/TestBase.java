@@ -19,45 +19,51 @@ import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 public abstract class TestBase {
   protected static Context createDefaultContext() {
-    var context = Context.newBuilder("enso")
-        .allowExperimentalOptions(true)
-        .allowIO(true)
-        .allowAllAccess(true)
-        .logHandler(new ByteArrayOutputStream())
-        .option(
-            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-            Paths.get("../../distribution/component").toFile().getAbsolutePath()
-        ).build();
+    var context =
+        Context.newBuilder("enso")
+            .allowExperimentalOptions(true)
+            .allowIO(true)
+            .allowAllAccess(true)
+            .logHandler(new ByteArrayOutputStream())
+            .option(
+                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
+            .build();
     final Map<String, Language> langs = context.getEngine().getLanguages();
     assertNotNull("Enso found: " + langs, langs.get("enso"));
     return context;
   }
 
   /**
-   * Executes the given callable in the given context. A necessity for executing
-   * artificially created Truffle ASTs.
+   * Executes the given callable in the given context. A necessity for executing artificially
+   * created Truffle ASTs.
    *
    * @return Object returned from {@code callable} wrapped in {@link Value}.
    */
   protected static Value executeInContext(Context ctx, Callable<Object> callable) {
     // Force initialization of the context
     ctx.eval("enso", "42");
-    ctx.getPolyglotBindings().putMember("testSymbol", (ProxyExecutable) (Value... args) -> {
-      try {
-        return callable.call();
-      } catch (Exception e) {
-        throw new AssertionError(e);
-      }
-    });
+    ctx.getPolyglotBindings()
+        .putMember(
+            "testSymbol",
+            (ProxyExecutable)
+                (Value... args) -> {
+                  try {
+                    return callable.call();
+                  } catch (Exception e) {
+                    throw new AssertionError(e);
+                  }
+                });
     return ctx.getPolyglotBindings().getMember("testSymbol").execute();
   }
 
   /**
-   * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods of
-   * artificially created ASTs, e.g., single nodes.
+   * Unwraps the `receiver` field from the Value. This is a hack to allow us to test execute methods
+   * of artificially created ASTs, e.g., single nodes.
    *
-   * Does something similar to what {@link com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)}
-   * does, but uses a different hack than reflective access.
+   * <p>Does something similar to what {@link
+   * com.oracle.truffle.tck.DebuggerTester#getSourceImpl(Source)} does, but uses a different hack
+   * than reflective access.
    */
   protected static Object unwrapValue(Context ctx, Value value) {
     var unwrapper = new Unwrapper();

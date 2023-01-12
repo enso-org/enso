@@ -52,8 +52,7 @@ public abstract class HashCodeAnyNode extends Node {
 
   public abstract long execute(@AcceptsError Object self);
 
-  /** Specializations for primitive values **/
-
+  /** Specializations for primitive values * */
   @Specialization
   long hashCodeForShort(short s) {
     return s;
@@ -328,14 +327,16 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization(guards = "isHostObject(hostObject)")
-  long hashCodeForHostObject(Object hostObject,
-      @CachedLibrary(limit = "3") InteropLibrary interop) {
+  long hashCodeForHostObject(
+      Object hostObject, @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       Object hashCodeRes = interop.invokeMember(hostObject, "hashCode");
       assert interop.fitsInInt(hashCodeRes);
       return interop.asInt(hashCodeRes);
-    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
-             UnsupportedTypeException e) {
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnknownIdentifierException
+        | UnsupportedTypeException e) {
       throw new IllegalStateException(e);
     }
   }

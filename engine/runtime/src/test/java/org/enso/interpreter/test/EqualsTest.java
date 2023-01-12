@@ -23,10 +23,12 @@ public class EqualsTest extends TestBase {
   @BeforeClass
   public static void initContextAndNodes() {
     context = createDefaultContext();
-    executeInContext(context, () -> {
-      equalsNode = EqualsAnyNode.build();
-      return null;
-    });
+    executeInContext(
+        context,
+        () -> {
+          equalsNode = EqualsAnyNode.build();
+          return null;
+        });
   }
 
   @AfterClass
@@ -36,13 +38,13 @@ public class EqualsTest extends TestBase {
 
   @DataPoints
   public static List<Object> allUnwrappedValues() {
-    var valGenerator = ValuesGenerator.create(
-        context,
-        ValuesGenerator.Language.ENSO,
-        ValuesGenerator.Language.JAVA,
-        ValuesGenerator.Language.JAVASCRIPT,
-        ValuesGenerator.Language.PYTHON
-    );
+    var valGenerator =
+        ValuesGenerator.create(
+            context,
+            ValuesGenerator.Language.ENSO,
+            ValuesGenerator.Language.JAVA,
+            ValuesGenerator.Language.JAVASCRIPT,
+            ValuesGenerator.Language.PYTHON);
     List<Value> values = new ArrayList<>();
     values.addAll(valGenerator.numbers());
     values.addAll(valGenerator.booleans());
@@ -55,10 +57,7 @@ public class EqualsTest extends TestBase {
     values.addAll(valGenerator.periods());
     values.addAll(valGenerator.warnings());
     try {
-      return values
-          .stream()
-          .map(value -> unwrapValue(context, value))
-          .collect(Collectors.toList());
+      return values.stream().map(value -> unwrapValue(context, value)).collect(Collectors.toList());
     } catch (Exception e) {
       throw new AssertionError(e);
     }
@@ -66,21 +65,25 @@ public class EqualsTest extends TestBase {
 
   @Theory
   public void equalsOperatorShouldBeSymmetric(Object firstValue, Object secondValue) {
-    executeInContext(context, () -> {
-      boolean firstResult = equalsNode.execute(firstValue, secondValue);
-      boolean secondResult = equalsNode.execute(firstValue, secondValue);
-      assertEquals("equals should be symmetric", firstResult, secondResult);
-      return null;
-    });
+    executeInContext(
+        context,
+        () -> {
+          boolean firstResult = equalsNode.execute(firstValue, secondValue);
+          boolean secondResult = equalsNode.execute(firstValue, secondValue);
+          assertEquals("equals should be symmetric", firstResult, secondResult);
+          return null;
+        });
   }
 
   @Theory
   public void equalsOperatorShouldBeConsistent(Object value) {
-    executeInContext(context, () -> {
-      boolean firstResult = equalsNode.execute(value, value);
-      boolean secondResult = equalsNode.execute(value, value);
-      assertEquals("equals should be consistent", firstResult, secondResult);
-      return null;
-    });
+    executeInContext(
+        context,
+        () -> {
+          boolean firstResult = equalsNode.execute(value, value);
+          boolean secondResult = equalsNode.execute(value, value);
+          assertEquals("equals should be consistent", firstResult, secondResult);
+          return null;
+        });
   }
 }

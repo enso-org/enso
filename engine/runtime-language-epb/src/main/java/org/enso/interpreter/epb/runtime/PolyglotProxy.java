@@ -471,6 +471,7 @@ public final class PolyglotProxy implements TruffleObject {
       leaveOrigin(node, p);
     }
   }
+
   @ExportMessage
   public boolean isHashEntryReadable(
       Object key,
