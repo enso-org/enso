@@ -145,6 +145,7 @@ ensogl_core::define_endpoints_2! {
         model_for_entry(GroupEntryId, EntryModel),
         switch_section(SectionId),
         switch_section_no_animation(SectionId),
+        set_top_section_count(usize),
         accept_suggestion(),
         jump_group_up(),
         jump_group_down(),
