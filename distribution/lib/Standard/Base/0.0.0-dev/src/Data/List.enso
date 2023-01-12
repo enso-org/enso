@@ -404,10 +404,10 @@ type List
 
     to_text : Text
     to_text self =
-        go l t = case l of
-            Nil -> t + "Nil"
-            Cons x xs -> @Tail_Call go xs (t + "Cons " + x.to_text + " ")
-        go self ""
+        go l t e = case l of
+            Nil -> t + "Nil" + e
+            Cons x xs -> @Tail_Call go xs (t + "(Cons " + x.to_text + " ") (")" + e)
+        go self "" ""
 
 ## UNSTABLE
 
