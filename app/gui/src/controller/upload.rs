@@ -318,7 +318,7 @@ impl NodeFromDroppedFileHandler {
     }
 
     fn uploaded_node_expression(name: &str) -> String {
-        format!("File.read Enso_Project.data/\"{}\"", name)
+        format!("enso_project.data/\"{}\" . read", name)
     }
 
     fn data_path(&self) -> Path {
@@ -710,7 +710,7 @@ mod test {
 
     fn module_code_uploaded(file_name: &str) -> String {
         format!(
-            "{}\n    operator1 = File.read Enso_Project.data/\"{}\"",
+            "{}\n    operator1 = enso_project.data/\"{}\" . read",
             mock::data::CODE,
             file_name
         )
