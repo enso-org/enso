@@ -26,9 +26,9 @@ read host port database username=Nothing =
     pgpass_file = locate
     if pgpass_file.is_nothing || (verify pgpass_file . not) then [] else
         entries = parse_file pgpass_file
-        found = entries.find entry->
+        found = entries.find if_missing=Nothing entry->
             entry.matches host port database username
-        case found.catch Nothing of
+        case found of
             Nothing -> []
             entry -> [Pair.new 'user' entry.username, Pair.new 'password' entry.password]
 

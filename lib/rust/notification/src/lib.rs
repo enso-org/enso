@@ -1,8 +1,15 @@
 //! Here are the common structures used by Controllers notifications (sent between controllers and
 //! from controller to view).
 
-use crate::prelude::*;
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 
+use enso_prelude::*;
+
+use enso_executor as executor;
 use flo_stream::MessagePublisher;
 use flo_stream::Subscriber;
 
@@ -11,6 +18,8 @@ use flo_stream::Subscriber;
 // =================
 // === Publisher ===
 // =================
+
+pub type StaticBoxFuture<T> = futures::future::LocalBoxFuture<'static, T>;
 
 /// A buffer size for notification publisher.
 ///

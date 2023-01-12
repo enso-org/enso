@@ -85,9 +85,9 @@ postgres_specific_spec connection db_name =
         connection.execute_update 'DROP VIEW "'+vinfo+'";'
         connection.execute_update 'DROP TABLE "'+tinfo+'";'
 
+    tinfo = Name_Generator.random_name "Tinfo"
+    connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL, "doubles" DOUBLE PRECISION)'
     Test.group "[PostgreSQL] Info" <|
-        tinfo = Name_Generator.random_name "Tinfo"
-        connection.execute_update 'CREATE TEMPORARY TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL, "doubles" DOUBLE PRECISION)'
         t = connection.query (SQL_Query.Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2, 0.000000000001]
         t.insert ["abc", Nothing, Nothing, 1.3, Nothing]
@@ -110,7 +110,14 @@ postgres_specific_spec connection db_name =
             t.at "ints" . sql_type . is_definitely_integer . should_be_true
             t.at "bools" . sql_type . is_definitely_boolean . should_be_true
             t.at "reals" . sql_type . is_definitely_double . should_be_true
-        connection.execute_update 'DROP TABLE "'+tinfo+'"'
+
+    Test.group "[PostgreSQL] Dialect-specific codegen" <|
+        Test.specify "should generate queries for the Distinct operation" <|
+            t = connection.query (SQL_Query.Table_Name tinfo)
+            code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals", "{Tinfo}"."doubles" AS "doubles" FROM (SELECT DISTINCT ON ("{Tinfo}_inner"."strs") "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."reals" AS "reals", "{Tinfo}_inner"."doubles" AS "doubles" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals", "{Tinfo}"."doubles" AS "doubles" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner") AS "{Tinfo}"'
+            expected_code = code_template.replace "{Tinfo}" tinfo
+            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
+    connection.execute_update 'DROP TABLE "'+tinfo+'"'
 
     Test.group "[PostgreSQL] Table.aggregate should correctly infer result types" <|
         name = Name_Generator.random_name "Ttypes"

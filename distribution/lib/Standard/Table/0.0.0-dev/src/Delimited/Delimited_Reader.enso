@@ -193,10 +193,10 @@ newline_at_eof file encoding =
     newline_bytes = newlines.map (x-> x.bytes encoding Report_Error)
     most_bytes = newline_bytes.map .length . compute Statistic.Maximum
     file_last_bytes = file.read_last_bytes most_bytes
-    result = newlines.zip newline_bytes . find pair->
+    result = newlines.zip newline_bytes . find if_missing=[Nothing] pair->
         bytes = pair.second
         bytes == (file_last_bytes.take (Last bytes.length))
-    result.first . catch Nothing
+    result.first
 
 ## PRIVATE
 handle_parsing_failure =

@@ -1602,6 +1602,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-documentation"
+version = "0.1.0"
+dependencies = [
+ "enso-suggestion-database",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
@@ -2048,10 +2061,21 @@ version = "0.1.0"
 dependencies = [
  "debug-scene-cloud-dashboard",
  "debug-scene-component-list-panel-view",
+ "debug-scene-documentation",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-text-grid-visualization",
  "debug-scene-visualization",
+]
+
+[[package]]
+name = "enso-executor"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "enso-profiler",
+ "ensogl-core",
+ "futures 0.3.24",
 ]
 
 [[package]]
@@ -2107,11 +2131,14 @@ dependencies = [
  "enso-data-structures",
  "enso-debug-api",
  "enso-debug-scene",
+ "enso-executor",
  "enso-frp",
  "enso-logger",
+ "enso-notification",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",
+ "enso-suggestion-database",
  "enso-text",
  "enso-web",
  "ensogl",
@@ -2151,6 +2178,7 @@ version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
  "engine-protocol",
+ "enso-executor",
  "enso-frp",
  "enso-gui",
  "enso-prelude",
@@ -2202,6 +2230,16 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "serde",
+]
+
+[[package]]
+name = "enso-notification"
+version = "0.1.0"
+dependencies = [
+ "enso-executor",
+ "enso-prelude",
+ "flo_stream",
+ "futures 0.3.24",
 ]
 
 [[package]]
@@ -2434,6 +2472,27 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "enso-suggestion-database"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "convert_case 0.5.0",
+ "double-representation",
+ "engine-protocol",
+ "enso-data-structures",
+ "enso-executor",
+ "enso-notification",
+ "enso-prelude",
+ "enso-text",
+ "failure",
+ "flo_stream",
+ "futures 0.3.24",
+ "parser-scala",
+ "span-tree",
+ "wasm-bindgen-test",
 ]
 
 [[package]]
@@ -5373,9 +5432,9 @@ checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
 name = "pest"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f400b0f7905bf702f9f3dc3df5a121b16c54e9e8012c082905fdf09a931861a"
+checksum = "cc8bed3549e0f9b0a2a78bf7c0018237a2cdf085eecbbc048e52612438e4e9d0"
 dependencies = [
  "thiserror",
  "ucd-trie",
@@ -5383,9 +5442,9 @@ dependencies = [
 
 [[package]]
 name = "pest_derive"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "423c2ba011d6e27b02b482a3707c773d19aec65cc024637aec44e19652e66f63"
+checksum = "cdc078600d06ff90d4ed238f0119d84ab5d43dbaad278b0e33a8820293b32344"
 dependencies = [
  "pest",
  "pest_generator",
@@ -5393,9 +5452,9 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e64e6c2c85031c02fdbd9e5c72845445ca0a724d419aa0bc068ac620c9935c1"
+checksum = "28a1af60b1c4148bb269006a750cff8e2ea36aff34d2d96cf7be0b14d1bed23c"
 dependencies = [
  "pest",
  "pest_meta",
@@ -5406,9 +5465,9 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57959b91f0a133f89a68be874a5c88ed689c19cd729ecdb5d762ebf16c64d662"
+checksum = "fec8605d59fc2ae0c6c1aefc0c7c7a9769732017c0ce07f7a9cfffa7b4404f20"
 dependencies = [
  "once_cell",
  "pest",

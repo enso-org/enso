@@ -74,6 +74,7 @@ pub mod mock {
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
+                tag_values:    Vec::new(),
             }
         }
 
@@ -84,6 +85,7 @@ pub mod mock {
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
+                tag_values:    Vec::new(),
             }
         }
 
@@ -94,6 +96,7 @@ pub mod mock {
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
+                tag_values:    Vec::new(),
             }
         }
 

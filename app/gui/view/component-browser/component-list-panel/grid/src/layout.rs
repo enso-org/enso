@@ -132,12 +132,7 @@ impl Layout {
     ) -> Self {
         let local_scope_rows = local_scope_entry_count.div_ceil(COLUMN_COUNT);
         let filtered_groups = groups.map(|mut g| {
-            g.drain_filter(|g| {
-                if g.original_height == 2 {
-                    warn!("GRPPP: {g:#?}");
-                }
-                g.height == 0
-            });
+            g.drain_filter(|g| g.height == 0);
             g
         });
         let col_heights: [usize; COLUMN_COUNT] = filtered_groups
@@ -259,9 +254,6 @@ impl Layout {
 
     /// Add group to the top of given column.
     pub fn push_group(&mut self, column: Col, group: Group) -> Row {
-        if group.original_height == 2 {
-            warn!("PUSH GROUP {group:#?}");
-        }
         let group_column = &mut self.columns[column];
         let prev_header_row = group_column.top_row;
         let next_header_row = group_column.top_row - group.height - HEADER_HEIGHT_IN_ROWS;

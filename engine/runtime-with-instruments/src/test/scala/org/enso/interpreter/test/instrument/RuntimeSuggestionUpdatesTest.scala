@@ -247,7 +247,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Add()
                     ),
@@ -328,7 +329,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(4, 16)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Modify(scope =
                         Some(
@@ -351,7 +353,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Add()
                     ),
@@ -429,7 +432,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Modify(scope =
                         Some(
@@ -452,7 +456,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(5, 18)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Modify(
                         returnType = Some(ConstantsGen.NUMBER),
@@ -540,7 +545,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Modify(scope =
                         Some(
@@ -563,7 +569,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(2, 6),
                           Suggestion.Position(6, 18)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Modify(scope =
                         Some(
@@ -808,7 +815,8 @@ class RuntimeSuggestionUpdatesTest
                         Suggestion.Scope(
                           Suggestion.Position(4, 6),
                           Suggestion.Position(8, 11)
-                        )
+                        ),
+                        None
                       ),
                       Api.SuggestionAction.Add()
                     ),

@@ -6,7 +6,7 @@ import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.util.ConstantList;
 
