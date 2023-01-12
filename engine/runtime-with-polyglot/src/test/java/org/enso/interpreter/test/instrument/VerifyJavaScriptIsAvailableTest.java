@@ -14,13 +14,13 @@ public class VerifyJavaScriptIsAvailableTest {
 
   @BeforeClass
   public static void initEnsoContext() {
-    ctx = Context.newBuilder()
+    ctx =
+        Context.newBuilder()
             .allowExperimentalOptions(true)
             .allowIO(true)
             .option(
-                    RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                    Paths.get("../../distribution/component").toFile().getAbsolutePath()
-            )
+                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .logHandler(OutputStream.nullOutputStream())
             .allowAllAccess(true)
             .build();
