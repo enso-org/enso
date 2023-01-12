@@ -82,11 +82,12 @@ const MAX_PARALLEL_COMPILE_JOBS: usize = 2;
 #[derivative(Debug)]
 pub struct Job<T> {
     #[derivative(Debug = "ignore")]
-    on_ready: Box<dyn FnOnce(shader::Program)>,
+    on_ready:  Box<dyn FnOnce(shader::Program)>,
     #[deref]
-    input:    T,
-    handler:  WeakJobHandler,
-    profiler: profiler::Debug,
+    input:     T,
+    handler:   WeakJobHandler,
+    cache_key: ShaderCacheKey,
+    profiler:  profiler::Debug,
 }
 
 impl<T> Job<T> {
@@ -95,7 +96,8 @@ impl<T> Job<T> {
         let handler = self.handler;
         let input = f(self.input);
         let profiler = self.profiler;
-        Job { on_ready, input, handler, profiler }
+        let cache_key = self.cache_key;
+        Job { on_ready, input, handler, profiler, cache_key }
     }
 }
 
@@ -171,6 +173,7 @@ pub enum Progress {
 pub struct Jobs {
     compile:              Vec<Job<shader::Code>>,
     link:                 Vec<Job<shader::CompiledCode>>,
+    read_cache:           Vec<Job<()>>,
     khr_completion_check: Vec<Job<KhrProgram>>,
     link_check:           Vec<Job<shader::Program>>,
 }
@@ -207,6 +210,7 @@ struct CompilerData {
     dirty:       bool,
     context:     native::ContextWithExtensions,
     jobs:        Jobs,
+    cache:       ShaderCache,
     performance: web::Performance,
     logger:      Logger,
 }
@@ -248,9 +252,10 @@ impl CompilerData {
         let dirty = false;
         let context = context.clone();
         let jobs = default();
+        let cache = default();
         let performance = web::window.performance_or_panic();
         let logger = Logger::new("Shader Compiler");
-        Self { dirty, context, jobs, performance, logger }
+        Self { dirty, context, jobs, cache, performance, logger }
     }
 
     fn submit<F: 'static + FnOnce(shader::Program)>(
@@ -259,12 +264,36 @@ impl CompilerData {
         profiler: profiler::Debug,
         on_ready: F,
     ) -> JobHandler {
-        self.dirty = true;
         let strong_handler = JobHandler::new();
         let handler = strong_handler.downgrade();
         let on_ready = Box::new(on_ready);
-        let job = Job { input, handler, on_ready, profiler };
-        self.jobs.compile.push(job);
+        let cache_key = ShaderCache::code_key(&input);
+
+        // Perform cache lookup before spawning compilation job.
+        match self.cache.get_program(cache_key) {
+            Some(ProgramCacheEntry::Submitted | ProgramCacheEntry::Validated(_)) => {
+                debug!("Reuse cached shader {cache_key:?}.");
+                // Compilation of this shader has been submitted or completed. Spawn a cache lookup
+                // job to wait for its completion. The job is spawned even when the program has been
+                // validated, so that `on_ready` callback is always called asynchronously from
+                // within the job runner.
+                let job = Job { input: (), handler, on_ready, profiler, cache_key };
+                self.jobs.read_cache.push(job);
+                self.dirty = true;
+            }
+            Some(ProgramCacheEntry::Failed) => {
+                // Shader compilation of this program already failed. Do not submit it again.
+                // This job will never call `on_ready`.
+            }
+            None => {
+                debug!("Compile shader {cache_key:?}.");
+                self.cache.program_submitted(cache_key);
+                let job = Job { input, handler, on_ready, profiler, cache_key };
+                self.jobs.compile.push(job);
+                self.dirty = true;
+            }
+        };
+
         strong_handler
     }
 
@@ -316,6 +345,7 @@ impl CompilerData {
                 self.run_next_link_check_job()?;
                 Ok(Some(Progress::NewShaderReady))
             }
+            _ if !jobs.read_cache.is_empty() => Ok(Some(self.run_next_read_cache_job()?)),
             _ => {
                 if max_jobs {
                     if !jobs.compile.is_empty() {
@@ -366,13 +396,18 @@ impl CompilerData {
         self.with_next_job("shader compilation", (|t| &mut t.jobs.compile), |this, job| {
             let profiler = job.profiler;
             profiler.resume();
-            let vertex = this.compile_shader(Vertex, job.input.vertex)?;
-            let fragment = this.compile_shader(Fragment, job.input.fragment)?;
+            let vertex = this.cache.get_or_insert_vertex_shader(job.cache_key, || {
+                CompilerData::compile_shader(&this.context, Vertex, job.input.vertex)
+            })?;
+            let fragment = this.cache.get_or_insert_fragment_shader(job.cache_key, || {
+                CompilerData::compile_shader(&this.context, Fragment, job.input.fragment)
+            })?;
             profiler.pause();
             let input = shader::Sources { vertex, fragment };
             let handler = job.handler;
             let on_ready = job.on_ready;
-            let link_job = Job { input, handler, on_ready, profiler };
+            let cache_key = job.cache_key;
+            let link_job = Job { input, handler, on_ready, profiler, cache_key };
             this.jobs.link.push(link_job);
             Ok(())
         })
@@ -392,12 +427,17 @@ impl CompilerData {
             let input = shader::Program::new(shader, program);
             let handler = job.handler;
             let on_ready = job.on_ready;
+            let cache_key = job.cache_key;
             match this.context.extensions.khr_parallel_shader_compile {
                 Some(khr) => {
                     let input = KhrProgram { khr, program: input };
-                    this.jobs.khr_completion_check.push(Job { input, handler, on_ready, profiler })
+                    let job = Job { input, handler, cache_key, on_ready, profiler };
+                    this.jobs.khr_completion_check.push(job)
                 }
-                None => this.jobs.link_check.push(Job { input, handler, on_ready, profiler }),
+                None => {
+                    let job = Job { input, handler, cache_key, on_ready, profiler };
+                    this.jobs.link_check.push(job)
+                }
             }
             Ok(())
         })
@@ -414,10 +454,37 @@ impl CompilerData {
             if !status.as_bool().unwrap_or(false) {
                 return Err(Error::ProgramLinkingError(program.shader));
             } else {
+                this.cache.program_validated(job.cache_key, program.clone());
                 (job.on_ready)(program);
             }
             Ok(())
         })
+    }
+
+    #[allow(unused_parens)]
+    fn run_next_read_cache_job(&mut self) -> Result<Progress, Error> {
+        let mut progress = Progress::StepProgress;
+        self.with_next_job("shader cache read", (|t| &mut t.jobs.read_cache), |this, job| {
+            job.profiler.resume();
+            // Scheduling cache read job for an entry that was never submitted should not happen.
+            // If it does, this is a bug.
+            let entry = this.cache.get_program(job.cache_key).expect("Shader cache entry missing.");
+            job.profiler.finish();
+            match entry {
+                ProgramCacheEntry::Submitted => {
+                    // Program not compiled yet, schedule the job again.
+                    this.jobs.read_cache.push(job);
+                    Ok(())
+                }
+                ProgramCacheEntry::Validated(program) => {
+                    (job.on_ready)(program.clone());
+                    progress = Progress::NewShaderReady;
+                    Ok(())
+                }
+                ProgramCacheEntry::Failed => Err(Error::ErrorCached),
+            }
+        })?;
+        Ok(progress)
     }
 
     fn with_next_job<T>(
@@ -429,7 +496,12 @@ impl CompilerData {
         while let Some(job) = jobs(self).pop() {
             trace!("Running {label} job.");
             if job.handler.exists() {
-                return f(self, job);
+                let cache_key = job.cache_key;
+                let result = f(self, job);
+                if result.is_err() {
+                    self.cache.program_failed(cache_key);
+                }
+                return result;
             } else {
                 trace!("Job handler dropped, skipping.");
             }
@@ -438,15 +510,121 @@ impl CompilerData {
     }
 
     fn compile_shader<T: Into<shader::Type>>(
-        &self,
+        context: &native::ContextWithExtensions,
         shader_type: T,
         code: String,
     ) -> Result<Shader<T>, Error> {
         let tp = shader_type.into().to_gl_enum();
-        let shader = self.context.create_shader(*tp).ok_or(Error::ShaderCreationError)?;
-        self.context.shader_source(&shader, &code);
-        self.context.compile_shader(&shader);
+        let shader = context.create_shader(*tp).ok_or(Error::ShaderCreationError)?;
+        context.shader_source(&shader, &code);
+        context.compile_shader(&shader);
         Ok(Shader::new(code, shader))
+    }
+}
+
+
+
+// ===================
+// === ShaderCache ===
+// ===================
+
+/// A compiled shader cache. Stores compiled shader and program objects, hashed by their source
+/// code. This allows for reuse compiled shader programs with the same source code, even if they
+/// were submitted from different shape system or render layer.
+#[derive(Debug, Default)]
+struct ShaderCache {
+    vertex_shaders:   HashMap<ShaderHash, Shader<Vertex>>,
+    fragment_shaders: HashMap<ShaderHash, Shader<Fragment>>,
+    programs:         HashMap<ShaderCacheKey, ProgramCacheEntry>,
+}
+
+#[derive(Debug, Clone)]
+enum ProgramCacheEntry {
+    /// Shader program is already submitted for compilation.
+    Submitted,
+    /// Shader program was already compiled and linked successfully.
+    Validated(shader::Program),
+    /// Compilation of this shader program already failed.
+    Failed,
+}
+
+impl ShaderCache {
+    /// Generate new shader cache key
+    fn code_key(code: &shader::Code) -> ShaderCacheKey {
+        (ShaderHash::new(&code.vertex), ShaderHash::new(&code.fragment))
+    }
+
+    fn get_program(&self, key: ShaderCacheKey) -> Option<&ProgramCacheEntry> {
+        self.programs.get(&key)
+    }
+
+    fn program_submitted(&mut self, key: ShaderCacheKey) {
+        self.programs.insert(key, ProgramCacheEntry::Submitted);
+    }
+
+    fn program_failed(&mut self, key: ShaderCacheKey) {
+        self.programs.insert(key, ProgramCacheEntry::Failed);
+    }
+
+    fn program_validated(&mut self, key: ShaderCacheKey, program: shader::Program) {
+        self.programs.insert(key, ProgramCacheEntry::Validated(program));
+    }
+
+    fn insert_program(&mut self, key: ShaderCacheKey, entry: ProgramCacheEntry) {
+        self.programs.insert(key, entry);
+    }
+
+    fn get_or_insert_vertex_shader(
+        &mut self,
+        key: ShaderCacheKey,
+        compile: impl FnOnce() -> Result<Shader<Vertex>, Error>,
+    ) -> Result<Shader<Vertex>, Error> {
+        use std::collections::hash_map::Entry;
+        match self.vertex_shaders.entry(key.0) {
+            Entry::Occupied(shader) => Ok(shader.get().clone()),
+            Entry::Vacant(entry) => {
+                let shader = compile()?;
+                Ok(entry.insert(shader).clone())
+            }
+        }
+    }
+
+    fn get_or_insert_fragment_shader(
+        &mut self,
+        key: ShaderCacheKey,
+        compile: impl FnOnce() -> Result<Shader<Fragment>, Error>,
+    ) -> Result<Shader<Fragment>, Error> {
+        use std::collections::hash_map::Entry;
+        match self.fragment_shaders.entry(key.1) {
+            Entry::Occupied(shader) => Ok(shader.get().clone()),
+            Entry::Vacant(entry) => {
+                let shader = compile()?;
+                Ok(entry.insert(shader).clone())
+            }
+        }
+    }
+}
+
+/// Shader cache entry key. Allows retrieving linked programs or individual compiled vertex and
+/// fragment shaders from [`ShaderCache`].
+type ShaderCacheKey = (ShaderHash, ShaderHash);
+
+/// A shader source hash value used for cache storage.
+/// We do not want to store and compare very long shader source strings in the hashmap. Instead, we
+/// rely on the hasher to provide good collision resistance on its own and base the comparison on
+/// that.
+///
+/// Using u64 hash value with default hasher should be resistant enough for the relatively small
+/// amount of unique shaders that we expect to hit.
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+struct ShaderHash(u64);
+
+
+impl ShaderHash {
+    fn new(code: &str) -> Self {
+        let mut hasher = DefaultHasher::new();
+        code.hash(&mut hasher);
+        Self(hasher.finish())
     }
 }
 
@@ -463,6 +641,7 @@ pub enum Error {
     ShaderCreationError,
     ProgramCreationError,
     ProgramLinkingError(shader::CompiledCode),
+    ErrorCached,
 }
 
 impl Error {
@@ -510,6 +689,7 @@ impl Error {
                     dbg_msg, vertex_error, fragment_error
                 )
             }
+            Self::ErrorCached => "Unable to use shader that previously failed to compile.".into(),
         }
     }
 }
