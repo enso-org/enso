@@ -19,7 +19,7 @@ type Context
        - alias: An alias name to use for table within the query.
     for_table : Text -> Text -> Context
     for_table table_name alias=table_name =
-        Context.Value (From_Spec.Table table_name alias) [] [] [] Nothing
+        Context.Value (From_Spec.Table table_name alias) [] [] [] Nothing Nothing
 
     ## PRIVATE
 
@@ -30,7 +30,7 @@ type Context
        - alias: An alias name to use for table within the query.
     for_query : Text -> Text -> Context
     for_query raw_sql alias =
-        Context.Value (From_Spec.Query raw_sql alias) [] [] [] Nothing
+        Context.Value (From_Spec.Query raw_sql alias) [] [] [] Nothing Nothing
 
     ## PRIVATE
 
@@ -40,7 +40,7 @@ type Context
        - subquery: The subquery to lift into a context.
     for_subquery : From_Spec -> Context
     for_subquery subquery =
-        Context.Value subquery [] [] [] Nothing
+        Context.Value subquery [] [] [] Nothing Nothing
 
     ## PRIVATE
 
@@ -63,7 +63,7 @@ type Context
          grouped-by columns or aggregate expressions.
        - limit: an optional maximum number of elements that the equery should
          return.
-    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer)
+    Value (from_spec : From_Spec) (where_filters : Vector SQL_Expression) (orders : Vector Order_Descriptor) (groups : Vector SQL_Expression) (limit : Nothing | Integer) (distinct_on : Nothing | Vector SQL_Expression)
 
     ## PRIVATE
 
@@ -73,7 +73,7 @@ type Context
        - new_filters: The new filters to set in the query.
     set_where_filters : Vector SQL_Expression -> Context
     set_where_filters self new_filters =
-        Context.Value self.from_spec new_filters self.orders self.groups self.limit
+        Context.Value self.from_spec new_filters self.orders self.groups self.limit self.distinct_on
 
     ## PRIVATE
 
@@ -83,7 +83,7 @@ type Context
        - new_orders: The new ordering clauses to set in the query.
     set_orders : Vector Order_Descriptor -> Context
     set_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders self.groups self.limit
+        Context.Value self.from_spec self.where_filters new_orders self.groups self.limit self.distinct_on
 
     ## PRIVATE
 
@@ -100,7 +100,7 @@ type Context
        - new_orders: The new ordering clauses to add to the query.
     add_orders : Vector Order_Descriptor -> Context
     add_orders self new_orders =
-        Context.Value self.from_spec self.where_filters new_orders+self.orders self.groups self.limit
+        Context.Value self.from_spec self.where_filters new_orders+self.orders self.groups self.limit self.distinct_on
 
     ## PRIVATE
 
@@ -110,7 +110,7 @@ type Context
        - new_groups: The new grouping clauses to set in the query.
     set_groups : Vector SQL_Expression -> Context
     set_groups self new_groups =
-        Context.Value self.from_spec self.where_filters self.orders new_groups self.limit
+        Context.Value self.from_spec self.where_filters self.orders new_groups self.limit self.distinct_on
 
     ## PRIVATE
 
@@ -120,7 +120,14 @@ type Context
        - new_limit: The new limit clauses to set in the query.
     set_limit : (Nothing | Integer) -> Context
     set_limit self new_limit =
-       Context.Value self.from_spec self.where_filters self.orders self.groups new_limit
+       Context.Value self.from_spec self.where_filters self.orders self.groups new_limit self.distinct_on
+
+    ## PRIVATE
+
+         Returns a copy of the context with changed `distinct_on` expressions.
+    set_distinct_on : (Nothing | Vector SQL_Expression) -> Context
+    set_distinct_on self new_distinct_on =
+       Context.Value self.from_spec self.where_filters self.orders self.groups self.limit new_distinct_on
 
     ## PRIVATE
 
@@ -136,8 +143,7 @@ type Context
        to one from the original list but it is valid in the new context.
 
        This is useful as a preprocessing step between combining queries, for example in a join.
-    # as_subquery : Text -> Vector (Vector Internal_Column) -> [From_Spec.Sub_Query, Vector (Vector Internal_Column)]
-    as_subquery : Text -> Vector Any -> Vector
+    as_subquery : Text -> Vector (Vector Internal_Column) -> Subquery_Setup
     as_subquery self alias column_lists =
         rewrite_internal_column : Internal_Column -> Internal_Column
         rewrite_internal_column column =
@@ -150,4 +156,7 @@ type Context
             columns.map column-> [column.name, column.expression]
         new_from = From_Spec.Sub_Query encapsulated_columns self alias
 
-        [new_from, new_columns]
+        Subquery_Setup.Value new_from new_columns
+
+type Subquery_Setup
+    Value (subquery : From_Spec) (new_columns : Vector (Vector Internal_Column))

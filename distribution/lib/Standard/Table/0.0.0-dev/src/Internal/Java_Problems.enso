@@ -3,7 +3,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from project.Errors import Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Row, Mismatched_Quote, Additional_Invalid_Rows, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
 
-polyglot java import org.enso.table.data.table.problems.AggregatedProblems
+polyglot java import org.enso.table.problems.AggregatedProblems
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
 polyglot java import org.enso.table.data.table.problems.InvalidAggregation
 polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter

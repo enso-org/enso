@@ -13,6 +13,7 @@ use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::PruneUnusedIds;
 use parser_scala::api::SourceFile;
 use parser_scala::Parser;
 use serde::Deserialize;
@@ -332,6 +333,12 @@ pub struct Metadata {
     rest:    serde_json::Value,
 }
 
+impl PruneUnusedIds for Metadata {
+    fn prune_unused_ids(&mut self, id_map: &ast::IdMap) {
+        self.ide.prune_unused_ids(id_map);
+    }
+}
+
 impl parser_scala::api::Metadata for Metadata {}
 
 impl Default for Metadata {
@@ -364,6 +371,13 @@ pub struct IdeMetadata {
     /// The project metadata. This is stored only in the main module's metadata.
     #[serde(default, deserialize_with = "enso_prelude::deserialize_or_default")]
     project: Option<ProjectMetadata>,
+}
+
+impl PruneUnusedIds for IdeMetadata {
+    fn prune_unused_ids(&mut self, id_map: &ast::IdMap) {
+        let used_ids: HashSet<_> = id_map.vec.iter().map(|(_, id)| *id).collect();
+        self.node.retain(|id, _| used_ids.contains(id));
+    }
 }
 
 /// Metadata about a nodes edit status.
@@ -777,17 +791,18 @@ pub mod test {
     fn outdated_metadata_parses() {
         // Metadata here will fail to serialize because `File` is not a valid qualified name.
         // Expected behavior is that invalid metadata parts will be filled with defaults.
-        let code = r#"main = 5
+        let code = r#"import Standard.Visualization
+main = 5
 
 
 #### METADATA ####
-[]
-{"ide":{"node":{"bd891b65-4c2f-4c05-bc3b-6077b4417cc1":{"position":{"vector":[-75.5,52]},"intended_method":{"module":"Base.System.File","defined_on_type":"File","name":"read"}}}}}"#;
+[[{"index":{"value":7},"size":{"value":8}},"04f2bbe4-6291-4bad-961c-146228f3aee4"],[{"index":{"value":15},"size":{"value":1}},"20f4e5e3-3ab4-4c68-ae7a-d261d3f23af0"],[{"index":{"value":16},"size":{"value":13}},"746b453a-3fed-4128-86ce-a3853ef684b0"],[{"index":{"value":0},"size":{"value":29}},"aead2cca-c429-47f2-85ef-fe090433990b"],[{"index":{"value":30},"size":{"value":4}},"063ab796-e79b-4037-bf94-1f24c9545b9a"],[{"index":{"value":35},"size":{"value":1}},"4b4992bd-7d8e-401b-aebf-42b30a4a5cae"],[{"index":{"value":37},"size":{"value":1}},"1d6660c6-a70b-4eeb-b5f7-82f05a51df25"],[{"index":{"value":30},"size":{"value":8}},"ad5b88bf-0cdb-4eba-90fe-07afc37e3953"],[{"index":{"value":0},"size":{"value":39}},"602dfcea-2321-48fa-95b1-1f58fb028099"]]
+{"ide":{"node":{"1d6660c6-a70b-4eeb-b5f7-82f05a51df25":{"position":{"vector":[-75.5,52]},"intended_method":{"module":"Base.System.File","defined_on_type":"File","name":"read"}}}}}"#;
         let result = Parser::new_or_panic().parse_with_metadata::<Metadata>(code.into());
         let file = result.unwrap();
-        assert_eq!(file.ast.repr(), "main = 5");
+        assert_eq!(file.ast.repr(), "import Standard.Visualization\nmain = 5");
         assert_eq!(file.metadata.ide.node.len(), 1);
-        let id = ast::Id::from_str("bd891b65-4c2f-4c05-bc3b-6077b4417cc1").unwrap();
+        let id = ast::Id::from_str("1d6660c6-a70b-4eeb-b5f7-82f05a51df25").unwrap();
         let node = file.metadata.ide.node.get(&id).unwrap();
         assert_eq!(node.position, Some(Position::new(-75.5, 52.0)));
         assert_eq!(node.intended_method, None);
