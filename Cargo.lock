@@ -3134,8 +3134,10 @@ name = "ensogl-pack"
 version = "0.1.0"
 dependencies = [
  "fs_extra",
+ "ide-ci",
  "manifest-dir-macros",
  "tempfile",
+ "tokio",
 ]
 
 [[package]]

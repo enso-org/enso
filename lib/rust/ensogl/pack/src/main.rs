@@ -1,13 +1,17 @@
+#![feature(async_closure)]
+
+use ide_ci::prelude::*;
+use ide_ci::program::EMPTY_ARGS;
 use manifest_dir_macros::path;
 use std::env;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
-use tempfile::tempdir;
+
 
 pub fn execute<T: AsRef<OsStr>>(exe: &str, args: &[T]) {
-    let args_vec: Vec<_> = args.iter().map(|t| format!("{:?}",t.as_ref())).collect();
+    let args_vec: Vec<_> = args.iter().map(|t| format!("{:?}", t.as_ref())).collect();
     println!("Executing: {} {}", exe, args_vec.join(" "));
     let mut command =
         Command::new(exe).args(args).spawn().expect("Failed to start external executable");
@@ -17,7 +21,7 @@ pub fn execute<T: AsRef<OsStr>>(exe: &str, args: &[T]) {
 }
 
 pub fn modify_arg_1(
-    mut args: &mut Vec<String>,
+    args: &mut Vec<String>,
     arg: &str,
     f: impl Fn(&str) -> Option<String>,
 ) -> Option<String> {
@@ -78,31 +82,50 @@ fn with_pwd<T>(path: &Path, f: impl FnOnce() -> T) -> T {
     out
 }
 
-fn compile_js(main: &str, out: &Path) {
+async fn compile_js(target_dir: &Path, main: &str, out: &Path) -> Result {
     println!("Compiling {main}.");
-    execute("npx", &[
-        "--yes",
-        "esbuild",
-        main,
-        "--bundle",
-        // FIXME:
-        "--sourcemap=inline",
-        "--platform=node",
-        &format!("--outfile={}", out.display()),
-    ]);
+    ide_ci::programs::Npx
+        .cmd()?
+        .args(&[
+            "--yes",
+            "esbuild",
+            main,
+            "--bundle",
+            // FIXME:
+            "--sourcemap=inline",
+            "--platform=node",
+            &format!("--outfile={}", out.display()),
+        ])
+        .current_dir(target_dir)
+        .run_ok()
+        .await
 }
 
-fn compile_ts(main: &str, out: &Path) {
+async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
+    let run_script = async move |script_name, script_args: &[&str]| {
+        ide_ci::programs::Npm
+            .cmd()?
+            .run(script_name, script_args)
+            .current_dir(js_dir)
+            .run_ok()
+            .await
+    };
+
     println!("Type checking TypeScript sources.");
-    execute("npm", &["run", "typecheck"]);
+    run_script("typecheck", &EMPTY_ARGS).await?;
+
     println!("Linting TypeScript sources.");
-    execute("npm", &["run", "lint"]);
+    run_script("lint", &EMPTY_ARGS).await?;
+
     println!("Building TypeScript sources.");
-    execute("npm", &["run", "build", "--", &format!("--outfile={}", out.display())]);
+    run_script("build", &["--", &format!("--outfile={}", out.display())]).await
 }
 
-fn main() {
-    let mut args: Vec<String> = env::args().skip(1).collect();
+#[tokio::main]
+async fn main() -> Result {
+    ide_ci::env::prepend_to_path(r"C:\varia\install\bin")?;
+    setup_logging()?;
+    let mut args = env::args().skip(1).collect_vec();
     let is_build = args.contains(&"build".to_string());
     println!("{:?}", workspace_dir());
     if is_build {
@@ -122,7 +145,8 @@ fn main() {
         let out_name = modify_arg_1(&mut args, "--out-name", |_| Some("pkg".to_string()));
 
         println!("Executing wasm-pack with args: {:?}", args);
-        execute("wasm-pack", &args);
+        ide_ci::programs::WasmPack.cmd()?.args(&args).run_ok().await?;
+        // execute("wasm-pack", &args);
 
 
         // FIXME:
@@ -133,31 +157,35 @@ fn main() {
         let node_modules_dir = js_dir.join("node_modules");
         let app_js_path = target_dist_dir.join("app.js");
 
+        // FIXME? [mwu] What if dependencies are updated without deleting node_modules?
         if !node_modules_dir.is_dir() {
-            with_pwd(&js_dir, || execute("npm", &["install"]));
+            ide_ci::programs::Npm.cmd()?.install().current_dir(&js_dir).run_ok().await?;
+            // with_pwd(&js_dir, || execute("npm", &["install"]));
         }
-        with_pwd(&js_dir, || compile_ts("src/index.ts", &app_js_path));
-        with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
-
-        println!(
-            "Copying {:?} to {:?}",
-            target_dir.join("pkg.wasm"),
-            target_dist_dir.join(&format!("main.wasm"))
-        );
-        std::fs::copy(target_dir.join("pkg_bg.wasm"), target_dist_dir.join(&format!("main.wasm")))
-            .unwrap();
+        compile_ts(&js_dir, "src/index.ts", &app_js_path).await?;
+        compile_js(&target_dir, "pkg.js", &target_dist_dir.join("main.js")).await?;
+        // with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
+        //
+        // println!(
+        //     "Copying {:?} to {:?}",
+        //     target_dir.join("pkg.wasm"),
+        //     target_dist_dir.join(&format!("main.wasm"))
+        // );
+        ide_ci::fs::copy(target_dir.join("pkg_bg.wasm"), target_dist_dir.join("main.wasm"))?;
         println!("Source files:");
-        let paths = std::fs::read_dir(&target_dist_dir).unwrap();
+        let paths = ide_ci::fs::read_dir(&target_dist_dir)?;
         for path in paths {
-            println!("Name: {}", path.unwrap().path().display())
+            println!("Name: {}", path?.path().display())
         }
 
 
         println!("Extracting shaders from generated WASM file.");
         let shaders_src_dir = target_dir.join("shaders");
-        execute("node", &[app_js_path.display().to_string().as_str(), "--extract-shaders", shaders_src_dir.display().to_string().as_str()]);
-
-
+        ide_ci::programs::Node
+            .cmd()?
+            .args([app_js_path.as_str(), "--extract-shaders", shaders_src_dir.as_str()])
+            .run_ok()
+            .await?;
 
         println!("Optimizing extracted shaders.");
         let stages = ["vertex", "fragment"];
@@ -174,7 +202,13 @@ fn main() {
                 let stage_spv_opt_path = format!("{}.opt.spv", stage_path);
                 let stage_glsl_opt_path = format!("{}.opt.glsl", stage_path);
 
-                execute("glslc", &["--target-env=opengl", &format!("-fshader-stage={stage}"), "-o", &stage_spv_path, &stage_glsl_path]);
+                execute("glslc", &[
+                    "--target-env=opengl",
+                    &format!("-fshader-stage={stage}"),
+                    "-o",
+                    &stage_spv_path,
+                    &stage_glsl_path,
+                ]);
                 execute("spirv-opt", &["-O", "-o", &stage_spv_opt_path, &stage_spv_path]);
                 execute("spirv-cross", &["--output", &stage_glsl_opt_path, &stage_spv_opt_path]);
             }
@@ -186,21 +220,16 @@ fn main() {
 
         let shaders_dir = target_dist_dir.join("shaders");
         let shaders_list_path = shaders_dir.join("list.txt");
-        std::fs::create_dir(&shaders_dir);
-        std::fs::write(&shaders_list_path, "test").unwrap();
+        ide_ci::fs::create_dir_if_missing(&shaders_dir)?;
+        ide_ci::fs::write(&shaders_list_path, "test")?;
         println!("DONE!");
 
+        ide_ci::fs::copy(&target_dist_dir, &out_dir)?;
 
-        let mut options = fs_extra::dir::CopyOptions::new();
-        options.overwrite = true;
-        options.content_only = true;
-        println!("Copying folder {:?} to {:?}", target_dist_dir, out_dir);
-        fs_extra::dir::copy(&target_dist_dir, &out_dir, &options).unwrap();
-
-        let paths = std::fs::read_dir(&out_dir).unwrap();
+        let paths = ide_ci::fs::read_dir(&out_dir)?;
         println!("Copied files:");
         for path in paths {
-            println!("Name: {}", path.unwrap().path().display())
+            println!("Name: {}", path?.path().display())
         }
 
         //
@@ -212,7 +241,7 @@ fn main() {
         //
         // println!("target_dir: {}", target_dir.display());
     } else {
-        println!("Executing wasm-pack with args: {:?}", args);
-        execute("wasm-pack", &args);
+        ide_ci::programs::WasmPack.cmd()?.args(&args).run_ok().await?;
     }
+    Ok(())
 }

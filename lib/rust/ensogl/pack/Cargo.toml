@@ -8,6 +8,8 @@ edition = "2021"
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+ide-ci = { path = "../../../../build/ci_utils" }
 manifest-dir-macros = "0.1.16"
 tempfile = "3"
+tokio = { workspace = true }
 fs_extra = "1.2.0"
