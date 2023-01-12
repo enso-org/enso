@@ -246,7 +246,7 @@ impl List {
         let mut top_modules_by_namespace: BTreeMap<_, Vec<&ModuleGroups>> = BTreeMap::new();
         for group in self.module_groups.values().filter(|g| g.is_top_module) {
             let namespace = group.qualified_name.project().namespace.clone();
-            top_modules_by_namespace.entry(namespace).or_insert(default()).push(group);
+            top_modules_by_namespace.entry(namespace).or_insert_with(default).push(group);
         }
         // Create alphabetical lists of top modules per section.
         let mut top_modules = Vec::new();
