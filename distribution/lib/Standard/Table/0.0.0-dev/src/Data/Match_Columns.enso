@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 import project.Data.Report_Unmatched.Report_Unmatched
-from project.Errors import Column_Count_Mismatch, Unmatched_Columns
+from project.Errors import Column_Count_Mismatch, Unmatched_Columns, No_Output_Columns
 
 ## Specifies a column matching strategy.
 type Match_Columns
@@ -28,14 +28,31 @@ type Match_Columns
 
    The column sets are returned in the order in which the corresponding result
    columns should appear in the resulting table.
+
+   The method assumes at least one table is provided in its input.
 match_columns tables matching_mode keep_unmatched_columns problem_builder = case matching_mode of
-    Match_Columns.By_Name ->
-        ## TODO do actual matching!
-        case tables.all table-> table.column_names == tables.first.column_names of
-            True ->
-                Vector.new tables.first.columns.length i->
-                    Column_Set.Value (tables.first.columns.at i . name) (Vector.fill tables.length i)
-            False -> Error.throw "TODO!"
+    Match_Columns.By_Name -> case keep_unmatched_columns of
+        False ->
+            column_counts = find_column_counts tables
+            # This will only include columns that were present in all tables.
+            common_column_names = tables.first.column_names.filter name->
+                column_counts.get name Nothing == tables.length
+            if common_column_names.is_empty then Error.throw No_Output_Columns else
+            common_column_names.map name->
+                column_indices = tables.each table->
+                    table.columns.index_of col-> col.name==name
+                Column_Set.Value name column_indices
+        _ ->
+            output_column_names = distinct_columns_in_appearance_order tables
+            if keep_unmatched_columns == Report_Unmatched then
+                # TODO handle problems
+                Nothing
+            output_column_names.map name->
+                column_indices = tables.each table->
+                    table.columns.index_of col-> col.name==name
+                Column_Set.Value name column_indices
+
+
     Match_Columns.By_Position ->
         column_counts = tables.map table-> table.columns.length
         minmax = column_counts.compute_bulk [Statistic.Minimum, Statistic.Maximum]
@@ -55,3 +72,30 @@ match_columns tables matching_mode keep_unmatched_columns problem_builder = case
 type Column_Set
     ## PRIVATE
     Value (name : Text) (column_indices : Vector Integer)
+
+## PRIVATE
+   Returns a map indicating in how many tables did a column with a given name appear.
+find_column_counts tables =
+    State.run Map Map.empty <|
+        tables.each table->
+            table.columns.each column->
+                column_counts = State.get Map
+                name = column.name
+                new_count = (column_counts.get name 0) + 1
+                State.put Map column_counts.insert name new_count
+        State.get Map
+
+## PRIVATE
+   Returns a list of distinct column names, in the order of first appearance,
+   starting from the first table.
+distinct_columns_in_appearance_order table =
+    names_builder = Vector.new_builder
+    State.run Map Map.empty <|
+        tables.each table->
+            table.columns.each column->
+                seen_names = State.get Map
+                name = column.name
+                if seen_names.contains_key name . not then
+                    names_builder.append name
+                    State.put Map (seen_names.insert name True)
+    names_builder.to_vector
