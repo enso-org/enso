@@ -166,7 +166,7 @@ spec setup =
             expect_column_names ["foo", "bar", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns (By_Column [column1, column2])
 
         Test.specify "should correctly handle regex matching" <|
-            last_ones = table.columns.tail.map .name
+            last_ones = table.columns.drop 1 . map .name
             expect_column_names last_ones <| table.remove_columns (By_Name ["foo"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive))
             first_ones = ["foo", "bar", "Baz", "foo_1", "foo_2"]
             expect_column_names first_ones <| table.remove_columns (By_Name ["a.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive))
@@ -401,7 +401,7 @@ spec setup =
             expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
 
         Test.specify "should correctly handle various combinations of options" <|
-            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns direction=Sort_Direction.Descending text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
+            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns Sort_Direction.Descending text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
 
     Test.group prefix+"Table.rename_columns" <|
         table =

@@ -188,8 +188,8 @@ first_last_aggregators =
 
 make_first_aggregator reverse ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
-        result_expr = args.head
-        order_bys = args.tail
+        result_expr = args.first
+        order_bys = args.drop 1
 
         filter_clause = if ignore_null.not then "" else
             code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"

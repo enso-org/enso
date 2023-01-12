@@ -4,6 +4,8 @@ import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
+import project.Error.Common.Not_Found
 import project.Error.Error
 import project.Function.Function
 import project.Nothing.Nothing
@@ -38,6 +40,10 @@ type List
 
     ## Computes the number of elements in the list.
 
+       ! Computational Complexity
+
+         Note that this is a linear operation requiring O(n) time.
+
        > Example
          Get the length of a two item list.
 
@@ -46,6 +52,54 @@ type List
              example_length = Examples.list.length
     length : Number
     length self = self.fold 0 (acc -> _ -> acc + 1)
+
+    ## Gets an element from the list at a specified index (0-based).
+
+       ! Computational Complexity
+
+         Note that this is a linear operation requiring O(n) time.
+
+       Arguments:
+       - index: The location in the List to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the final item, i.e. -1 will correspond to the last element.
+
+       > Example
+         Get the second item by index.
+
+             import Standard.Examples
+
+             example_length = Examples.list.length
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## Gets an element from the list at a specified index (0-based).
+       If the index is invalid then `if_missing` is returned.
+
+       ! Computational Complexity
+
+         Note that this is a linear operation requiring O(n) time.
+
+       Arguments:
+       - index: The location in the List to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the final item, i.e. -1 will correspond to the last element.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing = case index >= 0 of
+        True ->
+            loop current index = case current of
+                Nil -> if_missing
+                Cons x xs -> if index == 0 then x else @Tail_Call loop xs (index - 1)
+            loop self index
+        False ->
+            loop current count lagged = case current of
+                Nil -> if count == 0 then lagged.x else if_missing
+                Cons _ xs ->
+                    new_lagged = if count > 0 then lagged else lagged.xs
+                    @Tail_Call loop xs (0.max count-1) new_lagged
+            loop self -index self
 
     ## Combines all the elements of the list, by iteratively applying the
        passed function with next elements of the list.
@@ -63,7 +117,7 @@ type List
          In the following example, we'll compute the sum of all elements of a
          list.
 
-             import Standard.Eamples
+             import Standard.Examples
 
              example_fold = Examples.list.fold 0 (+)
     fold : Any -> (Any -> Any -> Any) -> Any
@@ -74,27 +128,23 @@ type List
         res = go init self
         res
 
-    ## Checks whether any element of the list matches the given predicate.
+    ## Combines all the elements of a non-empty list using a binary operation.
+       If the list is empty, it returns `if_empty`.
 
        Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
+       - function: A binary operation that takes two items and combines them.
+       - if_empty: Value returned if the list is empty.
 
        > Example
-         Check if any element of the list is larger than 5.
+         Compute the sum of all the elements in a list.
 
              import Standard.Examples
 
-             example_exists = Examples.list.exists (> 5)
-    exists : (Any -> Boolean) -> Boolean
-    exists self predicate =
-        go list = case list of
-            Nil -> False
-            Cons h t -> if predicate h then True else
-                @Tail_Call go t
-        res = go self
-        res
+             example_fold = Examples.list.reduce (+)
+    reduce : (Any -> Any -> Any) -> Any -> Any
+    reduce self function ~if_empty=(Error.throw Empty_Error) = case self of
+        Nil -> if_empty
+        Cons x xs -> xs.fold x function
 
     ## Checks whether any element of the list matches the given predicate.
 
@@ -113,7 +163,13 @@ type List
 
              example_any = Examples.list.any (> 5)
     any : (Any -> Boolean) -> Boolean
-    any self predicate = self.exists predicate
+    any self predicate =
+        go list = case list of
+            Nil -> False
+            Cons h t -> if predicate h then True else
+                @Tail_Call go t
+        res = go self
+        res
 
     ## Checks whether a predicate holds for all elements in this list.
 
@@ -129,7 +185,7 @@ type List
 
              example_all = Examples.list.all (> 0)
     all : (Any -> Boolean) -> Boolean
-    all self predicate = self.fold True (l -> r -> l && predicate r)
+    all self predicate = self . any (predicate >> .not) . not
 
     ## Checks whether this list contains a given value as an element.
 
@@ -143,7 +199,7 @@ type List
 
              example_contains = Examples.list.contains 3
     contains : Any -> Boolean
-    contains self elem = self.exists ix-> ix == elem
+    contains self elem = self.any ix-> ix == elem
 
     ## Checks if this list is empty.
 
@@ -154,7 +210,9 @@ type List
 
              example_empty = Examples.list.is_empty
     is_empty : Boolean
-    is_empty self = self.length == 0
+    is_empty self = case self of
+        Nil -> True
+        Cons _ _ -> False
 
     ## Checks if the list is not empty.
 
@@ -307,32 +365,6 @@ type List
             go count-1 b res.fill
             res.value
 
-    ## Get the first element from the list.
-
-       > Example
-         This returns 1.
-
-             import Standard.Examples
-
-             example_head = Examples.list.x
-    head : Any ! Empty_Error
-    head self = case self of
-        Nil -> Error.throw Empty_Error
-        Cons a _ -> a
-
-    ## Get all elements from the list except the first.
-
-       > Example
-         This returns (Cons 2 Nil).
-
-             import Standard.Examples
-
-             example_tail = Examples.list.tail
-    tail : List ! Empty_Error
-    tail self = case self of
-        Nil -> Error.throw Empty_Error
-        Cons _ b -> b
-
     ## Get all elements from the list except the last.
 
        > Example
@@ -341,10 +373,10 @@ type List
              import Standard.Examples
 
              example_init = Examples.list.init
-    init : List ! Empty_Error
+    init : List ! Index_Out_Of_Bounds
     init self =
         case self of
-            Nil -> Error.throw Empty_Error
+            Nil -> Error.throw (Index_Out_Of_Bounds.Error 0 0)
             Cons _ Nil -> Nil
             Cons a b ->
                 go l fill = case l of
@@ -367,9 +399,9 @@ type List
              import Standard.Examples
 
              example_last = Examples.list.last
-    last : Any ! Empty_Error
+    last : Any ! Index_Out_Of_Bounds
     last self = case self.fold Nothing (_ -> r -> r) of
-        Nothing -> Error.throw Empty_Error
+        Nothing -> Error.throw (Index_Out_Of_Bounds.Error -1 0)
         a -> a
 
     ## Get the first element from the list.
@@ -380,19 +412,49 @@ type List
              import Standard.Examples
 
              example_first = Examples.list.first
-    first : Any ! Empty_Error
-    first self = self.head
+    first : Any ! Index_Out_Of_Bounds
+    first self = case self of
+        Nil -> Error.throw (Index_Out_Of_Bounds.Error 0 0)
+        Cons a _ -> a
+
+    ## Get the second element from the list.
+
+       > Example
+         Getting the second element in the list.
+
+             import Standard.Examples
+
+             example_second = Examples.list.second
+    second : Any ! Index_Out_Of_Bounds
+    second self = case self of
+        Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 0)
+        Cons _ a -> case a of
+            Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 1)
+            Cons b _ -> b
+
+    ## Get the first element from the list.
+
+       > Example
+         This returns 1.
+
+             import Standard.Examples
+
+             example_head = Examples.list.x
+    head : Any ! Index_Out_Of_Bounds
+    head self = self.first
 
     ## Get all elements from the list except the first.
 
        > Example
-         Getting all elements in the list except the first.
+         This returns (Cons 2 Nil).
 
              import Standard.Examples
 
-             example_rest = Examples.list.rest
-    rest : List ! Empty_Error
-    rest self = self.tail
+             example_tail = Examples.list.tail
+    tail : List ! Index_Out_Of_Bounds
+    tail self = case self of
+        Nil -> Error.throw (Index_Out_Of_Bounds.Error 1 0)
+        Cons _ b -> b
 
     ## UNSTABLE
        Convert this list to a vector with the same elements.
@@ -402,12 +464,97 @@ type List
             builder.append elem
         builder.to_vector
 
+    ## Generates a human-readable text representation of the list.
     to_text : Text
     to_text self =
         go l t e = case l of
             Nil -> t + "Nil" + e
             Cons x xs -> @Tail_Call go xs (t + "(Cons " + x.to_text + " ") (")" + e)
         go self "" ""
+
+    ## Returns the first element of the list that satisfies the predicate or
+       if no elements of the list satisfy the predicate, returns `if_missing`.
+
+       Arguments:
+       - predicate: A function that takes a list element and returns a boolean
+         value that says whether that value satisfies the conditions of the
+         function.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the vector.
+       - if_missing: Value returned if no element satisfies the predicate.
+
+       > Example
+         Finding a first element of the list that is larger than 2.
+
+             import Standard.Examples
+
+             example_first = Examples.list.find (> 2)
+    find : (Any -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=(Error.throw Not_Found) = case start.signum of
+        -1 ->
+            node_and_index = find_node_from_end self start
+            node_and_index.first.find predicate 0 if_missing
+        _ ->
+            start_node = find_node_from_start self start
+            loop current = case current of
+                Nil -> if_missing
+                Cons x xs -> if predicate x then x else @Tail_Call loop xs
+            loop start_node
+
+    ## Returns the index of the element in the list.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the list.
+
+       > Example
+         Finding a first element of the vector that is larger than 3.
+
+             [1, 2, 3, 4, 5].find (> 3)
+    index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self element start=0 = case start.signum of
+        -1 ->
+            node_and_index = find_node_from_end self start
+            found = node_and_index.first.index_of element 0
+            if found.is_nothing then Nothing else found+node_and_index.second
+        _ ->
+            start_node = find_node_from_start self start
+            predicate = if element.is_a Function then element else (==element)
+            loop current idx = case current of
+                Nil -> Nothing
+                Cons x xs -> if predicate x then idx else @Tail_Call loop xs idx+1
+            loop start_node start
+
+    ## Returns the last index of the element in the list.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching backwards from. If the index is
+         negative, it is counted from the end of the list.
+
+       > Example
+         Finding a first element of the vector that is larger than 3.
+
+             [1, 2, 3, 4, 5].find (> 3)
+    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self element start=-1 = case self of
+        Nil -> if start == -1 || start == 0 then Nothing else Error.throw (Index_Out_Of_Bounds.Error start 0)
+        Cons _ _ ->
+            length = self.length
+            used_start = if start < 0 then length+start else start
+            if used_start < 0 || used_start >= length then Error.throw (Index_Out_Of_Bounds.Error start length) else
+                predicate = if element.is_a Function then element else (==element)
+                loop current idx last_match = if idx>used_start then last_match else case current of
+                    Nil -> last_match
+                    Cons x xs ->
+                        new_match = if predicate x then idx else last_match
+                        @Tail_Call loop xs idx+1 new_match
+                loop self 0 Nothing
 
 ## UNSTABLE
 
@@ -419,3 +566,21 @@ type Empty_Error
     to_display_text : Text
     to_display_text self = "The List is empty."
 
+## PRIVATE
+   Given a positive index and a list, returns the node.
+find_node_from_start list index =
+    loop current idx = case current of
+        Nil -> if idx == 0 then current else Error.throw (Index_Out_Of_Bounds.Error index index-idx+1)
+        Cons _ xs -> if idx == 0 then current else @Tail_Call loop xs (idx - 1)
+    loop list index
+
+## PRIVATE
+   Given a negative index and a list, returns the node that is represented and the index of it.
+find_node_from_end list index =
+    loop current count lagged idx = case current of
+        Nil -> if count == 0 then [lagged, idx] else Error.throw (Index_Out_Of_Bounds.Error index -index-count)
+        Cons _ xs ->
+            new_lagged = if count > 0 then lagged else lagged.xs
+            new_idx = if count > 0 then idx else idx+1
+            @Tail_Call loop xs (0.max count-1) new_lagged new_idx
+    loop list -index list 0
