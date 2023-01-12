@@ -40,7 +40,7 @@ impl CodeBuilder {
     /// take into account the indentation nor spacing, so other smart code constructors are
     /// recommended in most cases.
     pub fn write<S: Str>(&mut self, s: S) {
-        self.write_str(s.as_ref()).unwrap();
+        self.buffer.push_str(s.as_ref());
     }
 
     /// Increase the indentation of the code. Will be used by the next `newline` call.
@@ -56,13 +56,17 @@ impl CodeBuilder {
     /// Create a new line and insert appropriate indentation.
     pub fn newline(&mut self) {
         let space_count = self.spaces_in_indent * self.indent;
-        self.write(format!("\n{}", " ".repeat(space_count)));
+        self.buffer.reserve(space_count + 1);
+        self.buffer.push('\n');
+        for _ in 0..space_count {
+            self.buffer.push(' ');
+        }
         self.spaced = true;
     }
 
     /// Inserts a terminator symbol `;`.
     pub fn terminator(&mut self) {
-        self.write(";");
+        self.buffer.push(';');
         self.spaced = false;
     }
 
@@ -82,12 +86,12 @@ impl CodeBuilder {
     }
 
     /// Specialization of the `add` method for strings.
-    fn add_str<S: Str>(&mut self, s: S) {
+    fn add_str(&mut self, s: &str) {
         if !self.spaced {
-            self.write(" ");
+            self.buffer.push(' ');
         }
         self.spaced = false;
-        self.write(s);
+        self.buffer.push_str(s);
     }
 }
 
@@ -108,7 +112,7 @@ impl<T: HasCodeRepr> AddToBuilder<&T> for CodeBuilder {
 
 impl AddToBuilder<&String> for CodeBuilder {
     fn add_to_builder(&mut self, t: &String) -> &mut Self {
-        self.add_str(t);
+        self.add_str(&t);
         self
     }
 }
@@ -122,7 +126,7 @@ impl AddToBuilder<&str> for CodeBuilder {
 
 impl AddToBuilder<String> for CodeBuilder {
     fn add_to_builder(&mut self, t: String) -> &mut Self {
-        self.add_str(t);
+        self.add_str(&t);
         self
     }
 }
