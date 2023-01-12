@@ -200,8 +200,7 @@ impl Module {
         self.language_server.client.close_text_file(file_path).await?;
         let opened = self.language_server.client.open_text_file(file_path).await?;
         let source = parser.parse_with_metadata(opened.content)?;
-        self.model.set_content(source, NotificationKind::Reloaded);
-        Ok(())
+        self.model.set_content(source, NotificationKind::Reloaded)
     }
 }
 
