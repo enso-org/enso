@@ -18,13 +18,14 @@ function camelToKebabCase(name: string) {
 // ==============
 
 class Option<T> {
-    value: T
+    'default': T | undefined
+    value: T | undefined
     description: string
     type: string
-    constructor(value: T, description: string) {
-        this.value = value
+    constructor(description: string, def?: T) {
+        this.default = def
         this.description = description
-        if (value === true || value === false) {
+        if (def === true || def === false) {
             this.type = 'boolean'
         } else {
             this.type = 'string'
@@ -37,9 +38,8 @@ class Option<T> {
 // ============
 
 export class Args {
-    help = new Option(false, 'Print help message.')
-    extractShaders = new Option(
-        'shaders',
+    help = new Option('Print help message.', false)
+    extractShaders = new Option<string>(
         'Extract non-optimized shaders code for static EnsoGL shape definitions. The argument is ' +
             'the directory the shaders will be written to.'
     )
@@ -50,7 +50,7 @@ export class Args {
         for (const [fieldName, option] of Object.entries(this)) {
             const optionName = camelToKebabCase(fieldName)
             optionToFieldNameMap.set(optionName, fieldName)
-            options[optionName] = { type: option.type, default: option.value }
+            options[optionName] = { type: option.type, default: option.default }
         }
         try {
             const nodeUtil = require('node:util')
@@ -71,7 +71,7 @@ export class Args {
             process.exit(1)
         }
         if (this.help.value) {
-            this.printHelpAndExit()
+            this.printHelpAndExit(0)
         }
     }
 
@@ -81,7 +81,8 @@ export class Args {
             const optionName = camelToKebabCase(fieldName)
             let header = `--${optionName}`
             if (option.type == 'string') {
-                header += `=[${option.value}]`
+                const def = option.default ? `[${option.default}]` : '<value>'
+                header += `=${def}`
             }
             console.log()
             console.log(header)
@@ -89,9 +90,9 @@ export class Args {
         }
     }
 
-    printHelpAndExit() {
+    printHelpAndExit(exitCode: number) {
         this.printHelp()
-        process.exit(0)
+        process.exit(exitCode)
     }
 }
 

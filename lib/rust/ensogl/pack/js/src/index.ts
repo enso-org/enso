@@ -78,8 +78,10 @@ async function load_wasm(config: Config) {
         const wasm = await compile_and_run_wasm(snippets_code, wasm_fetch)
         return { wasm, loader }
     } else {
-        const snippets_code = await fs.readFile(config.mainJsUrl.value, 'utf8')
-        const wasm_main = await fs.readFile(config.mainWasmUrl.value)
+        const mainJsUrl = path.join(__dirname, config.mainJsUrl.value)
+        const mainWasmUrl = path.join(__dirname, config.mainWasmUrl.value)
+        const snippets_code = await fs.readFile(mainJsUrl, 'utf8')
+        const wasm_main = await fs.readFile(mainWasmUrl)
         const wasm = await compile_and_run_wasm(snippets_code, wasm_main)
         const loader = null
         return { wasm, loader }
@@ -158,17 +160,17 @@ export class App {
                 await this.loadWasm()
                 this.runEntryPoints()
             } else {
-                await Task.asyncWith('Running the program.', async () => {
-                    const extractShadersPath = this.args.extractShaders.value
-                    if (extractShadersPath) {
+                const extractShadersPath = this.args.extractShaders.value
+                if (extractShadersPath) {
+                    await Task.asyncWith('Running the program.', async () => {
                         this.printResolvedConfig()
                         await this.loadWasm()
                         this.runBeforeMainEntryPoints()
                         await this.extractShaders(extractShadersPath)
-                    } else {
-                        this.args.printHelpAndExit()
-                    }
-                })
+                    })
+                } else {
+                    this.args.printHelpAndExit(1)
+                }
             }
         }
     }

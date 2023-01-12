@@ -7,6 +7,8 @@ use std::process::Command;
 use tempfile::tempdir;
 
 pub fn execute<T: AsRef<OsStr>>(exe: &str, args: &[T]) {
+    let args_vec: Vec<_> = args.iter().map(|t| format!("{:?}",t.as_ref())).collect();
+    println!("Executing: {} {}", exe, args_vec.join(" "));
     let mut command =
         Command::new(exe).args(args).spawn().expect("Failed to start external executable");
     if !command.wait().unwrap().success() {
@@ -129,11 +131,12 @@ fn main() {
         let out_dir = Path::new(&out_dir);
         let js_dir = root_dir.join("js");
         let node_modules_dir = js_dir.join("node_modules");
+        let app_js_path = target_dist_dir.join("app.js");
 
         if !node_modules_dir.is_dir() {
             with_pwd(&js_dir, || execute("npm", &["install"]));
         }
-        with_pwd(&js_dir, || compile_ts("src/index.ts", &target_dist_dir.join("app.js")));
+        with_pwd(&js_dir, || compile_ts("src/index.ts", &app_js_path));
         with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
 
         println!(
@@ -148,6 +151,38 @@ fn main() {
         for path in paths {
             println!("Name: {}", path.unwrap().path().display())
         }
+
+
+        println!("Extracting shaders from generated WASM file.");
+        let shaders_src_dir = target_dir.join("shaders");
+        execute("node", &[app_js_path.display().to_string().as_str(), "--extract-shaders", shaders_src_dir.display().to_string().as_str()]);
+
+
+
+        println!("Optimizing extracted shaders.");
+        let stages = ["vertex", "fragment"];
+        let shaders_list_path = shaders_src_dir.join("list.txt");
+        let content = std::fs::read_to_string(&shaders_list_path).unwrap();
+        let shaders_prefixes: Vec<_> = content.lines().collect();
+        for shader_prefix in shaders_prefixes {
+            println!("Optimizing '{:?}'.", shader_prefix);
+            for stage in stages {
+                let base_path = shaders_src_dir.join(shader_prefix).display().to_string();
+                let stage_path = format!("{base_path}.{stage}");
+                let stage_glsl_path = format!("{}.glsl", stage_path);
+                let stage_spv_path = format!("{}.spv", stage_path);
+                let stage_spv_opt_path = format!("{}.opt.spv", stage_path);
+                let stage_glsl_opt_path = format!("{}.opt.glsl", stage_path);
+
+                execute("glslc", &["--target-env=opengl", &format!("-fshader-stage={stage}"), "-o", &stage_spv_path, &stage_glsl_path]);
+                execute("spirv-opt", &["-O", "-o", &stage_spv_opt_path, &stage_spv_path]);
+                execute("spirv-cross", &["--output", &stage_glsl_opt_path, &stage_spv_opt_path]);
+            }
+        }
+
+        // spirv-opt -Os -o ${FILE}.spv.opt ${FILE}.spv
+
+
 
         let shaders_dir = target_dist_dir.join("shaders");
         let shaders_list_path = shaders_dir.join("list.txt");
