@@ -372,7 +372,7 @@ type Table
        `Text`.
 
        Arguments:
-       - direction: Whether sorting should be in ascending or descending order.
+       - order: Whether sorting should be in ascending or descending order.
        - text_ordering: The sort methodology to use.
 
        > Example
@@ -390,8 +390,8 @@ type Table
 
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
-    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering.Default =
-        new_columns = Table_Helpers.sort_columns internal_columns=self.columns direction text_ordering
+    sort_columns self order=Sort_Direction.Ascending text_ordering=Text_Ordering.Default =
+        new_columns = Table_Helpers.sort_columns internal_columns=self.columns order text_ordering
         Table.new new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping
@@ -516,7 +516,8 @@ type Table
                 problems = java_table.getProblems
                 Java_Problems.parse_aggregated_problems problems
 
-    ## Sorts the rows of the table according to the specified columns and order.
+    ## ALIAS sort
+       Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
        - columns: The columns and order to sort the table.
@@ -686,7 +687,7 @@ type Table
             if matching_input.length == 0 then Nothing else
                 if matching_input.length == 1 then matching_input.first.datatype else
                     first_type = matching_input.first.datatype
-                    ambiguous = matching_input.exists s-> s.datatype != first_type
+                    ambiguous = matching_input.any s-> s.datatype != first_type
                     problem_builder.append (Duplicate_Type_Selector.Error column.name ambiguous)
                     if ambiguous then Nothing else first_type
 
@@ -703,7 +704,7 @@ type Table
                             if valid.not then
                                 invalid_indices.append selector
                         _ : Text ->
-                            found = columns.exists col-> col.name == selector
+                            found = columns.any col-> col.name == selector
                             if found.not then
                                 missing_columns.append selector
                 if missing_columns.is_empty.not then
@@ -893,7 +894,7 @@ type Table
        > Example
          Take rows from the top of the table as long as their values sum to 10.
 
-             table.take (While row-> row.to_vector.sum == 10)
+             table.take (While row-> row.to_vector.compute Statistic.Sum == 10)
     take : (Index_Sub_Range | Range | Integer) -> Table
     take self range=(First 1) =
         Index_Sub_Range_Module.take_helper self.row_count self.rows.at self.slice (slice_ranges self) range
@@ -915,7 +916,7 @@ type Table
        > Example
          Drop rows from the top of the table as long as their values sum to 10.
 
-             table.drop (While row-> row.to_vector.sum == 10)
+             table.drop (While row-> row.to_vector.compute Statistic.Sum == 10)
     drop : (Index_Sub_Range | Range | Integer) -> Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
@@ -1097,7 +1098,8 @@ type Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
-    ## Returns the number of rows in this table.
+    ## ALIAS count
+       Returns the number of rows in this table.
 
        > Example
          Count the number of rows in the table.
@@ -1397,16 +1399,6 @@ type Table
     columns_helper : Table_Column_Helper
     columns_helper self =
         Table_Helpers.Table_Column_Helper.Value self.columns (x->x) self (x->x)
-
-## UNSTABLE
-
-   An error returned when the table contains no rows.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty table error.
-    to_display_text : Text
-    to_display_text self = "The table is empty."
 
 ## PRIVATE
 

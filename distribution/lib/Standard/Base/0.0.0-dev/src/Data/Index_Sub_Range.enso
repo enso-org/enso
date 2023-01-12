@@ -107,7 +107,7 @@ invert_range_selection : Vector Range -> Integer -> Boolean -> Vector Range
 invert_range_selection ranges length needs_sorting =
     sorted = if needs_sorting then sort_and_merge_ranges ranges else ranges
     ranges_with_sentinels = [0.up_to 0] + sorted + [length.up_to length]
-    ranges_with_sentinels.zip ranges_with_sentinels.tail prev-> next->
+    ranges_with_sentinels.zip (ranges_with_sentinels.drop 1) prev-> next->
         prev.end.up_to next.start
 
 ## PRIVATE
@@ -120,7 +120,7 @@ sort_and_merge_ranges ranges =
     if sorted.is_empty then [] else
         current_ref = Ref.new sorted.first
         builder = Vector.new_builder
-        sorted.tail.each range->
+        sorted.drop 1 . each range->
             current = current_ref.get
             case range.start <= current.end of
                 True -> current_ref.put (current.start.up_to (Math.max current.end range.end))

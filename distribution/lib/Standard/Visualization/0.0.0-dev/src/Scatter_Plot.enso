@@ -73,7 +73,7 @@ type Point_Data
             is_good_enough c = c.is_numeric && c.name != x_column.name
             is_good c = is_good_enough c && (self.is_recognized c).not
 
-            candidates.find is_good . catch_ <| candidates.find is_good_enough
+            candidates.find if_missing=(Error.throw Nothing) is_good . catch_ <| candidates.find is_good_enough
         _ -> Error.throw No_Fallback_Column
 
     ## PRIVATE
