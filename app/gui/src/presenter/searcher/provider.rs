@@ -4,10 +4,10 @@ use crate::prelude::*;
 
 use crate::controller::searcher::action::MatchInfo;
 use crate::controller::searcher::component;
-use crate::model::suggestion_database::entry::for_each_kind_variant;
 use crate::presenter;
 
 use enso_frp as frp;
+use enso_suggestion_database::entry::for_each_kind_variant;
 use enso_text as text;
 use ensogl_component::list_view;
 use ensogl_component::list_view::entry::GlyphHighlightedLabel;
