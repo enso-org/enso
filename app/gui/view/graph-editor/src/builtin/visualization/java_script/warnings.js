@@ -23,8 +23,9 @@ class WarningsVisualization extends Visualization {
         this.updateDivSize()
 
         const parsedData = typeof data === 'string' ? JSON.parse(data) : data
-        const prefix = '<ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre;">'
-        const body = parsedData.map((d) => '<li>'+this.escapeHtml(d)+'</li>').join('')
+        const prefix =
+            '<ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre;">'
+        const body = parsedData.map(d => '<li>' + this.escapeHtml(d) + '</li>').join('')
         const suffix = '</ul>'
         divElement.innerHTML = prefix + body + suffix
     }
@@ -33,7 +34,9 @@ class WarningsVisualization extends Visualization {
         if (this.divElem !== undefined) {
             const width = this.dom.getAttributeNS(null, 'width')
             const height = this.dom.getAttributeNS(null, 'height')
-            const tblViewStyle = `width: ${width - 5}px; height: ${height - 5}px; overflow: auto; padding:10px 0 0 10px;`
+            const tblViewStyle = `width: ${width - 5}px; height: ${
+                height - 5
+            }px; overflow: auto; padding:10px 0 0 10px;`
             this.divElem.setAttributeNS(null, 'style', tblViewStyle)
             this.divElem.setAttributeNS(null, 'viewBox', '0 0 ' + width + ' ' + height)
         }
@@ -46,7 +49,12 @@ class WarningsVisualization extends Visualization {
     }
 
     escapeHtml(unsafe) {
-        return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+        return unsafe
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;')
     }
 }
 
