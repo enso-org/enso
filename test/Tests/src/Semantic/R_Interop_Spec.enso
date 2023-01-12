@@ -31,7 +31,10 @@ foreign r make_object = """
     list(x=x, y=FALSE, compare=function(guess) x < guess)
 
 foreign r make_array = """
-    list(list(x=10), list(x=20), list(x=30))
+    list(list(x=30), list(x=10), list(x=20))
+
+foreign r make_num_array = """
+    list(30, 10, 20)
 
 foreign r make_str str = """
     paste("foo", str, "bar", sep=" ")
@@ -73,7 +76,17 @@ spec =
 
         Test.specify "should expose array interfaces for R arrays" <|
             vec = Vector.from_polyglot_array make_array
-            vec.map .x . should_equal [10, 20, 30]
+            vec.map .x . should_equal [30, 10, 20]
+
+            arr = vec.map .x . to_array
+            sorted = arr.sort
+            arr . should_equal [30, 10, 20]
+            sorted . should_equal [10, 20, 30]
+
+            arr_2 = make_num_array
+            sorted_2 = arr_2.sort
+            arr_2 . should_equal [30, 10, 20]
+            sorted_2 . should_equal [10, 20, 30]
 
         Test.specify "should correctly marshall strings" <|
             str = make_str "x" + " baz"

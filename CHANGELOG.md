@@ -79,6 +79,8 @@
   the project is changed from the last saved snapshot and lighter when the
   snapshot matches the current project state.
 - [Added shortcut to interrupt the program][3967]
+- [Added suggestion dropdown for function arguments][4013]. The dropdown is
+  present only when the argument is of type that has a predefined set of values.
 
 #### EnsoGL (rendering engine)
 
@@ -268,6 +270,7 @@
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
 - [Enable Date, Time and DateTime to be read and written to Excel.][3997]
+- [Implemented `Table.distinct` for Database backends.][4027]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -420,6 +423,8 @@
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
 [3997]: https://github.com/enso-org/enso/pull/3997
+[4013]: https://github.com/enso-org/enso/pull/4013
+[4027]: https://github.com/enso-org/enso/pull/4027
 
 #### Enso Compiler
 
@@ -498,6 +503,8 @@
 - [IGV can jump to JMH sources & more][4008]
 - [Basic support of VSCode integration][4014]
 - [Sync language server with file system after VCS restore][4020]
+- [`ArrayOverBuffer` behaves like an `Array` and `Array.sort` no longer sorts in
+  place][4022]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
 
@@ -581,6 +588,7 @@
 [4008]: https://github.com/enso-org/enso/pull/4008
 [4014]: https://github.com/enso-org/enso/pull/4014
 [4020]: https://github.com/enso-org/enso/pull/4020
+[4022]: https://github.com/enso-org/enso/pull/4022
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 

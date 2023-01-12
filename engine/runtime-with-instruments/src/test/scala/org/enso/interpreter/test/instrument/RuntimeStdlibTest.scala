@@ -360,10 +360,12 @@ class RuntimeStdlibTest
               )
             ) =>
           updates.toVector.foreach { update =>
-            val docstring = Suggestion.Documentation(update.suggestion)
-            docstring.foreach(
-              context.docsGenerator.generate(_, update.suggestion.name)
-            )
+            update.suggestion.documentation.foreach { documentation =>
+              context.docsGenerator.generate(
+                documentation,
+                update.suggestion.name
+              )
+            }
           }
       }
     }
