@@ -620,7 +620,9 @@ type Table
        input table.
 
        When multiple rows have the same values within the specified columns, the
-       first row of each such set is returned.
+       first row of each such set is returned if possible, but in database
+       backends any row from each set may be returned (for example if the row
+       ordering is unspecified).
 
        For the in-memory table, the unique rows will be in the order they
        occurred in the input (this is not guaranteed for database operations).

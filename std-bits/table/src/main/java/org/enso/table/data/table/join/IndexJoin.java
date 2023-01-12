@@ -12,7 +12,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.data.table.join.scan.Matcher;
 import org.enso.table.data.table.join.scan.MatcherFactory;
-import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.problems.AggregatedProblems;
 import org.graalvm.collections.Pair;
 
 public class IndexJoin implements JoinStrategy {

@@ -1,8 +1,10 @@
 from Standard.Base import all hiding First, Last
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
+import Standard.Base.Error.Unimplemented.Unimplemented
 
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table.Data.Aggregate_Column.Aggregate_Column import all
 
 import project.Connection.Connection.Connection
@@ -11,7 +13,9 @@ import project.Data.SQL_Statement.SQL_Statement
 import project.Data.SQL_Type.SQL_Type
 import project.Data.Table.Table
 import project.Internal.Base_Generator
+import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
+import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
@@ -74,6 +78,18 @@ type Postgres_Dialect
     prepare_join : Connection -> SQL_Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select =
         Database_Join_Helper.default_prepare_join connection join_kind new_table_name left_subquery right_subquery on_expressions where_expressions columns_to_select
+
+    ## PRIVATE
+       Prepares a distinct operation.
+    prepare_distinct : Table -> Vector -> Boolean -> Problem_Builder -> Table
+    prepare_distinct self table key_columns text_case_insensitive problem_builder =
+        setup = table.context.as_subquery table.name+"_inner" [table.internal_columns]
+        new_columns = setup.new_columns.first
+        column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
+        new_key_columns = key_columns.map c-> column_mapping.at c.name
+        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression text_case_insensitive problem_builder)
+        new_context = Context.for_subquery setup.subquery . set_distinct_on distinct_expressions
+        table.updated_context_and_columns new_context new_columns subquery=True
 
 ## PRIVATE
 make_internal_generator_dialect =

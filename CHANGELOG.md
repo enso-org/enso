@@ -79,6 +79,8 @@
   the project is changed from the last saved snapshot and lighter when the
   snapshot matches the current project state.
 - [Added shortcut to interrupt the program][3967]
+- [Added suggestion dropdown for function arguments][4013]. The dropdown is
+  present only when the argument is of type that has a predefined set of values.
 
 #### EnsoGL (rendering engine)
 
@@ -268,6 +270,7 @@
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
 - [Enable Date, Time and DateTime to be read and written to Excel.][3997]
+- [Implemented `Table.distinct` for Database backends.][4027]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -420,6 +423,8 @@
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
 [3997]: https://github.com/enso-org/enso/pull/3997
+[4013]: https://github.com/enso-org/enso/pull/4013
+[4027]: https://github.com/enso-org/enso/pull/4027
 
 #### Enso Compiler
 

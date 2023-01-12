@@ -165,6 +165,7 @@ final class SuggestionBuilder[A: IndexedSource](
               name,
               args,
               scope.location.get,
+              doc,
               typeSignature
             )
             val subforest = go(
@@ -181,6 +182,7 @@ final class SuggestionBuilder[A: IndexedSource](
               module,
               name.name,
               scope.location.get,
+              doc,
               typeSignature
             )
             val subforest = go(
@@ -264,18 +266,20 @@ final class SuggestionBuilder[A: IndexedSource](
     name: IR.Name,
     args: Seq[IR.DefinitionArgument],
     location: Location,
+    doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Function = {
     val typeSig = buildTypeSignatureFromMetadata(typeSignature)
     val (methodArgs, returnTypeDef) =
       buildFunctionArguments(args, typeSig)
     Suggestion.Function(
-      externalId = externalId,
-      module     = module.toString,
-      name       = name.name,
-      arguments  = methodArgs,
-      returnType = buildReturnType(returnTypeDef),
-      scope      = buildScope(location)
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name.name,
+      arguments     = methodArgs,
+      returnType    = buildReturnType(returnTypeDef),
+      scope         = buildScope(location),
+      documentation = doc
     )
   }
 
@@ -285,16 +289,18 @@ final class SuggestionBuilder[A: IndexedSource](
     module: QualifiedName,
     name: String,
     location: Location,
+    doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Local = {
     val typeSig            = buildTypeSignatureFromMetadata(typeSignature)
     val (_, returnTypeDef) = buildFunctionArguments(Seq(), typeSig)
     Suggestion.Local(
-      externalId,
-      module.toString,
-      name,
-      buildReturnType(returnTypeDef),
-      buildScope(location)
+      externalId    = externalId,
+      module        = module.toString,
+      name          = name,
+      returnType    = buildReturnType(returnTypeDef),
+      scope         = buildScope(location),
+      documentation = doc
     )
   }
 
@@ -540,16 +546,23 @@ final class SuggestionBuilder[A: IndexedSource](
       hasDefault   = varg.defaultValue.isDefined,
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue),
       tagValues = targ match {
-        case s: TypeArg.Sum => Some(pluckVariants(s))
-        case _              => None
+        case s: TypeArg.Sum => {
+          val tagValues = pluckVariants(s)
+          if (tagValues.nonEmpty) {
+            Some(tagValues)
+          } else {
+            None
+          }
+        }
+        case _ => None
       }
     )
 
   private def pluckVariants(arg: TypeArg): Seq[String] = arg match {
-    case TypeArg.Sum(Some(n), List()) => Seq(n.toString)
-    case TypeArg.Sum(_, variants)     => variants.flatMap(pluckVariants)
-    case TypeArg.Value(n)             => Seq(n.toString)
-    case _                            => Seq()
+    case TypeArg.Sum(_, List())   => Seq()
+    case TypeArg.Sum(_, variants) => variants.flatMap(pluckVariants)
+    case TypeArg.Value(n)         => Seq(n.toString)
+    case _                        => Seq()
   }
 
   /** Build the name of type argument.

@@ -307,7 +307,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "line" : 1,
                       "character" : 22
                     }
-                  }
+                  },
+                  "documentation" : "My Function",
+                  "documentationSections" : [
+                    {
+                      "type" : "paragraph",
+                      "body" : "My Function"
+                    }
+                  ]
                 }
               }
             ],
@@ -503,7 +510,14 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
                       "line" : 1,
                       "character" : 22
                     }
-                  }
+                  },
+                  "documentation" : "My Function",
+                  "documentationSections" : [
+                    {
+                      "type" : "paragraph",
+                      "body" : "My Function"
+                    }
+                  ]
                 }
               },
               {
