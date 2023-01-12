@@ -25,7 +25,10 @@ class WarningsVisualization extends Visualization {
         const parsedData = typeof data === 'string' ? JSON.parse(data) : data
         const prefix =
             '<ul style="font-family: DejaVuSansMonoBook, sans-serif; font-size: 12px; white-space: pre;">'
-        const body = parsedData.map(d => '<li>' + this.escapeHtml(d) + '</li>').join('')
+        const body =
+            parsedData.length == ''
+                ? '<li>There are no warnings.</li>'
+                : parsedData.map(d => '<li>' + this.escapeHtml(d) + '</li>').join('')
         const suffix = '</ul>'
         divElement.innerHTML = prefix + body + suffix
     }
