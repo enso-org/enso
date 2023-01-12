@@ -59,14 +59,13 @@ ensogl::define_endpoints_2! {
 /// A text provider that is backed by a string.
 #[derive(Debug)]
 pub struct StringTextProvider {
-    text:       String,
-    frp:        Frp,
-    chunk_size: usize,
+    text: String,
+    frp:  Frp,
 }
 
 impl StringTextProvider {
     /// Create a new [`StringTextProvider`].
-    pub fn new(text: String, chunk_size: usize) -> Self {
+    pub fn new(text: String) -> Self {
         let frp = Frp::new();
 
         let line_count = text.lines().count() as u32;
@@ -75,7 +74,7 @@ impl StringTextProvider {
         let longest_line = text.lines().map(|line| line.chars().count()).max().unwrap_or(0) as u32;
         longest_line_frp.emit(longest_line);
 
-        Self { text, frp, chunk_size }
+        Self { text, frp }
     }
 }
 
@@ -83,7 +82,7 @@ impl TextProvider for StringTextProvider {
     fn get_slice(&self, line: usize, chunk_index: usize) -> Option<String> {
         self.text.lines().nth(line).and_then(|line| {
             line.chars()
-                .chunks(self.chunk_size)
+                .chunks(CHARS_PER_CHUNK)
                 .into_iter()
                 .nth(chunk_index)
                 .map(|chunk| chunk.collect::<String>())
@@ -132,7 +131,7 @@ impl BackendTextProvider {
 
         let text_cache = Rc::new(RefCell::new(GridCache::<String>::new(
             GridPosition::default(),
-            GridSize::new(DEFAULT_GRID_SIZE, DEFAULT_GRID_SIZE),
+            GridSize::new(DEFAULT_GRID_SIZE, CHARS_PER_CHUNK as i32 * DEFAULT_GRID_SIZE),
             CACHE_PADDING,
             Box::new(grid_cache_update),
         )));
@@ -140,7 +139,7 @@ impl BackendTextProvider {
         frp::extend! { network
             register_access <- any_mut();
             update_preprocessor <- all(register_access, grid_window);
-            update_preprocessor <- update_preprocessor._1();
+            update_preprocessor <- update_preprocessor._1().on_change();
             preprocessor_update <+ update_preprocessor.map(|grid_window| {
                 let grid_posititon = grid_window.position.map(|value| value.max(0));
                 let grid_size = grid_window.size;

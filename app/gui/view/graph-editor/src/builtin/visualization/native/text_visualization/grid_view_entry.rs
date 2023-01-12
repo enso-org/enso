@@ -36,11 +36,7 @@ pub struct Model {
 pub struct Params {
     /// DOM parent of the Entry. The text element in the `Entry` must be a child of the
     /// `parent` to appear correctly.
-    pub parent:    Option<web::HtmlDivElement>,
-    /// Name of the font to be used in the `Entry`.
-    pub font_name: ImString,
-    /// Font size in pixels.
-    pub font_size: f32,
+    pub parent: Option<web::HtmlDivElement>,
 }
 
 
