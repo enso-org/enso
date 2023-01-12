@@ -9,6 +9,7 @@ import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -18,11 +19,16 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class EqualsTest extends TestBase {
   private static Context context;
-  private static EqualsAnyNode equalsNode;
+  private EqualsAnyNode equalsNode;
 
   @BeforeClass
-  public static void initContextAndNodes() {
+  public static void initContextAndData() {
     context = createDefaultContext();
+    unwrappedValues = fetchAllUnwrappedValues();
+  }
+
+  @Before
+  public void initNodes() {
     executeInContext(
         context,
         () -> {
@@ -37,14 +43,16 @@ public class EqualsTest extends TestBase {
   }
 
   @DataPoints
-  public static List<Object> allUnwrappedValues() {
-    var valGenerator =
-        ValuesGenerator.create(
-            context,
-            ValuesGenerator.Language.ENSO,
-            ValuesGenerator.Language.JAVA,
-            ValuesGenerator.Language.JAVASCRIPT,
-            ValuesGenerator.Language.PYTHON);
+  public static Object[] unwrappedValues;
+
+  private static Object[] fetchAllUnwrappedValues() {
+    var valGenerator = ValuesGenerator.create(
+        context,
+        ValuesGenerator.Language.ENSO,
+        ValuesGenerator.Language.JAVA,
+        ValuesGenerator.Language.JAVASCRIPT,
+        ValuesGenerator.Language.PYTHON
+    );
     List<Value> values = new ArrayList<>();
     values.addAll(valGenerator.numbers());
     values.addAll(valGenerator.booleans());
@@ -57,7 +65,11 @@ public class EqualsTest extends TestBase {
     values.addAll(valGenerator.periods());
     values.addAll(valGenerator.warnings());
     try {
-      return values.stream().map(value -> unwrapValue(context, value)).collect(Collectors.toList());
+      return values
+          .stream()
+          .map(value -> unwrapValue(context, value))
+          .collect(Collectors.toList())
+          .toArray(new Object[]{});
     } catch (Exception e) {
       throw new AssertionError(e);
     }

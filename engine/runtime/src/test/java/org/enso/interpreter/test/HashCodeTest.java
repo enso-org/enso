@@ -12,6 +12,7 @@ import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
@@ -23,13 +24,18 @@ public class HashCodeTest extends TestBase {
   private static Context context;
   private static final InteropLibrary interop = InteropLibrary.getUncached();
 
-  // Nodes are static on purpose, because of performance
-  private static HashCodeAnyNode hashCodeNode;
-  private static EqualsAnyNode equalsNode;
+  private HashCodeAnyNode hashCodeNode;
+  private EqualsAnyNode equalsNode;
 
   @BeforeClass
-  public static void initContextAndNodes() {
+  public static void initContextAndData() {
     context = createDefaultContext();
+    // Initialize datapoints here, to make sure that it is initialized just once.
+    unwrappedValues = fetchAllUnwrappedValues();
+  }
+
+  @Before
+  public void initNodes() {
     executeInContext(context, () -> {
       hashCodeNode = HashCodeAnyNode.build();
       equalsNode = EqualsAnyNode.build();
@@ -42,8 +48,14 @@ public class HashCodeTest extends TestBase {
     context.close();
   }
 
+  /**
+   * All values are static field, instead of method. Methods annotated with {@code DataPoints}
+   * may be called multiple times, therefore, we should avoid this annotation for expensive methods.
+   */
   @DataPoints
-  public static List<Object> allUnwrappedValues() {
+  public static Object[] unwrappedValues;
+
+  private static Object[] fetchAllUnwrappedValues() {
     var valGenerator = ValuesGenerator.create(
         context,
         ValuesGenerator.Language.ENSO,
@@ -66,7 +78,8 @@ public class HashCodeTest extends TestBase {
       return values
           .stream()
           .map(value -> unwrapValue(context, value))
-          .collect(Collectors.toList());
+          .collect(Collectors.toList())
+          .toArray(new Object[]{});
     } catch (Exception e) {
       throw new AssertionError(e);
     }
