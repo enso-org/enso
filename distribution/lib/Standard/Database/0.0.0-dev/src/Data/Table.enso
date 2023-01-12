@@ -791,9 +791,13 @@ type Table
            and so on for all the remaining tables.
          - If `Match_Columns.By_Position` - the columns are mapped by position.
            If unmatched columns are to be dropped, the resulting table will have
-           as many columns as the table that had the least columns.
+           as many columns as the table that had the least columns and the
+           column names of the first table (self) will be used.
            If unmatched columns are kept, the resulting table will have as many
-           columns as the table with the most columns.
+           columns as the table with the most columns. Since the first table may
+           not have all the necessary columns to provide column names for the
+           result, the result will have column names taken from the first table
+           that has the biggest number of columns.
        - keep_unmatched_columns: If set to `True`, unmatched columns are kept
          and are padded with `Nothing` for tables that did not have them.
          If set to `False`, only the common subset of columns is kept - any
@@ -819,6 +823,11 @@ type Table
              differ, then a `Column_Count_Mismatch` is reported. The error will
              contain the greatest column count as its `expected` value and the
              smallest one as its `actual` value.
+         - If `keep_unmatched_columns` is set to `False` and matching by name,
+           it is possible that there are no columns that are common to all
+           provided tables, in that case `No_Output_Columns` is thrown as a
+           dataflow error regardless of the `on_problems` setting, because there
+           are no columns to include in the resulting table.
          - If type widening is disabled and one of corresponding columns has a
            type that is incompatible with the type coming from the first table,
            a `Column_Type_Mismatch` is reported.
@@ -826,9 +835,6 @@ type Table
            concatenated tables cannot be found, a `No_Common_Type` is reported.
            In warning or ignore mode, the problematic column will not be present
            in the resulting table.
-
-         If any of the above issues occurs, an empty table with the structure of
-         the original table is returned.
 
        ? Unifying Column Types
 

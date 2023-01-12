@@ -9,7 +9,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
-from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
 
 type My_Type
     Value x y
@@ -73,7 +73,6 @@ spec setup =
             t4.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
             t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
 
-        # TODO document this edge case
         Test.specify "should fail if asked to drop unmatched columns but the set of common columns is empty" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
             t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
@@ -127,19 +126,29 @@ spec setup =
             t4.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
             t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
 
-        # TODO document this edge case
-        Test.specify "should use column names from the first table that has the given column in positional matching mode, deduplicating it if necessary" <|
+        Test.specify "should use column names from the first table that has enough columns in positional matching mode" <|
             t1 = table_builder [["A", [1, 2, 3]]]
-            ## Here column A is last and since we are doing positional matching,
-               we will not correlate it with the A from the first table.
-               However, we do not have any other name to give to this column,
-               but `A` is already used, so we will need to use `A_1`.
             t2 = table_builder [["X", [4, 5, 6]], ["A", ["a", "b", "c"]]]
 
+            check table =
+                expect_column_names ["X", "A"] table
+                table.at "X" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+                table.at "A" . to_vector . should_equal [Nothing, Nothing, Nothing, "a", "b", "c"]
+
             t3 = t1.union t2 match_columns=Match_Columns.By_Position
-            expect_column_names ["A", "A_1"] t3
-            t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-            t3.at "A_1" . to_vector . should_equal [Nothing, Nothing, Nothing, "a", "b", "c"]
+            within_table t3 <|
+                check t3
+            Warning.get_all t3 . map .value . should_equal [Column_Count_Mismatch 2 1]
+
+            t4 = t1.union t2 match_columns=Match_Columns.By_Position keep_unmatched_columns=True
+            within_table t4 <|
+                check t4
+
+            t5 = table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], [["Z", [10, 11, 12]]]]
+            t6 = table_builder [["W", [0]]]
+            t7 = table_builder [["X", [7, 8, 9]], ["Y", ["d", "e", "f"]], [["Z", [10, 11, 12]]]]
+            t8 = t1.union [t2, t5, t6, t7] match_columns=Match_Columns.By_Position
+            expect_column_names ["Y", "A", "Z"] t8
 
         ## TODO tests for type coercions (later)
         Nothing
