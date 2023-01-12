@@ -208,19 +208,16 @@ public final class Atom implements TruffleObject {
       if (warnings.hasWarnings(result)) {
         result = warnings.removeWarnings(result);
       }
-      if (result instanceof DataflowError) {
+      if (TypesGen.isDataflowError(result)) {
         msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
+      } else if (TypesGen.isText(result)) {
+        return TypesGen.asText(result);
       } else {
-        return TypesGen.expectText(result);
+        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
       }
-    } catch (AbstractTruffleException panic) {
+    } catch (AbstractTruffleException | UnsupportedMessageException | ArityException | UnknownIdentifierException | UnsupportedTypeException panic) {
       handleError.enter();
       msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
-    } catch (
-      UnexpectedResultException | UnsupportedMessageException | ArityException | UnknownIdentifierException | UnsupportedTypeException e
-    ) {
-      handleError.enter();
-      msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
     }
     return Text.create(msg);
   }
