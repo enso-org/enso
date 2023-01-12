@@ -3,8 +3,8 @@
 
 use crate::prelude::*;
 
-use ensogl::animation;
-use ensogl::control::callback;
+use ensogl_core::animation;
+use ensogl_core::control::callback;
 use futures::executor::LocalPool;
 use futures::executor::LocalSpawner;
 use futures::task::LocalFutureObj;

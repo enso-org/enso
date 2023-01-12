@@ -6,5 +6,5 @@
 /// Leaks it handle so it will run indefinitely.
 /// To be used in asynchronous wasm tests.
 pub fn setup_and_forget() {
-    std::mem::forget(crate::initializer::setup_global_executor());
+    std::mem::forget(crate::setup_global_executor());
 }

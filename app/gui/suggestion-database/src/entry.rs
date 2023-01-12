@@ -2,13 +2,13 @@
 
 use crate::prelude::*;
 
-use crate::model::module::MethodId;
-use crate::model::SuggestionDatabase;
+use crate::SuggestionDatabase;
 
 use ast::opr;
 use convert_case::Case;
 use convert_case::Casing;
 use double_representation::import;
+use double_representation::module::MethodId;
 use double_representation::name;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
@@ -900,8 +900,8 @@ mod test {
 
     use engine_protocol::language_server::SuggestionArgumentUpdate;
 
+    use crate::mock;
     use crate::mock_suggestion_database;
-    use crate::model::suggestion_database::mock;
     use enso_text::index::Line;
     use enso_text::Utf16CodeUnit;
 
