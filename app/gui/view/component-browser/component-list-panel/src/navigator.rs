@@ -159,15 +159,15 @@ fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId
 /// section.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Navigator {
-    display_object: display::object::Instance,
-    network: frp::Network,
-    bottom_buttons: Grid,
-    top_buttons: Grid,
-    tooltip: Tooltip,
+    display_object:            display::object::Instance,
+    network:                   frp::Network,
+    bottom_buttons:            Grid,
+    top_buttons:               Grid,
+    tooltip:                   Tooltip,
     pub set_top_section_count: frp::Any<usize>,
-    pub style: frp::Any<AllStyles>,
-    pub select_section: frp::Any<Option<SectionId>>,
-    pub chosen_section: frp::Stream<Option<SectionId>>,
+    pub style:                 frp::Any<AllStyles>,
+    pub select_section:        frp::Any<Option<SectionId>>,
+    pub chosen_section:        frp::Stream<Option<SectionId>>,
 }
 
 impl Navigator {

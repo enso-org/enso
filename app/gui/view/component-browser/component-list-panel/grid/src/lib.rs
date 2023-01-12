@@ -476,7 +476,10 @@ impl Model {
 
     fn entry_to_select_after_reset(&self, sections_count: usize) -> Option<(Row, Col)> {
         let top_sections = (0..sections_count).into_iter().map(|n| SectionId::Namespace(n));
-        let sections = iter::once(SectionId::Popular).chain(top_sections).chain(iter::once(SectionId::LocalScope)).collect::<Vec<_>>();
+        let sections = iter::once(SectionId::Popular)
+            .chain(top_sections)
+            .chain(iter::once(SectionId::LocalScope))
+            .collect::<Vec<_>>();
         let pick_location = |s: &SectionId| self.entry_to_select_when_switching_to_section(*s);
         sections.iter().filter_map(pick_location).next()
     }
