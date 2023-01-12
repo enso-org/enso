@@ -570,7 +570,7 @@ type Empty_Error
    Given a positive index and a list, returns the node.
 find_node_from_start list index =
     loop current idx = case current of
-        Nil -> if idx == 0 then current else Error.throw (Index_Out_Of_Bounds.Error index index-idx)
+        Nil -> if idx == 0 then current else Error.throw (Index_Out_Of_Bounds.Error index index-idx+1)
         Cons _ xs -> if idx == 0 then current else @Tail_Call loop xs (idx - 1)
     loop list index
 

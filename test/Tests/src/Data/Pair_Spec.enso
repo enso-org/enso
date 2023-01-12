@@ -56,6 +56,8 @@ type_spec name ctor = Test.group name <|
         ctor 1 3 . find (>0) start=-1 . should_equal 3
         ctor 1 3 . find (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
         ctor 1 3 . find (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . find (>0) start=3 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . find (>0) start=3 . catch . should_equal (Index_Out_Of_Bounds.Error 3 3)
         ctor 1 3 . find (>3) if_missing=Nothing . should_equal Nothing
 
     Test.specify "should allow finding the index of an item" <|
@@ -67,6 +69,8 @@ type_spec name ctor = Test.group name <|
         ctor 10 30 . index_of (>0) start=1 . should_equal 1
         ctor 10 30 . index_of (>0) start=2 . should_equal Nothing
         ctor 10 30 . index_of (>0) start=-1 . should_equal 1
+        ctor 10 30 . index_of (>0) start=3 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . index_of (>0) start=3 . catch . should_equal (Index_Out_Of_Bounds.Error 3 3)
         ctor 10 30 . index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
         ctor 10 30 . index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
 
@@ -79,6 +83,7 @@ type_spec name ctor = Test.group name <|
         ctor 10 30 . last_index_of (>0) start=1 . should_equal 1
         ctor 10 30 . last_index_of (>0) start=-1 . should_equal 1
         ctor 10 30 . last_index_of (>0) start=2 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . last_index_of (>0) start=2 . catch . should_equal (Index_Out_Of_Bounds.Error 2 2)
         ctor 10 30 . last_index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
         ctor 10 30 . last_index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
 

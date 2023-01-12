@@ -44,8 +44,11 @@ spec = Test.group "List" <|
         l.find (==4) . should_fail_with Not_Found
         l.find (==2) start=1 . should_equal 2
         l.find (==2) start=2 . should_fail_with Not_Found
+        l.find (==2) start=3 . should_fail_with Not_Found
         l.find (==2) start=-1 . should_fail_with Not_Found
         l.find (==2) start=-2 . should_equal 2
+        l.find (==2) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        l.find (==2) start=4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
         empty.find (==1) . should_fail_with Not_Found
         empty.find (==1) if_missing=Nothing . should_equal Nothing
     Test.specify "should allow finding the index of an element in the list with `.index_of`" <|
@@ -59,6 +62,7 @@ spec = Test.group "List" <|
         l.index_of 2 start=-1 . should_equal Nothing
         l.index_of (==2) start=-2 . should_equal 1
         l.index_of 2 start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        l.index_of 2 start=4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
         l.index_of 2 start=-3 . should_equal 1
         l.index_of 2 start=-4 . should_fail_with Index_Out_Of_Bounds.Error
         l.index_of 2 start=-4 . should_fail_with Index_Out_Of_Bounds.Error
@@ -72,6 +76,7 @@ spec = Test.group "List" <|
         ll.last_index_of 3 start=1 . should_equal Nothing
         ll.last_index_of 3 start=5 . should_equal 5
         ll.last_index_of 3 start=6 . should_fail_with Index_Out_Of_Bounds.Error
+        ll.last_index_of 3 start=6 . catch . should_equal (Index_Out_Of_Bounds.Error 6 6)
         ll.last_index_of 2 start=-3 . should_equal 1
         ll.last_index_of 2 start=-6 . should_equal Nothing
         ll.last_index_of 3 start=-7 . should_fail_with Index_Out_Of_Bounds.Error
@@ -163,12 +168,17 @@ spec = Test.group "List" <|
     Test.specify "should allow getting the head of the list with `.first`" <|
         l.first . should_equal 1
         empty.first.should_fail_with Index_Out_Of_Bounds.Error
+        empty.first.catch.should_equal (Index_Out_Of_Bounds.Error 0 0)
     Test.specify "should allow getting the second item of the list with `.second`" <|
         l.second . should_equal 2
         empty.second.should_fail_with Index_Out_Of_Bounds.Error
+        empty.second.catch.should_equal (Index_Out_Of_Bounds.Error 1 0)
+        (List.Cons 1 List.Nil).second.should_fail_with Index_Out_Of_Bounds.Error
+        (List.Cons 1 List.Nil).second.catch.should_equal (Index_Out_Of_Bounds.Error 1 1)
     Test.specify "should allow getting the last element of the list with `.last`" <|
         l.last . should_equal 3
         empty.last.should_fail_with Index_Out_Of_Bounds.Error
+        empty.last.catch.should_equal (Index_Out_Of_Bounds.Error -1 0)
     Test.specify "should allow getting the items of the list with `.at`" <|
         l.at 0 . should_equal 1
         l.at 1 . should_equal 2

@@ -343,6 +343,9 @@ spec = Test.group "Vectors" <|
         input.find (x -> x%3 == 3) . should_fail_with Not_Found
         input.find (x -> x%3 == 2) start=3 . should_equal 5
         input.find (x -> x%3 == 2) start=-3 . should_equal 8
+        input.find (x -> x%3 == 2) start=10 . should_fail_with Not_Found
+        input.find (x -> x%3 == 2) start=11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.find (x -> x%3 == 2) start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
         input.find (x -> x%3 == 2) start=100 . should_fail_with Index_Out_Of_Bounds.Error
         input.find (x -> x%3 == 2) start=-100 . should_fail_with Index_Out_Of_Bounds.Error
         input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
@@ -357,6 +360,7 @@ spec = Test.group "Vectors" <|
         input.index_of 2 start=-2 . should_equal 8
         input.index_of 2 start=10 . should_equal Nothing
         input.index_of 2 start=11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.index_of 2 start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
         input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.specify "should allow finding the last index of a value" <|
@@ -367,6 +371,7 @@ spec = Test.group "Vectors" <|
         input.last_index_of 2 start=4 . should_equal 1
         input.last_index_of 2 start=-1 . should_equal 8
         input.last_index_of 2 start=10 . should_fail_with Index_Out_Of_Bounds.Error
+        input.last_index_of 2 start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
         input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.specify "should be convertible to a list" <|
