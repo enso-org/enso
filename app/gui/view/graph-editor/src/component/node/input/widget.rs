@@ -220,7 +220,6 @@ impl LazyDropdown {
                 frp::extend! { network
                     init <- source_();
                     current_value <- all(&input.set_current_value, &init)._0();
-                    trace current_value;
                     dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
                     first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
                     output.value_changed <+ first_selected_entry.on_change();
