@@ -170,7 +170,7 @@ type Table_Column_Helper
             modified_table = blanks.fold (self.table.select_columns [] on_problems=Problem_Behavior.Ignore) table-> blanks_col->
                 table.set blanks_col.name blanks_col
             # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
-            col_aggregate = if when_any then Maximum else Minimum
+            col_aggregate = if when_any then Maximum _ else Minimum _
             aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
             result = self.materialize <| Panic.rethrow <|
                 modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error

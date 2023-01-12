@@ -1402,7 +1402,7 @@ Text.index_of self term="" start=0 matcher=Text_Matcher.Case_Sensitive =
 Text.last_index_of : Text -> Integer -> (Text_Matcher | Regex_Matcher) -> Integer | Nothing
 Text.last_index_of self term="" start=-1 matcher=Text_Matcher.Case_Sensitive =
     used_start = if start < 0 then start+self.length else start
-    if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
+    if used_start < 0 || used_start >= self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length) else
         used = if used_start == self.length-1 then self else self.take used_start+1
         span = used.locate term Matching_Mode.Last matcher
         if span.is_nothing then Nothing else span.start
