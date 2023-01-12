@@ -709,10 +709,6 @@ mod test {
     }
 
     fn module_code_uploaded(file_name: &str) -> String {
-        format!(
-            "{}\n    operator1 = enso_project.data/\"{}\" . read",
-            mock::data::CODE,
-            file_name
-        )
+        format!("{}\n    operator1 = enso_project.data/\"{}\" . read", mock::data::CODE, file_name)
     }
 }
