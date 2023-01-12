@@ -264,8 +264,7 @@ type Vector a
                 fold_function (self.at 0) 1
 
     ## Returns the first element of the vector that satisfies the predicate or
-       if no elements of the vector satisfy the predicate, returns
-       `if_missing`.
+       `if_missing` if no elements of the vector satisfy it.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean
@@ -309,7 +308,7 @@ type Vector a
             used_start.up_to self.length . find if_missing=Nothing predicate
 
     ## Returns the last index of an element in the vector.
-       Returns Nothing if the element is not found.
+       Returns `Nothing` if the element is not found.
 
        Arguments:
        - element: The element to search for or a predicate function to test for
@@ -644,7 +643,7 @@ type Vector a
             Array.copy that.to_array 0 arr self_len that_len
             Vector.from_polyglot_array arr
         _ : Array -> self + Vector.from_polyglot_array that
-        _ -> Error.throw (Type_Error.Error Vector that "Should be a Vector or Array to be appended.")
+        _ -> Error.throw (Type_Error.Error Vector that "that")
 
     ## Inserts the given item into the vector at the given index.
 

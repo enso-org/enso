@@ -3,6 +3,8 @@ import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Decimal
 import project.Data.Vector.Vector
+import project.Error.Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.System
 
 polyglot java import java.lang.Integer as Java_Integer
@@ -49,7 +51,7 @@ type Random_Number_Generator
     integer self min=0 max=100 =
         range = max - min
         if range < Java_Integer.MAX_VALUE then min + (self.java_random.nextInt range) else
-            min + (self.decimal * range).floor
+            Error.throw (Illegal_Argument.Error "Currently only integer ranges of up to 2^31-1 are supported.")
 
 ## Returns a new vector containing a random sample of the input vector, without
    replacement.

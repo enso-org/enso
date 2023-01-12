@@ -57,18 +57,18 @@ type Range
 
     ## Returns the first element that is included within the range or `Nothing`
        if the range is empty.
-    first : Integer | Nothing
-    first self = if self.is_empty then Nothing else self.start
+    first : Integer ! Index_Out_Of_Bounds
+    first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
 
     ## Returns the second element that is included within the range or `Nothing`
        if the range has less than 2 element
-    second : Integer | Nothing
-    second self = if self.length < 2 then Nothing else self.start + self.step
+    second : Integer ! Index_Out_Of_Bounds
+    second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
 
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
-    last : Integer | Nothing
-    last self = if self.is_empty then Nothing else
+    last : Integer ! Index_Out_Of_Bounds
+    last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
         self.start + self.step*(self.length - 1)
 
     ## Get the number of elements in the range.

@@ -246,6 +246,7 @@ type Pair
     each self f =
         f self.first
         f self.second
+        Nothing
 
 ## PRIVATE
 check_start_valid start function max=3 =

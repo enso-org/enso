@@ -79,6 +79,7 @@ spec = Test.group "Range" <|
         0.up_to 100 . at -1 . should_equal 99
         0.up_to 100 . at -100 . should_equal 0
         0.up_to 100 . at 100 . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 100 . at 100 . catch . should_equal (Index_Out_Of_Bounds.Error 100 100)
         0.up_to 100 . at -123 . should_fail_with Index_Out_Of_Bounds.Error
         1.up_to 100 . with_step 5 . at 0 . should_equal 1
         1.up_to 100 . with_step 5 . at 3 . should_equal 16
@@ -97,24 +98,27 @@ spec = Test.group "Range" <|
         1.up_to 100 . with_step 5 . get -1 . should_equal 96
         1.up_to 100 . with_step 5 . get -3 . should_equal 86
     Test.specify "should allow getting first" <|
-        0.up_to 0 . first . should_equal Nothing
+        0.up_to 0 . first . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 0 . first . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
         3.up_to 100 . first . should_equal 3
-        0.down_to 0 . first . should_equal Nothing
+        0.down_to 0 . first . should_fail_with Index_Out_Of_Bounds.Error
         0.down_to -3 . first . should_equal 0
     Test.specify "should allow getting second" <|
-        0.up_to 0 . second . should_equal Nothing
+        0.up_to 0 . second . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 0 . second . catch . should_equal (Index_Out_Of_Bounds.Error 1 0)
         3.up_to 100 . second . should_equal 4
         3.up_to 100 . with_step 10 . second . should_equal 13
-        3.up_to 10 . with_step 10 . second . should_equal Nothing
-        0.down_to 0 . second . should_equal Nothing
+        3.up_to 10 . with_step 10 . second . should_fail_with Index_Out_Of_Bounds.Error
+        0.down_to 0 . second . should_fail_with Index_Out_Of_Bounds.Error
         0.down_to -3 . second . should_equal -1
         0.down_to -3 . with_step 2 . second . should_equal -2
-        0.down_to -3 . with_step 4 . second . should_equal Nothing
+        0.down_to -3 . with_step 4 . second . should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "should allow getting last" <|
-        0.up_to 0 . last . should_equal Nothing
+        0.up_to 0 . last . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 0 . last . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
         3.up_to 100 . last . should_equal 99
         3.up_to 100 . with_step 25 . last . should_equal 78
-        0.down_to 0 . last . should_equal Nothing
+        0.down_to 0 . last . should_fail_with Index_Out_Of_Bounds.Error
         0.down_to -3 . last . should_equal -2
     Test.specify "should be able to be mapped over to make a Vector" <|
         empty = 0.up_to 0
