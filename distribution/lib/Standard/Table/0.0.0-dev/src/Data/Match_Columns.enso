@@ -1,5 +1,8 @@
 from Standard.Base import all
 
+import project.Data.Report_Unmatched.Report_Unmatched
+from project.Errors import Column_Count_Mismatch, Unmatched_Columns
+
 ## Specifies a column matching strategy.
 type Match_Columns
     ## Columns are matched by Name.
@@ -9,3 +12,46 @@ type Match_Columns
 
        Note: column names are not compared.
     By_Position
+
+## PRIVATE
+   A helper that encapsulates the common backend-agnostic logic of matching
+   columns in `Table.union`.
+
+   It matches columns according to the provided matching settings and returns a
+   list of column sets to be merged.
+
+   Each column set consists of a name of the resulting column and a list of
+   indices for columns in corresponding tables that will be merged to form this
+   result column. The first column index corresponds to the first table in the
+   input and so on. If no column corresponding to a given column set was matched
+   in a particular table, its entry will be contain `Nothing` instead.
+
+   The column sets are returned in the order in which the corresponding result
+   columns should appear in the resulting table.
+match_columns tables matching_mode keep_unmatched_columns problem_builder = case matching_mode of
+    Match_Columns.By_Name ->
+        ## TODO do actual matching!
+        case tables.all table-> table.column_names == tables.first.column_names of
+            True ->
+                Vector.new tables.first.columns.length i->
+                    Column_Set.Value (tables.first.columns.at i . name) (Vector.fill tables.length i)
+            False -> Error.throw "TODO!"
+    Match_Columns.By_Position ->
+        column_counts = tables.map table-> table.columns.length
+        minmax = column_counts.compute_bulk [Statistic.Minimum, Statistic.Maximum]
+        columns_to_take = if keep_unmatched_columns == False then minmax.first else minmax.second
+        if (minmax.first != minmax.second) && (keep_unmatched_columns == Report_Unmatched) then
+            problem_builder.report_other_warning (Column_Count_Mismatch.Error minmax.second minmax.first)
+        name_source = if keep_unmatched_columns == False then tables.first else
+            tables.find table-> table.columns.length == columns_to_take
+        column_sets = Vector.new columns_to_take i->
+            name = name_source.at i . name
+            column_ids = tables.map table->
+                columns = table.columns
+                if i >= columns.length then Nothing else columns.at i
+            Column_Set.Value name column_ids
+        column_sets
+
+type Column_Set
+    ## PRIVATE
+    Value (name : Text) (column_indices : Vector Integer)

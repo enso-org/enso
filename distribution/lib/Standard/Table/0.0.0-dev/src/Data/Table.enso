@@ -17,6 +17,7 @@ import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Match_Columns as Match_Columns_Helpers
 import project.Data.Position.Position
 import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
@@ -33,7 +34,6 @@ import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
-import project.Internal.Union_Helpers
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
@@ -1190,16 +1190,15 @@ type Table
         if  is_everything_ok then
             ## TODO problem handling
             all_tables = [self] + tables_vector
-            matched_columns = Union_Helpers.match_columns all_tables match_columns keep_unmatched_columns
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns
             ## TODO type coercion
-            merged_columns = matched_columns.map columns_to_merge->
+            merged_columns = matched_column_sets.map column_set->
                 ## TODO actually an efficient merge algorithm - materializing the vector and rebuilding is not very efficient
-                vectors = columns_to_merge.zip all_tables column-> parent_table->
-                    case column of
+                vectors = column_set.column_indices.zip all_tables i-> parent_table->
+                    case i of
                         Nothing -> Vector.fill length=parent_table.row_count item=Nothing
-                        _ : Column -> column.to_vector
-                name = columns_to_merge.first.name
-                Column.from_vector name vectors.flatten
+                        _ : Integer -> (parent_table.at i).to_vector
+                Column.from_vector column_set.name vectors.flatten
             Table.new merged_columns
 
     ## ALIAS dropna
