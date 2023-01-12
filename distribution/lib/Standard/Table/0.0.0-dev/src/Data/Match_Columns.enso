@@ -46,8 +46,14 @@ match_columns tables matching_mode keep_unmatched_columns problem_builder = case
         _ ->
             output_column_names = distinct_columns_in_appearance_order tables
             if keep_unmatched_columns == Report_Unmatched then
-                # TODO handle problems
-                Nothing
+                column_counts = find_column_counts tables
+                all_tables_count = tables.length
+                ## We iterate over output column names to get deterministic
+                  order of unmatched columns.
+                unmatched_column_names = output_column_names.filter name->
+                    column_counts.get name 0 < all_tables_count
+                if unmatched_column_names.not_empty then
+                    problem_builder.report_other_warning (Unmatched_Columns.Error unmatched_column_names)
             output_column_names.map name->
                 column_indices = tables.map table->
                     table.columns.index_of col-> col.name==name

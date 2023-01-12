@@ -49,8 +49,17 @@ spec setup =
                 table.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
                 table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
                 table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
-            problems = [Unmatched_Columns.Error ["B", "C", "D"]]
+            problems = [Unmatched_Columns.Error ["A", "B", "C", "D"]]
             Problems.test_problem_handling action problems tester
+
+            action2 = t2.union t3 on_problems=_
+            tester2 table =
+                expect_column_names ["C", "A", "D"] table
+                table.at "C" . to_vector . should_equal ["d", "e", "f", "g", "h", "i"]
+                table.at "A" . to_vector . should_equal [4, 5, 6, Nothing, Nothing, Nothing]
+                table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+            problems2 = [Unmatched_Columns.Error ["A", "D"]]
+            Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should drop unmatched columns if asked to" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
