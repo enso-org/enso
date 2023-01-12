@@ -225,7 +225,8 @@ pub struct List {
     all_components:        Rc<Vec<Component>>,
     top_modules:           Rc<Vec<group::AlphabeticalList>>,
     top_modules_flattened: Rc<Vec<group::AlphabeticalList>>,
-    section_names:         Rc<Vec<ImString>>,
+    top_section_names:     Rc<Vec<ImString>>,
+    top_section_positions: Rc<HashMap<ImString, usize>>,
     module_groups:         Rc<HashMap<Id, ModuleGroups>>,
     filtered:              Rc<Cell<bool>>,
     /// Components to display in the "Local Scope" section of the [Component
@@ -297,8 +298,13 @@ impl List {
     }
 
     /// Get a vector of section names for the sections of the top modules.
-    pub fn section_names(&self) -> &[ImString] {
-        &self.section_names
+    pub fn top_section_names(&self) -> &[ImString] {
+        &self.top_section_names
+    }
+
+    /// Get a map of section names to section positions for the sections of the top modules.
+    pub fn top_section_positions(&self) -> &HashMap<ImString, usize> {
+        &self.top_section_positions
     }
 }
 

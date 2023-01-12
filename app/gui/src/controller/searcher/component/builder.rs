@@ -251,7 +251,7 @@ impl List {
         // Create alphabetical lists of top modules per section.
         let mut top_modules = Vec::new();
         let mut top_modules_flattened = Vec::new();
-        let mut section_names = Vec::new();
+        let mut top_section_names = Vec::new();
         for (namespace, modules) in top_modules_by_namespace {
             let top_modules_iter = modules.iter();
             let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
@@ -260,17 +260,21 @@ impl List {
             let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
             top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
             top_modules_flattened.push(top_mdl_flat_bld.build());
-            section_names.push(namespace);
+            top_section_names.push(namespace);
         }
+        let top_section_positions = Rc::new(
+            top_section_names.iter().enumerate().map(|(pos, name)| (name.clone(), pos)).collect(),
+        );
         let top_modules = Rc::new(top_modules);
         let top_modules_flattened = Rc::new(top_modules_flattened);
-        let section_names = Rc::new(section_names);
+        let top_section_names = Rc::new(top_section_names);
 
         component::List {
             all_components: Rc::new(self.all_components),
             top_modules,
             top_modules_flattened,
-            section_names,
+            top_section_names,
+            top_section_positions,
             module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),

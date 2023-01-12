@@ -232,7 +232,7 @@ impl Model {
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
         let components = self.controller.components();
-        let section_names = components.section_names();
+        let section_names = components.top_section_names();
         match section_id {
             component_grid::SectionId::Namespace(n) =>
                 self.set_section_name_crumb(section_names.get(n).cloned().unwrap_or_default()),
