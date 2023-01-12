@@ -84,6 +84,7 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization
+  @TruffleBoundary
   long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
     return bigInteger.getValue().hashCode();
   }
