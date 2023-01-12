@@ -1,24 +1,17 @@
-<svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g opacity="0.4">
-<mask id="path-1-inside-1_4609_5539" fill="white">
-<rect x="8" y="0.998871" width="7" height="7" rx="1"/>
+<rect width="32" height="32" fill="white"/>
+<mask id="path-1-inside-1_7717_245722" fill="white">
+<rect x="2" y="2" width="13" height="13" rx="2"/>
 </mask>
-<rect x="8" y="0.998871" width="7" height="7" rx="1" stroke="#0273da" stroke-width="7" mask="url(#path-1-inside-1_4609_5539)"/>
-</g>
-<g opacity="0.7">
-<mask id="path-2-inside-2_4609_5539" fill="white">
-<rect y="8.99887" width="7" height="7" rx="1"/>
+<rect x="2" y="2" width="13" height="13" rx="2" stroke="#1F71D3" stroke-width="13" mask="url(#path-1-inside-1_7717_245722)"/>
+<mask id="path-2-inside-2_7717_245722" fill="white">
+<rect x="17" y="2" width="13" height="13" rx="2"/>
 </mask>
-<rect y="8.99887" width="7" height="7" rx="1" stroke="#0273da" stroke-width="7" mask="url(#path-2-inside-2_4609_5539)"/>
-</g>
-<mask id="path-3-inside-3_4609_5539" fill="white">
-<rect y="0.998871" width="7" height="7" rx="1"/>
+<rect x="17" y="2" width="13" height="13" rx="2" stroke="#1F71D3" stroke-opacity="0.4" stroke-width="13" mask="url(#path-2-inside-2_7717_245722)"/>
+<mask id="path-3-inside-3_7717_245722" fill="white">
+<rect x="2" y="17" width="13" height="13" rx="2"/>
 </mask>
-<rect y="0.998871" width="7" height="7" rx="1" stroke="#0273da" stroke-width="7" mask="url(#path-3-inside-3_4609_5539)"/>
-<g opacity="0.6">
-<mask id="path-4-inside-4_4609_5539" fill="white">
-<rect x="8" y="8.99887" width="7" height="7" rx="1"/>
+<rect x="2" y="17" width="13" height="13" rx="2" stroke="#1F71D3" stroke-opacity="0.7" stroke-width="13" mask="url(#path-3-inside-3_7717_245722)"/>
+<mask id="path-4-inside-4_7717_245722" fill="white">
+<rect x="17" y="17" width="13" height="13" rx="2"/>
 </mask>
-<rect x="8" y="8.99887" width="7" height="7" rx="1" stroke="#0273da" stroke-width="7" mask="url(#path-4-inside-4_4609_5539)"/>
-</g>
-</svg>
+<rect x="17" y="17" width="13" height="13" rx="2" stroke="#1F71D3" stroke-opacity="0.6" stroke-width="13" mask="url(#path-4-inside-4_7717_245722)"/>

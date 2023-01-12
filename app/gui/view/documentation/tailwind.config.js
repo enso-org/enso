@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: ['src/**/*.rs'],
+    content: ['src/**/*.rs', 'assets/**/*.svg'],
     theme: {
         extend: {
             colors: {
@@ -10,6 +10,8 @@ module.exports = {
                 methods: '#0273da',
                 types: '#0273da',
                 examples: '#59aa54',
+                important: '#edefe7',
+                info: '#e6f1f8',
             },
         },
     },

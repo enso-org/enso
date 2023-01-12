@@ -1,7 +1,5 @@
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path opacity="0.3" d="M4 8C1.79086 8 9.65645e-08 6.20914 0 4C-9.65645e-08 1.79086 1.79086 9.65645e-08 4 0H12C14.2091 -9.65645e-08 16 1.79086 16 4V12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 6.20914 8 4 8Z" fill="#a239e2"/>
-<circle cx="12" cy="12" r="2" transform="rotate(-90 12 12)" fill="#a239e2"/>
-<circle cx="12" cy="4" r="2" transform="rotate(-90 12 4)" fill="#a239e2"/>
-<circle cx="4" cy="4" r="2" transform="rotate(-90 4 4)" fill="#a239e2"/>
-<circle opacity="0.5" cx="4" cy="12" r="2.5" transform="rotate(-90 4 12)" fill="#a239e2"/>
-</svg>
+<path d="M8 16C3.58172 16 1.93129e-07 12.4183 0 8C-1.93129e-07 3.58172 3.58172 1.93129e-07 8 0H24C28.4183 -1.93129e-07 32 3.58172 32 8V24C32 28.4183 28.4183 32 24 32C19.5817 32 16 28.4183 16 24C16 19.5817 12.4183 16 8 16Z" fill="#9640DA" fill-opacity="0.3"/>
+<ellipse cx="24" cy="24" rx="4" ry="4" transform="rotate(-90 24 24)" fill="#9640DA"/>
+<ellipse cx="24" cy="8" rx="4" ry="4" transform="rotate(-90 24 8)" fill="#9640DA"/>
+<ellipse cx="8" cy="8" rx="4" ry="4" transform="rotate(-90 8 8)" fill="#9640DA"/>
+<circle cx="8" cy="24" r="5" transform="rotate(-90 8 24)" fill="#9640DA" fill-opacity="0.5"/>
