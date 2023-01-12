@@ -474,10 +474,11 @@ impl Model {
         }
     }
 
-    fn entry_to_select_after_reset(&self) -> Option<(Row, Col)> {
-        let sections = [SectionId::Popular, SectionId::Namespace(0), SectionId::LocalScope].iter();
+    fn entry_to_select_after_reset(&self, sections_count: usize) -> Option<(Row, Col)> {
+        let top_sections = (0..sections_count).into_iter().map(|n| SectionId::Namespace(n));
+        let sections = iter::once(SectionId::Popular).chain(top_sections).chain(iter::once(SectionId::LocalScope)).collect::<Vec<_>>();
         let pick_location = |s: &SectionId| self.entry_to_select_when_switching_to_section(*s);
-        sections.filter_map(pick_location).next()
+        sections.iter().filter_map(pick_location).next()
     }
 
     fn selection_after_jump_group_up(
@@ -692,7 +693,10 @@ impl component::Frp<Model> for Frp {
                 &style.update,
                 f!((section, style) model.navigation_scroll_margins(*section, style))
             );
-            select_after_reset <- input.reset.map(f_!(model.entry_to_select_after_reset()));
+            top_section_count_on_reset <- input.set_top_section_count.sample(&input.reset);
+            select_after_reset <- top_section_count_on_reset.map(
+                f!((count) model.entry_to_select_after_reset(*count))
+            );
             grid_extra_scroll_frp.select_and_jump_to_entry <+ select_after_reset.filter_map(|e| *e);
             grid.select_entry <+ select_after_reset.filter(|e| e.is_none()).constant(None);
             grid_selection_frp.skip_animations <+ input.reset.constant(());
