@@ -112,7 +112,7 @@ impl<T: HasCodeRepr> AddToBuilder<&T> for CodeBuilder {
 
 impl AddToBuilder<&String> for CodeBuilder {
     fn add_to_builder(&mut self, t: &String) -> &mut Self {
-        self.add_str(&t);
+        self.add_str(t);
         self
     }
 }
