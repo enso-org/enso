@@ -8,6 +8,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
+use frp::stream::EventEmitter;
 
 
 
@@ -137,8 +138,17 @@ impl SingleChoice {
             let app = app.clone_ref();
             let display_object = display_object.clone_ref();
             let frp = frp.clone_ref();
-            let lazy =
-                LazyDropdown::NotInitialized { app, display_object, frp, node_height, entries };
+            // Register a watcher for current value, to allow its value to be retrieved at any time
+            // when dropdown is initialized.
+            let current_value_watch = input.set_current_value.register_watch();
+            let lazy = LazyDropdown::NotInitialized {
+                app,
+                display_object,
+                frp,
+                node_height,
+                entries,
+                _current_value: current_value_watch,
+            };
             Rc::new(RefCell::new(lazy))
         } else {
             // TODO [PG]: Support dynamic entries.
@@ -182,6 +192,7 @@ enum LazyDropdown {
         frp:            Frp,
         node_height:    f32,
         entries:        Vec<ImString>,
+        _current_value: frp::data::watch::Handle,
     },
     Initialized(Dropdown<ImString>),
 }
@@ -191,7 +202,9 @@ impl LazyDropdown {
     fn initialize_on_open(&mut self) {
         match self {
             LazyDropdown::Initialized(_) => {}
-            LazyDropdown::NotInitialized { app, display_object, frp, node_height, entries } => {
+            LazyDropdown::NotInitialized {
+                app, display_object, frp, node_height, entries, ..
+            } => {
                 let dropdown = app.new_view::<Dropdown<ImString>>();
                 display_object.add_child(&dropdown);
                 app.display.default_scene.layers.above_nodes.add(&dropdown);
@@ -207,6 +220,7 @@ impl LazyDropdown {
                 frp::extend! { network
                     init <- source_();
                     current_value <- all(&input.set_current_value, &init)._0();
+                    trace current_value;
                     dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
                     first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
                     output.value_changed <+ first_selected_entry.on_change();
