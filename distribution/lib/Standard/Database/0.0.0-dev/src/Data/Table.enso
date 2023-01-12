@@ -100,7 +100,7 @@ type Table
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
         _ : Text ->
-            internal_column = self.internal_columns.find (p -> p.name == selector) . map_error (_ -> No_Such_Column.Error selector)
+            internal_column = self.internal_columns.find if_missing=(Error.throw (No_Such_Column.Error selector)) (p -> p.name == selector)
             self.make_column internal_column
 
     ## Returns the number of columns in the table.
@@ -271,7 +271,7 @@ type Table
        case-sensitive ascending order based on the `Text.compare_to` operator.
 
        Arguments:
-       - direction: Whether sorting should be in ascending or descending order.
+       - order: Whether sorting should be in ascending or descending order.
        - text_ordering: The sort methodology to use.
 
        > Example
@@ -289,8 +289,8 @@ type Table
 
              table.reorder_columns Sort_Direction.Descending
     sort_columns : Sort_Direction -> Text_Ordering -> Table
-    sort_columns self direction=Sort_Direction.Ascending text_ordering=Text_Ordering.Default =
-        new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns direction text_ordering
+    sort_columns self order=Sort_Direction.Ascending text_ordering=Text_Ordering.Default =
+        new_columns = Table_Helpers.sort_columns internal_columns=self.internal_columns order text_ordering
         self.updated_columns new_columns
 
     ## Returns a new table with the columns renamed based on either a mapping
@@ -512,7 +512,7 @@ type Table
                     _ : Text -> self.evaluate column
                     _ -> column
                 new_col = Internal_Column.Value name resolved.sql_type resolved.expression
-                replace = self.internal_columns.exists (c -> c.name == name)
+                replace = self.internal_columns.any (c -> c.name == name)
                 case replace of
                     True ->
                         new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
@@ -554,7 +554,8 @@ type Table
     rows self max_rows=1000 =
         self.read max_rows=max_rows . rows
 
-    ## Sorts the rows of the table according to the specified columns and order.
+    ## ALIAS sort
+       Sorts the rows of the table according to the specified columns and order.
 
        Arguments:
        - columns: The columns and order to sort the table.
@@ -911,7 +912,8 @@ type Table
     filter_blank_rows self when_any=False treat_nans_as_blank=False =
         Table_Helpers.filter_blank_rows self when_any treat_nans_as_blank
 
-    ## Returns the amount of rows in this table.
+    ## ALIAS count
+       Returns the amount of rows in this table.
     row_count : Integer
     row_count self = if self.internal_columns.is_empty then 0 else
         expr = SQL_Expression.Operation "COUNT_ROWS" []

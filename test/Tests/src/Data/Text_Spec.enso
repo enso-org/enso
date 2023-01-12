@@ -156,6 +156,13 @@ spec =
             str.at 1 . should_equal facepalm
             str.at 2 . should_equal accent_1
             str.at 3 . should_equal accent_2
+            str.get 0 . should_equal kshi
+            str.get 1 . should_equal facepalm
+            str.get 2 . should_equal accent_1
+            str.get 3 . should_equal accent_2
+            str.first . should_equal kshi
+            str.second . should_equal facepalm
+            str.last . should_equal accent_2
 
         Test.specify "should allow access by negative index to a grapheme cluster" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -163,6 +170,10 @@ spec =
             str.at -3 . should_equal facepalm
             str.at -2 . should_equal accent_1
             str.at -1 . should_equal accent_2
+            str.get -4 . should_equal kshi
+            str.get -3 . should_equal facepalm
+            str.get -2 . should_equal accent_1
+            str.get -1 . should_equal accent_2
 
         Test.specify "should return a dataflow error when accessing characters out of bounds" <|
             str = kshi + facepalm + accent_1 + accent_2
@@ -170,6 +181,12 @@ spec =
             str.at -5 . catch . should_equal (Index_Out_Of_Bounds.Error -5 4)
             str.at 4 . should_fail_with Index_Out_Of_Bounds.Error
             str.at 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
+            str.get -5 . should_equal Nothing
+            str.get 4 . should_equal Nothing
+            str.get -5 "?" . should_equal "?"
+            "".first.should_fail_with Index_Out_Of_Bounds.Error
+            "".second.should_fail_with Index_Out_Of_Bounds.Error
+            "".last.should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should be able to split the text into words" <|
             "I have not one, but two cats.".words . should_equal ['I', 'have', 'not', 'one', ',', 'but', 'two', 'cats', '.']
@@ -1124,9 +1141,9 @@ spec =
 
         Test.specify "locate should work as shown in examples" <|
             example_1 =
-                "Hello World!".locate "J" == Nothing
-                "Hello World!".locate "o" == Span.Value (4.up_to 5) "Hello World!"
-                "Hello World!".locate "o" mode=Matching_Mode.Last == Span.Value (4.up_to 5) "Hello World!"
+                "Hello World!".locate "J" . should_equal Nothing
+                "Hello World!".locate "o" . should_equal (Span.Value (4.up_to 5) "Hello World!")
+                "Hello World!".locate "o" mode=Matching_Mode.Last . should_equal (Span.Value (7.up_to 8) "Hello World!")
 
             example_2 =
                 term = "straße"
@@ -1175,7 +1192,7 @@ spec =
             example_5
             example_6
 
-        Test.specify "should allow to find locate occurrences within a text" <|
+        Test.specify "should allow to locate occurrences within a text" <|
             "Hello World!".locate_all "J" . should_equal []
             "Hello World!".locate_all "o" . map .start . should_equal [4, 7]
 
@@ -1188,10 +1205,29 @@ spec =
             "".locate "" . should_equal (Span.Value (0.up_to 0) "")
             "".locate "" mode=Matching_Mode.Last . should_equal (Span.Value (0.up_to 0) "")
             "".locate_all "" . should_equal [Span.Value (0.up_to 0) ""]
+
             abc = 'A\u{301}ßC'
             abc.locate "" . should_equal (Span.Value (0.up_to 0) abc)
             abc.locate "" mode=Matching_Mode.Last . should_equal (Span.Value (3.up_to 3) abc)
             abc.locate_all "" . should_equal [Span.Value (0.up_to 0) abc, Span.Value (1.up_to 1) abc, Span.Value (2.up_to 2) abc, Span.Value (3.up_to 3) abc]
+
+        Test.specify "should allow to get indexes of values within a text" <|
+            "Hello World!".index_of "o" . should_equal 4
+            "Hello World!".index_of "o" start=5 . should_equal 7
+            "Hello World!".index_of "o" start=-5 . should_equal 7
+            "Hello World!".index_of "o" start=12 . should_equal Nothing
+            "Hello World!".index_of "o" start=13 . should_fail_with Index_Out_Of_Bounds.Error
+            "Hello World!".index_of "o" start=13 . catch . should_equal (Index_Out_Of_Bounds.Error 13 13)
+
+            "Hello World!".last_index_of "o" . should_equal 7
+            "Hello World!".last_index_of "o" start=6 . should_equal 4
+            "Hello World!".last_index_of "o" start=12 . should_fail_with Index_Out_Of_Bounds.Error
+            "Hello World!".last_index_of "o" start=12 . catch . should_equal (Index_Out_Of_Bounds.Error 12 12)
+
+            abc = 'A\u{301}ßC'
+            abc.index_of "" . should_equal 0
+            abc.index_of "" start=3 . should_equal 3
+            abc.last_index_of "" . should_equal 3
 
         Test.specify "should allow case-insensitive matching in locate" <|
             hello = "Hello WORLD!"

@@ -77,8 +77,8 @@ type Plain_Text_Format
         parts = content_type.split ";" . map .trim
         case parts.first of
             "text/plain" ->
-                charset_part = parts.find (x->x.starts_with "charset=")
-                encoding = if charset_part.is_error then Encoding.utf_8 else
+                charset_part = parts.find if_missing=Nothing (x->x.starts_with "charset=")
+                encoding = if charset_part.is_nothing then Encoding.utf_8 else
                     parsed = Encoding.from_name (charset_part.drop 8)
                     if parsed.is_error then Encoding.utf_8 else parsed
                 Plain_Text_Format.Plain_Text encoding
