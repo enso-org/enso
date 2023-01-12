@@ -188,10 +188,14 @@ async fn main() -> Result {
             .await?;
 
         println!("Optimizing extracted shaders.");
+        let dist_shaders_dir = target_dist_dir.join("shaders");
+        let dist_shaders_list_path = dist_shaders_dir.join("list.txt");
+        std::fs::create_dir(&dist_shaders_dir);
+
         let stages = ["vertex", "fragment"];
         let shaders_list_path = shaders_src_dir.join("list.txt");
-        let content = std::fs::read_to_string(&shaders_list_path).unwrap();
-        let shaders_prefixes: Vec<_> = content.lines().collect();
+        let shaders_list = std::fs::read_to_string(&shaders_list_path).unwrap();
+        let shaders_prefixes: Vec<_> = shaders_list.lines().collect();
         for shader_prefix in shaders_prefixes {
             println!("Optimizing '{:?}'.", shader_prefix);
             for stage in stages {
@@ -201,6 +205,8 @@ async fn main() -> Result {
                 let stage_spv_path = format!("{}.spv", stage_path);
                 let stage_spv_opt_path = format!("{}.opt.spv", stage_path);
                 let stage_glsl_opt_path = format!("{}.opt.glsl", stage_path);
+                let stage_glsl_opt_dist_path =
+                    dist_shaders_dir.join(&format!("{shader_prefix}.{stage}.glsl"));
 
                 execute("glslc", &[
                     "--target-env=opengl",
@@ -211,17 +217,20 @@ async fn main() -> Result {
                 ]);
                 execute("spirv-opt", &["-O", "-o", &stage_spv_opt_path, &stage_spv_path]);
                 execute("spirv-cross", &["--output", &stage_glsl_opt_path, &stage_spv_opt_path]);
+                let content = std::fs::read_to_string(&stage_glsl_opt_path).unwrap();
+                let main_start_str = "void main()\n{";
+                let main_end_str = "}";
+                let main_start = content.find(main_start_str).unwrap();
+                let main_end = content.rfind(main_end_str).unwrap();
+                let main_content = &content[main_start + main_start_str.len()..main_end];
+
+                std::fs::write(&stage_glsl_opt_dist_path, main_content).unwrap();
             }
         }
 
-        // spirv-opt -Os -o ${FILE}.spv.opt ${FILE}.spv
+        std::fs::write(&dist_shaders_list_path, &shaders_list).unwrap();
 
 
-
-        let shaders_dir = target_dist_dir.join("shaders");
-        let shaders_list_path = shaders_dir.join("list.txt");
-        ide_ci::fs::create_dir_if_missing(&shaders_dir)?;
-        ide_ci::fs::write(&shaders_list_path, "test")?;
         println!("DONE!");
 
         ide_ci::fs::copy(&target_dist_dir, &out_dir)?;
