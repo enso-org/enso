@@ -97,9 +97,9 @@ spec setup =
 
             action = t1.union [t2, t3] match_columns=Match_Columns.By_Position on_problems=_
             tester table =
-                expect_column_names ["A", "B", "C"] table
-                table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
-                table.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
+                expect_column_names ["A1", "B1", "C"] table
+                table.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+                table.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
                 table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
             problems = [Column_Count_Mismatch.Error 3 1]
             Problems.test_problem_handling action problems tester
@@ -121,9 +121,9 @@ spec setup =
 
             t4 = t1.union [t2, t3] match_columns=Match_Columns.By_Position keep_unmatched_columns=True on_problems=Problem_Behavior.Ignore
             Problems.assume_no_problems t4
-            expect_column_names ["A", "B", "C"] t4
-            t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
-            t4.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
+            expect_column_names ["A1", "B1", "C"] t4
+            t4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+            t4.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
             t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
 
         Test.specify "should use column names from the first table that has enough columns in positional matching mode" <|
@@ -138,15 +138,15 @@ spec setup =
             t3 = t1.union t2 match_columns=Match_Columns.By_Position
             within_table t3 <|
                 check t3
-            Warning.get_all t3 . map .value . should_equal [Column_Count_Mismatch 2 1]
+            Warning.get_all t3 . map .value . should_equal [Column_Count_Mismatch.Error 2 1]
 
             t4 = t1.union t2 match_columns=Match_Columns.By_Position keep_unmatched_columns=True
             within_table t4 <|
                 check t4
 
-            t5 = table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], [["Z", [10, 11, 12]]]]
+            t5 = table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
             t6 = table_builder [["W", [0]]]
-            t7 = table_builder [["X", [7, 8, 9]], ["Y", ["d", "e", "f"]], [["Z", [10, 11, 12]]]]
+            t7 = table_builder [["X", [7, 8, 9]], ["Y", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
             t8 = t1.union [t2, t5, t6, t7] match_columns=Match_Columns.By_Position
             expect_column_names ["Y", "A", "Z"] t8
 

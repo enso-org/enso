@@ -1190,16 +1190,18 @@ type Table
         if  is_everything_ok then
             ## TODO problem handling
             all_tables = [self] + tables_vector
-            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns
-            ## TODO type coercion
-            merged_columns = matched_column_sets.map column_set->
-                ## TODO actually an efficient merge algorithm - materializing the vector and rebuilding is not very efficient
-                vectors = column_set.column_indices.zip all_tables i-> parent_table->
-                    case i of
-                        Nothing -> Vector.fill length=parent_table.row_count item=Nothing
-                        _ : Integer -> (parent_table.at i).to_vector
-                Column.from_vector column_set.name vectors.flatten
-            Table.new merged_columns
+            problem_builder = Problem_Builder.new
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
+            problem_builder.attach_problems_before on_problems <|
+                merged_columns = matched_column_sets.map column_set->
+                    ## TODO type coercion
+                    ## TODO actually an efficient merge algorithm - materializing the vector and rebuilding is not very efficient
+                    vectors = column_set.column_indices.zip all_tables i-> parent_table->
+                        case i of
+                            Nothing -> Vector.fill length=parent_table.row_count item=Nothing
+                            _ : Integer -> (parent_table.at i).to_vector
+                    Column.from_vector column_set.name vectors.flatten
+                Table.new merged_columns
 
     ## ALIAS dropna
        ALIAS drop_missing_rows

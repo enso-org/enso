@@ -47,8 +47,8 @@ match_columns tables matching_mode keep_unmatched_columns problem_builder = case
         column_sets = Vector.new columns_to_take i->
             name = name_source.at i . name
             column_ids = tables.map table->
-                columns = table.columns
-                if i >= columns.length then Nothing else columns.at i
+                column_count = table.columns.length
+                if i >= column_count then Nothing else i
             Column_Set.Value name column_ids
         column_sets
 
