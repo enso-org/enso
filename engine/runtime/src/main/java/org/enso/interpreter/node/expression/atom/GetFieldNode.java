@@ -4,7 +4,7 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
@@ -66,6 +66,6 @@ public class GetFieldNode extends RootNode {
 
   @Override
   protected GetFieldNode cloneUninitialized() {
-    return new GetFieldNode(getLanguage(Language.class), index, type, name);
+    return new GetFieldNode(getLanguage(EnsoLanguage.class), index, type, name);
   }
 }

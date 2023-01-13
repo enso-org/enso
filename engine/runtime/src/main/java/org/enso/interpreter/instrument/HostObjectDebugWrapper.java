@@ -8,7 +8,9 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+
 import java.util.Arrays;
+
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -51,6 +53,7 @@ public final class HostObjectDebugWrapper implements TruffleObject {
    * wrapper is a string from the Truffle perspective.
    * <p>
    * Serves as a workaround for https://github.com/oracle/graal/issues/5513.
+   *
    * @param object Object to potentialy wrap in {@link HostObjectDebugWrapper}.
    */
   @TruffleBoundary
@@ -61,10 +64,7 @@ public final class HostObjectDebugWrapper implements TruffleObject {
       for (int i = 0; i < fields.length; i++) {
         wrappedFields[i] = wrapHostValues(fields[i], interop);
       }
-      return new Atom(
-          atom.getConstructor(),
-          wrappedFields
-      );
+      return atom.getConstructor().newInstance(wrappedFields);
     } else if (isHostValue(object, interop)) {
       return new HostObjectDebugWrapper(object);
     } else {

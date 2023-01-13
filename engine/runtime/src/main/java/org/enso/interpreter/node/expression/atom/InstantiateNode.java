@@ -25,7 +25,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
  */
 @NodeInfo(shortName = "Instantiate", description = "Instantiates a constant Atom constructor")
 public abstract class InstantiateNode extends ExpressionNode {
-  private final AtomConstructor constructor;
+  final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;
   private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(3);
   private @CompilationFinal(dimensions = 1) ConditionProfile[] profiles;

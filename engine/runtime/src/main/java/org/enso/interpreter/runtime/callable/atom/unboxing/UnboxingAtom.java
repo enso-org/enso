@@ -8,7 +8,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
-import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
@@ -131,7 +131,7 @@ public abstract class UnboxingAtom extends Atom {
       for (int i = unboxedLayouts.length; i < newLayouts.length; i++) {
         newLayouts[i] = new Layout.DirectCreateLayoutInstanceNode(constructor, layouts[i]);
       }
-      if (layouts.length == Context.get(this).getMaxUnboxingLayouts()) {
+      if (layouts.length == EnsoContext.get(this).getMaxUnboxingLayouts()) {
         constructorAtCapacity = true;
       }
       unboxedLayouts = newLayouts;
@@ -142,9 +142,9 @@ public abstract class UnboxingAtom extends Atom {
       long flags = 0;
       for (int i = 0; i < arity; i++) {
         if (arguments[i] instanceof Double) {
-          flags |= Layout.DOUBLE_MASK << (i * 2);
+          flags |= Layout.Flags.DOUBLE_MASK << (i * 2);
         } else if (arguments[i] instanceof Long) {
-          flags |= Layout.LONG_MASK << (i * 2);
+          flags |= Layout.Flags.LONG_MASK << (i * 2);
         }
       }
       return flags;
