@@ -273,7 +273,7 @@ pub trait ToImString {
 
 impl<T: core::fmt::Display> ToImString for T {
     default fn to_im_string(&self) -> ImString {
-        format!("{}", self).into()
+        format!("{self}").into()
     }
 }
 

@@ -21,10 +21,10 @@ impl NativeConsole {
     fn print(&self, msg: String) {
         if self.collapsed_depth == 0 {
             if self.depth == 0 {
-                println!("{}", msg)
+                println!("{msg}")
             } else {
                 let pfx = " ".repeat(4 * self.depth);
-                println!("{}{}", pfx, msg)
+                println!("{pfx}{msg}")
             }
         }
     }

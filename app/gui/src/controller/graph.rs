@@ -488,7 +488,7 @@ impl Handle {
         id: Id,
     ) -> Handle {
         let id = Rc::new(id);
-        let logger = Logger::new_sub(parent, format!("Graph Controller {}", id));
+        let logger = Logger::new_sub(parent, format!("Graph Controller {id}"));
         Handle { id, module, suggestion_db, parser, logger }
     }
 
@@ -1573,7 +1573,7 @@ main =
                     let connection = Connection { source, destination };
                     graph.connect(&connection, &span_tree::generate::context::Empty).unwrap();
                     let new_main = graph.definition().unwrap().ast.repr();
-                    assert_eq!(new_main, expected, "Case {:?}", this);
+                    assert_eq!(new_main, expected, "Case {this:?}");
                 })
             }
         }
@@ -1747,7 +1747,7 @@ main =
                     let connection = connections.connections.first().unwrap();
                     graph.disconnect(connection, &span_tree::generate::context::Empty).unwrap();
                     let new_main = graph.definition().unwrap().ast.repr();
-                    assert_eq!(new_main, expected, "Case {:?}", this);
+                    assert_eq!(new_main, expected, "Case {this:?}");
                 })
             }
         }

@@ -94,6 +94,6 @@ fn check_file(path: &str, mut code: &str) {
         };
     }
     for (parsed, original) in ast.code().lines().zip(code.lines()) {
-        assert_eq!(parsed, original, "Bug: dropped tokens, while parsing: {}", path);
+        assert_eq!(parsed, original, "Bug: dropped tokens, while parsing: {path}");
     }
 }

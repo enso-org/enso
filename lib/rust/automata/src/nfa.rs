@@ -249,7 +249,7 @@ impl Nfa {
         for (ix, state) in self.states.iter().enumerate() {
             let opts =
                 if state.export { "" } else { "[fillcolor=\"#EEEEEE\" fontcolor=\"#888888\"]" };
-            writeln!(out, "node_{}[label=\"{}\"]{}", ix, ix, opts)?;
+            writeln!(out, "node_{ix}[label=\"{ix}\"]{opts}")?;
             for link in &state.links {
                 writeln!(
                     out,
@@ -265,7 +265,7 @@ impl Nfa {
         }
         let opts = "node [shape=circle style=filled fillcolor=\"#4385f5\" fontcolor=\"#FFFFFF\" \
         color=white penwidth=5.0 margin=0.1 width=0.5 height=0.5 fixedsize=true]";
-        Ok(format!("digraph G {{\n{}\n{}\n}}\n", opts, out))
+        Ok(format!("digraph G {{\n{opts}\n{out}\n}}\n"))
     }
 }
 

@@ -229,7 +229,7 @@ fn implement_hash_code(graph: &TypeGraph, class: &Class) -> syntax::Method {
     let fields: Vec<_> =
         class_fields(graph, class).into_iter().map(|field| field.name.as_str()).collect();
     let fields = fields.join(", ");
-    let body = format!("return java.util.Objects.hash({});", fields);
+    let body = format!("return java.util.Objects.hash({fields});");
     let return_ = FieldData::Primitive(Primitive::Int { unsigned: false });
     let return_ = quote_type(graph, &return_);
     let mut method = syntax::Method::new("hashCode", return_);
@@ -262,7 +262,7 @@ fn implement_equals(graph: &TypeGraph, class: &Class) -> syntax::Method {
         format!("if ({} == this) return true;", &object),
         format!("if (!({} instanceof {})) return false;", &object, &class.name),
         format!("{} {} = ({}){};", &class.name, &that, &class.name, &object),
-        format!("return {};", expr),
+        format!("return {expr};"),
     ];
     let return_ = FieldData::Primitive(Primitive::Bool);
     let return_ = quote_type(graph, &return_);

@@ -226,8 +226,8 @@ pub enum FieldData {
 impl FieldData {
     fn fmt_equals(&self, a: &str, b: &str) -> String {
         match self {
-            FieldData::Object { .. } => format!("{}.equals({})", a, b),
-            FieldData::Primitive(_) => format!("({} == {})", a, b),
+            FieldData::Object { .. } => format!("{a}.equals({b})"),
+            FieldData::Primitive(_) => format!("({a} == {b})"),
         }
     }
 }

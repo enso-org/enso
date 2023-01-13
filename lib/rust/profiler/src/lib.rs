@@ -362,7 +362,7 @@ mod log_tests {
                 assert!(m0.label.0.starts_with("test "));
                 assert!(*end_time >= m0.start.unwrap());
             }
-            _ => panic!("log: {:?}", log),
+            _ => panic!("log: {log:?}"),
         }
     }
 
@@ -378,7 +378,7 @@ mod log_tests {
                 assert_eq!(m0.parent, profiler::EventId::IMPLICIT);
                 assert_eq!(id0.0, 0);
             }
-            _ => panic!("log: {:?}", log),
+            _ => panic!("log: {log:?}"),
         }
     }
 
@@ -408,7 +408,7 @@ mod log_tests {
             profiler::Event::Resume { id: profiler::internal::EventId(0), .. },
             profiler::Event::End { id: profiler::internal::EventId(0), .. },
             ] => (),
-            _ => panic!("log: {:#?}", log),
+            _ => panic!("log: {log:#?}"),
         };
     }
 
@@ -449,7 +449,7 @@ mod log_tests {
             profiler::Event::Resume { id: profiler::internal::EventId( 0, ), .. },
             profiler::Event::End { id: profiler::internal::EventId( 0, ), .. },
             ] => (),
-            _ => panic!("log: {:#?}", log),
+            _ => panic!("log: {log:#?}"),
         };
     }
 }

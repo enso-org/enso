@@ -126,7 +126,7 @@ impl From<u32> for Symbol {
 
 impl From<char> for Symbol {
     fn from(ch: char) -> Symbol {
-        Symbol::new_named(ch as u64, format!("{}", ch))
+        Symbol::new_named(ch as u64, format!("{ch}"))
     }
 }
 

@@ -96,7 +96,7 @@ impl Group {
         let name = if entry.defined_in.is_top_element() || entry.defined_in.is_main_module() {
             let project = &entry.defined_in.project().project;
             let module = entry.defined_in.name();
-            format!("{}.{}", project, module)
+            format!("{project}.{module}")
         } else {
             entry.defined_in.name().to_owned()
         };

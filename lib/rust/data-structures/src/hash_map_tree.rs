@@ -517,7 +517,7 @@ mod tests {
             tree.set(path.clone(), *val)
         }
         let new_tree: HashMapTree<_, _, RandomState> =
-            tree.iter().map(|(p, v)| (p, format!("{}", v))).collect();
+            tree.iter().map(|(p, v)| (p, format!("{v}"))).collect();
         for (val, path) in values.iter().zip(&paths) {
             let path = path.clone();
             let output = new_tree.get(path.iter()).unwrap().clone();

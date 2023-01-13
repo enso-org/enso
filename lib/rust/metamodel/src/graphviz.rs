@@ -58,7 +58,7 @@ impl std::fmt::Display for Graph {
         ];
         let variant_attrs = vec![
             format!("style=filled"),
-            format!("fillcolor={:?}", variant_color),
+            format!("fillcolor={variant_color:?}"),
             format!("shape=oval"),
         ];
         let struct_attrs = vec![
@@ -71,7 +71,7 @@ impl std::fmt::Display for Graph {
             format!("fillcolor={:?}", "#6D1321"),
             format!("fontcolor={:?}", "white"),
         ];
-        let variant_edge_attrs = vec![format!("color={:?}", variant_color)];
+        let variant_edge_attrs = vec![format!("color={variant_color:?}")];
         let field_edge_attrs = vec![];
         let optional_field_edge_attrs = vec![format!("style=dashed")];
         let subtype_edge_attrs = vec![format!("arrowhead=dot")];
@@ -101,7 +101,7 @@ impl std::fmt::Display for Graph {
                 NodeType::Struct => "box",
                 NodeType::AbstractStruct => "diamond",
             };
-            attrs.push(format!("shape={}", shape));
+            attrs.push(format!("shape={shape}"));
             writeln!(f, "{:?} [{}];", id, attrs.join(","))?;
         }
         for (x, y, edgetype) in &self.edges {

@@ -188,7 +188,7 @@ impl Parser {
         let result = tokens.map(|tokens| resolver.run(&self.macros, tokens));
         let value = result.value;
         if let Some(error) = result.internal_error {
-            return value.with_error(format!("Internal error: {}", error));
+            return value.with_error(format!("Internal error: {error}"));
         }
         value
     }

@@ -25,13 +25,13 @@ impl formatter::Output for NativeConsole {
 
 impl formatter::Definition<level::Warning> for NativeConsole {
     fn format(entry: &GenericEntry) -> Option<Self::Output> {
-        entry.content.message().map(|msg| format!("[W] {}", msg))
+        entry.content.message().map(|msg| format!("[W] {msg}"))
     }
 }
 
 impl formatter::Definition<level::Error> for NativeConsole {
     fn format(entry: &GenericEntry) -> Option<Self::Output> {
-        entry.content.message().map(|msg| format!("[E] {}", msg))
+        entry.content.message().map(|msg| format!("[E] {msg}"))
     }
 }
 

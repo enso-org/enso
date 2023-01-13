@@ -53,7 +53,7 @@ impl Handle {
         path: Path,
         project: &dyn model::project::API,
     ) -> FallibleResult<Self> {
-        let logger = Logger::new_sub(parent, format!("Module Controller {}", path));
+        let logger = Logger::new_sub(parent, format!("Module Controller {path}"));
         let model = project.module(path).await?;
         let language_server = project.json_rpc();
         let parser = project.parser();

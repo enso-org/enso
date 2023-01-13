@@ -109,7 +109,7 @@ impl Client {
         if let MockEvent::Notification(notification) = event {
             notification
         } else {
-            panic!("Expected a notification, got different kind of event: {:?}", event)
+            panic!("Expected a notification, got different kind of event: {event:?}")
         }
     }
 
@@ -118,7 +118,7 @@ impl Client {
         if let json_rpc::handler::Event::Error(err) = event {
             err
         } else {
-            panic!("Expected an error event, got different kind of event: {:?}", event)
+            panic!("Expected an error event, got different kind of event: {event:?}")
         }
     }
 }

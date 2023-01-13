@@ -22,7 +22,7 @@ impl formatter::Output for JsConsole {
 
 impl JsConsole {
     fn format_color(path: &str, color: Option<&str>, msg: String) -> js_sys::Array {
-        let msg = format!("%c {} %c {}", path, msg).into();
+        let msg = format!("%c {path} %c {msg}").into();
         let css1 = "color:#ffffff;background:dimgray;border-radius:4px".into();
         let css2 = color.map(|c| iformat!("color:{c}")).unwrap_or_default().into();
         let arr = js_sys::Array::new();
@@ -41,7 +41,7 @@ impl formatter::Definition<level::Warning> for JsConsole {
         entry
             .content
             .message()
-            .map(|msg| Self::format_color(&entry.path, Some("orange"), format!("[W] {}", msg)))
+            .map(|msg| Self::format_color(&entry.path, Some("orange"), format!("[W] {msg}")))
     }
 }
 
@@ -50,7 +50,7 @@ impl formatter::Definition<level::Error> for JsConsole {
         entry
             .content
             .message()
-            .map(|msg| Self::format_color(&entry.path, Some("orangered"), format!("[E] {}", msg)))
+            .map(|msg| Self::format_color(&entry.path, Some("orangered"), format!("[E] {msg}")))
     }
 }
 

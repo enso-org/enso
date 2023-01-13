@@ -168,13 +168,13 @@ impl Display for Frame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Name: {}; ", self.name)?;
         if let Some(m) = &self.module {
-            write!(f, "Module: {}; ", m)?;
+            write!(f, "Module: {m}; ")?;
         }
         if let Some(g) = &self.graph {
-            write!(f, "Graph: {}; ", g)?;
+            write!(f, "Graph: {g}; ")?;
         }
         for (id, code) in &self.snapshots {
-            write!(f, "Code for {}: {}; ", id, code)?;
+            write!(f, "Code for {id}: {code}; ")?;
         }
         Ok(())
     }
@@ -598,7 +598,7 @@ main =
 
         // Check initial state. One transaction happens during setup of the searcher, which updates
         // node metadata.
-        assert_eq!(urm.repository.len(Stack::Undo), 1, "Undo stack not empty: {:?}", urm);
+        assert_eq!(urm.repository.len(Stack::Undo), 1, "Undo stack not empty: {urm:?}");
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // Perform an action.

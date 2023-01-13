@@ -66,7 +66,7 @@ impl<Handle: Clone + CloneRef> CloneRef for Entry<Handle> {
 impl<Handle: Debug> Debug for Entry<Handle> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            Entry::Loaded(handle) => write!(f, "Entry::Loaded({:?})", handle),
+            Entry::Loaded(handle) => write!(f, "Entry::Loaded({handle:?})"),
             Entry::Loading(_) => write!(f, "Entry::Loading"),
         }
     }

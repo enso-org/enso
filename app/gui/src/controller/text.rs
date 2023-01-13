@@ -61,7 +61,7 @@ impl Handle {
         project: &model::Project,
         path: FilePath,
     ) -> FallibleResult<Self> {
-        let logger = Logger::new_sub(parent, format!("Text Controller {}", path));
+        let logger = Logger::new_sub(parent, format!("Text Controller {path}"));
         let file = if let Ok(path) = model::module::Path::from_file_path(path.clone()) {
             FileHandle::Module {
                 controller: controller::Module::new(logger.clone_ref(), path, &**project).await?,
