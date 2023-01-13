@@ -15,6 +15,7 @@ object LoggingSettings {
     val root         = "logging-service"
     val logger       = "logger"
     val testLogLevel = "test-log-level"
+    val GLOB         = "*"
   }
 
   private lazy val configuration: Config = {
@@ -31,15 +32,23 @@ object LoggingSettings {
     def normalize(key: String): String =
       key.replace("'", "").replace("\"", "")
 
-    val builder      = ListMap.newBuilder[String, LogLevel]
     val loggerConfig = configuration.getConfig(Key.logger)
+    val builder      = ListMap.newBuilder[String, LogLevel]
+    // `config` is unordered. To keep glob (*) entries at the end of the `ListMap`,
+    // gather them at the `fallback` map, and then append to the final `builder`
+    val fallback = ListMap.newBuilder[String, LogLevel]
 
     loggerConfig.entrySet.forEach { entry =>
       val key   = entry.getKey
       val value = loggerConfig.getString(key)
       LogLevel.fromString(value) match {
         case Some(logLevel) =>
-          builder += normalize(key) -> logLevel
+          val normalizedKey = normalize(key)
+          if (normalizedKey.endsWith(Key.GLOB)) {
+            fallback += normalizedKey.dropRight(Key.GLOB.length + 1) -> logLevel
+          } else {
+            builder += normalizedKey -> logLevel
+          }
         case None =>
           System.err.println(
             s"Invalid log level for key [${normalize(key)}] set in " +
@@ -48,6 +57,7 @@ object LoggingSettings {
       }
     }
 
+    builder ++= fallback.result()
     builder.result()
   }
 

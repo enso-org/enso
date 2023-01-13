@@ -8,4 +8,9 @@ public class Error extends Builtin {
   protected Class<? extends Builtin> getSuperType() {
     return null;
   }
+
+  @Override
+  protected boolean containsValues() {
+    return true;
+  }
 }

@@ -154,7 +154,7 @@ final class SuggestionsHandler(
         .fold(
           t =>
             logger.error(
-              "Failed to read the package definition from [{}]. {} {}",
+              "Cannot read the package definition from [{}]. {} {}",
               MaskedPath(config.projectContentRoot.file.toPath),
               t.getClass.getName,
               t.getMessage
@@ -571,7 +571,7 @@ final class SuggestionsHandler(
           action match {
             case Api.SuggestionAction.Add() =>
               if (ids.isEmpty) {
-                logger.error("Failed to {} [{}].", verb, suggestion)
+                logger.error("Cannot {} [{}].", verb, suggestion)
               }
               ids.map(
                 SuggestionsDatabaseUpdate.Add(
@@ -581,7 +581,7 @@ final class SuggestionsHandler(
               )
             case Api.SuggestionAction.Remove() =>
               if (ids.isEmpty) {
-                logger.error(s"Failed to {} [{}].", verb, suggestion)
+                logger.error(s"Cannot {} [{}].", verb, suggestion)
               }
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
             case m: Api.SuggestionAction.Modify =>
@@ -591,8 +591,11 @@ final class SuggestionsHandler(
                   externalId    = m.externalId.map(fieldUpdateOption),
                   arguments     = m.arguments.map(_.map(toApiArgumentAction)),
                   returnType    = m.returnType.map(fieldUpdate),
+                  scope         = m.scope.map(fieldUpdate),
                   documentation = m.documentation.map(fieldUpdateOption),
-                  scope         = m.scope.map(fieldUpdate)
+                  documentationSections = m.documentation.map(
+                    fieldUpdateMapOption(docSectionsBuilder.build)
+                  )
                 )
               }
           }
@@ -625,11 +628,25 @@ final class SuggestionsHandler(
   /** Construct the field update object from an optional value.
     *
     * @param value the optional value
-    * @return the field update object representint the value update
+    * @return the field update object representing the value update
     */
   private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
     value match {
       case Some(value) => FieldUpdate(FieldAction.Set, Some(value))
+      case None        => FieldUpdate(FieldAction.Remove, None)
+    }
+
+  /** Construct the field update object from an optional value.
+    *
+    * @param f the mapping function
+    * @param value the optional value
+    * @return the field update object representing the value update
+    */
+  private def fieldUpdateMapOption[A, B](
+    f: A => B
+  )(value: Option[A]): FieldUpdate[B] =
+    value match {
+      case Some(value) => FieldUpdate(FieldAction.Set, Some(f(value)))
       case None        => FieldUpdate(FieldAction.Remove, None)
     }
 
@@ -731,8 +748,13 @@ final class SuggestionsHandler(
         val docSections = conversion.documentation.map(docSectionsBuilder.build)
         conversion.copy(documentationSections = docSections)
 
-      case _: Suggestion.Function => suggestion
-      case _: Suggestion.Local    => suggestion
+      case function: Suggestion.Function =>
+        val docSections = function.documentation.map(docSectionsBuilder.build)
+        function.copy(documentationSections = docSections)
+
+      case local: Suggestion.Local =>
+        val docSections = local.documentation.map(docSectionsBuilder.build)
+        local.copy(documentationSections = docSections)
     }
 }
 

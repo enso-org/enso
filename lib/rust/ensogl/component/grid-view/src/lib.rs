@@ -287,6 +287,25 @@ impl<Entry: entry::Entry, EntryParams> Model<Entry, EntryParams> {
         self.column_widths.set_width_diff(col, width_diff);
     }
 
+    /// Set column width to at least `minimum_width`. Returns `true` if the column width was
+    /// changed.
+    fn resize_column_at_least(&self, col: Col, minimum_width: f32, properties: Properties) -> bool {
+        let current_width = properties.entries_size.x;
+        let minimum_width_diff = minimum_width - current_width;
+        let previous_diff = self.column_widths.width_diff(col);
+        if previous_diff < minimum_width_diff {
+            self.column_widths.set_width_diff(col, minimum_width_diff);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn column_width(&self, col: Col, properties: Properties) -> f32 {
+        let current_width = properties.entries_size.x;
+        current_width + self.column_widths.width_diff(col)
+    }
+
     fn content_size(&self, row_count: Row, col_count: Col, entries_size: Vector2) -> Vector2 {
         self.column_widths.resize(col_count);
         let columns_offset = self.column_widths.pos_offset(col_count);
@@ -484,6 +503,7 @@ impl<E: Entry> GridView<E> {
             set_entry_size <- input.set_entries_size.sampler();
             set_entry_params <- input.set_entries_params.sampler();
             override_column_width <- any(...);
+            minimum_column_width <- any(...);
         }
         let entry_creation_ctx = entry::visible::CreationCtx {
             app:                   app.clone_ref(),
@@ -495,6 +515,7 @@ impl<E: Entry> GridView<E> {
             entry_selected:        out.entry_selected.clone_ref(),
             entry_accepted:        out.entry_accepted.clone_ref(),
             override_column_width: override_column_width.clone_ref(),
+            minimum_column_width:  minimum_column_width.clone_ref(),
         };
         let model = Rc::new(Model::new(entry_creation_ctx));
         frp::extend! { network
@@ -520,7 +541,17 @@ impl<E: Entry> GridView<E> {
                     *col
                 })
             );
-            out.column_resized <+ set_column_width;
+            resized_column_min <- minimum_column_width.map2(
+                &out.properties,
+                f!(((col, width), prop) {
+                    model.resize_column_at_least(*col,*width, *prop).then(|| *col)
+                })
+            ).unwrap();
+            resized_column <- any(resized_column, resized_column_min);
+            out.column_resized <+ resized_column.map2(
+                &out.properties,
+                f!([model](col, prop) (*col, model.column_width(*col, *prop)))
+            );
 
             column_resized <- resized_column.constant(());
             content_size_params <- all(out.grid_size, input.set_entries_size, column_resized);

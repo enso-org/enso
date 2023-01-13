@@ -8,6 +8,7 @@ use ast::constants::PROJECTS_MAIN_MODULE;
 use ast::opr::predefined::ACCESS;
 use enso_prelude::serde_reexports::Deserialize;
 use enso_prelude::serde_reexports::Serialize;
+use std::cmp::Ordering;
 
 
 // ==============
@@ -457,5 +458,17 @@ impl<'a, Segments: AsRef<[ImString]>> PartialEq<NamePathRef<'a>>
 {
     fn eq(&self, other: &NamePathRef<'a>) -> bool {
         self.segments().eq(other.iter())
+    }
+}
+
+impl<Segments: AsRef<[ImString]>> PartialOrd for QualifiedNameTemplate<Segments> {
+    fn partial_cmp(&self, other: &QualifiedNameTemplate<Segments>) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<Segments: AsRef<[ImString]>> Ord for QualifiedNameTemplate<Segments> {
+    fn cmp(&self, other: &QualifiedNameTemplate<Segments>) -> Ordering {
+        self.project.cmp(&other.project).then(self.path.as_ref().cmp(other.path.as_ref()))
     }
 }

@@ -4,6 +4,7 @@ import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
+import project.Data.Column.Column
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
@@ -14,7 +15,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected
 
 polyglot java import java.util.HashSet
 
@@ -169,7 +170,7 @@ type Table_Column_Helper
             modified_table = blanks.fold (self.table.select_columns [] on_problems=Problem_Behavior.Ignore) table-> blanks_col->
                 table.set blanks_col.name blanks_col
             # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
-            col_aggregate = if when_any then Maximum else Minimum
+            col_aggregate = if when_any then Maximum _ else Minimum _
             aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
             result = self.materialize <| Panic.rethrow <|
                 modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error
@@ -192,7 +193,7 @@ type Table_Column_Helper
        A helper function which selects a single column from the table. It is aligned
        with the `select_columns_helper`, apart from Blank_Columns selector which is
        only handled by the other method but not this one.
-    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> a | Nothing
+    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
     resolve_column_helper self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
@@ -284,11 +285,7 @@ rename_columns internal_columns mapping on_problems =
     processed = mapped.map_with_index i->n->
         n.if_nothing (unique.make_unique (internal_columns.at i).name)
 
-    if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
-    if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
-
+    problem_builder.report_unique_name_strategy unique
     problem_builder.attach_problems_before on_problems processed
 
 ## PRIVATE
@@ -302,10 +299,10 @@ rename_columns internal_columns mapping on_problems =
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - direction: Whether sorting should be in ascending or descending order.
+   - order: Whether sorting should be in ascending or descending order.
    - text_ordering: The sort methodology to use.
 sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
-sort_columns internal_columns direction text_ordering =
+sort_columns internal_columns order text_ordering =
     case_sensitivity = text_ordering.case_sensitivity.if_nothing Case_Sensitivity.Sensitive
     mapper = case case_sensitivity of
         Case_Sensitivity.Sensitive -> _.name
@@ -314,7 +311,7 @@ sort_columns internal_columns direction text_ordering =
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
         False -> .compare_to
-    internal_columns.sort on=mapper by=comparator order=direction
+    internal_columns.sort order=order on=mapper by=comparator
 
 ## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific

@@ -34,9 +34,37 @@ spec =
             arr = make_enso_array [1, 2, 3]
             arr.method . should_equal 0
 
+        Test.specify "should handle ==" <|
+            (make_enso_array [1,2,3]).should_equal (make_enso_array [1,2,3])
+            (make_enso_array [1]).should_not_equal (make_enso_array [2])
+
         Test.specify "should propagate dataflow errors" <|
             err = Error.throw (Illegal_State.Error "Foo")
             res = Array.new err
             res . should_fail_with Illegal_State.Error
+
+        Test.specify "should not sort in place" <|
+            arr = make_enso_array [3, 1, 2]
+            new_arr = arr.sort
+            arr . should_equal [3, 1, 2]
+            new_arr . should_equal [1, 2, 3]
+
+    Test.group "ArrayOverBuffer" <|
+        location_pending = case Platform.os of
+            Platform.OS.Windows -> "This test is disabled on Windows."
+            _ -> Nothing
+
+        Test.specify "should behave like an Array" pending=location_pending <|
+            array_over_buffer = (File.new (enso_project.data / "sample.txt") . read_last_bytes 10).to_array
+
+            case array_over_buffer of
+                _ : Array -> Nothing
+                _ -> Test.fail "Expected ArrayOverBuffer to match on Array type"
+
+            array_over_buffer.to_text . should_equal "[32, 106, 117, 106, 117, 98, 101, 115, 46, 10]"
+            sorted = array_over_buffer.sort
+            array_over_buffer.to_text . should_equal "[32, 106, 117, 106, 117, 98, 101, 115, 46, 10]"
+            sorted.to_text . should_equal "[10, 32, 46, 98, 101, 106, 106, 115, 117, 117]"
+
 
 main = Test_Suite.run_main spec

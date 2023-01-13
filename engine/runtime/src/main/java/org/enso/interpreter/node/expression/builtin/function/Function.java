@@ -4,4 +4,9 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType(name = "Standard.Base.Function.Function")
-public class Function extends Builtin {}
+public class Function extends Builtin {
+  @Override
+  protected boolean containsValues() {
+    return true;
+  }
+}

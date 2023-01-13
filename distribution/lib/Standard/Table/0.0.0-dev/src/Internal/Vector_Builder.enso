@@ -47,6 +47,12 @@ type Vector_Builder
 
     ## PRIVATE
 
+       Checks if this builder is not empty.
+    not_empty : Boolean
+    not_empty self = self.is_empty.not
+
+    ## PRIVATE
+
        Materializes the actual vector from this builder.
     build : Vector Any
     build self =

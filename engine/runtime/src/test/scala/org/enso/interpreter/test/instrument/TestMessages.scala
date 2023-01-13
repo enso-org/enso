@@ -276,21 +276,17 @@ object TestMessages {
   /** Create an pending response.
     *
     * @param contextId an identifier of the context
-    * @param expressionId an identifier of the expression
-    * @param expressionType a type of the expression
-    * @param methodPointer a pointer to the method definition
-    * @param fromCache whether or not the value for this expression came
-    * from the cache
+    * @param expressionIds a list of pending expressions
     * @return the expression update response
     */
   def pending(
     contextId: UUID,
-    expressionId: UUID
+    expressionIds: UUID*
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
         contextId,
-        Set(
+        expressionIds.toSet.map { expressionId =>
           Api.ExpressionUpdate(
             expressionId,
             None,
@@ -299,7 +295,7 @@ object TestMessages {
             true,
             Api.ExpressionUpdate.Payload.Pending(None, None)
           )
-        )
+        }
       )
     )
 

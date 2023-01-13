@@ -5,8 +5,10 @@ use enso_text::unit::*;
 use ensogl::display::shape::*;
 
 use crate::node::input::area;
+use crate::node::input::widget::Widget;
 use crate::Type;
 
+use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display;
 
@@ -102,8 +104,8 @@ impl Shape {
         let viz = viz::View::new();
 
         let width_padded = size.x + 2.0 * PADDING_X;
-        hover.set_size(Vector2::new(width_padded, hover_height));
-        viz.set_size(Vector2::new(width_padded, size.y));
+        hover.set_size((width_padded, hover_height));
+        viz.set_size((width_padded, size.y));
         hover.set_x(size.x / 2.0);
         viz.set_x(size.x / 2.0);
         viz.color.set(color::Rgba::transparent().into());
@@ -141,6 +143,7 @@ ensogl::define_endpoints! {
 
     Output {
         tp (Option<Type>),
+        new_value (String),
     }
 }
 
@@ -149,13 +152,12 @@ ensogl::define_endpoints! {
 #[derive(Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct Model {
-    pub frp:             Frp,
-    pub shape:           Option<Shape>,
-    pub name:            Option<String>,
-    pub index:           ByteDiff,
-    pub local_index:     ByteDiff,
-    pub length:          ByteDiff,
-    pub highlight_color: color::Lcha, // TODO needed? and other fields?
+    pub frp:         Frp,
+    pub shape:       Option<Shape>,
+    pub widget:      Option<Widget>,
+    pub index:       ByteDiff,
+    pub local_index: ByteDiff,
+    pub length:      ByteDiff,
 }
 
 impl Deref for Model {
@@ -180,6 +182,18 @@ impl Model {
         let shape = Shape::new(size, hover_height);
         self.shape = Some(shape);
         self.shape.as_ref().unwrap().clone_ref()
+    }
+
+    /// Widget initialization. Same rules apply as for the shape initialization.
+    pub fn init_widget(
+        &mut self,
+        app: &Application,
+        argument_info: Option<span_tree::ArgumentInfo>,
+        node_height: f32,
+    ) -> Option<Widget> {
+        let Some(argument_info) = argument_info else { return None };
+        self.widget = Widget::new(app, argument_info, node_height);
+        self.widget.clone_ref()
     }
 
     /// The range of this port.

@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
-use crate::model::module::MethodId;
 use crate::model::SuggestionDatabase;
 
+use double_representation::module::MethodId;
 use double_representation::name::QualifiedNameRef;
 
 

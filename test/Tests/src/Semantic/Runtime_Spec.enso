@@ -1,12 +1,15 @@
 import Standard.Base.Runtime
+import Standard.Base.Data.Numbers.Integer
+
+from Standard.Base.Runtime.IO_Permissions import Input, Output
 
 from Standard.Test import Test
 import Standard.Test.Extensions
 
-in_fn : Int -> Int in Input
+in_fn : Integer -> Integer in Input
 in_fn a = a * 2
 
-out_fn : Int -> Int in Output
+out_fn : Integer -> Integer in Output
 out_fn a = a + 1
 
 spec =

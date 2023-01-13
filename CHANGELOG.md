@@ -82,6 +82,8 @@
   the project is changed from the last saved snapshot and lighter when the
   snapshot matches the current project state.
 - [Added shortcut to interrupt the program][3967]
+- [Added suggestion dropdown for function arguments][4013]. The dropdown is
+  present only when the argument is of type that has a predefined set of values.
 
 #### EnsoGL (rendering engine)
 
@@ -115,8 +117,11 @@
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
   and Web versions of the IDE.
+- [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
+  suitable for single and multi-select scenarios.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
+[3985]: https://github.com/enso-org/enso/pull/3985
 
 #### Enso Standard Library
 
@@ -270,6 +275,9 @@
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
 - [Enable Date, Time and DateTime to be read and written to Excel.][3997]
+- [Aligning core APIs for Vector, List and Range. Adding some missing functions
+  to the types.][4026]
+- [Implemented `Table.distinct` for Database backends.][4027]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -423,6 +431,9 @@
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
 [3997]: https://github.com/enso-org/enso/pull/3997
+[4013]: https://github.com/enso-org/enso/pull/4013
+[4026]: https://github.com/enso-org/enso/pull/4026
+[4027]: https://github.com/enso-org/enso/pull/4027
 
 #### Enso Compiler
 
@@ -493,8 +504,18 @@
 - [Don't export polyglot symbols][3915]
 - [From/all import must not include module in name resolution][3931]
 - [Vector returns warnings of individual elements][3938]
+- [Enso.getMetaObject, Type.isMetaInstance and Meta.is_a consolidation][3949]
 - [Add executionContext/interrupt API command][3952]
+- [Any.== is a builtin method][3956]
 - [Simplify exception handling for polyglot exceptions][3981]
+- [Simplify compilation of nested patterns][4005]
+- [IGV can jump to JMH sources & more][4008]
+- [Basic support of VSCode integration][4014]
+- [Sync language server with file system after VCS restore][4020]
+- [`ArrayOverBuffer` behaves like an `Array` and `Array.sort` no longer sorts in
+  place][4022]
+- [Introducing Meta.atom_with_hole][4023]
+- [Report failures in name resolution in type signatures][4030]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -568,8 +589,17 @@
 [3915]: https://github.com/enso-org/enso/pull/3915
 [3931]: https://github.com/enso-org/enso/pull/3931
 [3938]: https://github.com/enso-org/enso/pull/3938
+[3949]: https://github.com/enso-org/enso/pull/3949
 [3952]: https://github.com/enso-org/enso/pull/3952
+[3956]: https://github.com/enso-org/enso/pull/3956
 [3981]: https://github.com/enso-org/enso/pull/3981
+[4005]: https://github.com/enso-org/enso/pull/4005
+[4008]: https://github.com/enso-org/enso/pull/4008
+[4014]: https://github.com/enso-org/enso/pull/4014
+[4020]: https://github.com/enso-org/enso/pull/4020
+[4022]: https://github.com/enso-org/enso/pull/4022
+[4023]: https://github.com/enso-org/enso/pull/4023
+[4030]: https://github.com/enso-org/enso/pull/4030
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

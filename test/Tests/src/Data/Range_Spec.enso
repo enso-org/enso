@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Data.Range.Empty_Error
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
@@ -70,6 +72,54 @@ spec = Test.group "Range" <|
         0.up_to 1 . not_empty . should_be_true
         0.up_to 5 . not_empty . should_be_true
         5.down_to 0 . not_empty . should_be_true
+    Test.specify "should allow getting by index using at" <|
+        0.up_to 0 . at 0 . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 100 . at 0 . should_equal 0
+        0.up_to 100 . at 5 . should_equal 5
+        0.up_to 100 . at -1 . should_equal 99
+        0.up_to 100 . at -100 . should_equal 0
+        0.up_to 100 . at 100 . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 100 . at 100 . catch . should_equal (Index_Out_Of_Bounds.Error 100 100)
+        0.up_to 100 . at -123 . should_fail_with Index_Out_Of_Bounds.Error
+        1.up_to 100 . with_step 5 . at 0 . should_equal 1
+        1.up_to 100 . with_step 5 . at 3 . should_equal 16
+        1.up_to 100 . with_step 5 . at -1 . should_equal 96
+        1.up_to 100 . with_step 5 . at -3 . should_equal 86
+    Test.specify "should allow getting by index using get" <|
+        0.up_to 0 . get 0 . should_equal Nothing
+        0.up_to 100 . get 0 . should_equal 0
+        0.up_to 100 . get 5 . should_equal 5
+        0.up_to 100 . get -1 . should_equal 99
+        0.up_to 100 . get -100 . should_equal 0
+        0.up_to 100 . get 100 . should_equal Nothing
+        0.up_to 100 . get -123 . should_equal Nothing
+        1.up_to 100 . with_step 5 . get 0 . should_equal 1
+        1.up_to 100 . with_step 5 . get 3 . should_equal 16
+        1.up_to 100 . with_step 5 . get -1 . should_equal 96
+        1.up_to 100 . with_step 5 . get -3 . should_equal 86
+    Test.specify "should allow getting first" <|
+        0.up_to 0 . first . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 0 . first . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
+        3.up_to 100 . first . should_equal 3
+        0.down_to 0 . first . should_fail_with Index_Out_Of_Bounds.Error
+        0.down_to -3 . first . should_equal 0
+    Test.specify "should allow getting second" <|
+        0.up_to 0 . second . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 0 . second . catch . should_equal (Index_Out_Of_Bounds.Error 1 0)
+        3.up_to 100 . second . should_equal 4
+        3.up_to 100 . with_step 10 . second . should_equal 13
+        3.up_to 10 . with_step 10 . second . should_fail_with Index_Out_Of_Bounds.Error
+        0.down_to 0 . second . should_fail_with Index_Out_Of_Bounds.Error
+        0.down_to -3 . second . should_equal -1
+        0.down_to -3 . with_step 2 . second . should_equal -2
+        0.down_to -3 . with_step 4 . second . should_fail_with Index_Out_Of_Bounds.Error
+    Test.specify "should allow getting last" <|
+        0.up_to 0 . last . should_fail_with Index_Out_Of_Bounds.Error
+        0.up_to 0 . last . catch . should_equal (Index_Out_Of_Bounds.Error 0 0)
+        3.up_to 100 . last . should_equal 99
+        3.up_to 100 . with_step 25 . last . should_equal 78
+        0.down_to 0 . last . should_fail_with Index_Out_Of_Bounds.Error
+        0.down_to -3 . last . should_equal -2
     Test.specify "should be able to be mapped over to make a Vector" <|
         empty = 0.up_to 0
         empty.map *2 . should_equal []
@@ -129,20 +179,62 @@ spec = Test.group "Range" <|
     Test.specify "should be able to perform a running fold" <|
         1.up_to 6 . running_fold 0 (+) . should_equal [1, 3, 6, 10, 15]
         1.up_to 1 . running_fold 123 (+) . should_equal []
+    Test.specify "should be able to be reduced" <|
+        1.up_to 6 . reduce (+) . should_equal 15
+        1.up_to 6 . with_step 2 . reduce (+) . should_equal 9
+        1.up_to 1 . reduce (+) . should_fail_with Empty_Error
+        1.up_to 1 . reduce (+) 0 . should_equal 0
     Test.specify "should check all" <|
         1.up_to 10 . all (> 0) . should_be_true
         1.up_to 10 . all (< 0) . should_be_false
-    Test.specify "should check exists" <|
-        1.up_to 10 . exists (> 5) . should_be_true
-        1.up_to 10 . exists (> 10) . should_be_false
     Test.specify "should check any" <|
         1.up_to 10 . any (> 5) . should_be_true
         1.up_to 10 . any (> 10) . should_be_false
     Test.specify "should find elements" <|
         1.up_to 10 . find (> 5) . should_equal 6
         1.up_to 10 . find (> 10) . should_be_a Nothing
+        1.up_to 10 . find (v-> v%4 == 0) start=6 . should_equal 8
+        1.up_to 10 . find (< 5) start=6 . should_be_a Nothing
+        1.up_to 10 . find (< 5) start=10 . should_fail_with Index_Out_Of_Bounds.Error
+        1.up_to 10 . find (< 5) start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
+    Test.specify "should find index of elements" <|
+        1.up_to 10 . index_of (> 5) . should_equal 5
+        1.up_to 10 . index_of 7 . should_equal 6
+        1.up_to 10 . with_step 2 . index_of (> 4) . should_equal 2
+        1.up_to 10 . with_step 2 . index_of 7 . should_equal 3
+        1.up_to 10 . index_of (> 10) . should_be_a Nothing
+        1.up_to 10 . index_of (v-> v%4 == 0) start=6 . should_equal 7
+        1.up_to 10 . index_of 2.5 . should_fail_with Illegal_Argument.Error
+        0.up_to 0 . index_of 1 . should_be_a Nothing
+        1.up_to 10 . index_of (< 5) start=3 . should_equal 3
+        1.up_to 10 . index_of (< 5) start=6 . should_be_a Nothing
+        1.up_to 10 . index_of (< 5) start=9 . should_be_a Nothing
+        1.up_to 10 . index_of (< 5) start=10 . should_fail_with Index_Out_Of_Bounds.Error
+        1.up_to 10 . index_of (< 5) start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
+        1.up_to 10 . index_of (< 5) start=-1 . should_equal Nothing
+        1.up_to 10 . index_of (< 5) start=-9 . should_equal 0
+    Test.specify "should find last index of elements" <|
+        1.up_to 10 . last_index_of (> 5) . should_equal 8
+        1.up_to 10 . last_index_of 7 . should_equal 6
+        1.up_to 10 . with_step 2 . last_index_of (> 4) . should_equal 4
+        1.up_to 10 . with_step 2 . last_index_of 7 . should_equal 3
+        1.up_to 10 . last_index_of (> 10) . should_be_a Nothing
+        1.up_to 10 . last_index_of (v-> v%4 == 0) start=6 . should_equal 3
+        1.up_to 10 . last_index_of 2.5 . should_fail_with Illegal_Argument.Error
+        0.up_to 0 . last_index_of 1 . should_be_a Nothing
+        1.up_to 10 . last_index_of (< 5) start=2 . should_equal 2
+        1.up_to 10 . last_index_of (< 5) start=6 . should_equal 3
+        1.up_to 10 . last_index_of (< 5) start=-1 . should_equal 3
+        1.up_to 10 . last_index_of (< 5) start=-7 . should_equal 2
+        1.up_to 10 . last_index_of (< 5) start=9 . should_fail_with Index_Out_Of_Bounds.Error
+        1.up_to 10 . last_index_of (< 5) start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 9)
+        1.up_to 10 . last_index_of (< 5) start=-10 . should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "should allow conversion to vector" <|
         1.up_to 6 . to_vector . should_equal [1, 2, 3, 4, 5]
+    Test.specify "should allow reversing" <|
+        1.up_to 6 . reverse . should_equal (5.down_to 0)
+        5.down_to 0 . reverse . should_equal (1.up_to 6)
+        1.up_to 6 . with_step 2 . reverse . should_equal (5.down_to -1 . with_step 2)
 
     Test.specify "should allow checking if a value is in the range" <|
         0.up_to 10 . contains 5 . should_be_true
@@ -381,6 +473,11 @@ spec = Test.group "Range" <|
         0.up_to 0 . with_step 0 . should_fail_with Illegal_State.Error
         invalid_range = Range.Between 0 0 0
         invalid_range . length . should_fail_with Illegal_State.Error
+        invalid_range . first . should_fail_with Illegal_State.Error
+        invalid_range . second . should_fail_with Illegal_State.Error
+        invalid_range . last . should_fail_with Illegal_State.Error
+        invalid_range . at 0 . should_fail_with Illegal_State.Error
+        invalid_range . get 0 . should_fail_with Illegal_State.Error
         invalid_range . is_empty . should_fail_with Illegal_State.Error
         invalid_range . not_empty . should_fail_with Illegal_State.Error
         invalid_range . each x->x . should_fail_with Illegal_State.Error

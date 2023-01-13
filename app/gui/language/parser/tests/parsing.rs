@@ -10,6 +10,7 @@ use parser_scala::prelude::*;
 use ast::test_utils::expect_shape;
 use parser_scala::api::Metadata;
 use parser_scala::api::ParsedSourceFile;
+use parser_scala::api::PruneUnusedIds;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
@@ -60,6 +61,7 @@ fn roundtrip_program(program: &str) {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 struct FauxMetadata<T>(T);
 
+impl<T> PruneUnusedIds for FauxMetadata<T> {}
 impl<T: Default + Serialize + DeserializeOwned> Metadata for FauxMetadata<T> {}
 
 

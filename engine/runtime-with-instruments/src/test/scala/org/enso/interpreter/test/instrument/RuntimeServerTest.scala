@@ -2,7 +2,6 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
@@ -26,12 +25,6 @@ class RuntimeServerTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
-
-  // === Test Timer ===========================================================
-
-  class TestTimer extends Timer {
-    override def getTime(): Long = 0
-  }
 
   // === Test Utilities =======================================================
 
@@ -59,6 +52,7 @@ class RuntimeServerTest
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
@@ -84,11 +78,6 @@ class RuntimeServerTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
-    val info =
-      languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
-    languageContext.getLanguage.getIdExecutionService.ifPresent(
-      _.overrideTimer(new TestTimer)
-    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -1123,7 +1112,8 @@ class RuntimeServerTest
       TestMessages
         .pending(
           contextId,
-          fooX
+          fooX,
+          mainFoo
         ),
       TestMessages
         .update(
@@ -1136,9 +1126,7 @@ class RuntimeServerTest
           contextId,
           mainFoo,
           ConstantsGen.INTEGER,
-          Api
-            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
-          fromCache = true
+          Api.MethodPointer(moduleName, moduleName, "foo")
         ),
       context.executionComplete(contextId)
     )
@@ -1452,7 +1440,7 @@ class RuntimeServerTest
         |pie = 3
         |uwu = 7
         |hie = "hie!"
-        |Number.x y = y
+        |Number.x self y = y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1738,8 +1726,8 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.overloaded arg = arg + 1
-        |Number.overloaded arg = arg + 2
+        |Text.overloaded self arg = arg + 1
+        |Number.overloaded self arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)

@@ -47,7 +47,7 @@ foreign js make_array = """
     return [{ x: 10}, {x: 20}, {x: 30}];
 
 foreign js make_simple_array = """
-    return [10, 20, 30];
+    return [30, 10, 20];
 
 foreign js make_str str = """
     return "foo " + str + " bar"
@@ -100,7 +100,16 @@ spec = Test.group "Polyglot JS" <|
         vec = Vector.from_polyglot_array make_array
         vec.map .x . should_equal [10, 20, 30]
         vec2 = Vector.from_polyglot_array make_simple_array
-        vec2.to_array.at 0 . should_equal 10
+        vec2.to_array.at 0 . should_equal 30
+        arr = make_simple_array
+        new_arr = arr.sort
+        arr . should_equal [30, 10, 20]
+        new_arr . should_equal [10, 20, 30]
+
+        arr_2 = make_simple_array
+        sorted_2 = arr_2.sort
+        arr_2 . should_equal [30, 10, 20]
+        sorted_2 . should_equal [10, 20, 30]
 
     Test.specify "should correctly marshall strings" <|
         str = make_str "x" + " baz"

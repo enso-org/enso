@@ -342,7 +342,7 @@ impl MainLine {
         }
     }
 
-    /// Mutable AST of the node's expression. Maintains ID.
+    /// Set AST of the node's expression. Maintains ID.
     pub fn set_expression(&mut self, expression: Ast) {
         self.modify_expression(move |ast| {
             *ast = preserving_skip_and_freeze(ast, |ast| *ast = expression.clone());
@@ -420,7 +420,7 @@ impl MainLine {
     }
 
     /// Modify expression, preserving the AST id.
-    fn modify_expression(&mut self, f: impl Fn(&mut Ast)) {
+    fn modify_expression(&mut self, f: impl FnOnce(&mut Ast)) {
         let id = self.id();
         match self {
             Self::Binding { infix, .. } => {

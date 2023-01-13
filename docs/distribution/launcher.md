@@ -157,7 +157,7 @@ using GitHub API, similarly as Enso releases.
 The primary purpose of the launcher is running various Enso components, namely
 the REPL, running a project, Enso scripts or the language server.
 
-The launcher automatically infers which Enso version to used, based on the
+The launcher automatically infers which Enso version to use, based on the
 parameters and configuration:
 
 - When running a project or the language server, the version specified in

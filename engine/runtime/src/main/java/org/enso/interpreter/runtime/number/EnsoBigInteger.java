@@ -118,6 +118,16 @@ public final class EnsoBigInteger extends Number implements TruffleObject {
   }
 
   @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().number().getBigInteger();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
   boolean hasType() {
     return true;
   }
@@ -145,5 +155,14 @@ public final class EnsoBigInteger extends Number implements TruffleObject {
   @Override
   public double doubleValue() {
     return value.doubleValue();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof EnsoBigInteger otherBigInt) {
+      return value.equals(otherBigInt.value);
+    } else {
+      return false;
+    }
   }
 }

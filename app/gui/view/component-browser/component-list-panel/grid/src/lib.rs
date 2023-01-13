@@ -265,7 +265,7 @@ impl component::Model for Model {
         let enterable_elements = default();
         let colors = default();
         let requested_section_info = default();
-        let base_layer = &app.display.default_scene.layers.node_searcher_text;
+        let base_layer = &app.display.default_scene.layers.node_searcher;
         let grid_layer = base_layer.create_sublayer("grid_layer");
         let selection_layer = base_layer.create_sublayer("selection_layer");
         display_object.add_child(&grid);

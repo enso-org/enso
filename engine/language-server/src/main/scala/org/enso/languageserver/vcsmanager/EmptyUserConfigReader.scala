@@ -1,7 +1,7 @@
 package org.enso.languageserver.vcsmanager
 
 import org.apache.commons.io.FileUtils
-import org.eclipse.jgit.lib.Config
+import org.eclipse.jgit.lib.{Config, Constants}
 import org.eclipse.jgit.storage.file.FileBasedConfig
 import org.eclipse.jgit.util.{FS, SystemReader}
 
@@ -21,8 +21,13 @@ final class EmptyUserConfigReader extends SystemReader {
     proxy.getHostname
 
   /** @inheritdoc */
-  override def getenv(variable: String): String =
-    proxy.getenv(variable)
+  override def getenv(variable: String): String = {
+    if (Constants.GIT_CONFIG_NOSYSTEM_KEY.equals(variable)) {
+      "1"
+    } else {
+      proxy.getenv(variable)
+    }
+  }
 
   /** @inheritdoc */
   override def getProperty(key: String): String =

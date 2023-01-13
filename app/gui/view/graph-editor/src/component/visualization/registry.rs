@@ -108,6 +108,7 @@ impl Registry {
         self.try_add_java_script(builtin::visualization::java_script::sql_visualization());
         self.try_add_java_script(builtin::visualization::java_script::geo_map_visualization());
         self.try_add_java_script(builtin::visualization::java_script::image_base64_visualization());
+        self.try_add_java_script(builtin::visualization::java_script::warnings_visualization());
     }
 
     /// Return a default visualisation definition.
