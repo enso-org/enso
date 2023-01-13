@@ -8,8 +8,10 @@ import org.enso.interpreter.dsl.atom.LayoutSpec;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
-@LayoutSpec(minFields = 1, maxFields = 4)
+@LayoutSpec(minFields = Layout.MIN_FIELDS, maxFields = Layout.MAX_FIELDS)
 public class Layout {
+  static final int MAX_FIELDS = 4;
+  static final int MIN_FIELDS = 1;
 
   public static class Flags {
     public static final long DOUBLE_MASK = 0b10;
@@ -55,7 +57,7 @@ public class Layout {
   }
 
   public static boolean isAritySupported(int arity) {
-    return arity == 2;
+    return arity >= MIN_FIELDS && arity <= MAX_FIELDS;
   }
 
   public static Layout create(int arity, long typeFlags) {
@@ -80,63 +82,7 @@ public class Layout {
       }
     }
 
-    var storageGetterFactories = new NodeFactory[arity];
-
-    switch (numBoxed) {
-      case 0:
-        switch (numUnboxed) {
-          case 2:
-            for (int i = 0; i < numDouble; i++) {
-              storageGetterFactories[i] = Atom_0_2.getFieldGetterNodeFactory(i, true);
-            }
-            for (int i = numDouble; i < numUnboxed; i++) {
-              storageGetterFactories[i] = Atom_0_2.getFieldGetterNodeFactory(i, false);
-            }
-            for (int i = numUnboxed; i < arity; i++) {
-              storageGetterFactories[i] = Atom_0_2.getFieldGetterNodeFactory(i, false);
-            }
-            break;
-          default:
-            throw new IllegalArgumentException("Unsupported arity");
-        }
-        break;
-      case 1:
-        switch (numUnboxed) {
-          case 1:
-            for (int i = 0; i < numDouble; i++) {
-              storageGetterFactories[i] = Atom_1_1.getFieldGetterNodeFactory(i, true);
-            }
-            for (int i = numDouble; i < numUnboxed; i++) {
-              storageGetterFactories[i] = Atom_1_1.getFieldGetterNodeFactory(i, false);
-            }
-            for (int i = numUnboxed; i < arity; i++) {
-              storageGetterFactories[i] = Atom_1_1.getFieldGetterNodeFactory(i, false);
-            }
-            break;
-          default:
-            throw new IllegalArgumentException("Unsupported arity");
-        }
-        break;
-      case 2:
-        switch (numUnboxed) {
-          case 0:
-            for (int i = 0; i < numDouble; i++) {
-              storageGetterFactories[i] = Atom_2_0.getFieldGetterNodeFactory(i, true);
-            }
-            for (int i = numDouble; i < numUnboxed; i++) {
-              storageGetterFactories[i] = Atom_2_0.getFieldGetterNodeFactory(i, false);
-            }
-            for (int i = numUnboxed; i < arity; i++) {
-              storageGetterFactories[i] = Atom_2_0.getFieldGetterNodeFactory(i, false);
-            }
-            break;
-          default:
-            throw new IllegalArgumentException("Unsupported arity");
-        }
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported arity");
-    }
+    var storageGetterFactories = LayoutFactory.getFieldGetterNodeFactories(numDouble, numLong, numBoxed);
 
     var getterFactories = new NodeFactory[arity];
 
@@ -144,21 +90,7 @@ public class Layout {
       getterFactories[i] = storageGetterFactories[fieldToStorage[i]];
     }
 
-    var instantiatorFactory = switch (numUnboxed) {
-      case 0 -> switch (numBoxed) {
-        case 2 -> Atom_0_2.getInstantiatorNodeFactory();
-        default -> throw new IllegalArgumentException("Unsupported arity");
-      };
-      case 1 -> switch (numBoxed) {
-        case 1 -> Atom_1_1.getInstantiatorNodeFactory();
-        default -> throw new IllegalArgumentException("Unsupported arity");
-      };
-      case 2 -> switch (numBoxed) {
-        case 0 -> Atom_2_0.getInstantiatorNodeFactory();
-        default -> throw new IllegalArgumentException("Unsupported arity");
-      };
-      default -> throw new IllegalArgumentException("Unsupported arity");
-    };
+    var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
 
     return new Layout(typeFlags, fieldToStorage, getterFactories, instantiatorFactory);
   }

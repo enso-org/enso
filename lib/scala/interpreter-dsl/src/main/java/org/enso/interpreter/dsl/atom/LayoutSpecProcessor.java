@@ -68,8 +68,12 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     return "field" + index;
   }
 
+  private String atomClassName(String layout, int countUnboxed, int countBoxed) {
+    return layout + "_Atom_" + countUnboxed + "_" + countBoxed;
+  }
+
   private void writeAtom(String pkg, String layoutName, int countUnboxed, int countBoxed) throws IOException {
-    var className = layoutName + "_Atom_" + countUnboxed + "_" + countBoxed;
+    var className = atomClassName(layoutName, countUnboxed, countBoxed);
     var file = processingEnv.getFiler().createSourceFile(pkg + "." + className);
     try (var out = new PrintWriter(file.openWriter())) {
       out.println("package " + pkg + ";");
@@ -88,9 +92,26 @@ public class LayoutSpecProcessor extends AbstractProcessor {
       for (int i = 0; i < countBoxed; i++) {
         writeObjectGetter(out, i + countUnboxed, className);
       }
+      writeFieldGetterFactoryGetter(out, className, countUnboxed, countBoxed);
       writeInstantiator(out, className, countUnboxed, countBoxed);
       out.println("}");
     }
+  }
+
+  private void writeFieldGetterFactoryGetter(PrintWriter out, String className, int countUnboxed, int countBoxed) {
+    out.println("  public static NodeFactory<? extends FieldGetterNode> getFieldGetterNodeFactory(int storageIndex, boolean isDoubleIfUnboxed) {");
+    out.println("    return switch (storageIndex) {");
+    for (int i = 0; i < countUnboxed; i++) {
+      out.println("      case " + i + " -> isDoubleIfUnboxed ?");
+      out.println("        " + className + "Factory.FieldGetter_" + i + "D_NodeFactory.getInstance() :");
+      out.println("        " + className + "Factory.FieldGetter_" + i + "L_NodeFactory.getInstance();");
+    }
+    for (int i = countUnboxed; i < countBoxed + countUnboxed; i++) {
+      out.println("      case " + i + " -> " + className + "Factory.FieldGetter_" + i + "_NodeFactory.getInstance();");
+    }
+    out.println("      default -> throw new IllegalArgumentException(\"Invalid storage index\");");
+    out.println("    };");
+    out.println("  }");
   }
 
   private void writeInstantiator(PrintWriter out, String className, int countUnboxed, int countBoxed) {
@@ -185,9 +206,61 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     var file = processingEnv.getFiler().createSourceFile(pkg + "." + name);
     try (var out = new PrintWriter(file.openWriter())) {
       out.println("package " + pkg + ";");
+      out.println();
+      out.println("import com.oracle.truffle.api.dsl.NodeFactory;");
+      out.println();
       out.println("public class " + name + " {");
+      writeGetterFactory(out, layoutName, spec);
+      writeInstantiatorFactory(out, layoutName, spec);
       out.println("}");
     }
+  }
+
+  private void writeGetterFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
+    out.println("  public static NodeFactory<UnboxingAtom.FieldGetterNode>[] getFieldGetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
+    out.println("    var arity = numDoubles + numLongs + numBoxed;");
+    out.println("    var numUnboxed = numDoubles + numLongs;");
+    out.println("    var result = new NodeFactory[arity];");
+    out.println("    switch (numUnboxed) {");
+    for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
+      out.println("      case " + unboxedCase + ":");
+      out.println("        switch (numBoxed) {");
+      for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0); boxedCase + unboxedCase <= spec.maxFields(); boxedCase++) {
+        out.println("          case " + boxedCase + ":");
+        out.println("            for (int i = 0; i < numDoubles; i++) {");
+        out.println("              result[i] = " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getFieldGetterNodeFactory(i, true);");
+        out.println("            }");
+        out.println("            for (int i = numDoubles; i < numUnboxed; i++) {");
+        out.println("              result[i] = " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getFieldGetterNodeFactory(i, false);");
+        out.println("            }");
+        out.println("            for (int i = numUnboxed; i < arity; i++) {");
+        out.println("              result[i] = " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getFieldGetterNodeFactory(i, false);");
+        out.println("            }");
+        out.println("            break;");
+      }
+      out.println("        }");
+    }
+    out.println("    }");
+    out.println("    return result;");
+    out.println("  }");
+    out.println();
+  }
+
+  private void writeInstantiatorFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
+    out.println("  public static NodeFactory<? extends UnboxingAtom.InstantiatorNode> getInstantiatorNodeFactory(int numUnboxed, int numBoxed) {");
+    out.println("    return switch (numUnboxed) {");
+    for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
+      out.println("      case " + unboxedCase + " -> switch (numBoxed) {");
+      for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0); boxedCase + unboxedCase <= spec.maxFields(); boxedCase++) {
+        out.println("        case " + boxedCase + " -> " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getInstantiatorNodeFactory();");
+      }
+      out.println("        default -> throw new IllegalArgumentException(\"Unsupported arity\");");
+      out.println("      };");
+    }
+    out.println("      default -> throw new IllegalArgumentException(\"Unsupported arity\");");
+    out.println("    };");
+    out.println("  }");
+    out.println();
   }
 
   @Override

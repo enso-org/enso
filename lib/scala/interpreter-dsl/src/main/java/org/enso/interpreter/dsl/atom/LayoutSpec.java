@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface LayoutSpec {
-  int minFields() default 1;
+  int minFields();
 
   int maxFields();
 }
