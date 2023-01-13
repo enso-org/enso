@@ -22,7 +22,6 @@ type Message
 ## Return a sub-window of a string. The window is defined by line/chunk coordinates. The size of
    a chunk is defined by `chunk_width`. The output is formatted as a message that can be sent to
    the IDE's lazy text visualisation.
-get_lazy_visualisation_text_window : Text -> Vector Integer -> Vector Integer -> Text
 get_lazy_visualisation_text_window text pos size chunk_width =
     get_text_chunk = get_item_from text chunk_width
     lines = text.lines.length
