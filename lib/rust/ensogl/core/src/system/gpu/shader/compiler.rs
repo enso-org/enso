@@ -86,6 +86,8 @@ pub struct Job<T> {
     #[deref]
     input:     T,
     handler:   WeakJobHandler,
+    /// A key used to cache the compiled program that this job is making progress on. When the job
+    /// is finished or failed, the program or failure status is stored in the cache under this key.
     cache_key: ShaderCacheKey,
     profiler:  profiler::Debug,
 }
@@ -272,7 +274,7 @@ impl CompilerData {
 
         // Perform cache lookup before spawning compilation job.
         if self.cache.has_program(cache_key) {
-            debug!("Reusing cached shader {cache_key:?}.");
+            warn!("Reusing cached shader {cache_key:?}.");
             // This shader has been already processed in the past. Spawn a cache lookup job to
             // wait for its completion. The job is spawned even when the program has already been
             // fully processed, so that `on_ready` callback is always called asynchronously from
@@ -280,7 +282,7 @@ impl CompilerData {
             let job = Job { input: (), handler, on_ready, profiler, cache_key };
             self.jobs.read_cache.push(job);
         } else {
-            debug!("Submitting shader for compilation {cache_key:?}.");
+            warn!("Submitting shader for compilation {cache_key:?}.");
             self.cache.program_submitted(cache_key);
             let job = Job { input, handler, on_ready, profiler, cache_key };
             self.jobs.compile.push(job);
