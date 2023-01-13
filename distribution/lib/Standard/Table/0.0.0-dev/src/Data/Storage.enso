@@ -1,5 +1,8 @@
 import Standard.Base.Data.Vector.Vector
 
+polyglot java import org.enso.table.data.column.builder.object.Builder
+polyglot java import org.enso.table.data.Storage.Type as Java_Storage_Type
+
 ## Represents different types of underlying storage for Columns.
 type Storage
     ## A column storing text data.
@@ -29,7 +32,25 @@ type Storage
     ## PRIVATE
        Enumerates storage types in a way that is consistent with
        `org.enso.table.data.Storage.Storage`, i.e.
-       `storage_type.at org.enso.table.data.Storage.Storage.LONG` will yield the
+       `storage_type.at org.enso.table.data.Storage.Type.LONG` will yield the
        corresponding `Storage.Integer`.
     types : Vector Storage
     types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]
+
+    ## PRIVATE
+       Converts a `Storage` to a `org.enso.table.data.Storage.Type`.
+    to_java : Java_Storage_Type
+    to_java self = case self of
+        Storage.Any -> Java_Storage_Type.OBJECT
+        Storage.Integer -> Java_Storage_Type.LONG
+        Storage.Decimal -> Java_Storage_Type.DOUBLE
+        Storage.Text -> Java_Storage_Type.STRING
+        Storage.Boolean -> Java_Storage_Type.BOOLEAN
+        Storage.Date -> Java_Storage_Type.DATE
+        Storage.Time_Of_Day -> Java_Storage_Type.TIME_OF_DAY
+        Storage.Date_Time -> Java_Storage_Type.DATE_TIME
+
+## Creates a column storage builder for the given storage type.
+make_builder : Storage -> Builder
+make_builder storage =
+    Builder.getForType storage.to_java

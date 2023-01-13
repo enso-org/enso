@@ -830,11 +830,15 @@ type Table
            are no columns to include in the resulting table.
          - If type widening is disabled and one of corresponding columns has a
            type that is incompatible with the type coming from the first table,
-           a `Column_Type_Mismatch` is reported.
+           a `Column_Type_Mismatch` is reported. The problematic column will be
+           dropped from the resulting table. With type widening disabled, the
+           only coercion that is allowed is coercing integers to a column
+           expecting decimals. Any other coercions, like boolean to integer, are
+           not allowed.
          - If a common type coercion for a set of matched columns from
            concatenated tables cannot be found, a `No_Common_Type` is reported.
-           In warning or ignore mode, the problematic column will not be present
-           in the resulting table.
+           In warning or ignore mode, the problematic column will be dropped
+           from the resulting table.
 
        ? Unifying Column Types
 
