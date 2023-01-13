@@ -504,6 +504,39 @@ class ValuesGenerator {
     return collect;
   }
 
+  public List<Value> multiLevelAtoms() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      var nodeTypeDef = """
+          type Node
+              C1 f1
+              C2 f1 f2
+              C3 f1 f2 f3
+              Nil
+              Value value
+          """;
+      for (var expr : List.of(
+          "Node.C2 Node.Nil (Node.Value 42)",
+          "Node.C2 (Node.Value 42) Node.Nil",
+          "Node.Nil",
+          "Node.Value 42",
+          "Node.Value 2",
+          "Node.Value 2.0",
+          "Node.C1 (Node.Value 42)",
+          "Node.C1 Node.Nil",
+          "Node.C3 Node.Nil (Node.Value 42) Node.Nil",
+          "Node.C3 (Node.Value 42) Node.Nil Node.Nil",
+          "Node.C3 Node.Nil Node.Nil Node.Nil",
+          "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 (Node.C1 Node.Nil))) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
+          "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Value 22) (Node.Nil)) (Node.C2 (Node.Value 22) (Node.Nil)))",
+          "Node.C2 (Node.C2 (Node.C1 Node.Nil) (Node.C1 Node.Nil)) (Node.C2 (Node.C3 (Node.Nil) (Node.Nil) (Node.Value 22)) (Node.C2 (Node.Value 22) (Node.Nil)))"
+      )) {
+        collect.add(v(null, nodeTypeDef, expr).type());
+      }
+    }
+    return collect;
+  }
+
   public List<Value> functions() {
     var collect = new ArrayList<Value>();
     if (languages.contains(Language.ENSO)) {

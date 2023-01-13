@@ -70,6 +70,7 @@ public class HashCodeTest extends TestBase {
     values.addAll(valGenerator.arrayLike());
     values.addAll(valGenerator.vectors());
     values.addAll(valGenerator.maps());
+    values.addAll(valGenerator.multiLevelAtoms());
     values.addAll(valGenerator.timesAndDates());
     values.addAll(valGenerator.timeZones());
     values.addAll(valGenerator.durations());
