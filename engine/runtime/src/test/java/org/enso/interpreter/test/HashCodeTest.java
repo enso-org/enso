@@ -69,6 +69,7 @@ public class HashCodeTest extends TestBase {
     values.addAll(valGenerator.textual());
     values.addAll(valGenerator.arrayLike());
     values.addAll(valGenerator.vectors());
+    values.addAll(valGenerator.maps());
     values.addAll(valGenerator.timesAndDates());
     values.addAll(valGenerator.timeZones());
     values.addAll(valGenerator.durations());

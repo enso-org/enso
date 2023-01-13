@@ -486,6 +486,11 @@ class ValuesGenerator {
           "Map.singleton Nothing 'my_value'",
           "Map.singleton 'my_value' Nothing",
           "Map.singleton 1 1",
+          "Map.singleton 'C' 3",
+          "Map.singleton 'C' 43",
+          "Map.empty.insert 'A' 10 . insert 'B' 20",
+          // ((int) 'A') + ((int) 'B') = 131 ; codePoint(131) = \203
+          "Map.singleton '\203' 30",
           "Map.singleton Map.empty 1",
           "Map.singleton Map.empty Map.empty",
           "Map.empty.insert 1 1 . insert 2 2",
