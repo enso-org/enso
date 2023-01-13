@@ -264,34 +264,26 @@ impl CompilerData {
         profiler: profiler::Debug,
         on_ready: F,
     ) -> JobHandler {
+        self.dirty = true;
         let strong_handler = JobHandler::new();
         let handler = strong_handler.downgrade();
         let on_ready = Box::new(on_ready);
         let cache_key = ShaderCache::code_key(&input);
 
         // Perform cache lookup before spawning compilation job.
-        match self.cache.get_program(cache_key) {
-            Some(ProgramCacheEntry::Submitted | ProgramCacheEntry::Validated(_)) => {
-                debug!("Reuse cached shader {cache_key:?}.");
-                // Compilation of this shader has been submitted or completed. Spawn a cache lookup
-                // job to wait for its completion. The job is spawned even when the program has been
-                // validated, so that `on_ready` callback is always called asynchronously from
-                // within the job runner.
-                let job = Job { input: (), handler, on_ready, profiler, cache_key };
-                self.jobs.read_cache.push(job);
-                self.dirty = true;
-            }
-            Some(ProgramCacheEntry::Failed) => {
-                // Shader compilation of this program already failed. Do not submit it again.
-                // This job will never call `on_ready`.
-            }
-            None => {
-                debug!("Compile shader {cache_key:?}.");
-                self.cache.program_submitted(cache_key);
-                let job = Job { input, handler, on_ready, profiler, cache_key };
-                self.jobs.compile.push(job);
-                self.dirty = true;
-            }
+        if self.cache.has_program(cache_key) {
+            debug!("Reusing cached shader {cache_key:?}.");
+            // This shader has been already processed in the past. Spawn a cache lookup job to
+            // wait for its completion. The job is spawned even when the program has already been
+            // fully processed, so that `on_ready` callback is always called asynchronously from
+            // within the job runner.
+            let job = Job { input: (), handler, on_ready, profiler, cache_key };
+            self.jobs.read_cache.push(job);
+        } else {
+            debug!("Submitting shader for compilation {cache_key:?}.");
+            self.cache.program_submitted(cache_key);
+            let job = Job { input, handler, on_ready, profiler, cache_key };
+            self.jobs.compile.push(job);
         };
 
         strong_handler
@@ -554,6 +546,10 @@ impl ShaderCache {
         (ShaderHash::new(&code.vertex), ShaderHash::new(&code.fragment))
     }
 
+    fn has_program(&self, key: ShaderCacheKey) -> bool {
+        self.programs.contains_key(&key)
+    }
+
     fn get_program(&self, key: ShaderCacheKey) -> Option<&ProgramCacheEntry> {
         self.programs.get(&key)
     }
@@ -570,23 +566,12 @@ impl ShaderCache {
         self.programs.insert(key, ProgramCacheEntry::Validated(program));
     }
 
-    fn insert_program(&mut self, key: ShaderCacheKey, entry: ProgramCacheEntry) {
-        self.programs.insert(key, entry);
-    }
-
     fn get_or_insert_vertex_shader(
         &mut self,
         key: ShaderCacheKey,
         compile: impl FnOnce() -> Result<Shader<Vertex>, Error>,
     ) -> Result<Shader<Vertex>, Error> {
-        use std::collections::hash_map::Entry;
-        match self.vertex_shaders.entry(key.0) {
-            Entry::Occupied(shader) => Ok(shader.get().clone()),
-            Entry::Vacant(entry) => {
-                let shader = compile()?;
-                Ok(entry.insert(shader).clone())
-            }
-        }
+        Ok(self.vertex_shaders.get_or_insert_with_result(key.0, compile)?.clone())
     }
 
     fn get_or_insert_fragment_shader(
@@ -594,14 +579,7 @@ impl ShaderCache {
         key: ShaderCacheKey,
         compile: impl FnOnce() -> Result<Shader<Fragment>, Error>,
     ) -> Result<Shader<Fragment>, Error> {
-        use std::collections::hash_map::Entry;
-        match self.fragment_shaders.entry(key.1) {
-            Entry::Occupied(shader) => Ok(shader.get().clone()),
-            Entry::Vacant(entry) => {
-                let shader = compile()?;
-                Ok(entry.insert(shader).clone())
-            }
-        }
+        Ok(self.fragment_shaders.get_or_insert_with_result(key.1, compile)?.clone())
     }
 }
 

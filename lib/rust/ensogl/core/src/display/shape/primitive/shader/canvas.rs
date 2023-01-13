@@ -138,6 +138,11 @@ impl Canvas {
     /// Defines a new shape with a new id and associated parameters, like color.
     pub fn define_shape(&mut self, num: usize, sdf: &str) -> Shape {
         self.if_not_defined(num, |this| {
+            // NOTE: Generated GLSL determinism
+            // Use sequential IDs for shape names. This guarantees that the shape names are unique
+            // per shader and deterministic across multiple runs of the codegen for identical shape
+            // definition. This would not be true if we use `num`, which is derived from the address
+            // of shape pointer. This is important for shader caching based on generated GLSL code.
             let id = this.get_new_id();
             let shape = ShapeData::new(id);
             this.define("BoundSdf", "sdf", iformat!("{sdf}"));
@@ -150,6 +155,7 @@ impl Canvas {
 
     /// Define a new shape from the provided GLSL expression.
     pub fn new_shape_from_expr(&mut self, expr: &str) -> ShapeData {
+        // NOTE: Generated GLSL determinism - see above
         let id = self.get_new_id();
         let shape = ShapeData::new(id);
         self.add_current_function_code_line(expr);

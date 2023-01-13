@@ -182,6 +182,9 @@ impl SingleChoice {
 /// A lazy dropdown that is only initialized when it is opened for the first time. This prevents
 /// very long initialization time, as dropdown view creation is currently a very slow process.
 ///
+/// FIXME [PG]: Improve grid-view creation performance, so that this is no longer needed.
+/// https://www.pivotaltracker.com/story/show/184223891
+///
 /// Once grid-view creation is reasonably fast, this might be replaced by direct dropdown
 /// initialization on widget creation.
 #[derive(Debug)]
