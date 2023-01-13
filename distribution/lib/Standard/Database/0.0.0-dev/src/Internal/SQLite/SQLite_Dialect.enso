@@ -194,8 +194,8 @@ first_last_aggregators =
 ## PRIVATE
 window_aggregate window_type ignore_null args =
     if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
-        result_expr = args.head
-        order_exprs = args.tail
+        result_expr = args.first
+        order_exprs = args.drop 1
 
         filter_clause = if ignore_null.not then code "" else
             code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"

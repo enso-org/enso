@@ -8,7 +8,6 @@ use crate::model::execution_context::synchronized::Notification as ExecutionUpda
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module;
 use crate::model::SuggestionDatabase;
-use crate::notification;
 use crate::transport::web::WebSocket;
 
 use double_representation::name::project;

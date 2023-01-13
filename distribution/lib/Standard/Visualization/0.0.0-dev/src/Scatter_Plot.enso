@@ -73,7 +73,7 @@ type Point_Data
             is_good_enough c = c.is_numeric && c.name != x_column.name
             is_good c = is_good_enough c && (self.is_recognized c).not
 
-            candidates.find is_good . catch_ <| candidates.find is_good_enough
+            candidates.find if_missing=(Error.throw Nothing) is_good . catch_ <| candidates.find is_good_enough
         _ -> Error.throw No_Fallback_Column
 
     ## PRIVATE
@@ -202,6 +202,4 @@ process_to_json_text value bounds=Nothing limit=Nothing =
         _ : Vector -> json_from_vector value bounds limit
         _          -> json_from_vector value.to_vector bounds limit
 
-    ## Workaround so that the JS String is converted to a Text
-       https://www.pivotaltracker.com/story/show/184061302
-    "" + json
+    json

@@ -85,7 +85,7 @@ pub struct Handle {
     project:       model::Project,
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs
     /// is merged with publishers from the stored graph and execution controllers.
-    notifier:      crate::notification::Publisher<Notification>,
+    notifier:      notification::Publisher<Notification>,
 }
 
 impl Handle {

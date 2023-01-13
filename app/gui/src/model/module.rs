@@ -8,6 +8,7 @@ use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
 use double_representation::definition::DefinitionInfo;
 use double_representation::import;
+use double_representation::module::MethodId;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
@@ -494,18 +495,6 @@ impl From<Vector2<f32>> for Position {
     fn from(value: Vector2) -> Self {
         Position::new(value.x, value.y)
     }
-}
-
-/// A structure identifying a method.
-///
-/// It is very similar to MethodPointer from language_server API, however it may point to the method
-/// outside the currently opened project.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[allow(missing_docs)]
-pub struct MethodId {
-    pub module:          QualifiedName,
-    pub defined_on_type: QualifiedName,
-    pub name:            String,
 }
 
 /// Uploading File Information

@@ -1584,6 +1584,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "debug-scene-documentation"
+version = "0.1.0"
+dependencies = [
+ "enso-suggestion-database",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "debug-scene-icons"
 version = "0.1.0"
 dependencies = [
@@ -2003,10 +2016,21 @@ version = "0.1.0"
 dependencies = [
  "debug-scene-cloud-dashboard",
  "debug-scene-component-list-panel-view",
+ "debug-scene-documentation",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-text-grid-visualization",
  "debug-scene-visualization",
+]
+
+[[package]]
+name = "enso-executor"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "enso-profiler",
+ "ensogl-core",
+ "futures 0.3.24",
 ]
 
 [[package]]
@@ -2062,11 +2086,14 @@ dependencies = [
  "enso-data-structures",
  "enso-debug-api",
  "enso-debug-scene",
+ "enso-executor",
  "enso-frp",
  "enso-logger",
+ "enso-notification",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",
+ "enso-suggestion-database",
  "enso-text",
  "enso-web",
  "ensogl",
@@ -2106,6 +2133,7 @@ version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
  "engine-protocol",
+ "enso-executor",
  "enso-frp",
  "enso-gui",
  "enso-prelude",
@@ -2157,6 +2185,16 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "serde",
+]
+
+[[package]]
+name = "enso-notification"
+version = "0.1.0"
+dependencies = [
+ "enso-executor",
+ "enso-prelude",
+ "flo_stream",
+ "futures 0.3.24",
 ]
 
 [[package]]
@@ -2389,6 +2427,27 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "enso-suggestion-database"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "convert_case 0.5.0",
+ "double-representation",
+ "engine-protocol",
+ "enso-data-structures",
+ "enso-executor",
+ "enso-notification",
+ "enso-prelude",
+ "enso-text",
+ "failure",
+ "flo_stream",
+ "futures 0.3.24",
+ "parser-scala",
+ "span-tree",
+ "wasm-bindgen-test",
 ]
 
 [[package]]
