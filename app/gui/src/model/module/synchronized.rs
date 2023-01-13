@@ -36,7 +36,7 @@ use parser_scala::Parser;
 /// The minimal information about module's content, required to do properly invalidation of opened
 /// module in Language Server.
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct ContentSummary {
+pub struct ContentSummary {
     digest:      Sha3_224,
     /// The Engine's Locations are in java Characters, which are equal to UTF16 Code Units.
     /// See https://docs.oracle.com/javase/8/docs/api/java/lang/Character.html
@@ -199,8 +199,15 @@ impl Module {
         let file_path = self.path();
         self.language_server.client.close_text_file(file_path).await?;
         let opened = self.language_server.client.open_text_file(file_path).await?;
+
+        let content: text::Rope = (&opened.content).into();
+        let end_of_file_byte = content.last_line_end_location();
+        let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
+        let digest = opened.current_version;
+        let summary = ContentSummary { digest, end_of_file };
+
         let source = parser.parse_with_metadata(opened.content)?;
-        self.model.set_content(source, NotificationKind::Reloaded)
+        self.model.set_content(source.clone(), NotificationKind::Reloaded{ summary })
     }
 }
 
@@ -389,9 +396,9 @@ impl Module {
                     let notify_ls = self.notify_language_server(&summary.summary, &new_file, edits);
                     profiler::await_!(notify_ls, _profiler)
                 }
-                NotificationKind::Reloaded => {
-                    let verify_version = self.verify_ls_file_version(&new_file);
-                    profiler::await_!(verify_version, _profiler)
+                NotificationKind::Reloaded{ summary } => {
+                    let notify_ls = self.full_invalidation(&summary, new_file);
+                    profiler::await_!(notify_ls, _profiler)
                 }
             },
         }
@@ -500,25 +507,6 @@ impl Module {
         async move {
             ls_future_reply.await?;
             Ok(summary)
-        }
-    }
-
-    #[profile(Debug)]
-    fn verify_ls_file_version(
-        &self,
-        new_file: &SourceFile,
-    ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
-        let summary = ParsedContentSummary::from_source(new_file);
-        let client_version = Sha3_224::new(new_file.content.as_bytes());
-        let path = self.path().file_path();
-        let ls_future_reply = self.language_server.client.file_checksum(path);
-        async move {
-            let server_version = ls_future_reply.await?.checksum;
-            if server_version == client_version {
-                Ok(summary)
-            } else {
-                Err(failure::err_msg("Version mismatch!"))
-            }
         }
     }
 }

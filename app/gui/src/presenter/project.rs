@@ -347,7 +347,7 @@ impl Project {
                 NotificationKind::Invalidate
                 | NotificationKind::CodeChanged { .. }
                 | NotificationKind::MetadataChanged
-                | NotificationKind::Reloaded => model.set_project_changed(true),
+                | NotificationKind::Reloaded { .. } => model.set_project_changed(true),
             }
             futures::future::ready(())
         });

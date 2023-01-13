@@ -498,8 +498,7 @@ impl Project {
             // Event Handling
             match event {
                 Event::Notification(Notification::FileEvent(_)) => {}
-                Event::Notification(Notification::TextAutoSave(path)) => {
-                    warn!("autosave: {:?}", path);
+                Event::Notification(Notification::TextAutoSave(_)) => {
                     let publisher = publisher.clone_ref();
                     let language_server = language_server.clone_ref();
                     executor::global::spawn(async move {
