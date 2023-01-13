@@ -194,7 +194,7 @@ fn main() {
         }
 
         std::fs::write(&dist_shaders_list_path, &shaders_list).unwrap();
-        
+
 
         println!("DONE!");
 

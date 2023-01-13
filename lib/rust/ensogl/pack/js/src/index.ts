@@ -54,46 +54,152 @@ class PackageInfo {
 // === Content Download ===
 // ========================
 
+function arrayIntoTuples<T>(arr: T[]): [T, T][] {
+    const tuples: [T, T][] = []
+    for (let i = 0; i < arr.length; i += 2) {
+        const elem1 = arr[i]
+        const elem2 = arr[i + 1]
+        if (elem1 != null && elem2 != null) {
+            tuples.push([elem1, elem2])
+        }
+    }
+    return tuples
+}
+
+function zip<T, S>(arr1: T[], arr2: S[]): [T, S][] {
+    // @ts-ignore
+    return [...arr1].map((_, c) => [arr1, arr2].map(row => row[c]))
+}
+
+class Shader<T> {
+    vertex: T
+    fragment: T
+
+    constructor(vertex: T, fragment: T) {
+        this.vertex = vertex
+        this.fragment = fragment
+    }
+
+    toArray(): T[] {
+        return [this.vertex, this.fragment]
+    }
+}
+
+class Shaders<T> {
+    map: Map<string, Shader<T>> = new Map()
+
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
+        const mapped = await Promise.all(this.toArray().map(f))
+        const out = this.fromArray(mapped)
+        if (out != null) {
+            return out
+        } else {
+            throw 'Internal error.'
+        }
+    }
+
+    toArray(): T[] {
+        return Array.from(this.map.values()).flatMap(shader => shader.toArray())
+    }
+
+    fromArray<S>(array: S[]): Shaders<S> | null {
+        const shaders: Shaders<S> = new Shaders()
+        const keys = Array.from(this.map.keys())
+        for (const [key, [vertex, fragment]] of zip(keys, arrayIntoTuples(array))) {
+            const shader = new Shader(vertex, fragment)
+            shaders.map.set(key, shader)
+        }
+        return shaders
+    }
+}
+
+class Files<T> {
+    mainJs: T
+    mainWasm: T
+    shaders: Shaders<T> = new Shaders()
+
+    constructor(mainJs: T, mainWasm: T) {
+        this.mainJs = mainJs
+        this.mainWasm = mainWasm
+    }
+
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Files<S>> {
+        const mapped = await Promise.all(this.toArray().map(f))
+        const out = this.fromArray(mapped)
+        if (out != null) {
+            return out
+        } else {
+            throw 'Internal error.'
+        }
+    }
+
+    toArray(): T[] {
+        return [this.mainJs, this.mainWasm, ...this.shaders.toArray()]
+    }
+
+    fromArray<S>(array: S[]): Files<S> | null {
+        const [mainJs, mainWasm, ...shaders] = array
+        if (mainJs != null && mainWasm != null) {
+            const files: Files<S> = new Files(mainJs, mainWasm)
+            files.shaders = this.shaders.fromArray(shaders) || new Shaders()
+            return files
+        } else {
+            return null
+        }
+    }
+}
+
 /** Loads the WASM binary and its dependencies. If it's run in the browser, the files will be
  * downloaded from a server and a loading progress indicator will be shown. If it's run in node, the
  * files will be read from disk. After the files are fetched, the WASM module is compiled and
  * initialized. */
 async function load_wasm(config: Config) {
     if (host.browser) {
-        const shadersList = await fetch(`${config.shadersUrl.value}/list.txt`)
-        console.log('!!!', shadersList)
+        const shadersUrl = config.shadersUrl.value
+        const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
+        const shadersList = await shadersListResponse.text()
+        const shadersNames = shadersList.split('\n').filter(line => line.length > 0)
 
-        const mainJsUrl = config.mainJsUrl.value
-        const mainWasmUrl = config.mainWasmUrl.value
-        const task = Task.start(`Downloading files '${mainJsUrl}' and '${mainWasmUrl}'.`)
-        const snippets_fetch = await fetch(mainJsUrl)
-        const wasm_fetch = await fetch(mainWasmUrl)
-        const loader = new Loader([snippets_fetch, wasm_fetch], config)
+        const files = new Files(config.mainJsUrl.value, config.mainWasmUrl.value)
+        for (const name of shadersNames) {
+            const vertexUrl = `${shadersUrl}/${name}.vertex.glsl`
+            const fragmentUrl = `${shadersUrl}/${name}.fragment.glsl`
+            files.shaders.map.set(name, new Shader(vertexUrl, fragmentUrl))
+        }
+
+        const responses = await files.mapAndAwaitAll(url => fetch(url))
+        const responsesArray = responses.toArray()
+
+        const task = Task.start(`Downloading application files.`)
+        logger.log(`Downloading '${files.toArray()}'.`)
+
+        const loader = new Loader(responsesArray, config)
         loader.done.then(() => task.end())
         // FIXME:
         // @ts-ignore
         const download_size = loader.show_total_bytes()
 
-        const snippets_code = await snippets_fetch.text()
-        const wasm = await compile_and_run_wasm(snippets_code, wasm_fetch)
-        return { wasm, loader }
+        const mainJs = await responses.mainJs.text()
+        const wasm = await compile_and_run_wasm(mainJs, responses.mainWasm)
+        const shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
+        return { wasm, loader, shaders }
     } else {
         const mainJsUrl = path.join(__dirname, config.mainJsUrl.value)
         const mainWasmUrl = path.join(__dirname, config.mainWasmUrl.value)
-        const snippets_code = await fs.readFile(mainJsUrl, 'utf8')
+        const mainJs = await fs.readFile(mainJsUrl, 'utf8')
         const wasm_main = await fs.readFile(mainWasmUrl)
-        const wasm = await compile_and_run_wasm(snippets_code, wasm_main)
+        const wasm = await compile_and_run_wasm(mainJs, wasm_main)
         const loader = null
-        return { wasm, loader }
+        return { wasm, loader, shaders: null }
     }
 }
 
 /** Compiles and runs the downloaded WASM file. */
-async function compile_and_run_wasm(snippets_code: string, wasm: Buffer | Response): Promise<any> {
+async function compile_and_run_wasm(mainJs: string, wasm: Buffer | Response): Promise<any> {
     return await Task.asyncWith('Running wasm.', async () => {
         const snippets_fn = Function(
             `const module = {}
-             ${snippets_code}
+             ${mainJs}
              module.exports.init = pkg_default
              return module.exports`
         )()
@@ -113,6 +219,7 @@ export class App {
     wasm: any = null
     loader: Loader | null = null
     logger: Logger
+    shaders: Shaders<string> | null = null
     wasmFunctions: string[] = []
     beforeMainEntryPoints: Map<string, EntryPoint> = new Map()
     mainEntryPoints: Map<string, EntryPoint> = new Map()
@@ -176,9 +283,10 @@ export class App {
     }
 
     async loadWasm() {
-        const { wasm, loader } = await load_wasm(this.config)
+        const { wasm, loader, shaders } = await load_wasm(this.config)
         this.wasm = wasm
         this.loader = loader
+        this.shaders = shaders
         this.wasmFunctions = wasmFunctions(this.wasm)
         this.beforeMainEntryPoints = EntryPoint.beforeMainEntryPoints(this.wasmFunctions)
         this.mainEntryPoints = EntryPoint.mainEntryPoints(this.wasmFunctions)
@@ -212,6 +320,7 @@ export class App {
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             this.runBeforeMainEntryPoints()
+            if (this.shaders) setShaders(this.shaders.map)
             if (this.loader) this.loader.destroy()
             logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)
             this.wasm[entryPoint.name()]()
@@ -223,16 +332,7 @@ export class App {
 
     async extractShaders(target: string) {
         await Task.asyncWith('Extracting shaders code.', async () => {
-            const shadersMap = Task.with('Getting shaders from Rust.', () => {
-                if (!rustGenShadersFn) {
-                    logger.error('The Rust shader extraction function was not registered.')
-                    return null
-                } else {
-                    const result = rustGenShadersFn()
-                    logger.log(`Got ${result.size} shader definitions.`)
-                    return result
-                }
-            })
+            const shadersMap = getShaders()
             if (shadersMap) {
                 await Task.asyncWith(`Writing shaders to '${target}'.`, async () => {
                     await fs.rm(target, { recursive: true, force: true })
@@ -445,14 +545,47 @@ class HelpScreen {
 // // app.run()
 //
 
-type ExtractShadersFn = () => Map<string, { vertex: string; fragment: string }>
+type GetShadersFn = () => Map<string, { vertex: string; fragment: string }>
+type SetShadersFn = (map: Map<string, { vertex: string; fragment: string }>) => void
 
-let rustGenShadersFn: null | ExtractShadersFn = null
-function registerGetShadersRustFn(fn: ExtractShadersFn) {
+let rustGetShadersFn: null | GetShadersFn = null
+let rustSetShadersFn: null | SetShadersFn = null
+
+function registerGetShadersRustFn(fn: GetShadersFn) {
     logger.log(`Registering 'getShadersFn'.`)
-    rustGenShadersFn = fn
+    rustGetShadersFn = fn
 }
-host.exportGlobal({ registerGetShadersRustFn })
+
+function registerSetShadersRustFn(fn: SetShadersFn) {
+    logger.log(`Registering 'setShadersFn'.`)
+    rustSetShadersFn = fn
+}
+
+function getShaders(): Map<string, { vertex: string; fragment: string }> | null {
+    return Task.with('Getting shaders from Rust.', () => {
+        if (!rustGetShadersFn) {
+            logger.error('The Rust shader extraction function was not registered.')
+            return null
+        } else {
+            const result = rustGetShadersFn()
+            logger.log(`Got ${result.size} shader definitions.`)
+            return result
+        }
+    })
+}
+
+function setShaders(map: Map<string, { vertex: string; fragment: string }>) {
+    Task.with('Sending shaders to Rust.', () => {
+        if (!rustSetShadersFn) {
+            logger.error('The Rust shader injection function was not registered.')
+        } else {
+            logger.log(`Setting ${map.size} shader definitions.`)
+            rustSetShadersFn(map)
+        }
+    })
+}
+
+host.exportGlobal({ registerGetShadersRustFn, registerSetShadersRustFn })
 
 if (host.node) {
     const app = new App()

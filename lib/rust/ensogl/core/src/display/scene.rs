@@ -709,13 +709,18 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 extern "C" {
     fn registerGetShadersRustFn(closure: &Closure<dyn FnMut() -> JsValue>);
+    fn registerSetShadersRustFn(closure: &Closure<dyn FnMut(JsValue)>);
+}
+
+#[before_main(0)]
+pub fn init() {
+    init_global();
 }
 
 use crate::display::world::World;
 #[before_main]
 pub fn register_get_shaders() {
     let closure = Closure::wrap(Box::new(|| {
-        init_global();
         // warn!(">>x2, {:?}", web_sys::window());
         // let world = World::new();
         // let scene = &world.default_scene;
@@ -730,6 +735,13 @@ pub fn register_get_shaders() {
         js_map.into()
     }) as Box<dyn FnMut() -> JsValue>);
     registerGetShadersRustFn(&closure);
+    mem::forget(closure);
+
+
+    let closure = Closure::wrap(Box::new(|value| {
+        warn!("GOT SHADERS: {:?}", value);
+    }) as Box<dyn FnMut(JsValue)>);
+    registerSetShadersRustFn(&closure);
     mem::forget(closure);
 }
 
