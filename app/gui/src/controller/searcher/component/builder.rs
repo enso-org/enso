@@ -347,7 +347,7 @@ mod tests {
         let list = builder.build();
 
         let top_modules: Vec<ComparableGroupData> =
-            list.top_modules.iter().map(Into::into).collect();
+            list.top_modules.iter().flat_map(|section| section.iter()).map(Into::into).collect();
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",
@@ -362,8 +362,12 @@ mod tests {
         ];
         assert_eq!(top_modules, expected);
 
-        let flattened_top_modules: Vec<ComparableGroupData> =
-            list.top_modules_flattened.iter().map(Into::into).collect();
+        let flattened_top_modules: Vec<ComparableGroupData> = list
+            .top_modules_flattened
+            .iter()
+            .flat_map(|section| section.iter())
+            .map(Into::into)
+            .collect();
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",

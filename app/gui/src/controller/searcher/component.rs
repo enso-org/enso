@@ -397,34 +397,34 @@ pub(crate) mod tests {
         let list = builder.build();
 
         list.update_filtering("fu");
-        let match_infos = list.top_modules()[0]
+        let match_infos = list.top_modules()[0][0]
             .entries
             .borrow()
             .iter()
             .map(|c| c.match_info.borrow().clone())
             .collect_vec();
         DEBUG!("{match_infos:?}");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 4]);
+        assert_ids_of_matches_entries(&list.top_modules()[0][0], &[2, 4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering("x");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[4]);
+        assert_ids_of_matches_entries(&list.top_modules()[0][0], &[4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
+        assert_ids_of_matches_entries(&list.top_modules()[0][0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("y");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
+        assert_ids_of_matches_entries(&list.top_modules()[0][0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
+        assert_ids_of_matches_entries(&list.top_modules()[0][0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
     }
@@ -442,7 +442,12 @@ pub(crate) mod tests {
 
         // Verify that we can read all top-level modules from the component list.
         let expected_top_modules_ids = vec![Some(1), Some(10)];
-        let top_modules_ids = list.top_modules().iter().map(|m| m.component_id).collect_vec();
+        let top_modules_ids = list
+            .top_modules()
+            .iter()
+            .flat_map(|section| section.iter())
+            .map(|m| m.component_id)
+            .collect_vec();
         assert_eq!(top_modules_ids, expected_top_modules_ids);
 
         // Verify that we can read content and direct submodules of a second-level submodule

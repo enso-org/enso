@@ -2088,7 +2088,7 @@ pub mod test {
         test.run_until_stalled();
         // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
-        if let [module_group] = &components.top_modules()[..] {
+        if let [module_group] = &components.top_modules()[0][..] {
             let expected_group_name =
                 format!("{}.{}", entry3.defined_in.project().project, entry3.defined_in.name());
             assert_eq!(module_group.name, expected_group_name);
