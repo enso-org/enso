@@ -810,7 +810,7 @@ type Table
          the section "Unifying Column Types" below. If set to `False` the
          resulting column type will be the same as in the first table the
          corresponding column appeared in (usually `self`, except for unmatched
-         tables). If types of corresponding columns from other tables will be
+         columns). If types of corresponding columns from other tables will be
          incompatible with it, a `Column_Type_Mismatch` is reported.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
