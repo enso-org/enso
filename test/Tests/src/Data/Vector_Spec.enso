@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Empty_Error
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.Common.Not_Found
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
@@ -63,7 +64,6 @@ spec = Test.group "Vectors" <|
             r.put r.get+1
         const = Vector.new 4 _->next
         const.should_equal [0, 1, 2, 3]
-
 
     Test.specify "should allow vector creation with a constant constructor" <|
         Vector.fill 100 1 . fold (0) (+) . should_equal 100
@@ -131,16 +131,7 @@ spec = Test.group "Vectors" <|
     Test.specify "should allow to reduce elements if it is non-empty" <|
         [1,2,3].reduce (+) . should_equal 6
         [].reduce (+) . should_fail_with Empty_Error
-
-    Test.specify "should allow summing elements if they define +" <|
-        [1,2,3].sum . should_equal 6
-        [].sum . should_fail_with Empty_Error
-        [T.Value 1 2, T.Value 3 4].sum . should_fail_with No_Such_Method.Error
-
-    Test.specify "should check exists" <|
-        vec = [1, 2, 3, 4, 5]
-        vec.exists (ix -> ix > 3) . should_be_true
-        vec.exists (ix -> ix < 0) . should_be_false
+        [].reduce (+) 0 . should_equal 0
 
     Test.specify "should check any" <|
         vec = [1, 2, 3, 4, 5]
@@ -343,6 +334,45 @@ spec = Test.group "Vectors" <|
     Test.specify "should define concatenation" <|
         concat = [1, 2, 3] + [4, 5, 6]
         concat.should_equal [1, 2, 3, 4, 5, 6]
+        [1, 2, 3]+1 . should_fail_with Type_Error.Error
+
+    Test.specify "should allow finding a value" <|
+        input = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        input.find (x -> x == 5) . should_equal 5
+        input.find (x -> x%3 == 2) . should_equal 2
+        input.find (x -> x%3 == 3) . should_fail_with Not_Found
+        input.find (x -> x%3 == 2) start=3 . should_equal 5
+        input.find (x -> x%3 == 2) start=-3 . should_equal 8
+        input.find (x -> x%3 == 2) start=10 . should_fail_with Not_Found
+        input.find (x -> x%3 == 2) start=11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.find (x -> x%3 == 2) start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
+        input.find (x -> x%3 == 2) start=100 . should_fail_with Index_Out_Of_Bounds.Error
+        input.find (x -> x%3 == 2) start=-100 . should_fail_with Index_Out_Of_Bounds.Error
+        input.find (x -> x%3 == 3) if_missing=Nothing . should_equal Nothing
+
+    Test.specify "should allow finding the index of a value" <|
+        input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
+        input.index_of 4 . should_equal 3
+        input.index_of (>3) . should_equal 3
+        input.index_of 5 . should_equal Nothing
+        [].index_of 5 . should_equal Nothing
+        input.index_of 2 start=3 . should_equal 5
+        input.index_of 2 start=-2 . should_equal 8
+        input.index_of 2 start=10 . should_equal Nothing
+        input.index_of 2 start=11 . should_fail_with Index_Out_Of_Bounds.Error
+        input.index_of 2 start=11 . catch . should_equal (Index_Out_Of_Bounds.Error 11 11)
+        input.index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
+
+    Test.specify "should allow finding the last index of a value" <|
+        input = [1, 2, 3, 4, 1, 2, 3, 1, 2, 1]
+        input.last_index_of 2 . should_equal 8
+        input.last_index_of 5 . should_equal Nothing
+        [].last_index_of 5 . should_equal Nothing
+        input.last_index_of 2 start=4 . should_equal 1
+        input.last_index_of 2 start=-1 . should_equal 8
+        input.last_index_of 2 start=10 . should_fail_with Index_Out_Of_Bounds.Error
+        input.last_index_of 2 start=10 . catch . should_equal (Index_Out_Of_Bounds.Error 10 10)
+        input.last_index_of 2 start=-11 . should_fail_with Index_Out_Of_Bounds.Error
 
     Test.specify "should be convertible to a list" <|
         [].to_list . should_equal List.Nil
@@ -479,37 +509,13 @@ spec = Test.group "Vectors" <|
         ["a", "a", "a"].drop (Sample 1) . should_equal ["a", "a"]
         ["a", "a", "a"].drop (Sample 100) . should_equal []
 
-    Test.specify "should allow getting the head element" <|
-        non_empty_vec = [1, 2, 3, 4, 5]
-        singleton_vec = [1]
-        empty_vec = []
-        non_empty_vec.head . should_equal 1
-        singleton_vec.head . should_equal 1
-        empty_vec.head . should_fail_with Empty_Error
-
-    Test.specify "should allow getting the tail of the vector" <|
-        non_empty_vec = [1, 2, 3, 4, 5]
-        singleton_vec = [1]
-        empty_vec = []
-        non_empty_vec.tail . should_equal [2, 3, 4, 5]
-        singleton_vec.tail . should_equal []
-        empty_vec.tail . should_fail_with Empty_Error
-
-    Test.specify "should allow getting the init of the vector" <|
-        non_empty_vec = [1, 2, 3, 4, 5]
-        singleton_vec = [1]
-        empty_vec = []
-        non_empty_vec.init . should_equal [1, 2, 3, 4]
-        singleton_vec.init . should_equal []
-        empty_vec.init . should_fail_with Empty_Error
-
     Test.specify "should allow getting the last element of the vector" <|
         non_empty_vec = [1, 2, 3, 4, 5]
         singleton_vec = [1]
         empty_vec = []
         non_empty_vec.last . should_equal 5
         singleton_vec.last . should_equal 1
-        empty_vec.last . should_fail_with Empty_Error
+        empty_vec.last . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should allow getting the first element" <|
         non_empty_vec = [1, 2, 3, 4, 5]
@@ -517,15 +523,15 @@ spec = Test.group "Vectors" <|
         empty_vec = []
         non_empty_vec.first . should_equal 1
         singleton_vec.first . should_equal 1
-        empty_vec.first . should_fail_with Empty_Error
+        empty_vec.first . should_fail_with Index_Out_Of_Bounds
 
-    Test.specify "should allow getting the rest of the vector" <|
+    Test.specify "should allow getting the second element" <|
         non_empty_vec = [1, 2, 3, 4, 5]
         singleton_vec = [1]
         empty_vec = []
-        non_empty_vec.rest . should_equal [2, 3, 4, 5]
-        singleton_vec.rest . should_equal []
-        empty_vec.rest . should_fail_with Empty_Error
+        non_empty_vec.second . should_equal 2
+        singleton_vec.second . should_fail_with Index_Out_Of_Bounds
+        empty_vec.second . should_fail_with Index_Out_Of_Bounds
 
     Test.specify "should be able to be sorted" <|
         empty_vec = []
@@ -579,12 +585,12 @@ spec = Test.group "Vectors" <|
     Test.specify "should be able to sort in descending order" <|
         small_vec = [2, 7, -3, 383, -392, 28, -90]
         small_expected = [383, 28, 7, 2, -3, -90, -392]
-        small_vec.sort order=Sort_Direction.Descending . should_equal small_expected
+        small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
     Test.specify "should be stable in descending order" <|
         small_vec = [T.Value 1 8, T.Value 1 3, T.Value -20 0, T.Value -1 1, T.Value -1 10, T.Value 4 0]
         small_expected = [T.Value 4 0, T.Value 1 3, T.Value 1 8, T.Value -1 10, T.Value -1 1, T.Value -20 0]
-        small_vec.sort order=Sort_Direction.Descending . should_equal small_expected
+        small_vec.sort Sort_Direction.Descending . should_equal small_expected
 
     Test.specify "should correctly propagate error through map" <|
         [1, 2, 3].map Error.throw . catch . should_equal 1
@@ -611,11 +617,22 @@ spec = Test.group "Vectors" <|
         [0, 1, 0].flat_map (i -> if i == 1 then [1, 1] else [i]) . should_equal [0, 1, 1, 0]
         [0, 0, 0].flat_map (i -> [i]) . should_equal [0, 0, 0]
 
-    Test.specify "should prepend elements" <|
-        [2, 3].prepend 1 . should_equal [1, 2, 3]
+    Test.specify "should allow inserting elements" <|
+        [2, 3].insert . should_equal [2, 3, Nothing]
+        [2, 3].insert item=1 . should_equal [2, 3, 1]
+        [2, 3].insert 100 item=1 . should_fail_with Index_Out_Of_Bounds.Error
+        [2, 3].insert 0 item=1 . should_equal [1, 2, 3]
+        [2, 3].insert 0 . should_equal [Nothing, 2, 3]
+        [2, 3].insert 2 . should_equal [2, 3, Nothing]
+        [1, 2, 3].insert -1 item=4 . should_equal [1, 2, 4, 3]
+        [1, 2, 3].insert -20 item=4 . should_fail_with Index_Out_Of_Bounds.Error
 
-    Test.specify "should append elements" <|
-        [1, 2].append 3 . should_equal [1, 2, 3]
+    Test.specify "should allow removing elements" <|
+        [1, 2, 3].remove . should_equal [1, 2]
+        [1, 2, 3].remove 100 . should_fail_with Index_Out_Of_Bounds.Error
+        [1, 2, 3].remove -123 . should_fail_with Index_Out_Of_Bounds.Error
+        [1, 2, 3].remove 0 . should_equal [2, 3]
+        [1, 2, 3].remove -1 . should_equal [1, 2]
 
     Test.specify "should return a vector containing only unique elements" <|
         [1, 3, 1, 2, 2, 1].distinct . should_equal [1, 3, 2]

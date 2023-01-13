@@ -21,42 +21,44 @@ import project.Helpers
 
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Text
-prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
-    _ : Dataframe_Table ->
-        dataframe = x.take (First max_rows)
-        all_rows_count = x.row_count
-        included_rows = dataframe.row_count
-        index = Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
+prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
+    x = Warning.set y []
+    case x of
+        _ : Dataframe_Table ->
+            dataframe = x.take (First max_rows)
+            all_rows_count = x.row_count
+            included_rows = dataframe.row_count
+            index = Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
 
-        ## Workaround so that the JS String is converted to a Text
-           https://www.pivotaltracker.com/story/show/184061302
-        "" + make_json dataframe [index] all_rows_count
+            ## Workaround so that the JS String is converted to a Text
+               https://www.pivotaltracker.com/story/show/184061302
+            "" + make_json dataframe [index] all_rows_count
 
-    _ : Database_Table ->
-        df = x.read max_rows
-        all_rows_count = x.row_count
+        _ : Database_Table ->
+            df = x.read max_rows
+            all_rows_count = x.row_count
 
-        ## Workaround so that the JS String is converted to a Text
-           https://www.pivotaltracker.com/story/show/184061302
-        "" + make_json df [] all_rows_count
+            ## Workaround so that the JS String is converted to a Text
+               https://www.pivotaltracker.com/story/show/184061302
+            "" + make_json df [] all_rows_count
 
-    # We display columns as 1-column tables.
-    _ : Dataframe_Column ->
-        prepare_visualization x.to_table max_rows
-    _ : Database_Column ->
-        prepare_visualization x.to_table max_rows
+        # We display columns as 1-column tables.
+        _ : Dataframe_Column ->
+            prepare_visualization x.to_table max_rows
+        _ : Database_Column ->
+            prepare_visualization x.to_table max_rows
 
-    # TODO [RW] Should we truncate Vectors?
-    # We also visualize Vectors and arrays
-    _ : Vector ->
-        truncated = x.take (First max_rows)
-        JS_Object.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
-    _ : Array ->
-        prepare_visualization (Vector.from_polyglot_array x) max_rows
+        # TODO [RW] Should we truncate Vectors?
+        # We also visualize Vectors and arrays
+        _ : Vector ->
+            truncated = x.take (First max_rows)
+            JS_Object.from_pairs [["json", truncated], ["all_rows_count", x.length]] . to_text
+        _ : Array ->
+            prepare_visualization (Vector.from_polyglot_array x) max_rows
 
-    # Anything else will be visualized with the JSON or matrix visualization
-    _ ->
-        JS_Object.from_pairs [["json", x]] . to_text
+        # Anything else will be visualized with the JSON or matrix visualization
+        _ ->
+            JS_Object.from_pairs [["json", x]] . to_text
 
 ## PRIVATE
    Creates a JSON representation for the visualizations.
@@ -71,11 +73,12 @@ prepare_visualization x max_rows=1000 = Helpers.recover_errors <| case x of
      only a fragment is displayed.
 make_json : (Dataframe_Table | Database_Table) -> Vector Dataframe_Column -> Integer -> Text
 make_json dataframe indices all_rows_count =
-    columns  = dataframe.columns
+    get_vector c = Warning.set c.to_vector []
+    columns     = dataframe.columns
     header      = ["header", columns.map .name]
-    data        = ["data",   columns.map .to_vector]
+    data        = ["data",   columns.map get_vector]
     all_rows    = ["all_rows_count", all_rows_count]
-    ixes        = ["indices", indices.map .to_vector]
+    ixes        = ["indices", indices.map get_vector]
     ixes_header = ["indices_header", indices.map .name]
-    pairs    = [header, data, all_rows, ixes, ixes_header]
+    pairs       = [header, data, all_rows, ixes, ixes_header]
     JS_Object.from_pairs pairs . to_text

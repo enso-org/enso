@@ -110,10 +110,10 @@ type JS_Object
     from_pairs : Vector -> JS_Object
     from_pairs pairs =
         js_object = pairs.fold new_object current->pair->
-            case pair.at 0 of
+            case pair.first of
                 text : Text ->
-                    set_value current text (pair.at 1).to_js_object
-                    current
+                    js_value = pair.second.to_js_object
+                    set_value current text js_value
                 _ -> Error.throw (Illegal_Argument.Error "JS_Object.from_pairs: key must be a Text value")
         JS_Object.Value js_object
 
@@ -243,7 +243,6 @@ make_javascript enso_object =
                     value = enso_object.get key
                     js_value = make_javascript value
                     set_value current key js_value
-                    current
             _ : Vector -> enso_object.map make_javascript
             _ : Array -> Vector.from_polyglot_array enso_object . map make_javascript
             _ -> enso_object
@@ -265,6 +264,7 @@ foreign js get_value object key = """
 
 foreign js set_value object key value = """
     object[key] = value
+    return object
 
 foreign js get_property_names object = """
     return Object.getOwnPropertyNames(object)

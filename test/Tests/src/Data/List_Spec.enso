@@ -1,8 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Data.List.Empty_Error
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
+import Standard.Base.Error.Common.Not_Found
 import Standard.Base.Error.Common.Unsupported_Argument_Types
 import Standard.Base.Runtime.State
-from Standard.Base.Data.List import Empty_Error
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
@@ -15,15 +17,13 @@ spec = Test.group "List" <|
     Test.specify "should have well defined length when empty" <|
         List.Nil.length.should_equal 0
     Test.specify "should allow folding the list with an arbitrary operation with .fold" <|
-        sum = l.fold 0 (+)
-        prod = l.fold 1 (*)
-        sum.should_equal 6
-        prod.should_equal 6
-    Test.specify "should allow checking if an element satisfies a predicate with .exists" <|
-        any_even = l.exists (x -> x % 2 == 0)
-        any_eq_five = l.exists (== 5)
-        any_even.should_be_true
-        any_eq_five.should_be_false
+        l.fold 0 (+) . should_equal 6
+        l.fold 1 (*) . should_equal 6
+    Test.specify "should allow reducing the list with an arbitrary operation with .reduce" <|
+        l.reduce (+) . should_equal 6
+        l.reduce (*) . should_equal 6
+        empty.reduce (+) . should_fail_with Empty_Error
+        empty.reduce (+) 0 . should_equal 0
     Test.specify "should allow checking if an element satisfies a predicate with .any" <|
         any_even = l.any (x -> x % 2 == 0)
         any_eq_five = l.any (== 5)
@@ -38,6 +38,49 @@ spec = Test.group "List" <|
         l.contains 4 . should_be_false
         l.contains 3 . should_be_true
         empty.contains 10 . should_be_false
+    Test.specify "should allow finding an element in the list with `.find`" <|
+        l.find (==2) . should_equal 2
+        l.find (==3) . should_equal 3
+        l.find (==4) . should_fail_with Not_Found
+        l.find (==2) start=1 . should_equal 2
+        l.find (==2) start=2 . should_fail_with Not_Found
+        l.find (==2) start=3 . should_fail_with Not_Found
+        l.find (==2) start=-1 . should_fail_with Not_Found
+        l.find (==2) start=-2 . should_equal 2
+        l.find (==2) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        l.find (==2) start=4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
+        empty.find (==1) . should_fail_with Not_Found
+        empty.find (==1) if_missing=Nothing . should_equal Nothing
+    Test.specify "should allow finding the index of an element in the list with `.index_of`" <|
+        l.index_of (==2) . should_equal 1
+        l.index_of 3 . should_equal 2
+        l.index_of (==4) . should_equal Nothing
+        empty.index_of (==1) . should_equal Nothing
+        l.index_of (==2) start=1 . should_equal 1
+        l.index_of 2 start=2 . should_equal Nothing
+        l.index_of 2 start=3 . should_equal Nothing
+        l.index_of 2 start=-1 . should_equal Nothing
+        l.index_of (==2) start=-2 . should_equal 1
+        l.index_of 2 start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        l.index_of 2 start=4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 4)
+        l.index_of 2 start=-3 . should_equal 1
+        l.index_of 2 start=-4 . should_fail_with Index_Out_Of_Bounds.Error
+        l.index_of 2 start=-4 . should_fail_with Index_Out_Of_Bounds.Error
+    Test.specify "should allow finding the last index of an element in the list with `.last_index_of`" <|
+        ll = List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Cons 1 <| List.Cons 2 <| List.Cons 3 <| List.Nil
+        ll.last_index_of (==2) . should_equal 4
+        ll.last_index_of 3 . should_equal 5
+        ll.last_index_of (==4) . should_equal Nothing
+        ll.last_index_of (==2) start=3 . should_equal 1
+        empty.last_index_of (==1) . should_equal Nothing
+        ll.last_index_of 3 start=1 . should_equal Nothing
+        ll.last_index_of 3 start=5 . should_equal 5
+        ll.last_index_of 3 start=6 . should_fail_with Index_Out_Of_Bounds.Error
+        ll.last_index_of 3 start=6 . catch . should_equal (Index_Out_Of_Bounds.Error 6 6)
+        ll.last_index_of 2 start=-3 . should_equal 1
+        ll.last_index_of 2 start=-6 . should_equal Nothing
+        ll.last_index_of 3 start=-7 . should_fail_with Index_Out_Of_Bounds.Error
+        ll.last_index_of (==2) start=-2 . should_equal 4
     Test.specify "should allow checking if the list is empty with `.is_empty`" <|
         l.is_empty . should_be_false
         empty.is_empty . should_be_true
@@ -93,7 +136,7 @@ spec = Test.group "List" <|
         bools.filter Filter_Condition.Is_True . should_equal [True, True].to_list
         bools.filter Filter_Condition.Is_False . should_equal [False].to_list
     Test.specify "should allow mapping a function over its elements with .map" <|
-        l.map +1 . head . should_equal 2
+        l.map +1 . first . should_equal 2
     Test.specify "should allow executing an action for each element with .each" <|
         sum = State.run Number 0 <|
             l.each el->
@@ -102,34 +145,60 @@ spec = Test.group "List" <|
             State.get Number
         sum.should_equal 6
     Test.specify "should allow reversing with .reverse" <|
-        l.reverse.head.should_equal 3
+        l.reverse.first.should_equal 3
     Test.specify "should allow dropping elements from the left with `.drop`" <|
         l.drop_start 1 . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
         empty.drop_start 1 . should_equal List.Nil
     Test.specify "should allow taking elements from the left with `.take_start`" <|
         l.take_start 2 . should_equal (List.Cons 1 (List.Cons 2 List.Nil))
         empty.take_start 2 . should_equal List.Nil
-    Test.specify "should allow getting the head of the list with `.head`" <|
-        l.head . should_equal 1
-        empty.head.should_fail_with Empty_Error
     Test.specify "should allow getting the tail of the list with `.tail`" <|
         l.tail . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
-        empty.tail.should_fail_with Empty_Error
+        empty.tail.should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "single element list.init yields Nil" <|
         (List.Cons 1 List.Nil).init . should_equal List.Nil
     Test.specify "two element list.init yields one element" <|
         (List.Cons 1 (List.Cons 2 List.Nil)).init . should_equal (List.Cons 1 List.Nil)
     Test.specify "should allow getting the init of the list with `.init`" <|
         l.init . should_equal (List.Cons 1 (List.Cons 2 List.Nil))
-        empty.init.should_fail_with Empty_Error
+        empty.init.should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "should allow getting the last element of the list with `.last`" <|
         l.last . should_equal 3
-        empty.last.should_fail_with Empty_Error
+        empty.last.should_fail_with Index_Out_Of_Bounds.Error
     Test.specify "should allow getting the head of the list with `.first`" <|
         l.first . should_equal 1
-        empty.first.should_fail_with Empty_Error
-    Test.specify "should allow getting the tail of the list with `.rest`" <|
-        l.rest . should_equal (List.Cons 2 (List.Cons 3 List.Nil))
-        empty.rest.should_fail_with Empty_Error
+        empty.first.should_fail_with Index_Out_Of_Bounds.Error
+        empty.first.catch.should_equal (Index_Out_Of_Bounds.Error 0 0)
+    Test.specify "should allow getting the second item of the list with `.second`" <|
+        l.second . should_equal 2
+        empty.second.should_fail_with Index_Out_Of_Bounds.Error
+        empty.second.catch.should_equal (Index_Out_Of_Bounds.Error 1 0)
+        (List.Cons 1 List.Nil).second.should_fail_with Index_Out_Of_Bounds.Error
+        (List.Cons 1 List.Nil).second.catch.should_equal (Index_Out_Of_Bounds.Error 1 1)
+    Test.specify "should allow getting the last element of the list with `.last`" <|
+        l.last . should_equal 3
+        empty.last.should_fail_with Index_Out_Of_Bounds.Error
+        empty.last.catch.should_equal (Index_Out_Of_Bounds.Error -1 0)
+    Test.specify "should allow getting the items of the list with `.at`" <|
+        l.at 0 . should_equal 1
+        l.at 1 . should_equal 2
+        l.at 2 . should_equal 3
+        l.at -3 . should_equal 1
+        l.at -2 . should_equal 2
+        l.at -1 . should_equal 3
+        empty.at 0 . should_fail_with Index_Out_Of_Bounds.Error
+        l.at 3 . should_fail_with Index_Out_Of_Bounds.Error
+        l.at -4 . should_fail_with Index_Out_Of_Bounds.Error
+    Test.specify "should allow getting the items of the list with `.get`" <|
+        l.get 0 . should_equal 1
+        l.get 1 . should_equal 2
+        l.get 2 . should_equal 3
+        l.get -3 . should_equal 1
+        l.get -2 . should_equal 2
+        l.get -1 . should_equal 3
+        empty.get 0 . should_equal Nothing
+        empty.get 0 "A" . should_equal "A"
+        l.get 3 . should_equal Nothing
+        l.get -4 . should_equal Nothing
 
 main = Test_Suite.run_main spec

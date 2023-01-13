@@ -12,6 +12,8 @@ import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Common.No_Such_Method
+import project.Error.Common.Not_Found
+import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Incomparable_Values.Incomparable_Values
@@ -239,21 +241,21 @@ type Vector a
         built.to_vector
 
     ## Combines all the elements of a non-empty vector using a binary operation.
+       If the vector is empty, it returns `if_empty`.
 
        Arguments:
        - function: A binary operation that takes two items and combines them.
-
-       If the vector is empty, it throws an `Empty_Error`.
+       - if_empty: Value returned if the vector is empty.
 
        > Example
          Compute the sum of all the elements in a vector.
 
              [0, 1, 2] . reduce (+)
-    reduce : (Any -> Any -> Any) -> Any ! Empty_Error
-    reduce self function =
+    reduce : (Any -> Any -> Any) -> Any -> Any
+    reduce self function ~if_empty=(Error.throw Empty_Error) =
         len = self.length
         case len of
-            0 -> Error.throw Empty_Error
+            0 -> if_empty
             1 -> self.at 0
             _ ->
                 fold_function current idx =
@@ -261,54 +263,72 @@ type Vector a
                         @Tail_Call fold_function (function current (self.at idx)) (idx + 1)
                 fold_function (self.at 0) 1
 
-    ## Computes the sum of the values in the vector.
-
-       For this method to be defined, the elements of the vector must be able to
-       have the `+` operator used to combine them.
-
-       > Example
-         Compute the sum of all fo the elements in a vector.
-
-             [0, 1, 2].sum
-    sum : Any ! (Empty_Error | No_Such_Method)
-    sum self =
-        result = Panic.recover Any <| self.reduce (+)
-        result.map_error x->case x of
-            _ : No_Such_Method -> x
-            Empty_Error -> x
-            _ -> Panic.throw x
-
-    ## Checks whether a predicate holds for at least one element of this vector.
-
-       Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
-
-       > Example
-         Check if any element of the list is larger than 3.
-
-             [1, 2, 3, 4, 5].exists (> 3)
-    exists : (Any -> Boolean) -> Boolean
-    exists self predicate =
-        0.up_to self.length . exists (idx -> (predicate (self.at idx)))
-
     ## Returns the first element of the vector that satisfies the predicate or
-       if no elements of the vector satisfy the predicate, it throws nothing.
+       `if_missing` if no elements of the vector satisfy it.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean
          value that says whether that value satisfies the conditions of the
          function.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the vector.
+       - if_missing: Value returned if no element satisfies the predicate.
 
        > Example
-         Finding a first element of the list that is larger than 3.
+         Finding a first element of the vector that is larger than 3.
 
              [1, 2, 3, 4, 5].find (> 3)
-    find : (Any -> Boolean) -> Any ! Nothing
-    find self predicate =
-        found = 0.up_to self.length . find (idx -> (predicate (self.at idx)))
-        if found.is_nothing then Error.throw Nothing else self.at found
+    find : (Any -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=(Error.throw Not_Found) =
+        self_len = self.length
+        check_start_valid start self_len used_start->
+            found = used_start.up_to self_len . find (idx -> (predicate (self.at idx)))
+            if found.is_nothing then if_missing else self.at found
+
+    ## Returns the index of an element in the vector.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the vector.
+
+       > Example
+         Find the index of an element in a vector.
+
+             [1, 2, 3].index_of 2 == 1
+    index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self element start=0 =
+        self_len = self.length
+        check_start_valid start self_len used_start->
+            predicate = case element of
+                _ : Function -> (i -> element (self.at i))
+                _ -> (i -> self.at i == element)
+            used_start.up_to self.length . find if_missing=Nothing predicate
+
+    ## Returns the last index of an element in the vector.
+       Returns `Nothing` if the element is not found.
+
+       Arguments:
+       - element: The element to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching backwards from. If the index is
+         negative, it is counted from the end of the vector.
+
+       > Example
+         Find the last index of an element in a vector.
+
+             [1, 2, 3, 1, 2, 3].last_index_of 2 == 4
+    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self element start=-1 =
+        self_len = self.length
+        if self_len == 0 && (start==0 || start==-1) then Nothing else
+            check_start_valid start self_len used_start->
+                predicate = case element of
+                    _ : Function -> (i -> element (self.at i))
+                    _ -> (i -> self.at i == element)
+                used_start.down_to -1 . find if_missing=Nothing predicate
 
     ## Checks whether a predicate holds for at least one element of self vector.
 
@@ -322,7 +342,8 @@ type Vector a
 
              [1, 2, 3, 4, 5].any (> 3)
     any : (Any -> Boolean) -> Boolean
-    any self predicate = self.exists predicate
+    any self predicate =
+        0.up_to self.length . any (idx -> (predicate (self.at idx)))
 
     ## Checks whether a predicate holds for all elements in this vector.
 
@@ -336,7 +357,7 @@ type Vector a
 
              [-1, 1, 5, 8].all (< 0)
     all : (Any -> Boolean) -> Boolean
-    all self predicate = self . exists (predicate >> .not) . not
+    all self predicate = self . any (predicate >> .not) . not
 
     ## Checks whether this vector contains a given value as an element.
 
@@ -348,7 +369,7 @@ type Vector a
 
              [1, 383, 72, 301].contains 72
     contains : Any -> Boolean
-    contains self elem = self.exists ix-> ix == elem
+    contains self elem = self.any ix-> ix == elem
 
     ## Checks if this vector is empty.
 
@@ -525,11 +546,11 @@ type Vector a
 
     ## Applies a function to each element of the vector.
 
-       Arguments:
-       - function: A function to apply to each element of the vector.
-
        Unlike `map`, this method does not return the individual results,
        therefore it is only useful for side-effecting computations.
+
+       Arguments:
+       - function: A function to apply to each element of the vector.
 
        > Example
          Print each element in the vector to standard output.
@@ -613,36 +634,60 @@ type Vector a
 
              [1] + [2]
     + : Vector Any -> Vector Any
-    + self that =
+    + self that = case that of
+        _ : Vector ->
+            self_len = self.length
+            that_len = that.length
+            arr = Array.new (self_len + that_len)
+            Array.copy self.to_array 0 arr 0 self_len
+            Array.copy that.to_array 0 arr self_len that_len
+            Vector.from_polyglot_array arr
+        _ : Array -> self + Vector.from_polyglot_array that
+        _ -> Error.throw (Type_Error.Error Vector that "that")
+
+    ## Inserts the given item into the vector at the given index.
+
+       Arguments:
+       - at: The index at which to insert the item before.
+         If the index is less than 0, the index will be counted back from the
+         end. If the index is equal to the length of the Vector, the item will
+         be appended to the end of the Vector.
+       - item: The item to insert into the vector.
+
+       > Example
+         Insert 'X' into ['a', 'b', 'c'] at different locations:
+
+            ['a', 'b', 'c'].insert 1 'X' == ['a', 'X', 'b', 'c']
+            ['a', 'b', 'c'].insert -1 'X' == ['a', 'b', 'X', 'c']
+            ['a', 'b', 'c'].insert item='X' == ['a', 'b', 'c', 'X']
+    insert : Integer -> Any -> Vector ! Index_Out_Of_Bounds
+    insert self at=self.length item=Nothing =
         self_len = self.length
-        arr = Array.new (self_len + that.length)
-        Array.copy self.to_array 0 arr 0 self_len
-        Array.copy that.to_array 0 arr self_len that.length
-        Vector.from_polyglot_array arr
+        used_index = if at < 0 then self_len + at else at
+        if used_index < 0 || used_index > self_len then Error.throw (Index_Out_Of_Bounds.Error at self_len+1) else
+            if used_index == self_len then self + [item] else
+                if used_index == 0 then [item] + self else
+                    arr = Array.new (self_len + 1)
+                    Array.copy self.to_array 0 arr 0 used_index
+                    Array.copy [item].to_array 0 arr used_index 1
+                    Array.copy self.to_array used_index arr (used_index + 1) (self_len - used_index)
+                    Vector.from_polyglot_array arr
 
-    ## Add `element` to the beginning of `self` vector.
-
-       Arguments:
-       - `element`: An element to add to this vector.
-
-       > Example
-         Add 1 to the start of the vector.
-
-             [2, 3].prepend 1
-    prepend : Any -> Vector Any
-    prepend self element = [element] + self
-
-    ## Add `element` to the end of `self` vector.
+    ## Removes the item at the given index from the vector.
 
        Arguments:
-       - `element`: An element to add to this vector.
-
-       > Example
-         Add 3 to the end of the vector.
-
-             [1, 2].append 3
-    append : Any -> Vector Any
-    append self element = self + [element]
+       - at: The index at which to remove the item.
+         If the index is less than 0, the index will be counted back from the
+         end.
+    remove : Integer -> Any -> Vector
+    remove self at=-1 =
+        self_len = self.length
+        used_index = if at < 0 then self_len + at else at
+        if used_index >= self_len || used_index < 0 then Error.throw (Index_Out_Of_Bounds.Error at self_len) else
+            arr = Array.new (self_len - 1)
+            Array.copy self.to_array 0 arr 0 used_index
+            Array.copy self.to_array (used_index + 1) arr used_index (self_len - used_index - 1)
+            Vector.from_polyglot_array arr
 
     ## When `self` is a vector of text values, concatenates all the values by
        interspersing them with `separator`.
@@ -758,55 +803,25 @@ type Vector a
         if self.length >= n then self else
             self + (Vector.fill n-self.length elem)
 
-    ## Get the first element from the vector, or an `Empty_Error` if the vector
-       is empty.
-
-       > Example
-         The following code returns 1.
-
-             [1, 2, 3, 4].head
-    head : Any ! Empty_Error
-    head self = if self.length >= 1 then self.at 0 else Error.throw Empty_Error
-
-    ## Get all elements in the vector except the first.
-
-       > Example
-         The following code returns [2, 3, 4].
-
-             [1, 2, 3, 4].tail
-    tail : Vector ! Empty_Error
-    tail self = if self.length >= 1 then self.drop (Index_Sub_Range.First 1) else
-        Error.throw Empty_Error
-
-    ## Get the all elements in the vector except the last.
-
-       > Example
-         The following code returns [1, 2, 3].
-
-             [1, 2, 3, 4].init
-    init : Vector ! Empty_Error
-    init self = if self.length >= 1 then self.drop (Index_Sub_Range.Last 1) else Error.throw Empty_Error
-
-    ## Get the last element of the vector, or an `Empty_Error` if the vector is
-       empty.
-
-       > Example
-         The following code returns 4.
-
-             [1, 2, 3, 4].last
-    last : Vector ! Empty_Error
-    last self = if self.length >= 1 then self.at (self.length-1) else
-        Error.throw Empty_Error
-
-    ## Get the first element from the vector, or an `Empty_Error` if the vector
+    ## Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
        > Example
          The following code returns 1.
 
              [1, 2, 3, 4].first
-    first : Vector ! Empty_Error
-    first self = self.head
+    first : Any ! Index_Out_Of_Bounds
+    first self = self.at 0
+
+    ## Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
+       empty.
+
+       > Example
+         The following code returns 4.
+
+             [1, 2, 3, 4].last
+    last : Any ! Index_Out_Of_Bounds
+    last self = self.at -1
 
     ## Get the second element from the vector, or a `Index_Out_Of_Bounds` if the
        vector doesn't have a second element.
@@ -817,25 +832,17 @@ type Vector a
          The following code returns 2.
 
              [1, 2, 3, 4].second
-    second : Vector ! Index_Out_Of_Bounds
+    second : Any ! Index_Out_Of_Bounds
     second self = self.at 1
-
-    ## Get all elements in the vector except the first.
-
-       > Example
-         The following code returns [2, 3, 4].
-             [1, 2, 3, 4].rest
-    rest : Vector ! Empty_Error
-    rest self = self.tail
 
     ## Sort the Vector.
 
        Arguments:
+       - order: The order in which the vector elements are sorted.
        - on: A projection from the element type to the value of that element
          being sorted on.
        - by: A function that compares the result of applying `on` to two
          elements, returning an Ordering to compare them.
-       - order: The order in which the vector elements are sorted.
 
        By default, elements are sorted in ascending order, using the comparator
        `compare_to`. A custom comparator may be passed to the sort function.
@@ -868,12 +875,9 @@ type Vector a
        > Example
          Sorting a vector of `Pair`s on the first element, descending.
 
-             [Pair 1 2, Pair -1 8].sort (_.first) (order = Sort_Direction.Descending)
-    sort : (Any -> Any) -> (Any -> Any -> Ordering) -> Sort_Direction -> Vector Any ! Incomparable_Values
-    sort self (on = x -> x) (by = (_.compare_to _)) (order = Sort_Direction.Ascending) =
-        ## As we want to account for both custom projections and custom
-           comparisons we need to construct a comparator for internal use that
-           does both.
+             [Pair 1 2, Pair -1 8].sort Sort_Direction.Descending (_.first)
+    sort : Sort_Direction -> (Any -> Any) -> (Any -> Any -> Ordering) -> Vector Any ! Incomparable_Values
+    sort self (order = Sort_Direction.Ascending) (on = x -> x) (by = (_.compare_to _)) =
         comp_ascending l r  = by (on l) (on r)
         comp_descending l r = by (on r) (on l)
         compare = if order == Sort_Direction.Ascending then comp_ascending else
@@ -926,6 +930,11 @@ type Vector a
                         builder.append item
                         existing.insert key True
             if result.is_error then result else builder.to_vector
+
+    ## UNSTABLE
+       Returns the Vector as a Vector.
+    to_vector : Vector
+    to_vector self = self
 
     ## UNSTABLE
        Converts the vector to a list with the same elements.
@@ -1064,7 +1073,7 @@ type Builder
         Panic.catch IndexOutOfBoundsException (self.java_builder.get actual_index) _->
             Error.throw (Index_Out_Of_Bounds.Error index self.length)
 
-    ## Get the first element from the vector, or an `Empty_Error` if the vector
+    ## Get the first element from the vector, or an `Index_Out_Of_Bounds` if the vector
        is empty.
 
        > Example
@@ -1074,7 +1083,7 @@ type Builder
     first : Vector ! Index_Out_Of_Bounds
     first self = self.at 0
 
-    ## Get the last element of the vector, or an `Empty_Error` if the vector is
+    ## Get the last element of the vector, or an `Index_Out_Of_Bounds` if the vector is
        empty.
 
        > Example
@@ -1090,9 +1099,9 @@ type Builder
        - predicate: A function that takes a list element and returns a boolean
          that says whether that value satisfies the conditions of the function.
 
-    exists : (Any -> Boolean) -> Boolean
-    exists self predicate =
-        0.up_to self.length . exists (idx -> (predicate (self.java_builder.get idx)))
+    any : (Any -> Boolean) -> Boolean
+    any self predicate =
+        0.up_to self.length . any (idx -> (predicate (self.java_builder.get idx)))
 
     ## Converts this builder to a vector containing all the appended elements.
 
@@ -1154,3 +1163,9 @@ slice_many_ranges vector ranges =
                 descriptor.each ix->
                     builder.append (vector.at ix)
     builder.to_vector
+
+## PRIVATE
+check_start_valid start length function =
+    used_start = if start < 0 then start + length else start
+    if used_start < 0 || used_start > length then Error.throw (Index_Out_Of_Bounds.Error start length+1) else
+        function used_start

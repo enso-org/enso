@@ -3,10 +3,10 @@
 
 use crate::prelude::*;
 
-use crate::model::suggestion_database::entry;
-use crate::model::suggestion_database::entry::Argument;
-use crate::model::suggestion_database::Entry;
-use crate::model::SuggestionDatabase;
+use crate::entry;
+use crate::entry::Argument;
+use crate::Entry;
+use crate::SuggestionDatabase;
 
 use double_representation::name::QualifiedName;
 
@@ -39,8 +39,8 @@ pub const DEFAULT_TYPE: &str = "Standard.Base.Any";
 /// # Example
 ///
 /// ```
-/// use enso_gui::model::suggestion_database::entry::IconName;
-/// use enso_gui::model::suggestion_database::mock::Builder;
+/// use enso_suggestion_database::entry::IconName;
+/// use enso_suggestion_database::mock::Builder;
 ///
 /// let mut builder = Builder::new();
 /// builder.add_and_enter_module("local.Project", |e| e);
@@ -246,8 +246,8 @@ macro_rules! mock_suggestion_database_entries {
 ///
 /// This macro takes a declaration of suggestion database entries in a kind of pseudo code:
 /// ```
-/// use enso_gui::mock_suggestion_database;
-/// use enso_gui::model::suggestion_database::entry;
+/// use enso_suggestion_database::entry;
+/// use enso_suggestion_database::mock_suggestion_database;
 ///
 /// let db = mock_suggestion_database! {
 ///    Standard.Base {
@@ -302,9 +302,9 @@ macro_rules! mock_suggestion_database {
     ($($(#[$($attr_setter:tt)*])* $ns:ident.$project:ident { $($content:tt)* })*) => {
         {
             #[allow(unused_imports)]
-            use $crate::model::suggestion_database::mock::Builder;
+            use $crate::mock::Builder;
             #[allow(unused_imports)]
-            use $crate::model::suggestion_database::mock::DEFAULT_TYPE;
+            use $crate::mock::DEFAULT_TYPE;
             #[allow(unused_imports)]
             use $crate::mock_suggestion_database_entries;
             #[allow(unused_imports)]
@@ -312,7 +312,7 @@ macro_rules! mock_suggestion_database {
             #[allow(unused_imports)]
             use $crate::mock_suggestion_database_entry_argument;
             #[allow(unused_imports)]
-            use $crate::model::suggestion_database::entry::Argument;
+            use $crate::entry::Argument;
 
             let mut builder = Builder::new();
             $(
@@ -343,25 +343,25 @@ macro_rules! doc_section_mark {
 ///
 /// ### [`DocSection::Paragrah`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!("Some text.");
 /// ```
 ///
 /// ### [`DocSection::Tag`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!(@ "Tag name", "Tag body.");
 /// ```
 ///
 /// ### [`DocSection::Keyed`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!("Key" => "Value");
 /// ```
 ///
 /// ### [`DocSection::Marked`]
 /// ```
-/// # use enso_gui::doc_section;
+/// # use enso_suggestion_database::doc_section;
 /// doc_section!(! "Marked as important");
 /// doc_section!(! "Optional header", "Marked as important");
 /// doc_section!(? "Marked as info");
@@ -372,7 +372,10 @@ macro_rules! doc_section_mark {
 #[macro_export]
 macro_rules! doc_section {
     (@ $tag:expr, $body:expr) => {
-        engine_protocol::language_server::DocSection::Tag { name: $tag.into(), body: $body.into() }
+        $crate::engine_protocol::language_server::DocSection::Tag {
+            name: $tag.into(),
+            body: $body.into(),
+        }
     };
     ($mark:tt $body:expr) => {
         $crate::engine_protocol::language_server::DocSection::Marked {
@@ -389,10 +392,10 @@ macro_rules! doc_section {
         }
     };
     ($paragraph:expr) => {
-        engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
+        $crate::engine_protocol::language_server::DocSection::Paragraph { body: $paragraph.into() }
     };
     ($key:expr => $body:expr) => {
-        engine_protocol::language_server::DocSection::Keyed {
+        $crate::engine_protocol::language_server::DocSection::Keyed {
             key:  $key.into(),
             body: $body.into(),
         }
