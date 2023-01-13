@@ -288,7 +288,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @CachedLibrary(limit = "10") TypesLibrary types,
       @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
-    var hashMapType = ctx.getBuiltins().hashMap();
+    var hashMapType = ctx.getBuiltins().map();
     var function = methodResolverNode.expectNonNull(self, hashMapType, symbol);
     arguments[0] = self;
     return invokeFunctionNode.execute(function, frame, state, arguments);

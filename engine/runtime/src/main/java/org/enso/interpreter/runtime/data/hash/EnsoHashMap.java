@@ -141,7 +141,17 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage(library = TypesLibrary.class)
   Type getType(@CachedLibrary("this") TypesLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().hashMap();
+    return EnsoContext.get(thisLib).getBuiltins().map();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().map();
   }
 
   @ExportMessage

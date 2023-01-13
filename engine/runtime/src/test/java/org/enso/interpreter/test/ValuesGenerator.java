@@ -181,6 +181,12 @@ class ValuesGenerator {
     """, "Vector").type();
   }
 
+  public Value typeMap() {
+    return v("typeMap", """
+    import Standard.Base.Data.Map.Map
+    """, "Map").type();
+  }
+
   public Value typeWarning() {
     return v("typeWarning", """
     import Standard.Base.Warning.Warning
@@ -463,6 +469,32 @@ class ValuesGenerator {
       collect.add(v(null, "", "['a', 'b', 'c']").type());
       collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, Nothing]").type());
       collect.add(v(null, "from Standard.Base.Nothing import Nothing", "[Nothing, 'fff', 0, Nothing]").type());
+    }
+    return collect;
+  }
+
+  public List<Value> maps() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      var imports = """
+          import Standard.Base.Data.Map.Map
+          import Standard.Base.Nothing.Nothing
+          """;
+      for (var expr : List.of(
+          "Map.empty",
+          "Map.singleton Nothing Nothing",
+          "Map.singleton Nothing 'my_value'",
+          "Map.singleton 'my_value' Nothing",
+          "Map.singleton 1 1",
+          "Map.singleton Map.empty 1",
+          "Map.singleton Map.empty Map.empty",
+          "Map.empty.insert 1 1 . insert 2 2",
+          "Map.empty.insert Nothing 'val' . insert 'key' 42",
+          "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
+          "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1"
+      )) {
+        collect.add(v(null, imports, expr).type());
+      }
     }
     return collect;
   }
