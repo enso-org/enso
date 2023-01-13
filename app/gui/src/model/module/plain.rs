@@ -13,7 +13,6 @@ use crate::model::module::NotificationKind;
 use crate::model::module::Path;
 use crate::model::module::ProjectMetadata;
 use crate::model::module::TextChange;
-use crate::notification;
 
 use double_representation::definition::DefinitionInfo;
 use double_representation::import;
