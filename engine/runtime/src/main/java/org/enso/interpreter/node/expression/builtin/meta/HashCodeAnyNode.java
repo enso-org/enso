@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -114,7 +115,7 @@ public abstract class HashCodeAnyNode extends Node {
     if (isHashCodeCached.profile(atom.getHashCode() != null)) {
       return atom.getHashCode();
     }
-    // TODO[PM]: If atom overrides hash_code, call that method
+    // TODO[PM]: If atom overrides hash_code, call that method (Will be done in a follow-up PR for https://www.pivotaltracker.com/story/show/183945328)
     int fieldsCount = atom.getFields().length;
     Object[] fields = atom.getFields();
     // hashes stores hash codes for all fields, and for constructor.
@@ -318,6 +319,49 @@ public abstract class HashCodeAnyNode extends Node {
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  /**
+   * Two maps are considered equal, if they have the same entries.
+   * Note that we do not care about ordering.
+   */
+  @Specialization(
+      guards = "interop.hasHashEntries(selfMap)"
+  )
+  long hashCodeForMap(
+      Object selfMap,
+      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @Cached HashCodeAnyNode hashCodeNode
+  ) {
+    Object[] keys;
+    Object[] values;
+    int mapSize;
+    try {
+      mapSize = (int) interop.getHashSize(selfMap);
+      keys = new Object[mapSize];
+      values = new Object[mapSize];
+      Object entriesIterator = interop.getHashEntriesIterator(selfMap);
+      int arrIdx = 0;
+      while (interop.hasIteratorNextElement(entriesIterator)) {
+        Object entry = interop.getIteratorNextElement(entriesIterator);
+        keys[arrIdx] = interop.readArrayElement(entry, 0);
+        values[arrIdx] = interop.readArrayElement(entry, 1);
+        arrIdx++;
+      }
+    } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
+      throw new IllegalStateException(e);
+    }
+    assert keys.length == values.length;
+    // We don't care about the order of keys and values, so we just sum all their hash codes.
+    long keysHashCode = 0;
+    long valuesHashCode = 0;
+    for (int i = 0; i < keys.length; i++) {
+      keysHashCode += hashCodeNode.execute(keys[i]);
+      valuesHashCode += hashCodeNode.execute(values[i]);
+    }
+    return Arrays.hashCode(
+        new long[]{keysHashCode, valuesHashCode, mapSize}
+    );
   }
 
   @Specialization(
