@@ -525,16 +525,11 @@ object ProgramExecutionSupport {
   private def visualizationResultToBytes(
     value: AnyRef
   ): Either[VisualisationException, Array[Byte]] = {
-    val bytes = VisualizationResult.visualizationResultToBytes(value)
-    if (bytes != null) {
-      Right(bytes)
-    } else {
-      Left(
-        new VisualisationException(
-          s"Cannot encode ${value.getClass} to byte array."
-        )
+    Option(VisualizationResult.visualizationResultToBytes(value)).toRight(
+      new VisualisationException(
+        s"Cannot encode ${value.getClass} to byte array."
       )
-    }
+    )
   }
 
   /** Extract method pointer information from the expression value.
