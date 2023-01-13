@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -52,9 +51,8 @@ public abstract class HostValueToEnsoNode extends Node {
   }
 
   @Specialization
-  @TruffleBoundary
-  Text doChar(char c) {
-    return Text.create(String.valueOf(c));
+  long doChar(char i) {
+    return i;
   }
 
   @Specialization

@@ -290,7 +290,7 @@ class ValuesGenerator {
       collect.add(ctx.asValue("\n"));
       collect.add(ctx.asValue("\r"));
       collect.add(ctx.asValue("\r\t \t\r"));
-      collect.add(ctx.asValue('J'));
+      collect.add(ctx.asValue("J"));
     }
 
     for (var v : collect) {
