@@ -239,6 +239,7 @@ public class LayoutSpecProcessor extends AbstractProcessor {
         out.println("            break;");
       }
       out.println("        }");
+      out.println("        break;");
     }
     out.println("    }");
     out.println("    return result;");
