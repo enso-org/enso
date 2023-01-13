@@ -161,10 +161,11 @@ async function load_wasm(config: Config) {
         const shadersNames = shadersList.split('\n').filter(line => line.length > 0)
 
         const files = new Files(config.mainJsUrl.value, config.mainWasmUrl.value)
-        for (const name of shadersNames) {
-            const vertexUrl = `${shadersUrl}/${name}.vertex.glsl`
-            const fragmentUrl = `${shadersUrl}/${name}.fragment.glsl`
-            files.shaders.map.set(name, new Shader(vertexUrl, fragmentUrl))
+        for (const mangled_name of shadersNames) {
+            const unmangled_name = name.unmangle(mangled_name)
+            const vertexUrl = `${shadersUrl}/${mangled_name}.vertex.glsl`
+            const fragmentUrl = `${shadersUrl}/${mangled_name}.fragment.glsl`
+            files.shaders.map.set(unmangled_name, new Shader(vertexUrl, fragmentUrl))
         }
 
         const responses = await files.mapAndAwaitAll(url => fetch(url))

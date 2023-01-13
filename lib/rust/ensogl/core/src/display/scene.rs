@@ -13,7 +13,7 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::camera::Camera2d;
-use crate::display::render;
+use crate::display::{render, world};
 use crate::display::scene::dom::DomScene;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
@@ -718,6 +718,8 @@ pub fn init() {
 }
 
 use crate::display::world::World;
+use wasm_bindgen::JsCast;
+
 #[before_main]
 pub fn register_get_shaders() {
     let closure = Closure::wrap(Box::new(|| {
@@ -738,11 +740,32 @@ pub fn register_get_shaders() {
     mem::forget(closure);
 
 
-    let closure = Closure::wrap(Box::new(|value| {
-        warn!("GOT SHADERS: {:?}", value);
+    let closure = Closure::wrap(Box::new(|value: JsValue| {
+        if extractShadersFromJs(value).err().is_some() {
+            warn!("Internal error. Downloaded shaders are provided in a wrong format.")
+        }
     }) as Box<dyn FnMut(JsValue)>);
     registerSetShadersRustFn(&closure);
     mem::forget(closure);
+}
+
+fn extractShadersFromJs(value: JsValue) -> Result<(), JsValue> {
+    let map = value.dyn_into::<js_sys::Map>()?;
+    for opt_entry in map.entries() {
+        let entry = opt_entry?.dyn_into::<js_sys::Array>()?;
+        let key: String = entry.get(0).dyn_into::<js_sys::JsString>()?.into();
+        let value = entry.get(1).dyn_into::<js_sys::Object>()?;
+        let vertex_field = js_sys::Reflect::get(&value, &"vertex".into())?;
+        let fragment_field = js_sys::Reflect::get(&value, &"fragment".into())?;
+        let vertex: String = vertex_field.dyn_into::<js_sys::JsString>()?.into();
+        let fragment: String = fragment_field.dyn_into::<js_sys::JsString>()?.into();
+        let precompiled_shader = world::PrecompiledShader { vertex, fragment };
+        warn!("Registering precompiled shaders for '{key}'.");
+        world::PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
+            map.insert(key, precompiled_shader);
+        });
+    }
+    Ok(())
 }
 
 pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
