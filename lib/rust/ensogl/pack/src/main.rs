@@ -74,13 +74,13 @@ pub fn root_dir() -> &'static Path {
     current_cargo_path.parent().unwrap()
 }
 
-fn with_pwd<T>(path: &Path, f: impl FnOnce() -> T) -> T {
-    let current_dir = std::env::current_dir().unwrap();
-    std::env::set_current_dir(path).unwrap();
-    let out = f();
-    std::env::set_current_dir(current_dir).unwrap();
-    out
-}
+// fn with_pwd<T>(path: &Path, f: impl FnOnce() -> T) -> T {
+//     let current_dir = std::env::current_dir().unwrap();
+//     std::env::set_current_dir(path).unwrap();
+//     let out = f();
+//     std::env::set_current_dir(current_dir).unwrap();
+//     out
+// }
 
 async fn compile_js(target_dir: &Path, main: &str, out: &Path) -> Result {
     println!("Compiling {main}.");
@@ -190,7 +190,7 @@ async fn main() -> Result {
         println!("Optimizing extracted shaders.");
         let dist_shaders_dir = target_dist_dir.join("shaders");
         let dist_shaders_list_path = dist_shaders_dir.join("list.txt");
-        std::fs::create_dir(&dist_shaders_dir);
+        ide_ci::fs::create_dir_if_missing(&dist_shaders_dir)?;
 
         let stages = ["vertex", "fragment"];
         let shaders_list_path = shaders_src_dir.join("list.txt");
@@ -217,18 +217,30 @@ async fn main() -> Result {
                 ]);
                 execute("spirv-opt", &["-O", "-o", &stage_spv_opt_path, &stage_spv_path]);
                 execute("spirv-cross", &["--output", &stage_glsl_opt_path, &stage_spv_opt_path]);
-                let content = std::fs::read_to_string(&stage_glsl_opt_path).unwrap();
+
+                let content =
+                    ide_ci::fs::read_to_string(&stage_glsl_opt_path)?.replace("\r\n", "\n");
                 let main_start_str = "void main()\n{";
                 let main_end_str = "}";
-                let main_start = content.find(main_start_str).unwrap();
-                let main_end = content.rfind(main_end_str).unwrap();
+                let main_start = content.find(main_start_str).with_context(|| {
+                    format!(
+                        "Failed to find main start string '{}' in shader '{}'.",
+                        main_start_str, stage_glsl_opt_path
+                    )
+                })?;
+                let main_end = content.rfind(main_end_str).with_context(|| {
+                    format!(
+                        "Failed to find main end string '{:?}' in shader '{}'.",
+                        main_end_str, stage_glsl_opt_path
+                    )
+                })?;
                 let main_content = &content[main_start + main_start_str.len()..main_end];
 
-                std::fs::write(&stage_glsl_opt_dist_path, main_content).unwrap();
+                ide_ci::fs::write(&stage_glsl_opt_dist_path, main_content)?;
             }
         }
 
-        std::fs::write(&dist_shaders_list_path, &shaders_list).unwrap();
+        ide_ci::fs::write(&dist_shaders_list_path, &shaders_list)?;
 
 
         println!("DONE!");
