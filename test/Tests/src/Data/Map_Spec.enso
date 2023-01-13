@@ -216,10 +216,11 @@ spec =
             m.values . should_equal [2, 4]
 
         Test.specify "should support contains_key" <|
-        m = Map.empty . insert 2 3
-        m.contains_key 2 . should_be_true
-        m.contains_key 1 . should_be_false
-    Test.specify "should allow transforming the map" <|
+            m = Map.empty . insert 2 3
+            m.contains_key 2 . should_be_true
+            m.contains_key 1 . should_be_false
+
+        Test.specify "should allow transforming the map" <|
             m = Map.empty . insert 1 2 . insert 2 4
             expected = Map.empty . insert "1" 4 . insert "2" 8
             m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected

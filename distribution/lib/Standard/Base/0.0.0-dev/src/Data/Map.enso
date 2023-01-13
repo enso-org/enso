@@ -311,7 +311,6 @@ type Map key value
     to_text self = @Builtin_Method "Map.to_text"
 
     ## PRIVATE
-    # Workaround - we cannot have a builtin method with default parameters
     get_builtin : Any -> Any -> Any
     get_builtin self key ~if_missing = @Builtin_Method "Map.get_builtin"
 
