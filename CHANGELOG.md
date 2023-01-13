@@ -73,7 +73,7 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
-- [The default text visualisation now loads its content lazyliy from the
+- [The default text visualisation now loads its content lazily from the
   backend][3910]. This means that the visualisation cannot be overwhelmed by
   large amounts of data.
 - [Added project snapshot saving on shortcut][3923]

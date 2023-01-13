@@ -123,15 +123,6 @@ impl<T: Clone> GridCache<T> {
             );
             let is_large_offset =
                 offset.iter().zip(self.cached_grid_size.iter()).any(|(a, b)| a.abs() > b / 4);
-            warn!(
-                "The index {} is outside of the displayed grid with pos {} and size {}. \
-                 The offset is {}. This is{} a large offset.",
-                index,
-                self.cached_grid_pos,
-                self.cached_grid_size,
-                offset,
-                if is_large_offset { "" } else { " not" }
-            );
             if is_large_offset {
                 let old_grid_pos: HashSet<_> = self.iter_full_grid().collect();
                 self.cached_grid_pos += offset;

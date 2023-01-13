@@ -256,15 +256,15 @@ Any.to_lazy_visualization_data self text_window_position text_window_size chunk_
 ## UNSTABLE
    ADVANCED
    Returns the data requested to render a lazy view of the default visualisation.
-Text.to_default_visualization_data : Vector Integer -> Vector Integer -> Text
-Text.to_default_visualization_data self text_window_position=[0,0] text_window_size=[10,10] chunk_size=20 =
-    self.to_lazy_visualization_data text_window_position text_window_size chunk_size
+Text.to_default_visualization_data : Text
+Text.to_default_visualization_data self =
+    self.to_lazy_visualization_data [0,0] [10,10] 20
 
 ## UNSTABLE
    ADVANCED
    Returns the data requested to render a lazy view of the default visualisation.
-Text.to_default_visualization_data : Vector Integer -> Vector Integer -> Text
-Text.to_default_visualization_data self text_window_position=[0,0] text_window_size[10,10] chunk_size=20=
+Text.to_lazy_visualization_data : Vector Integer -> Vector Integer -> Integer -> Text
+Text.to_lazy_visualization_data self text_window_position text_window_size chunk_size =
     min_length_for_laziness = chunk_size * (text_window_size.first) * (text_window_size.second)
     if self.length < min_length_for_laziness then "" + self.to_json else
         ## Workaround so that the JS String is converted to a Text
