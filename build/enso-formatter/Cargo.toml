@@ -5,6 +5,6 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
-regex = "1"
+regex = { workspace = true }
 ide-ci = { path = "../ci_utils" }
 tokio = { workspace = true }

@@ -2,6 +2,7 @@
 
 pub use ide_ci::prelude;
 use ide_ci::prelude::*;
+
 use ide_ci::program::EMPTY_ARGS;
 use manifest_dir_macros::path;
 use std::env;
@@ -124,7 +125,7 @@ async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
     run_script("build", &["--", &format!("--outfile={}", out.display())]).await
 }
 
-async fn main_lib(mut args: Vec<String>) -> Result {
+pub async fn main_lib(mut args: Vec<String>) -> Result {
     ide_ci::env::prepend_to_path(r"C:\varia\install\bin")?;
     setup_logging()?;
     let is_build = args.contains(&"build".to_string());
@@ -225,8 +226,8 @@ async fn main_lib(mut args: Vec<String>) -> Result {
                 let main_end_str = "}";
                 let main_start = content.find(main_start_str).with_context(|| {
                     format!(
-                        "Failed to find main start string '{}' in shader '{}'.",
-                        main_start_str, stage_glsl_opt_path
+                        "Failed to find main start string '{}' in shader '{}'. Text:\n{:?}",
+                        main_start_str, stage_glsl_opt_path, content
                     )
                 })?;
                 let main_end = content.rfind(main_end_str).with_context(|| {
@@ -266,4 +267,15 @@ async fn main_lib(mut args: Vec<String>) -> Result {
         ide_ci::programs::WasmPack.cmd()?.args(&args).run_ok().await?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() -> Result {
+        regex::Regex::new(r"(*ANY)\n")?;
+        Ok(())
+    }
 }

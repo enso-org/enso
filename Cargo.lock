@@ -3136,6 +3136,7 @@ dependencies = [
  "fs_extra",
  "ide-ci",
  "manifest-dir-macros",
+ "regex",
  "tempfile",
  "tokio",
 ]
