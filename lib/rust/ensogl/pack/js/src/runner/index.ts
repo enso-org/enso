@@ -10,7 +10,7 @@ import { Config, ExternalConfig } from 'config/config'
 import { Args, parseArgs } from 'config/arg-parser'
 import { logRouter } from 'log/router'
 import { EntryPoint, wasmFunctions } from 'wasm/entry-point'
-import { arrayIntoTuples, zip } from './data/array'
+import { arrayIntoTuples, zip } from 'data/array'
 
 export { logger, Logger, Consumer } from 'log/logger'
 export { Param } from 'config/config'

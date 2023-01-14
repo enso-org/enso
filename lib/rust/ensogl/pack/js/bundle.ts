@@ -9,15 +9,15 @@ import child_process from 'node:child_process'
 
 let out = parseArgs({
     options: {
-        outfile: {
+        outdir: {
             type: 'string',
         },
     },
 })
 
-let outfile = out.values.outfile
-if (!outfile) {
-    console.error('No --outfile option provided.')
+let outdir = out.values.outdir
+if (!outdir) {
+    console.error('No --outdir option provided.')
     process.exit(1)
 }
 
@@ -38,10 +38,10 @@ function git(command: string): string {
 // === Build Config ===
 // ====================
 
-const config: esbuild.BuildOptions = {
-    outfile,
+const appConfig: esbuild.BuildOptions = {
+    outfile: `${outdir}/app.js`,
     bundle: true,
-    entryPoints: ['src/index.ts'],
+    entryPoints: ['src/runner/index.ts'],
     define: {
         GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
         GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
@@ -51,4 +51,18 @@ const config: esbuild.BuildOptions = {
     color: true,
 }
 
-esbuild.build(config)
+const shaderExtractorConfig: esbuild.BuildOptions = {
+    outfile: `${outdir}/shader-extractor.js`,
+    bundle: true,
+    entryPoints: ['src/shader-extractor/index.ts'],
+    define: {
+        GIT_HASH: JSON.stringify(git('rev-parse HEAD')),
+        GIT_STATUS: JSON.stringify(git('status --short --porcelain')),
+    },
+    platform: 'node',
+    sourcemap: true,
+    color: true,
+}
+
+esbuild.build(appConfig)
+esbuild.build(shaderExtractorConfig)
