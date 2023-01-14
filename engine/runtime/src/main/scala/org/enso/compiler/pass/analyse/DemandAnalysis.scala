@@ -309,7 +309,7 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): IR.Case =
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
           scrutinee = analyseExpression(
             scrutinee,

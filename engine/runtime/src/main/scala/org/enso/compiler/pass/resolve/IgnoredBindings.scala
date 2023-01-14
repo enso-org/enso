@@ -286,7 +286,7 @@ case object IgnoredBindings extends IRPass {
     */
   def resolveCase(cse: IR.Case, supply: FreshNameSupply): IR.Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
           scrutinee = resolveExpression(scrutinee, supply),
           branches  = branches.map(resolveCaseBranch(_, supply))

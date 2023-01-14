@@ -41,4 +41,24 @@ class Metadata {
     */
   def appendToCode(code: String): String =
     s"$code\n\n\n#### METADATA ####\n$toJsonString\n[]"
+
+  /** Checks whether given UUID is assigned to expected string
+    * @param uuid the UUID to search for; defined by {@code #addItem}
+    * @param code whole code to search in
+    * @param expected the text that should be assigned to the UUID
+    */
+  def assertInCode(uuid: UUID, code: String, expected: String): Unit = {
+    for (item <- items) {
+      if (item.id == uuid) {
+        val real = code.substring(item.start, item.start + item.len)
+        if (real != expected) {
+          throw new AssertionError(
+            "Expecting " + expected + " but found '" + real + "'"
+          )
+        }
+        return
+      }
+    }
+    throw new AssertionError("UUID " + uuid + " not found")
+  }
 }

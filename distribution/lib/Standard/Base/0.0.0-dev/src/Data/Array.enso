@@ -134,19 +134,20 @@ type Array
     length : Integer
     length self = @Builtin_Method "Array.length"
 
-    ## Sorts the this array in place.
+    ## Sorts the Array.
 
-       Arguments:
-       - comparator: A comparison function that takes two elements and returns
-         an Ordering that describes how the first element is ordered with
-         respect to the second.
+      Arguments:
+      - comparator: A comparison function that takes two elements and returns
+        an Ordering that describes how the first element is ordered with
+        respect to the second.
 
       > Example
-        Sorting an array of numbers.
+        Getting a sorted array of numbers.
 
-            [1,2,3].to_array.sort
-    sort : (Any -> Any -> Ordering) -> Nothing
-    sort self comparator = @Builtin_Method "Array.sort"
+            [3,2,1].to_array.sort
+    sort : (Any -> Any -> Ordering) -> Array
+    sort self comparator=(_.compare_to _) =
+        self.sort_builtin comparator
 
     ## Identity.
 
@@ -154,18 +155,3 @@ type Array
        primitive array protocol.
     to_array : Array
     to_array self = @Builtin_Method "Array.to_array"
-
-    ## Checks whether this array is equal to `that`.
-
-       Arguments:
-       - that: The array to compare this array against.
-
-       Two arrays are considered equal, when they have the same length and
-       their items are pairwise equal.
-
-    == : Array -> Boolean
-    == self that =
-        if Meta.is_same_object Array self then Meta.is_same_object Array that else
-            eq_at i = self.at i == that.at i
-            Panic.catch Any handler=(_ -> False)
-                if self.length == that.length then 0.up_to self.length . all eq_at else False

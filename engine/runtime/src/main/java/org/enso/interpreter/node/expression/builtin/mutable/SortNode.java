@@ -2,16 +2,24 @@ package org.enso.interpreter.node.expression.builtin.mutable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
+
 import java.util.Arrays;
 import java.util.Comparator;
+
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -19,7 +27,7 @@ import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
 
-@BuiltinMethod(type = "Array", name = "sort", description = "Sorts a mutable array in place.")
+@BuiltinMethod(type = "Array", name = "sort_builtin", description = "Returns a sorted array.")
 public abstract class SortNode extends Node {
   private @Child CallOptimiserNode callOptimiserNode = SimpleCallOptimiserNode.build();
   private @Child InvalidComparisonNode invalidComparisonNode = InvalidComparisonNode.build();
@@ -32,15 +40,32 @@ public abstract class SortNode extends Node {
   }
 
   @Specialization
-  Object doSortFunction(State state, Array self, Function comparator) {
+  Object doArray(State state, Array self, Function comparator) {
     EnsoContext context = EnsoContext.get(this);
-    Comparator<Object> compare = getComparator(comparator, context, state);
-    return runSort(compare, self, context);
+    int size = self.getItems().length;
+    Object[] newArr = new Object[size];
+    System.arraycopy(self.getItems(), 0, newArr, 0, size);
+
+    return getComparatorAndSort(state, newArr, comparator, context);
   }
 
-  @Specialization
-  Object doAtomThis(State state, Atom self, Object that) {
-    return EnsoContext.get(this).getBuiltins().nothing();
+  @Specialization(guards = "arrays.hasArrayElements(self)")
+  Object doPolyglotArray(
+      State state,
+      Object self,
+      Function comparator,
+      @CachedLibrary(limit = "3") InteropLibrary arrays,
+      @Cached HostValueToEnsoNode hostValueToEnsoNode) {
+    try {
+      long size = arrays.getArraySize(self);
+      Object[] newArray = new Object[(int) size];
+      for (int i = 0; i < size; i++) {
+        newArray[i] = hostValueToEnsoNode.execute(arrays.readArrayElement(self, i));
+      }
+      return getComparatorAndSort(state, newArray, comparator, EnsoContext.get(this));
+    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Fallback
@@ -52,19 +77,22 @@ public abstract class SortNode extends Node {
         this);
   }
 
-  Object runSort(Comparator<Object> compare, Array self, EnsoContext context) {
-    doSort(self.getItems(), compare);
-    LoopNode.reportLoopCount(this, (int) self.length());
-    return context.getBuiltins().nothing();
+  private Object getComparatorAndSort(
+      State state, Object[] rawItems, Function comparator, EnsoContext context) {
+    Comparator<Object> compare = new SortComparator(comparator, context, this, state);
+    runSort(compare, rawItems);
+    return new Array(rawItems);
+  }
+
+  Object[] runSort(Comparator<Object> compare, Object[] self) {
+    doSort(self, compare);
+    LoopNode.reportLoopCount(this, self.length);
+    return self;
   }
 
   @TruffleBoundary
   void doSort(Object[] items, Comparator<Object> compare) {
     Arrays.sort(items, compare);
-  }
-
-  private SortComparator getComparator(Function comp, EnsoContext context, State state) {
-    return new SortComparator(comp, context, this, state);
   }
 
   private class SortComparator implements Comparator<Object> {

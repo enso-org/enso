@@ -128,14 +128,14 @@ spec = Test.group "Dataflow Warnings" <|
     Test.specify "should attach correct stacktraces" <|
         current = Runtime.get_stack_trace
         warned = foo "value"
-        warning_stack = Warning.get_all warned . head . origin
+        warning_stack = Warning.get_all warned . first . origin
         relevant = warning_stack . drop (Last current.length)
         relevant.map .name . should_equal (['baz', 'bar', 'foo'].map ('Warnings_Spec.'+))
 
     Test.specify "should attach reassignment info in the last-reassigned-first order" <|
         x = Warning.attach "warn!" 1
         r = reassign_test x
-        warn = Warning.get_all r . head
+        warn = Warning.get_all r . first
         reassignments = warn.reassignments.map .name
         reassignments.should_equal ['Warnings_Spec.poly_sum', 'Small_Integer.+', 'Warnings_Spec.get_foo', 'Wrap.Value', 'Warnings_Spec.unwrap', 'Warnings_Spec.rewrap', 'Wrap.Value']
 

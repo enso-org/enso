@@ -4,6 +4,7 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -11,9 +12,15 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @NodeInfo(shortName = "case_branch", description = "Represents a case branch at runtime.")
 public abstract class BranchNode extends BaseNode {
   private @Child DirectCallNode callNode;
+  private final boolean terminalBranch;
 
-  BranchNode(RootCallTarget branch) {
+  private final ConditionProfile finalBranchProfiler = ConditionProfile.createCountingProfile();
+  private final ConditionProfile propgateResultProfiler = ConditionProfile.createCountingProfile();
+  private final ConditionProfile ensureWrappedProfiler = ConditionProfile.createCountingProfile();
+
+  BranchNode(RootCallTarget branch, boolean terminalBranch) {
     this.callNode = DirectCallNode.create(branch);
+    this.terminalBranch = terminalBranch;
   }
 
   /**
@@ -36,7 +43,22 @@ public abstract class BranchNode extends BaseNode {
     // Note [Caller Info For Case Branches]
     var result =
         callNode.call(Function.ArgumentsHelper.buildArguments(frame.materialize(), state, args));
-    throw new BranchSelectedException(result);
+
+    if (finalBranchProfiler.profile(terminalBranch)) {
+      throw new BranchSelectedException(ensureWrapped(result));
+    }
+    // Note [Guaranteed BranchResult instance in non-terminal branches]
+    BranchResult result1 = (BranchResult) result;
+    if (propgateResultProfiler.profile(result1.isMatched()))
+      throw new BranchSelectedException(result1);
+  }
+
+  private BranchResult ensureWrapped(Object result) {
+    if (ensureWrappedProfiler.profile(result instanceof BranchResult)) {
+      return (BranchResult) result;
+    } else {
+      return BranchResult.success(result);
+    }
   }
 
   /* Note [Caller Info For Case Branches]
@@ -44,6 +66,14 @@ public abstract class BranchNode extends BaseNode {
    * It is assumed that functions serving as pattern match logic branches are always function
    * literals, not references, curried functions etc. Therefore, as function literals, they
    * have no way of accessing the caller frame and can safely be passed null.
+   */
+
+  /* Note [Guaranteed BranchResult instance in non-terminal branches]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * The NestedPatternMatch phase desugars complex patterns into individual. simple, patterns.
+   * An intermediate branch either propagates a failed case or a result of executing a
+   * successful and complete pattern. In both cases the result is wrapped in BranchResult to
+   * encapsulate that information.
    */
 
   /* Note [Safe Casting to Function in Catch All Branches]

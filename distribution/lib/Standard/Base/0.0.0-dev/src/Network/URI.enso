@@ -208,14 +208,3 @@ type URI
         type_pair = ["type", "URI"]
         cons_pair = ["constructor", "parse"]
         JS_Object.from_pairs [type_pair, cons_pair, ["uri", self.to_text]]
-
-    ## Check if this URI is equal to another URI.
-
-       > Example
-         Check if two URIs are equal.
-
-             import Standard.Base.Network.URI.URI
-
-             example_eq = "https://example.com".to_uri == "http://example.org".to_uri
-    == : URI -> Boolean
-    == self that = self.internal_uri.equals that.internal_uri

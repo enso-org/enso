@@ -36,7 +36,7 @@ E.g. in Chrome open: devtools://devtools/bundled/js_app.html?ws=127.0.0.1:9229/W
 
 copy the printed URL into chrome browser and you should see:
 
-![Chrome Debugger](chrome-debugger.png)
+![Chrome Debugger](https://user-images.githubusercontent.com/26887752/209614265-684f530e-cf7e-45d5-9450-7ea1e4f65986.png)
 
 Step in, step over, set breakpoints, watch values of the variables as well as
 evaluate arbitrary expressions in the console. Note that as of December 2022,
@@ -72,7 +72,7 @@ and then _Debug/Attach Debugger_. Once connected suspend the execution and (if
 the Enso language has already been started) choose the _Toggle Pause in GraalVM
 Script_ button in the toolbar:
 
-![NetBeans Debugger](java-debugger.png)
+![NetBeans Debugger](https://user-images.githubusercontent.com/26887752/209614191-b0513635-819b-4c64-a6f9-9823b90a1513.png)
 
 and your execution shall stop on the next `.enso` line of code. This mode allows
 to debug both - the Enso code as well as Java code. The stack traces shows a

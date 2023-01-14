@@ -10,13 +10,13 @@ public class ObjectEqualityBranchNode extends BranchNode {
   private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
-  public static BranchNode build(RootCallTarget branch, Object expected) {
-    return new ObjectEqualityBranchNode(branch, expected);
+  private ObjectEqualityBranchNode(RootCallTarget branch, Object expected, boolean terminalBranch) {
+    super(branch, terminalBranch);
+    this.expected = expected;
   }
 
-  private ObjectEqualityBranchNode(RootCallTarget branch, Object expected) {
-    super(branch);
-    this.expected = expected;
+  public static BranchNode build(RootCallTarget branch, Object expected, boolean terminalBranch) {
+    return new ObjectEqualityBranchNode(branch, expected, terminalBranch);
   }
 
   @Override

@@ -366,6 +366,16 @@ public class EnsoCompilerTest {
   }
 
   @Test
+  public void testPanic_184119084() throws Exception {
+    parseTest("""
+    type Foo
+        type Bar
+
+    main = 42
+    """);
+  }
+
+  @Test
   public void testMetadataRaw() throws Exception {
     parseTest("""
     main =

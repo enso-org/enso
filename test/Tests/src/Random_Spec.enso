@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import Standard.Base.Random
 
@@ -6,6 +7,36 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
 spec = Test.group "Random" <|
+    ## Random number generator seeded to make the test deterministic
+
+    Test.specify "should allow generating random booleans" <|
+        rng = Random.new 0
+        0.up_to 3 . map _->rng.boolean . should_equal [True, True, False]
+
+    Test.specify "should allow generating random integers" <|
+        rng = Random.new 12345
+        rng.integer . should_equal 51
+        rng.integer 0 10000 . should_equal 9080
+        rng.integer 0 100000000000000 . should_fail_with Illegal_Argument.Error
+
+        random_range = 0.up_to 1000 . map _->rng.integer . compute_bulk [Statistic.Minimum, Statistic.Maximum]
+        (random_range.at 0 >= 0) . should_equal True
+        (random_range.at 1 <= 100) . should_equal True
+
+    Test.specify "should allow generating random decimals" <|
+        rng = Random.new 12345
+        rng.decimal . should_equal 0.3618031071604718 epsilon=0.00000001
+        rng.decimal . should_equal 0.932993485288541 epsilon=0.00000001
+
+        random_range = 0.up_to 1000 . map _->rng.decimal . compute_bulk [Statistic.Minimum, Statistic.Maximum]
+        (random_range.at 0 >= 0) . should_equal True
+        (random_range.at 1 <= 1) . should_equal True
+
+    Test.specify "should allow generating random gaussian decimals" <|
+        rng = Random.new 12345
+        rng.gaussian . should_equal -0.187808989658912 epsilon=0.00000001
+        rng.gaussian . should_equal 0.5884363051154796 epsilon=0.00000001
+
     Test.specify "should allow to generate random indices" <|
         rng = Random.new 0
         two_out_of_three = 0.up_to 100 . map _->

@@ -1,23 +1,113 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Common.Not_Found
 
 from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 
-spec = Test.group "Pair" <|
-    Test.specify "should be created by new" <|
-        Pair.new 1 2 . should_equal (Pair.Value 1 2)
-
+type_spec name ctor = Test.group name <|
     Test.specify "should allow mapping" <|
-        Pair.new 1 2 . map x->x+1 . should_equal (Pair.Value 2 3)
+        ctor 1 2 . map x->x+1 . should_equal (ctor 2 3)
 
-    Test.specify "should act as a length 2 Vector" <|
-        Pair.new "A" "B" . length . should_equal 2
-        Pair.new "A" "B" . at 0 . should_equal "A"
-        Pair.new "A" "B" . at -2 . should_equal "A"
-        Pair.new "A" "B" . at 1 . should_equal "B"
-        Pair.new "A" "B" . at -1 . should_equal "B"
-        Pair.new "A" "B" . at 2 . should_fail_with Index_Out_Of_Bounds.Error
-        Pair.new "A" "B" . to_vector . should_equal ["A", "B"]
+    Test.specify "should have length 2" <|
+        ctor "A" "B" . length . should_equal 2
+
+    Test.specify "should allow reversing" <|
+        ctor 1 2 . reverse . should_equal (ctor 2 1)
+
+    Test.specify "should have allow getting by index" <|
+        ctor "A" "B" . get 0 . should_equal "A"
+        ctor "A" "B" . get -2 . should_equal "A"
+        ctor "A" "B" . get 1 . should_equal "B"
+        ctor "A" "B" . get -1 . should_equal "B"
+        ctor "A" "B" . get 2 . should_equal Nothing
+        ctor "A" "B" . get -3 "C" . should_equal "C"
+        ctor "A" "B" . at 0 . should_equal "A"
+        ctor "A" "B" . at -2 . should_equal "A"
+        ctor "A" "B" . at 1 . should_equal "B"
+        ctor "A" "B" . at -1 . should_equal "B"
+        ctor "A" "B" . at 2 . should_fail_with Index_Out_Of_Bounds.Error
+
+    Test.specify "should have allow getting by first, second and last" <|
+        ctor "A" "B" . first . should_equal "A"
+        ctor "A" "B" . second . should_equal "B"
+        ctor "A" "B" . last . should_equal "B"
+
+    Test.specify "should be convertable to a vector" <|
+        ctor "A" "B" . to_vector . should_equal ["A", "B"]
+
+    Test.specify "should allow checking all, any and contains" <|
+        ctor 1 3 . any (>0) . should_equal True
+        ctor 1 3 . any (>2) . should_equal True
+        ctor 1 3 . any (>3) . should_equal False
+        ctor 1 3 . all (>0) . should_equal True
+        ctor 1 3 . all (>2) . should_equal False
+        ctor 1 3 . all (>3) . should_equal False
+        ctor 1 3 . contains 1 . should_equal True
+        ctor 1 3 . contains 2 . should_equal False
+        ctor 1 3 . contains 3 . should_equal True
+
+    Test.specify "should allow finding an item" <|
+        ctor 1 3 . find (>0) . should_equal 1
+        ctor 1 3 . find (>2) . should_equal 3
+        ctor 1 3 . find (>3) . should_fail_with Not_Found
+        ctor 1 3 . find (>0) start=1 . should_equal 3
+        ctor 1 3 . find (>0) start=2 . should_fail_with Not_Found
+        ctor 1 3 . find (>0) start=-1 . should_equal 3
+        ctor 1 3 . find (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 1 3 . find (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . find (>0) start=3 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . find (>0) start=3 . catch . should_equal (Index_Out_Of_Bounds.Error 3 3)
+        ctor 1 3 . find (>3) if_missing=Nothing . should_equal Nothing
+
+    Test.specify "should allow finding the index of an item" <|
+        ctor 10 30 . index_of 10 . should_equal 0
+        ctor 10 10 . index_of 10 . should_equal 0
+        ctor 10 30 . index_of 30 . should_equal 1
+        ctor 10 30 . index_of 20 . should_equal Nothing
+        ctor 10 30 . index_of (>20) . should_equal 1
+        ctor 10 30 . index_of (>0) start=1 . should_equal 1
+        ctor 10 30 . index_of (>0) start=2 . should_equal Nothing
+        ctor 10 30 . index_of (>0) start=-1 . should_equal 1
+        ctor 10 30 . index_of (>0) start=3 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . index_of (>0) start=3 . catch . should_equal (Index_Out_Of_Bounds.Error 3 3)
+        ctor 10 30 . index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+
+    Test.specify "should allow finding the last index of an item" <|
+        ctor 10 30 . last_index_of 10 . should_equal 0
+        ctor 10 10 . last_index_of 10 . should_equal 1
+        ctor 10 30 . last_index_of 30 . should_equal 1
+        ctor 10 30 . last_index_of 20 . should_equal Nothing
+        ctor 10 30 . last_index_of (>20) . should_equal 1
+        ctor 10 30 . last_index_of (>0) start=1 . should_equal 1
+        ctor 10 30 . last_index_of (>0) start=-1 . should_equal 1
+        ctor 10 30 . last_index_of (>0) start=2 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . last_index_of (>0) start=2 . catch . should_equal (Index_Out_Of_Bounds.Error 2 2)
+        ctor 10 30 . last_index_of (>0) start=4 . should_fail_with Index_Out_Of_Bounds.Error
+        ctor 10 30 . last_index_of (>0) start=-22 . should_fail_with Index_Out_Of_Bounds.Error
+
+    Test.specify "should allow folding an operator over its elements" <|
+        ctor 10 20 . fold 0 (+) . should_equal 30
+        ctor "A" "B" . fold "" (+) . should_equal "AB"
+
+    Test.specify "should allow reducing an operator over its elements" <|
+        ctor 10 20 . reduce (*) . should_equal 200
+        ctor "Hello" "World" . reduce (a->b-> a+" "+b) . should_equal "Hello World"
+
+    Test.specify "should allow applying a function to each element" <|
+        vec_mut = Vector.new_builder
+        ctor 10 20 . each vec_mut.append
+        vec_mut.to_vector . should_equal [10, 20]
+
+spec =
+    Test.group "Pair " <|
+        Test.specify "should be created by new" <|
+            Pair.new 1 2 . should_equal (Pair.Value 1 2)
+
+    type_spec "Pair - from Pair.new" Pair.new
+    type_spec "Pair - from Pair.Value" Pair.Value
+    type_spec "Pair - from 2-Item Vector" a->b->[a,b]
+    type_spec "Pair - from 2-Item List" a->b->(List.Cons a (List.Cons b List.Nil))
 
 main = Test_Suite.run_main spec

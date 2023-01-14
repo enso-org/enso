@@ -84,21 +84,6 @@ spec =
             text = Scatter_Plot.process_to_json_text table bounds
             expect_text text (labels 'x' 'y') '[{"size":40,"x":11,"y":10},{"size":50,"x":21,"y":20}]'
 
-        Test.specify "used specified numeric index for x if missing 'x' column from table" <|
-            header = [ 'y' , 'foo', 'bar', 'baz' , 'size']
-            row_1 =  [ 10  , 'aa' , 12   , 14    , 40    ]
-            row_2 =  [ 20  , 'bb' , 13   , 15    , 50    ]
-            table = Table.from_rows header [row_1, row_2] . set_index 'baz'
-            # [TODO] mwu: When it is possible to set multiple index columns, test such case.
-            expect table (labels 'baz' 'y') '[{"size":40,"x":14,"y":10},{"size":50,"x":15,"y":20}]'
-
-        Test.specify "prefers explicit 'x' to index and looks into indices for recognized fields" <|
-            header = [ 'x' , 'size']
-            row_1 =  [ 10  , 21  ]
-            row_2 =  [ 20  , 22  ]
-            table = Table.from_rows header [row_1, row_2] . set_index 'size'
-            expect table (labels 'x' 'size') '[{"size":21,"x":10,"y":21},{"size":22,"x":20,"y":22}]'
-
         Test.specify "used default index for `x` if none set" <|
             header = [ 'y'  , 'bar' , 'size']
             row_1 =  [ 10   , 'aa'  , 40    ]

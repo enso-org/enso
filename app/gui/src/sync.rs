@@ -10,7 +10,7 @@ use crate::prelude::*;
 #[derivative(Clone(bound = ""))]
 pub struct Synchronized<T> {
     value:    Rc<RefCell<T>>,
-    notifier: crate::notification::Publisher<()>,
+    notifier: notification::Publisher<()>,
 }
 
 impl<T> Synchronized<T> {

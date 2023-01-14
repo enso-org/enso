@@ -666,7 +666,7 @@ mod test {
         id_map.generate(14..15);
         id_map.generate(4..11);
         let ast = parser.parse_line_ast_with_id_map("2 + foo bar - 3", id_map.clone()).unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
 
         // Check the expression ids we defined:
         for id_map_entry in id_map.vec {
@@ -706,7 +706,7 @@ mod test {
     fn generate_span_tree_with_chains() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast("2 + 3 + foo bar baz 13 + 5").unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
 
         let expected = TreeBuilder::new(26)
@@ -748,7 +748,7 @@ mod test {
     fn generating_span_tree_from_right_assoc_operator() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast("1,2,3").unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
 
         let expected = TreeBuilder::new(5)
@@ -774,7 +774,7 @@ mod test {
         // The star makes `SectionSides` ast being one of the parameters of + chain. First + makes
         // SectionRight, and last + makes SectionLeft.
         let ast = parser.parse_line_ast("+ * + + 2 +").unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
 
         let expected = TreeBuilder::new(11)
@@ -808,7 +808,7 @@ mod test {
     fn generating_span_tree_from_right_assoc_section() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast(",2,").unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
 
         let expected = TreeBuilder::new(3)
@@ -834,7 +834,7 @@ mod test {
         id_map.generate(0..29);
         let expression = "if foo then (a + b) x else ()";
         let ast = parser.parse_line_ast_with_id_map(expression, id_map.clone()).unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
 
         // Check if expression id is set
         let (_, expected_id) = id_map.vec.first().unwrap();
@@ -884,7 +884,7 @@ mod test {
         let parser = Parser::new_or_panic();
         let expression = "[a,b]";
         let ast = parser.parse_line_ast(expression).unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
 
         // Check the other fields
         clear_expression_ids(&mut tree.root);
@@ -912,7 +912,7 @@ mod test {
         let mut id_map = IdMap::default();
         id_map.generate(0..2);
         let ast = parser.parse_line_ast_with_id_map("(4", id_map.clone()).unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
 
         // Check the expression id:
         let (_, expected_id) = id_map.vec.first().unwrap();
@@ -934,7 +934,7 @@ mod test {
     fn generating_span_tree_for_lambda() {
         let parser = Parser::new_or_panic();
         let ast = parser.parse_line_ast("foo a-> b + c").unwrap();
-        let mut tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+        let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
 
         let expected = TreeBuilder::new(13)
@@ -951,10 +951,13 @@ mod test {
     fn generating_span_tree_for_unfinished_call() {
         let parser = Parser::new_or_panic();
         let this_param =
-            ArgumentInfo { name: Some("self".to_owned()), tp: Some("Any".to_owned()) };
-        let param1 =
-            ArgumentInfo { name: Some("arg1".to_owned()), tp: Some("Number".to_owned()) };
-        let param2 = ArgumentInfo { name: Some("arg2".to_owned()), tp: None };
+            ArgumentInfo { name: Some("self".to_owned()), tp: Some("Any".to_owned()), ..default() };
+        let param1 = ArgumentInfo {
+            name: Some("arg1".to_owned()),
+            tp: Some("Number".to_owned()),
+            ..default()
+        };
+        let param2 = ArgumentInfo { name: Some("arg2".to_owned()), tp: None, ..default() };
 
 
         // === Single function name ===
@@ -962,7 +965,7 @@ mod test {
         let ast = parser.parse_line_ast("foo").unwrap();
         let invocation_info = CalledMethodInfo { parameters: vec![this_param.clone()] };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
-        let mut tree = SpanTree::new(&ast, &ctx).unwrap(): SpanTree;
+        let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
             [_func, arg0] => assert_eq!(arg0.argument_info().as_ref(), Some(&this_param)),
             sth_else => panic!("There should be 2 leaves, found: {}", sth_else.len()),
@@ -981,7 +984,7 @@ mod test {
         let ast = parser.parse_line_ast("foo here").unwrap();
         let invocation_info = CalledMethodInfo { parameters: vec![this_param.clone()] };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
-        let mut tree = SpanTree::new(&ast, &ctx).unwrap(): SpanTree;
+        let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
             [_func, arg0] => assert_eq!(arg0.argument_info().as_ref(), Some(&this_param)),
             sth_else => panic!("There should be 2 leaves, found: {}", sth_else.len()),
@@ -1002,7 +1005,7 @@ mod test {
             parameters: vec![this_param.clone(), param1.clone(), param2.clone()],
         };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
-        let mut tree = SpanTree::new(&ast, &ctx).unwrap(): SpanTree;
+        let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
             [_func, arg0, arg1, arg2] => {
                 assert_eq!(arg0.argument_info().as_ref(), Some(&this_param));
@@ -1032,7 +1035,7 @@ mod test {
         let invocation_info =
             CalledMethodInfo { parameters: vec![this_param, param1.clone(), param2.clone()] };
         let ctx = MockContext::new_single(ast.id.unwrap(), invocation_info);
-        let mut tree = SpanTree::new(&ast, &ctx).unwrap(): SpanTree;
+        let mut tree: SpanTree = SpanTree::new(&ast, &ctx).unwrap();
         match tree.root_ref().leaf_iter().collect_vec().as_slice() {
             [_, _this, _, _, _func, _, arg1, arg2] => {
                 assert_eq!(arg1.argument_info().as_ref(), Some(&param1));

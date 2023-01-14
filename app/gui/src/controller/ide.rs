@@ -5,8 +5,6 @@
 
 use crate::prelude::*;
 
-use crate::notification;
-
 use double_representation::name::project;
 use mockall::automock;
 use parser_scala::Parser;

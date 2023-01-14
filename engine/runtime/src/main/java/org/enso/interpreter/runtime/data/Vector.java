@@ -11,8 +11,6 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
@@ -103,12 +101,12 @@ public final class Vector implements TruffleObject {
    * @return {@code true}
    */
   @ExportMessage
-  public boolean hasArrayElements() {
+  boolean hasArrayElements() {
     return true;
   }
 
   @ExportMessage
-  public long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
+  long getArraySize(@CachedLibrary(limit = "3") InteropLibrary interop)
       throws UnsupportedMessageException {
     return interop.getArraySize(storage);
   }
@@ -133,7 +131,6 @@ public final class Vector implements TruffleObject {
       if (warnings.hasWarnings(v)) {
         v = warnings.removeWarnings(v);
       }
-      ;
       return new WithWarnings(toEnso.execute(v), extracted);
     }
     return toEnso.execute(v);
@@ -189,32 +186,7 @@ public final class Vector implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   String toDisplayString(boolean allowSideEffects) {
     final InteropLibrary iop = InteropLibrary.getUncached();
-    StringBuilder sb = new StringBuilder();
-    try {
-      sb.append('[');
-      String sep = "";
-      long len = length(iop);
-      for (long i = 0; i < len; i++) {
-        sb.append(sep);
-
-        Object at =
-            readArrayElement(
-                i, iop, WarningsLibrary.getUncached(), HostValueToEnsoNode.getUncached());
-        Object str = iop.toDisplayString(at, allowSideEffects);
-        if (iop.isString(str)) {
-          sb.append(iop.asString(str));
-        } else {
-          sb.append("_");
-        }
-        sep = ", ";
-      }
-      sb.append(']');
-    } catch (InvalidArrayIndexException | UnsupportedMessageException ex) {
-      StringWriter w = new StringWriter();
-      ex.printStackTrace(new PrintWriter(w));
-      sb.append("...\n").append(w.toString());
-    }
-    return sb.toString();
+    return DisplayArrayUtils.toDisplayString(this, allowSideEffects, iop);
   }
 
   @ExportMessage

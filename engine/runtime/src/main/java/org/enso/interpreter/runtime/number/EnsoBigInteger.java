@@ -156,4 +156,13 @@ public final class EnsoBigInteger extends Number implements TruffleObject {
   public double doubleValue() {
     return value.doubleValue();
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof EnsoBigInteger otherBigInt) {
+      return value.equals(otherBigInt.value);
+    } else {
+      return false;
+    }
+  }
 }
