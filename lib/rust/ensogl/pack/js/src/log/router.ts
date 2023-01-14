@@ -33,7 +33,7 @@ class Router {
         }
     }
 
-    private auto_flush_on() {
+    private autoFlushOn() {
         this.autoFlush = true
         for (const { name, args } of this.buffer) {
             this.console[name](...args)
@@ -55,7 +55,7 @@ class Router {
     }
 
     showLogs() {
-        this.auto_flush_on()
+        this.autoFlushOn()
     }
 }
 

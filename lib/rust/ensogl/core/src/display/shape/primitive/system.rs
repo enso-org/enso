@@ -444,8 +444,9 @@ impl ShapeSystemModel {
         {
             self.material
                 .borrow_mut()
-                .set_code(crate::display::shader::builder::CodeTemplate::new("", shader, ""));
+                .set_code(crate::display::shader::builder::CodeTemplate::new("", shader.fragment, ""));
         } else {
+            warn!("No precompiled shader found for '{}'. This will affect app performance.", *self.definition_path);
             if !self.do_not_use_shape_definition.get() {
                 let code =
                     shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);

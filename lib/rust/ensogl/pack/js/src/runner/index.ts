@@ -10,6 +10,7 @@ import { Config, ExternalConfig } from 'config/config'
 import { Args, parseArgs } from 'config/arg-parser'
 import { logRouter } from 'log/router'
 import { EntryPoint, wasmFunctions } from 'wasm/entry-point'
+import { arrayIntoTuples, zip } from 'data/array'
 
 export { logger, Logger, Consumer } from 'log/logger'
 export { Param } from 'config/config'
@@ -26,16 +27,14 @@ class PackageInfo {
     gitHash: string
     gitStatus: string
 
-    /** Constructor.
-     * @param info - Optional user provided info. */
-    constructor(info?: any) {
-        const infoObject = info || {}
+    /** Constructor. */
+    constructor(userProvidedInfo?: { [key: string]: string }) {
+        const infoObject = userProvidedInfo || {}
         // @ts-ignore
         this.gitHash = GIT_HASH
         // @ts-ignore
         this.gitStatus = GIT_STATUS
-        const self: any = this
-        Object.assign(self, infoObject)
+        Object.assign(this, infoObject)
     }
 
     /** Display the current info in the console. */
@@ -50,72 +49,17 @@ class PackageInfo {
     }
 }
 
-// ========================
-// === Content Download ===
-// ========================
+// ==============================
+// === Files to be downloaded ===
+// ==============================
 
-function arrayIntoTuples<T>(arr: T[]): [T, T][] {
-    const tuples: [T, T][] = []
-    for (let i = 0; i < arr.length; i += 2) {
-        const elem1 = arr[i]
-        const elem2 = arr[i + 1]
-        if (elem1 != null && elem2 != null) {
-            tuples.push([elem1, elem2])
-        }
-    }
-    return tuples
-}
-
-function zip<T, S>(arr1: T[], arr2: S[]): [T, S][] {
-    // @ts-ignore
-    return [...arr1].map((_, c) => [arr1, arr2].map(row => row[c]))
-}
-
-class Shader<T> {
-    vertex: T
-    fragment: T
-
-    constructor(vertex: T, fragment: T) {
-        this.vertex = vertex
-        this.fragment = fragment
-    }
-
-    toArray(): T[] {
-        return [this.vertex, this.fragment]
-    }
-}
-
-class Shaders<T> {
-    map: Map<string, Shader<T>> = new Map()
-
-    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
-        const mapped = await Promise.all(this.toArray().map(f))
-        const out = this.fromArray(mapped)
-        if (out != null) {
-            return out
-        } else {
-            throw 'Internal error.'
-        }
-    }
-
-    toArray(): T[] {
-        return Array.from(this.map.values()).flatMap(shader => shader.toArray())
-    }
-
-    fromArray<S>(array: S[]): Shaders<S> | null {
-        const shaders: Shaders<S> = new Shaders()
-        const keys = Array.from(this.map.keys())
-        for (const [key, [vertex, fragment]] of zip(keys, arrayIntoTuples(array))) {
-            const shader = new Shader(vertex, fragment)
-            shaders.map.set(key, shader)
-        }
-        return shaders
-    }
-}
-
+/** Files that are downloaded from server during app startup. */
 class Files<T> {
+    /** Main JS file that is responsible for initializing and compiling WASM. */
     mainJs: T
+    /** Main WASM file that contains the compiled WASM code. */
     mainWasm: T
+    /** Precompiled shaders files. */
     shaders: Shaders<T> = new Shaders()
 
     constructor(mainJs: T, mainWasm: T) {
@@ -149,61 +93,117 @@ class Files<T> {
     }
 }
 
+/** Mapping between a shader identifier and precompiled shader sources. */
+class Shaders<T> {
+    map: Map<string, Shader<T>> = new Map()
+
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
+        const mapped = await Promise.all(this.toArray().map(f))
+        const out = this.fromArray(mapped)
+        if (out != null) {
+            return out
+        } else {
+            throw 'Internal error.'
+        }
+    }
+
+    toArray(): T[] {
+        return Array.from(this.map.values()).flatMap(shader => shader.toArray())
+    }
+
+    fromArray<S>(array: S[]): Shaders<S> | null {
+        const shaders: Shaders<S> = new Shaders()
+        const keys = Array.from(this.map.keys())
+        for (const [key, [vertex, fragment]] of zip(keys, arrayIntoTuples(array))) {
+            const shader = new Shader(vertex, fragment)
+            shaders.map.set(key, shader)
+        }
+        return shaders
+    }
+}
+
+/** Precompiled shader sources */
+class Shader<T> {
+    vertex: T
+    fragment: T
+
+    constructor(vertex: T, fragment: T) {
+        this.vertex = vertex
+        this.fragment = fragment
+    }
+
+    toArray(): T[] {
+        return [this.vertex, this.fragment]
+    }
+}
+
+// ====================
+// === Loading WASM ===
+// ====================
+
 /** Loads the WASM binary and its dependencies. If it's run in the browser, the files will be
  * downloaded from a server and a loading progress indicator will be shown. If it's run in node, the
  * files will be read from disk. After the files are fetched, the WASM module is compiled and
  * initialized. */
-async function load_wasm(config: Config) {
-    if (host.browser) {
+async function loadWasm(config: Config) {
+    if (host.node) {
+        const mainJsUrl = path.join(__dirname, config.mainJsUrl.value)
+        const mainWasmUrl = path.join(__dirname, config.mainWasmUrl.value)
+        const mainJs = await fs.readFile(mainJsUrl, 'utf8')
+        const mainWasm = await fs.readFile(mainWasmUrl)
+        const wasm = await compileAndRunWasm(mainJs, mainWasm)
+        const loader = null
+        const shaders = null
+        return { wasm, loader, shaders }
+    } else {
+        const task = Task.startCollapsed(`Downloading application files.`)
+        const loader = new Loader(config)
+        loader.done.then(() => task.end())
+
         const shadersUrl = config.shadersUrl.value
-        const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
-        const shadersList = await shadersListResponse.text()
-        const shadersNames = shadersList.split('\n').filter(line => line.length > 0)
+        const shadersNames = await Task.asyncWith('Downloading shaders list.', async () => {
+            const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
+            const shadersList = await shadersListResponse.text()
+            return shadersList.split('\n').filter(line => line.length > 0)
+        })
 
         const files = new Files(config.mainJsUrl.value, config.mainWasmUrl.value)
-        for (const name of shadersNames) {
-            const vertexUrl = `${shadersUrl}/${name}.vertex.glsl`
-            const fragmentUrl = `${shadersUrl}/${name}.fragment.glsl`
-            files.shaders.map.set(name, new Shader(vertexUrl, fragmentUrl))
+        for (const mangledName of shadersNames) {
+            const unmangledName = name.unmangle(mangledName)
+            const vertexUrl = `${shadersUrl}/${mangledName}.vertex.glsl`
+            const fragmentUrl = `${shadersUrl}/${mangledName}.fragment.glsl`
+            files.shaders.map.set(unmangledName, new Shader(vertexUrl, fragmentUrl))
         }
 
         const responses = await files.mapAndAwaitAll(url => fetch(url))
         const responsesArray = responses.toArray()
+        loader.load(responsesArray)
 
-        const task = Task.start(`Downloading application files.`)
-        logger.log(`Downloading '${files.toArray()}'.`)
+        for (const file of files.toArray()) {
+            logger.log(`Downloading '${file}'.`)
+        }
 
-        const loader = new Loader(responsesArray, config)
-        loader.done.then(() => task.end())
         // FIXME:
         // @ts-ignore
-        const download_size = loader.show_total_bytes()
+        const downloadSize = loader.showTotalBytes()
 
         const mainJs = await responses.mainJs.text()
-        const wasm = await compile_and_run_wasm(mainJs, responses.mainWasm)
+        const wasm = await compileAndRunWasm(mainJs, responses.mainWasm)
         const shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
         return { wasm, loader, shaders }
-    } else {
-        const mainJsUrl = path.join(__dirname, config.mainJsUrl.value)
-        const mainWasmUrl = path.join(__dirname, config.mainWasmUrl.value)
-        const mainJs = await fs.readFile(mainJsUrl, 'utf8')
-        const wasm_main = await fs.readFile(mainWasmUrl)
-        const wasm = await compile_and_run_wasm(mainJs, wasm_main)
-        const loader = null
-        return { wasm, loader, shaders: null }
     }
 }
 
 /** Compiles and runs the downloaded WASM file. */
-async function compile_and_run_wasm(mainJs: string, wasm: Buffer | Response): Promise<any> {
-    return await Task.asyncWith('Running wasm.', async () => {
-        const snippets_fn = Function(
+async function compileAndRunWasm(mainJs: string, wasm: Buffer | Response): Promise<any> {
+    return await Task.asyncNoGroupWith('WASM compilation', async () => {
+        const snippetsFn = Function(
             `const module = {}
              ${mainJs}
              module.exports.init = pkg_default
              return module.exports`
         )()
-        return await snippets_fn.init(wasm)
+        return await snippetsFn.init(wasm)
     })
 }
 
@@ -283,7 +283,7 @@ export class App {
     }
 
     async loadWasm() {
-        const { wasm, loader, shaders } = await load_wasm(this.config)
+        const { wasm, loader, shaders } = await loadWasm(this.config)
         this.wasm = wasm
         this.loader = loader
         this.shaders = shaders
@@ -354,7 +354,7 @@ export class App {
 
     initBrowser() {
         if (host.browser) {
-            this.style_root()
+            this.styleRoot()
             this.disableContextMenu()
             if (this.config.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
@@ -371,7 +371,7 @@ export class App {
         })
     }
 
-    style_root() {
+    styleRoot() {
         const root = document.getElementById('root')
         if (root != null) {
             root.style.backgroundColor = 'rgb(249,250,251)'
@@ -462,8 +462,8 @@ class HelpScreen {
         wasm: any
     ) {
         const padding = '8px'
-        const background_radius = '8px'
-        const div = html_utils.new_top_level_div()
+        const backgroundRadius = '8px'
+        const div = html_utils.newTopLevelDiv()
         div.style.fontFamily = `"SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif`
         div.style.fontSize = '14px'
         div.style.overflow = 'scroll'
@@ -508,11 +508,11 @@ class HelpScreen {
                 if (rowWithBg) {
                     td.style.background = '#00000010'
                     if (i == 0) {
-                        td.style.borderTopLeftRadius = background_radius
-                        td.style.borderBottomLeftRadius = background_radius
+                        td.style.borderTopLeftRadius = backgroundRadius
+                        td.style.borderBottomLeftRadius = backgroundRadius
                     } else if (i == last) {
-                        td.style.borderTopRightRadius = background_radius
-                        td.style.borderBottomRightRadius = background_radius
+                        td.style.borderTopRightRadius = backgroundRadius
+                        td.style.borderBottomRightRadius = backgroundRadius
                     }
                 }
                 if (i == 0) {

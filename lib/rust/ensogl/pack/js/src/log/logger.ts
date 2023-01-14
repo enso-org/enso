@@ -22,7 +22,7 @@ class Colors {
     static orange(text: string): string {
         return Colors.orangeCode + text + Colors.resetCode
     }
-    static bold_start(): string {
+    static boldStart(): string {
         return '\x1b[1m'
     }
     static reset(): string {
@@ -159,7 +159,7 @@ function replacer(key: string, value: any) {
 }
 
 export class Console extends Consumer {
-    private indent_lvl = 0
+    private indentLvl = 0
 
     message(fn: LogLevel, ...args: any[]) {
         const strArgs = args.map(arg => {
@@ -187,10 +187,10 @@ export class Console extends Consumer {
             }
             //@ts-ignore
             const coloredArgs = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
-            if (this.indent_lvl > 0) {
+            if (this.indentLvl > 0) {
                 const indent = this.indent()
                 const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}`))
-                c.log(this.indent_shorter(), ...indentedArgs)
+                c.log(this.indentShorter(), ...indentedArgs)
             } else {
                 c.log(...strArgs)
             }
@@ -201,31 +201,31 @@ export class Console extends Consumer {
         if (host.browser) {
             console.group(...args)
         } else {
-            const styleStart = `${Colors.bold_start()}${Colors.levelStart(this.indent_lvl)}`
+            const styleStart = `${Colors.boldStart()}${Colors.levelStart(this.indentLvl)}`
             console.log(`${this.indent()}${styleStart}╭`, ...args, Colors.reset())
         }
-        this.indent_lvl += 1
+        this.indentLvl += 1
     }
 
     groupCollapsed(...args: any[]) {
         if (host.browser) {
             console.groupCollapsed(...args)
-            this.indent_lvl += 1
+            this.indentLvl += 1
         } else {
             this.group(...args)
         }
     }
 
     groupEnd(...args: any[]) {
-        if (this.indent_lvl > 0) {
-            this.indent_lvl -= 1
+        if (this.indentLvl > 0) {
+            this.indentLvl -= 1
             if (host.browser) {
                 if (args.length > 0) {
                     console.log(...args)
                 }
                 console.groupEnd()
             } else {
-                const styleStart = `${Colors.levelStart(this.indent_lvl)}`
+                const styleStart = `${Colors.levelStart(this.indentLvl)}`
                 console.log(`${this.indent()}${styleStart}╰`, ...args)
             }
         } else {
@@ -235,14 +235,14 @@ export class Console extends Consumer {
 
     private indent(): string {
         let out = ''
-        for (let i = 0; i < this.indent_lvl; i++) {
+        for (let i = 0; i < this.indentLvl; i++) {
             const box = Colors.level(i, '│')
             out += `${box} `
         }
         return out
     }
 
-    private indent_shorter(): string {
+    private indentShorter(): string {
         return this.indent().slice(0, -1)
     }
 }

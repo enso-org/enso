@@ -122,7 +122,7 @@ async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
     run_script("lint", &EMPTY_ARGS).await?;
 
     println!("Building TypeScript sources.");
-    run_script("build", &["--", &format!("--outfile={}", out.display())]).await
+    run_script("build", &["--", &format!("--outdir={}", out.display())]).await
 }
 
 pub async fn main_lib(mut args: Vec<String>) -> Result {
@@ -158,13 +158,14 @@ pub async fn main_lib(mut args: Vec<String>) -> Result {
         let js_dir = root_dir.join("js");
         let node_modules_dir = js_dir.join("node_modules");
         let app_js_path = target_dist_dir.join("app.js");
+        let shader_extractor_path = target_dist_dir.join("shader-extractor.js");
 
         // FIXME? [mwu] What if dependencies are updated without deleting node_modules?
         if !node_modules_dir.is_dir() {
             ide_ci::programs::Npm.cmd()?.install().current_dir(&js_dir).run_ok().await?;
             // with_pwd(&js_dir, || execute("npm", &["install"]));
         }
-        compile_ts(&js_dir, "src/index.ts", &app_js_path).await?;
+        compile_ts(&js_dir, "src/index.ts", &target_dist_dir).await?;
         compile_js(&target_dir, "pkg.js", &target_dist_dir.join("main.js")).await?;
         // with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
         //
@@ -185,7 +186,9 @@ pub async fn main_lib(mut args: Vec<String>) -> Result {
         let shaders_src_dir = target_dir.join("shaders");
         ide_ci::programs::Node
             .cmd()?
-            .args([app_js_path.as_str(), "--extract-shaders", shaders_src_dir.as_str()])
+            .arg(&shader_extractor_path)
+            .arg("--extract-shaders")
+            .arg(&shaders_src_dir)
             .run_ok()
             .await?;
 

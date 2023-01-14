@@ -213,10 +213,12 @@ pub fn target_flag(os: OS) -> Result<&'static str> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub struct IdeDesktop {
     pub build_sbt:   generated::RepoRootBuildSbt,
     pub package_dir: generated::RepoRootAppIdeDesktop,
+    #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
 }
