@@ -10,10 +10,8 @@ use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::wasm_pack::WasmPackCommand;
 use manifest_dir_macros::path;
 use std::env;
-use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
 
 pub mod shaderc;
 pub mod spirvcross;
@@ -29,16 +27,16 @@ pub mod spirvcross;
 //     }
 // }
 
-pub fn workspace_dir() -> PathBuf {
-    let output = std::process::Command::new(env!("CARGO"))
+pub async fn workspace_dir() -> Result<PathBuf> {
+    let output = ide_ci::program::Command::new(env!("CARGO"))
         .arg("locate-project")
         .arg("--workspace")
         .arg("--message-format=plain")
-        .output()
-        .unwrap()
+        .output_ok()
+        .await?
         .stdout;
-    let cargo_path = Path::new(std::str::from_utf8(&output).unwrap().trim());
-    cargo_path.parent().unwrap().to_path_buf()
+    let cargo_path = Path::new(std::str::from_utf8(&output)?.trim());
+    Ok(cargo_path.try_parent()?.to_owned())
 }
 //
 // pub fn root_dir() -> &'static Path {
@@ -83,44 +81,50 @@ async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
             .await
     };
 
-    println!("Type checking TypeScript sources.");
+    info!("Type checking TypeScript sources.");
     run_script("typecheck", &EMPTY_ARGS).await?;
 
-    println!("Linting TypeScript sources.");
+    info!("Linting TypeScript sources.");
     run_script("lint", &EMPTY_ARGS).await?;
 
-    println!("Building TypeScript sources.");
+    info!("Building TypeScript sources.");
     run_script("build", &["--", &format!("--outdir={}", out.display())]).await
 }
 
-pub struct ReplacedArgs {
+/// The arguments to `wasm-pack build` that `ensogl-pack` wants to customize.
+pub struct WasmPackOutputs {
+    /// Value to passed as `--out-dir` to `wasm-pack`.
     pub out_dir:  PathBuf,
+    /// Value to passed as `--out-name` to `wasm-pack`.
     pub out_name: String,
 }
 
-
+/// Wrapper over `wasm-pack build` command.
+///
+/// # Arguments
+/// * `outputs` - The outputs that'd be usually given to `wasm-pack build` command.
+/// * `provider` - Function that generates an invocation of the `wasm-pack build` command that has
+///   applied given (customized) output-related arguments.
 pub async fn build(
-    desired_args: ReplacedArgs,
-    provider: impl FnOnce(ReplacedArgs) -> Result<WasmPackCommand>,
+    outputs: WasmPackOutputs,
+    provider: impl FnOnce(WasmPackOutputs) -> Result<WasmPackCommand>,
 ) -> Result {
     ide_ci::env::prepend_to_path(r"C:\varia\install\bin")?;
     let current_cargo_path = Path::new(path!("Cargo.toml"));
-    let root_dir = current_cargo_path.parent().unwrap();
-    println!("{:?}", root_dir);
+    let root_dir = current_cargo_path.try_parent()?;
+    info!("{:?}", root_dir);
 
 
-    let workspace_dir = workspace_dir();
+    let workspace_dir = workspace_dir().await?;
     let target_dir = workspace_dir.join("target").join("ensogl-pack");
-    let replaced_args = ReplacedArgs { out_dir: target_dir.clone(), out_name: "pkg".to_string() };
+    let replaced_args =
+        WasmPackOutputs { out_dir: target_dir.clone(), out_name: "pkg".to_string() };
     let target_dist_dir = target_dir.join("dist");
 
-    // let out_dir = modify_arg_1(&mut args, "--out-dir", |_|
-    // Some(target_dir.display().to_string())); let out_dir = out_dir
-    //     .or_else(|| modify_arg_1(&mut args, "-d", |_| Some(target_dir.display().to_string())));
-    // let out_name = modify_arg_1(&mut args, "--out-name", |_| Some("pkg".to_string()));
-    let ReplacedArgs { out_name, out_dir } = desired_args;
+    let WasmPackOutputs { out_name, out_dir } = outputs;
 
-    let mut command = provider(replaced_args)?;
+    info!("Obtaining the wasm-pack command.");
+    let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
     command.run_ok().await?;
 
     let out_dir = Path::new(&out_dir);
@@ -144,14 +148,14 @@ pub async fn build(
     //     target_dist_dir.join(&format!("main.wasm"))
     // );
     ide_ci::fs::copy(target_dir.join("pkg_bg.wasm"), target_dist_dir.join("main.wasm"))?;
-    println!("Source files:");
+    info!("Source files:");
     let paths = ide_ci::fs::read_dir(&target_dist_dir)?;
     for path in paths {
         println!("Name: {}", path?.path().display())
     }
 
 
-    println!("Extracting shaders from generated WASM file.");
+    info!("Extracting shaders from generated WASM file.");
     let shaders_src_dir = target_dir.join("shaders");
     ide_ci::programs::Node
         .cmd()?
@@ -161,17 +165,17 @@ pub async fn build(
         .run_ok()
         .await?;
 
-    println!("Optimizing extracted shaders.");
+    info!("Optimizing extracted shaders.");
     let dist_shaders_dir = target_dist_dir.join("shaders");
     let dist_shaders_list_path = dist_shaders_dir.join("list.txt");
     ide_ci::fs::create_dir_if_missing(&dist_shaders_dir)?;
 
     let stages = ["vertex", "fragment"];
     let shaders_list_path = shaders_src_dir.join("list.txt");
-    let shaders_list = std::fs::read_to_string(&shaders_list_path).unwrap();
+    let shaders_list = ide_ci::fs::read_to_string(&shaders_list_path)?;
     let shaders_prefixes: Vec<_> = shaders_list.lines().collect();
     for shader_prefix in shaders_prefixes {
-        println!("Optimizing '{:?}'.", shader_prefix);
+        info!("Optimizing '{:?}'.", shader_prefix);
         for stage in stages {
             let base_path = shaders_src_dir.join(shader_prefix).display().to_string();
             let stage_path = format!("{base_path}.{stage}");
@@ -216,8 +220,8 @@ pub async fn build(
             })?;
             let main_end = content.rfind(main_end_str).with_context(|| {
                 format!(
-                    "Failed to find main end string '{:?}' in shader '{}'.",
-                    main_end_str, stage_glsl_opt_path
+                    "Failed to find main end string '{}' in shader '{}'. Text:\n{:?}",
+                    main_end_str, stage_glsl_opt_path, content
                 )
             })?;
             let main_content = &content[main_start + main_start_str.len()..main_end];
@@ -229,14 +233,14 @@ pub async fn build(
     ide_ci::fs::write(&dist_shaders_list_path, &shaders_list)?;
 
 
-    println!("DONE!");
+    info!("DONE!");
 
     ide_ci::fs::copy(&target_dist_dir, &out_dir)?;
 
     let paths = ide_ci::fs::read_dir(&out_dir)?;
-    println!("Copied files:");
+    info!("Copied files:");
     for path in paths {
-        println!("Name: {}", path?.path().display())
+        info!("Name: {}", path?.path().display())
     }
 
     //
@@ -248,15 +252,4 @@ pub async fn build(
     //
     // println!("target_dir: {}", target_dir.display());
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() -> Result {
-        regex::Regex::new(r"(*ANY)\n")?;
-        Ok(())
-    }
 }

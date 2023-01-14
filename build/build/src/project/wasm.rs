@@ -202,7 +202,7 @@ impl IsTarget for Wasm {
             let temp_dir = tempdir()?;
             let temp_dist = RepoRootDistWasm::new_root(temp_dir.path());
             ensogl_pack::build(
-                ensogl_pack::ReplacedArgs {
+                ensogl_pack::WasmPackOutputs {
                     out_dir:  temp_dist.path.clone(),
                     out_name: OUTPUT_NAME.into(),
                 },

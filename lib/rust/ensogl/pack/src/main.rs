@@ -1,6 +1,6 @@
 use ensogl_pack::prelude::*;
 use ensogl_pack::workspace_dir;
-use ensogl_pack::ReplacedArgs;
+use ensogl_pack::WasmPackOutputs;
 
 fn main() {
     todo!()
