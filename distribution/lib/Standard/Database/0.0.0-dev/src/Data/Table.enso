@@ -810,8 +810,10 @@ type Table
          the section "Unifying Column Types" below. If set to `False` the
          resulting column type will be the same as in the first table the
          corresponding column appeared in (usually `self`, except for unmatched
-         columns). If types of corresponding columns from other tables will be
-         incompatible with it, a `Column_Type_Mismatch` is reported.
+         columns). If type widening is not allowed, all columns that are merged
+         with each other must have the same type as the first one. The only
+         exception is if the first column had `Mixed` type which will accept any
+         other type.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -832,9 +834,9 @@ type Table
            type that is incompatible with the type coming from the first table,
            a `Column_Type_Mismatch` is reported. The problematic column will be
            dropped from the resulting table. With type widening disabled, the
-           only coercion that is allowed is coercing integers to a column
-           expecting decimals. Any other coercions, like boolean to integer, are
-           not allowed.
+           subsequent tables must have the same types as the first one, unless
+           the type of the first one was `Mixed` which will accept any other
+           type.
          - If a common type coercion for a set of matched columns from
            concatenated tables cannot be found, a `No_Common_Type` is reported.
            In warning or ignore mode, the problematic column will be dropped
