@@ -3,7 +3,11 @@
 pub use ide_ci::prelude;
 use ide_ci::prelude::*;
 
+use crate::shaderc::programs::glslc::Glslc;
+use crate::shaderc::programs::spirv_opt::SpirvOpt;
+use crate::spirvcross::program::SpirvCross;
 use ide_ci::program::EMPTY_ARGS;
+use ide_ci::programs::wasm_pack::WasmPackCommand;
 use manifest_dir_macros::path;
 use std::env;
 use std::ffi::OsStr;
@@ -12,6 +16,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 pub mod shaderc;
+pub mod spirvcross;
 
 
 pub fn execute<T: AsRef<OsStr>>(exe: &str, args: &[T]) {
@@ -125,6 +130,13 @@ async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
     run_script("build", &["--", &format!("--outdir={}", out.display())]).await
 }
 
+// pub struct ReplacedArgs {
+//     pub out_dir:  PathBuf,
+//     pub out_name: String,
+// }
+//
+// pub trait CommandProvider = FnOnce(CommandOverrides) -> Result<WasmPackCommand>;
+
 pub async fn main_lib(mut args: Vec<String>) -> Result {
     ide_ci::env::prepend_to_path(r"C:\varia\install\bin")?;
     setup_logging()?;
@@ -213,15 +225,28 @@ pub async fn main_lib(mut args: Vec<String>) -> Result {
                 let stage_glsl_opt_dist_path =
                     dist_shaders_dir.join(&format!("{shader_prefix}.{stage}.glsl"));
 
-                execute("glslc", &[
-                    "--target-env=opengl",
-                    &format!("-fshader-stage={stage}"),
-                    "-o",
-                    &stage_spv_path,
-                    &stage_glsl_path,
-                ]);
-                execute("spirv-opt", &["-O", "-o", &stage_spv_opt_path, &stage_spv_path]);
-                execute("spirv-cross", &["--output", &stage_glsl_opt_path, &stage_spv_opt_path]);
+                Glslc
+                    .cmd()?
+                    .args(&[
+                        "--target-env=opengl",
+                        &format!("-fshader-stage={stage}"),
+                        "-o",
+                        &stage_spv_path,
+                        &stage_glsl_path,
+                    ])
+                    .run_ok()
+                    .await?;
+                SpirvOpt
+                    .cmd()?
+                    .args(&["-O", "-o", &stage_spv_opt_path, &stage_spv_path])
+                    .run_ok()
+                    .await?;
+
+                SpirvCross
+                    .cmd()?
+                    .args(&["--output", &stage_glsl_opt_path, &stage_spv_opt_path])
+                    .run_ok()
+                    .await?;
 
                 let content =
                     ide_ci::fs::read_to_string(&stage_glsl_opt_path)?.replace("\r\n", "\n");
