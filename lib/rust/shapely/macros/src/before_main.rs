@@ -23,12 +23,27 @@ fn unique_name() -> String {
     mangle_name(&definition_path())
 }
 
+const DEFAULT_PRIORITY: usize = 100;
+
 pub fn run(
-    _args: proc_macro::TokenStream,
+    args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
+    let mut args_iter = args.into_iter();
+    let priority = match args_iter.next() {
+        None => DEFAULT_PRIORITY,
+        Some(token) => {
+            if args_iter.next().is_some() {
+                panic!("Expected maximum one argument, the entry point priority. If missing, the default priority is used ({DEFAULT_PRIORITY}).");
+            }
+            match token.to_string().parse::<usize>() {
+                Ok(priority) => priority,
+                Err(_) => panic!("The priority must be a number."),
+            }
+        }
+    };
     let mut input_fn = syn::parse_macro_input!(input as syn::ImplItemMethod);
-    let name = format!("before_main_entry_point_{}", unique_name());
+    let name = format!("before_main_entry_point_{priority}_{}", unique_name());
     input_fn.sig.ident = quote::format_ident!("{name}");
     let output = quote! {
         #[wasm_bindgen]

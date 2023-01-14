@@ -201,7 +201,7 @@ impl IsTarget for Wasm {
             info!("Building wasm.");
             let temp_dir = tempdir()?;
             let temp_dist = RepoRootDistWasm::new_root(temp_dir.path());
-            let mut command = WasmPack.cmd()?;
+            let mut command = EnsoglPack.cmd()?;
             command
                 .current_dir(&repo_root)
                 .kill_on_drop(true)
@@ -232,6 +232,19 @@ impl IsTarget for Wasm {
         }
         .instrument(span)
         .boxed()
+    }
+}
+
+pub struct EnsoglPack;
+impl Program for EnsoglPack {
+    type Command = ide_ci::programs::wasm_pack::WasmPackCommand;
+
+    fn executable_name(&self) -> &str {
+        "ensogl-pack"
+    }
+
+    fn default_locations(&self) -> Vec<PathBuf> {
+        vec![PathBuf::from(r"H:\NBO\enso5\dist\terminal\debug")]
     }
 }
 
