@@ -42,11 +42,12 @@ import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Internal.Rows_View import Rows_View
-from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
+from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type, No_Common_Type, Column_Type_Mismatch
 
 from project.Data.Column import get_item_string
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
+polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
@@ -1197,32 +1198,46 @@ type Table
             all_tables = [self] + tables_vector
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
-            problem_builder.attach_problems_before on_problems <|
-                row_counts = all_tables.map .row_count
-                new_row_count = row_counts.fold 0 (+)
-                merged_columns = matched_column_sets.map column_set->
-                    columns = column_set.column_indices.zip all_tables i-> parent_table->
-                        case i of
-                            Nothing -> Nothing
-                            _ : Integer -> parent_table.at i
-                    result_type = case allow_type_widening of
-                        True ->
-                            types = columns.filter Filter_Condition.Not_Nothing . map .value_type
-                            Value_Type.find_common_type types
-                        False ->
-                            first_column = columns.find (c-> c.is_nothing.not)
-                            first_column.value_type
-                    storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=new_row_count
-                    column_set.column_indices.zip all_tables i-> parent_table->
-                        case i of
-                            Nothing ->
-                                null_row_count = parent_table.row_count
-                                storage_builder.appendNulls null_row_count
-                            _ : Integer ->
-                                storage = parent_table.at i . java_column . getStorage
-                                storage_builder.appendBulkStorage storage
-                    Column.from_storage column_set.name storage_builder.seal
-                Table.new merged_columns
+            row_counts = all_tables.map .row_count
+            new_row_count = row_counts.fold 0 (+)
+            merged_columns = matched_column_sets.map column_set->
+                columns = column_set.column_indices.zip all_tables i-> parent_table->
+                    case i of
+                        Nothing -> Nothing
+                        _ : Integer -> parent_table.at i
+                result_type = case allow_type_widening of
+                    True ->
+                        types = columns.filter Filter_Condition.Not_Nothing . map .value_type
+                        Value_Type.find_common_type types strict=True
+                    False ->
+                        first_column = columns.find (c-> c.is_nothing.not)
+                        first_column.value_type
+                case result_type of
+                    Nothing ->
+                        problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
+                        Nothing
+                    _ ->
+                        handle_storage_type_mismatch caught_panic =
+                            exception = caught_panic.payload
+                            got_type = Storage.from_java exception.gotType . to_approximate_value_type
+                            expected_type = result_type
+                            problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name expected_type got_type)
+                            Nothing
+                        Panic.catch StorageTypeMismatch handler=handle_storage_type_mismatch <|
+                            storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=new_row_count
+                            column_set.column_indices.zip all_tables i-> parent_table->
+                                case i of
+                                    Nothing ->
+                                        null_row_count = parent_table.row_count
+                                        storage_builder.appendNulls null_row_count
+                                    _ : Integer ->
+                                        storage = parent_table.at i . java_column . getStorage
+                                        storage_builder.appendBulkStorage storage
+                            Column.from_storage column_set.name storage_builder.seal
+            good_columns = merged_columns.filter Filter_Condition.Not_Nothing
+            if good_columns.is_empty then Error.throw No_Output_Columns else
+                problem_builder.attach_problems_before on_problems <|
+                    Table.new good_columns
 
     ## ALIAS dropna
        ALIAS drop_missing_rows

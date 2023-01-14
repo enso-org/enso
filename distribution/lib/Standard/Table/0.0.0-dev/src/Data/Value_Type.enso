@@ -162,10 +162,16 @@ type Value_Type
     ## PRIVATE
        Finds the most specific value type that will fit all the provided types.
 
-       It is implemented as specified in the note "Unifying Column Types" in
-       `Table.union`.
+       If `strict` is `True`, it is implemented as specified in the note
+       "Unifying Column Types" in `Table.union`. In that case, if no common type
+       is found, `Nothing` is returned.
 
        It assumes that the `types` vector is not empty.
-    find_common_type : Vector Value_Type -> Value_Type
-    find_common_type types =
-        (types.drop 1).fold types.first Value_Type.reconcile_types
+    find_common_type : Vector Value_Type -> Boolean -> Value_Type | Nothing
+    find_common_type types strict =
+        most_generic_type = (types.drop 1).fold types.first Value_Type.reconcile_types
+        if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
+            # Double check if Mixed was really allowed to come out.
+            if types.contains Value_Type.Mixed then Value_Type.Mixed else
+                Nothing
+

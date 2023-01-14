@@ -240,11 +240,12 @@ spec setup =
             t2.at "B" . value_type . should_equal Value_Type.Integer
 
             t3 = t1.union t2 allow_type_widening=False
-            Problems.assume_no_problems t3
-            expect_column_names ["A", "B"] t3
-            t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-            t3.at "B" . to_vector . should_equal [1.5, 2.5, 3.5, 1, 2, 3]
-            t3.at "B" . value_type . should_equal Value_Type.Float
+            within_table t3 <|
+                Problems.assume_no_problems t3
+                expect_column_names ["A", "B"] t3
+                t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+                t3.at "B" . to_vector . should_equal [1.5, 2.5, 3.5, 1, 2, 3]
+                t3.at "B" . value_type . should_equal Value_Type.Float
 
         Test.specify "if type widening is not allowed and types do not match, should report error and drop the problematic column" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", [1.5, 2.5, 3.5]], ["C", [True, False, Nothing]], ["D", [10, 20, 30]]]

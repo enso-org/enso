@@ -1019,20 +1019,11 @@ type Column
     storage_type : Storage
     storage_type self =
         tp = self.java_column.getStorage.getType
-        Storage.types.at tp . catch Index_Out_Of_Bounds.Error _->
-            Panic.throw (Illegal_State.Error "Unknown storage type: "+tp.to_text)
+        Storage.from_java tp
 
     ## UNSTABLE TODO this is a prototype that will be revisited later on
     value_type : Value_Type
-    value_type self = case self.storage_type of
-        Storage.Text -> Value_Type.Char
-        Storage.Integer -> Value_Type.Integer
-        Storage.Decimal -> Value_Type.Float
-        Storage.Boolean -> Value_Type.Boolean
-        Storage.Date -> Value_Type.Date
-        Storage.Time_Of_Day -> Value_Type.Time
-        Storage.Date_Time -> Value_Type.Date_Time
-        Storage.Any -> Value_Type.Mixed
+    value_type self = self.storage_type.to_approximate_value_type
 
     ## UNSTABLE
 

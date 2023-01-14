@@ -8,4 +8,13 @@ public class StorageTypeMismatch extends RuntimeException {
     this.expectedType = expectedType;
     this.gotType = gotType;
   }
+
+  @Override
+  public String getMessage() {
+    return "Expected storage of type " + expectedType + ", got " + gotType + ".";
+  }
+
+  public int gotType() {
+    return gotType;
+  }
 }
