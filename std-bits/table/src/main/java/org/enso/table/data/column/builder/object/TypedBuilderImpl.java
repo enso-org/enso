@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder.object;
 
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.Arrays;
@@ -48,6 +49,22 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   @Override
   public void appendNulls(int count) {
     currentSize += count;
+  }
+
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+    if (storage.getType() == getType()) {
+      if (storage instanceof SpecializedStorage<?>) {
+        @SuppressWarnings("unchecked") // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
+        SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
+        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
+        currentSize += storage.size();
+      } else {
+        throw new IllegalStateException("Unexpected storage implementation for type " + storage.getType() + ": " + storage + ". This is a bug in the Table library.");
+      }
+    } else {
+      throw new StorageTypeMismatch(getType(), storage.getType());
+    }
   }
 
   @Override

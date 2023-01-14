@@ -15,6 +15,16 @@ type Bits
     ## 64-bit (8 byte) value
     Bits_64
 
+    ## PRIVATE
+    to_bits : Integer
+    to_bits self = case self of
+        Bits.Bits_16 -> 16
+        Bits.Bits_32 -> 32
+        Bits.Bits_64 -> 64
+
+    ## PRIVATE
+    compare_to self other = self.to_bits . compare_to other.to_bits
+
 ## Represents the different possible types of values within RDBMS columns.
 type Value_Type
     ## Boolean or Bit value: 0 or 1.
@@ -99,6 +109,57 @@ type Value_Type
         _ -> Error.throw (Invalid_Value_Type.Error Value_Type.Boolean value_type)
 
     ## PRIVATE
+       Finds a type that can fit both a current type and a new type.
+    reconcile_types current new = case current of
+        Value_Type.Mixed -> Value_Type.Mixed
+        Value_Type.Integer size -> case new of
+            Value_Type.Integer new_size ->
+                Value_Type.Integer (Math.max size new_size)
+            Value_Type.Byte    -> Value_Type.Integer size
+            Value_Type.Boolean -> Value_Type.Integer size
+            # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
+            Value_Type.Float _ -> Value_Type.Float
+            _                  -> Value_Type.Mixed
+        Value_Type.Float size -> case new of
+            Value_Type.Float new_size ->
+                Value_Type.Float (Math.max size new_size)
+            # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
+            Value_Type.Integer _ -> Value_Type.Float
+            Value_Type.Byte      -> Value_Type.Float
+            Value_Type.Boolean   -> Value_Type.Float
+            _                    -> Value_Type.Mixed
+        Value_Type.Byte -> case new of
+            Value_Type.Byte    -> Value_Type.Byte
+            Value_Type.Integer size ->
+                Value_Type.Integer size
+            Value_Type.Boolean -> Value_Type.Byte
+            Value_Type.Float _ -> Value_Type.Float
+            _                  -> Value_Type.Mixed
+        Value_Type.Boolean -> case new of
+            Value_Type.Boolean -> Value_Type.Boolean
+            Value_Type.Integer size ->
+                Value_Type.Integer size
+            Value_Type.Byte    -> Value_Type.Byte
+            Value_Type.Float _ -> Value_Type.Float
+            _                  -> Value_Type.Mixed
+        Value_Type.Char current_size current_variable -> case new of
+            Value_Type.Char new_size new_variable ->
+                result_variable = current_variable || new_variable || current_size != new_size
+                case result_variable of
+                    True -> Value_Type.Char Nothing True
+                    False -> Value_Type.Char current_size False
+            _ -> Value_Type.Mixed
+        Value_Type.Binary current_size current_variable -> case new of
+            Value_Type.Binary new_size new_variable ->
+                result_variable = current_variable || new_variable || current_size != new_size
+                case result_variable of
+                    True -> Value_Type.Binary Nothing True
+                    False -> Value_Type.Binary current_size False
+            _ -> Value_Type.Mixed
+        _ ->
+            if current == new then current else Value_Type.Mixed
+
+    ## PRIVATE
        Finds the most specific value type that will fit all the provided types.
 
        It is implemented as specified in the note "Unifying Column Types" in
@@ -107,10 +168,4 @@ type Value_Type
        It assumes that the `types` vector is not empty.
     find_common_type : Vector Value_Type -> Value_Type
     find_common_type types =
-        reconcile_types current new = case current of
-            Mixed -> Mixed
-            Value_Type.Char _ _ -> case new of
-                Value_Type.Char _ _ -> current
-                _ -> Mixed
-
-        (types.drop 1).fold types.first reconcile_types
+        (types.drop 1).fold types.first Value_Type.reconcile_types
