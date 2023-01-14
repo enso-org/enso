@@ -10,6 +10,7 @@ import { Config, ExternalConfig } from 'config/config'
 import { Args, parseArgs } from 'config/arg-parser'
 import { logRouter } from 'log/router'
 import { EntryPoint, wasmFunctions } from 'wasm/entry-point'
+import { arrayIntoTuples, zip } from './data/array'
 
 export { logger, Logger, Consumer } from 'log/logger'
 export { Param } from 'config/config'
@@ -26,16 +27,14 @@ class PackageInfo {
     gitHash: string
     gitStatus: string
 
-    /** Constructor.
-     * @param info - Optional user provided info. */
-    constructor(info?: any) {
-        const infoObject = info || {}
+    /** Constructor. */
+    constructor(userProvidedInfo?: { [key: string]: string }) {
+        const infoObject = userProvidedInfo || {}
         // @ts-ignore
         this.gitHash = GIT_HASH
         // @ts-ignore
         this.gitStatus = GIT_STATUS
-        const self: any = this
-        Object.assign(self, infoObject)
+        Object.assign(this, infoObject)
     }
 
     /** Display the current info in the console. */
@@ -50,72 +49,17 @@ class PackageInfo {
     }
 }
 
-// ========================
-// === Content Download ===
-// ========================
+// ==============================
+// === Files to be downloaded ===
+// ==============================
 
-function arrayIntoTuples<T>(arr: T[]): [T, T][] {
-    const tuples: [T, T][] = []
-    for (let i = 0; i < arr.length; i += 2) {
-        const elem1 = arr[i]
-        const elem2 = arr[i + 1]
-        if (elem1 != null && elem2 != null) {
-            tuples.push([elem1, elem2])
-        }
-    }
-    return tuples
-}
-
-function zip<T, S>(arr1: T[], arr2: S[]): [T, S][] {
-    // @ts-ignore
-    return [...arr1].map((_, c) => [arr1, arr2].map(row => row[c]))
-}
-
-class Shader<T> {
-    vertex: T
-    fragment: T
-
-    constructor(vertex: T, fragment: T) {
-        this.vertex = vertex
-        this.fragment = fragment
-    }
-
-    toArray(): T[] {
-        return [this.vertex, this.fragment]
-    }
-}
-
-class Shaders<T> {
-    map: Map<string, Shader<T>> = new Map()
-
-    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
-        const mapped = await Promise.all(this.toArray().map(f))
-        const out = this.fromArray(mapped)
-        if (out != null) {
-            return out
-        } else {
-            throw 'Internal error.'
-        }
-    }
-
-    toArray(): T[] {
-        return Array.from(this.map.values()).flatMap(shader => shader.toArray())
-    }
-
-    fromArray<S>(array: S[]): Shaders<S> | null {
-        const shaders: Shaders<S> = new Shaders()
-        const keys = Array.from(this.map.keys())
-        for (const [key, [vertex, fragment]] of zip(keys, arrayIntoTuples(array))) {
-            const shader = new Shader(vertex, fragment)
-            shaders.map.set(key, shader)
-        }
-        return shaders
-    }
-}
-
+/** Files that are downloaded from server during app startup. */
 class Files<T> {
+    /** Main JS file that is responsible for initializing and compiling WASM. */
     mainJs: T
+    /** Main WASM file that contains the compiled WASM code. */
     mainWasm: T
+    /** Precompiled shaders files. */
     shaders: Shaders<T> = new Shaders()
 
     constructor(mainJs: T, mainWasm: T) {
@@ -149,12 +93,69 @@ class Files<T> {
     }
 }
 
+/** Mapping between a shader identifier and precompiled shader sources. */
+class Shaders<T> {
+    map: Map<string, Shader<T>> = new Map()
+
+    async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
+        const mapped = await Promise.all(this.toArray().map(f))
+        const out = this.fromArray(mapped)
+        if (out != null) {
+            return out
+        } else {
+            throw 'Internal error.'
+        }
+    }
+
+    toArray(): T[] {
+        return Array.from(this.map.values()).flatMap(shader => shader.toArray())
+    }
+
+    fromArray<S>(array: S[]): Shaders<S> | null {
+        const shaders: Shaders<S> = new Shaders()
+        const keys = Array.from(this.map.keys())
+        for (const [key, [vertex, fragment]] of zip(keys, arrayIntoTuples(array))) {
+            const shader = new Shader(vertex, fragment)
+            shaders.map.set(key, shader)
+        }
+        return shaders
+    }
+}
+
+/** Precompiled shader sources */
+class Shader<T> {
+    vertex: T
+    fragment: T
+
+    constructor(vertex: T, fragment: T) {
+        this.vertex = vertex
+        this.fragment = fragment
+    }
+
+    toArray(): T[] {
+        return [this.vertex, this.fragment]
+    }
+}
+
+// ====================
+// === Loading WASM ===
+// ====================
+
 /** Loads the WASM binary and its dependencies. If it's run in the browser, the files will be
  * downloaded from a server and a loading progress indicator will be shown. If it's run in node, the
  * files will be read from disk. After the files are fetched, the WASM module is compiled and
  * initialized. */
 async function loadWasm(config: Config) {
-    if (host.browser) {
+    if (host.node) {
+        const mainJsUrl = path.join(__dirname, config.mainJsUrl.value)
+        const mainWasmUrl = path.join(__dirname, config.mainWasmUrl.value)
+        const mainJs = await fs.readFile(mainJsUrl, 'utf8')
+        const mainWasm = await fs.readFile(mainWasmUrl)
+        const wasm = await compileAndRunWasm(mainJs, mainWasm)
+        const loader = null
+        const shaders = null
+        return { wasm, loader, shaders }
+    } else {
         const task = Task.startCollapsed(`Downloading application files.`)
         const loader = new Loader(config)
         loader.done.then(() => task.end())
@@ -190,14 +191,6 @@ async function loadWasm(config: Config) {
         const wasm = await compileAndRunWasm(mainJs, responses.mainWasm)
         const shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
         return { wasm, loader, shaders }
-    } else {
-        const mainJsUrl = path.join(__dirname, config.mainJsUrl.value)
-        const mainWasmUrl = path.join(__dirname, config.mainWasmUrl.value)
-        const mainJs = await fs.readFile(mainJsUrl, 'utf8')
-        const mainWasm = await fs.readFile(mainWasmUrl)
-        const wasm = await compileAndRunWasm(mainJs, mainWasm)
-        const loader = null
-        return { wasm, loader, shaders: null }
     }
 }
 
