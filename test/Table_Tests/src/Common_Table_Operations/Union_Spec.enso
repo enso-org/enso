@@ -248,8 +248,8 @@ spec setup =
                 t3.at "B" . value_type . should_equal Value_Type.Float
 
         Test.specify "if type widening is not allowed and types do not match, should report error and drop the problematic column" <|
-            t1 = table_builder [["A", [1, 2, 3]], ["B", [1.5, 2.5, 3.5]], ["C", [True, False, Nothing]], ["D", [10, 20, 30]]]
-            t2 = table_builder [["A", [4, 5, 6]], ["B", [1, 2, 3]], ["C", [1, 2, 3]], ["D", [True, True, True]]]
+            t1 = table_builder [["A", [1, 2, 3]], ["B", [1, 2, 3]], ["C", [True, False, Nothing]], ["D", [10, 20, 30]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", [1.5, 2.5, 3.5]], ["C", [1, 2, 3]], ["D", [True, True, True]]]
 
             t1.at "B" . value_type . should_equal Value_Type.Float
             t1.at "C" . value_type . should_equal Value_Type.Boolean
@@ -259,7 +259,7 @@ spec setup =
             t2.at "C" . value_type . should_equal Value_Type.Integer
             t2.at "D" . value_type . should_equal Value_Type.Boolean
 
-            action = t2.union t1 on_problems=_
+            action = t1.union t2 allow_type_widening=False on_problems=_
             tester table =
                 expect_column_names ["A"] table
                 table.at "A" . to_vector . should_equal [4, 5, 6, 1, 2, 3]

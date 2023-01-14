@@ -49,7 +49,7 @@ type Storage
         Storage.Integer -> Java_Storage.Type.LONG
         Storage.Decimal -> Java_Storage.Type.DOUBLE
         Storage.Text -> Java_Storage.Type.STRING
-        Storage.Boolean -> Java_Storage.Type.BOOLEAN
+        Storage.Boolean -> Java_Storage.Type.BOOL
         Storage.Date -> Java_Storage.Type.DATE
         Storage.Time_Of_Day -> Java_Storage.Type.TIME_OF_DAY
         Storage.Date_Time -> Java_Storage.Type.DATE_TIME
