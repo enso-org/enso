@@ -28,15 +28,15 @@ class ProgressIndicator {
     ringInnerRadius: number
     ringWidth: number
 
-    value: number
+    animatedValue = 0
+    targetValue = 0
+    minProgressSize = 0.1
 
     constructor(cfg: Config) {
-        this.value = 0
-
         this.ringInnerRadius = 48
         this.ringWidth = 12
 
-        this.dom = html_utils.new_top_level_div()
+        this.dom = html_utils.newTopLevelDiv()
         this.dom.id = 'loader'
         this.dom.style.position = 'fixed'
         this.dom.style.top = '0'
@@ -57,7 +57,7 @@ class ProgressIndicator {
         const outerRadius = this.ringInnerRadius + this.ringWidth
         const size = outerRadius * 2
 
-        const progress_bar_svg = this.init_svg()
+        const progressBarSvg = this.initSvg()
         const logo = document.createElement('div')
         const progressBar = document.createElement('div')
         progressBar.style.position = 'absolute'
@@ -69,7 +69,7 @@ class ProgressIndicator {
             borderOffset: 8,
         }).generate()
         this.logo = logo
-        progressBar.innerHTML = progress_bar_svg
+        progressBar.innerHTML = progressBarSvg
         center.appendChild(progressBar)
         center.appendChild(logo)
 
@@ -86,23 +86,27 @@ class ProgressIndicator {
         this.setIndicatorOpacity(0)
 
         if (cfg.useLoader) {
-            this.initialized = Promise.all<void>([this.animateShow(), this.animateShowLogo()])
+            this.initialized = Promise.all<void>([
+                this.animateShow(),
+                this.animateShowLogo(),
+                this.animateProgress(),
+            ])
         } else {
             this.initialized = new Promise(resolve => {
                 resolve([])
             })
         }
-        this.animate_rotation()
+        this.animateRotation()
         this.destroyed = false
     }
 
     /// Initializes the SVG view.
-    init_svg(): string {
+    initSvg(): string {
         const outerRadius = this.ringInnerRadius + this.ringWidth
         const ringCenterRadius = this.ringInnerRadius + this.ringWidth / 2
         const size = outerRadius * 2
 
-        return svg.new_svg(
+        return svg.newSvg(
             size,
             size,
             `
@@ -152,6 +156,10 @@ class ProgressIndicator {
     }
 
     set(value: number) {
+        this.targetValue = value
+    }
+
+    displayProgress(value: number) {
         const minAngle = 0
         const maxAngle = 359
         const outerRadius = this.ringInnerRadius + this.ringWidth
@@ -160,7 +168,7 @@ class ProgressIndicator {
         const ringCenterRadius = this.ringInnerRadius + this.ringWidth / 2
         const angleSpan = maxAngle - minAngle
         const maskAngle = maxAngle - ((1 - clampedValue) * angleSpan - minAngle)
-        const cornerPos = math.polar_to_cartesian(ringCenterRadius, maskAngle)
+        const cornerPos = math.polarToCartesian(ringCenterRadius, maskAngle)
         this.progressIndicatorMask.setAttribute('d', svg.arc(size, maskAngle))
         this.loaderTrackEndPoint.setAttribute('cx', `${cornerPos.x}`)
         this.loaderTrackEndPoint.setAttribute('cy', `${cornerPos.y}`)
@@ -177,7 +185,7 @@ class ProgressIndicator {
     }
 
     /// Set the rotation of the loader (angles).
-    set_rotation(val: number) {
+    setRotation(val: number) {
         this.track.setAttribute('transform', `rotate(${val},0,0)`)
     }
 
@@ -188,7 +196,7 @@ class ProgressIndicator {
         return new Promise(function (resolve) {
             function showStep(time: DOMHighResTimeStamp) {
                 const opacitySampler = Math.min((time - startTime) / (1000 * 1), 1)
-                self.setIndicatorOpacity(animation.ease_in_out_quad(opacitySampler))
+                self.setIndicatorOpacity(animation.easeInOutQuad(opacitySampler))
                 if (opacitySampler < 1) {
                     window.requestAnimationFrame(showStep)
                 } else {
@@ -196,6 +204,33 @@ class ProgressIndicator {
                 }
             }
             window.requestAnimationFrame(showStep)
+        })
+    }
+
+    animateProgress(): Promise<void> {
+        const self = this
+        let lastTime = window.performance.now()
+        self.displayProgress(self.minProgressSize)
+        return new Promise(function (resolve) {
+            function step(time: DOMHighResTimeStamp) {
+                const timeDiff = time - lastTime
+                lastTime = time
+                if (self.animatedValue < self.targetValue) {
+                    self.animatedValue = Math.min(
+                        self.targetValue,
+                        self.animatedValue + timeDiff / 1000
+                    )
+                    self.displayProgress(
+                        self.minProgressSize + (1 - self.minProgressSize) * self.animatedValue
+                    )
+                }
+                if (self.animatedValue < 1) {
+                    window.requestAnimationFrame(step)
+                } else {
+                    resolve()
+                }
+            }
+            window.requestAnimationFrame(step)
         })
     }
 
@@ -239,7 +274,7 @@ class ProgressIndicator {
         return new Promise(function (resolve) {
             function hideStep(time: DOMHighResTimeStamp) {
                 const opacitySampler = 1 - Math.min((time - startTime) / (1000 * 0.3), 1)
-                self.setOpacity(animation.ease_in_out_quad(opacitySampler))
+                self.setOpacity(animation.easeInOutQuad(opacitySampler))
                 if (opacitySampler > 0) {
                     window.requestAnimationFrame(hideStep)
                 } else {
@@ -251,17 +286,17 @@ class ProgressIndicator {
     }
 
     /// Start the spinning animation.
-    animate_rotation() {
+    animateRotation() {
         const indicator = this
         let rotation = 0
-        function rotate_step(time: DOMHighResTimeStamp) {
-            indicator.set_rotation(rotation)
+        function step(time: DOMHighResTimeStamp) {
+            indicator.setRotation(rotation)
             rotation = time / 6
             if (!indicator.destroyed) {
-                window.requestAnimationFrame(rotate_step)
+                window.requestAnimationFrame(step)
             }
         }
-        window.requestAnimationFrame(rotate_step)
+        window.requestAnimationFrame(step)
     }
 }
 
@@ -272,63 +307,65 @@ class ProgressIndicator {
 /// The main loader class. It connects to the provided fetch responses and tracks their status.
 export class Loader {
     indicator: ProgressIndicator
-    total_bytes: number
-    received_bytes: number
-    download_speed: number
+    totalBytes: number
+    receivedBytes: number
+    downloadSpeed: number
     lastReceiveTime: number
     initialized: Promise<void[]>
     capProgressAt: number
     done: Promise<void>
-    done_resolve: null | ((value: void | PromiseLike<void>) => void) = null
-    constructor(resources: Response[], cfg: Config) {
+    doneResolve: null | ((value: void | PromiseLike<void>) => void) = null
+    constructor(cfg: Config) {
         this.indicator = new ProgressIndicator(cfg)
-        this.total_bytes = 0
-        this.received_bytes = 0
-        this.download_speed = 0
+        this.totalBytes = 0
+        this.receivedBytes = 0
+        this.downloadSpeed = 0
         this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
         this.capProgressAt = cfg.loaderDownloadToInitRatio.value
 
         this.done = new Promise(resolve => {
-            this.done_resolve = resolve
+            this.doneResolve = resolve
         })
+    }
 
-        let missing_content_length = false
+    load(resources: Response[]) {
+        let missingContentLength = false
         for (const resource of resources) {
-            const content_length = resource.headers.get('content-length')
-            if (content_length) {
-                this.total_bytes += parseInt(content_length)
+            const contentLength = resource.headers.get('content-length')
+            if (contentLength) {
+                this.totalBytes += parseInt(contentLength)
             } else {
-                missing_content_length = true
+                missingContentLength = true
             }
             const body = resource.clone().body
             if (body) {
-                body.pipeTo(this.input_stream())
+                body.pipeTo(this.inputStream())
             } else {
                 // FIXME: error
             }
         }
 
-        if (missing_content_length || Number.isNaN(this.total_bytes)) {
+        if (missingContentLength || Number.isNaN(this.totalBytes)) {
             console.error(
                 "Loader error. Server is not configured to send the 'Content-Length' metadata."
             )
-            this.total_bytes = 0
+            this.totalBytes = 0
         }
     }
 
     /// The current loading progress [0..1].
     value() {
-        if (this.total_bytes == 0) {
-            return 0.3
+        if (this.totalBytes == 0) {
+            return 0
         } else {
-            return this.received_bytes / this.total_bytes
+            return this.receivedBytes / this.totalBytes
         }
     }
 
     /// Returns true if the loader finished.
-    is_done() {
-        return this.received_bytes == this.total_bytes
+    isDone() {
+        return this.receivedBytes == this.totalBytes
     }
 
     /// Removes the loader with it's dom element.
@@ -337,55 +374,56 @@ export class Loader {
     }
 
     /// Callback run on every new received byte stream.
-    on_receive(new_bytes: number) {
-        this.received_bytes += new_bytes
+    onReceive(newBytes: number) {
+        this.receivedBytes += newBytes
         const time = performance.now()
         const timeDiff = time - this.lastReceiveTime
         if (timeDiff > 0) {
-            this.download_speed = new_bytes / timeDiff
+            this.downloadSpeed = newBytes / timeDiff
             this.lastReceiveTime = time
 
-            const percent = this.show_percentage_value()
-            const speed = this.show_download_speed()
-            const received = this.show_received_bytes()
+            const percent = this.showPercentageValue()
+            const speed = this.showDownloadSpeed()
+            const received = this.showReceivedBytes()
             console.log(`${percent}% (${received}) (${speed}).`)
 
-            const indicator_progress = this.value() * this.capProgressAt
-            this.indicator.set(indicator_progress)
+            const indicatorProgress = this.value() * this.capProgressAt
+            this.indicator.set(indicatorProgress)
         }
-        if (this.is_done()) {
-            if (this.done_resolve) {
-                this.done_resolve()
+        if (this.isDone()) {
+            this.indicator.set(1)
+            if (this.doneResolve) {
+                this.doneResolve()
             }
         }
     }
 
     /// Download percentage value.
-    show_percentage_value() {
+    showPercentageValue() {
         return Math.round(100 * this.value())
     }
 
     /// Download total size value.
-    show_total_bytes() {
-        return `${math.format_mb(this.total_bytes)} MB`
+    showTotalBytes() {
+        return `${math.formatMb(this.totalBytes)} MB`
     }
 
     /// Download received bytes value.
-    show_received_bytes() {
-        return `${math.format_mb(this.received_bytes)} MB`
+    showReceivedBytes() {
+        return `${math.formatMb(this.receivedBytes)} MB`
     }
 
     /// Download speed value.
-    show_download_speed() {
-        return `${math.format_mb(1000 * this.download_speed)} MB/s`
+    showDownloadSpeed() {
+        return `${math.formatMb(1000 * this.downloadSpeed)} MB/s`
     }
 
     /// Internal function for attaching new fetch responses.
-    input_stream() {
+    inputStream() {
         const loader = this
         return new WritableStream({
             write(t) {
-                loader.on_receive(t.length)
+                loader.onReceive(t.length)
             },
         })
     }

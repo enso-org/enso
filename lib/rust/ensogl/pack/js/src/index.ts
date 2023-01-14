@@ -153,58 +153,64 @@ class Files<T> {
  * downloaded from a server and a loading progress indicator will be shown. If it's run in node, the
  * files will be read from disk. After the files are fetched, the WASM module is compiled and
  * initialized. */
-async function load_wasm(config: Config) {
+async function loadWasm(config: Config) {
     if (host.browser) {
+        const task = Task.startCollapsed(`Downloading application files.`)
+        const loader = new Loader(config)
+        loader.done.then(() => task.end())
+
         const shadersUrl = config.shadersUrl.value
-        const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
-        const shadersList = await shadersListResponse.text()
-        const shadersNames = shadersList.split('\n').filter(line => line.length > 0)
+        const shadersNames = await Task.asyncWith('Downloading shaders list.', async () => {
+            const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
+            const shadersList = await shadersListResponse.text()
+            return shadersList.split('\n').filter(line => line.length > 0)
+        })
 
         const files = new Files(config.mainJsUrl.value, config.mainWasmUrl.value)
-        for (const mangled_name of shadersNames) {
-            const unmangled_name = name.unmangle(mangled_name)
-            const vertexUrl = `${shadersUrl}/${mangled_name}.vertex.glsl`
-            const fragmentUrl = `${shadersUrl}/${mangled_name}.fragment.glsl`
-            files.shaders.map.set(unmangled_name, new Shader(vertexUrl, fragmentUrl))
+        for (const mangledName of shadersNames) {
+            const unmangledName = name.unmangle(mangledName)
+            const vertexUrl = `${shadersUrl}/${mangledName}.vertex.glsl`
+            const fragmentUrl = `${shadersUrl}/${mangledName}.fragment.glsl`
+            files.shaders.map.set(unmangledName, new Shader(vertexUrl, fragmentUrl))
         }
 
         const responses = await files.mapAndAwaitAll(url => fetch(url))
         const responsesArray = responses.toArray()
+        loader.load(responsesArray)
 
-        const task = Task.start(`Downloading application files.`)
-        logger.log(`Downloading '${files.toArray()}'.`)
+        for (const file of files.toArray()) {
+            logger.log(`Downloading '${file}'.`)
+        }
 
-        const loader = new Loader(responsesArray, config)
-        loader.done.then(() => task.end())
         // FIXME:
         // @ts-ignore
-        const download_size = loader.show_total_bytes()
+        const downloadSize = loader.showTotalBytes()
 
         const mainJs = await responses.mainJs.text()
-        const wasm = await compile_and_run_wasm(mainJs, responses.mainWasm)
+        const wasm = await compileAndRunWasm(mainJs, responses.mainWasm)
         const shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
         return { wasm, loader, shaders }
     } else {
         const mainJsUrl = path.join(__dirname, config.mainJsUrl.value)
         const mainWasmUrl = path.join(__dirname, config.mainWasmUrl.value)
         const mainJs = await fs.readFile(mainJsUrl, 'utf8')
-        const wasm_main = await fs.readFile(mainWasmUrl)
-        const wasm = await compile_and_run_wasm(mainJs, wasm_main)
+        const mainWasm = await fs.readFile(mainWasmUrl)
+        const wasm = await compileAndRunWasm(mainJs, mainWasm)
         const loader = null
         return { wasm, loader, shaders: null }
     }
 }
 
 /** Compiles and runs the downloaded WASM file. */
-async function compile_and_run_wasm(mainJs: string, wasm: Buffer | Response): Promise<any> {
-    return await Task.asyncWith('Running wasm.', async () => {
-        const snippets_fn = Function(
+async function compileAndRunWasm(mainJs: string, wasm: Buffer | Response): Promise<any> {
+    return await Task.asyncNoGroupWith('WASM compilation', async () => {
+        const snippetsFn = Function(
             `const module = {}
              ${mainJs}
              module.exports.init = pkg_default
              return module.exports`
         )()
-        return await snippets_fn.init(wasm)
+        return await snippetsFn.init(wasm)
     })
 }
 
@@ -284,7 +290,7 @@ export class App {
     }
 
     async loadWasm() {
-        const { wasm, loader, shaders } = await load_wasm(this.config)
+        const { wasm, loader, shaders } = await loadWasm(this.config)
         this.wasm = wasm
         this.loader = loader
         this.shaders = shaders
@@ -355,7 +361,7 @@ export class App {
 
     initBrowser() {
         if (host.browser) {
-            this.style_root()
+            this.styleRoot()
             this.disableContextMenu()
             if (this.config.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
@@ -372,7 +378,7 @@ export class App {
         })
     }
 
-    style_root() {
+    styleRoot() {
         const root = document.getElementById('root')
         if (root != null) {
             root.style.backgroundColor = 'rgb(249,250,251)'
@@ -463,8 +469,8 @@ class HelpScreen {
         wasm: any
     ) {
         const padding = '8px'
-        const background_radius = '8px'
-        const div = html_utils.new_top_level_div()
+        const backgroundRadius = '8px'
+        const div = html_utils.newTopLevelDiv()
         div.style.fontFamily = `"SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif`
         div.style.fontSize = '14px'
         div.style.overflow = 'scroll'
@@ -509,11 +515,11 @@ class HelpScreen {
                 if (rowWithBg) {
                     td.style.background = '#00000010'
                     if (i == 0) {
-                        td.style.borderTopLeftRadius = background_radius
-                        td.style.borderBottomLeftRadius = background_radius
+                        td.style.borderTopLeftRadius = backgroundRadius
+                        td.style.borderBottomLeftRadius = backgroundRadius
                     } else if (i == last) {
-                        td.style.borderTopRightRadius = background_radius
-                        td.style.borderBottomRightRadius = background_radius
+                        td.style.borderTopRightRadius = backgroundRadius
+                        td.style.borderBottomRightRadius = backgroundRadius
                     }
                 }
                 if (i == 0) {

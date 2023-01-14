@@ -19,16 +19,6 @@ use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 
 
-use naga;
-use naga::back::glsl as glsl_out;
-use naga::back::spv as spv_out;
-use naga::front::glsl::Options;
-use naga::front::glsl::Parser;
-use naga::ShaderStage;
-use rspirv::binary::Disassemble;
-use wasm_bindgen::JsCast;
-
-
 // ==============
 // === Shapes ===
 // ==============
@@ -46,13 +36,6 @@ mod rectangle {
     }
 }
 
-// #[wasm_bindgen(module = "/spirv-tools.js")]
-// #[wasm_bindgen(inline_js = "exports.Module = Module")]
-// extern "C" {
-//     pub fn test();
-//     #[wasm_bindgen(js_namespace = Module)]
-//     pub fn optimize_me(t: JsValue) -> JsValue;
-// }
 
 
 // ===================

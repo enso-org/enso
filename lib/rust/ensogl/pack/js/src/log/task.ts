@@ -14,21 +14,46 @@ export class Task {
 
     start() {
         logger.group(`${this.message}`)
-        this.startTime = performance.now()
+        this.startBody()
+    }
+
+    startCollapsed() {
+        logger.groupCollapsed(`${this.message}`)
+        this.startBody()
+    }
+
+    startNoGroup() {
+        logger.log(`Started ${this.message}.`)
+        this.startBody()
     }
 
     end(): number {
+        const [ms, msRounded] = this.endBody()
+        logger.groupEnd(`Done in ${msRounded} ms.`)
+        return ms
+    }
+
+    endNoGroup(): number {
+        const [ms, msRounded] = this.endBody()
+        logger.log(`Finished ${this.message} in ${msRounded} ms.`)
+        return ms
+    }
+
+    private startBody() {
+        this.startTime = performance.now()
+    }
+
+    private endBody(): [number, number] {
         this.endTime = performance.now()
         const ms = this.endTime - this.startTime
-        let ms_rounded = Math.round(ms * 10) / 10
-        if (ms_rounded == 0) {
-            ms_rounded = Math.round(ms * 100) / 100
+        let msRounded = Math.round(ms * 10) / 10
+        if (msRounded == 0) {
+            msRounded = Math.round(ms * 100) / 100
         }
-        if (ms_rounded == 0) {
-            ms_rounded = Math.round(ms * 1000) / 1000
+        if (msRounded == 0) {
+            msRounded = Math.round(ms * 1000) / 1000
         }
-        logger.groupEnd(`Done in ${ms_rounded} ms.`)
-        return ms
+        return [ms, msRounded]
     }
 
     static start(message: string): Task {
@@ -37,8 +62,27 @@ export class Task {
         return task
     }
 
+    static startCollapsed(message: string): Task {
+        const task = new Task(message)
+        task.startCollapsed()
+        return task
+    }
+
+    static startNoGroup(message: string): Task {
+        const task = new Task(message)
+        task.startNoGroup()
+        return task
+    }
+
     static with<T>(message: string, f: () => T): T {
         const task = Task.start(message)
+        const out = f()
+        task.end()
+        return out
+    }
+
+    static withCollapsed<T>(message: string, f: () => T): T {
+        const task = Task.startCollapsed(message)
         const out = f()
         task.end()
         return out
@@ -51,8 +95,29 @@ export class Task {
         return out
     }
 
+    static async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
+        const task = Task.startCollapsed(message)
+        const out = await f()
+        task.end()
+        return out
+    }
+
+    static async asyncNoGroupWith<T>(message: string, f: () => Promise<T>): Promise<T> {
+        const task = Task.startNoGroup(message)
+        const out = await f()
+        task.endNoGroup()
+        return out
+    }
+
     static withTimed<T>(message: string, f: () => T): [number, T] {
         const task = Task.start(message)
+        const out = f()
+        const ms = task.end()
+        return [ms, out]
+    }
+
+    static withCollapsedTimed<T>(message: string, f: () => T): [number, T] {
+        const task = Task.startCollapsed(message)
         const out = f()
         const ms = task.end()
         return [ms, out]
