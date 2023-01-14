@@ -15,13 +15,18 @@ public class BoxingAtom extends Atom {
     this.fields = fields;
   }
 
-  @ExportMessage(name = "getFields")
-  Object[] getFieldsX() {
+  @ExportMessage
+  Object[] getFields() {
     return fields;
   }
 
   @ExportMessage
   Object getField(int index) {
     return fields[index];
+  }
+
+  @ExportMessage
+  void setField(int index, Object value) {
+    fields[index] = value;
   }
 }

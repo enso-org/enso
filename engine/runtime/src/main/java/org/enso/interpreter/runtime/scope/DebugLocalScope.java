@@ -11,15 +11,18 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.SourceSection;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -37,7 +40,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public class DebugLocalScope implements TruffleObject {
   private final EnsoRootNode rootNode;
 
-  /** All the bindings, including the parent scopes. */
+  /**
+   * All the bindings, including the parent scopes.
+   */
   private final Map<String, FramePointer> allBindings;
 
   /**
@@ -52,12 +57,14 @@ public class DebugLocalScope implements TruffleObject {
    *         y
    *     inner_func
    * </pre>
-   *
+   * <p>
    * the value of this field (for `inner_func` scope) would be {@code [['x'], ['y']]}
    */
   private final List<List<String>> bindingsByLevels;
 
-  /** Index of the current scope into {@link #bindingsByLevels} list. */
+  /**
+   * Index of the current scope into {@link #bindingsByLevels} list.
+   */
   private final int bindingsByLevelsIdx;
 
   private final MaterializedFrame frame;
@@ -75,7 +82,7 @@ public class DebugLocalScope implements TruffleObject {
     this.bindingsByLevelsIdx = bindingsByLevelsIdx;
     assert this.bindingsByLevels.isEmpty()
         || (0 <= this.bindingsByLevelsIdx
-            && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
+        && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
   }
 
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
@@ -136,7 +143,9 @@ public class DebugLocalScope implements TruffleObject {
     return true;
   }
 
-  /** Returns the members from the current local scope and all the parent scopes. */
+  /**
+   * Returns the members from the current local scope and all the parent scopes.
+   */
   @ExportMessage
   ScopeMembers getMembers(boolean includeInternal) {
     List<String> members = new ArrayList<>();
@@ -180,13 +189,13 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop) {
+  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop, @CachedLibrary("this") StructsLibrary structs) {
     FramePointer framePtr = allBindings.get(member);
     if (framePtr == null) {
       return null;
     } else {
       Object value = getValue(frame, framePtr);
-      return HostObjectDebugWrapper.wrapHostValues(value, interop);
+      return HostObjectDebugWrapper.wrapHostValues(value, interop, structs);
     }
   }
 
@@ -265,7 +274,9 @@ public class DebugLocalScope implements TruffleObject {
     return currentFrame;
   }
 
-  /** Simple interop wrapper for a list of strings. */
+  /**
+   * Simple interop wrapper for a list of strings.
+   */
   @ExportLibrary(InteropLibrary.class)
   static final class ScopeMembers implements TruffleObject {
     private final List<String> memberNames;

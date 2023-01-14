@@ -51,7 +51,7 @@ public abstract class Atom implements TruffleObject {
     return constructor;
   }
 
-  public final Object[] getFields() {
+  private final Object[] getFields() {
     return StructsLibrary.getUncached().getFields(this);
   }
 

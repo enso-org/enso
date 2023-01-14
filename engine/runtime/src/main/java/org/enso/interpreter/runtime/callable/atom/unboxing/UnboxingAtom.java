@@ -28,6 +28,13 @@ public abstract class UnboxingAtom extends Atom {
     return structs.getFields(this)[i];
   }
 
+  @ExportMessage
+  void setField(int i, Object value) {
+    //TODO
+    return;
+  }
+
+
   @ExportMessage(name = "getFields")
   static class GetFields {
     @Specialization(guards = "cachedLayout == atom.layout", limit = "10")
@@ -62,6 +69,12 @@ public abstract class UnboxingAtom extends Atom {
   @GenerateUncached(inherit = true)
   static abstract class InstantiatorNode extends Node {
     public abstract Atom execute(AtomConstructor constructor, Layout layout, Object[] args);
+  }
+
+  @GenerateNodeFactory
+  @GenerateUncached(inherit = true)
+  static abstract class FieldSetterNode extends Node {
+    public abstract void execute(Atom atom, Object value);
   }
 
   public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {

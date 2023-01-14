@@ -23,6 +23,7 @@ public abstract class StructsLibrary extends Library {
 
     public abstract Object[] getFields(Object receiver);
 
-    // TODO Delete, use specialized nodes instead, `index` is always compilation constant currently.
     public abstract Object getField(Object receiver, int index);
+
+    public abstract void setField(Object receiver, int index, Object value);
 }

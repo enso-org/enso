@@ -9,6 +9,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.Type;
@@ -38,6 +39,7 @@ public class GetFieldWithMatchNode extends RootNode {
   private final Text nameText;
   private final Type type;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) GetterPair[] getterPairs;
+  private @Children StructsLibrary[] structsLibraries;
 
   /**
    * Creates a new instance of this node.
@@ -52,6 +54,10 @@ public class GetFieldWithMatchNode extends RootNode {
     this.type = type;
     this.nameText = Text.create(name);
     this.getterPairs = getterPairs;
+    this.structsLibraries = new StructsLibrary[getterPairs.length];
+    for (int i = 0; i < getterPairs.length; i++) {
+      this.structsLibraries[i] = StructsLibrary.getFactory().createDispatched(3);
+    }
   }
 
   @ExplodeLoop
@@ -62,7 +68,7 @@ public class GetFieldWithMatchNode extends RootNode {
     for (int i = 0; i < getterPairs.length; i++) {
       var getter = getterPairs[i];
       if (getter.target == constructor) {
-        return atom.getFields()[getter.index];
+        return structsLibraries[i].getField(atom, getter.index);
       }
     }
     throw new PanicException(
