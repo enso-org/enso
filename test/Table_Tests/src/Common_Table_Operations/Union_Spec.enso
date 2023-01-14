@@ -233,38 +233,55 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "if type widening is not allowed, should use the type from first table that contained the given column" <|
-            t1 = table_builder [["A", [1, 2, 3]], ["B", [1.5, 2.5, 3.5]]]
-            t2 = table_builder [["A", [4, 5, 6]], ["B", [1, 2, 3]]]
+            t1 = table_builder [["A", [1, 2, 3]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", [1.2, 2.2, 3.1]]]
 
-            t1.at "B" . value_type . should_equal Value_Type.Float
-            t2.at "B" . value_type . should_equal Value_Type.Integer
+            t2.at "B" . value_type . should_equal Value_Type.Float
 
-            t3 = t1.union t2 allow_type_widening=False
+            t3 = t1.union t2 allow_type_widening=False keep_unmatched_columns=True
             within_table t3 <|
                 Problems.assume_no_problems t3
                 expect_column_names ["A", "B"] t3
                 t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
-                t3.at "B" . to_vector . should_equal [1.5, 2.5, 3.5, 1, 2, 3]
+                t3.at "A" . value_type . should_equal Value_Type.Integer
+                t3.at "B" . to_vector . should_equal [Nothing, Nothing, Nothing, 1.2, 2.2, 3.1]
                 t3.at "B" . value_type . should_equal Value_Type.Float
 
         Test.specify "if type widening is not allowed and types do not match, should report error and drop the problematic column" <|
-            t1 = table_builder [["A", [1, 2, 3]], ["B", [1, 2, 3]], ["C", [True, False, Nothing]], ["D", [10, 20, 30]]]
-            t2 = table_builder [["A", [4, 5, 6]], ["B", [1.5, 2.5, 3.5]], ["C", [1, 2, 3]], ["D", [True, True, True]]]
+            t1 = table_builder [["A", [1, 2, 3]], ["B", [1, 2, 3]], ["C", [True, False, Nothing]], ["D", [10, 20, 30]], ["E", [1.1, 2.5, 3.2]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", [1.5, 2.5, 3.5]], ["C", [1, 2, 3]], ["D", [True, True, True]], ["E", [1, 2, 3]]]
 
-            t1.at "B" . value_type . should_equal Value_Type.Float
+            t1.at "B" . value_type . should_equal Value_Type.Integer
             t1.at "C" . value_type . should_equal Value_Type.Boolean
             t1.at "D" . value_type . should_equal Value_Type.Integer
+            t1.at "E" . value_type . should_equal Value_Type.Float
 
-            t2.at "B" . value_type . should_equal Value_Type.Integer
+            t2.at "B" . value_type . should_equal Value_Type.Float
             t2.at "C" . value_type . should_equal Value_Type.Integer
             t2.at "D" . value_type . should_equal Value_Type.Boolean
+            t2.at "E" . value_type . should_equal Value_Type.Integer
 
             action = t1.union t2 allow_type_widening=False on_problems=_
             tester table =
                 expect_column_names ["A"] table
-                table.at "A" . to_vector . should_equal [4, 5, 6, 1, 2, 3]
-            problems = [Column_Type_Mismatch.Error "B" Value_Type.Integer Value_Type.Float, Column_Type_Mismatch.Error "C" Value_Type.Boolean Value_Type.Integer, Column_Type_Mismatch.Error "D" Value_Type.Integer Value_Type.Boolean]
+                table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            problems = [Column_Type_Mismatch.Error "B" Value_Type.Integer Value_Type.Float, Column_Type_Mismatch.Error "C" Value_Type.Boolean Value_Type.Integer, Column_Type_Mismatch.Error "D" Value_Type.Integer Value_Type.Boolean, Column_Type_Mismatch.Error "E" Value_Type.Float Value_Type.Integer]
             Problems.test_problem_handling action problems tester
+
+        Test.specify "even if type widening is not allowed, if the first column is mixed, it should accept any column to be concatenated to it" <|
+            t1 = table_builder [["X", ["a", 1, Nothing]]]
+            t2 = table_builder [["X", [1]]]
+            t3 = table_builder [["X", [1.2, 2.3, 3.4]]]
+            t4 = table_builder [["X", ["a", "b"]]]
+            t5 = table_builder [["X", [True, False]]]
+
+            t1.at "X" . value_type . should_equal Value_Type.Mixed
+            t2.at "X" . value_type . should_equal Value_Type.Integer
+
+            t6 = t1.union [t2, t3, t4, t5] allow_type_widening=False
+            Problems.assume_no_problems t6
+            t6.at "X" . value_type . should_equal Value_Type.Mixed
+            t6.at "X" . to_vector . should_equal ["a", 1, Nothing, 1, 1.2, 2.3, 3.4, "a", "b", True, False]
 
         Test.specify "if type mismatches cause all columns to be dropped, fail with No_Output_Columns" <|
             t1 = table_builder [["A", [1, 2, 3]]]

@@ -1208,32 +1208,33 @@ type Table
                 result_type = case allow_type_widening of
                     True ->
                         types = columns.filter Filter_Condition.Not_Nothing . map .value_type
-                        Value_Type.find_common_type types strict=True
+                        common_type = Value_Type.find_common_type types strict=True
+                        if common_type.is_nothing then
+                            problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
+                        common_type
                     False ->
                         first_column = columns.find (c-> c.is_nothing.not)
-                        first_column.value_type
+                        first_type = first_column.value_type
+                        if first_type == Value_Type.Mixed then Value_Type.Mixed else
+                            first_wrong_column = columns.find if_missing=Nothing col->
+                                col.is_nothing.not && col.value_type != first_type
+                            if first_wrong_column.is_nothing then first_type else
+                                got_type = first_wrong_column.value_type
+                                problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name first_type got_type)
+                                Nothing
                 case result_type of
-                    Nothing ->
-                        problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
-                        Nothing
+                    Nothing -> Nothing
                     _ ->
-                        handle_storage_type_mismatch caught_panic =
-                            exception = caught_panic.payload
-                            got_type = Storage.from_java exception.gotType . to_approximate_value_type
-                            expected_type = result_type
-                            problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name expected_type got_type)
-                            Nothing
-                        Panic.catch StorageTypeMismatch handler=handle_storage_type_mismatch <|
-                            storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=new_row_count
-                            column_set.column_indices.zip all_tables i-> parent_table->
-                                case i of
-                                    Nothing ->
-                                        null_row_count = parent_table.row_count
-                                        storage_builder.appendNulls null_row_count
-                                    _ : Integer ->
-                                        storage = parent_table.at i . java_column . getStorage
-                                        storage_builder.appendBulkStorage storage
-                            Column.from_storage column_set.name storage_builder.seal
+                        storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=new_row_count
+                        column_set.column_indices.zip all_tables i-> parent_table->
+                            case i of
+                                Nothing ->
+                                    null_row_count = parent_table.row_count
+                                    storage_builder.appendNulls null_row_count
+                                _ : Integer ->
+                                    storage = parent_table.at i . java_column . getStorage
+                                    storage_builder.appendBulkStorage storage
+                        Column.from_storage column_set.name storage_builder.seal
             good_columns = merged_columns.filter Filter_Condition.Not_Nothing
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|

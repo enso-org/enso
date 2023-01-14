@@ -11,7 +11,7 @@ public class StorageTypeMismatch extends RuntimeException {
 
   @Override
   public String getMessage() {
-    return "Expected storage of type " + expectedType + ", got " + gotType + ".";
+    return "Expected storage of type " + expectedType + ", got " + gotType + ". This is a bug in the Table library.";
   }
 
   public int gotType() {
