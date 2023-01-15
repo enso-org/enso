@@ -264,7 +264,7 @@ fn subtype_field_type(data: &Data) -> Option<syn::Type> {
             for field in fields {
                 if field.subtype {
                     let err = "A struct cannot have more than one field with #[reflect(subtype)].";
-                    assert_eq!(type_, None, "{}", err);
+                    assert_eq!(type_, None, "{err}");
                     type_ = Some(field.type_.clone());
                 }
             }

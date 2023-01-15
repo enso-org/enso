@@ -16,6 +16,6 @@ pub trait OsStrExt {
 
 impl OsStrExt for OsStr {
     fn as_str(&self) -> &str {
-        self.to_str().unwrap_or_else(|| panic!("String is not valid UTF-8: {:?}", self))
+        self.to_str().unwrap_or_else(|| panic!("String is not valid UTF-8: {self:?}"))
     }
 }

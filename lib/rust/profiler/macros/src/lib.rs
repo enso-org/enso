@@ -43,12 +43,12 @@ fn define_profiler(
     obj_ident: &syn::Ident,
     enabled: bool,
 ) -> proc_macro::TokenStream {
-    let start = quote::format_ident!("start_{}", level);
-    let create = quote::format_ident!("create_{}", level);
-    let level_link = format!("[{}-level](index.html#{})", level, level);
-    let doc_obj = format!("Identifies a {} profiler.", level_link);
-    let doc_start = format!("Start a new {} profiler.", level_link);
-    let doc_create = format!("Create a new {} profiler, in unstarted state.", level_link);
+    let start = quote::format_ident!("start_{level}");
+    let create = quote::format_ident!("create_{level}");
+    let level_link = format!("[{level}-level](index.html#{level})");
+    let doc_obj = format!("Identifies a {level_link} profiler.");
+    let doc_start = format!("Start a new {level_link} profiler.");
+    let doc_create = format!("Create a new {level_link} profiler, in unstarted state.");
     let ts = if enabled {
         quote::quote! {
             // =================================
@@ -208,7 +208,7 @@ fn get_enabled_level(levels: &[impl AsRef<str>]) -> usize {
             return i;
         }
     }
-    panic!("{} set to unknown profiling level: {}", PROFILING_LEVEL_ENV_VAR, enabled);
+    panic!("{PROFILING_LEVEL_ENV_VAR} set to unknown profiling level: {enabled}");
 }
 
 /// Defines a hierarchy of profiler levels.
@@ -288,7 +288,7 @@ pub fn profile(
 #[cfg(not(enso_enable = "proc_macro_span"))]
 /// Decorate the input with file:line info determined by the proc_macro's call site.
 fn make_label<L: fmt::Display>(name: L) -> String {
-    format!("{} (?:?)", name)
+    format!("{name} (?:?)")
 }
 
 #[cfg(enso_enable = "proc_macro_span")]
