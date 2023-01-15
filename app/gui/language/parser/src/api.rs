@@ -208,7 +208,7 @@ impl<M: Metadata> TryFrom<&ParsedSourceFile<M>> for String {
 impl<M: Metadata> Display for ParsedSourceFile<M> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.serialize() {
-            Ok(serialized) => write!(f, "{}", serialized),
+            Ok(serialized) => write!(f, "{serialized}"),
             Err(_) => write!(f, "[NOT REPRESENTABLE SOURCE FILE]"),
         }
     }

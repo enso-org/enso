@@ -245,7 +245,7 @@ impl<T> Debug for Id<T>
 where T: IdVariant
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple(ID_STRUCT_NAME).field(&format_args!("{}", self)).finish()
+        f.debug_tuple(ID_STRUCT_NAME).field(&format_args!("{self}")).finish()
     }
 }
 

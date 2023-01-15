@@ -137,17 +137,17 @@ impl Model {
         outer_dom.dom().set_style_or_warn("overflow-x", "auto");
         outer_dom.dom().set_style_or_warn("background-color", bg_color);
         outer_dom.dom().set_style_or_warn("pointer-events", "auto");
-        outer_dom.dom().set_style_or_warn("border-radius", format!("{}px", CORNER_RADIUS));
+        outer_dom.dom().set_style_or_warn("border-radius", format!("{CORNER_RADIUS}px"));
         shadow::add_to_dom_element(&outer_dom, &styles);
 
         inner_dom.dom().set_attribute_or_warn("class", "scrollable");
         inner_dom.dom().set_style_or_warn("white-space", "normal");
         inner_dom.dom().set_style_or_warn("overflow-y", "auto");
         inner_dom.dom().set_style_or_warn("overflow-x", "auto");
-        inner_dom.dom().set_style_or_warn("padding", format!("{}px", PADDING));
+        inner_dom.dom().set_style_or_warn("padding", format!("{PADDING}px"));
         inner_dom.dom().set_style_or_warn("padding-top", "5px");
         inner_dom.dom().set_style_or_warn("pointer-events", "auto");
-        inner_dom.dom().set_style_or_warn("border-radius", format!("{}px", CORNER_RADIUS));
+        inner_dom.dom().set_style_or_warn("border-radius", format!("{CORNER_RADIUS}px"));
 
         overlay.roundness.set(1.0);
         overlay.radius.set(CORNER_RADIUS);
@@ -270,8 +270,8 @@ impl Model {
         let padding = (size.x.min(size.y) / 2.0).min(PADDING);
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
         self.inner_dom.set_dom_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
-        self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding));
-        self.inner_dom.dom().set_style_or_warn("padding-top", format!("{}px", PADDING_TOP));
+        self.inner_dom.dom().set_style_or_warn("padding", format!("{padding}px"));
+        self.inner_dom.dom().set_style_or_warn("padding-top", format!("{PADDING_TOP}px"));
     }
 }
 

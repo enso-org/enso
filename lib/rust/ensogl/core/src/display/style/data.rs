@@ -96,10 +96,10 @@ impl From<&str> for Data {
 impl Display for Data {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Invalid(s) => write!(f, "{}", s),
-            Self::Number(t) => write!(f, "Number({})", t),
-            Self::Color(t) => write!(f, "Color({:?})", t),
-            Self::Text(t) => write!(f, "Text({:?})", t),
+            Self::Invalid(s) => write!(f, "{s}"),
+            Self::Number(t) => write!(f, "Number({t})"),
+            Self::Color(t) => write!(f, "Color({t:?})"),
+            Self::Text(t) => write!(f, "Text({t:?})"),
         }
     }
 }
@@ -177,13 +177,10 @@ macro_rules! _define_binary_number_operator {
     };
 }
 
-define_binary_number_operator!(Mul::mul, |lhs, rhs| format!("Cannot multiply {} by {}.", lhs, rhs));
-define_binary_number_operator!(Div::div, |lhs, rhs| format!("Cannot divide {} by {}.", lhs, rhs));
-define_binary_number_operator!(Add::add, |lhs, rhs| format!("Cannot add {} to {}.", lhs, rhs));
-define_binary_number_operator!(Sub::sub, |lhs, rhs| format!(
-    "Cannot subtract {} from {}.",
-    rhs, lhs
-));
+define_binary_number_operator!(Mul::mul, |lhs, rhs| format!("Cannot multiply {lhs} by {rhs}."));
+define_binary_number_operator!(Div::div, |lhs, rhs| format!("Cannot divide {lhs} by {rhs}."));
+define_binary_number_operator!(Add::add, |lhs, rhs| format!("Cannot add {lhs} to {rhs}."));
+define_binary_number_operator!(Sub::sub, |lhs, rhs| format!("Cannot subtract {rhs} from {lhs}."));
 
 
 

@@ -62,10 +62,10 @@ impl Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut iter = self.crumbs.iter();
         if let Some(crumb) = iter.next() {
-            write!(f, "{}", crumb)?
+            write!(f, "{crumb}")?
         }
         for crumb in iter {
-            write!(f, "⮚{}", crumb)?
+            write!(f, "⮚{crumb}")?
         }
         Ok(())
     }
@@ -217,7 +217,7 @@ impl DefinitionName {
 impl Display for DefinitionName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let text = self.name_segments().join(ast::opr::predefined::ACCESS);
-        write!(f, "{}", text)
+        write!(f, "{text}")
     }
 }
 

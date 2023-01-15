@@ -219,12 +219,12 @@ impl Model {
 
     /// Set the label at the left edge of the background to show the given numeric value.
     pub fn set_left_label_content(&self, value: f32) {
-        self.label_left.frp.set_content.emit(format!("{:.2}", value))
+        self.label_left.frp.set_content.emit(format!("{value:.2}"))
     }
 
     /// Set the label at the right edge of the background to show the given numeric value.
     pub fn set_right_label_content(&self, value: f32) {
-        self.label_right.frp.set_content.emit(format!("{:.2}", value))
+        self.label_right.frp.set_content.emit(format!("{value:.2}"))
     }
 
     pub fn set_caption_left(&self, caption: Option<String>) {

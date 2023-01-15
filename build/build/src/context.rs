@@ -62,7 +62,7 @@ impl BuildContext {
             };
             Result::Ok(release)
         }
-        .with_context(move || format!("Failed to resolve release designator `{}`", designator_cp))
+        .with_context(move || format!("Failed to resolve release designator `{designator_cp}`"))
         .boxed()
     }
 

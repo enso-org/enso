@@ -444,7 +444,7 @@ impl Rgb {
         let red = (self.red * 255.0).round() as i32;
         let green = (self.green * 255.0).round() as i32;
         let blue = (self.blue * 255.0).round() as i32;
-        format!("rgb({},{},{})", red, green, blue)
+        format!("rgb({red},{green},{blue})")
     }
 }
 

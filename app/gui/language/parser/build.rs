@@ -30,7 +30,7 @@ pub fn parser_url(version: &ParserVersion) -> reqwest::Url {
         "https://packages.luna-lang.org/parser-js/nightly/{}/scala-parser.js",
         version.commit
     );
-    let invalid_url_msg = format!("{} is an invalid URL.", url_string);
+    let invalid_url_msg = format!("{url_string} is an invalid URL.");
     reqwest::Url::parse(&url_string).expect(&invalid_url_msg)
 }
 
@@ -129,7 +129,7 @@ async fn main() -> Result {
         provider.run().await?;
     }
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed={}", PARSER_PATH);
+    println!("cargo:rerun-if-changed={PARSER_PATH}");
 
     Ok(())
 }

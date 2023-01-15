@@ -128,7 +128,7 @@ pub enum Error<M> {
 
 impl<M> fmt::Display for Error<M> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -167,7 +167,7 @@ pub struct EventError<E> {
 
 impl<E: fmt::Debug> fmt::Display for EventError<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -483,7 +483,7 @@ impl Label {
             "@on_frame" => Class::OnFrame,
             "@set_context" => Class::SetContext,
             // Data producer is probably newer than consumer. Forward compatibility isn't necessary.
-            name if name.starts_with('@') => panic!("Unrecognized special profiler: {:?}", name),
+            name if name.starts_with('@') => panic!("Unrecognized special profiler: {name:?}"),
             _ => Class::Normal,
         }
     }

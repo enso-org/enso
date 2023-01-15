@@ -16,7 +16,7 @@ where &'t Shape<Ast>: TryInto<&'t T> {
         Ok(shape) => shape,
         _ => {
             let expected_typename = std::any::type_name::<T>();
-            panic!("failed converting shape into {}, got {:?}", expected_typename, ast)
+            panic!("failed converting shape into {expected_typename}, got {ast:?}")
         }
     }
 }
@@ -46,8 +46,8 @@ pub fn assert_unique_ids(ast: &Ast) {
         if let Some(id) = node.id {
             if let Some(id2) = ids.insert(id, node) {
                 panic!(
-                    "Collision for id {} between `{}` and `{}`.\n\nWhole program is:\n{}",
-                    id, id2, node, ast
+                    "Collision for id {id} between `{id2}` and `{node}`.\
+                    \n\nWhole program is:\n{ast}"
                 )
             }
         }

@@ -32,7 +32,7 @@ pub enum StateTag {
 
 impl Display for StateTag {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let debug_str = format!("{:?}", self);
+        let debug_str = format!("{self:?}");
         let display_str = crate::separate_pascal_case_str_with_spaces(&debug_str);
         write!(f, "{display_str}")
     }
@@ -59,7 +59,7 @@ impl FromStr for Ami {
         const AMI_PREFIX: &str = "ami-";
 
         if !ami.starts_with(AMI_PREFIX) {
-            return Err(format!("Bad Ami format: {}", ami))?;
+            return Err(format!("Bad Ami format: {ami}"))?;
         };
         Ok(Self(ami.to_string()))
     }

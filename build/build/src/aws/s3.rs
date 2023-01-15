@@ -40,7 +40,7 @@ impl BucketContext {
         let path = path.as_ref();
         let normalized = path_slash::PathExt::to_slash_lossy(path);
         if let Some(prefix) = &self.key_prefix {
-            format!("{}/{}", prefix, normalized)
+            format!("{prefix}/{normalized}")
         } else {
             normalized.into()
         }
@@ -84,7 +84,7 @@ impl BucketContext {
     pub async fn put_file(&self, path: impl AsRef<Path>) -> Result<PutObjectOutput> {
         let path = path.as_ref();
         let stream = ByteStream::from_path(path).await?;
-        let path = path.file_name().with_context(|| format!("Path {:?} has no file name", path))?;
+        let path = path.file_name().with_context(|| format!("Path {path:?} has no file name"))?;
         self.put(path.as_str(), stream).await
     }
 

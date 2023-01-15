@@ -189,12 +189,12 @@ pub mod svg {
             )?;
             let y_pos = HEADER_HEIGHT + GRID_INTERVAL_MS * i as f64;
             let x_len = POLE_SPACING * dia.processes.len() as f64;
-            let path = format!("M0,{} l{},0", y_pos, x_len);
-            writeln!(f, "<path fill=\"none\" stroke=\"#{}\" d=\"{}\"/>", GRID_COLOR_RGB, path)?;
+            let path = format!("M0,{y_pos} l{x_len},0");
+            writeln!(f, "<path fill=\"none\" stroke=\"#{GRID_COLOR_RGB}\" d=\"{path}\"/>")?;
         }
         for i in 1..dia.processes.len() {
             let path = format!("M{},{} l0,{}", POLE_SPACING * i as f64, HEADER_HEIGHT, height);
-            writeln!(f, "<path fill=\"none\" stroke=\"black\" d=\"{}\"/>", path)?;
+            writeln!(f, "<path fill=\"none\" stroke=\"black\" d=\"{path}\"/>")?;
         }
         let simple_only = "Drawing messages between non-adjacent processes is not implemented.";
         let mut pairs = std::collections::HashMap::new();

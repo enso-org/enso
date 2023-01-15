@@ -24,7 +24,7 @@ fn declare_env_dependence(env: &str) {
     println!("cargo:rerun-if-env-changed={env}",);
     // This is a no-op assignment, except it makes cargo aware that the output depends on the env.
     let value = std::env::var(env).unwrap_or_default();
-    println!("cargo:rustc-env={}={}", env, value);
+    println!("cargo:rustc-env={env}={value}");
 }
 
 /// Make cargo aware that the result of compiling this crate depends on an environment variable;
@@ -32,6 +32,6 @@ fn declare_env_dependence(env: &str) {
 fn declare_env_cfg_flag(env: &str, cfg: &str) {
     println!("cargo:rerun-if-env-changed={env}");
     if std::env::var(env).is_ok() {
-        println!("cargo:rustc-cfg={}", cfg);
+        println!("cargo:rustc-cfg={cfg}");
     }
 }
