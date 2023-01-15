@@ -324,7 +324,7 @@ impl<T: 'static + TextProvider> TextGrid<T> {
                 let bottom = top - vis_size.y;
                 let left = scroll_x * content_size.x;
                 let right = left +  vis_size.x;
-                dom_entry_root.set_style_or_warn("top", format!("{}px", top));
+                dom_entry_root.set_style_or_warn("top", format!("{top}px"));
                 dom_entry_root.set_style_or_warn("left", format!("{}px", -left));
                 grid_view::Viewport {top,bottom,left,right}
             }));

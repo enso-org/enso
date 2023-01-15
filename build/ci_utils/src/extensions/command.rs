@@ -16,7 +16,7 @@ pub trait CommandExt {
     fn describe(&self) -> String {
         let mut ret = String::new();
         let pretty_printed = format!("{:?}", self.as_std());
-        let _ = write!(ret, "Command:\n\t{}", pretty_printed);
+        let _ = write!(ret, "Command:\n\t{pretty_printed}");
         if let Some(cwd) = self.as_std().get_current_dir() {
             let _ = write!(ret, "\n\twith working directory: {}", cwd.display());
         };

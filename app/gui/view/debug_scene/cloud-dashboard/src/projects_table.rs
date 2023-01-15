@@ -181,7 +181,7 @@ define_columns_enum!(Projects, LastModified, SharedWith, Labels, DataAccess, Usa
 
 impl Display for Columns {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let debug_str = format!("{:?}", self);
+        let debug_str = format!("{self:?}");
         let display_str = view::separate_pascal_case_str_with_spaces(&debug_str);
         write!(f, "{display_str}")
     }

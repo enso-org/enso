@@ -633,8 +633,7 @@ impl Slider {
             precision <- output.precision.on_change().gate(&component_drag);
             model.tooltip.frp.set_style <+ precision.map(|precision| {
                 let prec_text = format!(
-                    "Precision: {precision:.digits$}",
-                    digits=MAX_DISP_DECIMAL_PLACES_DEFAULT
+                    "Precision: {precision:.MAX_DISP_DECIMAL_PLACES_DEFAULT$}",
                 );
                 let prec_text = prec_text.trim_end_matches('0');
                 let prec_text = prec_text.trim_end_matches('.');
@@ -897,7 +896,7 @@ fn value_text_truncate((value, precision, max_digits): &(f32, f32, usize)) -> St
     if *precision < 1.0 || *max_digits == 0 {
         let digits = (-precision.log10()).ceil() as usize;
         let digits = digits.min(*max_digits);
-        format!("{value:.prec$}", prec = digits)
+        format!("{value:.digits$}")
     } else {
         format!("{value:.0}")
     }

@@ -99,7 +99,7 @@ impl RawTextModel {
         let _green = text_color.green * 255.0;
         let _blue = text_color.blue * 255.0;
         let text_color = format!("rgba({},{},{},{})", _red, _green, _blue, text_color.alpha);
-        let padding_text = format!("{}px", PADDING_TEXT);
+        let padding_text = format!("{PADDING_TEXT}px");
 
         dom.dom().set_attribute_or_warn("class", "visualization scrollable");
         dom.dom().set_style_or_warn("white-space", "pre");
@@ -136,7 +136,7 @@ impl RawTextModel {
         };
         self.dom.dom().set_inner_html("");
         let data_str = serde_json::to_string_pretty(&**data_inner);
-        let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
+        let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {e}>"));
         let max_line_size = 1024;
         if data_str.len() > max_line_size {
             split_long_lines(&data_str, max_line_size, &mut |line| {

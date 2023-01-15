@@ -51,15 +51,13 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Error::ValueIsNotAnObject { object } => f.write_fmt(format_args!(
-                "JsValue was expected to be of type `object`, but was not: {:?}",
-                object
+                "JsValue was expected to be of type `object`, but was not: {object:?}"
             )),
             Error::PropertyNotFoundOnObject { object, property } => f.write_fmt(format_args!(
-                "Object was expected to have property {:?} but has not: {:?}",
-                property, object
+                "Object was expected to have property {property:?} but has not: {object:?}"
             )),
             Error::ConstructorError { js_error } =>
-                f.write_fmt(format_args!("Error while constructing object: {:?}", js_error)),
+                f.write_fmt(format_args!("Error while constructing object: {js_error:?}")),
         }
     }
 }

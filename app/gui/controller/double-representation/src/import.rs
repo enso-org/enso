@@ -185,7 +185,7 @@ impl Display for Info {
             ImportedNames::Module { alias } => {
                 write!(f, "{import_kw} {module}")?;
                 if let Some(alias) = alias {
-                    write!(f, " {} {}", ALIAS_KEYWORD, alias)?;
+                    write!(f, " {ALIAS_KEYWORD} {alias}")?;
                 }
                 Ok(())
             }

@@ -21,7 +21,7 @@ pub fn overlappable(
         let path = &mut t.1;
         path.segments.last_mut().iter_mut().for_each(|s| {
             let rr = repr(&s);
-            s.ident = Ident::new(&format!("MarketCtx_{}", rr), Span::call_site());
+            s.ident = Ident::new(&format!("MarketCtx_{rr}"), Span::call_site());
         });
     });
 

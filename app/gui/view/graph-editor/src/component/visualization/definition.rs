@@ -107,8 +107,7 @@ impl Display for InstantiationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             InstantiationError::ConstructorError(value) => f.write_fmt(format_args!(
-                "Could not construct visualisation because of error: {:?}",
-                value
+                "Could not construct visualisation because of error: {value:?}"
             )),
         }
     }

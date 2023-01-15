@@ -23,7 +23,7 @@ use reqwest::Response;
 
 /// Owned data denoting a specific GitHub repository.
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
-#[display(fmt = "{}/{}", owner, name)]
+#[display(fmt = "{owner}/{name}")]
 pub struct Repo {
     /// Owner - an organization's or user's name.
     pub owner: String,
@@ -66,7 +66,7 @@ impl Repo {
 ///
 /// Particularly useful for defining `const` repositories.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize, derive_more::Display)]
-#[display(fmt = "{}/{}", owner, name)]
+#[display(fmt = "{owner}/{name}")]
 pub struct RepoRef<'a> {
     /// Owner - an organization's or user's name.
     pub owner: &'a str,
@@ -326,8 +326,7 @@ impl<R: IsRepo> Handle<R> {
     pub async fn default_branch(&self) -> Result<String> {
         self.get().await?.default_branch.with_context(|| {
             format!(
-                "Failed to get the default branch of the {} repository. Missing field: `default_branch`.",
-                self
+                "Failed to get the default branch of the {self} repository. Missing field: `default_branch`.",
             )
         })
     }

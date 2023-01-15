@@ -399,7 +399,7 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         use ast_schema::*;
-        write!(formatter, "an object with `{}` and `{}` fields", SHAPE, LENGTH)
+        write!(formatter, "an object with `{SHAPE}` and `{LENGTH}` fields")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>

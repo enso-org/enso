@@ -149,32 +149,27 @@ pub fn clone_ref_bounds(attr: &Attribute) -> Option<Vec<WherePredicate>> {
         Meta::List(ml) => ml.nested,
         _ => panic!("Attribute contents does not conform to meta item."),
     };
-    assert!(
-        list.len() <= 1,
-        "Only a single entry within `{}` attribute is allowed.",
-        CLONE_REF_ATTR
-    );
+    assert!(list.len() <= 1, "Only a single entry within `{CLONE_REF_ATTR}` attribute is allowed.");
     let bound_value = match list.first() {
         Some(NestedMeta::Meta(Meta::NameValue(name_val))) =>
             if is_custom_bound(name_val) {
                 &name_val.lit
             } else {
-                panic!("`{}` attribute can define value only for `{}`.", CLONE_REF_ATTR, BOUND_NAME)
+                panic!("`{CLONE_REF_ATTR}` attribute can define value only for `{BOUND_NAME}`.")
             },
         Some(_) =>
-            panic!("`{}` attribute must contain a single name=value assignment.", CLONE_REF_ATTR),
-        None => panic!("`{}` attribute must not be empty.", CLONE_REF_ATTR),
+            panic!("`{CLONE_REF_ATTR}` attribute must contain a single name=value assignment."),
+        None => panic!("`{CLONE_REF_ATTR}` attribute must not be empty."),
     };
     let bound_str = if let Lit::Str(lit_str) = bound_value {
         lit_str
     } else {
-        panic!("`{}` value must be a string literal describing `where` predicates.", BOUND_NAME)
+        panic!("`{BOUND_NAME}` value must be a string literal describing `where` predicates.")
     };
     let bounds_text = format!("where {}", bound_str.value());
     let bounds = syn::parse_str::<WhereClause>(&bounds_text);
-    let bounds = bounds.unwrap_or_else(|_| {
-        panic!("Failed to parse user-provided where clause: `{}`.", bounds_text)
-    });
+    let bounds = bounds
+        .unwrap_or_else(|_| panic!("Failed to parse user-provided where clause: `{bounds_text}`."));
     let ret = bounds.predicates.into_iter().collect();
     Some(ret)
 }

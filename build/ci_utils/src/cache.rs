@@ -106,7 +106,7 @@ pub fn digest<S: Storable>(storable: &S) -> Result<String> {
 
     let mut digest = sha2::Sha224::default();
     sha2::Digest::update(&mut digest, [VERSION]);
-    sha2::Digest::update(&mut digest, &key_serialized);
+    sha2::Digest::update(&mut digest, key_serialized);
     std::any::TypeId::of::<S::Key>().hash(&mut HashToDigest(&mut digest));
     std::any::TypeId::of::<S>().hash(&mut HashToDigest(&mut digest));
     let digest = digest.finalize();
@@ -159,7 +159,7 @@ impl Cache {
                     trace!("Value cannot be retrieved from cache because: {e}");
                     crate::fs::reset_dir(&entry_dir)?;
                     let key = storable.key();
-                    tracing::Span::current().record("key", &tracing::field::debug(&key));
+                    tracing::Span::current().record("key", tracing::field::debug(&key));
                     let metadata = storable
                         .generate(this, entry_dir.clone())
                         .instrument(info_span!("Generating value to fill the cache."))

@@ -52,14 +52,14 @@ impl Shell for Cmd {
     fn modify_env(&self, change: &Modification) -> Result<String> {
         let name = &change.variable_name;
         Ok(match &change.action {
-            Action::Remove => format!("set {}=", name),
-            Action::Set(value) => format!("set {}={}", name, value),
+            Action::Remove => format!("set {name}="),
+            Action::Set(value) => format!("set {name}={value}"),
             Action::PrependPaths(paths) => self.set_prepended_paths(name, paths)?,
         })
     }
 
     fn access_environment_variable(&self, name: &str) -> String {
-        format!("%{}%", name)
+        format!("%{name}%")
     }
 }
 

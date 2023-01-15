@@ -61,7 +61,7 @@ impl TryFrom<&Prerelease> for NightlyPrerelease {
         let index =
             identifiers.get(4).map(|index| index.parse2()).transpose().context("Invalid index")?;
         let date = chrono::NaiveDate::from_ymd_opt(year, month, day)
-            .with_context(|| format!("Invalid date: {}-{}-{}", year, month, day))?;
+            .with_context(|| format!("Invalid date: {year}-{month}-{day}"))?;
         Ok(Self::new(date, index))
     }
 }
@@ -78,7 +78,7 @@ impl Display for NightlyPrerelease {
             date.day()
         )?;
         if let Some(index) = index {
-            write!(f, ".{}", index)?;
+            write!(f, ".{index}")?;
         }
         Ok(())
     }

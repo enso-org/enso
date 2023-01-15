@@ -84,8 +84,8 @@ fn render_documentation(doc: EntryDocumentation) -> String {
     match doc {
         EntryDocumentation::Placeholder(placeholder) => match placeholder {
             Placeholder::NoDocumentation => result.push_str("No documentation available."),
-            Placeholder::Local { name } => writeln!(result, "Local variable: {}", name).unwrap(),
-            Placeholder::Function { name } => writeln!(result, "Function: {}", name).unwrap(),
+            Placeholder::Local { name } => writeln!(result, "Local variable: {name}").unwrap(),
+            Placeholder::Function { name } => writeln!(result, "Function: {name}").unwrap(),
         },
         EntryDocumentation::Docs(docs) => match docs {
             Documentation::Module(docs) => {
@@ -97,19 +97,19 @@ fn render_documentation(doc: EntryDocumentation) -> String {
             Documentation::Constructor { name, type_docs } => {
                 let name = name.to_string_with_main_segment();
                 let type_name = type_docs.name.to_string_with_main_segment();
-                writeln!(result, "Constructor {} of type {}", name, type_name).unwrap();
+                writeln!(result, "Constructor {name} of type {type_name}").unwrap();
                 write_type_docs(&mut result, type_docs);
             }
             Documentation::Method { name, type_docs } => {
                 let name = name.to_string_with_main_segment();
                 let type_name = type_docs.name.to_string_with_main_segment();
-                writeln!(result, "Method {} of type {}", name, type_name).unwrap();
+                writeln!(result, "Method {name} of type {type_name}").unwrap();
                 write_type_docs(&mut result, type_docs);
             }
             Documentation::ModuleMethod { name, module_docs } => {
                 let name = name.to_string_with_main_segment();
                 let module_name = module_docs.name.to_string_with_main_segment();
-                writeln!(result, "Method {} of module {}", name, module_name).unwrap();
+                writeln!(result, "Method {name} of module {module_name}").unwrap();
                 write_module_docs(&mut result, &module_docs);
             }
             Documentation::Function { .. } => {}
@@ -125,15 +125,15 @@ fn write_module_docs(result: &mut String, docs: &Rc<ModuleDocumentation>) {
     writeln!(result, "Summary: {:?}", docs.synopsis).unwrap();
     writeln!(result, "Types:").unwrap();
     for ty in docs.types.iter() {
-        writeln!(result, "{:?}", ty).unwrap();
+        writeln!(result, "{ty:?}").unwrap();
     }
     writeln!(result, "Functions:").unwrap();
     for ty in docs.methods.iter() {
-        writeln!(result, "{:?}", ty).unwrap();
+        writeln!(result, "{ty:?}").unwrap();
     }
     writeln!(result, "Examples:").unwrap();
     for ty in docs.examples.iter() {
-        writeln!(result, "{:?}", ty).unwrap();
+        writeln!(result, "{ty:?}").unwrap();
     }
 }
 
@@ -143,11 +143,11 @@ fn write_type_docs(result: &mut String, docs: Rc<TypeDocumentation>) {
     writeln!(result, "Summary: {:?}", docs.synopsis).unwrap();
     writeln!(result, "Constructors:").unwrap();
     for constructor in docs.constructors.iter() {
-        writeln!(result, "{:?}", constructor).unwrap();
+        writeln!(result, "{constructor:?}").unwrap();
     }
     writeln!(result, "Methods:").unwrap();
     for method in docs.methods.iter() {
-        writeln!(result, "{:?}", method).unwrap();
+        writeln!(result, "{method:?}").unwrap();
     }
     writeln!(result, "Examples: {:?}", docs.examples).unwrap();
 }
