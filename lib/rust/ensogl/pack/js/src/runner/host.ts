@@ -35,8 +35,6 @@ function exportGlobal(exports: { [key: string]: any }) {
     }
 }
 
-// exportGlobal({ window: global })
-
 export default {
     global,
     exportGlobal,

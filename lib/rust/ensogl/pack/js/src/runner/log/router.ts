@@ -1,4 +1,4 @@
-import host from 'system/host'
+import host from 'runner/host'
 
 // ==============
 // === Router ===
@@ -59,6 +59,6 @@ class Router {
     }
 }
 
-export const logRouter = new Router()
+export const router = new Router()
 
-host.exportGlobal({ logRouter, hideLogs: logRouter.hideLogs, showLogs: logRouter.showLogs })
+host.exportGlobal({ hideLogs: router.hideLogs, showLogs: router.showLogs })

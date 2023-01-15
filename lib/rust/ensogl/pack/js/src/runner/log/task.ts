@@ -1,4 +1,4 @@
-import { logger } from 'log/logger'
+import { logger } from 'runner/log/logger'
 
 // ============
 // === Task ===

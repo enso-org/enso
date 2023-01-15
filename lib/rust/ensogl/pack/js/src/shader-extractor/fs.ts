@@ -13,9 +13,8 @@ import {
 import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'
 import { promises as fs } from 'fs'
-import { Task as LoggedTask } from 'log/task'
-import * as path from 'path'
-import { logger } from '../log/logger'
+import { Task as LoggedTask } from 'runner/log/task'
+import { logger } from 'runner/log/logger'
 import { Stream } from 'node:stream'
 
 // ================

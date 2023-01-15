@@ -1,10 +1,9 @@
-import * as animation from 'animation'
-import * as html_utils from 'dom/dom'
-import * as math from 'math'
-import * as svg from 'dom/svg'
-import { Config } from 'config/config'
-import { Logo } from 'dom/logo'
-import { easeInOutElastic, easeOutElastic, elasticOut } from 'animation'
+import * as animation from 'runner/animation'
+import * as html_utils from 'runner/dom/dom'
+import * as math from 'runner/math'
+import * as svg from 'runner/dom/svg'
+import { Config } from 'runner/config'
+import { Logo } from 'runner/dom/logo'
 
 // =========================
 // === ProgressIndicator ===

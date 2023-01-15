@@ -109,7 +109,7 @@ pub async fn build(
     outputs: WasmPackOutputs,
     provider: impl FnOnce(WasmPackOutputs) -> Result<WasmPackCommand>,
 ) -> Result {
-    ide_ci::env::prepend_to_path(r"C:\varia\install\bin")?;
+    // ide_ci::env::prepend_to_path(r"C:\varia\install\bin")?;
     let current_cargo_path = Path::new(path!("Cargo.toml"));
     let root_dir = current_cargo_path.try_parent()?;
     info!("{:?}", root_dir);
