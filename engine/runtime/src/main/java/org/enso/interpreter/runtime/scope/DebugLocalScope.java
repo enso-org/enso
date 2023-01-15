@@ -40,9 +40,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public class DebugLocalScope implements TruffleObject {
   private final EnsoRootNode rootNode;
 
-  /**
-   * All the bindings, including the parent scopes.
-   */
+  /** All the bindings, including the parent scopes. */
   private final Map<String, FramePointer> allBindings;
 
   /**
@@ -57,14 +55,12 @@ public class DebugLocalScope implements TruffleObject {
    *         y
    *     inner_func
    * </pre>
-   * <p>
-   * the value of this field (for `inner_func` scope) would be {@code [['x'], ['y']]}
+   *
+   * <p>the value of this field (for `inner_func` scope) would be {@code [['x'], ['y']]}
    */
   private final List<List<String>> bindingsByLevels;
 
-  /**
-   * Index of the current scope into {@link #bindingsByLevels} list.
-   */
+  /** Index of the current scope into {@link #bindingsByLevels} list. */
   private final int bindingsByLevelsIdx;
 
   private final MaterializedFrame frame;
@@ -82,7 +78,7 @@ public class DebugLocalScope implements TruffleObject {
     this.bindingsByLevelsIdx = bindingsByLevelsIdx;
     assert this.bindingsByLevels.isEmpty()
         || (0 <= this.bindingsByLevelsIdx
-        && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
+            && this.bindingsByLevelsIdx < this.bindingsByLevels.size());
   }
 
   public static DebugLocalScope createFromFrame(EnsoRootNode rootNode, MaterializedFrame frame) {
@@ -143,9 +139,7 @@ public class DebugLocalScope implements TruffleObject {
     return true;
   }
 
-  /**
-   * Returns the members from the current local scope and all the parent scopes.
-   */
+  /** Returns the members from the current local scope and all the parent scopes. */
   @ExportMessage
   ScopeMembers getMembers(boolean includeInternal) {
     List<String> members = new ArrayList<>();
@@ -189,7 +183,10 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop, @CachedLibrary("this") StructsLibrary structs) {
+  Object readMember(
+      String member,
+      @CachedLibrary("this") InteropLibrary interop,
+      @CachedLibrary("this") StructsLibrary structs) {
     FramePointer framePtr = allBindings.get(member);
     if (framePtr == null) {
       return null;
@@ -274,9 +271,7 @@ public class DebugLocalScope implements TruffleObject {
     return currentFrame;
   }
 
-  /**
-   * Simple interop wrapper for a list of strings.
-   */
+  /** Simple interop wrapper for a list of strings. */
   @ExportLibrary(InteropLibrary.class)
   static final class ScopeMembers implements TruffleObject {
     private final List<String> memberNames;

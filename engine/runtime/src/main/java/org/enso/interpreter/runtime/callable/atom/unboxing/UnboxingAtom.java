@@ -30,16 +30,18 @@ public abstract class UnboxingAtom extends Atom {
 
   @ExportMessage
   void setField(int i, Object value) {
-    //TODO
+    // TODO
     return;
   }
-
 
   @ExportMessage(name = "getFields")
   static class GetFields {
     @Specialization(guards = "cachedLayout == atom.layout", limit = "10")
     @ExplodeLoop
-    static Object[] doCached(UnboxingAtom atom, @Cached("atom.layout") Layout cachedLayout, @Cached(value = "cachedLayout.buildGetters()") FieldGetterNode[] getters) {
+    static Object[] doCached(
+        UnboxingAtom atom,
+        @Cached("atom.layout") Layout cachedLayout,
+        @Cached(value = "cachedLayout.buildGetters()") FieldGetterNode[] getters) {
       Object[] result = new Object[getters.length];
       for (int i = 0; i < getters.length; i++) {
         result[i] = getters[i].execute(atom);
@@ -56,32 +58,29 @@ public abstract class UnboxingAtom extends Atom {
       }
       return result;
     }
-
   }
 
   @GenerateNodeFactory
   @GenerateUncached(inherit = true)
-  public static abstract class FieldGetterNode extends Node {
+  public abstract static class FieldGetterNode extends Node {
     public abstract Object execute(Atom atom);
   }
 
   @GenerateNodeFactory
   @GenerateUncached(inherit = true)
-  static abstract class InstantiatorNode extends Node {
+  abstract static class InstantiatorNode extends Node {
     public abstract Atom execute(AtomConstructor constructor, Layout layout, Object[] args);
   }
 
   @GenerateNodeFactory
   @GenerateUncached(inherit = true)
-  static abstract class FieldSetterNode extends Node {
+  abstract static class FieldSetterNode extends Node {
     public abstract void execute(Atom atom, Object value);
   }
 
   public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {
-    @Child
-    Layout.DirectCreateLayoutInstanceNode boxedLayout;
-    @Children
-    Layout.DirectCreateLayoutInstanceNode[] unboxedLayouts;
+    @Child Layout.DirectCreateLayoutInstanceNode boxedLayout;
+    @Children Layout.DirectCreateLayoutInstanceNode[] unboxedLayouts;
     private final int arity;
     private @CompilerDirectives.CompilationFinal boolean constructorAtCapacity;
 
@@ -90,7 +89,8 @@ public abstract class UnboxingAtom extends Atom {
     CreateUnboxedInstanceNode(AtomConstructor constructor) {
       this.constructor = constructor;
       this.arity = constructor.getArity();
-      this.boxedLayout = new Layout.DirectCreateLayoutInstanceNode(constructor, constructor.getBoxedLayout());
+      this.boxedLayout =
+          new Layout.DirectCreateLayoutInstanceNode(constructor, constructor.getBoxedLayout());
       unboxedLayouts = new Layout.DirectCreateLayoutInstanceNode[0];
       updateFromConstructor();
     }

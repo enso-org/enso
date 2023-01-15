@@ -22,7 +22,10 @@ public abstract class TypeErrorToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode, @CachedLibrary(limit = "3") StructsLibrary structs) {
+  Text doAtom(
+      Atom self,
+      @Cached TypeToDisplayTextNode displayTypeNode,
+      @CachedLibrary(limit = "3") StructsLibrary structs) {
     try {
       var fields = structs.getFields(self);
       return Text.create("Type error: expected `")

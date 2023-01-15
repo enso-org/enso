@@ -30,9 +30,7 @@ import org.enso.pkg.QualifiedName;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * A representation of an Atom constructor.
- */
+/** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 public final class AtomConstructor implements TruffleObject {
@@ -47,15 +45,14 @@ public final class AtomConstructor implements TruffleObject {
   private @CompilerDirectives.CompilationFinal Layout boxedLayout;
   private Layout[] unboxingLayouts = new Layout[0];
 
-
   private final Type type;
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], ArgumentDefinition...)}
-   * is called.
+   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[],
+   * ArgumentDefinition...)} is called.
    *
-   * @param name            the name of the Atom constructor
+   * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
    */
   public AtomConstructor(String name, ModuleScope definitionScope, Type type) {
@@ -64,12 +61,12 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], ArgumentDefinition...)}
-   * is called.
+   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[],
+   * ArgumentDefinition...)} is called.
    *
-   * @param name            the name of the Atom constructor
+   * @param name the name of the Atom constructor
    * @param definitionScope the scope in which this constructor was defined
-   * @param builtin         if true, the constructor refers to a builtin type (annotated with @BuiltinType
+   * @param builtin if true, the constructor refers to a builtin type (annotated with @BuiltinType
    */
   public AtomConstructor(String name, ModuleScope definitionScope, Type type, boolean builtin) {
     this.name = name;
@@ -103,10 +100,10 @@ public final class AtomConstructor implements TruffleObject {
   /**
    * Sets the fields of this {@link AtomConstructor} and generates a constructor function.
    *
-   * @param localScope  a description of the local scope
+   * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
-   * @param varReads    the expressions that read field values from local vars
-   * @param args        the arguments this constructor will take
+   * @param varReads the expressions that read field values from local vars
+   * @param args the arguments this constructor will take
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
@@ -135,12 +132,12 @@ public final class AtomConstructor implements TruffleObject {
    * again on purpose. That way default arguments can refer to previously defined constructor
    * arguments.
    *
-   * @param localScope  a description of the local scope
+   * @param localScope a description of the local scope
    * @param assignments the expressions that evaluate and assign constructor arguments to local vars
-   * @param varReads    the expressions that read field values from previously evaluated local vars
-   * @param args        the argument definitions for the constructor function to take
+   * @param varReads the expressions that read field values from previously evaluated local vars
+   * @param args the argument definitions for the constructor function to take
    * @return a {@link Function} taking the specified arguments and returning an instance for this
-   * {@link AtomConstructor}
+   *     {@link AtomConstructor}
    */
   private Function buildConstructorFunction(
       LocalScope localScope,
@@ -298,25 +295,19 @@ public final class AtomConstructor implements TruffleObject {
     return "Constructor<" + getDisplayName() + ">";
   }
 
-  /**
-   * @return the fully qualified name of this constructor.
-   */
+  /** @return the fully qualified name of this constructor. */
   @TruffleBoundary
   public QualifiedName getQualifiedName() {
     return type.getQualifiedName().createChild(getName());
   }
 
-  /**
-   * @return the fully qualified name of constructor type.
-   */
+  /** @return the fully qualified name of constructor type. */
   @CompilerDirectives.TruffleBoundary
   public QualifiedName getQualifiedTypeName() {
     return type.getQualifiedName();
   }
 
-  /**
-   * @return the fields defined by this constructor.
-   */
+  /** @return the fields defined by this constructor. */
   public ArgumentDefinition[] getFields() {
     return constructorFunction.getSchema().getArgumentInfos();
   }

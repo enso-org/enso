@@ -20,9 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@SupportedAnnotationTypes({
-    "org.enso.interpreter.dsl.atom.LayoutSpec"
-})
+@SupportedAnnotationTypes({"org.enso.interpreter.dsl.atom.LayoutSpec"})
 @ServiceProvider(service = Processor.class)
 public class LayoutSpecProcessor extends AbstractProcessor {
   @Override
@@ -72,7 +70,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     return layout + "_Atom_" + countUnboxed + "_" + countBoxed;
   }
 
-  private void writeAtom(String pkg, String layoutName, int countUnboxed, int countBoxed) throws IOException {
+  private void writeAtom(String pkg, String layoutName, int countUnboxed, int countBoxed)
+      throws IOException {
     var className = atomClassName(layoutName, countUnboxed, countBoxed);
     var file = processingEnv.getFiler().createSourceFile(pkg + "." + className);
     try (var out = new PrintWriter(file.openWriter())) {
@@ -98,24 +97,37 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     }
   }
 
-  private void writeFieldGetterFactoryGetter(PrintWriter out, String className, int countUnboxed, int countBoxed) {
-    out.println("  public static NodeFactory<? extends FieldGetterNode> getFieldGetterNodeFactory(int storageIndex, boolean isDoubleIfUnboxed) {");
+  private void writeFieldGetterFactoryGetter(
+      PrintWriter out, String className, int countUnboxed, int countBoxed) {
+    out.println(
+        "  public static NodeFactory<? extends FieldGetterNode> getFieldGetterNodeFactory(int storageIndex, boolean isDoubleIfUnboxed) {");
     out.println("    return switch (storageIndex) {");
     for (int i = 0; i < countUnboxed; i++) {
       out.println("      case " + i + " -> isDoubleIfUnboxed ?");
-      out.println("        " + className + "Factory.FieldGetter_" + i + "D_NodeFactory.getInstance() :");
-      out.println("        " + className + "Factory.FieldGetter_" + i + "L_NodeFactory.getInstance();");
+      out.println(
+          "        " + className + "Factory.FieldGetter_" + i + "D_NodeFactory.getInstance() :");
+      out.println(
+          "        " + className + "Factory.FieldGetter_" + i + "L_NodeFactory.getInstance();");
     }
     for (int i = countUnboxed; i < countBoxed + countUnboxed; i++) {
-      out.println("      case " + i + " -> " + className + "Factory.FieldGetter_" + i + "_NodeFactory.getInstance();");
+      out.println(
+          "      case "
+              + i
+              + " -> "
+              + className
+              + "Factory.FieldGetter_"
+              + i
+              + "_NodeFactory.getInstance();");
     }
     out.println("      default -> throw new IllegalArgumentException(\"Invalid storage index\");");
     out.println("    };");
     out.println("  }");
   }
 
-  private void writeInstantiator(PrintWriter out, String className, int countUnboxed, int countBoxed) {
-    out.println("  public abstract static class InstantiatorNode extends UnboxingAtom.InstantiatorNode {");
+  private void writeInstantiator(
+      PrintWriter out, String className, int countUnboxed, int countBoxed) {
+    out.println(
+        "  public abstract static class InstantiatorNode extends UnboxingAtom.InstantiatorNode {");
     out.println("    @Specialization");
     out.println("    Atom doExecute(AtomConstructor constructor, Layout layout, Object[] args) {");
     var args = new String[countUnboxed + countBoxed + 2];
@@ -140,7 +152,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   }
 
   private void writeLongGetter(PrintWriter out, int index, String className) {
-    out.println("  public static abstract class FieldGetter_" + index + "L_Node extends FieldGetterNode {");
+    out.println(
+        "  public static abstract class FieldGetter_" + index + "L_Node extends FieldGetterNode {");
     out.println("    @Specialization");
     out.println("    long doAtom(" + className + " atom) {");
     out.println("      return atom." + fieldName(index) + ";");
@@ -150,7 +163,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   }
 
   private void writeDoubleGetter(PrintWriter out, int index, String className) {
-    out.println("  public static abstract class FieldGetter_" + index + "D_Node extends FieldGetterNode {");
+    out.println(
+        "  public static abstract class FieldGetter_" + index + "D_Node extends FieldGetterNode {");
     out.println("    @Specialization");
     out.println("    double doAtom(" + className + " atom) {");
     out.println("      return Double.longBitsToDouble(atom." + fieldName(index) + ");");
@@ -160,7 +174,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   }
 
   private void writeObjectGetter(PrintWriter out, int index, String className) {
-    out.println("  public static abstract class FieldGetter_" + index + "_Node extends FieldGetterNode {");
+    out.println(
+        "  public static abstract class FieldGetter_" + index + "_Node extends FieldGetterNode {");
     out.println("    @Specialization");
     out.println("    Object doAtom(" + className + " atom) {");
     out.println("      return atom." + fieldName(index) + ";");
@@ -179,7 +194,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     out.println();
   }
 
-  private void writeConstructor(PrintWriter out, String className, int countUnboxed, int countBoxed) {
+  private void writeConstructor(
+      PrintWriter out, String className, int countUnboxed, int countBoxed) {
     var consArgs = new String[countUnboxed + countBoxed + 2];
     consArgs[0] = "AtomConstructor constructor";
     consArgs[1] = "Layout layout";
@@ -195,7 +211,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
       out.println("    this." + fieldName(i) + " = " + fieldName(i) + ";");
     }
     for (int i = 0; i < countBoxed; i++) {
-      out.println("    this." + fieldName(i + countUnboxed) + " = " + fieldName(i + countUnboxed) + ";");
+      out.println(
+          "    this." + fieldName(i + countUnboxed) + " = " + fieldName(i + countUnboxed) + ";");
     }
     out.println("  }");
     out.println();
@@ -217,7 +234,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   }
 
   private void writeGetterFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
-    out.println("  public static NodeFactory<UnboxingAtom.FieldGetterNode>[] getFieldGetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
+    out.println(
+        "  public static NodeFactory<UnboxingAtom.FieldGetterNode>[] getFieldGetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
     out.println("    var arity = numDoubles + numLongs + numBoxed;");
     out.println("    var numUnboxed = numDoubles + numLongs;");
     out.println("    var result = new NodeFactory[arity];");
@@ -225,16 +243,27 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
       out.println("      case " + unboxedCase + ":");
       out.println("        switch (numBoxed) {");
-      for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0); boxedCase + unboxedCase <= spec.maxFields(); boxedCase++) {
+      for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
+          boxedCase + unboxedCase <= spec.maxFields();
+          boxedCase++) {
         out.println("          case " + boxedCase + ":");
         out.println("            for (int i = 0; i < numDoubles; i++) {");
-        out.println("              result[i] = " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getFieldGetterNodeFactory(i, true);");
+        out.println(
+            "              result[i] = "
+                + atomClassName(layoutName, unboxedCase, boxedCase)
+                + ".getFieldGetterNodeFactory(i, true);");
         out.println("            }");
         out.println("            for (int i = numDoubles; i < numUnboxed; i++) {");
-        out.println("              result[i] = " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getFieldGetterNodeFactory(i, false);");
+        out.println(
+            "              result[i] = "
+                + atomClassName(layoutName, unboxedCase, boxedCase)
+                + ".getFieldGetterNodeFactory(i, false);");
         out.println("            }");
         out.println("            for (int i = numUnboxed; i < arity; i++) {");
-        out.println("              result[i] = " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getFieldGetterNodeFactory(i, false);");
+        out.println(
+            "              result[i] = "
+                + atomClassName(layoutName, unboxedCase, boxedCase)
+                + ".getFieldGetterNodeFactory(i, false);");
         out.println("            }");
         out.println("            break;");
       }
@@ -248,12 +277,20 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   }
 
   private void writeInstantiatorFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
-    out.println("  public static NodeFactory<? extends UnboxingAtom.InstantiatorNode> getInstantiatorNodeFactory(int numUnboxed, int numBoxed) {");
+    out.println(
+        "  public static NodeFactory<? extends UnboxingAtom.InstantiatorNode> getInstantiatorNodeFactory(int numUnboxed, int numBoxed) {");
     out.println("    return switch (numUnboxed) {");
     for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
       out.println("      case " + unboxedCase + " -> switch (numBoxed) {");
-      for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0); boxedCase + unboxedCase <= spec.maxFields(); boxedCase++) {
-        out.println("        case " + boxedCase + " -> " + atomClassName(layoutName, unboxedCase, boxedCase) + ".getInstantiatorNodeFactory();");
+      for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
+          boxedCase + unboxedCase <= spec.maxFields();
+          boxedCase++) {
+        out.println(
+            "        case "
+                + boxedCase
+                + " -> "
+                + atomClassName(layoutName, unboxedCase, boxedCase)
+                + ".getInstantiatorNodeFactory();");
       }
       out.println("        default -> throw new IllegalArgumentException(\"Unsupported arity\");");
       out.println("      };");

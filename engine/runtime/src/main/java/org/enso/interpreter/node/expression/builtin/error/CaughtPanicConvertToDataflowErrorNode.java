@@ -27,7 +27,10 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
 
   @Specialization
   Object doExecute(
-      State state, Atom self, @CachedLibrary(limit = "5") InteropLibrary interopLibrary, @CachedLibrary(limit = "5") StructsLibrary structs) {
+      State state,
+      Atom self,
+      @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
+      @CachedLibrary(limit = "5") StructsLibrary structs) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
     var fields = structs.getFields(self);
     Object payload = fields[0];

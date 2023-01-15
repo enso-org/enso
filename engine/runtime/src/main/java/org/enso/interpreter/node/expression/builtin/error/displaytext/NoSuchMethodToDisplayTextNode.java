@@ -22,7 +22,10 @@ public abstract class NoSuchMethodToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode, @CachedLibrary(limit = "3") StructsLibrary structs) {
+  Text doAtom(
+      Atom self,
+      @Cached TypeToDisplayTextNode displayTypeNode,
+      @CachedLibrary(limit = "3") StructsLibrary structs) {
     try {
       return Text.create("Method `")
           .add(TypesGen.expectUnresolvedSymbol(structs.getField(self, 1)).getName())

@@ -40,11 +40,20 @@ public class Layout {
   // this will work until 32 fields, then we need to fall back to all-unboxed
   final long inputFlags;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) int[] fieldToStorage;
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories;
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldGetterNode[] uncachedFieldGetters;
-  private final @CompilerDirectives.CompilationFinal NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory;
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<
+          ? extends UnboxingAtom.FieldGetterNode>[]
+      fieldGetterFactories;
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldGetterNode[]
+      uncachedFieldGetters;
+  private final @CompilerDirectives.CompilationFinal NodeFactory<
+          ? extends UnboxingAtom.InstantiatorNode>
+      instantiatorFactory;
 
-  public Layout(long inputFlags, int[] fieldToStorage, NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories, NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory) {
+  public Layout(
+      long inputFlags,
+      int[] fieldToStorage,
+      NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories,
+      NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory) {
     this.inputFlags = inputFlags;
     this.fieldToStorage = fieldToStorage;
     this.fieldGetterFactories = fieldGetterFactories;
@@ -82,7 +91,8 @@ public class Layout {
       }
     }
 
-    var storageGetterFactories = LayoutFactory.getFieldGetterNodeFactories(numDouble, numLong, numBoxed);
+    var storageGetterFactories =
+        LayoutFactory.getFieldGetterNodeFactories(numDouble, numLong, numBoxed);
 
     var getterFactories = new NodeFactory[arity];
 
@@ -126,7 +136,8 @@ public class Layout {
       this.layout = layout;
       this.argReaderNodes = new ReadAtIndexNode[layout.arity()];
       for (int i = 0; i < layout.arity(); i++) {
-        this.argReaderNodes[layout.fieldToStorage[i]] = ReadAtIndexNode.create(i, layout.isDoubleAt(i));
+        this.argReaderNodes[layout.fieldToStorage[i]] =
+            ReadAtIndexNode.create(i, layout.isDoubleAt(i));
       }
       this.instantiator = layout.instantiatorFactory.createNode();
     }
@@ -140,11 +151,13 @@ public class Layout {
       return instantiator.execute(constructor, layout, arguments);
     }
 
-    static abstract class ReadAtIndexNode extends Node {
+    abstract static class ReadAtIndexNode extends Node {
       final int index;
 
       public static ReadAtIndexNode create(int fieldIndex, boolean isDouble) {
-        return isDouble ? new ReadDoubleAtIndexNode(fieldIndex) : new ReadObjectAtIndexNode(fieldIndex);
+        return isDouble
+            ? new ReadDoubleAtIndexNode(fieldIndex)
+            : new ReadObjectAtIndexNode(fieldIndex);
       }
 
       public ReadAtIndexNode(int index) {

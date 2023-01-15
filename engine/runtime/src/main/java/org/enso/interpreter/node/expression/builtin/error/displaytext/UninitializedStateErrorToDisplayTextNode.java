@@ -20,7 +20,10 @@ public abstract class UninitializedStateErrorToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom self, @Cached TypeToDisplayTextNode displayTypeNode, @CachedLibrary(limit = "3") StructsLibrary structs) {
+  Text doAtom(
+      Atom self,
+      @Cached TypeToDisplayTextNode displayTypeNode,
+      @CachedLibrary(limit = "3") StructsLibrary structs) {
     return Text.create("State is not initialized for type ")
         .add(displayTypeNode.execute(structs.getField(self, 0)))
         .add(".");

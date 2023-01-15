@@ -20,7 +20,10 @@ public abstract class UnsupportedArgumentTypesToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom self, @CachedLibrary(limit = "3") InteropLibrary interop, @CachedLibrary(limit = "3") StructsLibrary structs) {
+  Text doAtom(
+      Atom self,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @CachedLibrary(limit = "3") StructsLibrary structs) {
     Object messageArg = structs.getField(self, 1);
     try {
       return Text.create(interop.asString(messageArg));
