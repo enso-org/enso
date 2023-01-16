@@ -12,7 +12,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    Test.group prefix+"Column Operations" <|
+    Test.group prefix+"Basic Column Operations" <|
         #inmem_todo = if setup.is_database.not then "New Null-equality is not yet implemented in In-memory backend."
         Test.specify "Column equality should handle nulls correctly" pending="TODO" <|
             a = [2, 3, Nothing, Nothing]
@@ -61,3 +61,14 @@ spec setup =
 
             t = table_builder [["X", x], ["Y", y]]
             (t.at "X") . equals_ignore_case (t.at "Y") . to_vector . should_equal r
+
+    Test.group prefix+"Arithmetic Column Operations" <|
+        Test.specify "division should be aligned with the Enso arithmetic" <|
+            a = [1, 5, 10, 100]
+            b = [2, 2, 4, 5]
+            r = [0.5, 2.5, 2.5, 20.0]
+            a.zip b (/) . should_equal r
+
+            t = table_builder [["A", a], ["B", b]]
+            r2 = (t.at "A") / (t.at "B")
+            r2 . to_vector . should_equal r
