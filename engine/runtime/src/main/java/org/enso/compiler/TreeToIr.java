@@ -734,7 +734,9 @@ final class TreeToIr {
           yield translateExpression(subexpression, false);
         }
         var fn = new IR$Name$Literal(fullName, true, Option.empty(), meta(), diag());
-        checkArgs(args);
+        if (!checkArgs(args)) {
+          yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.BodyBlock body -> {
@@ -1066,7 +1068,7 @@ final class TreeToIr {
   }
 
   @SuppressWarnings("unchecked")
-  private IR$Application$Prefix patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
+  private IR.Expression patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
     if (block.expressions().isEmpty() && block.returnValue() instanceof IR$Name$Blank) {
       return pref;
     }
@@ -1076,7 +1078,9 @@ final class TreeToIr {
     List<IR.CallArgument> allArgs = (List<IR.CallArgument>) pref.arguments().appendedAll(args.reverse());
     final IR$CallArgument$Specified blockArg = new IR$CallArgument$Specified(Option.empty(), block, block.location(), meta(), diag());
     List<IR.CallArgument> withBlockArgs = (List<IR.CallArgument>) allArgs.appended(blockArg);
-    checkArgs(withBlockArgs);
+    if (!checkArgs(withBlockArgs)) {
+      return translateSyntaxError(pref.location().get(), IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+    }
     return new IR$Application$Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.location(), meta(), diag());
   }
 
@@ -1646,13 +1650,14 @@ final class TreeToIr {
     }
   }
 
-  private void checkArgs(List<IR.CallArgument> args) {
+  private boolean checkArgs(List<IR.CallArgument> args) {
     LinearSeq<IR.CallArgument> a = args;
     while (!a.isEmpty()) {
       if (a.head() == null) {
-        throw new IllegalStateException("Problem: " + args);
+        return false;
       }
       a = (LinearSeq<IR.CallArgument>) a.tail();
     }
+    return true;
   }
 }
