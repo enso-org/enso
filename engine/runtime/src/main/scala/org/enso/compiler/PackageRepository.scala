@@ -107,6 +107,9 @@ trait PackageRepository {
 
   /** Modifies package and module names to reflect the project name change. */
   def renameProject(namespace: String, oldName: String, newName: String): Unit
+
+  /** Checks if any library with a given namespace has been registered */
+  def isNamespaceRegistered(namespace: String): Boolean
 }
 
 object PackageRepository {
@@ -627,6 +630,9 @@ object PackageRepository {
         loadedModules.put(module.getName.toString, module)
       }
     }
+
+    override def isNamespaceRegistered(namespace: String): Boolean =
+      loadedPackages.keySet.exists(_.namespace == namespace)
   }
 
   /** Creates a [[PackageRepository]] for the run.

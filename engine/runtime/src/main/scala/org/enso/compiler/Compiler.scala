@@ -322,7 +322,8 @@ class Compiler(
         val moduleContext = ModuleContext(
           module          = module,
           freshNameSupply = Some(freshNameSupply),
-          compilerConfig  = config
+          compilerConfig  = config,
+          compiler        = Some(this)
         )
         val compilerOutput = runMethodBodyPasses(module.getIr, moduleContext)
         module.unsafeSetIr(compilerOutput)

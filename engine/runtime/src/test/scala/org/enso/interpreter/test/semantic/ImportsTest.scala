@@ -158,4 +158,12 @@ class ImportsTest extends PackageTest {
   "Constructors" should "be exportable" in {
     evalTestProject("Test_Type_Exports").toString shouldEqual "(Some 10)"
   }
+
+  "Fully qualified names" should "be resolved" in {
+    evalTestProject("Test_Fully_Qualified_Name").toString shouldEqual "0"
+    val outLines = consumeOut
+    outLines should have length 1
+    outLines(0) shouldEqual "Hello world!"
+
+  }
 }

@@ -1,5 +1,6 @@
 package org.enso.compiler.context
 
+import org.enso.compiler.Compiler
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
 import org.enso.interpreter.node.BaseNode.TailStatus
@@ -19,11 +20,12 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
   */
 case class InlineContext(
   module: Module,
+  compilerConfig: CompilerConfig,
   localScope: Option[LocalScope]               = None,
   isInTailPosition: Option[Boolean]            = None,
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None,
-  compilerConfig: CompilerConfig
+  compiler: Option[Compiler]                   = None
 )
 object InlineContext {
 
@@ -63,7 +65,8 @@ object InlineContext {
       isInTailPosition  = None,
       freshNameSupply   = moduleContext.freshNameSupply,
       passConfiguration = moduleContext.passConfiguration,
-      compilerConfig    = moduleContext.compilerConfig
+      compilerConfig    = moduleContext.compilerConfig,
+      compiler          = moduleContext.compiler
     )
   }
 }
