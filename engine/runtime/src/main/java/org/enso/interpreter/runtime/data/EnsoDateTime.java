@@ -24,7 +24,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "date", name = "DateTime", stdlibName = "Standard.Base.Data.Time.Date_Time")
+@Builtin(
+    pkg = "date",
+    name = "DateTime",
+    stdlibName = "Standard.Base.Data.Time.Date_Time.Date_Time")
 public final class EnsoDateTime implements TruffleObject {
   private final ZonedDateTime dateTime;
 
@@ -231,6 +234,16 @@ public final class EnsoDateTime implements TruffleObject {
   @ExportMessage
   ZoneId asTimeZone() {
     return dateTime.getZone();
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().dateTime();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage

@@ -157,6 +157,11 @@ type Additional_Warnings
 type Invalid_Row
     Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : [Text])
 
+    to_display_text : Text
+    to_display_text self =
+        "Invalid row in file (index "+self.index.to_text+")."
+
+
 ## Indicates how many additional `Invalid_Row` warnings have been suppressed.
 type Additional_Invalid_Rows
     Error (count : Integer)

@@ -60,11 +60,11 @@ bench =
     comparator = l -> r -> r.compare_to l
 
     Bench.measure (sorted_vec.sort) "Already Sorted" iter_size num_iterations
-    Bench.measure (sorted_vec.sort order=Sort_Direction.Descending) "Sorted in Opposite Order" iter_size num_iterations
+    Bench.measure (sorted_vec.sort Sort_Direction.Descending) "Sorted in Opposite Order" iter_size num_iterations
     Bench.measure (partially_sorted_vec.sort) "Sorted Runs Ascending" iter_size num_iterations
-    Bench.measure (partially_sorted_vec.sort order=Sort_Direction.Descending) "Sorted Runs Descending" iter_size num_iterations
+    Bench.measure (partially_sorted_vec.sort Sort_Direction.Descending) "Sorted Runs Descending" iter_size num_iterations
     Bench.measure (random_vec.sort) "Random Elements Ascending" iter_size num_iterations
-    Bench.measure (random_vec.sort order=Sort_Direction.Descending) "Random Elements Descending" iter_size num_iterations
+    Bench.measure (random_vec.sort Sort_Direction.Descending) "Random Elements Descending" iter_size num_iterations
     Bench.measure (random_vec.sort on=projection) "Sorting with a Custom Projection" iter_size num_iterations
     Bench.measure (random_vec.sort by=comparator) "Sorting with a Custom Comparison" iter_size num_iterations
 

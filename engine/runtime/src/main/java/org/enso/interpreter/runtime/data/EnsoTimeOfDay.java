@@ -20,7 +20,10 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "date", name = "TimeOfDay", stdlibName = "Standard.Base.Data.Time.Time_Of_Day")
+@Builtin(
+    pkg = "date",
+    name = "TimeOfDay",
+    stdlibName = "Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day")
 public final class EnsoTimeOfDay implements TruffleObject {
   private LocalTime localTime;
 
@@ -140,13 +143,23 @@ public final class EnsoTimeOfDay implements TruffleObject {
   }
 
   @ExportMessage
-  final boolean isDate() {
+  boolean isDate() {
     return false;
   }
 
   @ExportMessage
   LocalDate asDate() throws UnsupportedMessageException {
     throw UnsupportedMessageException.create();
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().timeOfDay();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage

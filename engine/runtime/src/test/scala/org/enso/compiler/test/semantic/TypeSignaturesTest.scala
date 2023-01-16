@@ -174,6 +174,9 @@ class TypeSignaturesTest
     "be parsed in a simple scenario" in {
       val code =
         """
+          |type Text
+          |type Number
+          |
           |foo : Text -> Number
           |foo a = 42""".stripMargin
       val module = code.preprocessModule
@@ -244,6 +247,11 @@ class TypeSignaturesTest
     "resolve execution contexts" in {
       val code =
         """
+          |type A
+          |type B
+          |type C
+          |type Input
+          |
           |foo : A -> B -> C in Input
           |foo a b = c
           |""".stripMargin

@@ -1,0 +1,27 @@
+[package]
+name = "ide-view-documentation"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-frp = { path = "../../../../lib/rust/frp" }
+enso-logger = { path = "../../../../lib/rust/logger" }
+enso-prelude = { path = "../../../../lib/rust/prelude" }
+ensogl = { path = "../../../../lib/rust/ensogl" }
+ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
+ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
+ide-view-graph-editor = { path = "../graph-editor" }
+wasm-bindgen = { workspace = true }
+serde_json = { version = "1.0" }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []
+
+[build-dependencies]
+ide-ci = { path = "../../../../build/ci_utils" }
+tokio = { workspace = true }

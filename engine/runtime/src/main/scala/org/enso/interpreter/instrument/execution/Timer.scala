@@ -7,7 +7,12 @@ trait Timer {
 object Timer {
 
   /** A nanosecond precision timer. */
-  class Nanosecond extends Timer {
+  final class Nanosecond extends Timer {
     override def getTime(): Long = System.nanoTime()
+  }
+
+  /** A timer returns the same zero time. */
+  final class Disabled extends Timer {
+    override def getTime(): Long = 0
   }
 }

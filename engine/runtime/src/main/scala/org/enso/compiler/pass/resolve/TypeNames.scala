@@ -4,7 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.Resolution
+import org.enso.compiler.data.BindingsMap.{Resolution, ResolvedModule}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
@@ -74,11 +74,25 @@ case object TypeNames extends IRPass {
     bindingsMap: BindingsMap,
     expression: IR.Expression
   ): IR.Expression =
-    expression.transformExpressions { case n: IR.Name.Literal =>
-      bindingsMap
-        .resolveName(n.name)
-        .map(res => n.updateMetadata(this -->> Resolution(res)))
-        .getOrElse(n)
+    expression.transformExpressions {
+      case expr if SuspendedArguments.representsSuspended(expr) => expr
+      case n: IR.Name.Literal =>
+        bindingsMap
+          .resolveName(n.name)
+          .map(res => n.updateMetadata(this -->> Resolution(res)))
+          .fold(
+            error =>
+              IR.Error.Resolution(n, IR.Error.Resolution.ResolverError(error)),
+            n =>
+              n.getMetadata(this).get.target match {
+                case _: ResolvedModule =>
+                  IR.Error.Resolution(
+                    n,
+                    IR.Error.Resolution.UnexpectedModule("type signature")
+                  )
+                case _ => n
+              }
+          )
     }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed

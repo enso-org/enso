@@ -71,7 +71,7 @@ wasm_bindgen_test_configure!(run_in_browser);
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
-    let _guard = enso_gui::initializer::setup_global_executor();
+    let _guard = enso_executor::setup_global_executor();
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
     let client = project.json_rpc();
@@ -259,7 +259,7 @@ async fn file_events() {
     let ws = ws.expect("Couldn't connect to WebSocket server.");
     let client = Client::new(ws);
     let mut stream = client.events();
-    let _executor = enso_gui::initializer::setup_global_executor();
+    let _executor = enso_executor::setup_global_executor();
 
     executor::global::spawn(client.runner());
 
@@ -317,7 +317,7 @@ async fn setup_ide() -> controller::Ide {
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn file_operations_test() {
-    let _guard = enso_gui::initializer::setup_global_executor();
+    let _guard = enso_executor::setup_global_executor();
     let ide = setup_ide().await;
     let project = ide.current_project().expect("IDE is configured without an open project.");
     info!("Got project: {project:?}");
@@ -386,8 +386,8 @@ async fn binary_visualization_updates_test_hlp() {
 #[allow(dead_code)]
 /// This integration test covers attaching visualizations and receiving their updates.
 fn binary_visualization_updates_test() {
-    let executor = enso_gui::executor::web::EventLoopExecutor::new_running();
-    enso_gui::executor::global::set_spawner(executor.spawner.clone());
+    let executor = enso_executor::web::EventLoopExecutor::new_running();
+    enso_executor::global::set_spawner(executor.spawner.clone());
     executor.spawn_local(binary_visualization_updates_test_hlp()).unwrap();
     std::mem::forget(executor);
 }

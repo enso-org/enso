@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+from Standard.Table import Join_Kind
+
+## PRIVATE
+
+   The kind of the join operation.
+type SQL_Join_Kind
+    ## PRIVATE
+
+       Inner join.
+
+       The result will contain only rows that had a match in both left and right
+       source.
+    Inner
+
+    ## PRIVATE
+
+       Left join.
+
+       The result will contain all rows from the left source. Some of them may
+       be duplicated if they have multiple matches on the right. If a row from
+       the left source has no match on the right, it will be present exactly
+       once in the result and the fields corresponding to the right source will
+       be set to NULL.
+    Left
+
+    ## PRIVATE
+
+       Right join.
+
+       The result will contain all rows from the right source. Some of them may
+       be duplicated if they have multiple matches on the left. If a row from
+       the right source has no match on the left, it will be present exactly
+       once in the result and the fields corresponding to the left source will
+       be set to NULL.
+    Right
+
+    ## PRIVATE
+
+       Cross join.
+
+       The result will contain a cross product of rows from the left source with
+       the right source. Its `on` list should be empty, instead `where_filters`
+       in the query can be used to filter the results.
+    Cross
+
+    ## PRIVATE
+
+       The result contains all rows from both sources, each unmatched row is
+       extended with null values for the columns from the other table.
+    Full
+
+    ## PRIVATE
+       Returns the SQL representation of this join kind as text.
+    to_sql : Text
+    to_sql self = case self of
+        SQL_Join_Kind.Inner -> "INNER JOIN"
+        SQL_Join_Kind.Left -> "LEFT JOIN"
+        SQL_Join_Kind.Right -> "RIGHT JOIN"
+        SQL_Join_Kind.Full -> "FULL OUTER JOIN"
+        SQL_Join_Kind.Cross -> "CROSS JOIN"

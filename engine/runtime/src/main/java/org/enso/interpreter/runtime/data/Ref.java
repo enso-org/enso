@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
@@ -9,6 +10,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 /** A mutable reference type. */
+@ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Runtime.Ref.Ref")
 public final class Ref implements TruffleObject {
@@ -40,6 +42,16 @@ public final class Ref implements TruffleObject {
     Object old = this.value;
     this.value = value;
     return old;
+  }
+
+  @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().ref();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
   }
 
   @ExportMessage

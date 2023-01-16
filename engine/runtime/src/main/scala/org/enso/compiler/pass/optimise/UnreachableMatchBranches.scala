@@ -120,7 +120,7 @@ case object UnreachableMatchBranches extends IRPass {
   //noinspection DuplicatedCode
   def optimizeCase(cse: IR.Case): IR.Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
         val reachableNonCatchAllBranches = branches.takeWhile(!isCatchAll(_))
         val firstCatchAll                = branches.find(isCatchAll)
         val unreachableBranches =

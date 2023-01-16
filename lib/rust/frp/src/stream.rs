@@ -179,6 +179,13 @@ pub struct EventInput<Input> {
     data: Rc<dyn WeakEventConsumer<Input>>,
 }
 
+impl<Input> EventInput<Input> {
+    /// Create new event input from any `WeakEventConsumer`.
+    pub fn new(data: Rc<dyn WeakEventConsumer<Input>>) -> Self {
+        Self { data }
+    }
+}
+
 impl<Def, Input> From<WeakNode<Def>> for EventInput<Input>
 where
     Def: HasOutputStatic,
@@ -598,7 +605,7 @@ where
     Node<Def>: EventConsumer<T>,
 {
     fn is_dropped(&self) -> bool {
-        self.definition.is_expired()
+        self.definition.strong_count() == 0
     }
 
     fn on_event_if_exists(&self, stack: CallStack, value: &T) -> bool {
