@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 from Standard.Table import Aggregate_Column, Join_Kind
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
 
 import project.Connection.Connection.Connection
 import project.Data.SQL_Statement.SQL_Statement
@@ -54,6 +55,12 @@ type Dialect
        proper query.
     prepare_join : Connection -> Join_Kind -> Text -> From_Spec -> From_Spec -> Vector -> Vector -> Vector -> Table
     prepare_join self =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Prepares a distinct operation.
+    prepare_distinct : Table -> Vector -> Boolean -> Problem_Builder -> Table
+    prepare_distinct self =
         Unimplemented.throw "This is an interface only."
 
 ## PRIVATE

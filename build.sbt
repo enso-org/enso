@@ -1612,6 +1612,7 @@ lazy val `runtime-with-polyglot` =
         "ENSO_TEST_DISABLE_IR_CACHE" -> "false"
       ),
       libraryDependencies ++= Seq(
+        "org.graalvm.sdk" % "graal-sdk" % graalVersion % "provided",
         "org.scalatest" %% "scalatest" % scalatestVersion % Test
       )
     )

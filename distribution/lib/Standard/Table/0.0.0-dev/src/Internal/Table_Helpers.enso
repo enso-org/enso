@@ -170,7 +170,7 @@ type Table_Column_Helper
             modified_table = blanks.fold (self.table.select_columns [] on_problems=Problem_Behavior.Ignore) table-> blanks_col->
                 table.set blanks_col.name blanks_col
             # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
-            col_aggregate = if when_any then Maximum else Minimum
+            col_aggregate = if when_any then Maximum _ else Minimum _
             aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
             result = self.materialize <| Panic.rethrow <|
                 modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error
@@ -299,10 +299,10 @@ rename_columns internal_columns mapping on_problems =
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - direction: Whether sorting should be in ascending or descending order.
+   - order: Whether sorting should be in ascending or descending order.
    - text_ordering: The sort methodology to use.
 sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
-sort_columns internal_columns direction text_ordering =
+sort_columns internal_columns order text_ordering =
     case_sensitivity = text_ordering.case_sensitivity.if_nothing Case_Sensitivity.Sensitive
     mapper = case case_sensitivity of
         Case_Sensitivity.Sensitive -> _.name
@@ -311,7 +311,7 @@ sort_columns internal_columns direction text_ordering =
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
         False -> .compare_to
-    internal_columns.sort on=mapper by=comparator order=direction
+    internal_columns.sort order=order on=mapper by=comparator
 
 ## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific

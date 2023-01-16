@@ -1096,8 +1096,8 @@ type Column
          compared to non-missing ones. Note that this argument is independent
          from `order`, i.e. missing values will always be sorted according to
          this rule, ignoring the ascending / descending setting.
-       - comparator: function taking two items in this column and returning
-         an ordering. If specified, it is used instead of the natural
+       - by: function taking two items in this column and returning an
+         ordering. If specified, it is used instead of the natural
          (`.compare_to`) ordering.
 
        > Example
@@ -1114,7 +1114,7 @@ type Column
              import Standard.Examples
 
              example_sort =
-                 Examples.integer_column.sort order=Sort_Direction.Descending missing_last=False
+                 Examples.integer_column.sort Sort_Direction.Descending missing_last=False
 
        > Example
          Sorting `column` in ascending order, using a custom comparator
@@ -1124,13 +1124,13 @@ type Column
 
              example_sort =
                  my_comparator a b = a.abs.compare_to b.abs
-                 Examples.decimal_column.sort comparator=my_comparator
+                 Examples.decimal_column.sort by=my_comparator
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort self order=Sort_Direction.Ascending missing_last=True comparator=Nothing =
+    sort self order=Sort_Direction.Ascending missing_last=True by=Nothing =
         order_bool = case order of
             Sort_Direction.Ascending -> True
             Sort_Direction.Descending -> False
-        java_cmp = Comparator.new comparator
+        java_cmp = Comparator.new by
         rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
         mask = OrderBuilder.buildOrderMask [rule].to_array
         new_col = self.java_column.applyMask mask
@@ -1168,7 +1168,7 @@ type Column
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
+       containing an `Index_Out_Of_Bounds`.
 
        > Example
          Get the first element of a column.
@@ -1176,15 +1176,15 @@ type Column
              import Standard.Examples
 
              example_first = Examples.integer_column.first
-    first : Any ! Empty_Error
-    first self = self.at 0 . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
+    first : Any ! Index_Out_Of_Bounds
+    first self = self.at 0
 
     ## UNSTABLE
 
        Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
+       containing an `Index_Out_Of_Bounds`.
 
        > Example
          Get the last element of a column.
@@ -1192,8 +1192,8 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last : Any ! Empty_Error
-    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
+    last : Any ! Index_Out_Of_Bounds
+    last self = self.at (self.length - 1)
 
     ## UNSTABLE
 
@@ -1229,16 +1229,6 @@ type Column
        Helper for the expression to tell it which functions needs a Vector.
     var_args_functions : Vector
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
-
-## UNSTABLE
-
-   An error for when the column contains no elements.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty column error.
-    to_display_text : Text
-    to_display_text self = "The column is empty."
 
 ## PRIVATE
 

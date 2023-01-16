@@ -900,6 +900,9 @@ pub struct SuggestionEntryArgument {
     pub has_default:   bool,
     /// Optional default value.
     pub default_value: Option<String>,
+    /// Optional list of possible values that this argument takes.
+    #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+    pub tag_values:    Vec<String>,
 }
 
 impl SuggestionEntryArgument {
@@ -911,6 +914,7 @@ impl SuggestionEntryArgument {
             is_suspended:  false,
             has_default:   false,
             default_value: None,
+            tag_values:    Vec::new(),
         }
     }
 }

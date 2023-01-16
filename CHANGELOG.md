@@ -79,6 +79,8 @@
   the project is changed from the last saved snapshot and lighter when the
   snapshot matches the current project state.
 - [Added shortcut to interrupt the program][3967]
+- [Added suggestion dropdown for function arguments][4013]. The dropdown is
+  present only when the argument is of type that has a predefined set of values.
 
 #### EnsoGL (rendering engine)
 
@@ -268,6 +270,9 @@
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
   minor tweaks][3987]
 - [Enable Date, Time and DateTime to be read and written to Excel.][3997]
+- [Aligning core APIs for Vector, List and Range. Adding some missing functions
+  to the types.][4026]
+- [Implemented `Table.distinct` for Database backends.][4027]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -420,6 +425,9 @@
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
 [3997]: https://github.com/enso-org/enso/pull/3997
+[4013]: https://github.com/enso-org/enso/pull/4013
+[4026]: https://github.com/enso-org/enso/pull/4026
+[4027]: https://github.com/enso-org/enso/pull/4027
 
 #### Enso Compiler
 
@@ -502,6 +510,7 @@
   place][4022]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
+- [Attach visualizations to sub-expressions][4048]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -586,6 +595,7 @@
 [4022]: https://github.com/enso-org/enso/pull/4022
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
+[4048]: https://github.com/enso-org/enso/pull/4048
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

@@ -5,8 +5,8 @@ use crate::prelude::*;
 use enso_web::traits::*;
 
 use crate::config::InitialView;
+use crate::executor::setup_global_executor;
 use crate::executor::web::EventLoopExecutor;
-use crate::initializer::setup_global_executor;
 use crate::Ide;
 
 use enso_web::Closure;
