@@ -1,4 +1,4 @@
-//! Build script for [`enso_profiler_macros`]. This is needed to make cargo aware that
+//! Build script for [`enso_logging_macros`]. This is needed to make cargo aware that
 //! the crate depends on the values of environment variables at compile time, and changes to those
 //! variables should result in recompiling this crate and its dependents.
 
@@ -15,7 +15,8 @@
 
 
 fn main() {
-    declare_env_dependence("ENSO_MAX_PROFILING_LEVEL");
+    declare_env_dependence("ENSO_MAX_LOGGING_LEVEL");
+    declare_env_dependence("ENSO_UNCOLLAPSED_LOGGING_LEVEL");
 }
 
 /// Make cargo aware that the result of compiling this crate depends on an environment variable.

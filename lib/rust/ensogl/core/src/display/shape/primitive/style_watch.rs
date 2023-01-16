@@ -9,7 +9,6 @@ use crate::display::style::data::DataMatch;
 use crate::display::style::Path;
 
 use enso_frp as frp;
-use enso_prelude::tracing::log;
 
 
 
@@ -93,7 +92,7 @@ impl StyleWatchFrp {
         let (source, current) = self.get_internal(path);
         frp::extend! { network
             value <- source.map(move |t| t.number().unwrap_or_else(|| {
-                log::warn!("{}", warning);
+                warn!("{}", warning);
                 0.0
             }));
             sampler <- value.sampler();
@@ -110,7 +109,7 @@ impl StyleWatchFrp {
         let (source, current) = self.get_internal(path);
         frp::extend! { network
             value <- source.map(move |t| t.color().unwrap_or_else(|| {
-                log::warn!("{}", warning);
+                warn!("{}", warning);
                 FALLBACK_COLOR
             }));
             sampler <- value.sampler();
@@ -128,7 +127,7 @@ impl StyleWatchFrp {
         frp::extend! { network
             value <- source.map(move |t| {
                 t.im_string_or_else(|| {
-                    log::warn!("{}", warning);
+                    warn!("{}", warning);
                     default()
                 })
             });

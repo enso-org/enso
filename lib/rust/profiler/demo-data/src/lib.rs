@@ -25,7 +25,7 @@ use enso_profiler::profile;
 /// Create example profiling data.
 pub async fn create_data() -> String {
     start_project().await;
-    profiler::internal::take_log()
+    profiler::internal::get_log()
 }
 
 /// A dummy computation that is intended to take some time based on input (where a higher number

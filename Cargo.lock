@@ -2202,6 +2202,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-logging"
+version = "0.3.1"
+dependencies = [
+ "enso-logging-macros",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "enso-logging-macros"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "enso-macro-utils"
 version = "0.2.0"
 dependencies = [
@@ -2320,6 +2339,7 @@ dependencies = [
  "derivative",
  "derive_more",
  "enclose",
+ "enso-logging",
  "enso-reflect",
  "enso-shapely",
  "enso-web",
@@ -2336,9 +2356,6 @@ dependencies = [
  "serde_json",
  "shrinkwraprs 0.3.0",
  "smallvec 1.9.0",
- "tracing",
- "tracing-subscriber",
- "tracing-wasm",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "weak-table",
@@ -2525,12 +2542,12 @@ dependencies = [
  "console_error_panic_hook",
  "derivative",
  "enso-debug-api",
+ "enso-logging",
  "enso-shapely",
  "failure",
  "gloo-timers",
  "js-sys",
  "nalgebra",
- "tracing",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
@@ -7311,17 +7328,6 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
-]
-
-[[package]]
-name = "tracing-wasm"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4575c663a174420fa2d78f4108ff68f65bf2fbb7dd89f33749b6e826b3626e07"
-dependencies = [
- "tracing",
- "tracing-subscriber",
- "wasm-bindgen",
 ]
 
 [[package]]
