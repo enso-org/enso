@@ -71,7 +71,7 @@ export class EntryPoint {
             .reduce((map, n) => {
                 map.set(n.strippedName, n)
                 return map
-            }, new Map())
+            }, new Map<string, EntryPoint>())
     }
 
     /** Filter the provided names list and return map of valid main entry points. */

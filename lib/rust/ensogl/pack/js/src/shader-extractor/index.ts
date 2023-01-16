@@ -2,7 +2,7 @@ import host from 'runner/host'
 
 import { App as BaseApp } from 'runner/index'
 
-import { Args, parseArgs } from 'shader-extractor/args'
+import { parseArgs } from 'shader-extractor/args'
 import { Task } from 'runner/log/task'
 import path from 'path'
 import * as fs from 'shader-extractor/fs'
@@ -12,8 +12,8 @@ class App extends BaseApp {
     override async loadWasm() {
         console.log('loadWasm in node!')
         if (host.node) {
-            const mainJsUrl = path.join(__dirname, this.config.mainJsUrl.value)
-            const mainWasmUrl = path.join(__dirname, this.config.mainWasmUrl.value)
+            const mainJsUrl = path.join(__dirname, this.config.params.mainJsUrl.value)
+            const mainWasmUrl = path.join(__dirname, this.config.params.mainWasmUrl.value)
             const mainJs = await fs.readFile(mainJsUrl, 'utf8')
             const mainWasm = await fs.readFile(mainWasmUrl)
             this.wasm = await this.compileAndRunWasm(mainJs, mainWasm)
@@ -48,7 +48,7 @@ async function main() {
     console.log('hello node2!')
     if (host.node) {
         const app = new App()
-        const extractShadersPath = args.extractShaders.value
+        const extractShadersPath = args.args.extractShaders.value
         if (extractShadersPath) {
             await Task.asyncWith('Running the program.', async () => {
                 app.printResolvedConfig()
@@ -62,4 +62,4 @@ async function main() {
     }
 }
 
-main()
+void main()

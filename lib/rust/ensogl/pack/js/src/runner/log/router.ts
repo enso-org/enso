@@ -17,8 +17,8 @@ const consoleLogNames = [
 
 // FIXME: fix Rust `autoFlush` handling
 class Router {
-    private buffer: { name: string; args: any[] }[]
-    private readonly console: any
+    private buffer: { name: string; args: unknown[] }[]
+    private readonly console: Record<string, (...args: unknown[]) => void>
     autoFlush: boolean
 
     constructor() {
@@ -27,7 +27,7 @@ class Router {
         this.autoFlush = true
         for (const name of consoleLogNames) {
             this.console[name] = console[name]
-            console[name] = (...args: any[]) => {
+            console[name] = (...args: unknown[]) => {
                 this.consume(name, args)
             }
         }
@@ -36,14 +36,24 @@ class Router {
     private autoFlushOn() {
         this.autoFlush = true
         for (const { name, args } of this.buffer) {
-            this.console[name](...args)
+            const fn = this.console[name]
+            if (fn) {
+                fn(...args)
+            } else {
+                console.error(`Unknown log name '${name}'.`)
+            }
         }
         this.buffer = []
     }
 
-    private consume(name: string, args: any[]) {
+    private consume(name: string, args: unknown[]) {
         if (this.autoFlush) {
-            this.console[name](...args)
+            const fn = this.console[name]
+            if (fn) {
+                fn(...args)
+            } else {
+                console.error(`Unknown log name '${name}'.`)
+            }
         } else {
             this.buffer.push({ name, args })
         }
@@ -61,4 +71,7 @@ class Router {
 
 export const router = new Router()
 
-host.exportGlobal({ hideLogs: router.hideLogs, showLogs: router.showLogs })
+host.exportGlobal({
+    hideLogs: router.hideLogs.bind(router),
+    showLogs: router.showLogs.bind(router),
+})

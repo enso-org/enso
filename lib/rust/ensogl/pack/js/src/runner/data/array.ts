@@ -11,6 +11,6 @@ export function arrayIntoTuples<T>(arr: T[]): [T, T][] {
 }
 
 export function zip<T, S>(arr1: T[], arr2: S[]): [T, S][] {
-    // @ts-ignore
+    // @ts-expect-error
     return [...arr1].map((_, c) => [arr1, arr2].map(row => row[c]))
 }

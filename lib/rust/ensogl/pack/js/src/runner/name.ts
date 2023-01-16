@@ -21,7 +21,8 @@ export function isBasicChar(char: string): boolean {
 
 export function unmangle(name: string): string {
     return name.replace(NAME_REGEX, (...args) => {
-        const groups = args.at(-1)
+        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+        const groups: { underscore: string; specialChar: string } = args.at(-1)
         if (groups.underscore) {
             return '_'
         } else {
@@ -38,7 +39,7 @@ export function mangle(name: string): string {
         } else if (char === '_') {
             result += '__'
         } else {
-            result += '_' + char.charCodeAt(0) + '_'
+            result += `_${char.charCodeAt(0)}_`
         }
     }
     return result

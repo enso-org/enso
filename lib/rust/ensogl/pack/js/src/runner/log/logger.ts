@@ -52,29 +52,29 @@ class Colors {
 export type LogLevel = 'trace' | 'log' | 'warn' | 'error'
 
 export abstract class Consumer {
-    abstract message(fn: LogLevel, ...args: any[]): void
+    abstract message(fn: LogLevel, ...args: unknown[]): void
 
     /** Start a group and log a message. */
-    abstract group(...args: any[]): void
+    abstract group(...args: unknown[]): void
 
     /** Start a group and log a message. */
-    abstract groupCollapsed(...args: any[]): void
+    abstract groupCollapsed(...args: unknown[]): void
 
     /** Log a message and end the last opened group. */
-    abstract groupEnd(...args: any[]): void
+    abstract groupEnd(...args: unknown[]): void
 
     /** Log a message. */
-    log(...args: any[]) {
+    log(...args: unknown[]) {
         this.message('log', ...args)
     }
 
     /** Log a warning. */
-    warn(...args: any[]) {
+    warn(...args: unknown[]) {
         this.message('warn', ...args)
     }
 
     /** Log an error. */
-    error(...args: any[]) {
+    error(...args: unknown[]) {
         this.message('error', ...args)
     }
 
@@ -118,25 +118,25 @@ export class Logger extends Consumer {
         this.consumers.push(consumer)
     }
 
-    message(fn: LogLevel, ...args: any[]) {
+    message(fn: LogLevel, ...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.message(fn, ...args)
         }
     }
 
-    group(...args: any[]) {
+    group(...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.group(...args)
         }
     }
 
-    groupCollapsed(...args: any[]) {
+    groupCollapsed(...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.groupCollapsed(...args)
         }
     }
 
-    groupEnd(...args: any[]) {
+    groupEnd(...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.groupEnd(...args)
         }
@@ -147,7 +147,7 @@ export class Logger extends Consumer {
 // === Console ===
 // ===============
 
-function replacer(key: string, value: any) {
+function replacer(key: string, value: unknown): unknown {
     if (value instanceof Map) {
         return {
             dataType: 'Map',
@@ -161,19 +161,19 @@ function replacer(key: string, value: any) {
 export class Console extends Consumer {
     private indentLvl = 0
 
-    message(fn: LogLevel, ...args: any[]) {
+    message(fn: LogLevel, ...args: unknown[]) {
         const strArgs = args.map(arg => {
             if (isObject(arg)) {
                 return JSON.stringify(arg, replacer, 2)
             } else {
-                return arg.toString()
+                return String(arg)
             }
         })
-        const c: any = console
+        const c: globalThis.Console = console
         if (host.browser) {
             c[fn](...strArgs)
         } else {
-            let color: null | string
+            let color: null | 'orange' | 'red'
             switch (fn) {
                 case 'warn':
                     color = 'orange'
@@ -185,8 +185,11 @@ export class Console extends Consumer {
                     color = null
                     break
             }
-            //@ts-ignore
-            const coloredArgs = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
+            /* eslint @typescript-eslint/no-unsafe-return: "off" */
+            /* eslint @typescript-eslint/no-unsafe-call: "off" */
+            /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+            // @ts-expect-error
+            const coloredArgs: string[] = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
             if (this.indentLvl > 0) {
                 const indent = this.indent()
                 const indentedArgs = coloredArgs.map(arg => arg.replaceAll('\n', `\n${indent}`))
@@ -197,7 +200,7 @@ export class Console extends Consumer {
         }
     }
 
-    group(...args: any[]) {
+    group(...args: unknown[]) {
         if (host.browser) {
             console.group(...args)
         } else {
@@ -207,7 +210,7 @@ export class Console extends Consumer {
         this.indentLvl += 1
     }
 
-    groupCollapsed(...args: any[]) {
+    groupCollapsed(...args: unknown[]) {
         if (host.browser) {
             console.groupCollapsed(...args)
             this.indentLvl += 1
@@ -216,7 +219,7 @@ export class Console extends Consumer {
         }
     }
 
-    groupEnd(...args: any[]) {
+    groupEnd(...args: unknown[]) {
         if (this.indentLvl > 0) {
             this.indentLvl -= 1
             if (host.browser) {

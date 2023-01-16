@@ -6,6 +6,7 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSourceMap": true,
     "isolatedModules": true,
+    "lib": ["ES2021", "dom"],
     "module": "ESNext",
     "moduleResolution": "node",
     "noImplicitOverride": true,

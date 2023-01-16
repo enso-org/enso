@@ -193,17 +193,17 @@ class Main {
 
         if (app.initialized) {
             let mixpanelLogger = null
-            if (app.config.dataGathering.value) {
+            if (app.config.params.dataGathering.value) {
                 logger.log('Data gathering enabled. Initializing Mixpanel.')
-                mixpanelLogger = new MixpanelLogger(app.config.debug.value)
+                mixpanelLogger = new MixpanelLogger(app.config.params.debug.value)
                 logger.addConsumer(mixpanelLogger)
             }
-            if (!(await checkMinSupportedVersion(app.config))) {
+            if (!(await checkMinSupportedVersion(app.config.params))) {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    app.config.authenticationEnabled.value &&
-                    app.config.entry.value != app.config.entry.default
+                    app.config.params.authenticationEnabled.value &&
+                    app.config.params.entry.value != app.config.params.entry.default
                 ) {
                     // TODO: authentication here
                     // app.config.email.value = user.email
@@ -211,9 +211,9 @@ class Main {
                 } else {
                     app.run()
                 }
-                if (app.config.email.value && mixpanelLogger) {
-                    logger.log(`User identified as '${app.config.email.value}'.`)
-                    mixpanelLogger.identify(app.config.email.value)
+                if (app.config.params.email.value && mixpanelLogger) {
+                    logger.log(`User identified as '${app.config.params.email.value}'.`)
+                    mixpanelLogger.identify(app.config.params.email.value)
                 }
             }
         }

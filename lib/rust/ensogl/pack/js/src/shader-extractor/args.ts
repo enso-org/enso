@@ -1,3 +1,5 @@
+import * as util from 'node:util'
+
 // ==========================
 // === Naming Conversions ===
 // ==========================
@@ -21,7 +23,7 @@ class Option<T> {
     'default': T | undefined
     value: T | undefined
     description: string
-    type: string
+    type: 'string' | 'boolean'
     constructor(description: string, def?: T) {
         this.default = def
         this.description = description
@@ -37,29 +39,40 @@ class Option<T> {
 // === Args ===
 // ============
 
-export class Args {
+interface ParseArgsOptionConfig {
+    type: 'string' | 'boolean'
+    multiple?: boolean | undefined
+    short?: string | undefined
+    default?: string | boolean | string[] | boolean[] | undefined
+}
+
+export class Args2 {
+    [key: string]: Option<string | boolean>
     help = new Option('Print help message.', false)
     extractShaders = new Option<string>(
         'Extract non-optimized shaders code for static EnsoGL shape definitions. The argument is ' +
             'the directory the shaders will be written to.'
     )
+}
+
+export class Args {
+    args = new Args2()
 
     parse() {
-        const optionToFieldNameMap: Map<string, string> = new Map()
-        const options: any = {}
-        for (const [fieldName, option] of Object.entries(this)) {
+        const optionToFieldNameMap = new Map<string, string>()
+        const options: Record<string, ParseArgsOptionConfig> = {}
+        for (const [fieldName, option] of Object.entries(this.args)) {
             const optionName = camelToKebabCase(fieldName)
             optionToFieldNameMap.set(optionName, fieldName)
             options[optionName] = { type: option.type, default: option.default }
         }
         try {
-            const nodeUtil = require('node:util')
-            const out = nodeUtil.parseArgs({ options })
+            const out = util.parseArgs({ options })
             for (const [optionName, optionValue] of Object.entries(out.values)) {
                 const fieldName = optionToFieldNameMap.get(optionName)
-                const self: any = this
                 if (fieldName) {
-                    self[fieldName].value = optionValue
+                    // @ts-expect-error
+                    this.args[fieldName].value = optionValue
                 } else {
                     console.error(`Unknown option: ${optionName}`)
                     process.exit(1)
@@ -70,18 +83,18 @@ export class Args {
             console.error(`${msg}Use --help to learn about possible options.`)
             process.exit(1)
         }
-        if (this.help.value) {
+        if (this.args.help.value) {
             this.printHelpAndExit(0)
         }
     }
 
     printHelp() {
         console.log(`Options:`)
-        for (const [fieldName, option] of Object.entries(this)) {
+        for (const [fieldName, option] of Object.entries(this.args)) {
             const optionName = camelToKebabCase(fieldName)
             let header = `--${optionName}`
             if (option.type == 'string') {
-                const def = option.default ? `[${option.default}]` : '<value>'
+                const def = option.default != null ? `[${option.default}]` : '<value>'
                 header += `=${def}`
             }
             console.log()

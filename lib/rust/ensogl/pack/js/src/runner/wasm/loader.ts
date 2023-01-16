@@ -4,6 +4,7 @@ import * as math from 'runner/math'
 import * as svg from 'runner/dom/svg'
 import { Config } from 'runner/config'
 import { Logo } from 'runner/dom/logo'
+import { logger } from 'runner/log'
 
 // =========================
 // === ProgressIndicator ===
@@ -72,19 +73,19 @@ class ProgressIndicator {
         center.appendChild(progressBar)
         center.appendChild(logo)
 
-        //@ts-ignore
+        // @ts-expect-error
         this.track = document.getElementById('loaderTrack')
-        //@ts-ignore
+        // @ts-expect-error
         this.indicator = document.getElementById('loaderIndicator')
-        //@ts-ignore
+        // @ts-expect-error
         this.progressIndicatorMask = document.getElementById('progressIndicatorMask')
-        //@ts-ignore
+        // @ts-expect-error
         this.loaderTrackEndPoint = document.getElementById('loaderTrackEndPoint')
 
         this.set(0)
         this.setIndicatorOpacity(0)
 
-        if (cfg.useLoader) {
+        if (cfg.params.useLoader.value) {
             this.initialized = Promise.all<void>([
                 this.animateShow(),
                 this.animateShowLogo(),
@@ -143,8 +144,8 @@ class ProgressIndicator {
     /// Destroys the component. Removes it from the stage and destroys attached callbacks.
     destroy() {
         const self = this
-        this.initialized.then(() => {
-            this.animateHide().then(() => {
+        void this.initialized.then(() => {
+            void this.animateHide().then(() => {
                 const parent = self.dom.parentNode
                 if (parent) {
                     parent.removeChild(self.dom)
@@ -321,7 +322,7 @@ export class Loader {
         this.downloadSpeed = 0
         this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
-        this.capProgressAt = cfg.loaderDownloadToInitRatio.value
+        this.capProgressAt = cfg.params.loaderDownloadToInitRatio.value
 
         this.done = new Promise(resolve => {
             this.doneResolve = resolve
@@ -339,7 +340,7 @@ export class Loader {
             }
             const body = resource.clone().body
             if (body) {
-                body.pipeTo(this.inputStream())
+                body.pipeTo(this.inputStream()).catch(err => logger.error(err))
             } else {
                 // FIXME: error
             }
@@ -418,7 +419,7 @@ export class Loader {
     }
 
     /// Internal function for attaching new fetch responses.
-    inputStream() {
+    inputStream(): WritableStream<Uint8Array> {
         const loader = this
         return new WritableStream({
             write(t) {

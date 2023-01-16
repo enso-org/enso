@@ -31,11 +31,13 @@ class PackageInfo {
     gitStatus: string
 
     /** Constructor. */
-    constructor(userProvidedInfo?: { [key: string]: string }) {
-        const infoObject = userProvidedInfo || {}
-        // @ts-ignore
+    constructor(userProvidedInfo?: Record<string, string>) {
+        const infoObject = userProvidedInfo ?? {}
+        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+        // @ts-expect-error
         this.gitHash = GIT_HASH
-        // @ts-ignore
+        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+        // @ts-expect-error
         this.gitStatus = GIT_STATUS
         Object.assign(this, infoObject)
     }
@@ -63,7 +65,7 @@ class Files<T> {
     /** Main WASM file that contains the compiled WASM code. */
     mainWasm: T
     /** Precompiled shaders files. */
-    shaders: Shaders<T> = new Shaders()
+    shaders = new Shaders<T>()
 
     constructor(mainJs: T, mainWasm: T) {
         this.mainJs = mainJs
@@ -76,7 +78,7 @@ class Files<T> {
         if (out != null) {
             return out
         } else {
-            throw 'Internal error.'
+            throw new Error('Internal error.')
         }
     }
 
@@ -87,8 +89,8 @@ class Files<T> {
     fromArray<S>(array: S[]): Files<S> | null {
         const [mainJs, mainWasm, ...shaders] = array
         if (mainJs != null && mainWasm != null) {
-            const files: Files<S> = new Files(mainJs, mainWasm)
-            files.shaders = this.shaders.fromArray(shaders) || new Shaders()
+            const files = new Files<S>(mainJs, mainWasm)
+            files.shaders = this.shaders.fromArray(shaders) ?? new Shaders()
             return files
         } else {
             return null
@@ -98,7 +100,7 @@ class Files<T> {
 
 /** Mapping between a shader identifier and precompiled shader sources. */
 class Shaders<T> {
-    map: Map<string, Shader<T>> = new Map()
+    map = new Map<string, Shader<T>>()
 
     async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Shaders<S>> {
         const mapped = await Promise.all(this.toArray().map(f))
@@ -106,7 +108,7 @@ class Shaders<T> {
         if (out != null) {
             return out
         } else {
-            throw 'Internal error.'
+            throw new Error('Internal error.')
         }
     }
 
@@ -115,7 +117,7 @@ class Shaders<T> {
     }
 
     fromArray<S>(arr: S[]): Shaders<S> | null {
-        const shaders: Shaders<S> = new Shaders()
+        const shaders = new Shaders<S>()
         const keys = Array.from(this.map.keys())
         for (const [key, [vertex, fragment]] of array.zip(keys, array.arrayIntoTuples(arr))) {
             const shader = new Shader(vertex, fragment)
@@ -153,13 +155,13 @@ export class App {
     logger: log.Logger
     shaders: Shaders<string> | null = null
     wasmFunctions: string[] = []
-    beforeMainEntryPoints: Map<string, wasm.EntryPoint> = new Map()
-    mainEntryPoints: Map<string, wasm.EntryPoint> = new Map()
+    beforeMainEntryPoints = new Map<string, wasm.EntryPoint>()
+    mainEntryPoints = new Map<string, wasm.EntryPoint>()
     initialized = false
 
     constructor(opts?: {
         configExtension?: config.ExternalConfig
-        packageInfo: any
+        packageInfo?: Record<string, string>
         config?: object
     }) {
         this.packageInfo = new PackageInfo(opts?.packageInfo ?? {})
@@ -200,31 +202,38 @@ export class App {
     }
 
     /** Compiles and runs the downloaded WASM file. */
-    async compileAndRunWasm(mainJs: string, wasm: Buffer | Response): Promise<any> {
-        return await log.Task.asyncNoGroupWith('WASM compilation', async () => {
+    async compileAndRunWasm(mainJs: string, wasm: Buffer | Response): Promise<unknown> {
+        return await log.Task.asyncNoGroupWith<unknown>('WASM compilation', async () => {
+            /* eslint @typescript-eslint/no-implied-eval: "off" */
             const snippetsFn = Function(
                 `const module = {}
-             ${mainJs}
-             module.exports.init = pkg_default
-             return module.exports`
+                 ${mainJs}
+                 module.exports.init = pkg_default
+                 return module.exports`
             )()
-            return await snippetsFn.init(wasm)
+            /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
+            /* eslint @typescript-eslint/no-unsafe-call: "off" */
+            const out: unknown = await snippetsFn.init(wasm)
+            return out
         })
     }
 
     async loadWasm() {
         const task = log.Task.startCollapsed(`Downloading application files.`)
         const loader = new wasm.Loader(this.config)
-        loader.done.then(() => task.end())
+        void loader.done.then(() => task.end())
 
-        const shadersUrl = this.config.shadersUrl.value
+        const shadersUrl = this.config.params.shadersUrl.value
         const shadersNames = await log.Task.asyncWith('Downloading shaders list.', async () => {
             const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
             const shadersList = await shadersListResponse.text()
             return shadersList.split('\n').filter(line => line.length > 0)
         })
 
-        const files = new Files(this.config.mainJsUrl.value, this.config.mainWasmUrl.value)
+        const files = new Files(
+            this.config.params.mainJsUrl.value,
+            this.config.params.mainWasmUrl.value
+        )
         for (const mangledName of shadersNames) {
             const unmangledName = name.unmangle(mangledName)
             const vertexUrl = `${shadersUrl}/${mangledName}.vertex.glsl`
@@ -241,7 +250,6 @@ export class App {
         }
 
         // FIXME:
-        // @ts-ignore
         const downloadSize = loader.showTotalBytes()
 
         const mainJs = await responses.mainJs.text()
@@ -267,7 +275,7 @@ export class App {
             return
         }
         const count = this.beforeMainEntryPoints.size
-        const [time, _] = log.Task.withTimed(`Running ${count} before main entry points.`, () => {
+        const [time] = log.Task.withTimed(`Running ${count} before main entry points.`, () => {
             for (const entryPoint of this.beforeMainEntryPoints.values()) {
                 log.Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
                     this.wasm[entryPoint.name()]()
@@ -278,14 +286,14 @@ export class App {
     }
 
     checkBeforeMainEntryPointsTime(time: number) {
-        if (time > this.config.maxBeforeMainEntryPointsTimeMs.value) {
+        if (time > this.config.params.maxBeforeMainEntryPointsTimeMs.value) {
             logger.error(`Entry points took ${time} milliseconds to run. This is too long.`)
             logger.error('Before main entry points should be used for fast initialization only.')
         }
     }
 
     runEntryPoints() {
-        const entryPointName = this.config.entry.value
+        const entryPointName = this.config.params.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             this.runBeforeMainEntryPoints()
@@ -303,7 +311,7 @@ export class App {
         if (host.browser) {
             this.styleRoot()
             this.disableContextMenu()
-            if (this.config.debug.value) {
+            if (this.config.params.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
             } else {
                 this.printScamWarning()
@@ -346,20 +354,20 @@ export class App {
         })
 
         const headers = ['Name', 'Description']
-        new HelpScreen().display({ title, headers, entries }, this.mainEntryPoints, this.wasm)
+        new HelpScreen().display({ title, headers, entries })
     }
 
     showConfigOptions(unknownConfigOptions?: string[]) {
         logger.log('Showing config options help screen.')
         const msg = unknownConfigOptions
-            ? `Unknown config options: '${unknownConfigOptions}'. `
+            ? `Unknown config options: '${unknownConfigOptions.join(', ')}'. `
             : ''
         const title = msg + 'Available options:'
-        const entries = Array.from(Object.entries(this.config)).map(([key, option]) => {
-            return new HelpScreenEntry(key, [option.description, option.default])
+        const entries = Array.from(Object.entries(this.config.params)).map(([key, option]) => {
+            return new HelpScreenEntry(key, [option.description, String(option.default)])
         })
         const headers = ['Name', 'Description', 'Default']
-        new HelpScreen().display({ title, headers, entries }, this.mainEntryPoints, this.wasm)
+        new HelpScreen().display({ title, headers, entries })
     }
 
     printScamWarning() {
@@ -427,11 +435,7 @@ class HelpScreenEntry {
 
 class HelpScreen {
     /// Displays a debug screen which allows the user to run one of predefined debug examples.
-    display(
-        cfg: { title: string; headers: string[]; entries: HelpScreenEntry[] },
-        mainEntryPoints: Map<string, wasm.EntryPoint>,
-        wasm: any
-    ) {
+    display(cfg: { title: string; headers: string[]; entries: HelpScreenEntry[] }) {
         const padding = '8px'
         const backgroundRadius = '8px'
         const div = dom.newTopLevelDiv()
@@ -510,11 +514,6 @@ class HelpScreen {
 // ==========================
 // === App Initialization ===
 // ==========================
-
-// const app = new App()
-// export default app
-// // app.run()
-//
 
 type GetShadersFn = () => Map<string, { vertex: string; fragment: string }>
 type SetShadersFn = (map: Map<string, { vertex: string; fragment: string }>) => void

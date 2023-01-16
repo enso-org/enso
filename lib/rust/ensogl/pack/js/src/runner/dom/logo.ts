@@ -1,4 +1,4 @@
-type Config = {
+interface Config {
     borderOffset?: number
     borderWidth?: number
     color?: string

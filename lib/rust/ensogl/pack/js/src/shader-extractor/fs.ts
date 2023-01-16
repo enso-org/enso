@@ -51,7 +51,7 @@ export async function readFile(
         | BufferEncoding
         | null
 ): Promise<string | Buffer> {
-    return LoggedTask.asyncWith(`Reading file '${path}'.`, async () => {
+    return LoggedTask.asyncWith(`Reading file '${String(path)}'.`, async () => {
         return await fs.readFile(path, options)
     })
 }
@@ -61,7 +61,7 @@ export async function readFile(
 // ==============
 
 export async function unlink(path: PathLike): Promise<void> {
-    logger.log(`Removing file '${path}'.`)
+    logger.log(`Removing file '${String(path)}'.`)
     return await fs.unlink(path)
 }
 
@@ -70,8 +70,8 @@ export async function unlink(path: PathLike): Promise<void> {
 // =============
 
 export async function rmdir(path: PathLike, options?: RmDirOptions): Promise<void> {
-    logger.log(`Removing directory '${path}'.`)
-    return await fs.rmdir(path)
+    logger.log(`Removing directory '${String(path)}'.`)
+    return await fs.rmdir(path, options)
 }
 
 // =============
@@ -82,7 +82,7 @@ export async function mkdir(
     path: PathLike,
     options?: Mode | MakeDirectoryOptions | null
 ): Promise<string | undefined> {
-    logger.log(`Creating directory '${path}'.`)
+    logger.log(`Creating directory '${String(path)}'.`)
     return await fs.mkdir(path, options)
 }
 
@@ -91,7 +91,7 @@ export async function mkdir(
 // ==========
 
 export async function rm(path: PathLike, options?: RmOptions): Promise<void> {
-    logger.log(`Removing '${path}'.`)
+    logger.log(`Removing '${String(path)}'.`)
     return await fs.rm(path, options)
 }
 
@@ -115,6 +115,6 @@ export async function writeFile(
         | BufferEncoding
         | null
 ): Promise<void> {
-    logger.log(`Writing file '${file}'.`)
+    logger.log(`Writing file '${String(file)}'.`)
     return await fs.writeFile(file, data, options)
 }

@@ -28,9 +28,10 @@ function urlParams(): any {
 }
 
 /** Export the value to the global scope (`global` in node and `window` in browser). */
-function exportGlobal(exports: { [key: string]: any }) {
+function exportGlobal(exports: Record<string, any>) {
     for (const [key, value] of Object.entries(exports)) {
-        // @ts-ignore
+        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+        // @ts-expect-error
         global[key] = value
     }
 }
