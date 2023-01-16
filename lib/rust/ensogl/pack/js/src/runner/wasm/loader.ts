@@ -25,7 +25,7 @@ class ProgressIndicator {
     loaderTrackEndPoint: HTMLElement
     logo: HTMLElement
     center: HTMLElement
-    initialized: Promise<void[]>
+    initialized: Promise<undefined[]>
     destroyed: boolean
     ringInnerRadius: number
     ringWidth: number
@@ -88,7 +88,7 @@ class ProgressIndicator {
         this.setIndicatorOpacity(0)
 
         if (cfg.params.useLoader.value) {
-            this.initialized = Promise.all<void>([
+            this.initialized = Promise.all<undefined>([
                 this.animateShow(),
                 this.animateShowLogo(),
                 this.animateProgress(),
@@ -192,7 +192,7 @@ class ProgressIndicator {
     }
 
     /// Start show animation. It is used after the loader is created.
-    animateShow(): Promise<void> {
+    animateShow(): Promise<undefined> {
         const self = this
         const startTime = window.performance.now()
         return new Promise(function (resolve) {
@@ -202,14 +202,14 @@ class ProgressIndicator {
                 if (opacitySampler < 1) {
                     window.requestAnimationFrame(step)
                 } else {
-                    resolve()
+                    resolve(undefined)
                 }
             }
             window.requestAnimationFrame(step)
         })
     }
 
-    animateProgress(): Promise<void> {
+    animateProgress(): Promise<undefined> {
         const self = this
         let lastTime = window.performance.now()
         self.displayProgress(self.minProgressSize)
@@ -229,14 +229,14 @@ class ProgressIndicator {
                 if (self.animatedValue < 1) {
                     window.requestAnimationFrame(step)
                 } else {
-                    resolve()
+                    resolve(undefined)
                 }
             }
             window.requestAnimationFrame(step)
         })
     }
 
-    animateShowLogo(): Promise<void> {
+    animateShowLogo(): Promise<undefined> {
         const self = this
         const startTime = window.performance.now()
         const outerRadius = this.ringInnerRadius + this.ringWidth
@@ -263,7 +263,7 @@ class ProgressIndicator {
                 if (opacitySampler < 1) {
                     window.requestAnimationFrame(step)
                 } else {
-                    resolve()
+                    resolve(undefined)
                 }
             }
             window.requestAnimationFrame(step)
@@ -313,7 +313,7 @@ export class Loader {
     receivedBytes: number
     downloadSpeed: number
     lastReceiveTime: number
-    initialized: Promise<void[]>
+    initialized: Promise<undefined[]>
     capProgressAt: number
     done: Promise<void>
     doneResolve: null | ((value: void | PromiseLike<void>) => void) = null

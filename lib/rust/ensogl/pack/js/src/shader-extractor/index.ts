@@ -54,7 +54,7 @@ async function main() {
         const extractShadersPath = args.args.extractShaders.value
         if (extractShadersPath) {
             await Task.asyncWith('Running the program.', async () => {
-                app.printResolvedConfig()
+                app.config.print()
                 await app.loadAndInitWasm()
                 app.runBeforeMainEntryPoints()
                 await app.extractShaders(extractShadersPath)

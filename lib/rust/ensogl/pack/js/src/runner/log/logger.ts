@@ -18,6 +18,7 @@ function isObject(value: any): boolean {
 // === Colors ===
 // ==============
 
+/* eslint @typescript-eslint/no-extraneous-class: "off" */
 class Colors {
     static resetCode = '\x1b[0m'
     static redCode = '\x1b[31m'
@@ -82,6 +83,11 @@ export abstract class Consumer {
     /** Log an error. */
     error(...args: unknown[]) {
         this.message('error', ...args)
+    }
+
+    /** Log an internal error. */
+    internalError(...args: unknown[]) {
+        this.message('error', 'Internal error.', ...args)
     }
 
     with<T>(message: string, f: () => T): T {

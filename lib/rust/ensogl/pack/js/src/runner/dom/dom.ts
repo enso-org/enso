@@ -12,3 +12,10 @@ export function newTopLevelDiv(): HTMLDivElement {
     document.body.appendChild(node)
     return node
 }
+
+/** Disable the context menu for the whole browser window. */
+export function disableContextMenu() {
+    document.body.addEventListener('contextmenu', e => {
+        e.preventDefault()
+    })
+}

@@ -7,6 +7,7 @@ import * as log from 'runner/log'
 import * as wasm from 'runner/wasm'
 import * as config from 'runner/config'
 import * as array from 'runner/data/array'
+import * as debug from 'runner/debug'
 
 import host from 'runner/host'
 import { logger } from 'runner/log'
@@ -21,41 +22,6 @@ export type { LogLevel } from 'runner/log/logger'
 
 export { logger, Logger, Consumer } from 'runner/log'
 export { Param } from 'runner/config'
-
-// ===================
-// === PackageInfo ===
-// ===================
-
-/** Package info. It contains the build git hash and git status, both injected during build time.
- * See `bundle.ts` to learn more. It can also contain additional info provided by the user of this
- * library. */
-class PackageInfo {
-    gitHash: string
-    gitStatus: string
-
-    /** Constructor. */
-    constructor(userProvidedInfo?: Record<string, string>) {
-        const infoObject = userProvidedInfo ?? {}
-        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
-        // @ts-expect-error
-        this.gitHash = GIT_HASH
-        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
-        // @ts-expect-error
-        this.gitStatus = GIT_STATUS
-        Object.assign(this, infoObject)
-    }
-
-    /** Display the current info in the console. */
-    display() {
-        logger.with('Package info.', () => {
-            for (const [key, value] of Object.entries(this)) {
-                if (value) {
-                    logger.log(`${key}: ${value}`)
-                }
-            }
-        })
-    }
-}
 
 // ==============================
 // === Files to be downloaded ===
@@ -81,14 +47,17 @@ class Files<T> {
         if (out != null) {
             return out
         } else {
-            throw new Error('Internal error.')
+            log.panic()
         }
     }
 
+    /** Converts the structure fields to an array. */
     toArray(): T[] {
         return [this.mainJs, this.mainWasm, ...this.shaders.toArray()]
     }
 
+    /** Assign array values to the structure fields. The elements order should be the same as the
+     * output of the `toArray` function. */
     fromArray<S>(array: S[]): Files<S> | null {
         const [mainJs, mainWasm, ...shaders] = array
         if (mainJs != null && mainWasm != null) {
@@ -111,20 +80,24 @@ class Shaders<T> {
         if (out != null) {
             return out
         } else {
-            throw new Error('Internal error.')
+            log.panic()
         }
     }
 
+    /** Converts the structure fields to an array. The shader names are not preserved. */
     toArray(): T[] {
         return Array.from(this.map.values()).flatMap(shader => shader.toArray())
     }
 
+    /** Assign array values to the structure fields. The elements order should be the same as the
+     * output of the `toArray` function. The shader names will be preserved and assigned to the
+     * input values in order. */
     fromArray<S>(arr: S[]): Shaders<S> | null {
         const shaders = new Shaders<S>()
         const keys = Array.from(this.map.keys())
         const tuples = array.arrayIntoTuples(arr)
         if (tuples == null) {
-            throw new Error('Internal error.')
+            log.panic()
         } else {
             for (const [key, [vertex, fragment]] of array.zip(keys, tuples)) {
                 const shader = new Shader(vertex, fragment)
@@ -145,6 +118,7 @@ class Shader<T> {
         this.fragment = fragment
     }
 
+    /** Converts the structure fields to an array. The shader names are not preserved. */
     toArray(): T[] {
         return [this.vertex, this.fragment]
     }
@@ -156,7 +130,7 @@ class Shader<T> {
 
 /** The main application class. */
 export class App {
-    packageInfo: PackageInfo
+    packageInfo: debug.PackageInfo
     config: config.Config
     wasm: any = null
     loader: wasm.Loader | null = null
@@ -172,7 +146,7 @@ export class App {
         packageInfo?: Record<string, string>
         config?: object
     }) {
-        this.packageInfo = new PackageInfo(opts?.packageInfo ?? {})
+        this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
         this.config = new config.Config()
         if (opts?.configExtension) {
             this.config.extend(opts.configExtension)
@@ -185,15 +159,33 @@ export class App {
             overrides: [inputConfig, host.urlParams()],
         })
         if (unrecognizedParams) {
-            this.printResolvedConfig()
+            this.config.print()
             this.showConfigOptions(unrecognizedParams)
         } else {
             this.initialized = true
         }
     }
 
-    printResolvedConfig() {
-        logger.log(`Resolved config:`, this.config.strigifiedKeyValueMap())
+    /** Initialize the browser. Set the background color, print user-facing warnings, etc. */
+    initBrowser() {
+        if (host.browser) {
+            this.styleRoot()
+            dom.disableContextMenu()
+            if (this.config.params.debug.value) {
+                logger.log('Application is run in debug mode. Logs will not be hidden.')
+            } else {
+                this.printScamWarning()
+                log.router.hideLogs()
+            }
+        }
+    }
+
+    /** Set the background color of the root element. */
+    styleRoot() {
+        const root = document.getElementById('root')
+        if (root != null) {
+            root.style.backgroundColor = 'rgb(249,250,251)'
+        }
     }
 
     /** Runs the application. If it is run in the browser, it will initialize DOM elements, display
@@ -203,7 +195,7 @@ export class App {
         if (!this.initialized) {
             logger.log("App wasn't initialized properly. Skipping run.")
         } else {
-            this.printResolvedConfig()
+            this.config.print()
             await this.loadAndInitWasm()
             this.runEntryPoints()
         }
@@ -213,7 +205,8 @@ export class App {
     async compileAndRunWasm(mainJs: string, wasm: Buffer | Response): Promise<unknown> {
         return await log.Task.asyncNoGroupWith<unknown>('WASM compilation', async () => {
             /* eslint @typescript-eslint/no-implied-eval: "off" */
-            const snippetsFn = Function(
+            /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+            const snippetsFn: any = Function(
                 `const module = {}
                  ${mainJs}
                  module.exports.init = pkg_default
@@ -226,10 +219,9 @@ export class App {
         })
     }
 
+    /** Download and load the WASM to memory. */
     async loadWasm() {
-        const task = log.Task.startCollapsed(`Downloading application files.`)
         const loader = new wasm.Loader(this.config)
-        void loader.done.then(() => task.end())
 
         const shadersUrl = this.config.params.shadersUrl.value
         const shadersNames = await log.Task.asyncWith('Downloading shaders list.', async () => {
@@ -252,13 +244,13 @@ export class App {
         const responses = await files.mapAndAwaitAll(url => fetch(url))
         const responsesArray = responses.toArray()
         loader.load(responsesArray)
+        const downloadSize = loader.showTotalBytes()
+        const task = log.Task.startCollapsed(`Downloading application files (${downloadSize}).`)
+        void loader.done.then(() => task.end())
 
         for (const file of files.toArray()) {
             logger.log(`Downloading '${file}'.`)
         }
-
-        // FIXME:
-        const downloadSize = loader.showTotalBytes()
 
         const mainJs = await responses.mainJs.text()
         this.loader = loader
@@ -266,10 +258,8 @@ export class App {
         this.shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
     }
 
-    /** Loads the WASM binary and its dependencies. If it's run in the browser, the files will be
-     * downloaded from a server and a loading progress indicator will be shown. If it's run in node, the
-     * files will be read from disk. After the files are fetched, the WASM module is compiled and
-     * initialized. */
+    /** Loads the WASM binary and its dependencies. After the files are fetched, the WASM module is
+     * compiled and initialized. */
     async loadAndInitWasm() {
         await this.loadWasm()
         this.wasmFunctions = wasm.wasmFunctions(this.wasm)
@@ -278,6 +268,7 @@ export class App {
         this.packageInfo.display()
     }
 
+    /** Run all before main entry points. See the docs of `wasm.entryPoint` to learn more. */
     runBeforeMainEntryPoints() {
         if (!this.beforeMainEntryPoints.size) {
             return
@@ -286,13 +277,20 @@ export class App {
         const [time] = log.Task.withTimed(`Running ${count} before main entry points.`, () => {
             for (const entryPoint of this.beforeMainEntryPoints.values()) {
                 log.Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
-                    this.wasm[entryPoint.name()]()
+                    const fn = this.wasm[entryPoint.name()]
+                    if (fn != null) {
+                        fn()
+                    } else {
+                        logger.internalError(`Entry point not found.`)
+                    }
                 })
             }
         })
         this.checkBeforeMainEntryPointsTime(time)
     }
 
+    /** Check whether the time needed to run before main entry points is reasonable. Print a warning
+     * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
         if (time > this.config.params.maxBeforeMainEntryPointsTimeMs.value) {
             logger.error(`Entry points took ${time} milliseconds to run. This is too long.`)
@@ -300,6 +298,7 @@ export class App {
         }
     }
 
+    /** Run both before main entry points and main entry point. */
     runEntryPoints() {
         const entryPointName = this.config.params.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
@@ -308,36 +307,15 @@ export class App {
             if (this.shaders) this.setShaders(this.shaders.map)
             if (this.loader) this.loader.destroy()
             logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)
-            this.wasm[entryPoint.name()]()
+            const fn = this.wasm[entryPoint.name()]
+            if (fn != null) {
+                fn()
+            } else {
+                logger.internalError(`Entry point not found.`)
+            }
         } else {
             if (this.loader) this.loader.destroy()
             this.showEntryPointSelector(entryPointName)
-        }
-    }
-
-    initBrowser() {
-        if (host.browser) {
-            this.styleRoot()
-            this.disableContextMenu()
-            if (this.config.params.debug.value) {
-                logger.log('Application is run in debug mode. Logs will not be hidden.')
-            } else {
-                this.printScamWarning()
-                log.router.hideLogs()
-            }
-        }
-    }
-
-    disableContextMenu() {
-        document.body.addEventListener('contextmenu', e => {
-            e.preventDefault()
-        })
-    }
-
-    styleRoot() {
-        const root = document.getElementById('root')
-        if (root != null) {
-            root.style.backgroundColor = 'rgb(249,250,251)'
         }
     }
 
@@ -349,6 +327,7 @@ export class App {
         const entries = Array.from(this.mainEntryPoints.values()).map(entryPoint => {
             // FIXME: Currently, this does not work. It should be fixed by wasm-bindgen or wasm-pack
             //     team. See: https://github.com/rustwasm/wasm-bindgen/issues/3224
+            /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
             const docsFn = this.wasm[entryPoint.docsFnName()]
             let description = 'No description.'
             if (docsFn) {
@@ -358,11 +337,11 @@ export class App {
                 }
             }
             const href = '?entry=' + entryPoint.strippedName
-            return new HelpScreenEntry(entryPoint.strippedName, [description], href)
+            return new debug.HelpScreenEntry(entryPoint.strippedName, [description], href)
         })
 
         const headers = ['Name', 'Description']
-        new HelpScreen().display({ title, headers, entries })
+        new debug.HelpScreen().display({ title, headers, entries })
     }
 
     showConfigOptions(unknownConfigOptions?: string[]) {
@@ -372,10 +351,10 @@ export class App {
             : ''
         const title = msg + 'Available options:'
         const entries = Array.from(Object.entries(this.config.params)).map(([key, option]) => {
-            return new HelpScreenEntry(key, [option.description, String(option.default)])
+            return new debug.HelpScreenEntry(key, [option.description, String(option.default)])
         })
         const headers = ['Name', 'Description', 'Default']
-        new HelpScreen().display({ title, headers, entries })
+        new debug.HelpScreen().display({ title, headers, entries })
     }
 
     printScamWarning() {
@@ -426,96 +405,6 @@ export class App {
                 rustSetShadersFn(map)
             }
         })
-    }
-}
-
-class HelpScreenEntry {
-    name: string
-    values: string[]
-    href?: string
-
-    constructor(name: string, values: string[], href?: string) {
-        this.name = name
-        this.values = values
-        this.href = href
-    }
-}
-
-class HelpScreen {
-    /// Displays a debug screen which allows the user to run one of predefined debug examples.
-    display(cfg: { title: string; headers: string[]; entries: HelpScreenEntry[] }) {
-        const padding = '8px'
-        const backgroundRadius = '8px'
-        const div = dom.newTopLevelDiv()
-        div.style.fontFamily = `"SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif`
-        div.style.fontSize = '14px'
-        div.style.overflow = 'scroll'
-        const div2 = document.createElement('div')
-        div2.style.padding = '10px'
-        div.appendChild(div2)
-
-        const title = document.createElement('div')
-        title.style.fontWeight = 'bold'
-        title.style.padding = '8px'
-        const content = document.createTextNode(cfg.title)
-        const table = document.createElement('table')
-        table.style.paddingTop = '20px'
-        table.style.borderCollapse = 'collapse'
-        table.style.maxWidth = '800px'
-        div2.style.position = 'absolute'
-        div2.style.zIndex = '1'
-        title.appendChild(content)
-        div2.appendChild(title)
-        div2.appendChild(table)
-
-        const tr = document.createElement('tr')
-        for (const header of cfg.headers) {
-            const th = document.createElement('th')
-            th.innerText = header
-            th.style.textAlign = 'left'
-            th.style.padding = padding
-            tr.appendChild(th)
-        }
-        table.appendChild(tr)
-
-        let rowWithBg = true
-        for (const entry of cfg.entries) {
-            const tr = document.createElement('tr')
-            table.appendChild(tr)
-
-            const last = cfg.headers.length - 1
-            for (let i = 0; i < cfg.headers.length; i++) {
-                const td = document.createElement('td')
-                td.style.padding = padding
-                tr.appendChild(td)
-                if (rowWithBg) {
-                    td.style.background = '#00000010'
-                    if (i == 0) {
-                        td.style.borderTopLeftRadius = backgroundRadius
-                        td.style.borderBottomLeftRadius = backgroundRadius
-                    } else if (i == last) {
-                        td.style.borderTopRightRadius = backgroundRadius
-                        td.style.borderBottomRightRadius = backgroundRadius
-                    }
-                }
-                if (i == 0) {
-                    const a = document.createElement('a')
-                    const linkText = document.createTextNode(entry.name)
-                    a.appendChild(linkText)
-                    a.title = entry.name
-                    if (entry.href) {
-                        a.href = entry.href
-                    }
-                    td.appendChild(a)
-                } else {
-                    const value = entry.values[i - 1]
-                    if (value != null) {
-                        td.innerText = value
-                    }
-                }
-            }
-            rowWithBg = !rowWithBg
-        }
     }
 }
 

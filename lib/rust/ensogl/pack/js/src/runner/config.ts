@@ -1,5 +1,7 @@
 /** @file Configuration parameters for the application. */
 
+import { logger } from 'runner/log'
+
 export const DEFAULT_ENTRY_POINT = 'ide'
 
 // =============
@@ -38,7 +40,7 @@ export class Param<T> {
 }
 
 // ==============
-// === Config ===
+// === Params ===
 // ==============
 
 export type ExternalConfig = Record<string, ParamValue>
@@ -86,6 +88,10 @@ export class Params {
             'this time, an error will be printed, but the execution will continue.'
     )
 }
+
+// ==============
+// === Config ===
+// ==============
 
 /** The configuration of the EnsoGL application. The options can be overriden by the user. The
  * implementation automatically casts the values to the correct types. For example, if an option
@@ -167,5 +173,9 @@ export class Config {
             }
         }
         return map
+    }
+
+    print() {
+        logger.log(`Resolved config:`, this.strigifiedKeyValueMap())
     }
 }
