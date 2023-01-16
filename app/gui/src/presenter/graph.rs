@@ -8,6 +8,7 @@ use crate::controller::upload::NodeFromDroppedFileHandler;
 use crate::executor::global::spawn_stream_handler;
 use crate::presenter::graph::state::State;
 
+use engine_protocol::language_server::SuggestionId;
 use enso_frp as frp;
 use futures::future::LocalBoxFuture;
 use ide_view as view;
@@ -23,10 +24,11 @@ use ide_view::graph_editor::EdgeEndpoint;
 pub mod call_stack;
 pub mod state;
 pub mod visualization;
+pub mod widgets;
 
 pub use call_stack::CallStack;
 pub use visualization::Visualization;
-
+pub use widgets::Widgets;
 
 
 // ===============
@@ -81,6 +83,7 @@ struct Model {
     view:             view::graph_editor::GraphEditor,
     state:            Rc<State>,
     _visualization:   Visualization,
+    widgets:          Widgets,
     _execution_stack: CallStack,
 }
 
@@ -97,6 +100,12 @@ impl Model {
             view.clone_ref(),
             state.clone_ref(),
         );
+        let widgets = Widgets::new(
+            controller.clone_ref(),
+            project.clone_ref(),
+            view.clone_ref(),
+            state.clone_ref(),
+        );
         let execution_stack =
             CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
         Self {
@@ -105,6 +114,7 @@ impl Model {
             view,
             state,
             _visualization: visualization,
+            widgets,
             _execution_stack: execution_stack,
         }
     }
@@ -252,11 +262,11 @@ impl Model {
     ) -> Vec<(ViewNodeId, ast::Id, Option<view::graph_editor::Type>)> {
         let subexpressions = self.state.expressions_of_node(node);
         subexpressions
-            .iter()
+            .into_iter()
             .map(|id| {
-                let a_type = self.expression_type(*id);
-                self.state.update_from_controller().set_expression_type(*id, a_type.clone());
-                (node, *id, a_type)
+                let a_type = self.expression_type(id);
+                self.state.update_from_controller().set_expression_type(id, a_type.clone());
+                (node, id, a_type)
             })
             .collect()
     }
@@ -266,9 +276,12 @@ impl Model {
     fn all_method_pointers_of_node(
         &self,
         node: ViewNodeId,
-    ) -> Vec<(ast::Id, Option<view::graph_editor::MethodPointer>)> {
+    ) -> Vec<(ViewNodeId, ast::Id, Option<view::graph_editor::MethodPointer>)> {
         let subexpressions = self.state.expressions_of_node(node);
-        subexpressions.iter().filter_map(|id| self.refresh_expression_method_pointer(*id)).collect()
+        subexpressions
+            .into_iter()
+            .filter_map(|id| self.refresh_expression_method_pointer(id))
+            .collect()
     }
 
     /// Refresh type of the given expression.
@@ -289,13 +302,23 @@ impl Model {
     /// If the view update is required, the GraphEditor's FRP input event is returned.
     fn refresh_expression_method_pointer(
         &self,
-        id: ast::Id,
-    ) -> Option<(ast::Id, Option<view::graph_editor::MethodPointer>)> {
-        let method_pointer = self.expression_method(id);
-        self.state
+        expr_id: ast::Id,
+    ) -> Option<(ViewNodeId, ast::Id, Option<view::graph_editor::MethodPointer>)> {
+        let suggestion_id = self.expression_method_suggestion(expr_id)?;
+        let method_pointer = self.suggestion_method_pointer(suggestion_id);
+        let node_id = self
+            .state
             .update_from_controller()
-            .set_expression_method_pointer(id, method_pointer.clone())?;
-        Some((id, method_pointer))
+            .set_expression_method_pointer(expr_id, method_pointer.clone())?;
+
+
+
+        self.widgets.run_query(widgets::QueryDefinition {
+            node_id,
+            call_expr_id: expr_id,
+            suggestion_id,
+        });
+        Some((node_id, expr_id, method_pointer))
     }
 
     fn refresh_node_error(
@@ -314,11 +337,18 @@ impl Model {
         Some(view::graph_editor::Type(info.typename.as_ref()?.clone_ref()))
     }
 
-    /// Extract the expression's current method pointer from controllers.
-    fn expression_method(&self, id: ast::Id) -> Option<view::graph_editor::MethodPointer> {
+    /// Extract the expression's current suggestion entry from controllers.
+    fn expression_method_suggestion(&self, id: ast::Id) -> Option<SuggestionId> {
         let registry = self.controller.computed_value_info_registry();
         let method_id = registry.get(&id)?.method_call?;
-        let suggestion_db = self.controller.graph().suggestion_db.clone_ref();
+    }
+
+    /// Extract the expression's current method pointer from controllers.
+    fn suggestion_method_pointer(
+        &self,
+        method_id: SuggestionId,
+    ) -> Option<view::graph_editor::MethodPointer> {
+        let suggestion_db = &self.controller.borrow_graph().suggestion_db;
         let method = suggestion_db.lookup_method_ptr(method_id).ok()?;
         Some(view::graph_editor::MethodPointer(Rc::new(method)))
     }
@@ -599,6 +629,9 @@ impl Graph {
             view.set_node_position <+ added_node_update.filter_map(|update| Some((update.view_id?, update.position)));
             view.set_visualization <+ added_node_update.filter_map(|update| Some((update.view_id?, Some(update.visualization.clone()?))));
             view.enable_visualization <+ added_node_update.filter_map(|update| update.visualization.is_some().and_option(update.view_id));
+
+            any_node_expression <- any(init_node_expression, update_node_expression);
+            // eval any_node_expression([model]((id, expr)) model._widgets.node_expression_updated(*id, expr));
 
 
             // === Refreshing Connections ===

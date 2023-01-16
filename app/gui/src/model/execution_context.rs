@@ -279,8 +279,9 @@ impl From<QualifiedMethodPointer> for MethodPointer {
 
 impl From<&QualifiedMethodPointer> for MethodPointer {
     fn from(qualified_method_pointer: &QualifiedMethodPointer) -> Self {
-        let module = qualified_method_pointer.module.clone().into();
-        let defined_on_type = qualified_method_pointer.defined_on_type.clone().into();
+        let module = qualified_method_pointer.module.to_string_with_main_segment();
+        let defined_on_type =
+            qualified_method_pointer.defined_on_type.to_string_with_main_segment();
         let name = qualified_method_pointer.name.name().to_owned();
         MethodPointer { module, defined_on_type, name }
     }

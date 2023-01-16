@@ -352,7 +352,7 @@ where
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_cloned_ref(&self, k: &K) -> Option<V>
     where V: CloneRef {
-        self.raw.borrow().get(k).map(|t| t.clone_ref())
+        self.raw.borrow().get(k).map(CloneRef::clone_ref)
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -602,7 +602,7 @@ ensogl::define_endpoints_2! {
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
-        set_method_pointer           ((ast::Id,Option<MethodPointer>)),
+        set_method_pointer           ((NodeId,ast::Id,Option<MethodPointer>)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
@@ -2109,6 +2109,27 @@ impl GraphEditorModel {
         }
     }
 
+    fn set_node_method_pointer(
+        &self,
+        node_id: NodeId,
+        ast_id: ast::Id,
+        method_pointer: Option<MethodPointer>,
+    ) {
+        let node_id = node_id.into();
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            let crumbs = node.view.model().get_crumbs_by_id(ast_id);
+            if let Some(crumbs) = crumbs {
+                // TODO: maybe register method pointer as widget query?
+                // Then similarily, use `set_expression_widget` when query is done.
+                // Maybe that registration could be done earilier in the chain too.
+                // Remember: The argument names might appear later. They need to be updated and
+                // passed to widget registry/controller once ready.
+
+                node.view.set_method_pointer.emit((crumbs, method_pointer));
+            }
+        }
+    }
+
     fn disable_grid_snapping_for(&self, node_ids: &[NodeId]) {
         self.nodes.recompute_grid(node_ids.iter().cloned().collect());
     }
@@ -3240,7 +3261,9 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
          nodes.get_cloned_ref(node_id).map(|node| node.all_edges())
     )).unwrap();
     eval edges_to_refresh ((edge) model.refresh_edge_position(*edge));
-
+    eval inputs.set_method_pointer (
+        ((id, ast_id, method)) model.set_node_method_pointer(*id, *ast_id, method.clone())
+    );
     }
 
 

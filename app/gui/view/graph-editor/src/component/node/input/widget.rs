@@ -8,7 +8,6 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
-use frp::stream::EventEmitter;
 
 
 
@@ -18,44 +17,94 @@ use frp::stream::EventEmitter;
 
 ensogl::define_endpoints_2! {
     Input {
-        set_current_value(Option<ImString>),
-        set_focused(bool),
+        set_metadata   (Option<Metadata>),
+        set_node_data  (NodeData),
+        set_current_value (Option<ImString>),
+        set_focused       (bool),
     }
     Output {
         value_changed(Option<ImString>),
     }
 }
 
-/// Possible widgets for a node input.
-///
-/// Currently all widget types are hardcoded. This is likely to be a temporary solution. In the
-/// future the set of widget types might be dynamic, similar to visualizations.
-#[derive(Clone, Debug, CloneRef)]
-pub enum Widget {
-    /// A widget for selecting a single value from a list of available options.
-    SingleChoice(SingleChoice),
+#[derive(Debug, Clone)]
+pub struct Metadata {
+    pub kind:            Kind,
+    pub dynamic_entries: Vec<ImString>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct NodeData {
+    pub argument_info: span_tree::ArgumentInfo,
+    pub node_height:   f32,
+}
+
+#[derive(Debug, Clone, CloneRef)]
+pub struct Widget {
+    frp:   Frp,
+    model: Rc<Model>,
+}
+
+
 impl Widget {
-    /// Create a new node widget, selecting the appropriate widget type based on the provided
-    /// argument info.
-    pub fn new(
-        app: &Application,
-        argument_info: span_tree::ArgumentInfo,
-        node_height: f32,
-    ) -> Option<Self> {
-        // TODO [PG] Support more widgets, use engine provided widget type.
-        // https://www.pivotaltracker.com/story/show/184012753
-        if !argument_info.tag_values.is_empty() {
-            Some(Self::SingleChoice(SingleChoice::new(app, argument_info, node_height)))
-        } else {
-            None
-        }
+    pub fn new(app: &Application) -> Self {
+        let frp = Frp::new();
+        let model = Rc::new(Model::new(app));
+        Self { frp, model }.init()
     }
 
-    fn frp(&self) -> &Frp {
-        match self {
-            Self::SingleChoice(s) => &s.frp,
+    pub fn frp(&self) -> &Frp {
+        &self.frp
+    }
+
+    fn init(self) -> Self {
+        let model = &self.model;
+        let frp = &self.frp;
+        let network = &frp.network;
+        let input = &frp.input;
+
+        frp::extend! { network
+            widget_data <- all(&input.set_metadata, &input.set_node_data);
+            eval widget_data([model, frp]((meta, node_data)) {
+                model.set_widget_data(&frp, meta, node_data);
+            });
+        }
+
+        self
+    }
+}
+
+#[derive(Debug)]
+struct Model {
+    common: ModelCommon,
+    inner:  RefCell<ModelInner>,
+}
+impl Model {
+    /// Create a new node widget, selecting the appropriate widget type based on the provided
+    /// argument info.
+    fn new(app: &Application) -> Self {
+        let common = ModelCommon::new(app);
+        let inner = RefCell::new(ModelInner::Unset);
+        Self { common, inner }
+    }
+
+    fn set_widget_data(&self, frp: &Frp, meta: &Option<Metadata>, node_data: &NodeData) {
+        let kind_fallback = || {
+            if !node_data.argument_info.tag_values.is_empty() {
+                Kind::SingleChoice
+            } else {
+                Kind::Unset
+            }
+        };
+
+        let desired_kind = meta.as_ref().map_or_else(kind_fallback, |m| m.kind);
+
+        let kind_changed = desired_kind != self.inner.borrow().kind();
+        if kind_changed {
+            *self.inner.borrow_mut() =
+                ModelInner::new(desired_kind, &self.common, frp, meta, node_data);
+        } else {
+            self.inner.borrow().update(&self.common, meta, node_data);
         }
     }
 }
@@ -69,9 +118,7 @@ impl Deref for Widget {
 
 impl display::Object for Widget {
     fn display_object(&self) -> &display::object::Instance {
-        match self {
-            Self::SingleChoice(s) => &s.display_object,
-        }
+        &self.model.common.display_object
     }
 }
 
@@ -97,6 +144,82 @@ pub mod dot {
 }
 
 
+#[derive(Debug)]
+struct ModelCommon {
+    app:            Application,
+    display_object: display::object::Instance,
+}
+
+impl ModelCommon {
+    fn new(app: &Application) -> Self {
+        let app = app.clone_ref();
+        let display_object = display::object::Instance::new();
+        Self { app, display_object }
+    }
+}
+
+/// Possible widgets for a node input.
+///
+/// Currently all widget types are hardcoded. This is likely to be a temporary solution. In the
+/// future the set of widget types might be dynamic, similar to visualizations.
+#[derive(Clone, Debug, CloneRef)]
+pub enum ModelInner {
+    /// Placeholder widget data when no data is available.
+    Unset,
+    /// A widget for selecting a single value from a list of available options.
+    SingleChoice(SingleChoiceModel),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Kind {
+    Unset,
+    SingleChoice,
+}
+
+impl ModelInner {
+    fn new(
+        kind: Kind,
+        common: &ModelCommon,
+        frp: &Frp,
+        meta: &Option<Metadata>,
+        node_data: &NodeData,
+    ) -> Self {
+        match kind {
+            Kind::SingleChoice => {
+                let entries =
+                    meta.as_ref().map(|meta| meta.dynamic_entries.clone()).unwrap_or_else(|| {
+                        node_data.argument_info.tag_values.iter().map(Into::into).collect()
+                    });
+                Self::SingleChoice(SingleChoiceModel::new(
+                    common,
+                    frp,
+                    node_data.node_height,
+                    entries,
+                ))
+            }
+            _ => Self::Unset,
+        }
+    }
+    fn update(&self, _common: &ModelCommon, meta: &Option<Metadata>, node_data: &NodeData) {
+        match self {
+            ModelInner::Unset => {}
+            ModelInner::SingleChoice(inner) => {
+                let entries =
+                    meta.as_ref().map(|meta| meta.dynamic_entries.clone()).unwrap_or_else(|| {
+                        node_data.argument_info.tag_values.iter().map(Into::into).collect()
+                    });
+                inner.set_node_height(node_data.node_height);
+                inner.set_entries(entries);
+            }
+        }
+    }
+    fn kind(&self) -> Kind {
+        match self {
+            Self::Unset => Kind::Unset,
+            Self::SingleChoice(_) => Kind::SingleChoice,
+        }
+    }
+}
 
 // ====================
 // === SingleChoice ===
@@ -105,25 +228,18 @@ pub mod dot {
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
 #[derive(Clone, Debug, CloneRef)]
-pub struct SingleChoice {
-    display_object: display::object::Instance,
-    frp:            Frp,
-    #[allow(dead_code)]
+pub struct SingleChoiceModel {
+    network:        frp::Network,
     dropdown:       Rc<RefCell<LazyDropdown>>,
     /// temporary click handling
     activation_dot: dot::View,
 }
 
-impl SingleChoice {
-    fn new(app: &Application, argument_info: span_tree::ArgumentInfo, node_height: f32) -> Self {
-        let display_object = display::object::Instance::new();
-        let dropdown = app.new_view::<Dropdown<ImString>>();
-        display_object.add_child(&dropdown);
-        let frp = Frp::new();
-        let network = &frp.network;
+impl SingleChoiceModel {
+    fn new(common: &ModelCommon, frp: &Frp, node_height: f32, entries: Vec<ImString>) -> Self {
+        let display_object = &common.display_object;
         let input = &frp.input;
-        dropdown.set_y(-node_height);
-        dropdown.set_max_open_size(Vector2(300.0, 500.0));
+        let output = &frp.private.output;
 
         let activation_dot = dot::View::new();
         let color: color::Rgba = color::Lcha::new(0.56708, 0.23249, 0.71372, 1.0).into();
@@ -132,29 +248,20 @@ impl SingleChoice {
         activation_dot.set_y(-node_height / 2.0);
         display_object.add_child(&activation_dot);
 
-
-        let dropdown = if !argument_info.tag_values.is_empty() {
-            let entries: Vec<ImString> = argument_info.tag_values.iter().map(Into::into).collect();
-            let app = app.clone_ref();
-            let display_object = display_object.clone_ref();
-            let frp = frp.clone_ref();
-            // Register a watcher for current value, to allow its value to be retrieved at any time
-            // when dropdown is initialized.
-            let current_value_watch = input.set_current_value.register_watch();
-            let lazy = LazyDropdown::NotInitialized {
-                app,
-                display_object,
-                frp,
-                node_height,
-                entries,
-                _current_value: current_value_watch,
-            };
-            Rc::new(RefCell::new(lazy))
-        } else {
-            // TODO [PG]: Support dynamic entries.
-            // https://www.pivotaltracker.com/story/show/184012743
-            unimplemented!();
+        frp::new_network! { network
+            set_current_value <- input.set_current_value.sampler();
         };
+
+        let dropdown = LazyDropdown::NotInitialized {
+            app: common.app.clone_ref(),
+            display_object: display_object.clone_ref(),
+            node_height,
+            entries,
+            network: network.clone_ref(),
+            set_current_value,
+            output_value_changed: output.value_changed.clone_ref(),
+        };
+        let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
             let dot_clicked = activation_dot.events.mouse_down_primary.clone_ref();
@@ -169,7 +276,16 @@ impl SingleChoice {
             eval focus_in((_) dropdown.borrow_mut().initialize_on_open());
         }
 
-        Self { display_object, frp, dropdown, activation_dot }
+        Self { network, dropdown, activation_dot }
+    }
+
+    fn set_node_height(&self, node_height: f32) {
+        self.activation_dot.set_y(-node_height / 2.0);
+        self.dropdown.borrow_mut().set_node_height(node_height);
+    }
+
+    fn set_entries(&self, values: Vec<ImString>) {
+        self.dropdown.borrow_mut().set_entries(values);
     }
 }
 
@@ -190,23 +306,52 @@ impl SingleChoice {
 #[derive(Debug)]
 enum LazyDropdown {
     NotInitialized {
-        app:            Application,
-        display_object: display::object::Instance,
-        frp:            Frp,
-        node_height:    f32,
-        entries:        Vec<ImString>,
-        _current_value: frp::data::watch::Handle,
+        app:                  Application,
+        display_object:       display::object::Instance,
+        node_height:          f32,
+        entries:              Vec<ImString>,
+        network:              frp::Network,
+        set_current_value:    frp::Sampler<Option<ImString>>,
+        output_value_changed: frp::Any<Option<ImString>>,
     },
     Initialized(Dropdown<ImString>),
 }
 
 
 impl LazyDropdown {
+    fn set_node_height(&mut self, new_node_height: f32) {
+        match self {
+            LazyDropdown::Initialized(dropdown) => {
+                dropdown.set_y(-new_node_height);
+            }
+            LazyDropdown::NotInitialized { node_height, .. } => {
+                *node_height = new_node_height;
+            }
+        }
+    }
+
+    fn set_entries(&mut self, new_entries: Vec<ImString>) {
+        match self {
+            LazyDropdown::Initialized(dropdown) => {
+                dropdown.set_all_entries(new_entries);
+            }
+            LazyDropdown::NotInitialized { entries, .. } => {
+                *entries = new_entries;
+            }
+        }
+    }
+
     fn initialize_on_open(&mut self) {
         match self {
             LazyDropdown::Initialized(_) => {}
             LazyDropdown::NotInitialized {
-                app, display_object, frp, node_height, entries, ..
+                app,
+                display_object,
+                node_height,
+                entries,
+                network,
+                set_current_value,
+                output_value_changed,
             } => {
                 let dropdown = app.new_view::<Dropdown<ImString>>();
                 display_object.add_child(&dropdown);
@@ -216,16 +361,13 @@ impl LazyDropdown {
                 dropdown.set_all_entries(std::mem::take(entries));
                 dropdown.allow_deselect_all(true);
 
-                let network = &frp.network;
-                let input = &frp.input;
-                let output = &frp.private.output;
 
                 frp::extend! { network
                     init <- source_();
-                    current_value <- all(&input.set_current_value, &init)._0();
+                    current_value <- all(set_current_value, &init)._0();
                     dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
                     first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
-                    output.value_changed <+ first_selected_entry.on_change();
+                    output_value_changed <+ first_selected_entry.on_change();
 
                     let focus_in = display_object.on_event::<event::FocusIn>();
                     let focus_out = display_object.on_event::<event::FocusOut>();

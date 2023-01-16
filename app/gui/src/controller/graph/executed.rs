@@ -297,6 +297,11 @@ impl Handle {
         self.graph.borrow().clone_ref()
     }
 
+    /// Get a borrow of the controller for the currently active graph.
+    pub fn borrow_graph(&self) -> Ref<controller::Graph> {
+        self.graph.borrow()
+    }
+
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
     /// module's path and the `project` name.
     pub fn module_qualified_name(&self, project: &dyn model::project::API) -> QualifiedName {

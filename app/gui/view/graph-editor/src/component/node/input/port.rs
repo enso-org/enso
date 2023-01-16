@@ -184,16 +184,12 @@ impl Model {
         self.shape.as_ref().unwrap().clone_ref()
     }
 
-    /// Widget initialization. Same rules apply as for the shape initialization.
-    pub fn init_widget(
-        &mut self,
-        app: &Application,
-        argument_info: Option<span_tree::ArgumentInfo>,
-        node_height: f32,
-    ) -> Option<Widget> {
-        let Some(argument_info) = argument_info else { return None };
-        self.widget = Widget::new(app, argument_info, node_height);
-        self.widget.clone_ref()
+    /// Widget initialization. Only nodes that represent function arguments, either existing or
+    /// potential ones, will have widgets created for them.
+    pub fn init_widget(&mut self, app: &Application) -> Widget {
+        let widget = Widget::new(app);
+        self.widget = Some(widget.clone_ref());
+        widget
     }
 
     /// The range of this port.

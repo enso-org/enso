@@ -9,8 +9,10 @@ use ensogl::display::traits::*;
 use crate::component::type_coloring;
 use crate::node;
 use crate::node::input::port;
+use crate::node::input::widget;
 use crate::node::profiling;
 use crate::view;
+use crate::MethodPointer;
 use crate::Type;
 
 use enso_frp as frp;
@@ -271,6 +273,16 @@ impl Model {
         }
     }
 
+    fn set_method_pointer(&self, crumbs: &Crumbs, method_pointer: &Option<MethodPointer>) {
+        // get context
+        warn!("set_method_pointer: {:?} {:?}", crumbs, method_pointer);
+        //     if let Ok(method) =
+        // self.expression.borrow_mut().span_tree.root_ref().get_descendant(crumbs)     {
+        //         // Find arguments and
+        //         // port.set_method_pointer(method_pointer)
+        //     }
+    }
+
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.label.set_content(expression.viz_code.clone());
@@ -331,7 +343,8 @@ impl Model {
             let new_parent = if not_a_port {
                 builder.parent.clone_ref()
             } else {
-                let port = &mut node;
+                let crumbs = node.crumbs.clone_ref();
+                let port = node.deref_mut();
 
                 let index = local_char_offset + builder.shift;
                 let size = code[port.payload.range()].chars().count();
@@ -341,9 +354,28 @@ impl Model {
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
-                let port_shape = port.payload_mut().init_shape(size, node::HEIGHT);
-                let argument_info = port.argument_info();
-                let port_widget = port.payload_mut().init_widget(&self.app, argument_info, node::HEIGHT);
+                let port_shape = port.payload.init_shape(size, node::HEIGHT);
+
+                let argument_info = port.kind.argument_info();
+                let port_widget = argument_info.map(|info| {
+                    let prev_widget = port.ast_id.and_then(|id| {
+                        let prev_crumbs_map = self.id_crumbs_map.borrow();
+                        let prev_crumbs = prev_crumbs_map.get(&id)?;
+                        let prev_expression = self.expression.borrow();
+                        let prev_root = prev_expression.span_tree.root_ref();
+                        let prev_node = prev_root.get_descendant(prev_crumbs).ok()?;
+                        let prev_widget = prev_node.payload.widget.as_ref()?.clone_ref();
+                        port.payload.widget = Some(prev_widget.clone_ref());
+                        Some(prev_widget)
+                    });
+                    let widget = prev_widget.unwrap_or_else(|| port.payload.init_widget(&self.app));
+
+                    widget.set_node_data(widget::NodeData {
+                        argument_info: info,
+                        node_height: node::HEIGHT,
+                    });
+                    widget
+                });
 
                 port_shape.set_x(unit * index as f32);
                 if DEBUG {
@@ -363,7 +395,6 @@ impl Model {
                 let styles = StyleWatch::new(style_sheet);
                 let styles_frp = &self.styles_frp;
                 let any_type_sel_color = styles_frp.get_color(theme::code::types::any::selection);
-                let crumbs = port.crumbs.clone_ref();
                 let port_network = &port.network;
 
                 frp::extend! { port_network
@@ -732,6 +763,10 @@ ensogl::define_endpoints! {
         /// colored if the definition type was present.
         set_expression_usage_type (Crumbs,Option<Type>),
 
+        /// Set the method pointer for the port indicated by the breadcrumbs. Useful for updating
+        /// argument labels and querying for widgets.
+        set_method_pointer   (Crumbs,Option<MethodPointer>),
+
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
         /// types are polymorphic.
@@ -739,6 +774,7 @@ ensogl::define_endpoints! {
 
         set_view_mode        (view::Mode),
         set_profiling_status (profiling::Status),
+
     }
 
     Output {
@@ -868,6 +904,7 @@ impl Area {
             // === Expression Type ===
 
             eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
+            eval frp.set_method_pointer (((a,b)) model.set_method_pointer(a,b));
 
 
             // === View Mode ===
