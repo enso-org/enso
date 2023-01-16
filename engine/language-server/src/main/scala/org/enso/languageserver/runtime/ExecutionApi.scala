@@ -224,4 +224,7 @@ object ExecutionApi {
       )
   }
 
+  case class ModuleNotFoundForExpressionError(expressionId: ExpressionId)
+      extends Error(2008, s"Module not found for [$expressionId]")
+
 }
