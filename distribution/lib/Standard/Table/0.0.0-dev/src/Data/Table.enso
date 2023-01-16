@@ -1187,20 +1187,17 @@ type Table
             single_table -> [single_table]
         is_everything_ok = tables_vector.all table->
             if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table "tables") else
-                same_backend = case table of
-                    _ : Table -> True
-                    _ -> False
+                same_backend = table.is_a Table
                 if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend union is not supported. Materialize the table using `.read` before merging it with an in-memory Table.") else
                     True
-        ## `is_everything_ok` should actually never be False, it will either be
-           True or will contain a dataflow error which will propagate through
-           the if statement.
-        if  is_everything_ok then
+
+        ## `is_everything_ok` should actually never be False; it will either be
+           True or will contain a dataflow error propagating through the if.
+        if is_everything_ok then
             all_tables = [self] + tables_vector
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
-            row_counts = all_tables.map .row_count
-            new_row_count = row_counts.fold 0 (+)
+            new_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
                 columns = column_set.column_indices.zip all_tables i-> parent_table->
                     case i of

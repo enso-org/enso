@@ -41,7 +41,7 @@ match_columns tables matching_mode keep_unmatched_columns problem_builder = case
             if common_column_names.is_empty then Error.throw No_Output_Columns else
                 common_column_names.map name->
                     column_indices = tables.map table->
-                        table.columns.index_of col-> col.name==name
+                        table.column_names.index_of name
                     Column_Set.Value name column_indices
         _ ->
             output_column_names = distinct_columns_in_appearance_order tables
@@ -81,26 +81,21 @@ type Column_Set
 ## PRIVATE
    Returns a map indicating in how many tables did a column with a given name appear.
 find_column_counts tables =
-    State.run Map Map.empty <|
-        tables.each table->
-            table.columns.each column->
-                column_counts = State.get Map
-                name = column.name
-                new_count = (column_counts.get name 0) + 1
-                State.put Map (column_counts.insert name new_count)
-        State.get Map
+    tables.fold Map.Empty current->table->
+        table.columns.fold current counts-> column->
+            name=column.name
+            new_count = counts.get name 0 + 1
+            counts.insert name new_count
 
 ## PRIVATE
    Returns a list of distinct column names, in the order of first appearance,
    starting from the first table.
 distinct_columns_in_appearance_order tables =
     names_builder = Vector.new_builder
-    State.run Map Map.empty <|
-        tables.each table->
-            table.columns.each column->
-                seen_names = State.get Map
-                name = column.name
-                if seen_names.contains_key name . not then
-                    names_builder.append name
-                    State.put Map (seen_names.insert name True)
+    tables.fold Map.empty current-> table->
+        table.columns.fold current seen_names-> column->
+            name = column.name
+            if seen_names.contains_key name then seen_names else
+                names_builder.append name
+                seen_names.insert name True
     names_builder.to_vector

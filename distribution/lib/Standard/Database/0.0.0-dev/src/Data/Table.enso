@@ -792,7 +792,7 @@ type Table
          - If `Match_Columns.By_Position` - the columns are mapped by position.
            If unmatched columns are to be dropped, the resulting table will have
            as many columns as the table that had the least columns and the
-           column names of the first table (self) will be used.
+           column names of the first table (`self`) will be used.
            If unmatched columns are kept, the resulting table will have as many
            columns as the table with the most columns. Since the first table may
            not have all the necessary columns to provide column names for the
@@ -805,15 +805,12 @@ type Table
          `Report_Unmatched`, which behaves like `True` - unmatched columns are
          kept and padded with `Nothing`, but a problem is reported.
        - allow_type_widening: Specifies if the resulting column type should be
-         adapted to fit columns from all arguments; defaults to `True`. If set
-         to `True` a common type will be chosen for each column, as described in
-         the section "Unifying Column Types" below. If set to `False` the
-         resulting column type will be the same as in the first table the
-         corresponding column appeared in (usually `self`, except for unmatched
-         columns). If type widening is not allowed, all columns that are merged
-         with each other must have the same type as the first one. The only
-         exception is if the first column had `Mixed` type which will accept any
-         other type.
+         adjusted to fit columns from all arguments. If `True`, a common type 
+         will be chosen for each column (see "Unifying Column Types" below).
+         If `False`, the resulting column type will be the same as in the first
+         table containing the column. In this case, all columns that are
+         concatenated must have the same type as the first one (unless this
+         had a `Mixed` type - in which case it will accept any other types).
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
