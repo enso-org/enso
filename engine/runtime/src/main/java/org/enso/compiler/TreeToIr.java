@@ -59,7 +59,6 @@ import org.enso.compiler.core.IR$Type$Function;
 import org.enso.compiler.core.IR.IdentifiedLocation;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.MetadataStorage;
-import org.enso.compiler.exception.UnhandledEntity;
 import org.enso.interpreter.epb.EpbParser;
 import org.enso.syntax.text.Location;
 import org.enso.syntax2.ArgumentDefinition;
@@ -499,7 +498,7 @@ final class TreeToIr {
       }
    }
 
-  private IR$Type$Ascription translateTypeSignature(Tree sig, Tree type, IR.Expression typeName) throws UnhandledEntity {
+  private IR$Type$Ascription translateTypeSignature(Tree sig, Tree type, IR.Expression typeName) {
     var fn = translateType(type, false);
     return new IR$Type$Ascription(typeName, fn, getIdentifiedLocation(sig), meta(), diag());
   }
@@ -670,11 +669,8 @@ final class TreeToIr {
             final Option<IdentifiedLocation> loc = getIdentifiedLocation(tree);
             try {
               yield buildQualifiedName(app, loc, false);
-            } catch (UnhandledEntity ex) {
-              if (ex.entity() instanceof IR.Expression expr) {
-                yield expr;
-              }
-              throw ex;
+            } catch (SyntaxException ex) {
+              yield ex.toError();
             }
           }
 
@@ -1576,10 +1572,6 @@ final class TreeToIr {
     return new IR$Comment$Documentation(text, getIdentifiedLocation(where), meta(), diag());
   }
 
-  IR$Error$Syntax translateUnhandledEntity(UnhandledEntity err, IR$Error$Syntax$Reason reason) {
-    var where = (Tree) err.entity();
-    return translateSyntaxError(where, reason);
-  }
   IR$Error$Syntax translateSyntaxError(Tree where, IR$Error$Syntax$Reason reason) {
     var at = getIdentifiedLocation(where);
     if (at.isEmpty()) {
