@@ -1,3 +1,5 @@
+//! Information specific to each profiling level.
+
 use inflector::Inflector;
 use quote::ToTokens;
 use std::env;
@@ -10,6 +12,7 @@ use syn::punctuated;
 // === Level ===
 // =============
 
+/// Information about a profiling level.
 pub struct Level {
     pub obj_ident: syn::Ident,
     pub fn_ident:  syn::Ident,
@@ -17,6 +20,8 @@ pub struct Level {
     pub enabled:   bool,
 }
 
+/// Given syntax representing a sequence of profiling levels, produce [`Level`] objects describing
+/// the levels.
 pub fn parse_levels(var: &str, ts: proc_macro::TokenStream) -> Vec<Level> {
     let parser = punctuated::Punctuated::<syn::Ident, syn::Token![,]>::parse_terminated;
     let obj_idents: Vec<_> = parser.parse(ts).unwrap().into_iter().collect();
@@ -56,6 +61,7 @@ fn level_from_env_var(var: &str, levels: &[impl AsRef<str>]) -> usize {
 // === `enum` Generation ===
 // =========================
 
+/// Given a collection of variant identifiers, produce syntax defining a data-less enum.
 pub fn make_enum<'a>(
     ident: syn::Ident,
     variants: impl IntoIterator<Item = &'a syn::Ident>,

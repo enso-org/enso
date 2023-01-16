@@ -1,3 +1,6 @@
+//! Generation of the Profiling Low-level API and its implementation.
+
+
 use crate::level;
 
 
@@ -6,6 +9,8 @@ use crate::level;
 // === Low-level profiling interface ===
 // =====================================
 
+/// Produces source code defining the Low-Level Profiling API for the given hierarchy of profiling
+/// levels.
 pub fn define_profiling_levels(ts: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut out = proc_macro::TokenStream::new();
     let levels = level::parse_levels(crate::PROFILING_LEVEL_ENV_VAR, ts);

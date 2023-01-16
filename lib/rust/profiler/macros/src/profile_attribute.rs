@@ -1,3 +1,6 @@
+//! Implementation of the [`#[profile]`] proc-macro.
+
+
 use crate::wrap_async;
 
 use quote::ToTokens;
@@ -7,7 +10,7 @@ use syn::visit_mut::VisitMut;
 
 
 
-#[allow(missing_docs)]
+/// The `#[profile]` proc-macro.
 pub fn profile(
     args: proc_macro::TokenStream,
     ts: proc_macro::TokenStream,
