@@ -1,4 +1,4 @@
-/** This module defines a set of utils for generating and modifying the SVG images. */
+/** @file A set of utils for generating and modifying the SVG images. */
 
 import * as math from 'runner/math'
 

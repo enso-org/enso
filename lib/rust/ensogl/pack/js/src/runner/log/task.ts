@@ -1,3 +1,6 @@
+/** @file A logging utility which groups subsequent operations in nicely formatted groups and logs
+ * their evaluation time. */
+
 import { logger } from 'runner/log/logger'
 
 // ============

@@ -1,3 +1,5 @@
+/** @file Enso SVG logo generator. */
+
 interface Config {
     borderOffset?: number
     borderWidth?: number
@@ -47,14 +49,15 @@ export class Logo {
         }
     }
 
+    /** Generates the SVG code for the logo. */
     generate(): string {
-        function id(name: string) {
+        const id = (name: string) => {
             return `id="ensoLogo${name}"`
         }
-        function idRef(name: string) {
+        const idRef = (name: string) => {
             return `${ref}="#ensoLogo${name}"`
         }
-        function mask(name: string) {
+        const mask = (name: string) => {
             return `mask="url(#ensoLogo${name})"`
         }
         const border = this.showBorder ? `<use ${this.ref}="#border"/>` : ''

@@ -1,9 +1,15 @@
+/** @file Logger capable of displaying nicely formatted logs in the browser and in the console.
+ * Also, it allows redirecting logs to different outputs, so you can plug in external sinks for the
+ * logs. */
+
 import host from 'runner/host'
 
 // =============
 // === Utils ===
 // =============
 
+/** Checks whether the provided value is an Object. It is used to determine whether the value should
+ * be printed using `JSON.stringify`. */
 function isObject(value: any): boolean {
     return typeof value === 'object' && !Array.isArray(value) && value !== null
 }
@@ -147,6 +153,7 @@ export class Logger extends Consumer {
 // === Console ===
 // ===============
 
+/** Pretty-printer for some object types for `JSON.stringify`. */
 function replacer(key: string, value: unknown): unknown {
     if (value instanceof Map) {
         return {

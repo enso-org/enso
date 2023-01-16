@@ -1,5 +1,5 @@
-/** This module redefines some `node:fs` functions with embedded logging, so it is easy to track
- * what they do.*/
+/** @file This module redefines some `node:fs` functions with embedded logging, so it is easy to
+ * track what they do. */
 
 import {
     MakeDirectoryOptions,
@@ -41,6 +41,7 @@ export async function readFile(
         | BufferEncoding
 ): Promise<string>
 
+/** Read a file and log the operation. */
 export async function readFile(
     path: PathLike | FileHandle,
     options?:
@@ -60,6 +61,7 @@ export async function readFile(
 // === unlink ===
 // ==============
 
+/** Unlink a file and log the operation. */
 export async function unlink(path: PathLike): Promise<void> {
     logger.log(`Removing file '${String(path)}'.`)
     return await fs.unlink(path)
@@ -69,6 +71,7 @@ export async function unlink(path: PathLike): Promise<void> {
 // === rmdir ===
 // =============
 
+/** Remove a directory and log the operation. */
 export async function rmdir(path: PathLike, options?: RmDirOptions): Promise<void> {
     logger.log(`Removing directory '${String(path)}'.`)
     return await fs.rmdir(path, options)
@@ -78,6 +81,7 @@ export async function rmdir(path: PathLike, options?: RmDirOptions): Promise<voi
 // === mkdir ===
 // =============
 
+/** Make a directory and log the operation. */
 export async function mkdir(
     path: PathLike,
     options?: Mode | MakeDirectoryOptions | null
@@ -90,6 +94,7 @@ export async function mkdir(
 // === rm ===
 // ==========
 
+/** Remove a file or directory and log the operation. */
 export async function rm(path: PathLike, options?: RmOptions): Promise<void> {
     logger.log(`Removing '${String(path)}'.`)
     return await fs.rm(path, options)
@@ -99,6 +104,7 @@ export async function rm(path: PathLike, options?: RmOptions): Promise<void> {
 // === writeFile ===
 // =================
 
+/** Write a file and log the operation. */
 export async function writeFile(
     file: PathLike | FileHandle,
     data:

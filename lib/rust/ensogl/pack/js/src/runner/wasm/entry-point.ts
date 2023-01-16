@@ -1,5 +1,5 @@
-/* WASM entry point definition. An entry point is a WASM function exported from Rust that was marked
-as an entry point. */
+/** @file WASM entry point definition. An entry point is a WASM function exported from Rust that was
+ * marked as an entry point. */
 
 import * as name from '../name'
 

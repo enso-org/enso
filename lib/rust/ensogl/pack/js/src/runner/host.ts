@@ -1,5 +1,4 @@
-/** This module defines utilities to work with the host environment, whether it is a browser of
- * node. */
+/** @file Utilities to work with the host environment, whether it is a browser of node. */
 
 // ======================
 // === Host Utilities ===
@@ -18,6 +17,7 @@ const node = !browser
 // const global = {}
 global ??= window
 
+/** Returns the parameters passed in the URL query string. */
 function urlParams(): any {
     if (browser) {
         const urlParams = new URLSearchParams(window.location.search)

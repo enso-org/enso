@@ -1,3 +1,5 @@
+/** @file Files loader. Displays a loading spinner and reports the current download progress. */
+
 import * as animation from 'runner/animation'
 import * as html_utils from 'runner/dom/dom'
 import * as math from 'runner/math'
@@ -194,16 +196,16 @@ class ProgressIndicator {
         const self = this
         const startTime = window.performance.now()
         return new Promise(function (resolve) {
-            function showStep(time: DOMHighResTimeStamp) {
+            const step = (time: DOMHighResTimeStamp) => {
                 const opacitySampler = Math.min((time - startTime) / (1000 * 1), 1)
                 self.setIndicatorOpacity(animation.easeInOutQuad(opacitySampler))
                 if (opacitySampler < 1) {
-                    window.requestAnimationFrame(showStep)
+                    window.requestAnimationFrame(step)
                 } else {
                     resolve()
                 }
             }
-            window.requestAnimationFrame(showStep)
+            window.requestAnimationFrame(step)
         })
     }
 
@@ -212,7 +214,7 @@ class ProgressIndicator {
         let lastTime = window.performance.now()
         self.displayProgress(self.minProgressSize)
         return new Promise(function (resolve) {
-            function step(time: DOMHighResTimeStamp) {
+            const step = (time: DOMHighResTimeStamp) => {
                 const timeDiff = time - lastTime
                 lastTime = time
                 if (self.animatedValue < self.targetValue) {
@@ -240,7 +242,7 @@ class ProgressIndicator {
         const outerRadius = this.ringInnerRadius + this.ringWidth
         const size = outerRadius * 2
         return new Promise(function (resolve) {
-            function showStep(time: DOMHighResTimeStamp) {
+            const step = (time: DOMHighResTimeStamp) => {
                 const opacitySampler = Math.min((time - startTime) / (1000 * 2), 1)
                 self.logo.innerHTML = new Logo({
                     size,
@@ -259,12 +261,12 @@ class ProgressIndicator {
                         4,
                 }).generate()
                 if (opacitySampler < 1) {
-                    window.requestAnimationFrame(showStep)
+                    window.requestAnimationFrame(step)
                 } else {
                     resolve()
                 }
             }
-            window.requestAnimationFrame(showStep)
+            window.requestAnimationFrame(step)
         })
     }
 
@@ -272,16 +274,16 @@ class ProgressIndicator {
         const self = this
         const startTime = window.performance.now()
         return new Promise(function (resolve) {
-            function hideStep(time: DOMHighResTimeStamp) {
+            const step = (time: DOMHighResTimeStamp) => {
                 const opacitySampler = 1 - Math.min((time - startTime) / (1000 * 0.3), 1)
                 self.setOpacity(animation.easeInOutQuad(opacitySampler))
                 if (opacitySampler > 0) {
-                    window.requestAnimationFrame(hideStep)
+                    window.requestAnimationFrame(step)
                 } else {
                     resolve()
                 }
             }
-            window.requestAnimationFrame(hideStep)
+            window.requestAnimationFrame(step)
         })
     }
 
@@ -289,7 +291,7 @@ class ProgressIndicator {
     animateRotation() {
         const indicator = this
         let rotation = 0
-        function step(time: DOMHighResTimeStamp) {
+        const step = (time: DOMHighResTimeStamp) => {
             indicator.setRotation(rotation)
             rotation = time / 6
             if (!indicator.destroyed) {

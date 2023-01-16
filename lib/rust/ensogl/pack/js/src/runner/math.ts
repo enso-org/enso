@@ -1,10 +1,10 @@
-/// This module defines a common math operations.
+/** @file Common math operations. */
 
 // ============
 // === Math ===
 // ============
 
-/// Converts the polar coordinates to cartesian ones.
+/** Converts the polar coordinates to cartesian ones. */
 export function polarToCartesian(radius: number, angleDegrees: number): { x: number; y: number } {
     const angle = ((angleDegrees - 90) * Math.PI) / 180.0
     return {
@@ -13,7 +13,7 @@ export function polarToCartesian(radius: number, angleDegrees: number): { x: num
     }
 }
 
-/// Format bytes as megabytes with a single precision number.
+/** Format bytes as megabytes with a single precision number. */
 export function formatMb(bytes: number): number {
     return Math.round((10 * bytes) / (1024 * 1024)) / 10
 }

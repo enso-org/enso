@@ -1,3 +1,5 @@
+/** @file Configuration parameters for the application. */
+
 export const DEFAULT_ENTRY_POINT = 'ide'
 
 // =============

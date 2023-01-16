@@ -1,9 +1,12 @@
+/** @file A simple argument parser. */
+
 import * as util from 'node:util'
 
 // ==========================
 // === Naming Conversions ===
 // ==========================
 
+/** Converts a camel case string to a kebab case string. */
 function camelToKebabCase(name: string) {
     return name
         .split('')
@@ -109,6 +112,7 @@ export class Args {
     }
 }
 
+/** Parse the command line arguments. */
 export function parseArgs(): Args {
     const argParser = new Args()
     argParser.parse()

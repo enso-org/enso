@@ -1,3 +1,6 @@
+/** @file Log router allowing hiding all logs in the web console and showing them on demand. It is
+ * used for disabling logs in the production build in order to prevent cluttering the console. */
+
 import host from 'runner/host'
 
 // ==============
