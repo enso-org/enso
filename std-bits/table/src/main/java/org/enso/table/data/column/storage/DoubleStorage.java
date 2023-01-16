@@ -33,16 +33,22 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   public static DoubleStorage makeEmpty(int size) {
+    BitSet isMissing = new BitSet(size);
+    isMissing.set(0, size);
     return new DoubleStorage(new long[0], size, new BitSet(size));
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int size() {
     return size;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int countMissing() {
     return isMissing.cardinality();
@@ -66,13 +72,17 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return isMissing.get(idx) ? null : Double.longBitsToDouble(data[idx]);
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public int getType() {
     return Type.DOUBLE;
   }
 
-  /** @inheritDoc */
+  /**
+   * @inheritDoc
+   */
   @Override
   public boolean isNa(long idx) {
     return isMissing.get((int) idx);

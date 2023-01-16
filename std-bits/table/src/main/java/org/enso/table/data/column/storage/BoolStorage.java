@@ -33,7 +33,9 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   public static BoolStorage makeEmpty(int size) {
-    return new BoolStorage(new BitSet(), new BitSet(), size, false);
+    BitSet isMissing = new BitSet(size);
+    isMissing.set(0, size);
+    return new BoolStorage(new BitSet(), isMissing, size, false);
   }
 
   @Override

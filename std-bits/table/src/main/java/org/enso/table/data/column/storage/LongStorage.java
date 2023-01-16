@@ -33,7 +33,9 @@ public final class LongStorage extends NumericStorage<Long> {
   }
 
   public static LongStorage makeEmpty(int size) {
-    return new LongStorage(new long[0], size, new BitSet(size));
+    BitSet isMissing = new BitSet(size);
+    isMissing.set(0, size);
+    return new LongStorage(new long[0], size, isMissing);
   }
 
   public LongStorage(long[] data) {
