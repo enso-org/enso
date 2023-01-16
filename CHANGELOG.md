@@ -510,6 +510,7 @@
   place][4022]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
+- [Attach visualizations to sub-expressions][4048]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -594,6 +595,7 @@
 [4022]: https://github.com/enso-org/enso/pull/4022
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
+[4048]: https://github.com/enso-org/enso/pull/4048
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 
