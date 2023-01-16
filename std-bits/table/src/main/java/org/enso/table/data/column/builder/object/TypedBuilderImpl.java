@@ -55,9 +55,8 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType() == getType()) {
       if (storage instanceof SpecializedStorage<?>) {
-        @SuppressWarnings(
-            "unchecked") // This cast is safe, because storage.getType() == this.getType() iff
-                         // storage.T == this.T
+        // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
+        @SuppressWarnings("unchecked")
         SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
         System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
         currentSize += storage.size();
