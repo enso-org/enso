@@ -81,7 +81,7 @@ type Column_Set
 ## PRIVATE
    Returns a map indicating in how many tables did a column with a given name appear.
 find_column_counts tables =
-    tables.fold Map.Empty current->table->
+    tables.fold Map.empty current->table->
         table.columns.fold current counts-> column->
             name=column.name
             new_count = counts.get name 0 + 1

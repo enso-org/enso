@@ -1182,7 +1182,6 @@ type Table
            True or will contain a dataflow error propagating through the if.
         is_everything_ok = all_tables.all (check_table "tables")
         if is_everything_ok then
-            all_tables = [self] + tables_vector
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
             new_row_count = all_tables.fold 0 c-> t-> c + t.row_count
@@ -1589,7 +1588,7 @@ make_join_helpers left_table right_table =
    Checks if the argument is a proper table and comes from the current backend.
    It returns True or throws a dataflow error explaining the issue.
 check_table arg_name table =
-    if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table table arg_name) else
+    if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
             same_backend = table.is_a Table
             case same_backend of
                 False ->
