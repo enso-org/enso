@@ -187,7 +187,7 @@ impl Group {
     fn restore_initial_order(&self) {
         let mut entries = self.entries.borrow_mut();
         if entries.len() != self.initial_entries_order.len() {
-            tracing::error!(
+            error!(
                 "Tried to restore initial order in group where \
                         `initial_entries_order` is not initialized or up-to-date. Will keep the \
                         old order."

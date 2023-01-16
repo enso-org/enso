@@ -774,6 +774,7 @@ class Config {
     public skip_min_version_check: boolean = Versions.isDevVersion()
     public preferred_engine_version: SemVer = Versions.ideVersion
     public enable_new_component_browser: boolean = true
+    public emit_user_timing_measurements: boolean = false
 
     updateFromObject(other: any) {
         if (!ok(other)) {
