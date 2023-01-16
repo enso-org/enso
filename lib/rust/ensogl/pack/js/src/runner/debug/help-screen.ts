@@ -1,3 +1,5 @@
+/** @file Help screen implementation. It displays a table of the provided entries. */
+
 import * as dom from '../dom/dom'
 
 // =======================
@@ -24,7 +26,7 @@ export class HelpScreenEntry {
 
 /** A visual help screen. It displays a table of the provided entries. */
 export class HelpScreen {
-    /// Displays a debug screen which allows the user to run one of predefined debug examples.
+    /** Displays a debug screen which allows the user to run one of predefined debug examples. */
     display(cfg: { title: string; headers: string[]; entries: HelpScreenEntry[] }) {
         const padding = '8px'
         const backgroundRadius = '8px'

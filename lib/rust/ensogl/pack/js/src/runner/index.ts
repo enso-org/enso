@@ -179,9 +179,9 @@ export class App {
         }
     }
 
-    /** Runs the application. If it is run in the browser, it will initialize DOM elements, display
-     * a loader, and list of entry points if the provided entry point is missing. If it is run in
-     * node, it will run before main entry points and then the provided command. */
+    /** Runs the application. It will initialize DOM elements, display a loader, run before main
+     * entry points and the main entry point. It will also list available entry points if the
+     * provided entry point is missing. */
     async run(): Promise<void> {
         if (!this.initialized) {
             logger.log("App wasn't initialized properly. Skipping run.")
@@ -348,6 +348,7 @@ export class App {
         new debug.HelpScreen().display({ title, headers, entries })
     }
 
+    /** Print the warning for the end user that they should not copy any code to the console. */
     printScamWarning() {
         const headerCss = `
             color : white;
@@ -374,6 +375,7 @@ export class App {
         console.log('%c' + msg2, msgCSS)
     }
 
+    /* Get not optimized shaders from WASM. */
     getShaders(): Map<string, { vertex: string; fragment: string }> | null {
         return log.Task.with('Getting shaders from Rust.', () => {
             if (!rustGetShadersFn) {
@@ -387,6 +389,7 @@ export class App {
         })
     }
 
+    /* Set optimized shaders in WASM. */
     setShaders(map: Map<string, { vertex: string; fragment: string }>) {
         log.Task.with('Sending shaders to Rust.', () => {
             if (!rustSetShadersFn) {

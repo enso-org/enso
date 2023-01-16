@@ -38,9 +38,9 @@ class Option<T> {
     }
 }
 
-// ============
-// === Args ===
-// ============
+// =================
+// === ArgParser ===
+// =================
 
 interface ParseArgsOptionConfig {
     type: 'string' | 'boolean'
@@ -49,7 +49,7 @@ interface ParseArgsOptionConfig {
     default?: string | boolean | string[] | boolean[] | undefined
 }
 
-export class Args2 {
+export class Args {
     [key: string]: Option<string | boolean>
     help = new Option('Print help message.', false)
     extractShaders = new Option<string>(
@@ -58,8 +58,8 @@ export class Args2 {
     )
 }
 
-export class Args {
-    args = new Args2()
+export class ArgParser {
+    args = new Args()
 
     parse() {
         const optionToFieldNameMap = new Map<string, string>()
@@ -113,8 +113,8 @@ export class Args {
 }
 
 /** Parse the command line arguments. */
-export function parseArgs(): Args {
-    const argParser = new Args()
+export function parse(): ArgParser {
+    const argParser = new ArgParser()
     argParser.parse()
     return argParser
 }
