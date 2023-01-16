@@ -37,7 +37,7 @@ match_columns tables matching_mode keep_unmatched_columns problem_builder = case
             column_counts = find_column_counts tables
             # This will only include columns that were present in all tables.
             common_column_names = tables.first.column_names.filter name->
-                column_counts.get name Nothing == tables.length
+                column_counts.at name == tables.length
             if common_column_names.is_empty then Error.throw No_Output_Columns else
                 common_column_names.map name->
                     column_indices = tables.map table->

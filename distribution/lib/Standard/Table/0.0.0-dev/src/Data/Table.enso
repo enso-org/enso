@@ -1057,11 +1057,7 @@ type Table
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
-        if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
-            same_backend = case right of
-                _ : Table -> True
-                _ -> False
-            if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. Materialize the table using `.read` before joining it with an in-memory Table.") else
+        if check_table "right" right then
                 # [left_unmatched, matched, right_unmatched]
                 rows_to_keep = case join_kind of
                     Join_Kind.Inner           -> [False, True, False]
@@ -1123,15 +1119,12 @@ type Table
          `Report_Unmatched`, which behaves like `True` - unmatched columns are
          kept and padded with `Nothing`, but a problem is reported.
        - allow_type_widening: Specifies if the resulting column type should be
-         adapted to fit columns from all arguments; defaults to `True`. If set
-         to `True` a common type will be chosen for each column, as described in
-         the section "Unifying Column Types" below. If set to `False` the
-         resulting column type will be the same as in the first table the
-         corresponding column appeared in (usually `self`, except for unmatched
-         columns). If type widening is not allowed, all columns that are merged
-         with each other must have the same type as the first one. The only
-         exception is if the first column had `Mixed` type which will accept any
-         other type.
+         adjusted to fit columns from all arguments. If `True`, a common type
+         will be chosen for each column (see "Unifying Column Types" below).
+         If `False`, the resulting column type will be the same as in the first
+         table containing the column. In this case, all columns that are
+         concatenated must have the same type as the first one (unless this
+         had a `Mixed` type - in which case it will accept any other types).
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -1182,17 +1175,12 @@ type Table
          retyped to the `Mixed` type to indicate that intention.
     union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
     union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
-        tables_vector = case tables of
-            v : Vector -> v
-            single_table -> [single_table]
-        is_everything_ok = tables_vector.all table->
-            if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table "tables") else
-                same_backend = table.is_a Table
-                if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend union is not supported. Materialize the table using `.read` before merging it with an in-memory Table.") else
-                    True
-
+        all_tables = case tables of
+            v : Vector -> [self] + v
+            single_table -> [self, single_table]
         ## `is_everything_ok` should actually never be False; it will either be
            True or will contain a dataflow error propagating through the if.
+        is_everything_ok = all_tables.all (check_table "tables")
         if is_everything_ok then
             all_tables = [self] + tables_vector
             problem_builder = Problem_Builder.new
@@ -1596,3 +1584,15 @@ make_join_helpers left_table right_table =
     make_between _ left right_lower right_upper =
         Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+
+## PRIVATE
+   Checks if the argument is a proper table and comes from the current backend.
+   It returns True or throws a dataflow error explaining the issue.
+check_table arg_name table =
+    if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table table arg_name) else
+            same_backend = table.is_a Table
+            case same_backend of
+                False ->
+                    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+                True -> True
+

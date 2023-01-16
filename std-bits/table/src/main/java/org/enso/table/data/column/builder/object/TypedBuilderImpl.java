@@ -55,12 +55,19 @@ public abstract class TypedBuilderImpl<T> extends TypedBuilder {
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType() == getType()) {
       if (storage instanceof SpecializedStorage<?>) {
-        @SuppressWarnings("unchecked") // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
+        @SuppressWarnings(
+            "unchecked") // This cast is safe, because storage.getType() == this.getType() iff
+                         // storage.T == this.T
         SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
         System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
         currentSize += storage.size();
       } else {
-        throw new IllegalStateException("Unexpected storage implementation for type " + storage.getType() + ": " + storage + ". This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type "
+                + storage.getType()
+                + ": "
+                + storage
+                + ". This is a bug in the Table library.");
       }
     } else {
       throw new StorageTypeMismatch(getType(), storage.getType());

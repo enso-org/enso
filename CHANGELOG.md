@@ -273,6 +273,7 @@
 - [Aligning core APIs for Vector, List and Range. Adding some missing functions
   to the types.][4026]
 - [Implemented `Table.distinct` for Database backends.][4027]
+- [Implemented `Table.union` for the in-memory backend.][4052]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -428,6 +429,7 @@
 [4013]: https://github.com/enso-org/enso/pull/4013
 [4026]: https://github.com/enso-org/enso/pull/4026
 [4027]: https://github.com/enso-org/enso/pull/4027
+[4052]: https://github.com/enso-org/enso/pull/4052
 
 #### Enso Compiler
 
