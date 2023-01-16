@@ -337,10 +337,13 @@ public class EnsoContext {
    */
   public Optional<Module> findModuleByExpressionId(UUID expressionId) {
     return getTopScope().getModules().stream()
-        .filter(module -> module.getIr() != null)
         .filter(
             module ->
-                module.getIr().preorder().exists(ir -> ir.getExternalId().contains(expressionId)))
+                module.getIr() != null
+                    && module
+                        .getIr()
+                        .preorder()
+                        .exists(ir -> ir.getExternalId().contains(expressionId)))
         .findFirst();
   }
 
