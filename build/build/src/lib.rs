@@ -1,4 +1,6 @@
 // === Features ===
+#![feature(trait_upcasting)]
+#![feature(try_blocks)]
 #![feature(hash_set_entry)]
 #![feature(type_alias_impl_trait)]
 #![feature(trait_alias)]

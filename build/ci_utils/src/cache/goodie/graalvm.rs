@@ -114,6 +114,20 @@ impl GraalVM {
     }
 }
 
+/// Locate the directory with GraalVM installation.
+///
+/// It is deduced based on [`JAVA_HOME`] environment variable. Exact logic is os-specific.
+#[context("Failed to locate GraalVM installation.")]
+pub fn locate_graal() -> Result<PathBuf> {
+    let java_home = JAVA_HOME.get()?;
+    Ok(if TARGET_OS == OS::MacOS {
+        // On macOS we need to drop trailing `/Contents/Home` from the path.
+        java_home.try_parent()?.try_parent()?.to_path_buf()
+    } else {
+        java_home
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
