@@ -674,20 +674,21 @@ ensogl::define_endpoints_2! {
 
         node_added                (NodeId, Option<NodeSource>, bool),
         node_removed              (NodeId),
-        nodes_collapsed           ((Vec<NodeId>,NodeId)),
+        nodes_collapsed           ((Vec<NodeId>, NodeId)),
         node_hovered              (Option<Switch<NodeId>>),
         node_selected             (NodeId),
         node_deselected           (NodeId),
-        node_position_set         ((NodeId,Vector2)),
-        node_position_set_batched ((NodeId,Vector2)),
-        node_expression_set       ((NodeId,ImString)),
-        node_comment_set          ((NodeId,String)),
+        node_position_set         ((NodeId, Vector2)),
+        node_position_set_batched ((NodeId, Vector2)),
+        node_expression_set       ((NodeId, ImString)),
+        node_expression_span_set  ((NodeId, span_tree::Crumbs, ImString)),
+        node_comment_set          ((NodeId, String)),
         node_entered              (NodeId),
         node_exited               (),
         node_editing_started      (NodeId),
         node_editing_finished     (NodeId),
-        node_action_freeze        ((NodeId,bool)),
-        node_action_skip          ((NodeId,bool)),
+        node_action_freeze        ((NodeId, bool)),
+        node_action_skip          ((NodeId, bool)),
         node_edit_mode            (bool),
         nodes_labels_visible      (bool),
 
@@ -1555,6 +1556,10 @@ impl GraphEditorModelWithNetwork {
                 ));
 
             eval node.expression((t) model.frp.private.output.node_expression_set.emit((node_id,t.into())));
+            eval node.expression_span([model]((crumbs,code)) {
+                let args = (node_id, crumbs.clone(), code.clone());
+                model.frp.private.output.node_expression_span_set.emit(args)
+            });
 
 
             // === Actions ===

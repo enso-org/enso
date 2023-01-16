@@ -28,9 +28,9 @@ pub mod execution_context;
 pub mod module;
 pub mod project;
 pub mod registry;
-pub mod suggestion_database;
 pub mod undo_redo;
 
+pub use enso_suggestion_database as suggestion_database;
 pub use execution_context::ExecutionContext;
 pub use module::Module;
 pub use project::Project;

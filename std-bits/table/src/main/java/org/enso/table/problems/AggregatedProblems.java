@@ -1,6 +1,6 @@
-package org.enso.table.data.table.problems;
+package org.enso.table.problems;
 
-import org.enso.table.problems.Problem;
+import org.enso.table.data.table.problems.ColumnAggregatedProblems;
 
 import java.util.ArrayList;
 import java.util.List;

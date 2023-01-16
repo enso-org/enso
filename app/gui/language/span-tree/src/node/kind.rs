@@ -126,12 +126,14 @@ impl Kind {
     /// `ArgumentInfo` getter. Returns `None` if the node could not be attached with the
     /// information.
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
-        match self {
-            Self::This(t) => Some(ArgumentInfo::new(Some(t.name().into()), t.tp.clone())),
-            Self::Argument(t) => Some(ArgumentInfo::new(t.name.clone(), t.tp.clone())),
-            Self::InsertionPoint(t) => Some(ArgumentInfo::new(t.name.clone(), t.tp.clone())),
-            _ => None,
-        }
+        Some(match self {
+            Self::This(t) => ArgumentInfo::this(t.tp.clone()),
+            Self::Argument(t) =>
+                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.tag_values.clone()),
+            Self::InsertionPoint(t) =>
+                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.tag_values.clone()),
+            _ => return None,
+        })
     }
 
     /// `ArgumentInfo` setter. Returns bool indicating whether the operation was possible
@@ -145,11 +147,13 @@ impl Kind {
             Self::Argument(t) => {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
+                t.tag_values = argument_info.tag_values;
                 true
             }
             Self::InsertionPoint(t) => {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
+                t.tag_values = argument_info.tag_values;
                 true
             }
             _ => false,
@@ -247,9 +251,10 @@ impl From<This> for Kind {
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct Argument {
-    pub removable: bool,
-    pub name:      Option<String>,
-    pub tp:        Option<String>,
+    pub removable:  bool,
+    pub name:       Option<String>,
+    pub tp:         Option<String>,
+    pub tag_values: Vec<String>,
 }
 
 
@@ -302,9 +307,10 @@ impl From<Argument> for Kind {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct InsertionPoint {
-    pub kind: InsertionPointType,
-    pub name: Option<String>,
-    pub tp:   Option<String>,
+    pub kind:       InsertionPointType,
+    pub name:       Option<String>,
+    pub tp:         Option<String>,
+    pub tag_values: Vec<String>,
 }
 
 // === Constructors ===

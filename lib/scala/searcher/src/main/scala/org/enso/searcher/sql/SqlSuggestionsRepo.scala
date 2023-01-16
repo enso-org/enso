@@ -1129,7 +1129,17 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           reexport         = reexport
         )
         row -> (firstArg +: args)
-      case Suggestion.Function(expr, module, name, args, returnType, scope) =>
+      case Suggestion.Function(
+            expr,
+            module,
+            name,
+            args,
+            returnType,
+            scope,
+            doc,
+            _,
+            _
+          ) =>
         val row = SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
@@ -1141,7 +1151,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType       = returnType,
           parentType       = None,
           isStatic         = false,
-          documentation    = None,
+          documentation    = doc,
           scopeStartLine   = scope.start.line,
           scopeStartOffset = scope.start.character,
           scopeEndLine     = scope.end.line,
@@ -1149,7 +1159,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           reexport         = None
         )
         row -> args
-      case Suggestion.Local(expr, module, name, returnType, scope) =>
+      case Suggestion.Local(expr, module, name, returnType, scope, doc, _, _) =>
         val row = SuggestionRow(
           id               = None,
           externalIdLeast  = expr.map(_.getLeastSignificantBits),
@@ -1161,7 +1171,7 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
           returnType       = returnType,
           parentType       = None,
           isStatic         = false,
-          documentation    = None,
+          documentation    = doc,
           scopeStartLine   = scope.start.line,
           scopeStartOffset = scope.start.character,
           scopeEndLine     = scope.end.line,
@@ -1288,7 +1298,10 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
               suggestion.scopeEndLine,
               suggestion.scopeEndOffset
             )
-          )
+          ),
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
@@ -1306,7 +1319,10 @@ final class SqlSuggestionsRepo(val db: SqlDatabase)(implicit
               suggestion.scopeEndLine,
               suggestion.scopeEndOffset
             )
-          )
+          ),
+          documentation         = suggestion.documentation,
+          documentationHtml     = None,
+          documentationSections = None
         )
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")
