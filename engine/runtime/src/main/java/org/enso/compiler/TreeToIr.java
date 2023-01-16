@@ -1324,18 +1324,8 @@ final class TreeToIr {
   IR.Pattern translatePattern(Tree block) throws SyntaxException {
     var pattern = maybeManyParensed(block);
     var elements = unrollApp(pattern);
-    Tree lhs = null;
-    List<IR.Pattern> args = nil();
-    for (var t : elements) {
-      if (lhs == null) {
-        lhs = elements.get(0);
-      } else {
-        var p = translatePattern(t);
-        args = cons(p, args);
-      }
-    }
-    var fields = args.reverse();
-    return switch (lhs) {
+    var fields = translatePatternFields(elements.subList(1, elements.size()));
+    return switch (elements.get(0)) {
       case Tree.Ident id when id.getToken().isTypeOrConstructor() || !fields.isEmpty() -> {
         yield new IR$Pattern$Constructor(
                 sanitizeName(buildName(id)), fields,
@@ -1374,6 +1364,16 @@ final class TreeToIr {
       case Tree.Group group -> translatePattern(group.getBody());
       default -> throw translateEntity(pattern, "translatePattern");
     };
+  }
+
+  private List<IR.Pattern> translatePatternFields(java.util.List<Tree> tail) throws SyntaxException {
+    List<IR.Pattern> args = nil();
+    for (var t : tail) {
+      var p = translatePattern(t);
+      args = cons(p, args);
+    }
+    var fields = args.reverse();
+    return fields;
   }
 
   private IR$Pattern$Name translateWildcardPattern(Tree.Wildcard wild) {
