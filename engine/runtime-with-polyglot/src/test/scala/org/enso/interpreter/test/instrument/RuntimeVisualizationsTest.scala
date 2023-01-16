@@ -2826,6 +2826,9 @@ class RuntimeVisualizationsTest
         |main =
         |    [Warning.attach "y" 42]
         |""".stripMargin.linesIterator.mkString("\n")
+
+    metadata.assertInCode(idMain, code, "\n    [Warning.attach \"y\" 42]")
+
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
 
