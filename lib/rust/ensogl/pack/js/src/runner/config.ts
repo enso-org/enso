@@ -101,18 +101,26 @@ export class Params {
 export class Config {
     params = new Params()
 
-    resolve(cfg: { overrides: any[] }): null | string[] {
+    constructor(config?: ExternalConfig) {
+        this.extend(config)
+    }
+
+    resolve(overrides: (Record<string, any> | undefined)[]): null | string[] {
         const allOverrides = {}
-        for (const override of cfg.overrides) {
-            Object.assign(allOverrides, override)
+        for (const override of overrides) {
+            if (override != null) {
+                Object.assign(allOverrides, override)
+            }
         }
         const unrecognizedParams = this.updateFromObject(allOverrides)
         this.finalize()
         return unrecognizedParams
     }
 
-    extend(config: ExternalConfig) {
-        Object.assign(this.params, config)
+    extend(config?: ExternalConfig) {
+        if (config != null) {
+            Object.assign(this.params, config)
+        }
     }
 
     // FIXME: handle numbers

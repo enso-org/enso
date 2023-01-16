@@ -1,5 +1,10 @@
 /** @file Enso SVG logo generator. */
 
+// ==============
+// === Config ===
+// ==============
+
+/** Logo generator configuration. The fields affect the way the logo is drawn. */
 interface Config {
     borderOffset?: number
     borderWidth?: number
@@ -12,6 +17,11 @@ interface Config {
     size?: number
 }
 
+// ============
+// === Logo ===
+// ============
+
+/** The logo generator. */
 export class Logo {
     borderOffset = 6
     borderWidth = 8

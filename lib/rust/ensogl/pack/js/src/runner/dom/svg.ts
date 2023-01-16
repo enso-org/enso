@@ -9,7 +9,7 @@ import * as math from 'runner/math'
 /** Defines a new SVG with the provided source. */
 export function newSvg(width: number, height: number, str: string): string {
     return `
-    <svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg"
+    <svg xmlns="http://www.w3.org/2000/svg"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          height="${height}" width="${width}" viewBox="0 0 ${height} ${width}">
     ${str}

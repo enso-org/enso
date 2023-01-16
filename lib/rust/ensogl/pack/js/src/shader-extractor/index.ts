@@ -13,7 +13,6 @@ import * as name from 'runner/name'
 
 class App extends BaseApp {
     override async loadWasm() {
-        console.log('loadWasm in node!')
         if (host.node) {
             const mainJsUrl = path.join(__dirname, this.config.params.mainJsUrl.value)
             const mainWasmUrl = path.join(__dirname, this.config.params.mainWasmUrl.value)

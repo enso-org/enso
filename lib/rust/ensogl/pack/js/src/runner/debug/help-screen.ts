@@ -1,5 +1,11 @@
 import * as dom from '../dom/dom'
 
+// =======================
+// === HelpScreenEntry ===
+// =======================
+
+/** A single entry in the help screen view. If assigned with `href`, it will be displayed as a
+ * link. */
 export class HelpScreenEntry {
     name: string
     values: string[]
@@ -12,13 +18,19 @@ export class HelpScreenEntry {
     }
 }
 
+// ==================
+// === HelpScreen ===
+// ==================
+
+/** A visual help screen. It displays a table of the provided entries. */
 export class HelpScreen {
     /// Displays a debug screen which allows the user to run one of predefined debug examples.
     display(cfg: { title: string; headers: string[]; entries: HelpScreenEntry[] }) {
         const padding = '8px'
         const backgroundRadius = '8px'
         const div = dom.newTopLevelDiv()
-        div.style.fontFamily = `"SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif`
+        div.style.fontFamily =
+            '"SF Pro Text","SF Pro Icons","Helvetica Neue","Helvetica","Arial",sans-serif'
         div.style.fontSize = '14px'
         div.style.overflow = 'scroll'
         const div2 = document.createElement('div')

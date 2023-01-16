@@ -30,6 +30,7 @@ export class EntryPoint {
         return this.prefix + this.strippedName
     }
 
+    /** The name of the function used to obtain documentation for this entry point. */
     docsFnName(): string {
         return `docs_of_${this.name()}`
     }

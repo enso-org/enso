@@ -134,7 +134,6 @@ export class App {
     config: config.Config
     wasm: any = null
     loader: wasm.Loader | null = null
-    logger: log.Logger
     shaders: Shaders<string> | null = null
     wasmFunctions: string[] = []
     beforeMainEntryPoints = new Map<string, wasm.EntryPoint>()
@@ -144,24 +143,16 @@ export class App {
     constructor(opts?: {
         configExtension?: config.ExternalConfig
         packageInfo?: Record<string, string>
-        config?: object
+        config?: Record<string, any>
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
-        this.config = new config.Config()
-        if (opts?.configExtension) {
-            this.config.extend(opts.configExtension)
-        }
-
-        this.logger = logger
-        this.initBrowser()
-        const inputConfig = opts?.config ?? {}
-        const unrecognizedParams = this.config.resolve({
-            overrides: [inputConfig, host.urlParams()],
-        })
+        this.config = new config.Config(opts?.configExtension)
+        const unrecognizedParams = this.config.resolve([opts?.config, host.urlParams()])
         if (unrecognizedParams) {
             this.config.print()
             this.showConfigOptions(unrecognizedParams)
         } else {
+            this.initBrowser()
             this.initialized = true
         }
     }
@@ -431,10 +422,3 @@ function registerSetShadersRustFn(fn: SetShadersFn) {
 }
 
 host.exportGlobal({ registerGetShadersRustFn, registerSetShadersRustFn })
-
-// ==============
-// === FIXMES ===
-// ==============
-
-// FIXME: leftover from old script
-// API[globalConfig.windowAppScopeConfigName] = config

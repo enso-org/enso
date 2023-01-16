@@ -58,6 +58,7 @@ class Colors {
 
 export type LogLevel = 'trace' | 'log' | 'warn' | 'error'
 
+/** Consumer interface for `Logger`. It can be used to redirect logs to external sinks. */
 export abstract class Consumer {
     abstract message(fn: LogLevel, ...args: unknown[]): void
 
@@ -90,6 +91,7 @@ export abstract class Consumer {
         this.message('error', 'Internal error.', ...args)
     }
 
+    /** Start a group, log a message, evaluate the provided function, and end the group. */
     with<T>(message: string, f: () => T): T {
         this.group(message)
         const out = f()
@@ -97,6 +99,8 @@ export abstract class Consumer {
         return out
     }
 
+    /** Start a collapsed group, log a message, evaluate the provided function, and end the
+     * group. */
     withCollapsed<T>(message: string, f: () => T): T {
         this.groupCollapsed(message)
         const out = f()
@@ -104,6 +108,7 @@ export abstract class Consumer {
         return out
     }
 
+    /** Start a group, log a message, evaluate the provided async function, and end the group. */
     async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
         this.group(message)
         const out = await f()
@@ -111,6 +116,8 @@ export abstract class Consumer {
         return out
     }
 
+    /** Start a collapsed group, log a message, evaluate the provided async function, and end the
+     * group. */
     async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
         this.groupCollapsed(message)
         const out = await f()
@@ -123,31 +130,37 @@ export abstract class Consumer {
 // === Logger ===
 // ==============
 
+/** Logger capable of displaying nicely formatted logs in the browser and in the console. */
 export class Logger extends Consumer {
     private consumers: Consumer[] = []
 
+    /** Add a new consumer. All logs will be redirected to every attached consumer. */
     addConsumer(consumer: Consumer) {
         this.consumers.push(consumer)
     }
 
+    /** Generic logging function. The first parameters is used to determine the log level. */
     message(fn: LogLevel, ...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.message(fn, ...args)
         }
     }
 
+    /** Start a log group. */
     group(...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.group(...args)
         }
     }
 
+    /** Start a collapsed log group. */
     groupCollapsed(...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.groupCollapsed(...args)
         }
     }
 
+    /** End the last log group. */
     groupEnd(...args: unknown[]) {
         for (const consumer of this.consumers) {
             consumer.groupEnd(...args)
@@ -171,6 +184,8 @@ function replacer(key: string, value: unknown): unknown {
     }
 }
 
+/** The console log consumer. If attached to `Logger`, it prints the incoming logs to the
+ * console. */
 export class Console extends Consumer {
     private indentLvl = 0
 

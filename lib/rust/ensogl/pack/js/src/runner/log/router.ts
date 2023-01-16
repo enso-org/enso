@@ -19,6 +19,8 @@ const consoleLogNames = [
 ] satisfies (keyof Console)[]
 
 // FIXME: fix Rust `autoFlush` handling
+/** Router for logs. It is used to hide the incoming logs and show them on demand. It is used to
+ * unclutter the logs view when the app is run by end-user. */
 class Router {
     private buffer: { name: string; args: unknown[] }[]
     private readonly console: Record<string, (...args: unknown[]) => void>
@@ -36,6 +38,8 @@ class Router {
         }
     }
 
+    /** set the auto-flush to on. All subsequent logs will not be buffered and will be immediately
+     * redirected to log consumers. */
     private autoFlushOn() {
         this.autoFlush = true
         for (const { name, args } of this.buffer) {
@@ -62,15 +66,21 @@ class Router {
         }
     }
 
+    /** Hide all subsequent logs until the `showLogs` method is called. */
     hideLogs() {
         console.log('All subsequent logs will be hidden. Eval `showLogs()` to reveal them.')
         this.autoFlush = false
     }
 
+    /** Display all hidden logs and do not hide any subsequent logs. */
     showLogs() {
         this.autoFlushOn()
     }
 }
+
+// ===============
+// === Exports ===
+// ===============
 
 export const router = new Router()
 

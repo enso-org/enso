@@ -7,40 +7,12 @@ import { logger } from 'runner/log/logger'
 // === Task ===
 // ============
 
+/** A logging utility which groups subsequent operations in nicely formatted groups and logs their
+ * evaluation time. */
 export class Task {
-    message: string
     startTime = 0
     endTime = 0
-    constructor(message: string) {
-        this.message = message
-    }
-
-    start() {
-        logger.group(`${this.message}`)
-        this.startBody()
-    }
-
-    startCollapsed() {
-        logger.groupCollapsed(`${this.message}`)
-        this.startBody()
-    }
-
-    startNoGroup() {
-        logger.log(`Started ${this.message}.`)
-        this.startBody()
-    }
-
-    end(): number {
-        const [ms, msRounded] = this.endBody()
-        logger.groupEnd(`Done in ${msRounded} ms.`)
-        return ms
-    }
-
-    endNoGroup(): number {
-        const [ms, msRounded] = this.endBody()
-        logger.log(`Finished ${this.message} in ${msRounded} ms.`)
-        return ms
-    }
+    constructor(public message: string) {}
 
     private startBody() {
         this.startTime = performance.now()
@@ -59,24 +31,69 @@ export class Task {
         return [ms, msRounded]
     }
 
+    /** Start the task. You have to explicitly call the `end` method to finish this task. If
+     * possible, use the `with` method instead. */
+    start() {
+        logger.group(`${this.message}`)
+        this.startBody()
+    }
+
+    /** Start the task and display subsequent logs in a collapsed group. You have to explicitly call
+     * the `end` method to finish this task. If possible, use the `withCollapsed` method instead. */
+    startCollapsed() {
+        logger.groupCollapsed(`${this.message}`)
+        this.startBody()
+    }
+
+    /** Start the task but do not group subsequent logs. You have to explicitly call the
+     * `endNoGroup` method to finish this task. If possible, use the `withNoGroup` method
+     * instead. */
+    startNoGroup() {
+        logger.log(`Started ${this.message}.`)
+        this.startBody()
+    }
+
+    /** End the previously started task. If possible use the `with*` function family instead. */
+    end(): number {
+        const [ms, msRounded] = this.endBody()
+        logger.groupEnd(`Done in ${msRounded} ms.`)
+        return ms
+    }
+
+    /** End the previously started no-group task. If possible use the `with*` function family
+     * instead. */
+    endNoGroup(): number {
+        const [ms, msRounded] = this.endBody()
+        logger.log(`Finished ${this.message} in ${msRounded} ms.`)
+        return ms
+    }
+
+    /** Start the task. You have to explicitly call the `end` method to finish this task. If
+     * possible, use the `with` method instead. */
     static start(message: string): Task {
         const task = new Task(message)
         task.start()
         return task
     }
 
+    /** Start the task and display subsequent logs in a collapsed group. You have to explicitly call
+     * the `end` method to finish this task. If possible, use the `withCollapsed` method instead. */
     static startCollapsed(message: string): Task {
         const task = new Task(message)
         task.startCollapsed()
         return task
     }
 
+    /** Start the task but do not group subsequent logs. You have to explicitly call the
+     * `endNoGroup` method to finish this task. If possible, use the `withNoGroup` method
+     * instead. */
     static startNoGroup(message: string): Task {
         const task = new Task(message)
         task.startNoGroup()
         return task
     }
 
+    /** Start the task, evaluate the provided function, and end the task. */
     static with<T>(message: string, f: () => T): T {
         const task = Task.start(message)
         const out = f()
@@ -84,6 +101,8 @@ export class Task {
         return out
     }
 
+    /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
+     * function, and end the task. */
     static withCollapsed<T>(message: string, f: () => T): T {
         const task = Task.startCollapsed(message)
         const out = f()
@@ -91,6 +110,7 @@ export class Task {
         return out
     }
 
+    /** Start the task, evaluate the provided async function, and end the task. */
     static async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
         const task = Task.start(message)
         const out = await f()
@@ -98,6 +118,8 @@ export class Task {
         return out
     }
 
+    /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
+     * async function, and end the task. */
     static async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
         const task = Task.startCollapsed(message)
         const out = await f()
@@ -105,6 +127,8 @@ export class Task {
         return out
     }
 
+    /** Start the task, evaluate the provided async function, and end the task. Do not group
+     * subsequent logs. */
     static async asyncNoGroupWith<T>(message: string, f: () => Promise<T>): Promise<T> {
         const task = Task.startNoGroup(message)
         const out = await f()
@@ -112,6 +136,8 @@ export class Task {
         return out
     }
 
+    /** Start the task, evaluate the provided function, and end the task. Return the function result
+     * together with the time information. */
     static withTimed<T>(message: string, f: () => T): [number, T] {
         const task = Task.start(message)
         const out = f()
@@ -119,6 +145,8 @@ export class Task {
         return [ms, out]
     }
 
+    /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
+     * function, and end the task. Return the function result together with the time information. */
     static withCollapsedTimed<T>(message: string, f: () => T): [number, T] {
         const task = Task.startCollapsed(message)
         const out = f()
@@ -126,6 +154,8 @@ export class Task {
         return [ms, out]
     }
 
+    /** Start the task, evaluate the provided async function, and end the task. Return the function
+     * result together with the time information. */
     static async asyncWithTimed<T>(message: string, f: () => Promise<T>): Promise<[number, T]> {
         const task = Task.start(message)
         const out = await f()

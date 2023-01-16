@@ -18,7 +18,7 @@ const node = !browser
 global ??= window
 
 /** Returns the parameters passed in the URL query string. */
-function urlParams(): any {
+function urlParams(): Record<string, any> {
     if (browser) {
         const urlParams = new URLSearchParams(window.location.search)
         return Object.fromEntries(urlParams.entries())
