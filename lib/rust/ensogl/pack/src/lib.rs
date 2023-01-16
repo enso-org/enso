@@ -109,7 +109,7 @@ pub async fn build(
     outputs: WasmPackOutputs,
     provider: impl FnOnce(WasmPackOutputs) -> Result<WasmPackCommand>,
 ) -> Result {
-    // ide_ci::env::prepend_to_path(r"C:\varia\install\bin")?;
+    let _ = ide_ci::env::prepend_to_path(r"C:\varia\install\bin");
     let current_cargo_path = Path::new(path!("Cargo.toml"));
     let root_dir = current_cargo_path.try_parent()?;
     info!("{:?}", root_dir);
@@ -134,10 +134,10 @@ pub async fn build(
     let shader_extractor_path = target_dist_dir.join("shader-extractor.js");
 
     // FIXME? [mwu] What if dependencies are updated without deleting node_modules?
-    if !node_modules_dir.is_dir() {
-        ide_ci::programs::Npm.cmd()?.install().current_dir(&js_dir).run_ok().await?;
-        // with_pwd(&js_dir, || execute("npm", &["install"]));
-    }
+    // if !node_modules_dir.is_dir() {
+    ide_ci::programs::Npm.cmd()?.install().current_dir(&js_dir).run_ok().await?;
+    // with_pwd(&js_dir, || execute("npm", &["install"]));
+    // }
     compile_ts(&js_dir, "src/index.ts", &target_dist_dir).await?;
     compile_js(&target_dir, "pkg.js", &target_dist_dir.join("main.js")).await?;
     // with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
@@ -175,14 +175,14 @@ pub async fn build(
     let shaders_list = ide_ci::fs::read_to_string(&shaders_list_path)?;
     let shaders_prefixes: Vec<_> = shaders_list.lines().collect();
     for shader_prefix in shaders_prefixes {
-        info!("Optimizing '{:?}'.", shader_prefix);
+        info!("Optimizing '{shader_prefix}'.");
         for stage in stages {
             let base_path = shaders_src_dir.join(shader_prefix).display().to_string();
             let stage_path = format!("{base_path}.{stage}");
-            let stage_glsl_path = format!("{}.glsl", stage_path);
-            let stage_spv_path = format!("{}.spv", stage_path);
-            let stage_spv_opt_path = format!("{}.opt.spv", stage_path);
-            let stage_glsl_opt_path = format!("{}.opt.glsl", stage_path);
+            let stage_glsl_path = stage_path.with_appended_extension("glsl");
+            let stage_spv_path = stage_path.with_appended_extension("spv");
+            let stage_spv_opt_path = stage_path.with_appended_extension("opt.spv");
+            let stage_glsl_opt_path = stage_path.with_appended_extension("opt.glsl");
             let stage_glsl_opt_dist_path =
                 dist_shaders_dir.join(&format!("{shader_prefix}.{stage}.glsl"));
 
@@ -192,20 +192,20 @@ pub async fn build(
                     "--target-env=opengl",
                     &format!("-fshader-stage={stage}"),
                     "-o",
-                    &stage_spv_path,
-                    &stage_glsl_path,
+                    &stage_spv_path.as_str(),
+                    &stage_glsl_path.as_str(),
                 ])
                 .run_ok()
                 .await?;
             SpirvOpt
                 .cmd()?
-                .args(&["-O", "-o", &stage_spv_opt_path, &stage_spv_path])
+                .args(&["-O", "-o", &stage_spv_opt_path.as_str(), &stage_spv_path.as_str()])
                 .run_ok()
                 .await?;
 
             SpirvCross
                 .cmd()?
-                .args(&["--output", &stage_glsl_opt_path, &stage_spv_opt_path])
+                .args(&["--output", &stage_glsl_opt_path.as_str(), &stage_spv_opt_path.as_str()])
                 .run_ok()
                 .await?;
 
@@ -215,13 +215,17 @@ pub async fn build(
             let main_start = content.find(main_start_str).with_context(|| {
                 format!(
                     "Failed to find main start string '{}' in shader '{}'. Text:\n{:?}",
-                    main_start_str, stage_glsl_opt_path, content
+                    main_start_str,
+                    stage_glsl_opt_path.display(),
+                    content
                 )
             })?;
             let main_end = content.rfind(main_end_str).with_context(|| {
                 format!(
                     "Failed to find main end string '{}' in shader '{}'. Text:\n{:?}",
-                    main_end_str, stage_glsl_opt_path, content
+                    main_end_str,
+                    stage_glsl_opt_path.display(),
+                    content
                 )
             })?;
             let main_content = &content[main_start + main_start_str.len()..main_end];

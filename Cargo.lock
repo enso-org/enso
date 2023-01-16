@@ -2558,6 +2558,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-shader-tools"
+version = "0.1.0"
+dependencies = [
+ "ide-ci",
+ "tokio",
+]
+
+[[package]]
 name = "enso-shapely"
 version = "0.2.0"
 dependencies = [
