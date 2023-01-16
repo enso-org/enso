@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::executor::global::set_spawner;
-use crate::executor::global::spawn;
+use crate::global::set_spawner;
+use crate::global::spawn;
 
 use futures::executor;
 

@@ -28,9 +28,9 @@ bench =
     Bench.measure (Base.Vector.fill vector_size random_gen.nextLong) "Fill Random (constant)" iter_size num_iterations
     Bench.measure (random_vec + [1]) "Append Single" iter_size num_iterations
     Bench.measure (random_vec + random_vec_2) "Append Large" iter_size num_iterations
-    Bench.measure (random_vec.sum) "Sum" iter_size num_iterations
-    Bench.measure ((random_vec.drop (First 20)).sum) "Drop First 20 and Sum" iter_size num_iterations
-    Bench.measure ((random_vec.drop (Last 20)).sum) "Drop Last 20 and Sum" iter_size num_iterations
+    Bench.measure (random_vec.reduce (+)) "Sum" iter_size num_iterations
+    Bench.measure ((random_vec.drop (First 20)).reduce (+)) "Drop First 20 and Sum" iter_size num_iterations
+    Bench.measure ((random_vec.drop (Last 20)).reduce (+)) "Drop Last 20 and Sum" iter_size num_iterations
     Bench.measure (random_vec.filter (x -> x % 3 == 1)) "Filter" iter_size num_iterations
     Bench.measure (random_vec.filter_with_index (i-> x-> (i+x) % 3 == 1)) "Filter With Index" iter_size num_iterations
 

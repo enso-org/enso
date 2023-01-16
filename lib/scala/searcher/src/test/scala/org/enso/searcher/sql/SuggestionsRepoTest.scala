@@ -675,6 +675,73 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         )
     }
 
+    "update suggestion function documentation" taggedAs Retry in withRepo {
+      repo =>
+        val newDoc = "My awesome function!"
+        val action = for {
+          (v1, Seq(_, _, _, _, _, id1, _)) <- repo.insertAll(
+            Seq(
+              suggestion.module,
+              suggestion.tpe,
+              suggestion.constructor,
+              suggestion.method,
+              suggestion.conversion,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          (v2, id2) <- repo.update(
+            suggestion.function,
+            None,
+            None,
+            None,
+            Some(Some(newDoc)),
+            None,
+            None
+          )
+          s <- repo.select(id1.get)
+        } yield (v1, id1, v2, id2, s)
+        val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+        v1 should not equal v2
+        id1 shouldEqual id2
+        s shouldEqual Some(
+          suggestion.function.copy(documentation = Some(newDoc))
+        )
+    }
+
+    "update suggestion local documentation" taggedAs Retry in withRepo { repo =>
+      val newDoc = "Some stuff there"
+      val action = for {
+        (v1, Seq(_, _, _, _, _, _, id1)) <- repo.insertAll(
+          Seq(
+            suggestion.module,
+            suggestion.tpe,
+            suggestion.constructor,
+            suggestion.method,
+            suggestion.conversion,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        (v2, id2) <- repo.update(
+          suggestion.local,
+          None,
+          None,
+          None,
+          Some(Some(newDoc)),
+          None,
+          None
+        )
+        s <- repo.select(id1.get)
+      } yield (v1, id1, v2, id2, s)
+      val (v1, id1, v2, id2, s) = Await.result(action, Timeout)
+      v1 should not equal v2
+      id1 shouldEqual id2
+      s shouldEqual Some(
+        suggestion.local.copy(documentation = Some(newDoc))
+      )
+    }
+
     "update suggestion removing documentation" taggedAs Retry in withRepo {
       repo =>
         val action = for {
@@ -1898,8 +1965,9 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           Suggestion.Argument("x", "Number", false, true, Some("0"))
         ),
         returnType = "local.Test.Main.MyType",
-        scope =
-          Suggestion.Scope(Suggestion.Position(1, 5), Suggestion.Position(6, 0))
+        scope = Suggestion
+          .Scope(Suggestion.Position(1, 5), Suggestion.Position(6, 0)),
+        documentation = Some("My function bar.")
       )
 
     val local: Suggestion.Local =
@@ -1911,7 +1979,8 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         scope = Suggestion.Scope(
           Suggestion.Position(3, 4),
           Suggestion.Position(6, 0)
-        )
+        ),
+        documentation = Some("Some bazz")
       )
   }
 }

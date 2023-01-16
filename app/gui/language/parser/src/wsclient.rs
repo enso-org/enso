@@ -10,7 +10,6 @@ use crate::api::ParsedSourceFile;
 
 use ast::id_map::JsonIdMap;
 use ast::IdMap;
-use serde::de::DeserializeOwned;
 use std::fmt::Formatter;
 use websocket::stream::sync::TcpStream;
 use websocket::ClientBuilder;
@@ -102,10 +101,10 @@ pub enum Request {
 
 /// All responses that Parser Service might reply with.
 #[derive(Debug, serde::Deserialize)]
-pub enum Response<Metadata> {
-    #[serde(bound(deserialize = "Metadata:Default+DeserializeOwned"))]
+pub enum Response<M> {
+    #[serde(bound(deserialize = "M: Metadata"))]
     Success {
-        module: ParsedSourceFile<Metadata>,
+        module: ParsedSourceFile<M>,
     },
     Error {
         message: String,

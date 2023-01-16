@@ -624,7 +624,7 @@ type Column
        Arguments:
          - order: Specifies the default sort order for this operation.
          - missing_last: Specifies the default placement of missing values when
-           compared to non-missing ones. Note thet this argument is independent
+           compared to non-missing ones. Note that this argument is independent
            from `order`, i.e. missing values will always be sorted according to
            this rule, ignoring the ascending / descending setting.
 
@@ -634,7 +634,7 @@ type Column
 
        > Example
          Sorting `column` in descending order.
-             column.sort order=Sort_Direction.Descending
+             column.sort Sort_Direction.Descending
     sort : Sort_Direction -> Column
     sort self order=Sort_Direction.Ascending =
         self.to_table.order_by (Sort_Column_Selector.By_Column [Sort_Column.Column self order]) . at self.name

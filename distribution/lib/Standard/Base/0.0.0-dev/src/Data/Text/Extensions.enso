@@ -108,19 +108,86 @@ Text.each self function =
          "건반(Korean)".at 1 == "반"
 Text.at : Integer -> Text ! Index_Out_Of_Bounds
 Text.at self index =
+    self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+## ALIAS Get Character
+
+   Returns a character from the text at the specified index (0-based).
+   If the index is invalid then `if_missing` is returned.
+
+   Arguments:
+     - index: The location in the text to get the character from. The
+       index is also allowed be negative, then the characters are
+       counted from the end of the text, i.e. -1 will correspond to the
+       last character.
+     - if_missing: The value to return if the index is out of bounds.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the individual characters in the text "건반(Korean)".
+
+         "건반(Korean)".get 1 == "반"
+Text.get : Integer -> Any -> Any
+Text.get self index ~if_missing=Nothing =
     case index < 0 of
         True ->
             length = self.length
             new_index = index + length
-            if new_index < 0 then Error.throw (Index_Out_Of_Bounds.Error index length) else
+            if new_index < 0 then if_missing else
                 self.at new_index
         False ->
             iterator = BreakIterator.getCharacterInstance
             iterator.setText self
             first = iterator.next index
             next = if first == -1 then -1 else iterator.next
-            if (next == -1) then (Error.throw (Index_Out_Of_Bounds.Error index self.length)) else
+            if (next == -1) then if_missing else
                 Text_Utils.substring self first next
+
+## Returns the first character from the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the first character in the text "건반(Korean)".
+
+         "건반(Korean)".first == "건"
+Text.first : Text ! Index_Out_Of_Bounds
+Text.first self = self.at 0
+
+## Returns the second character from the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the second character in the text "건반(Korean)".
+
+         "건반(Korean)".second == "반"
+Text.second : Text ! Index_Out_Of_Bounds
+Text.second self = self.at 1
+
+## Returns the last character from the text.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Get the last character in the text "건반(Korean)".
+
+         "건반(Korean)".last == ")"
+Text.last : Text ! Index_Out_Of_Bounds
+Text.last self = self.at -1
 
 ## ALIAS Get Characters
 
@@ -1053,7 +1120,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
     if start_index >= end_index then "" else
         Text_Utils.substring self start_index end_index
 
-## ALIAS index_of, position_of, span_of
+## ALIAS position_of, span_of
    Find the location of the `term` in the input.
    Returns a Span representing the location at which the term was found, or
    `Nothing` if the term was not found in the input.
@@ -1267,6 +1334,78 @@ Text.locate_all self term="" matcher=Text_Matcher.Case_Sensitive = if term.is_em
         case matcher.compile term . match self Regex_Mode.All of
             Nothing -> []
             matches -> matches.map m-> m.span 0 . to_grapheme_span
+
+## Find the first index of the `term` in the input.
+   Returns `Nothing` if the term was not found in the input.
+
+   Using `locate` is preferred as then you can also get the length of the match
+   which may not necessarily be equal to the length of the searched term - not
+   only in case of regex matching but also in case insensitive mode.
+   See the Match Length section of `locate` for an explanation.
+
+   Arguments:
+   - term: The term to find.
+   - start: The index to start searching from. If the index is negative, it
+     is counted from the end of the vector.
+   - matcher: Specifies how the term is matched against the input:
+     - If a `Text_Matcher`, the text is compared using case-sensitively rules
+       specified in the matcher.
+     - If a `Regex_Matcher`, the `term` is used as a regular expression and
+       matched using the associated options.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Finding location of a substring.
+
+         "Hello World!".index_of "J" == Nothing
+         "Hello World!".index_of "o" == 4
+Text.index_of : Text -> Integer -> (Text_Matcher | Regex_Matcher) -> Integer | Nothing
+Text.index_of self term="" start=0 matcher=Text_Matcher.Case_Sensitive =
+    used_start = if start < 0 then start+self.length else start
+    if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
+        used = if used_start == 0 then self else self.drop used_start
+        span = used.locate term Matching_Mode.First matcher
+        if span.is_nothing then Nothing else span.start+used_start
+
+## Find the last index of the `term` in the input.
+   Returns `Nothing` if the term was not found in the input.
+
+   Using `locate` is preferred as then you can also get the length of the match
+   which may not necessarily be equal to the length of the searched term - not
+   only in case of regex matching but also in case insensitive mode.
+   See the Match Length section of `locate` for an explanation.
+
+   Arguments:
+   - term: The term to find.
+   - start: The index to start searching backwards from. If the index is
+     negative, it is counted from the end of the vector.
+   - matcher: Specifies how the term is matched against the input:
+     - If a `Text_Matcher`, the text is compared using case-sensitively rules
+       specified in the matcher.
+     - If a `Regex_Matcher`, the `term` is used as a regular expression and
+       matched using the associated options.
+
+   ! What is a Character?
+     A character is defined as an Extended Grapheme Cluster, see Unicode
+     Standard Annex 29. This is the smallest unit that still has semantic
+     meaning in most text-processing applications.
+
+   > Example
+     Finding location of a substring.
+
+         "Hello World!".last_index_of "J" == Nothing
+         "Hello World!".last_index_of "o" == 7
+Text.last_index_of : Text -> Integer -> (Text_Matcher | Regex_Matcher) -> Integer | Nothing
+Text.last_index_of self term="" start=-1 matcher=Text_Matcher.Case_Sensitive =
+    used_start = if start < 0 then start+self.length else start
+    if used_start < 0 || used_start >= self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length) else
+        used = if used_start == self.length-1 then self else self.take used_start+1
+        span = used.locate term Matching_Mode.Last matcher
+        if span.is_nothing then Nothing else span.start
 
 ## PRIVATE
    Returns a new Text constructed by slicing the input according to the provided

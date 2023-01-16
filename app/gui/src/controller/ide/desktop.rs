@@ -9,7 +9,6 @@ use crate::controller::ide::Notification;
 use crate::controller::ide::StatusNotificationPublisher;
 use crate::controller::ide::API;
 use crate::ide::initializer;
-use crate::notification;
 
 use double_representation::name::project;
 use engine_protocol::project_manager;

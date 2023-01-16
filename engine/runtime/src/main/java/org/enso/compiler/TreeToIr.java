@@ -69,7 +69,6 @@ import org.enso.syntax2.Line;
 import org.enso.syntax2.TextElement;
 import org.enso.syntax2.Token;
 import org.enso.syntax2.Tree;
-import org.enso.syntax2.TypeDefStatement;
 
 import scala.Option;
 import scala.collection.immutable.LinearSeq;
@@ -207,25 +206,10 @@ final class TreeToIr {
     return switch (inputAst) {
       case null -> appendTo;
       case Tree.TypeDef def -> {
-        List<IR> irBody = nil();
         var typeName = buildName(def.getName(), true);
+        List<IR> irBody = nil();
         for (var line : def.getBody()) {
-          var definition = line.getStatement();
-          switch (definition) {
-            case null -> {}
-            case TypeDefStatement.Binding bind -> irBody = translateTypeBodyExpression(bind.getStatement(), irBody);
-            case TypeDefStatement.TypeConstructorDef cons -> {
-              if (cons.getDocumentation() != null) {
-                irBody = cons(translateComment(def, cons.getDocumentation()), irBody);
-              }
-              var constructorName = buildName(inputAst, cons.getConstructor());
-              List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
-              var cAt = getIdentifiedLocation(inputAst);
-              var ir = new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
-              irBody = cons(ir, irBody);
-            }
-            default -> {}
-          }
+          irBody = translateTypeBodyExpression(line.getExpression(), irBody);
         }
         List<IR.DefinitionArgument> args = translateArgumentsDefinition(def.getParams());
         var type = new IR$Module$Scope$Definition$SugaredType(
@@ -317,6 +301,13 @@ final class TreeToIr {
     return CollectionConverters.asScala(args.stream().map(p -> translateArgumentDefinition(p)).iterator()).toList();
   }
 
+  IR translateConstructorDefinition(Tree.ConstructorDefinition cons, Tree inputAst) {
+    var constructorName = buildName(inputAst, cons.getConstructor());
+    List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
+    var cAt = getIdentifiedLocation(inputAst);
+    return new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+  }
+
   /** Translates any expression that can be found in the body of a type
     * declaration from [[AST]] into [[IR]].
     *
@@ -328,6 +319,7 @@ final class TreeToIr {
     var inputAst = maybeManyParensed(exp);
     return switch (inputAst) {
       case null -> appendTo;
+      case Tree.ConstructorDefinition cons -> cons(translateConstructorDefinition(cons, inputAst), appendTo);
       case Tree.TypeDef def -> {
         var ir = translateSyntaxError(def, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
         yield cons(ir, appendTo);
@@ -742,7 +734,9 @@ final class TreeToIr {
           yield translateExpression(subexpression, false);
         }
         var fn = new IR$Name$Literal(fullName, true, Option.empty(), meta(), diag());
-        checkArgs(args);
+        if (!checkArgs(args)) {
+          yield translateSyntaxError(app, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+        }
         yield new IR$Application$Prefix(fn, args.reverse(), false, getIdentifiedLocation(tree), meta(), diag());
       }
       case Tree.BodyBlock body -> {
@@ -1074,7 +1068,7 @@ final class TreeToIr {
   }
 
   @SuppressWarnings("unchecked")
-  private IR$Application$Prefix patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
+  private IR.Expression patchPrefixWithBlock(IR$Application$Prefix pref, IR$Expression$Block block, List<IR.CallArgument> args) {
     if (block.expressions().isEmpty() && block.returnValue() instanceof IR$Name$Blank) {
       return pref;
     }
@@ -1084,7 +1078,9 @@ final class TreeToIr {
     List<IR.CallArgument> allArgs = (List<IR.CallArgument>) pref.arguments().appendedAll(args.reverse());
     final IR$CallArgument$Specified blockArg = new IR$CallArgument$Specified(Option.empty(), block, block.location(), meta(), diag());
     List<IR.CallArgument> withBlockArgs = (List<IR.CallArgument>) allArgs.appended(blockArg);
-    checkArgs(withBlockArgs);
+    if (!checkArgs(withBlockArgs)) {
+      return translateSyntaxError(pref.location().get(), IR$Error$Syntax$UnexpectedExpression$.MODULE$);
+    }
     return new IR$Application$Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.location(), meta(), diag());
   }
 
@@ -1654,13 +1650,14 @@ final class TreeToIr {
     }
   }
 
-  private void checkArgs(List<IR.CallArgument> args) {
+  private boolean checkArgs(List<IR.CallArgument> args) {
     LinearSeq<IR.CallArgument> a = args;
     while (!a.isEmpty()) {
       if (a.head() == null) {
-        throw new IllegalStateException("Problem: " + args);
+        return false;
       }
       a = (LinearSeq<IR.CallArgument>) a.tail();
     }
+    return true;
   }
 }
