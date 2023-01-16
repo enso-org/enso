@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.File_Error.File_Error
@@ -535,13 +536,17 @@ type Table
 
        Returns the vector of columns contained in this table.
     columns : Vector Column
-    columns self = self.internal_columns . map self.make_column
+    columns self = Vector.from_polyglot_array <|
+        Array_Proxy.new self.internal_columns.length i->
+            self.make_column (self.internal_columns.at i)
 
     ## UNSTABLE
 
        Returns the vector of column names contained in this table.
     column_names : Vector Text
-    column_names self = self.internal_columns . map _.name
+    column_names self = Vector.from_polyglot_array <|
+        Array_Proxy.new self.internal_columns.length i->
+            self.internal_columns.at i . name
 
     ## Returns a vector of rows contained in this table.
 
@@ -805,7 +810,7 @@ type Table
          `Report_Unmatched`, which behaves like `True` - unmatched columns are
          kept and padded with `Nothing`, but a problem is reported.
        - allow_type_widening: Specifies if the resulting column type should be
-         adjusted to fit columns from all arguments. If `True`, a common type 
+         adjusted to fit columns from all arguments. If `True`, a common type
          will be chosen for each column (see "Unifying Column Types" below).
          If `False`, the resulting column type will be the same as in the first
          table containing the column. In this case, all columns that are

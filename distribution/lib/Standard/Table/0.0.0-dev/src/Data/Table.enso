@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
@@ -975,13 +975,17 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Value
+    columns self = Vector.from_polyglot_array <|
+        Array_Proxy.new self.java_table.getColumns.length i->
+            Column.Value (self.java_table.getColumns.at i)
 
     ## UNSTABLE
 
        Returns the vector of column names contained in this table.
     column_names : Vector Text
-    column_names self = Vector.from_polyglot_array self.java_table.getColumns . map _.getName
+    column_names self = Vector.from_polyglot_array <|
+        Array_Proxy.new self.java_table.getColumns.length i->
+            self.java_table.getColumns.at i . getName
 
     ## Returns a vector of rows contained in this table.
 
