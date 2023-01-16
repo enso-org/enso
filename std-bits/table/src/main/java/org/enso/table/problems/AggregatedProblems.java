@@ -1,4 +1,6 @@
-package org.enso.table.data.table.problems;
+package org.enso.table.problems;
+
+import org.enso.table.data.table.problems.ColumnAggregatedProblems;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +54,7 @@ public class AggregatedProblems {
     count++;
   }
 
-  public static AggregatedProblems merge(AggregatedProblems[] problems) {
+  public static AggregatedProblems merge(AggregatedProblems... problems) {
     List<Problem> merged = new ArrayList<>();
     int count = 0;
 
@@ -67,6 +69,14 @@ public class AggregatedProblems {
   }
 
   public static AggregatedProblems of(Problem... problems) {
+    AggregatedProblems result = new AggregatedProblems();
+    for (Problem p : problems) {
+      result.add(p);
+    }
+    return result;
+  }
+
+  public static AggregatedProblems of(List<Problem> problems) {
     AggregatedProblems result = new AggregatedProblems();
     for (Problem p : problems) {
       result.add(p);

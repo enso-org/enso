@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Json.JS_Object
+import project.Data.Numbers.Decimal
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
 import project.Data.Pair.Pair

@@ -118,7 +118,11 @@ object FrgaalJavaCompiler {
     }
 
     val (withTarget, noTarget) = sources0.partition(checkTarget)
-    val in = findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path])
+    val in = if (noTarget.isEmpty) {
+      None
+    } else {
+      Some(findUnder(3, noTarget.tail.fold(asPath(noTarget.head))(asCommon).asInstanceOf[Path]))
+    }
     val generated = if (withTarget.isEmpty) {
       None
     } else {
@@ -133,8 +137,9 @@ object FrgaalJavaCompiler {
       def storeArray(name: String, values : Seq[String]) = {
         values.zipWithIndex.foreach { case (value, idx) => ensoProperties.setProperty(s"$name.$idx", value) }
       }
-
-      ensoProperties.setProperty("input", in.toString())
+      if (in.isDefined) {
+        ensoProperties.setProperty("input", in.get.toString())
+      }
       if (generated.isDefined) {
         ensoProperties.setProperty("generated", generated.get.toString())
       }

@@ -73,16 +73,16 @@ sqlite_specific_spec connection =
             action . should_fail_with SQL_Error.Error
             action.catch.to_text . should_equal "There was an SQL error: [SQLITE_ERROR] SQL error or missing database (no such table: undefined_table). [Query was: SELECT A FROM undefined_table]"
 
+    tinfo = Name_Generator.random_name "Tinfo"
+    connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     Test.group "[SQLite] Metadata" <|
-        tinfo = Name_Generator.random_name "Tinfo"
-        connection.execute_update 'CREATE TABLE "'+tinfo+'" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
         t = connection.query (SQL_Query.Table_Name tinfo)
         t.insert ["a", Nothing, False, 1.2]
         t.insert ["abc", Nothing, Nothing, 1.3]
         t.insert ["def", 42, True, 1.4]
         Test.specify "should return Table information" <|
             i = t.info
-            i.index . to_vector . should_equal ["strs", "ints", "bools", "reals"]
+            i.at "Column" . to_vector . should_equal ["strs", "ints", "bools", "reals"]
             i.at "Items Count" . to_vector . should_equal [3, 1, 2, 3]
             i.at "SQL Type" . to_vector . should_equal ["VARCHAR", "INTEGER", "BOOLEAN", "REAL"]
         Test.specify "should infer standard types correctly" <|
@@ -95,6 +95,13 @@ sqlite_specific_spec connection =
             t.at "strs" . sql_type . is_definitely_integer . should_be_false
             t.at "reals" . sql_type . is_definitely_boolean . should_be_false
             t.at "bools" . sql_type . is_definitely_double . should_be_false
+
+    Test.group "[SQLite] Dialect-specific codegen" <|
+        Test.specify "should generate queries for the Distinct operation" <|
+            t = connection.query (SQL_Query.Table_Name tinfo)
+            code_template = 'SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM (SELECT "{Tinfo}_inner"."strs" AS "strs", "{Tinfo}_inner"."ints" AS "ints", "{Tinfo}_inner"."bools" AS "bools", "{Tinfo}_inner"."reals" AS "reals" FROM (SELECT "{Tinfo}"."strs" AS "strs", "{Tinfo}"."ints" AS "ints", "{Tinfo}"."bools" AS "bools", "{Tinfo}"."reals" AS "reals" FROM "{Tinfo}" AS "{Tinfo}") AS "{Tinfo}_inner" GROUP BY "{Tinfo}_inner"."strs") AS "{Tinfo}"'
+            expected_code = code_template.replace "{Tinfo}" tinfo
+            t.distinct ["strs"] . to_sql . prepare . should_equal [expected_code, []]
 
 sqlite_spec connection prefix =
     name_counter = Ref.new 0
@@ -110,7 +117,7 @@ sqlite_spec connection prefix =
     Common_Spec.spec prefix connection
     sqlite_specific_spec connection
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supports_case_sensitive_columns=False order_by=True natural_ordering=False case_insensitive_ordering=True case_insensitive_ascii_only=True take_drop=False is_nan_and_nothing_distinct=False supports_full_join=False
 
     ## For now `advanced_stats`, `first_last`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the

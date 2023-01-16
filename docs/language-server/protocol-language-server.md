@@ -195,6 +195,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`EmptyStackError`](#emptystackerror)
   - [`InvalidStackItemError`](#invalidstackitemerror)
   - [`ModuleNotFoundError`](#modulenotfounderror)
+  - [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror)
   - [`VisualisationNotFoundError`](#visualisationnotfounderror)
   - [`VisualisationExpressionError`](#visualisationexpressionerror)
   - [`FileNotOpenedError`](#filenotopenederror)
@@ -602,6 +603,15 @@ interface Function {
 
   /** The scope where the function is defined. */
   scope: SuggestionEntryScope;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 
 interface Local {
@@ -619,6 +629,15 @@ interface Local {
 
   /** The scope where the value is defined. */
   scope: SuggestionEntryScope;
+
+  /** The documentation string. */
+  documentation?: string;
+
+  /** The rendered HTML of the documentation string. */
+  documentationHtml?: string;
+
+  /** The documentation string divided into sections. */
+  documentationSections?: DocSection[];
 }
 ```
 
@@ -939,6 +958,11 @@ interface Modify {
    * The documentation string to update.
    */
   documentation?: FieldUpdate<String>;
+
+  /**
+   * New documentation sections.
+   */
+  documentationSections?: FieldUpdate<DocSection[]>;
 
   /**
    * The scope to update.
@@ -2804,6 +2828,17 @@ checkpoint recorded with `vcs/save`. If no save exists with a provided
 restore the project to the last saved state, will all current modifications
 forgotten.
 
+If the contents of any open buffer has changed as a result of this operation,
+all subscribed clients will be notified about the new version of the file via
+`text/didChange` push notification.
+
+A file might have been removed during the operation while there were still open
+buffers for that file. Any such clients will be modified of a file removal via
+the `file/event` notification.
+
+The result of the call returns a list of files that have been modified during
+the operation.
+
 #### Parameters
 
 ```typescript
@@ -2826,7 +2861,9 @@ forgotten.
 #### Result
 
 ```typescript
-null;
+{
+  changed: [Path];
+}
 ```
 
 ### `vcs/list`
@@ -3485,7 +3522,7 @@ on the stack. In general, all consequent stack items should be `LocalCall`s.
 }
 ```
 
-Returns successful reponse.
+Returns successful response.
 
 ```json
 {
@@ -3955,6 +3992,8 @@ null;
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
   the visualisation cannot be found.
+- [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror) to
+  signal that the module containing the provided expression cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
   the expression specified in the `VisualisationConfiguration` cannot be
   evaluated.
@@ -3993,6 +4032,8 @@ null;
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
   the visualisation cannot be found.
+- [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror) to
+  signal that the module containing the provided expression cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
   the expression specified in the `VisualisationConfiguration` cannot be
   evaluated.
@@ -5461,6 +5502,18 @@ cannot be evaluated. The error contains an optional `data` field of type
     "expressionId" : "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
     "stack" : []
   }
+}
+```
+
+### `ModuleNotFoundForExpressionError`
+
+It signals that the module containing the provided expression id cannot be
+found.
+
+```typescript
+"error" : {
+  "code" : 2008,
+  "message" : "Module not found for [aa1f75c4-8c4d-493d-a6a7-72123a52f084]"
 }
 ```
 

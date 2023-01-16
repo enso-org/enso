@@ -26,6 +26,8 @@ import project.System.File.File_Permissions.File_Permissions
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
+polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import java.nio.file.FileSystems

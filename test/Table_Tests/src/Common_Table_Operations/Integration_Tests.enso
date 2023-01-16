@@ -1,0 +1,118 @@
+from Standard.Base import all
+
+# We hide the table constructor as instead we are supposed to use `table_builder` which is backend-agnostic.
+from Standard.Table import all hiding Table
+from Standard.Table.Data.Aggregate_Column.Aggregate_Column import Group_By, Count, Sum
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import run_default_backend
+
+main = run_default_backend spec
+
+spec setup =
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    Test.group setup.prefix+" Interactions Between various operations" <|
+        Test.specify "aggregates and joins" <|
+            t1 = table_builder [["Count", [1, 2, 3]], ["Class", ["X", "Y", "Z"]]]
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "A", "C", "D", "D", "B", "B"]]]
+
+            t3 = t2.aggregate [Group_By "Letter", Count]
+            t4 = t3.join t1 on="Count" join_kind=Join_Kind.Left_Outer |> materialize |> _.order_by "Letter"
+            t4.columns.map .name . should_equal ["Letter", "Count", "Class"]
+            rows = t4.rows . map .to_vector
+            rows.at 0 . should_equal ["A", 4, Nothing]
+            rows.at 1 . should_equal ["B", 3, "Z"]
+            rows.at 2 . should_equal ["C", 2, "Y"]
+            rows.at 3 . should_equal ["D", 2, "Y"]
+
+        Test.specify "aggregates and distinct" <|
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C"]], ["Points", [2, 5, 2, 1, 10, 3]]]
+
+            t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
+            t4 = t3.distinct "Sum Points" |> materialize |> _.order_by "Sum Points"
+            t4.columns.map .name . should_equal ["Letter", "Sum Points"]
+            t4.row_count . should_equal 2
+
+            rows = t4.rows . map .to_vector
+            r1 = rows.at 0
+            r1.second . should_equal 5
+            ["A", "B"].contains r1.first . should_be_true
+            rows.at 1 . should_equal ["C", 13]
+
+        Test.specify "aggregates and filtering" <|
+            t2 = table_builder [["Letter", ["A", "B", "A", "A", "C", "C", "B"]], ["Points", [2, 5, 2, 1, 10, 3, 0]]]
+
+            t3 = t2.aggregate [Group_By "Letter", Sum "Points"]
+            t4 = t3.filter "Sum Points" (Filter_Condition.Equal 5)  |> materialize |> _.order_by "Letter"
+            t4.columns.map .name . should_equal ["Letter", "Sum Points"]
+            rows = t4.rows . map .to_vector
+            rows.at 0 . should_equal ["A", 5]
+            rows.at 1 . should_equal ["B", 5]
+
+        Test.specify "aggregates and ordering" <|
+            t1 = table_builder [["Letter", ["C", "A", "B", "A", "A", "C", "C", "B"]], ["Points", [0, -100, 5, 2, 1, 10, 3, 0]]]
+            t2 = t1.aggregate [Group_By "Letter", Sum "Points"]
+            t3 = t2.order_by "Sum Points" |> materialize
+            t3.columns.map .name . should_equal ["Letter", "Sum Points"]
+            t3.at "Letter" . to_vector . should_equal ["A", "B", "C"]
+            t3.at "Sum Points" . to_vector . should_equal [-97, 5, 13]
+
+        Test.specify "distinct and ordering" <|
+            t1 = table_builder [["X", [1, 2, 2, 1]], ["Y", ["a", "b", "b", "a"]], ["Z", [1, 2, 3, 4]]]
+
+            # These are 'adversarial' white-box examples constructed knowing that Postgres' DISTINCT ON does not play too well with ORDER BY and it needs to be handled carefully.
+            t2 = t1.order_by "X" . distinct "X" |> materialize
+            t2.row_count . should_equal 2
+            t3 = t1.order_by "Y" . distinct "X" |> materialize
+            t3.row_count . should_equal 2
+            t4 = t1.order_by "Y" . distinct "X" . order_by "Y" |> materialize
+            t4.row_count . should_equal 2
+
+        if setup.test_selection.distinct_returns_first_row_from_group_if_ordered then
+            Test.specify "distinct and ordering if first row is returned after ordering" <|
+                a = ["A", ["a", "a", "a", "a", "a", "a"]]
+                b = ["B", [1, 1, 2, 2, 1, 2]]
+                c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]]
+                t = table_builder [a, b, c] . order_by (Sort_Column_Selector.By_Name [(Sort_Column.Name "C" Sort_Direction.Descending)])
+
+                t2 = t.distinct ["A", "B"] on_problems=Report_Error
+                # Now, reverse the order!
+                ## But the distinct was taken under descending order, so that
+                   should be preserved - we will still have _last_ rows from
+                   each group (first in reversed order).
+                t3 = t2.order_by "C"
+                r = t3 |> materialize
+                r.at "A" . to_vector . should_equal ["a", "a"]
+                r.at "B" . to_vector . should_equal [1, 2]
+                r.at "C" . to_vector . should_equal [0.5, 0.6]
+
+            ## It should matter whether we do the filter _before_ or _after_ the
+               distinct operation.
+
+               It is easier to test this if we can rely on distinct returning
+               the first row, if it is returning any row, it is harder to write
+               tests that distinguish the two cases (filter before and after).
+            Test.specify "distinct and filtering" <|
+                a = ["A", ["a", "a", "b", "a", "b"]]
+                b = ["B", [1, 2, 5, 5, 2]]
+                c = ["C", [0.1, 0.2, 0.3, 0.4, 0.5]]
+                t = table_builder [a, b, c] . order_by "C"
+
+                t2 = t.distinct ["A"] on_problems=Report_Error
+                r2 = t2 |> materialize
+                r2.at "A" . to_vector . should_equal ["a", "b"]
+                r2.at "B" . to_vector . should_equal [1, 5]
+
+                t3 = t2.filter "B" (Filter_Condition.Equal 5)
+                r3 = t3 |> materialize
+                r3.at "A" . to_vector . should_equal ["b"]
+                r3.at "B" . to_vector . should_equal [5]
+
+                t4 = t.filter "B" (Filter_Condition.Equal 5)
+                t5 = t4.distinct ["A"] on_problems=Report_Error
+                r5 = t5 |> materialize
+                r5.at "A" . to_vector . should_contain_the_same_elements_as ["b", "a"]
+                r5.at "B" . to_vector . should_equal [5, 5]

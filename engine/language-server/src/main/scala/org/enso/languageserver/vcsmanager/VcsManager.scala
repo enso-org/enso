@@ -71,9 +71,9 @@ class VcsManager(
     case VcsProtocol.RestoreRepo(_, repoRoot, optRevName) =>
       val result =
         for {
-          root <- resolvePath(repoRoot)
-          _    <- vcs.restore(root.toPath, optRevName)
-        } yield ()
+          root  <- resolvePath(repoRoot)
+          paths <- vcs.restore(root.toPath, optRevName)
+        } yield paths.map(p => Path.apply(repoRoot.rootId, p))
       exec
         .execTimed(config.timeout, result)
         .map(VcsProtocol.RestoreRepoResponse)

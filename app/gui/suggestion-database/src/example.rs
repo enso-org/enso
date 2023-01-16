@@ -45,7 +45,7 @@ impl Example {
     /// ```
     /// use enso_prelude::*;
     ///
-    /// use enso_gui::model::suggestion_database::Example;
+    /// use enso_suggestion_database::Example;
     ///
     /// let name = "With Spaces and Strange $ąę#%^& Characters.".to_owned();
     /// let example = Example { name, ..default() };

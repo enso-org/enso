@@ -207,7 +207,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub keyword: token::Ident<'s>,
             pub name:    token::Ident<'s>,
             pub params:  Vec<ArgumentDefinition<'s>>,
-            pub body:    Vec<TypeDefLine<'s>>,
+            pub body:    Vec<block::Line<'s>>,
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
@@ -342,6 +342,15 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             /// The item being documented.
             pub expression: Option<Tree<'s>>,
         },
+        /// Defines a type constructor.
+        ConstructorDefinition {
+            /// The identifier naming the type constructor.
+            pub constructor:   token::Ident<'s>,
+            /// The arguments the type constructor accepts, specified inline.
+            pub arguments:     Vec<ArgumentDefinition<'s>>,
+            /// The arguments the type constructor accepts, specified on their own lines.
+            pub block:         Vec<ArgumentDefinitionLine<'s>>,
+        },
     }
 }};}
 
@@ -408,77 +417,6 @@ impl<'s> Tree<'s> {
 impl<'s> span::Builder<'s> for Error {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
-    }
-}
-
-
-// === Type Definitions ===
-
-/// A line in a type definition's body block.
-#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub struct TypeDefLine<'s> {
-    /// Token ending the previous line.
-    pub newline:   token::Newline<'s>,
-    /// Type definition body statement, if any.
-    pub statement: Option<TypeDefStatement<'s>>,
-}
-
-impl<'s> span::Builder<'s> for TypeDefLine<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.newline).add(&mut self.statement)
-    }
-}
-
-impl<'s> From<token::Newline<'s>> for TypeDefLine<'s> {
-    fn from(newline: token::Newline<'s>) -> Self {
-        Self { newline, statement: None }
-    }
-}
-
-/// A statement in a type-definition body.
-#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub enum TypeDefStatement<'s> {
-    /// A binding in a type-definition body.
-    Binding {
-        /// The binding statement.
-        statement: Tree<'s>,
-    },
-    /// A constructor definition within a type-definition body.
-    #[reflect(inline)]
-    Constructor {
-        /// The constructor.
-        constructor: TypeConstructorDef<'s>,
-    },
-}
-
-impl<'s> span::Builder<'s> for TypeDefStatement<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        match self {
-            TypeDefStatement::Binding { statement } => span.add(statement),
-            TypeDefStatement::Constructor { constructor } => span.add(constructor),
-        }
-    }
-}
-
-/// A type constructor definition within a type definition.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub struct TypeConstructorDef<'s> {
-    /// Documentation, if any.
-    pub documentation: Option<DocComment<'s>>,
-    /// The identifier naming the type constructor.
-    pub constructor:   token::Ident<'s>,
-    /// The arguments the type constructor accepts, specified inline.
-    pub arguments:     Vec<ArgumentDefinition<'s>>,
-    /// The arguments the type constructor accepts, specified on their own lines.
-    pub block:         Vec<ArgumentDefinitionLine<'s>>,
-}
-
-impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.documentation)
-            .add(&mut self.constructor)
-            .add(&mut self.arguments)
-            .add(&mut self.block)
     }
 }
 

@@ -823,7 +823,7 @@ case object DataflowAnalysis extends IRPass {
       * @return the set of all associations with `key`, if key exists
       */
     def get(key: DependencyInfo.Type): Option[Set[DependencyInfo.Type]] = {
-      val visited = mutable.Set[DependencyInfo.Type]()
+      val visited = mutable.LinkedHashSet[DependencyInfo.Type]()
 
       def go(key: DependencyInfo.Type): Set[DependencyInfo.Type] = {
         if (!visited.contains(key)) {

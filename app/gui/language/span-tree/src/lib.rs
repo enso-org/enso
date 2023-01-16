@@ -75,20 +75,21 @@ use crate::generate::Context;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub struct ArgumentInfo {
-    pub name: Option<String>,
-    pub tp:   Option<String>,
+    pub name:       Option<String>,
+    pub tp:         Option<String>,
+    pub tag_values: Vec<String>,
 }
 
 impl ArgumentInfo {
     /// Constructor.
-    pub fn new(name: Option<String>, tp: Option<String>) -> Self {
-        Self { name, tp }
+    pub fn new(name: Option<String>, tp: Option<String>, tag_values: Vec<String>) -> Self {
+        Self { name, tp, tag_values }
     }
 
     /// Specialized constructor for "this" argument.
     pub fn this(tp: Option<String>) -> Self {
         let name = Some(node::This::NAME.into());
-        Self { name, tp }
+        Self { name, tp, tag_values: Vec::new() }
     }
 }
 

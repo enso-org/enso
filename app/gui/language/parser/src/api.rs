@@ -8,6 +8,7 @@ use enso_text::unit::*;
 use ast::id_map::JsonIdMap;
 use ast::HasIdMap;
 use ast::HasRepr;
+use ast::IdMap;
 use enso_text::Range;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -29,10 +30,28 @@ pub use ast::Ast;
 
 // === Metadata ===
 
+/// Remove node IDs not present in the id map from the metadata.
+///
+/// See [`PruneUnusedIds::prune_unused_ids`] method documentation.
+pub trait PruneUnusedIds {
+    /// Remove node IDs not present in the id map from the metadata.
+    ///
+    /// The IDE loses track of the IDs stored in the metadata section when the user is editing a
+    /// project in the external editor. It means that the size of the metadata will constantly grow,
+    /// and IDE won't ever remove the obsolete nodes from the metadata. This method is called while
+    /// deserializing the [`ParsedSourceFile`] structure and allows to prune of unused ids from the
+    /// metadata section.
+    ///
+    /// As [`ParsedSourceFile`] is parametrized with a generic `Metadata`, this is a separate trait
+    /// that should be implemented for all `Metadata` types.
+    fn prune_unused_ids(&mut self, _id_map: &IdMap) {}
+}
+
 /// Things that are metadata.
-pub trait Metadata: Default + Serialize + DeserializeOwned {}
+pub trait Metadata: Default + Serialize + DeserializeOwned + PruneUnusedIds {}
 
 /// Raw metadata.
+impl PruneUnusedIds for serde_json::Value {}
 impl Metadata for serde_json::Value {}
 
 
@@ -149,13 +168,34 @@ impl SourceFile {
 
 /// Parsed file / module with metadata.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-pub struct ParsedSourceFile<Metadata> {
+#[serde(bound = "M: Metadata")]
+#[serde(from = "ParsedSourceFileWithUnusedIds<M>")]
+pub struct ParsedSourceFile<M> {
     /// Ast representation.
     pub ast:      ast::known::Module,
     /// Raw metadata in json.
+    pub metadata: M,
+}
+
+/// Helper for deserialization. `metadata` is filled with `default()` value if not present or is
+/// invalid.
+///
+/// [`PruneUnusedIds::prune_unused_ids`] is called on deserialization.
+#[derive(Deserialize)]
+struct ParsedSourceFileWithUnusedIds<Metadata> {
+    ast:      ast::known::Module,
     #[serde(bound(deserialize = "Metadata:Default+DeserializeOwned"))]
     #[serde(deserialize_with = "enso_prelude::deserialize_or_default")]
-    pub metadata: Metadata,
+    metadata: Metadata,
+}
+
+impl<M: Metadata> From<ParsedSourceFileWithUnusedIds<M>> for ParsedSourceFile<M> {
+    fn from(file: ParsedSourceFileWithUnusedIds<M>) -> Self {
+        let ast = file.ast;
+        let mut metadata = file.metadata;
+        metadata.prune_unused_ids(&ast.id_map());
+        Self { ast, metadata }
+    }
 }
 
 impl<M: Metadata> TryFrom<&ParsedSourceFile<M>> for String {
@@ -270,6 +310,7 @@ mod test {
         foo: usize,
     }
 
+    impl PruneUnusedIds for Metadata {}
     impl crate::api::Metadata for Metadata {}
 
     #[test]

@@ -54,52 +54,85 @@ impl<'s> span::Builder<'s> for Line<'s> {
 ///   documented statements.
 pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
     use crate::expression_to_statement;
-    let lines = lines.into_iter();
-    let mut statements = Vec::with_capacity(lines.size_hint().0);
-    let mut prefixes: Vec<Prefix> = Vec::new();
-    let mut newline = None;
-    for line in lines {
-        match prefixes.last_mut() {
-            Some(prefix) => prefix.newlines().push(line.newline),
-            None =>
-                if let Some(empty_line) = newline.replace(line.newline) {
-                    statements.push(empty_line.into());
-                },
-        };
-        if let Some(expression) = line.expression {
-            match Prefix::try_from(expression_to_statement(expression)) {
-                Ok(prefix) => prefixes.push(prefix),
-                Err(mut statement) => {
-                    for prefix in prefixes.drain(..).rev() {
-                        statement = prefix.apply_to(statement);
-                    }
-                    let newline = newline.take().unwrap();
-                    statements.push(Line { newline, expression: Some(statement) });
+    let lines = lines.into_iter().map(|l| l.map_expression(expression_to_statement));
+    let statements: Vec<_> = compound_lines(lines).collect();
+    Tree::body_block(statements)
+}
+
+
+// === Multi-line expression construction ===
+
+/// Adapts a sequence of lines by combining sibling lines in case of multi-line statements, such as
+/// annotated statements and documented statements.
+pub fn compound_lines<'s, I: IntoIterator<Item = Line<'s>>>(
+    lines: I,
+) -> CompoundLines<'s, I::IntoIter> {
+    CompoundLines { lines: lines.into_iter(), prefixes: default(), newline: default() }
+}
+
+/// [`Iterator`] that adapts a sequence of lines by merging multi-line statements.
+#[derive(Debug)]
+pub struct CompoundLines<'s, I> {
+    lines:    I,
+    prefixes: Vec<Prefix<'s>>,
+    newline:  Option<token::Newline<'s>>,
+}
+
+impl<'s, I> Iterator for CompoundLines<'s, I>
+where I: Iterator<Item = Line<'s>>
+{
+    type Item = Line<'s>;
+    fn next(&mut self) -> Option<Self::Item> {
+        for line in &mut self.lines {
+            match line.expression.map(Prefix::try_from) {
+                Some(Ok(prefix)) => {
+                    match self.prefixes.last_mut() {
+                        Some(prefix) => prefix.newlines().push(line.newline),
+                        None => self.newline = Some(line.newline),
+                    };
+                    self.prefixes.push(prefix);
+                }
+                Some(Err(mut statement)) => {
+                    return Some(match self.prefixes.last_mut() {
+                        Some(prefix) => {
+                            prefix.newlines().push(line.newline);
+                            for prefix in self.prefixes.drain(..).rev() {
+                                statement = prefix.apply_to(statement);
+                            }
+                            let newline = self.newline.take().unwrap();
+                            Line { newline, expression: Some(statement) }
+                        }
+                        None => Line { newline: line.newline, expression: Some(statement) },
+                    });
+                }
+                None => {
+                    match self.prefixes.last_mut() {
+                        Some(prefix) => prefix.newlines().push(line.newline),
+                        None => return Some(line.newline.into()),
+                    };
                 }
             }
         }
-    }
-    if let Some(prefix) = prefixes.pop() {
-        let mut statement = prefix.into();
-        for prefix in prefixes.drain(..).rev() {
-            statement = prefix.apply_to(statement);
+        if let Some(prefix) = self.prefixes.pop() {
+            let mut statement = prefix.into();
+            for prefix in self.prefixes.drain(..).rev() {
+                statement = prefix.apply_to(statement);
+            }
+            let newline = self.newline.take().unwrap();
+            return Some(Line { newline, expression: Some(statement) });
         }
-        let newline = newline.take().unwrap();
-        statements.push(Line { newline, expression: Some(statement) });
-    }
-    if let Some(line) = newline {
-        match prefixes.last_mut() {
-            Some(prefix) => prefix.newlines().push(line),
-            None => statements.push(line.into()),
+        if let Some(line) = self.newline.take() {
+            return Some(line.into());
         }
+        None
     }
-    Tree::body_block(statements)
 }
 
 
 // === Prefix-list representation ===
 
 /// Representation used to build multi-line statements.
+#[derive(Debug)]
 enum Prefix<'s> {
     Annotation { node: Annotated<'s>, span: Span<'s> },
     BuiltinAnnotation { node: AnnotatedBuiltin<'s>, span: Span<'s> },

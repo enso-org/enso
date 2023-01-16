@@ -696,7 +696,7 @@ mod tests {
         Function {
             name:      QualifiedName::from_text("Standard.Base.A.Foo").unwrap().into(),
             tags:      default(),
-            arguments: vec![simple_argument("a", "Standard.Base.Any")].into(),
+            arguments: vec![Argument::new("a", "Standard.Base.Any")].into(),
             synopsis:  Synopsis::from_doc_sections([doc_section!(
                 "Documentation of constructor A.Foo."
             )]),
@@ -708,7 +708,7 @@ mod tests {
         Function {
             name:      QualifiedName::from_text("Standard.Base.A.Bar").unwrap().into(),
             tags:      default(),
-            arguments: vec![simple_argument("b", "Standard.Base.Any")].into(),
+            arguments: vec![Argument::new("b", "Standard.Base.Any")].into(),
             synopsis:  Synopsis::from_doc_sections([doc_section!(
                 "Documentation of constructor A.Bar."
             )]),
@@ -752,16 +752,6 @@ mod tests {
             examples:  Examples::from_doc_sections([doc_section!(
                 > "Example", "Example of constructor B.New usage."
             )]),
-        }
-    }
-
-    fn simple_argument(name: &str, repr_type: &str) -> Argument {
-        Argument {
-            name:          name.to_string(),
-            repr_type:     repr_type.to_string(),
-            is_suspended:  false,
-            has_default:   false,
-            default_value: None,
         }
     }
 }
