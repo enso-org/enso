@@ -42,7 +42,7 @@ import project.Delimited.Delimited_Format.Delimited_Format
 
 from project.Data.Column_Type_Selection import Column_Type_Selection, Auto
 from project.Internal.Rows_View import Rows_View
-from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type, No_Common_Type, Column_Type_Mismatch
+from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Type_Selector, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Invalid_Value_Type
 
 from project.Data.Column import get_item_string
 from project.Internal.Filter_Condition_Helpers import make_filter_column
@@ -1184,42 +1184,12 @@ type Table
         if is_everything_ok then
             problem_builder = Problem_Builder.new
             matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
-            new_row_count = all_tables.fold 0 c-> t-> c + t.row_count
+            result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
             merged_columns = matched_column_sets.map column_set->
-                columns = column_set.column_indices.zip all_tables i-> parent_table->
-                    case i of
-                        Nothing -> Nothing
-                        _ : Integer -> parent_table.at i
-                result_type = case allow_type_widening of
-                    True ->
-                        types = columns.filter Filter_Condition.Not_Nothing . map .value_type
-                        common_type = Value_Type.find_common_type types strict=True
-                        if common_type.is_nothing then
-                            problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
-                        common_type
-                    False ->
-                        first_column = columns.find (c-> c.is_nothing.not)
-                        first_type = first_column.value_type
-                        if first_type == Value_Type.Mixed then Value_Type.Mixed else
-                            first_wrong_column = columns.find if_missing=Nothing col->
-                                col.is_nothing.not && col.value_type != first_type
-                            if first_wrong_column.is_nothing then first_type else
-                                got_type = first_wrong_column.value_type
-                                problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name first_type got_type)
-                                Nothing
-                case result_type of
+                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
                     Nothing -> Nothing
-                    _ ->
-                        storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=new_row_count
-                        column_set.column_indices.zip all_tables i-> parent_table->
-                            case i of
-                                Nothing ->
-                                    null_row_count = parent_table.row_count
-                                    storage_builder.appendNulls null_row_count
-                                _ : Integer ->
-                                    storage = parent_table.at i . java_column . getStorage
-                                    storage_builder.appendBulkStorage storage
-                        Column.from_storage column_set.name storage_builder.seal
+                    result_type : Value_Type ->
+                        concat_columns column_set all_tables result_type result_row_count
             good_columns = merged_columns.filter Filter_Condition.Not_Nothing
             if good_columns.is_empty then Error.throw No_Output_Columns else
                 problem_builder.attach_problems_before on_problems <|
@@ -1595,3 +1565,16 @@ check_table arg_name table =
                     Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
                 True -> True
 
+## PRIVATE
+   A helper that efficiently concatenates storages of in-memory columns.
+concat_columns column_set all_tables result_type result_row_count =
+    storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=result_row_count
+    column_set.column_indices.zip all_tables i-> parent_table->
+        case i of
+            Nothing ->
+                null_row_count = parent_table.row_count
+                storage_builder.appendNulls null_row_count
+            _ : Integer ->
+                storage = parent_table.at i . java_column . getStorage
+                storage_builder.appendBulkStorage storage
+    Column.from_storage column_set.name storage_builder.seal

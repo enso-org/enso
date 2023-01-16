@@ -78,6 +78,12 @@ type Column_Set
     ## PRIVATE
     Value (name : Text) (column_indices : Vector Integer)
 
+    ## PRIVATE
+    resolve_columns self all_tables = self.column_indices.zip all_tables i-> parent_table->
+        case i of
+            Nothing -> Nothing
+            _ : Integer -> parent_table.at i
+
 ## PRIVATE
    Returns a map indicating in how many tables did a column with a given name appear.
 find_column_counts tables =
