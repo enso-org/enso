@@ -19,6 +19,10 @@ public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage
 
   @Override
   public Storage<Double> runMap(DoubleStorage storage, Object arg) {
+    if (arg == null) {
+      return DoubleStorage.makeEmpty(storage.size());
+    }
+
     double x;
     if (arg instanceof Double) {
       x = (Double) arg;
@@ -27,6 +31,7 @@ public abstract class DoubleNumericOp extends MapOperation<Double, DoubleStorage
     } else {
       throw new UnexpectedTypeException("a Number.");
     }
+
     long[] out = new long[storage.size()];
     for (int i = 0; i < storage.size(); i++) {
       if (!storage.isNa(i)) {
