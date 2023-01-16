@@ -273,7 +273,7 @@ impl Manager {
     /// Request setting a given visualization on the node.
     ///
     /// Note that `[Manager]` allows setting at most one visualization per expression. Subsequent
-    /// calls will chnge previous visualization to the a new one.
+    /// calls will change previous visualization to the a new one.
     pub fn request_visualization(self: &Rc<Self>, target: ast::Id, requested: Metadata) {
         self.set_visualization(target, Some(requested))
     }

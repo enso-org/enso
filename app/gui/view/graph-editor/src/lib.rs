@@ -603,6 +603,7 @@ ensogl::define_endpoints_2! {
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
         set_method_pointer           ((NodeId,ast::Id,Option<MethodPointer>)),
+        set_expression_widgets       ((NodeId, ast::Id, Vec<WidgetUpdate>)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
@@ -622,6 +623,7 @@ ensogl::define_endpoints_2! {
 
         /// Drop an edge that is being dragged.
         drop_dragged_edge            (),
+
     }
 
     Output {
@@ -700,6 +702,8 @@ ensogl::define_endpoints_2! {
         is_fs_visualization_displayed           (bool),
         visualization_preprocessor_changed      ((NodeId,PreprocessorConfiguration)),
         visualization_registry_reload_requested (),
+
+        widgets_requested                       (NodeId, ast::Id, ast::Id),
 
         on_visualization_select     (Switch<NodeId>),
         some_visualisation_selected (bool),
@@ -968,9 +972,9 @@ pub struct LocalCall {
 
 
 
-// ==================
+// ====================
 // === EdgeEndpoint ===
-// ==================
+// ====================
 
 #[derive(Clone, CloneRef, Debug, Default, Eq, PartialEq)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
@@ -1045,6 +1049,19 @@ impl Grid {
     }
 }
 
+
+// ====================
+// === WidgetUpdate ===
+// ====================
+
+/// A structure describing a widget update for specific argument of a function call.
+#[derive(Debug, Clone)]
+pub struct WidgetUpdate {
+    /// The function argument name that this widget is for.
+    pub argument_name: ImString,
+    /// Widget metadata queried from the language server.
+    pub meta:          Option<node::input::widget::Metadata>,
+}
 
 
 // =============
@@ -1548,6 +1565,11 @@ impl GraphEditorModelWithNetwork {
             eval node.expression_span([model]((crumbs,code)) {
                 let args = (node_id, crumbs.clone(), code.clone());
                 model.frp.private.output.node_expression_span_set.emit(args)
+            });
+
+            eval node.requested_widgets([model]((call_id, target_id)) {
+                let args = (node_id, *call_id, *target_id);
+                model.frp.private.output.widgets_requested.emit(args)
             });
 
 
@@ -2119,13 +2141,16 @@ impl GraphEditorModel {
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             let crumbs = node.view.model().get_crumbs_by_id(ast_id);
             if let Some(crumbs) = crumbs {
-                // TODO: maybe register method pointer as widget query?
-                // Then similarily, use `set_expression_widget` when query is done.
-                // Maybe that registration could be done earilier in the chain too.
-                // Remember: The argument names might appear later. They need to be updated and
-                // passed to widget registry/controller once ready.
-
                 node.view.set_method_pointer.emit((crumbs, method_pointer));
+            }
+        }
+    }
+
+    fn set_expression_widgets(&self, node_id: NodeId, ast_id: ast::Id, updates: &[WidgetUpdate]) {
+        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
+            let crumbs = node.view.model().get_crumbs_by_id(ast_id);
+            if let Some(crumbs) = crumbs {
+                node.view.set_expression_widgets.emit((crumbs, updates.to_vec()));
             }
         }
     }

@@ -14,6 +14,7 @@ use crate::node::profiling;
 use crate::view;
 use crate::MethodPointer;
 use crate::Type;
+use crate::WidgetUpdate;
 
 use enso_frp as frp;
 use enso_frp;
@@ -273,14 +274,39 @@ impl Model {
         }
     }
 
-    fn set_method_pointer(&self, crumbs: &Crumbs, method_pointer: &Option<MethodPointer>) {
-        // get context
+    fn set_expression_widgets(&self, crumbs: &Crumbs, mut widgets: Vec<WidgetUpdate>) {
+        if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
+            let children = port.children_iter();
+            for child in children {
+                child.node.payload.widget.as_ref().and_then(|widget| {
+                    let arg_info = child.node.argument_info()?;
+                    let arg_name = arg_info.name.as_ref()?;
+                    let found_pos = widgets.iter().position(|w| &w.argument_name == arg_name)?;
+                    let update = widgets.swap_remove(found_pos);
+                    widget.set_metadata(update.meta);
+                    Some(())
+                });
+            }
+        }
+    }
+
+    fn widgets_for_operation(
+        &self,
+        crumbs: &Crumbs,
+        method_pointer: &Option<MethodPointer>,
+    ) -> Option<(ast::Id, ast::Id)> {
         warn!("set_method_pointer: {:?} {:?}", crumbs, method_pointer);
-        //     if let Ok(method) =
-        // self.expression.borrow_mut().span_tree.root_ref().get_descendant(crumbs)     {
-        //         // Find arguments and
-        //         // port.set_method_pointer(method_pointer)
-        //     }
+
+        // do not request anything if there is no method pointer set
+        let _ = method_pointer.as_ref()?;
+
+        let expression = self.expression.borrow();
+        let call = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
+        let call_id = call.node.ast_id?;
+        const INFIX_LEFT: ast::Crumb = ast::Crumb::Infix(ast::crumbs::InfixCrumb::LeftOperand);
+        let left_operand = call.get_descendant_by_ast_crumbs(&[INFIX_LEFT])?;
+        let target_id = left_operand.node.ast_id?;
+        Some((call_id, target_id))
     }
 
     #[profile(Debug)]
@@ -767,6 +793,10 @@ ensogl::define_endpoints! {
         /// argument labels and querying for widgets.
         set_method_pointer   (Crumbs,Option<MethodPointer>),
 
+        /// Set the method pointer for the port indicated by the breadcrumbs. Useful for updating
+        /// argument labels and querying for widgets.
+        set_expression_widgets   (Crumbs,Vec<WidgetUpdate>),
+
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
         /// types are polymorphic.
@@ -790,6 +820,7 @@ ensogl::define_endpoints! {
         on_port_code_update (Crumbs,ImString),
         on_background_press (),
         view_mode           (view::Mode),
+        requested_widgets   (ast::Id, ast::Id),
     }
 }
 
@@ -904,8 +935,13 @@ impl Area {
             // === Expression Type ===
 
             eval frp.set_expression_usage_type (((a,b)) model.set_expression_usage_type(a,b));
-            eval frp.set_method_pointer (((a,b)) model.set_method_pointer(a,b));
 
+            // === Widgets ===
+
+            frp.output.source.requested_widgets <+ frp.set_method_pointer.filter_map(
+                f!(((a,b)) model.widgets_for_operation(a,b))
+            );
+            eval frp.set_expression_widgets (((a,b)) model.set_expression_widgets(a,b.clone()));
 
             // === View Mode ===
 

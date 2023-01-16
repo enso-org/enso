@@ -6,7 +6,6 @@
 use crate::prelude::*;
 
 use crate::executor::global::spawn_stream_handler;
-use crate::presenter::graph;
 use crate::presenter::graph::visualization::manager::Manager;
 use crate::presenter::graph::visualization::manager::Notification;
 use crate::presenter::graph::ViewNodeId;
@@ -14,11 +13,10 @@ use crate::presenter::graph::ViewNodeId;
 use controller::ExecutedGraph;
 use engine_protocol::language_server::SuggestionId;
 use ensogl::define_endpoints_2;
-use ide_view::graph_editor::component::node as node_view;
-use ide_view::graph_editor::component::node::input::widget;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Metadata;
 use ide_view::graph_editor::GraphEditor;
+use ide_view::graph_editor::WidgetUpdate;
 
 
 // ===============
@@ -28,7 +26,7 @@ use ide_view::graph_editor::GraphEditor;
 define_endpoints_2! {
     Input {
         /// Create or update widget query with given definition.
-        run_query(QueryDefinition),
+        register_query(QueryDefinition),
         /// Remove all widget queries of given node that are not on this list.
         retain_node_expressions(ViewNodeId, HashSet<ast::Id>),
         /// Remove all widget queries of given node.
@@ -36,7 +34,7 @@ define_endpoints_2! {
     }
     Output {
         /// Emitted when the node's visualization has been set.
-        widget_data((ViewNodeId,WidgetData)),
+        widget_data(ViewNodeId, ast::Id, Vec<WidgetUpdate>),
     }
 }
 
@@ -45,6 +43,7 @@ define_endpoints_2! {
 #[derive(Debug)]
 pub struct Widgets {
     frp:   Frp,
+    #[allow(dead_code)]
     model: Rc<RefCell<Model>>,
 }
 
@@ -52,92 +51,52 @@ impl Deref for Widgets {
     type Target = Frp;
 
     fn deref(&self) -> &Self::Target {
-        &*self.frp
+        &self.frp
     }
-}
-
-struct WidgetData {
-    node_id:   ViewNodeId,
-    arguments: Vec<ArgumentData>,
-}
-
-struct ArgumentData {
-    name: String,
-    meta: widget::Metadata,
 }
 
 impl Widgets {
     /// Constructor
-    pub fn new(
-        executed_graph: ExecutedGraph,
-        project: model::Project,
-        _view: GraphEditor,
-        state: Rc<graph::state::State>,
-    ) -> Self {
+    pub fn new(executed_graph: ExecutedGraph, project: model::Project, _view: GraphEditor) -> Self {
         let (manager, manager_notifications) = Manager::new(executed_graph.clone_ref());
         let frp = Frp::new();
 
-        // let segments =
-        //     project.main_module_path().id().parent_modules.iter().chain(Uuid::new_v4().
-        // to_string()); let temp_module_path =
-        //     model::module::Path::from_name_segments(project.project_content_root_id(), segments);
+        let module = executed_graph.module_qualified_name(&*project).to_string_with_main_segment();
+        let method = "get_annotation_vis";
 
         let model = Rc::new(RefCell::new(Model {
             manager,
-            project,
             graph: executed_graph.clone_ref(),
-            state,
             expr_of_node: default(),
             expr_queries: default(),
+            module: module.into(),
+            method: method.into(),
         }));
 
         let network = &frp.network;
-        let input = &frp.private.input;
-        let output = &frp.output;
+        let input = &frp.input;
+        let output = &frp.private.output;
 
         frp::extend! { network
-            eval input.run_query((definition) model.borrow_mut().run_query(definition));
-            eval input.retain_node_expressions((node_id,expr_ids) {
-                model.borrow_mut().retain_node_expressions(node_id,expr_ids)
+            eval input.register_query((definition) model.borrow_mut().register_query(definition));
+            eval input.retain_node_expressions(((node_id, expr_ids)) {
+                model.borrow_mut().retain_node_expressions(*node_id, expr_ids)
             });
-            eval input.remove_node((node_id) model.borrow_mut().remove_node(node_id));
+            eval input.remove_node((node_id) model.borrow_mut().remove_node(*node_id));
         };
 
         let out_widget_data = output.widget_data.clone_ref();
         let weak = Rc::downgrade(&model);
         spawn_stream_handler(weak, manager_notifications, move |notification, model| {
             let data = model.borrow_mut().handle_notification(notification);
-            data.map(move |data| out_widget_data.emit(data));
+            if let Some(data) = data {
+                out_widget_data.emit(data);
+            }
             std::future::ready(())
         });
 
         Self { frp, model }
     }
-
-    // fn setup_graph_listener(self, graph_controller: ExecutedGraph) -> Self {
-    //     use controller::graph;
-    //     use controller::graph::executed::Notification;
-    //     let notifications = graph_controller.subscribe();
-    //     let weak = Rc::downgrade(&self.model);
-    //     spawn_stream_handler(weak, notifications, move |notification, model| {
-    //         match notification {
-    //             Notification::Graph(graph::Notification::Invalidate)
-    //             | Notification::EnteredNode(_)
-    //             | Notification::SteppedOutOfNode(_) => match graph_controller.graph().nodes() {
-    //                 Ok(nodes) => {
-    //                     let nodes_set = nodes.into_iter().map(|n| n.id()).collect();
-    //                     model.manager.retain_visualizations(&nodes_set);
-    //                 }
-    //                 Err(err) => {
-    //                     error!("Cannot update visualization after graph change: {err}");
-    //                 }
-    //             },
-    //             _ => {}
-    //         }
-    //         std::future::ready(())
-    //     });
-    //     self
-    // }
 }
 
 
@@ -146,153 +105,163 @@ impl Widgets {
 // === Model ===
 // =============
 
+/// Model of the Widgets controller. Manages the widget queries.
 #[derive(Debug)]
 pub struct Model {
     manager:      Rc<Manager>,
     graph:        ExecutedGraph,
-    project:      model::Project,
-    state:        Rc<graph::state::State>,
     expr_of_node: HashMap<ViewNodeId, Vec<ast::Id>>,
     expr_queries: HashMap<ast::Id, QueryData>,
+    module:       ImString,
+    method:       ImString,
 }
 
-const PREFIX_FUNC: ast::Crumb = ast::Crumb::Prefix(ast::crumbs::PrefixCrumb::Func);
-const INFIX_LEFT: ast::Crumb = ast::Crumb::Infix(ast::crumbs::InfixCrumb::LeftOperand);
-const INFIX_RIGHT: ast::Crumb = ast::Crumb::Infix(ast::crumbs::InfixCrumb::RightOperand);
-
-#[derive(Debug, Default)]
+/// Definition of a widget query. Defines the operation expression that the widgets will be attached
+/// to.
+#[derive(Debug, Default, Clone)]
 pub struct QueryDefinition {
-    pub node_id:      ViewNodeId,
-    /// Expression of the method call.
-    pub call_expr_id: ast::Id,
-    pub method_id:    SuggestionId,
+    pub node_id:        ViewNodeId,
+    /// Expression of the whole method call.
+    pub call_expr_id:   ast::Id,
+    /// Expression of the call target. Used as a visualization target.
+    pub target_expr_id: ast::Id,
+    /// The suggestion id of the method that this call refers to.
+    pub method_id:      SuggestionId,
 }
 
 #[derive(Debug)]
 struct QueryData {
-    /// The target expression of function call, also used as a visualization id in manager.
-    node_id:        ViewNodeId,
-    target_expr_id: ast::Id,
-    method_name:    String,
-    arguments:      Vec<String>,
+    node_id:      ViewNodeId,
+    call_expr_id: ast::Id,
+    method_name:  ImString,
+    arguments:    Vec<ImString>,
 }
 
 impl Model {
-    fn handle_notification(&mut self, notification: Notification) -> Option<WidgetData> {
+    fn handle_notification(
+        &mut self,
+        notification: Notification,
+    ) -> Option<(ViewNodeId, ast::Id, Vec<WidgetUpdate>)> {
         match notification {
             Notification::ValueUpdate { target, visualization_id, data } => {
                 let query_data = self.expr_queries.get(&visualization_id)?;
                 let data_string = String::from_utf8_lossy(&data);
-                warn!("Received value for {visualization_id}:\n{data_string:?}");
-                // let node_id = query_data.node_id;
+                warn!("[WIDGETS] Received value for {visualization_id}:\n{data_string:?}");
+                let updates = Vec::new();
 
-                None
+                Some((query_data.node_id, query_data.call_expr_id, updates))
             }
             Notification::FailedToAttach { error, .. } => {
-                error!("failed to attach widget visualization: {error}");
+                error!("[WIDGETS] failed to attach widget visualization: {error}");
                 None
             }
             Notification::FailedToDetach { error, .. } => {
-                error!("failed to detach widget visualization: {error}");
+                error!("[WIDGETS] failed to detach widget visualization: {error}");
                 None
             }
             Notification::FailedToModify { error, .. } => {
-                error!("failed to modify widget visualization: {error}");
+                error!("[WIDGETS] failed to modify widget visualization: {error}");
                 None
             }
         }
     }
 
-    fn run_query(&mut self, def: QueryDefinition) {
+    fn register_query(&mut self, def: &QueryDefinition) {
+        let suggestion_db = &self.graph.borrow_graph().suggestion_db;
+        let Ok(entry) = suggestion_db.lookup(def.method_id) else { return };
+
         use std::collections::hash_map::Entry;
-        match self.expr_queries.entry(def.call_expr_id) {
+        match self.expr_queries.entry(def.target_expr_id) {
             Entry::Occupied(mut occupied) => {
                 let query = occupied.get_mut();
                 if def.node_id != query.node_id {
-                    self.expr_of_node.entry(def.node_id).or_default().push(def.call_expr_id);
-                    self.expr_of_node[&query.node_id].remove(&def.call_expr_id);
+                    self.expr_of_node.entry(def.node_id).or_default().push(def.target_expr_id);
+                    self.expr_of_node.entry(query.node_id).and_modify(|exprs| {
+                        exprs.retain(|id| *id != def.target_expr_id);
+                    });
                     query.node_id = def.node_id;
                 }
 
-                let mut modified = false;
-                if query.method_name != &entry.name {
-                    query.method_name = entry.name.into();
-                    modified = true;
+                let mut visualization_modified = false;
+                if query.method_name != entry.name {
+                    query.method_name = entry.name.clone().into();
+                    visualization_modified = true;
                 }
 
-                let zipped = query.arguments.iter().zip(&entry.arguments);
+                let mut zipped_arguments = query.arguments.iter().zip(&entry.arguments);
                 if query.arguments.len() != entry.arguments.len()
-                    || !zipped.all(|(a, b)| a == &b.name)
+                    || !zipped_arguments.all(|(a, b)| a == &b.name)
                 {
-                    query.arguments = entry.arguments.iter().map(|arg| arg.name.into()).collect();
-                    modified = true;
+                    query.arguments =
+                        entry.arguments.iter().map(|arg| arg.name.clone().into()).collect();
+                    visualization_modified = true;
                 }
 
-                if modified {
-                    let vis_metadata = self.query_vis_metadata(query);
-                    self.manager.request_visualization(def.call_expr_id, vis_metadata);
+                query.call_expr_id = def.call_expr_id;
+
+                if visualization_modified {
+                    let vis_metadata =
+                        Self::query_vis_metadata(self.module.clone(), self.method.clone(), query);
+                    warn!("[WIDGETS] Modifying visualization for {}", def.target_expr_id);
+                    self.manager.request_visualization(def.target_expr_id, vis_metadata);
                 }
             }
-            Entry::Vacant(entry) => {
-                self.expr_of_node.entry(def.node_id).or_default().push(def.call_expr_id);
-                let query = entry.insert(QueryData {
-                    node_id:     def.node_id,
-                    arguments:   def.arguments,
-                    method_name: def.method_name,
-                });
-                let vis_metadata = self.query_vis_metadata(query);
-                self.manager.request_visualization(def.call_expr_id, vis_metadata);
+            Entry::Vacant(vacant) => {
+                let node_id = def.node_id;
+                let method_name = entry.name.clone().into();
+                let call_expr_id = def.call_expr_id;
+                self.expr_of_node.entry(def.node_id).or_default().push(def.target_expr_id);
+                let arguments = entry.arguments.iter().map(|arg| arg.name.clone().into()).collect();
+
+                let query_data = QueryData { node_id, arguments, method_name, call_expr_id };
+                let query = vacant.insert(query_data);
+                let vis_metadata =
+                    Self::query_vis_metadata(self.module.clone(), self.method.clone(), query);
+                warn!("[WIDGETS] Registering visualization for {}", def.target_expr_id);
+                self.manager.request_visualization(def.target_expr_id, vis_metadata);
             }
         }
     }
 
-    fn query_data_for_definition(&self, def: QueryDefinition) -> Option<QueryData> {
-        let suggestion_db = self.graph.borrow_graph().suggestion_db;
-        let Ok(entry) = suggestion_db.lookup(def.suggestion_id).ok()?;
-        // let ast_node = self.state.ast_node_id_of_view(def.node_id)?;
-        let ast_node = self.state.expressions_of_node(def.node_id)?;
-        // let ast = self.graph.borrow_graph().node_info(ast_node).;
-        self.state.expressions_of_node(node);
-
-        def.call_expr_id.and_then(|id| self.expr_queries.get(&id).cloned())
-    }
-
     /// Remove all widget queries of given node that are connected to expression not on this list.
-    fn retain_node_expressions(&self, node_id: ViewNodeId, expressions: &HashSet<ast::Id>) {
+    fn retain_node_expressions(&mut self, node_id: ViewNodeId, expressions: &HashSet<ast::Id>) {
         let registered = self.expr_of_node.get_mut(&node_id);
         if let Some(registered) = registered {
             registered.retain(|expr_id| {
                 let retained = expressions.contains(expr_id);
                 if !retained {
-                    self.manager.remove_visualization(expr_id);
+                    self.manager.remove_visualization(*expr_id);
                 }
                 retained
             });
         }
     }
 
-    fn remove_node(&self, node_id: ViewNodeId) {
+    fn remove_node(&mut self, node_id: ViewNodeId) {
         if let Some(registered) = self.expr_of_node.remove(&node_id) {
-            registered.for_each(|expr_id| self.manager.remove_visualization(expr_id));
+            registered.into_iter().for_each(|expr_id| self.manager.remove_visualization(expr_id));
         }
     }
 
-    fn query_vis_metadata(&self, query: &QueryData) -> Metadata {
-        let main_name =
-            self.graph.module_qualified_name(&*self.project).to_string_with_main_segment();
-        let method = "get_annotation_vis";
-
+    fn query_vis_metadata(module: ImString, method: ImString, query: &QueryData) -> Metadata {
         let mut arguments: Vec<ide_view::graph_editor::data::enso::Code> =
             Vec::with_capacity(query.arguments.len() + 1);
-        arguments.push(query.method_name.into());
-        arguments.extend(query.arguments.iter().map(|arg| arg.into()));
+        arguments.push(Self::escape_arg(&query.method_name));
+        arguments.extend(query.arguments.iter().map(|arg| Self::escape_arg(arg)));
 
         let preprocessor = visualization::instance::PreprocessorConfiguration {
-            module: main_name.into(),
-            method: method.into(),
-            arguments,
+            module:    module.into(),
+            method:    method.into(),
+            arguments: Rc::new(arguments),
         };
         Metadata { preprocessor }
+    }
+
+    fn escape_arg(arg: &str) -> ide_view::graph_editor::data::enso::Code {
+        let segment = ast::SegmentPlain { value: arg.into() };
+        let text = ast::TextLineRaw { text: vec![segment.into()] };
+        warn!("[WIDGETS] Escaping arg: {arg:?} -> {:?}", text.repr());
+        text.repr().into()
     }
 
 

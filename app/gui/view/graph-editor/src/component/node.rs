@@ -13,6 +13,7 @@ use crate::tooltip;
 use crate::view;
 use crate::MethodPointer;
 use crate::Type;
+use crate::WidgetUpdate;
 
 use super::edge;
 use enso_frp as frp;
@@ -308,6 +309,7 @@ ensogl::define_endpoints_2! {
         /// colored if the definition type was present.
         set_expression_usage_type         (Crumbs,Option<Type>),
         set_method_pointer                (Crumbs,Option<MethodPointer>),
+        set_expression_widgets            (Crumbs,Vec<WidgetUpdate>),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         /// Show visualization preview until either editing of the node is finished or the
@@ -355,6 +357,9 @@ ensogl::define_endpoints_2! {
         /// [`visualization_visible`] is updated. Please remember, that the [`position`] is not
         /// immediately updated, only during the Display Object hierarchy update
         bounding_box             (BoundingBox),
+        /// Emitted when new method call is discovered in the node expression and it requires
+        /// widgets data. A tuple of IDs and the method call expression and left operand.
+        requested_widgets        (ast::Id, ast::Id),
     }
 }
 
@@ -631,6 +636,13 @@ impl NodeModel {
         }
     }
 
+    fn set_expression_widgets(&self, crumbs: &Crumbs, widgets: Vec<WidgetUpdate>) {
+        match crumbs.endpoint {
+            Endpoint::Input => self.input.set_expression_widgets(&crumbs.crumbs, widgets),
+            Endpoint::Output => warn!("Cannot set widget on output expression."),
+        }
+    }
+
 
     #[profile(Debug)]
     fn set_width(&self, width: f32) -> Vector2 {
@@ -756,6 +768,8 @@ impl Node {
             eval input.set_expression  ((a)     model.set_expression(a));
             out.expression                  <+ model.input.frp.expression;
             out.expression_span             <+ model.input.frp.on_port_code_update;
+            out.requested_widgets           <+ model.input.frp.requested_widgets;
+
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;

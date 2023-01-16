@@ -100,12 +100,7 @@ impl Model {
             view.clone_ref(),
             state.clone_ref(),
         );
-        let widgets = Widgets::new(
-            controller.clone_ref(),
-            project.clone_ref(),
-            view.clone_ref(),
-            state.clone_ref(),
-        );
+        let widgets = Widgets::new(controller.clone_ref(), project.clone_ref(), view.clone_ref());
         let execution_stack =
             CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
         Self {
@@ -195,10 +190,27 @@ impl Model {
         );
     }
 
+    fn widgets_requested(
+        &self,
+        node_id: ViewNodeId,
+        call_expression: ast::Id,
+        target_expression: ast::Id,
+    ) {
+        if let Some(method_id) = self.expression_method_suggestion(call_expression) {
+            self.widgets.register_query(widgets::QueryDefinition {
+                node_id,
+                call_expr_id: call_expression,
+                target_expr_id: target_expression,
+                method_id,
+            });
+        }
+    }
+
     /// Node was removed in view.
     fn node_removed(&self, id: ViewNodeId) {
         self.log_action(
             || {
+                self.widgets.remove_node(id);
                 let ast_id = self.state.update_from_view().remove_node(id)?;
                 Some(self.controller.graph().remove_node(ast_id))
             },
@@ -311,13 +323,6 @@ impl Model {
             .update_from_controller()
             .set_expression_method_pointer(expr_id, method_pointer.clone())?;
 
-
-
-        self.widgets.run_query(widgets::QueryDefinition {
-            node_id,
-            call_expr_id: expr_id,
-            suggestion_id,
-        });
         Some((node_id, expr_id, method_pointer))
     }
 
@@ -340,7 +345,7 @@ impl Model {
     /// Extract the expression's current suggestion entry from controllers.
     fn expression_method_suggestion(&self, id: ast::Id) -> Option<SuggestionId> {
         let registry = self.controller.computed_value_info_registry();
-        let method_id = registry.get(&id)?.method_call?;
+        registry.get(&id)?.method_call
     }
 
     /// Extract the expression's current method pointer from controllers.
@@ -585,7 +590,9 @@ impl Graph {
     fn init(self, project_view: &view::project::View) -> Self {
         let network = &self.network;
         let model = &self.model;
-        let view = &self.model.view.frp;
+        let view = &model.view.frp;
+        let widgets = &model.widgets;
+
         frp::extend! { network
             update_view <- source::<()>();
             // Position initialization should go before emitting `update_data` event.
@@ -656,6 +663,7 @@ impl Graph {
             view.set_method_pointer <+ update_expression.filter_map(f!((id) model.refresh_expression_method_pointer(*id)));
             view.set_node_error_status <+ update_expression.filter_map(f!((id) model.refresh_node_error(*id)));
 
+            view.set_expression_widgets <+ widgets.widget_data;
 
             // === Changes from the View ===
 
@@ -669,6 +677,7 @@ impl Graph {
             eval view.node_expression_span_set(((node_id, crumbs, expression)) model.node_expression_span_set(*node_id, crumbs, expression.clone_ref()));
             eval view.node_action_skip(((node_id, enabled)) model.node_action_skip(*node_id, *enabled));
             eval view.node_action_freeze(((node_id, enabled)) model.node_action_freeze(*node_id, *enabled));
+            eval view.widgets_requested(((node_id, call_id, target_id)) model.widgets_requested(*node_id, *call_id, *target_id));
 
 
             // === Dropping Files ===
