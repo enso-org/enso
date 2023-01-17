@@ -29,6 +29,17 @@ public final class EnsoHashMapBuilder {
     this.equalsNode = equalsNode;
   }
 
+  private EnsoHashMapBuilder(EnsoHashMapBuilder other, int numEntries) {
+    assert 0 < numEntries && numEntries <= other.size;
+    this.storage = EconomicMap.create(new StorageStrategy(other.equalsNode, other.hashCodeNode));
+    var entriesToBeDuplicated = other.sequentialEntries.subList(0, numEntries);
+    this.sequentialEntries = new ArrayList<>(entriesToBeDuplicated);
+    entriesToBeDuplicated.forEach(entry -> this.storage.put(entry.key, entry));
+    this.hashCodeNode = other.hashCodeNode;
+    this.equalsNode = other.equalsNode;
+    this.size = numEntries;
+  }
+
   private EnsoHashMapBuilder(EnsoHashMapBuilder other) {
     this.storage =
         EconomicMap.create(
@@ -58,6 +69,16 @@ public final class EnsoHashMapBuilder {
     return storage;
   }
 
+  /**
+   * Duplicates the MapBuilder with just first {@code numEntries} number of entries.
+   *
+   * @param numEntries Number of entries to take from this MapBuilder.
+   */
+  public EnsoHashMapBuilder duplicatePartial(int numEntries) {
+    return new EnsoHashMapBuilder(this, numEntries);
+  }
+
+  /** Duplicates this builder with all its entries. */
   public EnsoHashMapBuilder duplicate() {
     return new EnsoHashMapBuilder(this);
   }

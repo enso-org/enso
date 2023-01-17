@@ -85,9 +85,8 @@ public abstract class HashCodeAnyNode extends Node {
     if (d % 1.0 != 0.0) {
       return Double.hashCode(d);
     } else {
-      long longValue = Double.valueOf(d).longValue();
       if (BigIntegerOps.fitsInLong(d)) {
-        return Long.hashCode(longValue);
+        return hashCodeForLong(Double.valueOf(d).longValue());
       } else {
         try {
           return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
@@ -101,11 +100,7 @@ public abstract class HashCodeAnyNode extends Node {
   @Specialization
   @TruffleBoundary
   long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-    if (BigIntegerOps.fitsInLong(bigInteger.getValue())) {
-      return Long.hashCode(bigInteger.longValue());
-    } else {
-      return bigInteger.getValue().hashCode();
-    }
+    return bigInteger.getValue().hashCode();
   }
 
   @Specialization
@@ -349,31 +344,22 @@ public abstract class HashCodeAnyNode extends Node {
       Object selfMap,
       @CachedLibrary(limit = "5") InteropLibrary interop,
       @Cached HashCodeAnyNode hashCodeNode) {
-    Object[] keys;
-    Object[] values;
     int mapSize;
+    long keysHashCode = 0;
+    long valuesHashCode = 0;
     try {
       mapSize = (int) interop.getHashSize(selfMap);
-      keys = new Object[mapSize];
-      values = new Object[mapSize];
       Object entriesIterator = interop.getHashEntriesIterator(selfMap);
-      int arrIdx = 0;
       while (interop.hasIteratorNextElement(entriesIterator)) {
         Object entry = interop.getIteratorNextElement(entriesIterator);
-        keys[arrIdx] = interop.readArrayElement(entry, 0);
-        values[arrIdx] = interop.readArrayElement(entry, 1);
-        arrIdx++;
+        Object key = interop.readArrayElement(entry, 0);
+        Object value = interop.readArrayElement(entry, 1);
+        // We don't care about the order of keys and values, so we just sum all their hash codes.
+        keysHashCode += hashCodeNode.execute(key);
+        valuesHashCode += hashCodeNode.execute(value);
       }
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       throw new IllegalStateException(e);
-    }
-    assert keys.length == values.length;
-    // We don't care about the order of keys and values, so we just sum all their hash codes.
-    long keysHashCode = 0;
-    long valuesHashCode = 0;
-    for (int i = 0; i < keys.length; i++) {
-      keysHashCode += hashCodeNode.execute(keys[i]);
-      valuesHashCode += hashCodeNode.execute(values[i]);
     }
     return Arrays.hashCode(new long[] {keysHashCode, valuesHashCode, mapSize});
   }

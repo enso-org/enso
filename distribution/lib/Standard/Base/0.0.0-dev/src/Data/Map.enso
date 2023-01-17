@@ -77,8 +77,8 @@ type Map key value
        calls can be chained, e.g., `map.insert "A" 1 . insert "B" 2`.
 
        Due to the limitation of the current implementation, inserts with a
-       key that is already contained in the map, or insert on a map, on which
-       another insert was already called, have a linear time complexity.
+       key that is already contained in the map, or insert on a map instance that
+       is re-used in other computations, have a linear time complexity.
        For all the other cases, the time complexity of this method is constant.
 
        Arguments:
