@@ -8,6 +8,7 @@ use enso_suggestion_database::documentation_ir::Documentation;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::Function;
 use enso_suggestion_database::documentation_ir::ModuleDocumentation;
+use enso_suggestion_database::documentation_ir::Placeholder;
 use enso_suggestion_database::documentation_ir::Synopsis;
 use enso_suggestion_database::documentation_ir::TypeDocumentation;
 use enso_suggestion_database::engine_protocol::language_server::DocSection;
@@ -53,7 +54,11 @@ fn svg_icon(content: &'static str) -> impl Render {
 /// Render entry documentation to HTML code with Tailwind CSS styles.
 pub fn render(docs: EntryDocumentation) -> String {
     match docs {
-        EntryDocumentation::Placeholder(_) => String::from("Temporary placeholder"),
+        EntryDocumentation::Placeholder(placeholder) => match placeholder {
+            Placeholder::Function { name } => format!("Function {name}"),
+            Placeholder::Local { name } => format!("Local {name}"),
+            Placeholder::NoDocumentation => format!("No documentation found"),
+        },
         EntryDocumentation::Docs(docs) => render_documentation(docs),
     }
 }
