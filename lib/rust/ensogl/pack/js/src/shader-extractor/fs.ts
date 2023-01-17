@@ -13,7 +13,7 @@ import {
 import { FileHandle } from 'fs/promises'
 import { Abortable } from 'node:events'
 import { promises as fs } from 'fs'
-import { Task as LoggedTask } from 'runner/log/task'
+import * as log from 'runner/log'
 import { logger } from 'runner/log/logger'
 import { Stream } from 'node:stream'
 
@@ -52,7 +52,7 @@ export async function readFile(
         | BufferEncoding
         | null
 ): Promise<string | Buffer> {
-    return LoggedTask.asyncWith(`Reading file '${String(path)}'.`, async () => {
+    return log.Task.asyncWith(`Reading file '${String(path)}'.`, async () => {
         return await fs.readFile(path, options)
     })
 }

@@ -410,7 +410,6 @@ impl ShaderBuilder {
         if !cfg.uniforms.is_empty() {
             let mut location = 0;
             for (name, qual) in &cfg.uniforms {
-                warn!("{:?}", name);
                 let name = mk_uniform_name(name);
                 let mut var = qual.to_var(&name);
                 if cfg.glsl_version > glsl::Version::V300 {

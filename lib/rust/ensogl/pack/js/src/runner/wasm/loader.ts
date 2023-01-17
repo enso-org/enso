@@ -16,7 +16,7 @@ const loaderColor = '#3c3c3c'
 const ghostColor = '#00000020'
 const topLayerIndex = '1000'
 
-/// Visual representation of the loader.
+/** Visual representation of the loader. */
 class ProgressIndicator {
     dom: HTMLDivElement
     track: HTMLElement
@@ -25,7 +25,7 @@ class ProgressIndicator {
     loaderTrackEndPoint: HTMLElement
     logo: HTMLElement
     center: HTMLElement
-    initialized: Promise<undefined[]>
+    initialized: Promise<void>
     destroyed: boolean
     ringInnerRadius: number
     ringWidth: number
@@ -88,21 +88,21 @@ class ProgressIndicator {
         this.setIndicatorOpacity(0)
 
         if (cfg.params.useLoader.value) {
-            this.initialized = Promise.all<undefined>([
+            this.initialized = Promise.all([
                 this.animateShow(),
                 this.animateShowLogo(),
                 this.animateProgress(),
-            ])
+            ]).then(() => {})
         } else {
             this.initialized = new Promise(resolve => {
-                resolve([])
+                resolve()
             })
         }
         this.animateRotation()
         this.destroyed = false
     }
 
-    /// Initializes the SVG view.
+    /** Initialize the SVG view. */
     initSvg(): string {
         const outerRadius = this.ringInnerRadius + this.ringWidth
         const ringCenterRadius = this.ringInnerRadius + this.ringWidth / 2
@@ -143,7 +143,7 @@ class ProgressIndicator {
         )
     }
 
-    /// Destroys the component. Removes it from the stage and destroys attached callbacks.
+    /** Destroy the component. Remove it from the stage and destroy attached callbacks. */
     destroy() {
         const self = this
         void this.initialized.then(() => {
@@ -176,23 +176,23 @@ class ProgressIndicator {
         this.loaderTrackEndPoint.setAttribute('cy', `${cornerPos.y}`)
     }
 
-    /// Set the opacity of the loader.
+    /** Set the opacity of the loader. */
     setIndicatorOpacity(val: number) {
         this.center.style.opacity = `${val}`
     }
 
-    /// Set the opacity of the loader.
+    /** Set the opacity of the loader. */
     setOpacity(val: number) {
         this.dom.style.opacity = `${val}`
     }
 
-    /// Set the rotation of the loader (angles).
+    /** Set the rotation of the loader (angles). */
     setRotation(val: number) {
         this.track.setAttribute('transform', `rotate(${val},0,0)`)
     }
 
-    /// Start show animation. It is used after the loader is created.
-    animateShow(): Promise<undefined> {
+    /** Start show animation. It is used after the loader is created. */
+    animateShow(): Promise<void> {
         const self = this
         const startTime = window.performance.now()
         return new Promise(function (resolve) {
@@ -202,14 +202,16 @@ class ProgressIndicator {
                 if (opacitySampler < 1) {
                     window.requestAnimationFrame(step)
                 } else {
-                    resolve(undefined)
+                    resolve()
                 }
             }
             window.requestAnimationFrame(step)
         })
     }
 
-    animateProgress(): Promise<undefined> {
+    /** Start the progress bar animation. The progress bar grows smoothly even if the data is
+     * received in chunks. */
+    animateProgress(): Promise<void> {
         const self = this
         let lastTime = window.performance.now()
         self.displayProgress(self.minProgressSize)
@@ -229,14 +231,15 @@ class ProgressIndicator {
                 if (self.animatedValue < 1) {
                     window.requestAnimationFrame(step)
                 } else {
-                    resolve(undefined)
+                    resolve()
                 }
             }
             window.requestAnimationFrame(step)
         })
     }
 
-    animateShowLogo(): Promise<undefined> {
+    /** Start the logo show animation. */
+    animateShowLogo(): Promise<void> {
         const self = this
         const startTime = window.performance.now()
         const outerRadius = this.ringInnerRadius + this.ringWidth
@@ -244,32 +247,28 @@ class ProgressIndicator {
         return new Promise(function (resolve) {
             const step = (time: DOMHighResTimeStamp) => {
                 const opacitySampler = Math.min((time - startTime) / (1000 * 2), 1)
+                const anim = animation.elasticInOut
                 self.logo.innerHTML = new Logo({
                     size,
                     color: loaderColor,
                     showBorder: false,
                     borderWidth: self.ringWidth,
-                    shapeSpikeCutoff:
-                        1 + 6 * animation.elasticInOut.amplitude(1).period(1)(opacitySampler),
-                    rotation:
-                        100 - 100 * animation.elasticInOut.amplitude(0.5).period(1)(opacitySampler),
-                    borderOffset:
-                        20 * (1 - animation.elasticInOut.amplitude(1).period(0.4)(opacitySampler)) +
-                        8,
-                    shapeErosion:
-                        30 * (1 - animation.elasticInOut.amplitude(1).period(0.4)(opacitySampler)) -
-                        4,
+                    shapeSpikeCutoff: 1 + 6 * anim.amplitude(1).period(1)(opacitySampler),
+                    rotation: 100 - 100 * anim.amplitude(0.5).period(1)(opacitySampler),
+                    borderOffset: 20 * (1 - anim.amplitude(1).period(0.4)(opacitySampler)) + 8,
+                    shapeErosion: 30 * (1 - anim.amplitude(1).period(0.4)(opacitySampler)) - 4,
                 }).generate()
                 if (opacitySampler < 1) {
                     window.requestAnimationFrame(step)
                 } else {
-                    resolve(undefined)
+                    resolve()
                 }
             }
             window.requestAnimationFrame(step)
         })
     }
 
+    /** Start the logo hide animation. */
     animateHide(): Promise<void> {
         const self = this
         const startTime = window.performance.now()
@@ -287,7 +286,7 @@ class ProgressIndicator {
         })
     }
 
-    /// Start the spinning animation.
+    /** Start the spinning animation. */
     animateRotation() {
         const indicator = this
         let rotation = 0
@@ -306,14 +305,14 @@ class ProgressIndicator {
 // === Loader ===
 // ==============
 
-/// The main loader class. It connects to the provided fetch responses and tracks their status.
+/** The main loader class. It connects to the provided fetch responses and tracks their status. */
 export class Loader {
     indicator: ProgressIndicator
     totalBytes: number
     receivedBytes: number
     downloadSpeed: number
     lastReceiveTime: number
-    initialized: Promise<undefined[]>
+    initialized: Promise<void>
     capProgressAt: number
     done: Promise<void>
     doneResolve: null | ((value: void | PromiseLike<void>) => void) = null
@@ -331,7 +330,9 @@ export class Loader {
         })
     }
 
+    /** Load the provided resources. */
     load(resources: Response[]) {
+        const loaderError = (msg: string) => console.error(`Loader error. ${msg}`)
         let missingContentLength = false
         for (const resource of resources) {
             const contentLength = resource.headers.get('content-length')
@@ -344,19 +345,17 @@ export class Loader {
             if (body) {
                 body.pipeTo(this.inputStream()).catch(err => logger.error(err))
             } else {
-                // FIXME: error
+                loaderError('Cannot read the response body.')
             }
         }
 
         if (missingContentLength || Number.isNaN(this.totalBytes)) {
-            console.error(
-                "Loader error. Server is not configured to send the 'Content-Length' metadata."
-            )
+            loaderError("Server is not configured to send the 'Content-Length' metadata.")
             this.totalBytes = 0
         }
     }
 
-    /// The current loading progress [0..1].
+    /** The current loading progress [0..1]. */
     value() {
         if (this.totalBytes == 0) {
             return 0
@@ -365,17 +364,17 @@ export class Loader {
         }
     }
 
-    /// Returns true if the loader finished.
+    /** Check whether the loader finished downloading all assets. */
     isDone() {
         return this.receivedBytes == this.totalBytes
     }
 
-    /// Removes the loader with it's dom element.
+    /** Run the hide animation and then remove the loader DOM element. */
     destroy() {
         this.indicator.destroy()
     }
 
-    /// Callback run on every new received byte stream.
+    /** Callback run on every new received byte stream. */
     onReceive(newBytes: number) {
         this.receivedBytes += newBytes
         const time = performance.now()
@@ -400,27 +399,27 @@ export class Loader {
         }
     }
 
-    /// Download percentage value.
+    /** Download percentage value. */
     showPercentageValue() {
         return Math.round(100 * this.value())
     }
 
-    /// Download total size value.
+    /** Download total size value. */
     showTotalBytes() {
         return `${math.formatMb(this.totalBytes)} MB`
     }
 
-    /// Download received bytes value.
+    /** Download received bytes value. */
     showReceivedBytes() {
         return `${math.formatMb(this.receivedBytes)} MB`
     }
 
-    /// Download speed value.
+    /** Download speed value. */
     showDownloadSpeed() {
         return `${math.formatMb(1000 * this.downloadSpeed)} MB/s`
     }
 
-    /// Internal function for attaching new fetch responses.
+    /** Internal function for attaching new fetch responses. */
     inputStream(): WritableStream<Uint8Array> {
         const loader = this
         return new WritableStream({

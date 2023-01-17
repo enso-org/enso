@@ -53,6 +53,8 @@ class Router {
         this.buffer = []
     }
 
+    /** Consume a new message. Add it to the message buffer if auto-flush is off. Print it with
+     * logger otherwise. */
     private consume(name: string, args: unknown[]) {
         if (this.autoFlush) {
             const fn = this.console[name]

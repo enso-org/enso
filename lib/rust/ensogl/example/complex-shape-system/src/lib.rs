@@ -25,7 +25,7 @@ use ensogl_core::display::style::theme;
 
 mod shape {
     use super::*;
-    ensogl_core::shape! {
+    ensogl_core::shape_old! {
         (style:Style) {
             let base_color = style.get_color("base_color");
             let circle1    = Circle(50.px());
@@ -41,7 +41,7 @@ mod shape {
 
 mod mask {
     use super::*;
-    ensogl_core::shape! {
+    ensogl_core::shape_old! {
         (style:Style) {
             let shape = Circle(60.px());
             let shape = shape.fill(color::Rgb::new(1.0,0.0,0.0));

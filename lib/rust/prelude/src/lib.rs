@@ -105,6 +105,8 @@ pub use std::collections::hash_map::DefaultHasher;
 pub use std::hash::Hash;
 pub use std::hash::Hasher;
 
+pub use wasm_bindgen;
+
 pub use enso_reflect::prelude::*;
 
 pub use std::ops::AddAssign;

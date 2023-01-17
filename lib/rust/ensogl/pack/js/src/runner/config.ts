@@ -1,4 +1,4 @@
-/** @file Configuration parameters for the application. */
+/** @file Configuration options for the application. */
 
 import { logger } from 'runner/log'
 
@@ -25,8 +25,10 @@ function parseBoolean(value: any): boolean | null {
 // === Param ===
 // =============
 
+/** A valid parameter value. */
 export type ParamValue = string | boolean | number | (string | null)
 
+/** Configuration parameter. */
 export class Param<T> {
     default: T
     value: T
@@ -45,6 +47,8 @@ export class Param<T> {
 
 export type ExternalConfig = Record<string, ParamValue>
 
+/** Application default configuration. Users of this library can extend it with their own
+ * options. */
 export class Params {
     [key: string]: Param<ParamValue>
 
@@ -105,6 +109,15 @@ export class Config {
         this.extend(config)
     }
 
+    /** Extend the configuration with user provided options. */
+    extend(config?: ExternalConfig) {
+        if (config != null) {
+            Object.assign(this.params, config)
+        }
+    }
+
+    /** Resolve the configuration from the provided record list.
+     * @returns list of unrecognized parameters. */
     resolve(overrides: (Record<string, any> | undefined)[]): null | string[] {
         const allOverrides = {}
         for (const override of overrides) {
@@ -112,19 +125,14 @@ export class Config {
                 Object.assign(allOverrides, override)
             }
         }
-        const unrecognizedParams = this.updateFromObject(allOverrides)
+        const unrecognizedParams = this.resolveFromObject(allOverrides)
         this.finalize()
         return unrecognizedParams
     }
 
-    extend(config?: ExternalConfig) {
-        if (config != null) {
-            Object.assign(this.params, config)
-        }
-    }
-
-    // FIXME: handle numbers
-    updateFromObject(other: Record<string, any>): null | string[] {
+    /** Resolve the configuration from the provided record.
+     * @returns list of unrecognized parameters. */
+    resolveFromObject(other: Record<string, any>): null | string[] {
         const paramsToBeAssigned = new Set(Object.keys(other))
         const invalidParams = new Set<string>()
         for (const key of Object.keys(this.params)) {
@@ -144,6 +152,14 @@ export class Config {
                             param.value = newVal
                             param.setByUser = true
                         }
+                    } else if (typeof selfVal == 'number') {
+                        const newVal = Number(otherVal)
+                        if (isNaN(newVal)) {
+                            this.printValueUpdateError(key, selfVal, otherVal)
+                        } else {
+                            param.value = newVal
+                            param.setByUser = true
+                        }
                     } else {
                         param.value = String(otherVal)
                         param.setByUser = true
@@ -158,6 +174,7 @@ export class Config {
         }
     }
 
+    /** Finalize the configuration. Set some default options based on the provided values. */
     finalize() {
         if (!this.params.useLoader.setByUser && this.params.entry.value !== DEFAULT_ENTRY_POINT) {
             this.params.useLoader.value = false
