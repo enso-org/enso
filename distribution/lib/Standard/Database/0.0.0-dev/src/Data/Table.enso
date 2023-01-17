@@ -113,7 +113,7 @@ type Table
         internal_column = case selector of
             _ : Integer -> self.internal_columns.get selector if_missing=Nothing
             _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
-            _ -> Error.throw (Illegal_Argument.Error "Type error: expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
+            _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if internal_column.is_nothing then if_missing else self.make_column internal_column
 
     ## Returns the number of columns in the table.

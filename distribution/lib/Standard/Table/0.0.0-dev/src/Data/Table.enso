@@ -228,7 +228,7 @@ type Table
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
-            _ -> Error.throw (Illegal_Argument.Error "Type error: expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
+            _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## Returns the number of columns in the table.
