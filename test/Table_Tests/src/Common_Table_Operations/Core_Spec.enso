@@ -49,7 +49,7 @@ spec setup =
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
             table.at (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
-            table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
+            table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
 
     Test.group prefix+"Table.get" <|
         Test.specify "should allow selecting columns by name" <|
@@ -78,7 +78,7 @@ spec setup =
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
             table.get (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
-            table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair."
+            table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
