@@ -66,7 +66,24 @@ mod tests {
 
         info!("Download to {} complete.", output_path.display());
 
+        let extracted_archive = tempfile::tempdir()?;
+        ide_ci::archive::extract_to(&output_path, &extracted_archive).await?;
+        let binaries_to_package = ["glslc", "spirv-opt"];
 
+        let extracted_content_dir = extracted_archive.as_ref().join("install");
+        let files_to_package = binaries_to_package
+            .into_iter()
+            .map(|binary| Path::new("bin").join(binary).with_executable_extension());
+
+        let stripped_down_archive = tempfile::tempdir()?;
+        for file in files_to_package {
+            ide_ci::fs::tokio::copy_between(&extracted_content_dir, &stripped_down_archive, &file)
+                .await?;
+        }
+
+        let output_path = Path::new("shaderc-stripped.tar.gz");
+        ide_ci::fs::tokio::remove_file_if_exists(&output_path).await?;
+        ide_ci::archive::compress_directory(&output_path, &stripped_down_archive).await?;
 
         Ok(())
     }

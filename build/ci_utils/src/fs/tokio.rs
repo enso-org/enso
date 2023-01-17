@@ -124,3 +124,47 @@ pub async fn append(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Resul
         .await
         .with_context(|| format!("Failed to write to file {}.", path.as_ref().display()))
 }
+
+/// Copy a file between directory subtrees, preserving the relative path.
+pub async fn copy_between(
+    source_dir: impl AsRef<Path>,
+    destination_dir: impl AsRef<Path>,
+    source_file: impl AsRef<Path>,
+) -> Result {
+    let source_file = source_file.as_ref();
+    let source_file = if source_file.is_absolute() {
+        source_file.strip_prefix(source_dir.as_ref()).with_context(|| {
+            format!(
+                "Failed to strip prefix {} from {}.",
+                source_dir.as_ref().display(),
+                source_file.display()
+            )
+        })?
+    } else {
+        source_file
+    };
+    let source_path = source_dir.as_ref().join(&source_file);
+    let destination_path = destination_dir.as_ref().join(&source_file);
+    copy(&source_path, &destination_path)
+        .instrument(info_span!("copy_between", ?source_path, ?destination_path))
+        .await
+}
+
+pub async fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -> Result {
+    let source_file = source_file.as_ref().to_path_buf();
+    let destination_file = destination_file.as_ref().to_path_buf();
+    tokio::task::spawn_blocking(move || crate::fs::copy(&source_file, &destination_file)).await?
+}
+
+
+/// Remove a regular file.
+///
+/// Does not fail if the file is not found.
+#[context("Failed to remove file {}", path.as_ref().display())]
+pub async fn remove_file_if_exists(path: impl AsRef<Path>) -> Result<()> {
+    let result = tokio::fs::remove_file(&path).await;
+    match result {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        result => result.anyhow_err(),
+    }
+}
