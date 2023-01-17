@@ -55,6 +55,10 @@ type Auto_Detect
 
 
 type File_Format
+    ## Gets all the currently installed file formats.
+    all : Vector
+    all = [Auto_Detect] + format_types
+
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any

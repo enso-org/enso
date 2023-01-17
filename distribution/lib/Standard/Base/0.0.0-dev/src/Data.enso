@@ -20,7 +20,10 @@ import project.System.File_Format.File_Format
 
 from project.Data.Boolean import Boolean, True, False
 
-## Read a file using the specified file format
+## ALIAS Load, Open
+   Read's a file into Enso.
+   Uses the specified file format to parse the file into an Enso type. If not
+   specified will use the file's extension to determine the file format.
 
    Arguments:
    - path: The path to the file to read.
@@ -28,6 +31,8 @@ from project.Data.Boolean import Boolean, True, False
      If `Auto_Detect` is specified; the provided file determines the specific
      type and configures it appropriately. If there is no matching type then
      a `File_Error.Unsupported_Type` error is returned.
+     You can use `File_Format.all` to get a list of currently available
+     formats.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
      By default, a warning is issued, but the operation proceeds.
@@ -54,7 +59,8 @@ read : File_Format -> Problem_Behavior -> Any ! File_Error
 read path format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
     File.new path . read format on_problems
 
-## Open and read the file at the provided `path`.
+##  ALIAS Load Text, Open Text
+    Open and read the file at the provided `path`.
 
    Arguments:
    - path: The path of the file to open and read the contents of. It will
