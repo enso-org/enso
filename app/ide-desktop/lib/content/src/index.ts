@@ -206,11 +206,7 @@ class MixpanelLogger {
 
     constructor(mixpanel_token: string) {
         this.mixpanel = require('mixpanel-browser')
-        this.mixpanel.init(
-            mixpanel_token,
-            { api_host: 'https://api-eu.mixpanel.com' },
-            ''
-        )
+        this.mixpanel.init(mixpanel_token, { api_host: 'https://api-eu.mixpanel.com' }, '')
     }
 
     log(event: string, data: any) {
@@ -764,7 +760,7 @@ class Config {
     public node_labels: boolean = true
     public crash_report_host: string = defaultLogServerHost
     public data_gathering: boolean = true
-    public mixpanel_token: string = "5b541aeab5e08f313cdc1d1bbebc12ac"
+    public mixpanel_token: string = '5b541aeab5e08f313cdc1d1bbebc12ac'
     public is_in_cloud: boolean = false
     public verbose: boolean = false
     public authentication_enabled: boolean = true
