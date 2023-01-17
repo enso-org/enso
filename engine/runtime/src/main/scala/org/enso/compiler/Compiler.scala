@@ -323,7 +323,7 @@ class Compiler(
           module          = module,
           freshNameSupply = Some(freshNameSupply),
           compilerConfig  = config,
-          compiler        = Some(this)
+          pkgRepo         = Some(packageRepository)
         )
         val compilerOutput = runMethodBodyPasses(module.getIr, moduleContext)
         module.unsafeSetIr(compilerOutput)

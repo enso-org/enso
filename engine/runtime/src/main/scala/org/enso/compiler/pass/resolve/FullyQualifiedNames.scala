@@ -1,6 +1,6 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
+import org.enso.compiler.{Compiler, PackageRepository}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Resolution.MissingLibraryImportInFQNError
@@ -62,7 +62,7 @@ case object FullyQualifiedNames extends IRPass {
           _,
           scopeMap,
           freshNameSupply,
-          moduleContext.compiler
+          moduleContext.pkgRepo
         )
       )
     ir.copy(bindings = new_bindings)
@@ -91,7 +91,13 @@ case object FullyQualifiedNames extends IRPass {
         "No fresh name supply passed to UppercaseNames resolver."
       )
     )
-    processExpression(ir, scopeMap, freshNameSupply, None, None)
+    processExpression(
+      ir,
+      scopeMap,
+      freshNameSupply,
+      None,
+      inlineContext.pkgRepo
+    )
 
   }
 
@@ -99,7 +105,7 @@ case object FullyQualifiedNames extends IRPass {
     definition: IR.Module.Scope.Definition,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
-    compiler: Option[Compiler]
+    pkgRepo: Option[PackageRepository]
   ): IR.Module.Scope.Definition = {
     definition match {
       case asc: IR.Type.Ascription => asc
@@ -108,7 +114,7 @@ case object FullyQualifiedNames extends IRPass {
           _.getMetadata(MethodDefinitions)
         )
         method.mapExpressions(
-          processExpression(_, bindings, freshNameSupply, resolution, compiler)
+          processExpression(_, bindings, freshNameSupply, resolution, pkgRepo)
         )
       case tp: IR.Module.Scope.Definition.Type =>
         tp.copy(members =
@@ -119,7 +125,7 @@ case object FullyQualifiedNames extends IRPass {
                 bindings,
                 freshNameSupply,
                 bindings.resolveName(tp.name.name).toOption.map(Resolution),
-                compiler
+                pkgRepo
               )
             )
           )
@@ -127,7 +133,7 @@ case object FullyQualifiedNames extends IRPass {
 
       case a =>
         a.mapExpressions(
-          processExpression(_, bindings, freshNameSupply, None, compiler)
+          processExpression(_, bindings, freshNameSupply, None, pkgRepo)
         )
     }
   }
@@ -137,7 +143,7 @@ case object FullyQualifiedNames extends IRPass {
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
-    compiler: Option[Compiler]
+    pkgRepo: Option[PackageRepository]
   ): IR.Expression =
     ir.transformExpressions {
       case lit: IR.Name.Literal =>
@@ -146,8 +152,8 @@ case object FullyQualifiedNames extends IRPass {
           resolution match {
             case Left(_) =>
               if (
-                compiler
-                  .map(_.packageRepository.isNamespaceRegistered(lit.name))
+                pkgRepo
+                  .map(_.isNamespaceRegistered(lit.name))
                   .getOrElse(false)
               ) {
                 lit.updateMetadata(
@@ -170,7 +176,7 @@ case object FullyQualifiedNames extends IRPass {
                 app,
                 bindings,
                 freshNameSupply,
-                compiler,
+                pkgRepo,
                 selfTypeResolution
               )
             else
@@ -180,7 +186,7 @@ case object FullyQualifiedNames extends IRPass {
                   bindings,
                   freshNameSupply,
                   selfTypeResolution,
-                  compiler
+                  pkgRepo
                 )
               )
           case _ =>
@@ -190,7 +196,7 @@ case object FullyQualifiedNames extends IRPass {
                 bindings,
                 freshNameSupply,
                 selfTypeResolution,
-                compiler
+                pkgRepo
               )
             )
 
@@ -202,7 +208,7 @@ case object FullyQualifiedNames extends IRPass {
     app: IR.Application.Prefix,
     bindings: BindingsMap,
     freshNameSupply: FreshNameSupply,
-    compiler: Option[Compiler],
+    pkgRepo: Option[PackageRepository],
     selfTypeResolution: Option[Resolution]
   ): IR.Expression = {
     val processedFun =
@@ -211,7 +217,7 @@ case object FullyQualifiedNames extends IRPass {
         bindings,
         freshNameSupply,
         selfTypeResolution,
-        compiler
+        pkgRepo
       )
     val processedArgs =
       app.arguments.map(
@@ -221,7 +227,7 @@ case object FullyQualifiedNames extends IRPass {
             bindings,
             freshNameSupply,
             selfTypeResolution,
-            compiler
+            pkgRepo
           )
         )
       )
@@ -230,7 +236,7 @@ case object FullyQualifiedNames extends IRPass {
       case List(thisArg) =>
         (thisArg.value.getMetadata(this).map(_.target), processedFun) match {
           case (Some(resolved @ ResolvedLibrary(_)), name: IR.Name.Literal) =>
-            resolveQualName(resolved, name, compiler).fold(
+            resolveQualName(resolved, name, pkgRepo).fold(
               err => Some(err),
               _.map(resolvedMod =>
                 freshNameSupply
@@ -254,14 +260,13 @@ case object FullyQualifiedNames extends IRPass {
   private def resolveQualName(
     thisResolution: ResolvedLibrary,
     consName: IR.Name.Literal,
-    optCompiler: Option[Compiler]
+    optPkgRepo: Option[PackageRepository]
   ): Either[IR.Expression, Option[FQNResolution]] = {
-    optCompiler
-      .flatMap { compiler =>
-        val pkgRepository = compiler.packageRepository
-        val libName       = LibraryName(thisResolution.namespace, consName.name)
-        pkgRepository.ensurePackageIsLoaded(libName).toOption.flatMap { _ =>
-          pkgRepository
+    optPkgRepo
+      .flatMap { pkgRepo =>
+        val libName = LibraryName(thisResolution.namespace, consName.name)
+        pkgRepo.ensurePackageIsLoaded(libName).toOption.flatMap { _ =>
+          pkgRepo
             .getLoadedModule(
               s"${libName.toString}.${Imports.mainModuleName.name}"
             )

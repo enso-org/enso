@@ -1,6 +1,6 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.Compiler
+import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
 import org.enso.interpreter.runtime.Module
@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.Module
   * @param passConfiguration the pass configuration
   * @param compilerConfig the compiler configuration
   * @param isGeneratingDocs if true, should generate docs for IR
+  * @param pkgRepo the compiler's package repository
   */
 case class ModuleContext(
   module: Module,
@@ -19,5 +20,5 @@ case class ModuleContext(
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None,
   isGeneratingDocs: Boolean                    = false,
-  compiler: Option[Compiler]                   = None
+  pkgRepo: Option[PackageRepository]           = None
 )

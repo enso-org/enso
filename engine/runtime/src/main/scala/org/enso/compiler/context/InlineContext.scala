@@ -1,6 +1,6 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.Compiler
+import org.enso.compiler.PackageRepository
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration
 import org.enso.interpreter.node.BaseNode.TailStatus
@@ -11,12 +11,13 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
   * expression.
   *
   * @param module the module in which the expression is being executed
+  * @param compilerConfig the compiler configuration
   * @param localScope the local scope in which the expression is being executed
   * @param isInTailPosition whether or not the inline expression occurs in tail
   *                         position ([[None]] indicates no information)
   * @param freshNameSupply the compiler's supply of fresh names
   * @param passConfiguration the pass configuration
-  * @param compilerConfig the compiler configuration
+  * @param pkgRepo the compiler's package repository
   */
 case class InlineContext(
   module: Module,
@@ -25,7 +26,7 @@ case class InlineContext(
   isInTailPosition: Option[Boolean]            = None,
   freshNameSupply: Option[FreshNameSupply]     = None,
   passConfiguration: Option[PassConfiguration] = None,
-  compiler: Option[Compiler]                   = None
+  pkgRepo: Option[PackageRepository]           = None
 )
 object InlineContext {
 
@@ -66,7 +67,7 @@ object InlineContext {
       freshNameSupply   = moduleContext.freshNameSupply,
       passConfiguration = moduleContext.passConfiguration,
       compilerConfig    = moduleContext.compilerConfig,
-      compiler          = moduleContext.compiler
+      pkgRepo           = moduleContext.pkgRepo
     )
   }
 }
