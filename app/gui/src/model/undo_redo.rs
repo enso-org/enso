@@ -594,7 +594,7 @@ main =
     fn undo_redo() {
         use crate::test::mock::Fixture;
         // Setup the controller.
-        let mut fixture = Unified::new().fixture();
+        let fixture = Unified::new().fixture();
         let Fixture { executed_graph, project, module, searcher, .. } = fixture;
         // Searcher makes changes in node temporary, and it affects the Undo Redo.
         drop(searcher);
