@@ -582,12 +582,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testEmptyGroup2AndAtSymbol() throws Exception {
+  public void testEmptyGroup2() throws Exception {
     parseTest("""
     main =
         x = ()
         x = 5
-        y = @
     """);
   }
 
@@ -601,9 +600,8 @@ public class EnsoCompilerTest {
     """);
   }
 
-  @Ignore // AstToIr bug: Old parser emits syntax error in place of `@` operator.
   @Test
-  public void testAtOperator() throws Exception {
+  public void testNotAnOperator() throws Exception {
     parseTest("""
     main =
         x = Panic.catch Any @ caught_panic-> caught_panic.payload
