@@ -15,10 +15,9 @@ import org.graalvm.collections.Equivalence;
  */
 public final class EnsoHashMapBuilder {
   private final EconomicMap<Object, StorageEntry> storage;
-  /**
-   * All entries stored by their sequential index.
-   */
+  /** All entries stored by their sequential index. */
   private final List<StorageEntry> sequentialEntries;
+
   private final HashCodeAnyNode hashCodeNode;
   private final EqualsAnyNode equalsNode;
   private int size;
@@ -31,10 +30,9 @@ public final class EnsoHashMapBuilder {
   }
 
   private EnsoHashMapBuilder(EnsoHashMapBuilder other) {
-    this.storage = EconomicMap.create(
-        new StorageStrategy(other.equalsNode, other.hashCodeNode),
-        other.storage
-    );
+    this.storage =
+        EconomicMap.create(
+            new StorageStrategy(other.equalsNode, other.hashCodeNode), other.storage);
     this.sequentialEntries = new ArrayList<>(other.sequentialEntries);
     this.hashCodeNode = other.hashCodeNode;
     this.equalsNode = other.equalsNode;
@@ -100,6 +98,7 @@ public final class EnsoHashMapBuilder {
 
   /**
    * Removes last {@code numEntries} from the storage.
+   *
    * @param numEntries Number of last entries to be removed.
    */
   public void removeLastEntries(int numEntries) {

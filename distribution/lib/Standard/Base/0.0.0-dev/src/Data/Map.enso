@@ -73,10 +73,13 @@ type Map key value
     ## Inserts a key-value mapping into this map, overriding any existing
        instance of `key` with the new `value`.
 
-       This method has a constant time complexity.
-
        Note that since the return type is also a `Map`, multiple `insert`
        calls can be chained, e.g., `map.insert "A" 1 . insert "B" 2`.
+
+       Due to the limitation of the current implementation, inserts with a
+       key that is already contained in the map, or insert on a map, on which
+       another insert was already called, have a linear time complexity.
+       For all the other cases, the time complexity of this method is constant.
 
        Arguments:
        - key: The key to insert the value for.

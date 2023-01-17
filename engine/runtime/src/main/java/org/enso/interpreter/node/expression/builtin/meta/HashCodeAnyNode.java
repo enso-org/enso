@@ -44,7 +44,6 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
  *       o1, o2: if hash(o1) != hash(o2) then o1 != o2.
  * </ul>
  */
-@BuiltinMethod(type = "Any", name = "hash_code", description = "Returns hash code of the object.")
 @GenerateUncached
 public abstract class HashCodeAnyNode extends Node {
 
@@ -134,7 +133,8 @@ public abstract class HashCodeAnyNode extends Node {
     if (isHashCodeCached.profile(atom.getHashCode() != null)) {
       return atom.getHashCode();
     }
-    // TODO[PM]: If atom overrides hash_code, call that method (Will be done in a follow-up PR for https://www.pivotaltracker.com/story/show/183945328)
+    // TODO[PM]: If atom overrides hash_code, call that method (Will be done in a follow-up PR for
+    // https://www.pivotaltracker.com/story/show/183945328)
     int fieldsCount = atom.getFields().length;
     Object[] fields = atom.getFields();
     // hashes stores hash codes for all fields, and for constructor.
@@ -341,17 +341,14 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   /**
-   * Two maps are considered equal, if they have the same entries.
-   * Note that we do not care about ordering.
+   * Two maps are considered equal, if they have the same entries. Note that we do not care about
+   * ordering.
    */
-  @Specialization(
-      guards = "interop.hasHashEntries(selfMap)"
-  )
+  @Specialization(guards = "interop.hasHashEntries(selfMap)")
   long hashCodeForMap(
       Object selfMap,
       @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached HashCodeAnyNode hashCodeNode
-  ) {
+      @Cached HashCodeAnyNode hashCodeNode) {
     Object[] keys;
     Object[] values;
     int mapSize;
@@ -378,9 +375,7 @@ public abstract class HashCodeAnyNode extends Node {
       keysHashCode += hashCodeNode.execute(keys[i]);
       valuesHashCode += hashCodeNode.execute(values[i]);
     }
-    return Arrays.hashCode(
-        new long[]{keysHashCode, valuesHashCode, mapSize}
-    );
+    return Arrays.hashCode(new long[] {keysHashCode, valuesHashCode, mapSize});
   }
 
   @Specialization(

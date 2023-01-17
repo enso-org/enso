@@ -40,9 +40,9 @@ public final class EnsoHashMap implements TruffleObject {
    */
   private final int snapshotSize;
   /**
-   * True iff {@code insert} method was already called. If insert was already called, and we
-   * are calling {@code insert} again, the {@link #mapBuilder} should be duplicated for the
-   * newly created Map.
+   * True iff {@code insert} method was already called. If insert was already called, and we are
+   * calling {@code insert} again, the {@link #mapBuilder} should be duplicated for the newly
+   * created Map.
    */
   private boolean insertCalled;
 
@@ -167,7 +167,7 @@ public final class EnsoHashMap implements TruffleObject {
   @TruffleBoundary
   Object toDisplayString(boolean allowSideEffects) {
     var sb = new StringBuilder();
-    sb.append("EnsoHashMap{");
+    sb.append("{");
     boolean empty = true;
     for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
       if (isEntryInThisMap(entry)) {

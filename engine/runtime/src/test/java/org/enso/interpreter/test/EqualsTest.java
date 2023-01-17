@@ -42,17 +42,16 @@ public class EqualsTest extends TestBase {
     context.close();
   }
 
-  @DataPoints
-  public static Object[] unwrappedValues;
+  @DataPoints public static Object[] unwrappedValues;
 
   private static Object[] fetchAllUnwrappedValues() {
-    var valGenerator = ValuesGenerator.create(
-        context,
-        ValuesGenerator.Language.ENSO,
-        ValuesGenerator.Language.JAVA,
-        ValuesGenerator.Language.JAVASCRIPT,
-        ValuesGenerator.Language.PYTHON
-    );
+    var valGenerator =
+        ValuesGenerator.create(
+            context,
+            ValuesGenerator.Language.ENSO,
+            ValuesGenerator.Language.JAVA,
+            ValuesGenerator.Language.JAVASCRIPT,
+            ValuesGenerator.Language.PYTHON);
     List<Value> values = new ArrayList<>();
     values.addAll(valGenerator.numbers());
     values.addAll(valGenerator.booleans());
@@ -67,11 +66,10 @@ public class EqualsTest extends TestBase {
     values.addAll(valGenerator.periods());
     values.addAll(valGenerator.warnings());
     try {
-      return values
-          .stream()
+      return values.stream()
           .map(value -> unwrapValue(context, value))
           .collect(Collectors.toList())
-          .toArray(new Object[]{});
+          .toArray(new Object[] {});
     } catch (Exception e) {
       throw new AssertionError(e);
     }
