@@ -208,9 +208,10 @@ impl<T: TextProvider> Model<T> {
 #[allow(missing_docs)]
 pub struct TextGrid<T> {
     #[shrinkwrap(main_field)]
-    model:   Rc<Model<T>>,
-    pub frp: visualization::instance::Frp,
-    network: frp::Network,
+    model:                Rc<Model<T>>,
+    pub frp:              visualization::instance::Frp,
+    network:              frp::Network,
+    font_loaded_notifier: FontLoadedNotifier,
 }
 
 impl<T: TextProvider + 'static> TextGrid<T> {
@@ -219,7 +220,10 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         let network = frp::Network::new("visualization_text_grid");
         let frp = visualization::instance::Frp::new(&network);
         let model = Rc::new(Model::new(app));
-        Self { model, frp, network }
+        let font_loaded_notifier = on_fonts_loaded_event(&network);
+
+
+        Self { model, frp, network, font_loaded_notifier }
     }
 
     fn init_frp(&self, text_provider: &dyn TextProvider) {
@@ -251,7 +255,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         let font_name = style_watch.get_text(text_grid_style::font);
         let font_size = style_watch.get_number(text_grid_style::font_size);
         let network = &self.network;
-        let fonts_loaded = on_fonts_loaded_event(network);
+        let fonts_loaded = self.font_loaded_notifier.on_font_loaded.clone_ref();
 
         let dom_entry_root = &self.dom_entry_root;
         let text_grid = &self.text_grid;
@@ -465,26 +469,29 @@ fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
     result
 }
 
-fn on_fonts_loaded_event(network: &frp::Network) -> frp::Source {
+#[derive(Debug)]
+struct FontLoadedNotifier {
+    pub on_font_loaded: frp::Source,
+    // Needs to be kept alive for the lifetime of the FRP.
+    _closure:           web::Closure<dyn FnMut(web::JsValue)>,
+}
+
+fn on_fonts_loaded_event(network: &frp::Network) -> FontLoadedNotifier {
     frp::extend! { network
             on_font_loaded <- source::<()>();
     }
 
-    let closure = web::Closure::new(f_!(on_font_loaded.emit(())));
+    let _closure = web::Closure::new(f_!(on_font_loaded.emit(())));
     match web::document.fonts().ready() {
         Ok(promise) => {
-            promise.then(&closure);
+            promise.then(&_closure);
         }
         Err(e) => {
             warn!("Could not set up font loading event because of error: {:?}.", e);
         }
     }
-    // This extends the lifetime of the closure which is what we want here. Otherwise, the closure
-    // would be destroyed and the callback cannot be called.
-    #[allow(clippy::forget_non_drop)]
-    mem::forget(closure);
 
-    on_font_loaded
+    FontLoadedNotifier { on_font_loaded, _closure }
 }
 
 // ===========================
