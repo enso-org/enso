@@ -35,11 +35,8 @@ public abstract class HashMapToVectorNode extends Node {
 
   @Specialization
   Object ensoMapToVector(EnsoHashMap hashMap,
-      @Cached ConditionProfile vectorReprNotCached) {
-    if (vectorReprNotCached.profile(!hashMap.isVectorRepresentationCached())) {
-      hashMap.cacheVectorRepresentation();
-    }
-    return hashMap.getCachedVectorRepresentation();
+      @Cached ConditionProfile vectorReprNotCachedProfile) {
+    return hashMap.getCachedVectorRepresentation(vectorReprNotCachedProfile);
   }
 
   @Specialization(guards = "mapInterop.hasHashEntries(hashMap)", limit = "3")

@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
@@ -38,6 +39,12 @@ public final class EnsoHashMap implements TruffleObject {
    * #isEntryInThisMap(StorageEntry)}.
    */
   private final int snapshotSize;
+  /**
+   * True iff {@code insert} method was already called. If insert was already called, and we
+   * are calling {@code insert} again, the {@link #mapBuilder} should be duplicated for the
+   * newly created Map.
+   */
+  private boolean insertCalled;
 
   private Object cachedVectorRepresentation;
 
@@ -60,29 +67,34 @@ public final class EnsoHashMap implements TruffleObject {
   }
 
   Object getCachedVectorRepresentation() {
-    assert cachedVectorRepresentation != null;
+    return getCachedVectorRepresentation(ConditionProfile.getUncached());
+  }
+
+  Object getCachedVectorRepresentation(ConditionProfile isNotCachedProfile) {
+    if (isNotCachedProfile.profile(cachedVectorRepresentation == null)) {
+      Object[] keys = new Object[snapshotSize];
+      Object[] values = new Object[snapshotSize];
+      int arrIdx = 0;
+      for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
+        if (entry.index() < snapshotSize) {
+          keys[arrIdx] = entry.key();
+          values[arrIdx] = entry.value();
+          arrIdx++;
+        }
+      }
+      cachedVectorRepresentation =
+          Vector.fromArray(HashEntriesVector.createFromKeysAndValues(keys, values));
+    }
     return cachedVectorRepresentation;
   }
 
-  boolean isVectorRepresentationCached() {
-    return cachedVectorRepresentation != null;
+  public boolean isInsertCalled() {
+    return insertCalled;
   }
 
-  @TruffleBoundary
-  void cacheVectorRepresentation() {
-    assert cachedVectorRepresentation == null : "Caching vector repr should be done at most once";
-    Object[] keys = new Object[snapshotSize];
-    Object[] values = new Object[snapshotSize];
-    int arrIdx = 0;
-    for (StorageEntry entry : mapBuilder.getStorage().getValues()) {
-      if (entry.index() <= snapshotSize) {
-        keys[arrIdx] = entry.key();
-        values[arrIdx] = entry.value();
-        arrIdx++;
-      }
-    }
-    cachedVectorRepresentation =
-        Vector.fromArray(HashEntriesVector.createFromKeysAndValues(keys, values));
+  public void setInsertCalled() {
+    assert !insertCalled : "setInsertCalled should be called at most once";
+    insertCalled = true;
   }
 
   @Builtin.Method
@@ -124,9 +136,6 @@ public final class EnsoHashMap implements TruffleObject {
 
   @ExportMessage
   Object getHashEntriesIterator(@CachedLibrary(limit = "3") InteropLibrary interop) {
-    if (!isVectorRepresentationCached()) {
-      cacheVectorRepresentation();
-    }
     try {
       return interop.getIterator(getCachedVectorRepresentation());
     } catch (UnsupportedMessageException e) {

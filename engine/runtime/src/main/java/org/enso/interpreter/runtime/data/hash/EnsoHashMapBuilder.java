@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.data.hash;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import java.util.ArrayList;
+import java.util.List;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
 import org.graalvm.collections.EconomicMap;
@@ -13,10 +15,30 @@ import org.graalvm.collections.Equivalence;
  */
 public final class EnsoHashMapBuilder {
   private final EconomicMap<Object, StorageEntry> storage;
+  /**
+   * All entries stored by their sequential index.
+   */
+  private final List<StorageEntry> sequentialEntries;
+  private final HashCodeAnyNode hashCodeNode;
+  private final EqualsAnyNode equalsNode;
   private int size;
 
-  EnsoHashMapBuilder(HashCodeAnyNode hashCodeAnyNode, EqualsAnyNode equalsNode) {
+  private EnsoHashMapBuilder(HashCodeAnyNode hashCodeAnyNode, EqualsAnyNode equalsNode) {
     this.storage = EconomicMap.create(new StorageStrategy(equalsNode, hashCodeAnyNode));
+    this.sequentialEntries = new ArrayList<>();
+    this.hashCodeNode = hashCodeAnyNode;
+    this.equalsNode = equalsNode;
+  }
+
+  private EnsoHashMapBuilder(EnsoHashMapBuilder other) {
+    this.storage = EconomicMap.create(
+        new StorageStrategy(other.equalsNode, other.hashCodeNode),
+        other.storage
+    );
+    this.sequentialEntries = new ArrayList<>(other.sequentialEntries);
+    this.hashCodeNode = other.hashCodeNode;
+    this.equalsNode = other.equalsNode;
+    this.size = other.size;
   }
 
   /**
@@ -38,17 +60,23 @@ public final class EnsoHashMapBuilder {
     return storage;
   }
 
+  public EnsoHashMapBuilder duplicate() {
+    return new EnsoHashMapBuilder(this);
+  }
+
   /** Adds a key-value mapping, overriding any existing value. */
   @TruffleBoundary
   public void add(Object key, Object value) {
-    StorageEntry oldEntry = storage.get(key);
-    StorageEntry newEntry =
-        oldEntry != null
-            ? new StorageEntry(key, value, oldEntry.index)
-            : new StorageEntry(key, value, size);
+    var oldEntry = storage.get(key);
+    int newEntryIndex = oldEntry != null ? oldEntry.index : size;
+    var newEntry = new StorageEntry(key, value, newEntryIndex);
     storage.put(key, newEntry);
     if (oldEntry == null) {
+      assert newEntry.index == size;
+      sequentialEntries.add(newEntry);
       size++;
+    } else {
+      sequentialEntries.set(newEntryIndex, newEntry);
     }
   }
 
@@ -68,6 +96,24 @@ public final class EnsoHashMapBuilder {
    */
   public EnsoHashMap build() {
     return EnsoHashMap.createWithBuilder(this, size);
+  }
+
+  /**
+   * Removes last {@code numEntries} from the storage.
+   * @param numEntries Number of last entries to be removed.
+   */
+  public void removeLastEntries(int numEntries) {
+    assert 0 < numEntries && numEntries <= size;
+    int fromIdx = size - numEntries;
+    var entriesToBeRemoved = sequentialEntries.subList(fromIdx, sequentialEntries.size());
+    entriesToBeRemoved.forEach(entry -> storage.removeKey(entry.key));
+    entriesToBeRemoved.clear();
+    size = fromIdx;
+  }
+
+  @Override
+  public String toString() {
+    return "EnsoHashMapBuilder{size = " + size + ", storage = " + storage + "}";
   }
 
   record StorageEntry(

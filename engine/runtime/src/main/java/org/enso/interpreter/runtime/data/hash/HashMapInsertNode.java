@@ -30,8 +30,26 @@ public abstract class HashMapInsertNode extends Node {
 
   @Specialization
   EnsoHashMap doEnsoHashMap(EnsoHashMap hashMap, Object key, Object value) {
-    hashMap.getMapBuilder().add(key, value);
-    return hashMap.getMapBuilder().build();
+    EnsoHashMapBuilder mapBuilder = hashMap.getMapBuilder();
+    boolean containsKey = mapBuilder.get(key) != null;
+    boolean insertCalledOnMap = hashMap.isInsertCalled();
+    if (insertCalledOnMap || containsKey) {
+      // insert was already called on this map => We need to duplicate MapBuilder
+      // If a key is already contained in the Map there is no way telling whether there is another
+      // binding pointing to the Map, and we do not want to mutate this older binding.
+      var newMapBuilder = mapBuilder.duplicate();
+      if (hashMap.getHashSize() < mapBuilder.getSize()) {
+        newMapBuilder.removeLastEntries(mapBuilder.getSize() - hashMap.getHashSize());
+      }
+      newMapBuilder.add(key, value);
+      return newMapBuilder.build();
+    } else {
+      // Do not duplicate the builder, just create a snapshot.
+      mapBuilder.add(key, value);
+      var newMap = mapBuilder.build();
+      hashMap.setInsertCalled();
+      return newMap;
+    }
   }
 
   /**

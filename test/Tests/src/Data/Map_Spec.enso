@@ -297,6 +297,112 @@ spec =
             map = Map.singleton "A" (py_wrapper 42)
             map.get "A" . data . should_equal 42
 
+    Test.group "non-linear inserts" <|
+        Test.specify "should handle inserts with different keys" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m1.insert "C" 3
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 1], ["C", 3]]
+
+        Test.specify "should handle inserts with same keys (1)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "A" 2
+            m3 = m1.insert "A" 3
+            m4 = m1.insert "B" 4
+            m2.to_vector.sort on=_.first . should_equal [["A", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 3]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 4]]
+
+        Test.specify "should handle inserts with same keys (2)" <|
+            m1 = Map.singleton "foo" 1
+            m2 = m1.insert "baz" 2
+            m3 = m2.insert "foo" 3
+            m1.to_vector.sort on=_.first . should_equal [['foo', 1]]
+            m2.to_vector.sort on=_.first . should_equal [['baz', 2], ['foo', 1]]
+            m3.to_vector.sort on=_.first . should_equal [['baz', 2], ['foo', 3]]
+
+        Test.specify "should handle inserts with same keys (3)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "A" 3
+            m4 = m2.insert "C" 4
+            m1.to_vector.sort on=_.first . should_equal [["A", 1]]
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 3], ["B", 2]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 4]]
+
+        Test.specify "should handle inserts with same keys (4)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "C" 3
+            m4 = m2.insert "D" 4
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["D", 4]]
+
+        Test.specify "should handle inserts with same keys (5)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "A" 3
+            m4 = m2.insert "A" 4
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 3], ["B", 2]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 4], ["B", 2]]
+
+        Test.specify "should handle inserts with same keys (6)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "C" 3
+            m4 = m2.insert "A" 4
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 4], ["B", 2]]
+
+        Test.specify "should handle inserts with same keys (7)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "C" 3
+            m4 = m3.insert "D" 4
+            m5 = m2.insert "A" 5
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3], ["D", 4]]
+            m5.to_vector.sort on=_.first . should_equal [["A", 5], ["B", 2]]
+
+        Test.specify "should handle inserts with same keys (8)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "C" 3
+            m4 = m3.insert "A" 4
+            m5 = m2.insert "A" 5
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 4], ["B", 2], ["C", 3]]
+            m5.to_vector.sort on=_.first . should_equal [["A", 5], ["B", 2]]
+
+        Test.specify "should handle inserts with same keys (9)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "A" 3
+            m4 = m2.insert "B" 4
+            m5 = m2.insert "C" 5
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 3], ["B", 2]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 4]]
+            m5.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 5]]
+
+        Test.specify "should handle inserts with same keys (10)" <|
+            m1 = Map.singleton "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m2.insert "C" 3
+            m4 = m2.insert "D" 4
+            m5 = m2.insert "E" 5
+            m2.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2]]
+            m3.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["C", 3]]
+            m4.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["D", 4]]
+            m5.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["E", 5]]
+
     Test.group "Polyglot hash maps" <|
         Test.specify "should pass maps as immutable maps to other langs" <|
             map = Map.singleton "A" 1
