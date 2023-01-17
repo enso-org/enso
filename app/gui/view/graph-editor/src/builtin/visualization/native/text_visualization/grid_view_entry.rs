@@ -7,10 +7,10 @@ use ensogl::prelude::*;
 use crate::display;
 use crate::web;
 use crate::Application;
-use std::fmt::Write;
 
 use ensogl_component::grid_view;
 use ensogl_component::grid_view::entry::EntryFrp;
+use std::fmt::Write;
 
 
 
