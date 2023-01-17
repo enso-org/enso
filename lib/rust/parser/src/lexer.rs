@@ -901,8 +901,7 @@ impl<'s> Lexer<'s> {
         text_type: TextType,
     ) {
         let open_quote_end = self.mark();
-        let token =
-            self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
+        let token = self.make_token(open_quote_start, open_quote_end, token::Variant::text_start());
         self.output.push(token);
         let mut initial_indent = None;
         if text_type.expects_initial_newline() && let Some(newline) = self.line_break() {

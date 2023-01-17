@@ -249,8 +249,7 @@ impl fmt::Display for Method {
         }
         tokens.push(name.to_string());
         let tokens = tokens.join(" ");
-        let arguments: Vec<_> =
-            arguments.iter().map(|(ty, name)| format!("{ty} {name}")).collect();
+        let arguments: Vec<_> = arguments.iter().map(|(ty, name)| format!("{ty} {name}")).collect();
         let arguments = arguments.join(", ");
         writeln!(f, "{tokens}({arguments})")?;
         if !throws.is_empty() {
