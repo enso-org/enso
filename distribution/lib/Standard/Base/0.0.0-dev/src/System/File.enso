@@ -244,10 +244,10 @@ type File
     / : (Text | File) -> File
     / self subpath = self.resolve subpath
 
-    ## Join two or more path segments together.
+    ## Join two or more path segments together, normalizing the `..` and `.` subpaths.
 
        Arguments:
-       - subpaths: The path to join to the path of `self`.
+       - subpaths: The path segment or segments to join to the path of `self`.
 
        > Example
          Concatenate two file path segments.

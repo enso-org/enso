@@ -31,7 +31,7 @@ from project.Data.Boolean import Boolean, True, False
      If `Auto_Detect` is specified; the provided file determines the specific
      type and configures it appropriately. If there is no matching type then
      a `File_Error.Unsupported_Type` error is returned.
-     You can use `File_Format.all` to get a list of currently available
+     You can use `File_Format.all` to get a list of currently loaded
      formats.
    - on_problems: Specifies the behavior when a problem occurs during the
      function.
