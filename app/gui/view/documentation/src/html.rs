@@ -57,7 +57,7 @@ pub fn render(docs: EntryDocumentation) -> String {
         EntryDocumentation::Placeholder(placeholder) => match placeholder {
             Placeholder::Function { name } => format!("Function {name}"),
             Placeholder::Local { name } => format!("Local {name}"),
-            Placeholder::NoDocumentation => format!("No documentation found"),
+            Placeholder::NoDocumentation => "No documentation found".into(),
         },
         EntryDocumentation::Docs(docs) => render_documentation(docs),
     }
