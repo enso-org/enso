@@ -223,12 +223,12 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.get -1
-    get : Text | Integer -> Any -> Column
+    get : Text | Integer -> Any -> Column | Any
     get self selector=0 ~if_missing=Nothing =
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
-            _ -> Error.throw (Type_Error.Error Text selector "selector")
+            _ -> Error.throw (Illegal_Argument.Error "Type error: expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
         if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## Returns the number of columns in the table.

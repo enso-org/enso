@@ -1,6 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
-import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table.Errors import all
 
@@ -48,7 +48,8 @@ spec setup =
             table.at 100 . should_fail_with Index_Out_Of_Bounds.Error
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
-            table.at (Pair.new 1 2) . should_fail_with Type_Error.Error
+            table.at (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
+            table.at (Pair.new 1 2) . catch . to_display_text . should_equal "Type error: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     Test.group prefix+"Table.get" <|
         Test.specify "should allow selecting columns by name" <|

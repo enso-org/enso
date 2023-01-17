@@ -57,7 +57,9 @@ type Auto_Detect
 type File_Format
     ## Gets all the currently available file formats.
     
-       The available file formats are ones provided by libraries which are imported within the current project. Importing an new library may cause more entries to show up on this list.
+       The available file formats are ones provided by libraries which are
+       imported within the current project. Importing an new library may cause
+       more entries to show up on this list.
     all : Vector
     all = [Auto_Detect] + format_types
 

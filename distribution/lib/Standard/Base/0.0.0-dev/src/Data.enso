@@ -3,10 +3,11 @@ import project.Data.Pair.Pair
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Error.File_Error.File_Error
+import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.Problem_Behavior.Problem_Behavior
+import project.Meta
 import project.Network.URI.URI
 import project.Network.HTTP.Header.Header
 import project.Network.HTTP.HTTP
@@ -152,7 +153,7 @@ fetch uri method=HTTP_Method.Get headers=[] parse=True =
         _ : Vector -> Header.new (h.at 0) (h.at 1)
         _ : Pair -> Header.new (h.at 0) (h.at 1)
         _ : Header -> h
-        _ -> Error.throw (Type_Error.Error Header "Invalid header type (must be a Pair, Vector or Header).")
+        _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
 
     request = Request.new method uri parsed_headers
     response = HTTP.new.request request
