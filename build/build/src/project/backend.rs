@@ -46,7 +46,7 @@ impl BuildInput {
 pub struct Artifact {
     /// Location of the Project Manager distribution.
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
-    pub path:            crate::paths::generated::ProjectManager,
+    pub path:            crate::paths::generated::ProjectManagerBundle,
     /// Versions of Engine that are bundled in this Project Manager distribution.
     ///
     /// Technically a Project Manager bundle can be shipped with arbitrary number of Enso Engine
@@ -71,7 +71,7 @@ impl IsArtifact for Artifact {}
 /// distribution.
 #[context("Failed to list bundled engine versions: {}", project_manager_bundle)]
 pub async fn bundled_engine_versions(
-    project_manager_bundle: &crate::paths::generated::ProjectManager,
+    project_manager_bundle: &crate::paths::generated::ProjectManagerBundle,
 ) -> Result<Vec<Version>> {
     let mut ret = vec![];
 
@@ -111,12 +111,22 @@ impl IsTarget for Backend {
     }
 
     fn adapt_artifact(self, path: impl AsRef<Path>) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let path = crate::paths::generated::ProjectManager::new_root(
-            path.as_ref(),
-            self.target_os.exe_suffix(),
+        let exe_suffix = self.target_os.exe_suffix().to_owned();
+        let path = path.as_ref().to_owned();
+        let provisional_path = crate::paths::generated::ProjectManagerBundle::new_root(
+            &path,
+            &exe_suffix,
+            "<unknown version>",
         );
         async move {
-            let engine_versions = bundled_engine_versions(&path).await?;
+            let engine_versions = bundled_engine_versions(&provisional_path).await?;
+            let path = crate::paths::generated::ProjectManagerBundle::new_root(
+                &path,
+                &exe_suffix,
+                engine_versions
+                    .last()
+                    .map_or_else(|| "<unknown version>".to_string(), |v| v.to_string()),
+            );
             Ok(Artifact { path, engine_versions })
         }
         .boxed()
@@ -143,8 +153,8 @@ impl IsTarget for Backend {
             let context = inner.prepare_context(context, config)?;
             let artifacts = context.build().await?;
             let project_manager =
-                artifacts.bundles.project_manager.context("Missing project manager bundle!")?;
-            ide_ci::fs::mirror_directory(&project_manager.dir, &destination).await?;
+                artifacts.project_manager_bundle.context("Missing project manager bundle!")?;
+            ide_ci::fs::mirror_directory(&project_manager, &destination).await?;
             this.adapt_artifact(destination).await
         }
         .boxed()

@@ -186,6 +186,10 @@ public final class LongStorage extends NumericStorage<Long> {
     return isMissing;
   }
 
+  public long[] getRawData() {
+    return data;
+  }
+
   private static MapOpStorage<Long, LongStorage> buildOps() {
     MapOpStorage<Long, LongStorage> ops = new MapOpStorage<>();
     ops.add(

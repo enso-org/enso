@@ -34,7 +34,7 @@ define_env_var! {
     /// The name of the person or app that initiated the workflow. For example, `octocat`.
     GITHUB_ACTOR, String;
 
-    /// Returns the API URL. For example: https://api.github.com.
+    /// Returns the API URL. For example: <https://api.github.com>.
     GITHUB_API_URL, Url;
 
     /// The name of the base ref or target branch of the pull request in a workflow run. This is
@@ -58,7 +58,7 @@ define_env_var! {
     /// For example, `/github/workflow/event.json`.
     GITHUB_EVENT_PATH, PathBuf;
 
-    /// Returns the GraphQL API URL. For example: https://api.github.com/graphql.
+    /// Returns the GraphQL API URL. For example: <https://api.github.com/graphql>.
     GITHUB_GRAPHQL_URL, Url;
 
     /// The head ref or source branch of the pull request in a workflow run. This property is only
@@ -117,7 +117,7 @@ define_env_var! {
     /// change if you re-run the workflow run. For example, 3.
     GITHUB_RUN_NUMBER, usize;
 
-    /// The URL of the GitHub server. For example: https://github.com.
+    /// The URL of the GitHub server. For example: <https://github.com>.
     GITHUB_SERVER_URL, Url;
 
     /// The commit SHA that triggered the workflow. The value of this commit SHA depends on the

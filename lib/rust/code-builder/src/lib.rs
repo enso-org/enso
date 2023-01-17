@@ -39,8 +39,12 @@ impl CodeBuilder {
     /// Interface to the underlying `Writer` implementation. Please note that this function does not
     /// take into account the indentation nor spacing, so other smart code constructors are
     /// recommended in most cases.
-    pub fn write<S: Str>(&mut self, s: S) {
-        self.write_str(s.as_ref()).unwrap();
+    pub fn write(&mut self, s: &str) {
+        self.buffer.push_str(s);
+    }
+
+    pub fn write_char(&mut self, c: char) {
+        self.buffer.push(c);
     }
 
     /// Increase the indentation of the code. Will be used by the next `newline` call.
@@ -56,13 +60,15 @@ impl CodeBuilder {
     /// Create a new line and insert appropriate indentation.
     pub fn newline(&mut self) {
         let space_count = self.spaces_in_indent * self.indent;
-        self.write(format!("\n{}", " ".repeat(space_count)));
+        self.buffer.reserve(space_count + 1);
+        self.write_char('\n');
+        (0..space_count).for_each(|_| self.write_char(' '));
         self.spaced = true;
     }
 
     /// Inserts a terminator symbol `;`.
     pub fn terminator(&mut self) {
-        self.write(";");
+        self.write_char(';');
         self.spaced = false;
     }
 
@@ -82,9 +88,9 @@ impl CodeBuilder {
     }
 
     /// Specialization of the `add` method for strings.
-    fn add_str<S: Str>(&mut self, s: S) {
+    fn add_str(&mut self, s: &str) {
         if !self.spaced {
-            self.write(" ");
+            self.write_char(' ');
         }
         self.spaced = false;
         self.write(s);
@@ -120,13 +126,6 @@ impl AddToBuilder<&str> for CodeBuilder {
     }
 }
 
-impl AddToBuilder<String> for CodeBuilder {
-    fn add_to_builder(&mut self, t: String) -> &mut Self {
-        self.add_str(t);
-        self
-    }
-}
-
 // === Instances ===
 
 impl Default for CodeBuilder {
@@ -142,6 +141,10 @@ impl Default for CodeBuilder {
 impl Write for CodeBuilder {
     fn write_str(&mut self, str: &str) -> fmt::Result {
         self.buffer.write_str(str)
+    }
+
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result {
+        self.buffer.write_fmt(args)
     }
 }
 
@@ -172,6 +175,6 @@ impl<T: HasCodeRepr> HasCodeRepr for Option<T> {
 
 impl HasCodeRepr for usize {
     fn build(&self, builder: &mut CodeBuilder) {
-        builder.add(self.to_string());
+        write!(builder, "{self}").unwrap();
     }
 }

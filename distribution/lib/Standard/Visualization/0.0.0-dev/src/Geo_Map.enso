@@ -27,11 +27,6 @@ json_from_table table =
    Arguments:
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
-process_to_json_text value =
-    json = case value of
-        Table.Value _ -> json_from_table value . to_text
-        _ -> value.to_json
-
-    ## Workaround so that the JS String is converted to a Text
-       https://www.pivotaltracker.com/story/show/184061302
-    "" + json
+process_to_json_text value = case value of
+    Table.Value _ -> json_from_table value . to_text
+    _ -> value.to_json

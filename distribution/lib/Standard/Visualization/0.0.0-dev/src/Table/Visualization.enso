@@ -30,17 +30,13 @@ prepare_visualization y max_rows=1000 = Helpers.recover_errors <|
             included_rows = dataframe.row_count
             index = Dataframe_Column.from_vector "" (Vector.new included_rows i->i)
 
-            ## Workaround so that the JS String is converted to a Text
-               https://www.pivotaltracker.com/story/show/184061302
-            "" + make_json dataframe [index] all_rows_count
+            make_json dataframe [index] all_rows_count
 
         _ : Database_Table ->
             df = x.read max_rows
             all_rows_count = x.row_count
 
-            ## Workaround so that the JS String is converted to a Text
-               https://www.pivotaltracker.com/story/show/184061302
-            "" + make_json df [] all_rows_count
+            make_json df [] all_rows_count
 
         # We display columns as 1-column tables.
         _ : Dataframe_Column ->

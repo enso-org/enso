@@ -202,6 +202,4 @@ process_to_json_text value bounds=Nothing limit=Nothing =
         _ : Vector -> json_from_vector value bounds limit
         _          -> json_from_vector value.to_vector bounds limit
 
-    ## Workaround so that the JS String is converted to a Text
-       https://www.pivotaltracker.com/story/show/184061302
-    "" + json
+    json

@@ -1,6 +1,7 @@
 package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.ObjectStorage;
+import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 
 import java.util.Arrays;
@@ -59,6 +60,23 @@ public class ObjectBuilder extends TypedBuilder {
   @Override
   public void appendNulls(int count) {
     currentSize += count;
+  }
+
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+    if (currentSize + storage.size() > data.length) {
+      grow(currentSize + storage.size());
+    }
+
+    if (storage instanceof SpecializedStorage<?> specializedStorage) {
+      System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
+      currentSize += storage.size();
+    } else {
+      int n = storage.size();
+      for (int i = 0; i < n; i++) {
+        data[currentSize++] = storage.getItemBoxed(i);
+      }
+    }
   }
 
   @Override

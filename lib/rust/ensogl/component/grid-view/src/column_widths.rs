@@ -58,7 +58,7 @@ impl ColumnWidths {
         if column < width_diffs.len() {
             width_diffs.set(column, width_diff);
         } else {
-            tracing::error!("Index out of bounds when setting column width");
+            error!("Index out of bounds when setting column width");
         }
     }
 
@@ -86,7 +86,7 @@ impl ColumnWidths {
         if column == 0 {
             0.0
         } else if column > len {
-            tracing::warn!(
+            warn!(
                 "Trying to get a position offset of a column that does not exist. \
                 {column} > {len}. Returning 0.0."
             );
