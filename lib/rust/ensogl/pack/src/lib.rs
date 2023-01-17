@@ -224,9 +224,22 @@ pub async fn build(
                     main_end_str, stage_glsl_opt_path, content
                 )
             })?;
+            let before_main = &content[..main_start];
+            let declarations: Vec<&str> = before_main
+                .lines()
+                .filter_map(|line| {
+                    let version_def = line.starts_with("#version ");
+                    let precision_def = line.starts_with("precision ");
+                    let layout_def = line.starts_with("layout(");
+                    let def = version_def || precision_def || layout_def;
+                    (!def).then_some(line)
+                })
+                .collect();
+            let declarations = declarations.join("\n");
             let main_content = &content[main_start + main_start_str.len()..main_end];
+            let code = format!("{}\n{}", declarations, main_content);
 
-            ide_ci::fs::write(&stage_glsl_opt_dist_path, main_content)?;
+            ide_ci::fs::write(&stage_glsl_opt_dist_path, code)?;
         }
     }
 
