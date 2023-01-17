@@ -50,6 +50,7 @@ use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
@@ -249,6 +250,11 @@ impl Model {
         Ok(())
     }
 
+    fn display_doc2(&self, docs: EntryDocumentation) {
+        let html = html::render(docs);
+        self.inner_dom.dom().set_inner_html(&html);
+    }
+
     /// Displays the received data in the panel.
     fn display_doc(&self, content: &str) {
         self.push_to_dom(String::from(content));
@@ -278,7 +284,8 @@ impl Model {
 ensogl::define_endpoints! {
     Input {
         /// Display documentation of the entity represented by given code.
-        display_documentation (String)
+        display_documentation (String),
+        display_docs (EntryDocumentation),
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -342,6 +349,7 @@ impl View {
             // === Displaying documentation ===
 
             eval frp.display_documentation ((cont) model.display_doc(cont));
+            eval frp.display_docs((docs) model.display_doc2(docs.clone()));
             eval visualization.send_data([visualization,model](data) {
                 if let Err(error) = model.receive_data(data) {
                     visualization.data_receive_error.emit(error)

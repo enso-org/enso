@@ -7,6 +7,8 @@ use enso_suggestion_database::documentation_ir::Constructors;
 use enso_suggestion_database::documentation_ir::Documentation;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::documentation_ir::Function;
+use enso_suggestion_database::documentation_ir::FunctionDocumentation;
+use enso_suggestion_database::documentation_ir::LocalDocumentation;
 use enso_suggestion_database::documentation_ir::ModuleDocumentation;
 use enso_suggestion_database::documentation_ir::Synopsis;
 use enso_suggestion_database::documentation_ir::TypeDocumentation;
@@ -53,7 +55,7 @@ fn svg_icon(content: &'static str) -> impl Render {
 /// Render entry documentation to HTML code with Tailwind CSS styles.
 pub fn render(docs: EntryDocumentation) -> String {
     match docs {
-        EntryDocumentation::Placeholder(_) => String::from("Temporary placeholder"),
+        EntryDocumentation::Placeholder(_) => String::from("No documentation"),
         EntryDocumentation::Docs(docs) => render_documentation(docs),
     }
 }
@@ -62,7 +64,12 @@ fn render_documentation(docs: Documentation) -> String {
     match docs {
         Documentation::Module(module_docs) => render_module_documentation(&module_docs),
         Documentation::Type(type_docs) => render_type_documentation(&type_docs),
-        _ => String::from("Not implemented"),
+        Documentation::Constructor { type_docs, .. } => render_type_documentation(&type_docs),
+        Documentation::Method { type_docs, .. } => render_type_documentation(&type_docs),
+        Documentation::ModuleMethod { module_docs, .. } =>
+            render_module_documentation(&module_docs),
+        Documentation::Function(docs) => render_function_documentation(&docs),
+        Documentation::Local(docs) => render_local_documentation(&docs),
     }
 }
 
@@ -253,7 +260,90 @@ fn types_header() -> impl Render {
 /// A synopsis of the module.
 fn module_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
     box_html! {
-        div(class="synopsis pl-7") {
+        div(class="pl-7") {
+            @ for p in synopsis.iter() {
+                : paragraph(p);
+            }
+        }
+    }
+}
+
+
+// === Functions ===
+
+/// Render documentation of a function.
+fn render_function_documentation(docs: &FunctionDocumentation) -> String {
+    let FunctionDocumentation { name, arguments, synopsis, .. } = docs;
+
+    let content = owned_html! {
+        : header(ICON_TYPE, function_header(name.name(), arguments_list(arguments)));
+        : function_synopsis(synopsis);
+        : header(ICON_EXAMPLES, examples_header());
+        @ for example in docs.examples.iter() {
+            div(class="bg-gray-200 rounded p-4") {
+                : Raw(get_example(example));
+            }
+        }
+    };
+    docs_content(content).into_string().unwrap()
+}
+
+/// A header for the function documentation.
+fn function_header<'a>(name: &'a str, arguments: impl Render + 'a) -> Box<dyn Render + 'a> {
+    box_html! {
+        span(class="text-2xl font-bold") {
+            span(class="text-type") { : name }
+            span(class="text-arguments") { : &arguments }
+        }
+    }
+}
+
+/// A synopsis of the function.
+fn function_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
+    box_html! {
+        div(class="pl-7") {
+            @ for p in synopsis.iter() {
+                : paragraph(p);
+            }
+        }
+    }
+}
+
+
+// === Locals ===
+
+/// Render documentation of a function.
+fn render_local_documentation(docs: &LocalDocumentation) -> String {
+    let LocalDocumentation { name, synopsis, return_type, .. } = docs;
+
+    let content = owned_html! {
+        : header(ICON_TYPE, local_header(name.name(), return_type.name()));
+        : local_synopsis(synopsis);
+        : header(ICON_EXAMPLES, examples_header());
+        @ for example in docs.examples.iter() {
+            div(class="bg-gray-200 rounded p-4") {
+                : Raw(get_example(example));
+            }
+        }
+    };
+    docs_content(content).into_string().unwrap()
+}
+
+/// A header for the local documentation.
+fn local_header<'a>(name: &'a str, return_type: &'a str) -> Box<dyn Render + 'a> {
+    box_html! {
+        span(class="text-2xl font-bold") {
+            span(class="text-type") { : name }
+            : " ";
+            span(class="text-arguments") { : return_type }
+        }
+    }
+}
+
+/// A synopsis of the local.
+fn local_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
+    box_html! {
+        div(class="pl-7") {
             @ for p in synopsis.iter() {
                 : paragraph(p);
             }

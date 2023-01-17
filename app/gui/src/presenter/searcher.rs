@@ -18,6 +18,7 @@ use crate::presenter::graph::ViewNodeId;
 use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 
 use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
@@ -267,6 +268,23 @@ impl Model {
         })
     }
 
+    fn documentation_of_component2(
+        &self,
+        id: view::component_browser::component_list_panel::grid::GroupEntryId,
+    ) -> EntryDocumentation {
+        let component = self.controller.provider().component_by_view_id(id);
+        if let Some(component) = component {
+            let id = component.id();
+            if let Some(id) = id {
+                self.controller.documentation_for_entry(id)
+            } else {
+                EntryDocumentation::default()
+            }
+        } else {
+            EntryDocumentation::default()
+        }
+    }
+
     fn documentation_of_component(
         &self,
         id: view::component_browser::component_list_panel::grid::GroupEntryId,
@@ -365,12 +383,20 @@ impl Searcher {
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
                     entry_hovered <- grid.hovered.map(|&s| s?.as_entry_id());
+                    // entry_docs <- all_with3(&action_list_changed,
+                    //     &entry_selected,
+                    //     &entry_hovered,
+                    //     f!([model](_, selected, hovered) {
+                    //         let entry = hovered.as_ref().unwrap_or(selected);
+                    //         model.documentation_of_component(*entry)
+                    //     })
+                    // );
                     entry_docs <- all_with3(&action_list_changed,
                         &entry_selected,
                         &entry_hovered,
                         f!([model](_, selected, hovered) {
                             let entry = hovered.as_ref().unwrap_or(selected);
-                            model.documentation_of_component(*entry)
+                            model.documentation_of_component2(*entry)
                         })
                     );
                     header_selected <- grid.active.filter_map(|element| {
@@ -382,7 +408,7 @@ impl Searcher {
                         }
                     });
                     header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
-                    documentation.frp.display_documentation <+ entry_docs;
+                    documentation.frp.display_docs <+ entry_docs;
                     documentation.frp.display_documentation <+ header_docs;
 
                     eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));

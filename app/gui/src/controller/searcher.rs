@@ -36,7 +36,8 @@ pub mod breadcrumbs;
 pub mod component;
 
 pub use action::Action;
-
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::entry::Id as EntryId;
 
 
 // =================
@@ -655,6 +656,10 @@ impl Searcher {
     /// Get the current component list.
     pub fn components(&self) -> component::List {
         self.data.borrow().components.clone_ref()
+    }
+
+    pub fn documentation_for_entry(&self, id: EntryId) -> EntryDocumentation {
+        self.database.documentation_for_entry(id)
     }
 
     /// Build a provider for this searcher.

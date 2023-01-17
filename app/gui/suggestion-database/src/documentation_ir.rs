@@ -28,7 +28,7 @@ use std::cmp::Ordering;
 // === EntryDocumentation ===
 
 /// The documentation of the specific entry.
-#[derive(Debug, PartialEq, From)]
+#[derive(Debug, PartialEq, From, Clone, CloneRef)]
 pub enum EntryDocumentation {
     /// No documentation available.
     Placeholder(Placeholder),
@@ -133,7 +133,7 @@ impl EntryDocumentation {
 // === Placeholder ===
 
 /// No documentation is available for the entry.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, CloneRef, Copy, PartialEq)]
 #[allow(missing_docs)]
 pub enum Placeholder {
     /// Documentation is empty.
@@ -256,10 +256,11 @@ impl ModuleDocumentation {
 #[derive(Debug, Clone, CloneRef, PartialEq)]
 #[allow(missing_docs)]
 pub struct FunctionDocumentation {
-    pub name:     Rc<QualifiedName>,
-    pub tags:     Tags,
-    pub synopsis: Synopsis,
-    pub examples: Examples,
+    pub name:      Rc<QualifiedName>,
+    pub arguments: Rc<Vec<Argument>>,
+    pub tags:      Tags,
+    pub synopsis:  Synopsis,
+    pub examples:  Examples,
 }
 
 impl FunctionDocumentation {
@@ -267,7 +268,13 @@ impl FunctionDocumentation {
     pub fn from_entry(entry: &Entry) -> Self {
         let FilteredDocSections { tags, synopsis, examples } =
             FilteredDocSections::new(entry.documentation.iter());
-        Self { name: entry.qualified_name().into(), tags, synopsis, examples }
+        Self {
+            name: entry.qualified_name().into(),
+            arguments: entry.arguments.clone().into(),
+            tags,
+            synopsis,
+            examples,
+        }
     }
 }
 
@@ -281,10 +288,11 @@ impl FunctionDocumentation {
 #[derive(Debug, Clone, CloneRef, PartialEq)]
 #[allow(missing_docs)]
 pub struct LocalDocumentation {
-    pub name:     Rc<QualifiedName>,
-    pub tags:     Tags,
-    pub synopsis: Synopsis,
-    pub examples: Examples,
+    pub name:        Rc<QualifiedName>,
+    pub tags:        Tags,
+    pub return_type: Rc<QualifiedName>,
+    pub synopsis:    Synopsis,
+    pub examples:    Examples,
 }
 
 impl LocalDocumentation {
@@ -292,7 +300,13 @@ impl LocalDocumentation {
     pub fn from_entry(entry: &Entry) -> Self {
         let FilteredDocSections { tags, synopsis, examples } =
             FilteredDocSections::new(entry.documentation.iter());
-        Self { name: entry.qualified_name().into(), tags, synopsis, examples }
+        Self {
+            name: entry.qualified_name().into(),
+            return_type: entry.return_type.clone().into(),
+            tags,
+            synopsis,
+            examples,
+        }
     }
 }
 
