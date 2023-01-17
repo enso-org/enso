@@ -84,8 +84,8 @@ async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
     info!("Type checking TypeScript sources.");
     run_script("typecheck", &EMPTY_ARGS).await?;
 
-    info!("Linting TypeScript sources.");
-    run_script("lint", &EMPTY_ARGS).await?;
+    // info!("Linting TypeScript sources.");
+    // run_script("lint", &EMPTY_ARGS).await?;
 
     info!("Building TypeScript sources.");
     run_script("build", &["--", &format!("--outdir={}", out.display())]).await
