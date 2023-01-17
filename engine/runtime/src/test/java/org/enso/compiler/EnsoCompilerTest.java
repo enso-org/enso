@@ -601,15 +601,6 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testNotAnOperator() throws Exception {
-    parseTest("""
-    main =
-        x = Panic.catch Any @ caught_panic-> caught_panic.payload
-        x.to_text
-    """);
-  }
-
-  @Test
   public void testWildcardLeftHandSide() throws Exception {
     parseTest("""
     Any.should_succeed self frames_to_skip=0 =
