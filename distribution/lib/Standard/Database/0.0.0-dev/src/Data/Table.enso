@@ -109,12 +109,12 @@ type Table
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
     get : Text | Integer -> Any -> Column
-    get self selector=0 ~if_missing=Nothing = case selector of
-        _ : Integer -> self.make_column (self.internal_columns.get selector if_missing)
-        _ : Text ->
-            internal_column = self.internal_columns.find if_missing=if_missing (p -> p.name == selector)
-            self.make_column internal_column
-        _ -> Error.throw (Type_Error.Error Text selector "selector")
+    get self selector=0 ~if_missing=Nothing =
+        internal_column = case selector of
+            _ : Integer -> self.internal_columns.get selector if_missing=Nothing
+            _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
+            _ -> Error.throw (Type_Error.Error Text selector "selector")
+        if internal_column.is_nothing then if_missing else self.make_column internal_column
 
     ## Returns the number of columns in the table.
     column_count : Integer

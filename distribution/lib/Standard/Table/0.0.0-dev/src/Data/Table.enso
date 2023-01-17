@@ -224,15 +224,12 @@ type Table
 
              example_at = Examples.inventory_table.get -1
     get : Text | Integer -> Any -> Column
-    get self selector=0 ~if_missing=Nothing = case selector of
-        _ : Integer ->
-            java_columns = Vector.from_polyglot_array self.java_table.getColumns
-            Column.Value (java_columns.get selector if_missing)
-        _ : Text ->
-            case self.java_table.getColumnByName selector of
-                Nothing -> if_missing
-                c -> Column.Value c
-        _ -> Error.throw (Type_Error.Error Text selector "selector")
+    get self selector=0 ~if_missing=Nothing =
+        java_column = case selector of
+            _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns
+            _ : Text -> self.java_table.getColumnByName selector
+            _ -> Error.throw (Type_Error.Error Text selector "selector")
+        if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## Returns the number of columns in the table.
     column_count : Integer
