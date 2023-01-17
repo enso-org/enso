@@ -114,7 +114,7 @@ type Table
         _ : Text ->
             internal_column = self.internal_columns.find if_missing=if_missing (p -> p.name == selector)
             self.make_column internal_column
-        _ -> Error.throw (Type_Error.Error (Text | Integer) selector "selector")
+        _ -> Error.throw (Type_Error.Error Text selector "selector")
 
     ## Returns the number of columns in the table.
     column_count : Integer

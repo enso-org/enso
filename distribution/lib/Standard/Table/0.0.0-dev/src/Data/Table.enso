@@ -232,7 +232,7 @@ type Table
             case self.java_table.getColumnByName selector of
                 Nothing -> if_missing
                 c -> Column.Value c
-        _ -> Error.throw (Type_Error.Error (Text | Integer) selector "selector")
+        _ -> Error.throw (Type_Error.Error Text selector "selector")
 
     ## Returns the number of columns in the table.
     column_count : Integer
