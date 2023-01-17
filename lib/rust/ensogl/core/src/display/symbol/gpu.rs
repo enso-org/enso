@@ -542,7 +542,7 @@ pub struct SymbolData {
     surface_dirty:      GeometryDirty,
     variables:          UniformScope,
     context:            RefCell<Option<Context>>,
-    bindings:           RefCell<Bindings>,
+    pub bindings:       RefCell<Bindings>,
     stats:              SymbolStats,
     is_hidden:          Rc<Cell<bool>>,
     global_instance_id: Buffer<i32>,
@@ -715,6 +715,7 @@ impl SymbolData {
             let uniform = uniform.unwrap_or_else(|| {
                 panic!("Internal error. Variable {} not found in program.", name)
             });
+            warn!("{}: About to init {:?} binding", self.id, uniform);
             match uniform {
                 AnyUniform::Prim(uniform) => self
                     .bindings

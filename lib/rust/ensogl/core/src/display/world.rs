@@ -28,6 +28,7 @@ use crate::system::gpu::shader;
 use crate::system::js;
 use crate::system::web;
 
+use crate::display::render::cache_shapes::CacheShapesPass;
 use enso_types::unit2::Duration;
 use web::prelude::Closure;
 use web::JsCast;
@@ -79,16 +80,22 @@ fn init_context() {
 
 
 
-// =====================
-// === Static Shapes ===
-// =====================
+// =========================
+// === Shape Definitions ===
+// =========================
 
-type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+pub struct CachedShapeDefinition {
+    pub size: Vector2<i32>,
+    pub cons: ShapeCons,
+}
 
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
     pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
+
+    pub static CACHED_SHAPES_DEFINITIONS: RefCell<Vec<CachedShapeDefinition>> = default();
 }
 
 
@@ -494,7 +501,8 @@ impl WorldData {
         let pipeline = render::Pipeline::new()
             .add(SymbolsRenderPass::new(logger, &self.default_scene.layers))
             .add(ScreenRenderPass::new())
-            .add(pixel_read_pass);
+            .add(pixel_read_pass)
+            .add(CacheShapesPass::new(&self.default_scene));
         self.default_scene.renderer.set_pipeline(pipeline);
     }
 

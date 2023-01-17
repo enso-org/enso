@@ -463,7 +463,8 @@ impl Renderer {
             render::Composer::new(&pipeline, context, &self.variables, width, height)
         });
         *self.composer.borrow_mut() = composer;
-        self.update_composer_pipeline();
+        // FIXME: probably unneeded.
+        // self.update_composer_pipeline();
     }
 
     /// Set the pipeline of this renderer.

@@ -909,3 +909,39 @@ macro_rules! _shape {
         }
     };
 }
+
+#[macro_export]
+macro_rules! cached_shape {
+    (
+        $width:literal x $height:literal;
+        $(type SystemData = $system_data:ident;)?
+        $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
+        // $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        // $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        // $(pointer_events = $pointer_events:tt;)?
+        () {$($body:tt)*}
+    ) => {
+        $crate::_shape! {
+            $(SystemData($system_data))?
+            $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
+            [_style] (){$($body)*}
+        }
+
+        mod cached_shape_system_definition {
+            use $crate::prelude::*;
+            use wasm_bindgen::prelude::*;
+            use super::shape_system_definition::*;
+
+            #[before_main]
+            pub fn register_cached_shape() {
+                $crate::display::world::CACHED_SHAPES_DEFINITIONS.with_borrow_mut(|shapes| {
+                    let cons: $crate::display::world::ShapeCons = Box::new(|| Box::new(View::new()));
+                    let size = Vector2($width, $height);
+                    shapes.push($crate::display::world::CachedShapeDefinition { cons, size });
+                });
+            }
+        }
+    };
+}
