@@ -78,6 +78,13 @@ public class InferredBuilder extends Builder {
     currentSize += count;
   }
 
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+    for (int i = 0; i < storage.size(); i++) {
+      append(storage.getItemBoxed(i));
+    }
+  }
+
   private void initBuilderFor(Object o) {
     int initialCapacity = Math.max(initialSize, currentSize);
     if (o instanceof Boolean) {

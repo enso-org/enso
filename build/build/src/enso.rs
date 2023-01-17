@@ -67,7 +67,7 @@ pub struct BuiltEnso {
 impl BuiltEnso {
     pub fn wrapper_script_path(&self) -> PathBuf {
         let filename = format!("enso{}", if TARGET_OS == OS::Windows { ".bat" } else { "" });
-        self.paths.engine.dir.join_iter(["bin", &filename])
+        self.paths.repo_root.built_distribution.enso_engine_triple.engine_package.bin.join(filename)
     }
 
     pub async fn run_benchmarks(&self, opt: BenchmarkOptions) -> Result {

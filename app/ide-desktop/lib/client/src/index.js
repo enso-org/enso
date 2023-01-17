@@ -256,6 +256,11 @@ optParser.options('skip-min-version-check', {
     type: 'boolean',
 })
 
+optParser.options('emit-user-timing-measurements', {
+    describe: 'Forward profiler data to the User Timing web API.',
+    type: 'boolean',
+})
+
 // === Parsing ===
 
 let args = optParser.parse()
@@ -574,6 +579,7 @@ function createWindow() {
         data_gathering: args.dataGathering,
         preferred_engine_version: args.preferredEngineVersion,
         enable_new_component_browser: args.enableNewComponentBrowser,
+        emit_user_timing_measurements: args.emitUserTimingMeasurements,
         node_labels: args.nodeLabels,
         verbose: args.verbose,
     }

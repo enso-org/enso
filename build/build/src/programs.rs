@@ -23,7 +23,7 @@ pub mod project_manager {
         }
     }
 
-    pub fn spawn_from(bundle: &crate::paths::generated::ProjectManager) -> Command {
+    pub fn spawn_from(bundle: &crate::paths::generated::ProjectManagerBundle) -> Command {
         let binary_path = bundle.bin.project_managerexe.as_path();
         let mut command = <ProjectManager as Program>::Command::new(binary_path);
         // We do this, because Project Manager runs until newline is input. We need to create a pipe

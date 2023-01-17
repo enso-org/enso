@@ -1,0 +1,3 @@
+## A value that marks the mode that allows column mismatches but reports them as
+   a problem.
+type Report_Unmatched

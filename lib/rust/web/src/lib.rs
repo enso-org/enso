@@ -58,6 +58,9 @@ pub mod prelude {
     pub use super::JsCast;
     pub use super::JsValue;
     pub use super::Object;
+    pub use enso_logging as logging;
+    pub use enso_logging::debug;
+    pub use enso_logging::warn;
     pub use enso_shapely::clone_ref::*;
     pub use std::cell::RefCell;
     pub use std::default::default;
@@ -65,9 +68,6 @@ pub mod prelude {
     pub use std::marker::PhantomData;
     pub use std::ops::Deref;
     pub use std::rc::Rc;
-    pub use tracing;
-    pub use tracing::debug;
-    pub use tracing::warn;
 }
 
 
@@ -253,8 +253,8 @@ macro_rules! ops {
             pub mod wasm {
                 use super::binding::wasm::*;
                 use super::wasm_traits::*;
-                pub use tracing;
-                pub use tracing::warn;
+                pub use enso_logging as logging;
+                pub use enso_logging::warn;
                 pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
@@ -266,8 +266,8 @@ macro_rules! ops {
             pub mod mock {
                 use super::binding::mock::*;
                 use super::mock_traits::*;
-                pub use tracing;
-                pub use tracing::warn;
+                pub use enso_logging as logging;
+                pub use enso_logging::warn;
                 pub use std::default::default;
                 /// Extensions to the [`$target`] type.
                 pub trait Trait $defs
@@ -475,7 +475,7 @@ ops! { WindowOps for Window
 
         fn cancel_animation_frame_or_warn(&self, id: i32) {
             self.cancel_animation_frame(id).unwrap_or_else(|err| {
-                tracing::error!("Error when canceling animation frame: {err:?}");
+                logging::error!("Error when canceling animation frame: {err:?}");
             });
         }
 
@@ -580,7 +580,7 @@ ops! { NodeOps for Node
         fn append_or_warn(&self, node: &Self) {
             let warn_msg: &str = &format!("Failed to append child {:?} to {:?}", node, self);
             if self.append_child(node).is_err() {
-                warn!(warn_msg)
+                warn!("{warn_msg}")
             };
         }
 
@@ -588,7 +588,7 @@ ops! { NodeOps for Node
             let warn_msg: &str = &format!("Failed to prepend child \"{:?}\" to \"{:?}\"", node, self);
             let first_c = self.first_child();
             if self.insert_before(node, first_c.as_ref()).is_err() {
-                warn!(warn_msg)
+                warn!("{warn_msg}")
             }
         }
 
@@ -596,7 +596,7 @@ ops! { NodeOps for Node
             let warn_msg: &str =
                 &format!("Failed to insert {:?} before {:?} in {:?}", node, ref_node, self);
             if self.insert_before(node, Some(ref_node)).is_err() {
-                warn!(warn_msg)
+                warn!("{warn_msg}")
             }
         }
 
@@ -604,7 +604,7 @@ ops! { NodeOps for Node
             if let Some(parent) = self.parent_node() {
                 let warn_msg: &str = &format!("Failed to remove {:?} from parent", self);
                 if parent.remove_child(self).is_err() {
-                    warn!(warn_msg)
+                    warn!("{warn_msg}")
                 }
             }
         }
@@ -612,7 +612,7 @@ ops! { NodeOps for Node
         fn remove_child_or_warn(&self, node: &Self) {
             let warn_msg: &str = &format!("Failed to remove child {:?} from {:?}", node, self);
             if self.remove_child(node).is_err() {
-                warn!(warn_msg)
+                warn!("{warn_msg}")
             }
         }
     }
@@ -636,7 +636,7 @@ ops! { ElementOps for Element
             let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
             let warn_msg: &str = &format!("Failed to set attribute {}", values);
             if self.set_attribute(name, value).is_err() {
-                warn!(warn_msg)
+                warn!("{warn_msg}")
             }
         }
     }
@@ -660,7 +660,7 @@ ops! { HtmlElementOps for HtmlElement
             let values = format!("\"{}\" = \"{}\" on \"{:?}\"", name, value, self);
             let warn_msg: &str = &format!("Failed to set style {}", values);
             if self.style().set_property(name, value).is_err() {
-                warn!(warn_msg);
+                warn!("{warn_msg}");
             }
         }
     }

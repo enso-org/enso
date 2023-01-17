@@ -430,7 +430,6 @@ mod tests {
 
     #[test]
     fn selecting_header() {
-        init_tracing(TRACE);
         let app = Application::new("root");
         let network = frp::Network::new("selecting_header");
         let grid_view = GridViewWithHeaders::<TestEntry, TestEntry>::new(&app);
@@ -465,7 +464,7 @@ mod tests {
         assert_eq!(selection_state(), vec![false, true, false]);
         assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -40.0));
 
-        tracing::debug!("About to go up");
+        debug!("About to go up");
         grid_view.set_viewport(viewport_with_no_pushed_header);
         assert_eq!(selection_state(), vec![false, true, false]);
         assert_eq!(grid_view.selection_highlight_frp().position.value(), Vector2(10.0, -30.0));
