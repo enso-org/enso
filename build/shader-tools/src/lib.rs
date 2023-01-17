@@ -1,3 +1,4 @@
+use ide_ci::define_env_var;
 pub use ide_ci::prelude;
 use ide_ci::program::command::Manipulator;
 
@@ -6,6 +7,11 @@ use prelude::*;
 pub const SPIRV_TOOLS_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
 
 pub mod cmake;
+
+define_env_var! {
+    ENSO_RELEASE_ID, octocrab::models::ReleaseId;
+}
+
 
 pub mod shaderc {
     use crate::prelude::*;
