@@ -58,8 +58,10 @@ impl EntryDocumentation {
                 }
                 Kind::Constructor => Self::constructor_docs(db, &entry)?,
                 Kind::Method => Self::method_docs(db, &entry)?,
-                Kind::Function => Placeholder::Function { name: ImString::new(&entry.name) }.into(),
-                Kind::Local => Placeholder::Local { name: ImString::new(&entry.name) }.into(),
+                Kind::Function =>
+                    Documentation::Function(FunctionDocumentation::from_entry(&entry).into()).into(),
+                Kind::Local =>
+                    Documentation::Local(LocalDocumentation::from_entry(&entry).into()).into(),
             },
             Err(_) => {
                 error!("No entry found for id: {id:?}");
@@ -131,17 +133,11 @@ impl EntryDocumentation {
 // === Placeholder ===
 
 /// No documentation is available for the entry.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[allow(missing_docs)]
 pub enum Placeholder {
     /// Documentation is empty.
     NoDocumentation,
-    /// We temporarily do not support documentation of the `Local` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Local { name: ImString },
-    /// We temporarily do not support documentation of the `Function` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Function { name: ImString },
 }
 
 // === Documentation ===
@@ -166,10 +162,10 @@ pub enum Documentation {
     },
     /// We temporarily do not support documentation of the `Local` entries because the language
     /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Function {},
+    Function(Rc<FunctionDocumentation>),
     /// We temporarily do not support documentation of the `Local` entries because the language
     /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Local {},
+    Local(Rc<LocalDocumentation>),
 }
 
 // =========================
@@ -249,6 +245,57 @@ impl ModuleDocumentation {
         })
     }
 }
+
+
+
+// =============================
+// === FunctionDocumentation ===
+// =============================
+
+/// Documentation of the [`EntryKind::Function`] entries.
+#[derive(Debug, Clone, CloneRef, PartialEq)]
+#[allow(missing_docs)]
+pub struct FunctionDocumentation {
+    pub name:     Rc<QualifiedName>,
+    pub tags:     Tags,
+    pub synopsis: Synopsis,
+    pub examples: Examples,
+}
+
+impl FunctionDocumentation {
+    /// Constructor.
+    pub fn from_entry(entry: &Entry) -> Self {
+        let FilteredDocSections { tags, synopsis, examples } =
+            FilteredDocSections::new(entry.documentation.iter());
+        Self { name: entry.qualified_name().into(), tags, synopsis, examples }
+    }
+}
+
+
+
+// ==========================
+// === LocalDocumentation ===
+// ==========================
+
+/// Documentation of the [`EntryKind::Local`] entries.
+#[derive(Debug, Clone, CloneRef, PartialEq)]
+#[allow(missing_docs)]
+pub struct LocalDocumentation {
+    pub name:     Rc<QualifiedName>,
+    pub tags:     Tags,
+    pub synopsis: Synopsis,
+    pub examples: Examples,
+}
+
+impl LocalDocumentation {
+    /// Constructor.
+    pub fn from_entry(entry: &Entry) -> Self {
+        let FilteredDocSections { tags, synopsis, examples } =
+            FilteredDocSections::new(entry.documentation.iter());
+        Self { name: entry.qualified_name().into(), tags, synopsis, examples }
+    }
+}
+
 
 // ============
 // === Tags ===

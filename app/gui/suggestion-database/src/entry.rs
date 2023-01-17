@@ -608,13 +608,14 @@ impl Entry {
             Type { documentation, documentation_html, documentation_sections, .. }
             | Constructor { documentation, documentation_html, documentation_sections, .. }
             | Method { documentation, documentation_html, documentation_sections, .. }
-            | Module { documentation, documentation_html, documentation_sections, .. } => {
+            | Module { documentation, documentation_html, documentation_sections, .. }
+            | Function { documentation, documentation_html, documentation_sections, .. }
+            | Local { documentation, documentation_html, documentation_sections, .. } => {
                 let documentation =
                     Self::make_html_docs(mem::take(documentation), mem::take(documentation_html));
                 let icon_name = find_icon_name_in_doc_sections(&*documentation_sections);
                 (documentation, icon_name, mem::take(documentation_sections))
             }
-            _ => (None, None, default()),
         };
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
@@ -697,9 +698,14 @@ impl Entry {
             return_type
                 .and_then(|m| Entry::apply_field_update("return_type", &mut self.return_type, m)),
             Entry::apply_opt_field_update(
-                "documentation_html",
+                "documentation",
                 &mut self.documentation_html,
-                m.documentation_html,
+                m.documentation,
+            ),
+            Entry::apply_field_update(
+                "documentation_sections",
+                &mut self.documentation,
+                m.documentation_sections,
             ),
             module.and_then(|m| Entry::apply_field_update("module", &mut self.defined_in, m)),
             self_type
