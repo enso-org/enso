@@ -268,8 +268,8 @@ mod test {
                 }
                 .unwrap();
                 let result_repr = result.repr();
-                assert_eq!(result_repr, self.expected, "Wrong answer for case {:?}", self);
-                assert_eq!(ast_id, result.id, "Changed AST id in case {:?}", self);
+                assert_eq!(result_repr, self.expected, "Wrong answer for case {self:?}");
+                assert_eq!(ast_id, result.id, "Changed AST id in case {self:?}");
             }
         }
 
@@ -351,9 +351,7 @@ mod test {
                     assert_eq!(
                         node.is_action_available(*action),
                         expected.contains(action),
-                        "Availability mismatch for action {:?} in case {:?}",
-                        action,
-                        self
+                        "Availability mismatch for action {action:?} in case {self:?}"
                     )
                 }
             }

@@ -672,7 +672,7 @@ mod test {
         for id_map_entry in id_map.vec {
             let (span, id) = id_map_entry;
             let node = tree.root_ref().find_by_span(&span);
-            assert!(node.is_some(), "Node with span {} not found", span);
+            assert!(node.is_some(), "Node with span {span} not found");
             assert_eq!(node.unwrap().node.ast_id, Some(id));
         }
 

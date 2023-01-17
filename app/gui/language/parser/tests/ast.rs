@@ -36,10 +36,10 @@ pub fn to_assignment_test() {
     let expected_not_assignments = vec!["= 5", "a=", "=", "foo", "a->b", "a+b"];
 
     for code in expected_assignments {
-        assert!(is_assignment(code), "{} expected to be recognized as assignment", code);
+        assert!(is_assignment(code), "{code} expected to be recognized as assignment");
     }
     for code in expected_not_assignments {
-        assert!(!is_assignment(code), "{} expected to not be recognized as assignment", code);
+        assert!(!is_assignment(code), "{code} expected to not be recognized as assignment");
     }
 }
 

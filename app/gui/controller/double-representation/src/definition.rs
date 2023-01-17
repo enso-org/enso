@@ -736,7 +736,7 @@ mod tests {
             let (crumb,) = location.crumbs.expect_tuple();
             match crumb {
                 ast::crumbs::Crumb::Module(m) => assert_eq!(m.line_index, expected_line_index),
-                _ => panic!("Expected module crumb, got: {:?}.", crumb),
+                _ => panic!("Expected module crumb, got: {crumb:?}."),
             }
         }
     }

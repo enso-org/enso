@@ -26,7 +26,7 @@ fn get_all_crates() -> Vec<PathBuf> {
     let valid_paths = all_paths.filter_map(|path| match path {
         Ok(path) => Some(path.parent().unwrap().to_owned()),
         Err(err) => {
-            println!("cargo:warning={}", err);
+            println!("cargo:warning={err}");
             None
         }
     });
@@ -44,7 +44,7 @@ fn has_wasm_tests(member: &Path) -> bool {
         // We go over selected subdirectories only to avoid entering into sources of other crates
         // that are nested within this crate subtree.
         for subdir in SOURCE_SUBDIRECTORIES {
-            let pattern = format!("{}/{}/**/*.rs", member, subdir);
+            let pattern = format!("{member}/{subdir}/**/*.rs");
             for entry in glob::glob(&pattern).unwrap() {
                 let contents = std::fs::read_to_string(entry.unwrap()).unwrap();
                 if contents.lines().any(is_wasm_test_attribute) {
@@ -97,23 +97,23 @@ fn main() {
     for member in all_members {
         let member_str = member.to_string_lossy();
         if blacklisted(&member) {
-            println!("Skipping blacklisted crate {}", member_str);
+            println!("Skipping blacklisted crate {member_str}");
         } else if is_proc_macro_crate(&member) {
-            println!("Skipping proc-macro crate {}", member_str);
+            println!("Skipping proc-macro crate {member_str}");
         } else if has_wasm_tests(&member) {
-            println!("Running tests for {}", member_str);
+            println!("Running tests for {member_str}");
             let mut command = std::process::Command::new("wasm-pack");
             command.arg("test").args(&wasm_pack_args).arg(&member);
-            println!("{:?}", command);
+            println!("{command:?}");
             let status = command.status().unwrap();
             if !status.success() {
                 panic!("Process for {} failed!{}", member_str, match status.code() {
-                    Some(code) => format!(" Code: {}", code),
+                    Some(code) => format!(" Code: {code}"),
                     None => String::new(),
                 });
             }
         } else {
-            println!("No wasm tests in {}", member_str);
+            println!("No wasm tests in {member_str}");
         }
     }
 }

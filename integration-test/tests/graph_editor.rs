@@ -57,13 +57,11 @@ async fn debug_mode() {
     let message = expect_popup_message.expect();
     assert!(
         message.contains("Debug Mode enabled"),
-        "Message \"{}\" does not mention enabling Debug mode",
-        message
+        "Message \"{message}\" does not mention enabling Debug mode"
     );
     assert!(
         message.contains(enso_gui::view::debug_mode_popup::DEBUG_MODE_SHORTCUT),
-        "Message \"{}\" does not inform about shortcut to turn mode off",
-        message
+        "Message \"{message}\" does not inform about shortcut to turn mode off"
     );
     assert!(graph_editor.debug_mode.value());
 
@@ -75,8 +73,7 @@ async fn debug_mode() {
     let message = expect_popup_message.expect();
     assert!(
         message.contains("Debug Mode disabled"),
-        "Message \"{}\" does not mention disabling of debug mode",
-        message
+        "Message \"{message}\" does not mention disabling of debug mode"
     );
     assert!(!graph_editor.debug_mode.value());
 }

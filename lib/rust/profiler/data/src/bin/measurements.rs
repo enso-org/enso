@@ -48,7 +48,7 @@ fn print_measurement<Metadata: std::fmt::Display>(
         indent.push_str("  ");
     }
     println!("{}{}", indent, measurement.label);
-    print!("{}", indent);
+    print!("{indent}");
     print!("  {:.1}", measurement.created.into_ms());
     for active in &measurement.intervals {
         let interval = &profile[*active];
@@ -73,7 +73,7 @@ fn print_measurement<Metadata: std::fmt::Display>(
 fn fmt_interval(interval: profiler_data::Interval) -> String {
     let start = interval.start.into_ms();
     let end = interval.end.map(|x| format!("{:.1}", x.into_ms())).unwrap_or_default();
-    format!("{:.1}-{}", start, end)
+    format!("{start:.1}-{end}")
 }
 
 

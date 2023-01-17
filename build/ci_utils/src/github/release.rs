@@ -186,7 +186,7 @@ mod tests {
         dbg!(&release);
 
         let mut header_map = HeaderMap::new();
-        header_map.append(reqwest::header::AUTHORIZATION, format!("Bearer {}", pat).parse()?);
+        header_map.append(reqwest::header::AUTHORIZATION, format!("Bearer {pat}").parse()?);
         let client = reqwest::Client::builder()
             .user_agent("enso-build")
             .default_headers(header_map)

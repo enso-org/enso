@@ -267,7 +267,7 @@ mod test {
             let result = id::OrganizationId::from_str(id_str);
             let result = result.map(|v| v.to_string());
             let result = result.map_err(|e| e.to_string());
-            let debug_str = format!("{:?}", result);
+            let debug_str = format!("{result:?}");
             assert_eq!(debug_str, expected_str);
         }
 
@@ -281,7 +281,7 @@ mod test {
         fn check(id_str: &str, expected_str: &str) {
             let id = id::OrganizationId::from_str(id_str).unwrap();
             let result = serde_json::to_string(&id);
-            let debug_str = format!("{:?}", result);
+            let debug_str = format!("{result:?}");
             assert_eq!(debug_str, expected_str);
         }
 
@@ -293,7 +293,7 @@ mod test {
         fn check(id_str: &str, expected_str: &str) {
             let result = serde_json::from_str::<id::OrganizationId>(id_str);
             let result = result.map(|v| v.to_string());
-            let debug_str = format!("{:?}", result);
+            let debug_str = format!("{result:?}");
             assert_eq!(debug_str, expected_str);
         }
 

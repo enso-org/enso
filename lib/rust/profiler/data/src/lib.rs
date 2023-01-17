@@ -660,7 +660,7 @@ mod tests {
                 assert_eq!(errors.len(), 1);
                 with_missing_data
             }
-            other => panic!("Expected RecoverableFormatError, found: {:?}", other),
+            other => panic!("Expected RecoverableFormatError, found: {other:?}"),
         };
         assert_eq!(root.root_interval().metadata.len(), 1);
         assert_eq!(root.root_interval().metadata[0].data, MyMetadata::MyDataA(MyDataA(23)));

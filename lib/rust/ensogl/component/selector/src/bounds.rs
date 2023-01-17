@@ -276,7 +276,7 @@ mod tests {
     fn test_value_in_bounds() {
         let test = |start, end, value, expected| {
             let result = value_in_bounds(value, Bounds::new(start, end));
-            assert_eq!(result, expected, "Testing whether {} in ]{},{}[", value, start, end)
+            assert_eq!(result, expected, "Testing whether {value} in ]{start},{end}[")
         };
 
         test(0.0, 1.0, 0.0, true);
@@ -305,8 +305,7 @@ mod tests {
             let result = bounds_in_bounds(Bounds::new(start1, start2), Bounds::new(start2, end2));
             assert_eq!(
                 result, expected,
-                "Testing whether ]{},{}[ in ]{},{}[",
-                start1, end1, start2, end2
+                "Testing whether ]{start1},{end1}[ in ]{start2},{end2}["
             );
         };
 

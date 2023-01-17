@@ -19,7 +19,7 @@ fn no_doc_found() {
     let parser = parser_scala::DocParser::new_or_panic();
     let gen_code = parser.generate_html_docs(program).unwrap();
     // gen_code should be empty.
-    assert_eq!(gen_code.len(), 22, "Generated length differs from the expected\"{}\"", gen_code);
+    assert_eq!(gen_code.len(), 22, "Generated length differs from the expected\"{gen_code}\"");
 }
 
 #[wasm_bindgen_test]
