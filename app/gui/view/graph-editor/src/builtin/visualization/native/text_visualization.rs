@@ -444,9 +444,9 @@ impl<T> display::Object for TextGrid<T> {
 
 
 
-// =================================
-// === Text Processing Utilities ===
-// =================================
+// ========================
+// === Font Measurement ===
+// ========================
 
 // Return the width of a character in the default monospaced font defined in `FONT_NAME`.
 fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
