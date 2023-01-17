@@ -16,11 +16,12 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import org.enso.interpreter.dsl.AcceptsError;
-import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -66,7 +67,7 @@ public abstract class HashCodeAnyNode extends Node {
 
   @Specialization
   long hashCodeForLong(long l) {
-    return l;
+    return Long.hashCode(l);
   }
 
   @Specialization
@@ -80,14 +81,32 @@ public abstract class HashCodeAnyNode extends Node {
   }
 
   @Specialization
+  @TruffleBoundary
   long hashCodeForDouble(double d) {
-    return d % 1.0 == 0.0 ? (int) d : Double.hashCode(d);
+    if (d % 1.0 != 0.0) {
+      return Double.hashCode(d);
+    } else {
+      long longValue = Double.valueOf(d).longValue();
+      if (BigIntegerOps.fitsInLong(d)) {
+        return Long.hashCode(longValue);
+      } else {
+        try {
+          return BigDecimal.valueOf(d).toBigIntegerExact().hashCode();
+        } catch (ArithmeticException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
   }
 
   @Specialization
   @TruffleBoundary
   long hashCodeForBigInteger(EnsoBigInteger bigInteger) {
-    return bigInteger.getValue().hashCode();
+    if (BigIntegerOps.fitsInLong(bigInteger.getValue())) {
+      return Long.hashCode(bigInteger.longValue());
+    } else {
+      return bigInteger.getValue().hashCode();
+    }
   }
 
   @Specialization

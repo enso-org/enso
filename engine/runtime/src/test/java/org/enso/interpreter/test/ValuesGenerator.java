@@ -248,7 +248,9 @@ class ValuesGenerator {
       fac s n = if n <= 1 then s else
           @Tail_Call fac n*s n-1
       """, "fac 1 100").type());
-
+      collect.add(v(null, "", "123 * 10^40").type());
+      collect.add(v(null, "", "123 * 10^40 + 0.0").type());
+      collect.add(v(null, "", "123 * 10^40 + 1.0").type());
     }
 
     if (languages.contains(Language.JAVA)) {
