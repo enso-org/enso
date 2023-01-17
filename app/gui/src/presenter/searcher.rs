@@ -364,7 +364,6 @@ impl Searcher {
                         let controller_provider = model.controller.provider();
                         let top_section_count = model.controller.provider().top_section_count();
                         navigator.set_top_section_count.emit(top_section_count);
-                        grid.set_top_section_count.emit(top_section_count);
                         let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });

@@ -162,4 +162,6 @@ pub struct Info {
     pub groups:                  Vec<Group>,
     /// A number of entries in Local Scope section.
     pub local_scope_entry_count: usize,
+    /// The number of namespace sections that are available.
+    pub namespace_section_count: usize,
 }

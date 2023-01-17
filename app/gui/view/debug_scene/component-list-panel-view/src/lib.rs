@@ -125,11 +125,13 @@ const GROUPS: &[grid::content::Group] = &[
 ];
 
 const LOCAL_SCOPE_GROUP_SIZE: usize = 1024;
+const NAMESPACE_SECTION_COUNT: usize = 1;
 
 fn content_info() -> grid::content::Info {
     grid::content::Info {
         groups:                  GROUPS_AS_IN_DESIGN.into(),
         local_scope_entry_count: LOCAL_SCOPE_GROUP_SIZE,
+        namespace_section_count: NAMESPACE_SECTION_COUNT,
     }
 }
 

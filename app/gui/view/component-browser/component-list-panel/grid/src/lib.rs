@@ -145,7 +145,6 @@ ensogl_core::define_endpoints_2! {
         model_for_entry(GroupEntryId, EntryModel),
         switch_section(SectionId),
         switch_section_no_animation(SectionId),
-        set_top_section_count(usize),
         accept_suggestion(),
         jump_group_up(),
         jump_group_down(),
@@ -474,8 +473,8 @@ impl Model {
         }
     }
 
-    fn entry_to_select_after_reset(&self, sections_count: usize) -> Option<(Row, Col)> {
-        let top_sections = (0..sections_count).into_iter().map(SectionId::Namespace);
+    fn entry_to_select_after_reset(&self, info: &content::Info) -> Option<(Row, Col)> {
+        let top_sections = (0..info.namespace_section_count).into_iter().map(SectionId::Namespace);
         let sections = iter::once(SectionId::Popular)
             .chain(top_sections)
             .chain(iter::once(SectionId::LocalScope))
@@ -696,9 +695,8 @@ impl component::Frp<Model> for Frp {
                 &style.update,
                 f!((section, style) model.navigation_scroll_margins(*section, style))
             );
-            top_section_count_on_reset <- input.set_top_section_count.sample(&input.reset);
-            select_after_reset <- top_section_count_on_reset.map(
-                f!((count) model.entry_to_select_after_reset(*count))
+            select_after_reset <- input.reset.map(
+                f!((info) model.entry_to_select_after_reset(info))
             );
             grid_extra_scroll_frp.select_and_jump_to_entry <+ select_after_reset.filter_map(|e| *e);
             grid.select_entry <+ select_after_reset.filter(|e| e.is_none()).constant(None);
