@@ -205,9 +205,8 @@ impl Module {
         let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
-
         let source = parser.parse_with_metadata(opened.content)?;
-        self.model.set_content(source.clone(), NotificationKind::Reloaded{ summary })
+        self.model.set_content(source, NotificationKind::Reloaded{ summary })
     }
 }
 
