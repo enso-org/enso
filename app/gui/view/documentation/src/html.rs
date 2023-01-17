@@ -85,7 +85,9 @@ fn render_type_documentation(type_docs: &TypeDocumentation) -> String {
         ul(class="list-disc list-inside") {
             @ for method in methods.iter() {
                 li(class="text-base") {
-                    : method.name.name()
+                    : method.name.name();
+                    : arguments_list(&method.arguments);
+                    : function_docs(method);
                 }
             }
         }
@@ -136,17 +138,17 @@ fn type_synopsis<'a>(
                         : method.name.name();
                         : arguments_list(&method.arguments);
                     }
-                    : constructor_docs(method);
+                    : function_docs(method);
                 }
             }
         }
     }
 }
 
-/// Documentation of a single constructor. If the first [`DocSection`] is of type
+/// Documentation of a function. If the first [`DocSection`] is of type
 /// [`DocSection::Paragraph`], it is rendered on the first line, after the list of arguments. All
 /// other sections are rendered as separate paragraphs below.
-fn constructor_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
+fn function_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
     let (first, rest) = match &constructor.synopsis.as_ref()[..] {
         [DocSection::Paragraph { body }, rest @ ..] => (Some(body), rest),
         [_, rest @ ..] => (None, rest),
@@ -191,13 +193,34 @@ fn render_module_documentation(module_docs: &ModuleDocumentation) -> String {
         ul(class="list-disc list-inside") {
             @ for method in methods.iter() {
                 li(class="text-base") {
-                    : method.name.name()
+                    : method.name.name();
+                    : arguments_list(&method.arguments);
+                    : function_docs(method);
+                    @ for example in method.examples.iter() {
+                        div(class="bg-gray-200 rounded p-4") {
+                            : Raw(get_example(example));
+                        }
+                    }
                 }
             }
         }
         : header(ICON_EXAMPLES, examples_header());
+        @ for example in module_docs.examples.iter() {
+            div(class="bg-gray-200 rounded p-4") {
+                : Raw(get_example(example));
+            }
+        }
     };
     docs_content(content).into_string().unwrap()
+}
+
+fn get_example(doc_section: &DocSection) -> String {
+    match doc_section {
+        DocSection::Marked { mark: Mark::Example, body, .. } => body
+            .replace("<pre>", "<div class=\"whitespace-pre overflow-x-auto py-2\">")
+            .replace("</pre>", "</div>"),
+        _ => String::from("Invalid example"),
+    }
 }
 
 /// A header for the module documentation.

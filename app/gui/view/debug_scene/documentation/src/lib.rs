@@ -96,7 +96,16 @@ fn database() -> SuggestionDatabase {
                 #[with_doc_section(doc_section!("Documentation for the is_some() method."))]
                 #[with_doc_section(doc_section!(! "Important", "This method is important."))]
                 fn is_some() -> Standard.Base.Boolean;
+
+                #[with_doc_section(doc_section!("Documentation for the Maybe.map() method."))]
+                fn map (f) -> Standard.Base.Maybe;
             }
+
+            #[with_doc_section(doc_section!("Documentation for the foo method."))]
+            fn foo(a: Standard.Base.Maybe) -> Standard.Base.Boolean;
+
+            #[with_doc_section(doc_section!(> "Example", "Get the names of all of the items from the shop inventory. <pre><code>import Standard.Examples</code><br /><code>example_at = Examples.inventory_table.at &quot;item_name&quot;</code><br /></pre>"))]
+            fn at(self, key) -> Standard.Base.Maybe;
         }
     }
 }
