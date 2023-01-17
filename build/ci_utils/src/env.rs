@@ -101,7 +101,7 @@ pub fn expect_var_os(name: impl AsRef<OsStr>) -> Result<OsString> {
         .with_context(|| format!("Missing environment variable {}.", name.to_string_lossy()))
 }
 
-pub fn prepend_to_path(path: impl Into<PathBuf>) -> Result {
+pub fn prepend_to_path(path: impl AsRef<Path>) -> Result {
     known::PATH.prepend(path)
 }
 

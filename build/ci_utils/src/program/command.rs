@@ -451,7 +451,7 @@ pub fn spawn_log_processor(
 ) -> JoinHandle<Result> {
     tokio::task::spawn(
         async move {
-            info!("{prefix} <START>");
+            trace!("{prefix} <START>");
             let bufread = BufReader::new(out);
             let mut lines = bufread.split(b'\n');
             while let Some(line_bytes) = lines.next_segment().await? {
@@ -470,7 +470,7 @@ pub fn spawn_log_processor(
                     }
                 }
             }
-            info!("{prefix} <ENDUT>");
+            trace!("{prefix} <ENDUT>");
             Result::Ok(())
         }
         .inspect_err(|e| error!("Fatal error while processing process output: {e}")),
