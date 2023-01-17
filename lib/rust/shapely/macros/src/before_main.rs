@@ -46,7 +46,7 @@ pub fn run(
     let name = format!("before_main_entry_point_{priority}_{}", unique_name());
     input_fn.sig.ident = quote::format_ident!("{name}");
     let output = quote! {
-        #[wasm_bindgen]
+        #[wasm_bindgen::prelude::wasm_bindgen]
         #input_fn
     };
     output.into()

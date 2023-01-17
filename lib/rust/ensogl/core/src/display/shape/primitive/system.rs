@@ -442,11 +442,14 @@ impl ShapeSystemModel {
         if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
             .with_borrow(|map| map.get(*self.definition_path).cloned())
         {
-            self.material
-                .borrow_mut()
-                .set_code(crate::display::shader::builder::CodeTemplate::new("", shader.fragment, ""));
+            self.material.borrow_mut().set_code(
+                crate::display::shader::builder::CodeTemplate::new("", shader.fragment, ""),
+            );
         } else {
-            warn!("No precompiled shader found for '{}'. This will affect app performance.", *self.definition_path);
+            warn!(
+                "No precompiled shader found for '{}'. This will affect app performance.",
+                *self.definition_path
+            );
             if !self.do_not_use_shape_definition.get() {
                 let code =
                     shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);
@@ -537,31 +540,6 @@ where
 /// Defines a new shape system. This is the macro that you want to use to define new shapes. The
 /// shapes will be automatically managed in a highly efficient manner by the [`ShapeSystem`].
 #[macro_export]
-macro_rules! shape2 {
-    (
-        $(type SystemData = $system_data:ident;)?
-        $(type ShapeData = $shape_data:ident;)?
-        $(flavor = $flavor:path;)?
-        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        $(pointer_events = $pointer_events:tt;)?
-        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
-    ) => {
-        $crate::_shape2! {
-            $(SystemData($system_data))?
-            $(ShapeData($shape_data))?
-            $(flavor = [$flavor];)?
-            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
-            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
-            $(pointer_events = $pointer_events;)?
-            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
-        }
-    };
-}
-
-/// Defines a new shape system. This is the macro that you want to use to define new shapes. The
-/// shapes will be automatically managed in a highly efficient manner by the [`ShapeSystem`].
-#[macro_export]
 macro_rules! shape {
     (
         $(type SystemData = $system_data:ident;)?
@@ -584,9 +562,34 @@ macro_rules! shape {
     };
 }
 
+/// Defines a new shape system. This is the macro that you want to use to define new shapes. The
+/// shapes will be automatically managed in a highly efficient manner by the [`ShapeSystem`].
+#[macro_export]
+macro_rules! shape_old {
+    (
+        $(type SystemData = $system_data:ident;)?
+        $(type ShapeData = $shape_data:ident;)?
+        $(flavor = $flavor:path;)?
+        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
+        ($style:ident : Style $(,$gpu_param : ident : $gpu_param_type : ty)* $(,)?) {$($body:tt)*}
+    ) => {
+        $crate::_shape_old! {
+            $(SystemData($system_data))?
+            $(ShapeData($shape_data))?
+            $(flavor = [$flavor];)?
+            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
+            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
+            [$style] ($($gpu_param : $gpu_param_type),*){$($body)*}
+        }
+    };
+}
+
 /// Internal helper for the [`shape`] macro.
 #[macro_export]
-macro_rules! _shape {
+macro_rules! _shape_old {
     (
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
@@ -741,7 +744,7 @@ macro_rules! _shape {
 
 /// Internal helper for the [`shape`] macro.
 #[macro_export]
-macro_rules! _shape2 {
+macro_rules! _shape {
     (
         $(SystemData($system_data:ident))?
         $(ShapeData($shape_data:ident))?
@@ -862,8 +865,8 @@ macro_rules! _shape2 {
 
             #[before_main]
             pub fn register_shape() {
-                $crate::display::world::STATIC_SHAPES.with_borrow_mut(|shapes| {
-                    shapes.push(Box::new(|| Box::new(View::new())));
+                $crate::display::world::STATIC_SHAPES.with(|shapes| {
+                    shapes.borrow_mut().push(Box::new(|| Box::new(View::new())));
                 });
             }
 

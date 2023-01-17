@@ -66,14 +66,14 @@ pub fn derive(
             let block = &f.block;
             let output = quote! {
                 #(#attrs)*
-                #[wasm_bindgen]
+                #[wasm_bindgen::prelude::wasm_bindgen]
                 pub #fn_sig {
                     init_global();
                     #block
                 }
 
                 /// Docs for the entry point, exposed to WASM.
-                #[wasm_bindgen]
+                #[wasm_bindgen::prelude::wasm_bindgen]
                 pub fn #docs_fn_name() -> String {
                     #docs.to_string()
                 }

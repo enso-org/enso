@@ -136,7 +136,7 @@ impl Style {
 /// Canvas shape definition.
 pub mod shape {
     use super::*;
-    crate::shape! {
+    crate::shape_old! {
         pointer_events = false;
         ( style  : Style
         , press  : f32

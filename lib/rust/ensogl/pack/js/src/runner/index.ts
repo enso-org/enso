@@ -198,7 +198,8 @@ export class App {
             /* eslint @typescript-eslint/no-implied-eval: "off" */
             /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
             const snippetsFn: any = Function(
-                `const module = {}
+                `const __dirname = 'undefined_dirname'
+                 const module = {}
                  ${mainJs}
                  module.exports.init = pkg_default
                  return module.exports`

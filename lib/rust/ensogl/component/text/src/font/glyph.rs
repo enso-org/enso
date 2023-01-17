@@ -161,7 +161,7 @@ impl ShapeData {
 
 mod glyph_shape {
     use super::*;
-    ensogl_core::shape! {
+    ensogl_core::shape_old! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
         flavor = ShapeData::flavor;
