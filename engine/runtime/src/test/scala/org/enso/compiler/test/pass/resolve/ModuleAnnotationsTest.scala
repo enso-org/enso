@@ -164,7 +164,7 @@ class ModuleAnnotationsTest extends CompilerTest {
         """type Foo
           |    Foo
           |
-          |    @a
+          |    @a expr
           |    my_method a = a
           |""".stripMargin.preprocessModule.resolve
 

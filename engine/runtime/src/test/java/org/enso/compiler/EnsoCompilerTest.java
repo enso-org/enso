@@ -1241,40 +1241,6 @@ public class EnsoCompilerTest {
     equivalenceTest("a = x", "a = SKIP FREEZE x.f y");
   }
 
-  @Test
-  public void testModuleAnnotation1() throws Exception {
-    var ir = compile("""
-    @a (x y)
-    fn a = a
-    """);
-    System.out.println("===");
-    System.out.println(ir);
-  }
-
-  @Test
-  public void testModuleAnnotation2() throws Exception {
-    var ir = compile("""
-    type Foo
-        Foo
-
-        @a expr
-        fn a = a
-    """);
-    System.out.println("===");
-    System.out.println(ir);
-  }
-
-  @Test
-  public void testModuleAnnotation3() throws Exception {
-    var ir = compile("""
-    type Foo
-        @x expr
-        Foo x
-    """);
-    System.out.println("===");
-    System.out.println(ir);
-  }
-
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {

@@ -1150,7 +1150,7 @@ object IR {
           /** @inheritdoc */
           override def toString: String =
             s"""
-            |IR.Module.Scope.Definition.Atom(
+            |IR.Module.Scope.Definition.Data(
             |name = $name,
             |arguments = $arguments,
             |location = $location,
@@ -4529,7 +4529,7 @@ object IR {
       /** @inheritdoc */
       override def toString: String =
         s"""
-        |IR.Function.Sugar(
+        |IR.Function.Binding(
         |name = $name,
         |arguments = $arguments,
         |body = $body,
