@@ -16,7 +16,7 @@ pub mod fmt;
 
 /// Extra flags that Cargo invokes rustc with.
 ///
-/// See: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads
+/// See: <https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-reads>
 pub const CARGO_ENCODED_RUSTFLAGS: Separated =
     Separated { separator: "\x1F", name: "CARGO_ENCODED_RUSTFLAGS" };
 

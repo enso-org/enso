@@ -10,6 +10,7 @@ class SerializedExceptionSpec
     extends AnyWordSpec
     with Matchers
     with OptionValues {
+
   "SerializedException" should {
     "serialize and deserialize with nested causes" in {
       val cause = SerializedException(
@@ -25,13 +26,23 @@ class SerializedExceptionSpec
           SerializedException.TraceElement("e2", "loc2"),
           SerializedException.TraceElement("e3", "loc3")
         ),
-        cause = cause
+        cause
       )
 
       exception.asJson
         .as[SerializedException]
         .toOption
         .value shouldEqual exception
+    }
+
+    "be created from NullPointerException" in {
+      val exception = new NullPointerException()
+      val result    = SerializedException.fromException(exception)
+
+      result.name shouldEqual exception.getClass.getName
+      result.message shouldEqual None
+      result.cause shouldEqual None
+      result.stackTrace shouldBe Symbol("nonEmpty")
     }
   }
 }

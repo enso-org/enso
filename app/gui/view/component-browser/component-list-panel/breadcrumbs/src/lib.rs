@@ -261,7 +261,7 @@ impl Model {
             let text: &ImString = entry.as_ref();
             entry::Model::Text(text.clone_ref())
         } else {
-            tracing::error!("Requested entry is missing in the breadcrumbs ({col})");
+            error!("Requested entry is missing in the breadcrumbs ({col})");
             entry::Model::default()
         }
     }

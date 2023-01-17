@@ -241,7 +241,7 @@ type Map
              import Standard.Examples
 
              example_contains = Examples.map.contains_key 2
-    contains_key : Any -> Any
+    contains_key : Any -> Boolean
     contains_key self key =
         go map = case map of
             Map.Tip -> False

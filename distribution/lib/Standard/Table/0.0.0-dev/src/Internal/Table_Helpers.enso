@@ -11,11 +11,12 @@ import project.Data.Position.Position
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
+import project.Data.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch
 
 polyglot java import java.util.HashSet
 
@@ -631,3 +632,26 @@ filter_blank_rows table when_any treat_nans_as_blank =
 is_table obj =
     known_types = ["Standard.Table.Data.Table.Table", "Standard.Database.Data.Table.Table"]
     known_types.contains (Meta.get_qualified_type_name obj)
+
+## PRIVATE
+   A helper method that resolves what should be the result type of a particular
+   column set based on the union settings.
+unify_result_type_for_union column_set all_tables allow_type_widening problem_builder =
+    columns = column_set.resolve_columns all_tables
+    case allow_type_widening of
+        True ->
+            types = columns.filter Filter_Condition.Not_Nothing . map .value_type
+            common_type = Value_Type.find_common_type types strict=True
+            if common_type.is_nothing then
+                problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
+            common_type
+        False ->
+            first_column = columns.find (c-> c.is_nothing.not)
+            first_type = first_column.value_type
+            if first_type == Value_Type.Mixed then Value_Type.Mixed else
+                first_wrong_column = columns.find if_missing=Nothing col->
+                    col.is_nothing.not && col.value_type != first_type
+                if first_wrong_column.is_nothing then first_type else
+                    got_type = first_wrong_column.value_type
+                    problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name first_type got_type)
+                    Nothing
