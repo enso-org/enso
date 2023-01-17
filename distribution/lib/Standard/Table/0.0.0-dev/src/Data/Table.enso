@@ -226,7 +226,7 @@ type Table
     get : Text | Integer -> Any -> Column
     get self selector=0 ~if_missing=Nothing =
         java_column = case selector of
-            _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns
+            _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
             _ -> Error.throw (Type_Error.Error Text selector "selector")
         if java_column.is_nothing then if_missing else Column.Value java_column
