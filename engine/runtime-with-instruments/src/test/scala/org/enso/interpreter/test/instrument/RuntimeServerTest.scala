@@ -3274,7 +3274,7 @@ class RuntimeServerTest
       """from Standard.Base import all
         |
         |main =
-        |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+        |    x = Panic.catch_primitive ` .convert_to_dataflow_error
         |    IO.println x
         |    IO.println (x.catch Any .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
@@ -3316,7 +3316,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Unrecognized token.",
+              "Unexpected expression.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
             )
@@ -3326,8 +3326,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
-      "(Syntax_Error.Error 'Unrecognized token.')"
+      "(Error: (Syntax_Error.Error 'Unexpected expression.'))",
+      "(Syntax_Error.Error 'Unexpected expression.')"
     )
   }
 
