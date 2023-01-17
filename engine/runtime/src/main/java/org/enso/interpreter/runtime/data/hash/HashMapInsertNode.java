@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -29,6 +30,7 @@ public abstract class HashMapInsertNode extends Node {
   public abstract EnsoHashMap execute(Object self, Object key, Object value);
 
   @Specialization
+  @TruffleBoundary
   EnsoHashMap doEnsoHashMap(EnsoHashMap hashMap, Object key, Object value) {
     EnsoHashMapBuilder mapBuilder = hashMap.getMapBuilder();
     boolean containsKey = mapBuilder.get(key) != null;
