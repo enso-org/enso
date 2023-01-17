@@ -58,6 +58,7 @@ ensogl::read_args! {
         node_labels            : bool,
         crash_report_host      : String,
         data_gathering         : bool,
+        mixpanel_token         : String,
         is_in_cloud            : bool,
         verbose                : bool,
         authentication_enabled : bool,
