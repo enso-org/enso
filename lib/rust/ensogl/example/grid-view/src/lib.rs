@@ -79,16 +79,16 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
         view.model_for_entry <+ requested_entry;
         entry_hovered <- view.entry_hovered.filter_map(|l| *l);
         entry_selected <- view.entry_selected.filter_map(|l| *l);
-        eval entry_hovered ([]((row, col)) tracing::debug!("Hovered entry ({row}, {col})."));
-        eval entry_selected ([]((row, col)) tracing::debug!("Selected entry ({row}, {col})."));
-        eval view.entry_accepted ([]((row, col)) tracing::debug!("ACCEPTED entry ({row}, {col})."));
+        eval entry_hovered ([]((row, col)) debug!("Hovered entry ({row}, {col})."));
+        eval entry_selected ([]((row, col)) debug!("Selected entry ({row}, {col})."));
+        eval view.entry_accepted ([]((row, col)) debug!("ACCEPTED entry ({row}, {col})."));
         eval view.selection_movement_out_of_grid_prevented ([](dir)
             if let Some(dir) = dir {
                 let msg = iformat!(
                     "An attempt to select an entry outside of the grid in " dir;?
                     " direction was prevented."
                 );
-                tracing::debug!("{msg}");
+                debug!("{msg}");
             }
         );
     }

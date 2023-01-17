@@ -7,6 +7,7 @@
 
 use crate::format;
 use crate::log;
+use crate::ProfilingLevel;
 
 use std::fmt;
 use std::rc;
@@ -37,11 +38,8 @@ pub(crate) static METADATA_LOGS: log::ThreadLocalLog<rc::Rc<dyn MetadataSource>>
 // =========================
 
 /// Produce a JSON-formatted event log from the internal event logs.
-///
-/// Consumes all events that have happened up to this point; except in testing, this should only be
-/// done once.
-pub fn take_log() -> String {
-    let LogData { events, metadata_names, mut metadata_entries } = take_raw_log();
+pub fn get_log() -> String {
+    let LogData { events, metadata_names, mut metadata_entries } = get_raw_log();
     let mut out = LogTranslator::new();
     for (id, event) in events.into_iter().enumerate() {
         let id = EventId(id as u32);
@@ -53,11 +51,11 @@ pub fn take_log() -> String {
                 let data = metadata_entries[id].next().unwrap();
                 out.metadata(timestamp, name, data);
             }
-            Event::Start(Start { parent, start, label }) => {
+            Event::Start(Start { parent, start, label, .. }) => {
                 out.create(start, parent, label, id);
                 out.start(start.unwrap(), id);
             }
-            Event::StartPaused(Start { parent, start, label }) =>
+            Event::StartPaused(Start { parent, start, label, .. }) =>
                 out.create(start, parent, label, id),
             Event::End { id, timestamp } => out.end(timestamp, id),
             Event::Pause { id, timestamp } => out.pause(timestamp, id),
@@ -71,12 +69,12 @@ pub fn take_log() -> String {
 // === Capture raw log data ===
 
 /// Obtain the data from the internal event log.
-pub(crate) fn take_raw_log() -> LogData {
-    let events = EVENTS.take_all();
-    let metadatas = METADATA_LOGS.clone_all();
+pub(crate) fn get_raw_log() -> LogData {
+    let events = EVENTS.clone_all();
+    let metadatas: Vec<_> = METADATA_LOGS.clone_all();
     let metadata_names: Vec<_> = metadatas.iter().map(|metadata| metadata.name()).collect();
     let metadata_entries: Vec<_> =
-        metadatas.into_iter().map(|metadata| metadata.take_all()).collect();
+        metadatas.into_iter().map(|metadata| metadata.get_all()).collect();
     LogData { events, metadata_names, metadata_entries }
 }
 
@@ -155,18 +153,18 @@ pub(crate) struct MetadataLog<T> {
 
 pub(crate) trait MetadataSource {
     fn name(&self) -> &'static str;
-    fn take_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>;
+    fn get_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>>;
 }
 
 impl<T: 'static + serde::Serialize> MetadataSource for MetadataLog<T> {
     fn name(&self) -> &'static str {
         self.name
     }
-    fn take_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>> {
-        let entries = self.entries.take_all();
-        let entries =
-            entries.into_iter().map(|data| serde_json::value::to_raw_value(&data).unwrap());
-        Box::new(entries)
+
+    fn get_all(&self) -> Box<dyn Iterator<Item = Box<serde_json::value::RawValue>>> {
+        let mut entries = Vec::with_capacity(self.entries.len());
+        self.entries.for_each(|x| entries.push(serde_json::value::to_raw_value(&x).unwrap()));
+        Box::new(entries.into_iter())
     }
 }
 
@@ -190,7 +188,7 @@ impl<T: 'static + serde::Serialize> MetadataLogger<T> {
     pub fn new(name: &'static str) -> Self {
         let id = METADATA_LOGS.len() as u32;
         let entries = rc::Rc::new(log::Log::new());
-        METADATA_LOGS.append(rc::Rc::new(MetadataLog::<T> { name, entries: entries.clone() }));
+        METADATA_LOGS.push(rc::Rc::new(MetadataLog::<T> { name, entries: entries.clone() }));
         Self { id, entries }
     }
 
@@ -198,7 +196,7 @@ impl<T: 'static + serde::Serialize> MetadataLogger<T> {
     ///
     /// Returns an identifier that can be used to create references between log entries.
     pub fn log(&self, t: T) -> EventId {
-        self.entries.append(t);
+        self.entries.push(t);
         EventLog.metadata(self.id)
     }
 }
@@ -215,49 +213,54 @@ pub struct EventLog;
 
 impl EventLog {
     /// Log the beginning of a measurement.
+    #[inline]
     pub fn start(
         self,
         parent: EventId,
         label: Label,
         start: Option<Timestamp>,
         state: StartState,
+        level: ProfilingLevel,
     ) -> EventId {
-        let m = Start { parent, label, start };
+        let m = Start { parent, label, start, level };
         let event = match state {
             StartState::Active => Event::Start(m),
             StartState::Paused => Event::StartPaused(m),
         };
-        let id = EVENTS.len() as u32;
-        EVENTS.append(event);
-        EventId(id)
+        self.log_event(event)
     }
 
     /// Log the end of a measurement.
+    #[inline]
     pub fn end(self, id: EventId, timestamp: Timestamp) {
-        let event = Event::End { id, timestamp };
-        EVENTS.append(event);
+        self.log_event(Event::End { id, timestamp });
     }
 
     /// Log the beginning of an interval in which the measurement is not active.
+    #[inline]
     pub fn pause(self, id: EventId, timestamp: Timestamp) {
-        let event = Event::Pause { id, timestamp };
-        EVENTS.append(event);
+        self.log_event(Event::Pause { id, timestamp });
     }
 
     /// Log the end of an interval in which the measurement is not active.
+    #[inline]
     pub fn resume(self, id: EventId, timestamp: Timestamp) {
-        let event = Event::Resume { id, timestamp };
-        EVENTS.append(event);
+        self.log_event(Event::Resume { id, timestamp });
     }
 
     /// Log metadata.
+    #[inline]
     pub fn metadata(self, type_id: u32) -> EventId {
-        let id = EVENTS.len() as u32;
         let timestamp = Timestamp::now();
         let data = ExternalMetadata { type_id };
-        let event = Event::Metadata { timestamp, data };
-        EVENTS.append(event);
-        EventId(id)
+        self.log_event(Event::Metadata { timestamp, data })
+    }
+
+    #[inline(always)]
+    fn log_event(self, event: Event) -> EventId {
+        let id = EventId(EVENTS.len() as u32);
+        EVENTS.push(event);
+        id
     }
 }
 
@@ -316,6 +319,16 @@ pub enum Event {
     },
 }
 
+impl Event {
+    /// Return the [`Start`] information, if this is an event that defines a profiler.
+    pub fn as_start(self) -> Option<Start> {
+        match self {
+            Event::Start(start) | Event::StartPaused(start) => Some(start),
+            _ => None,
+        }
+    }
+}
+
 
 
 // =============
@@ -331,6 +344,8 @@ pub struct Start {
     pub start:  Option<Timestamp>,
     /// Identifies where in the code this measurement originates.
     pub label:  Label,
+    /// Identifies the importance of this event.
+    pub level:  ProfilingLevel,
 }
 
 
@@ -362,33 +377,39 @@ pub struct Timestamp {
 }
 
 impl Timestamp {
+    #[inline(always)]
     /// Return the current time, relative to the time origin.
     pub fn now() -> Self {
         Self { ms: now() }
     }
 
     /// Return the timestamp corresponding to an offset from the time origin, in ms.
+    #[inline(always)]
     pub fn from_ms(ms: f64) -> Self {
         Self { ms }
     }
 
     /// Return the timestamp of the time origin.
+    #[inline(always)]
     pub fn time_origin() -> Self {
         Self { ms: 0.0 }
     }
 
     /// Convert to an offset from the time origin, in ms.
+    #[inline(always)]
     pub fn into_ms(self) -> f64 {
         self.ms
     }
 
     /// Return the offset of the time origin from a system timestamp.
+    #[inline(always)]
     pub fn time_offset() -> Self {
         Self::from_ms(time_origin())
     }
 }
 
 impl Default for Timestamp {
+    #[inline(always)]
     fn default() -> Self {
         Self::time_origin()
     }
@@ -426,6 +447,7 @@ fn time_origin() -> f64 {
 // === Conversions to related types ===
 
 impl From<Timestamp> for format::Timestamp {
+    #[inline(always)]
     fn from(time: Timestamp) -> Self {
         Self::from_ms(time.into_ms())
     }
@@ -438,7 +460,7 @@ impl From<Timestamp> for format::Timestamp {
 // ===============
 
 /// Identifies an event in the profiling log.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct EventId(pub u32);
 
 impl EventId {
@@ -454,6 +476,15 @@ impl EventId {
     /// current profiler.
     pub const fn implicit() -> Self {
         Self::IMPLICIT
+    }
+
+    /// If the value explicitly references a profiler ID, return it; otherwise, return [`None`].
+    pub fn explicit(self) -> Option<Self> {
+        if self == Self::IMPLICIT {
+            None
+        } else {
+            Some(self)
+        }
     }
 }
 

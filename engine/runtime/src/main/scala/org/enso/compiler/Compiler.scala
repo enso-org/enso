@@ -256,7 +256,7 @@ class Compiler(
       } else {
         modules
       }
-    }
+    }.distinct
 
     var hasInvalidModuleRelink = false
     if (irCachingEnabled) {

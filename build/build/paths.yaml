@@ -1,4 +1,4 @@
-# This file is used to generate `target/debug/build/enso-build-<hash>/out/paths.rs`.
+# This file is used to generate `target/<profile>/build/enso-build-<hash>/out/paths.rs`.
 # Generation logic is in `ci_utils/src/paths.rs`.
 
 <repo_root>/:
@@ -22,11 +22,26 @@
   build/:
     prettier/:
   built-distribution/:
-    ? path: "enso-engine-<triple>"
-      type: engine_package
-    "enso-bundle-<triple>":
+    enso-engine-<triple>/:
+      ? path: enso-<version>/
+        type: engine_package
+        var: engine_package
+    enso-project-manager-<triple>/:
+      ? path: enso/
+        type: project_manager_package
+        var: project_manager_package
+    enso-launcher-<triple>/:
+      ? path: enso/
+        type: launcher_package
+        var: launcher_package
+    enso-bundle-<triple>/:
+      ? path: enso/
+        type: launcher_bundle
+        var: launcher_bundle
     "project-manager-bundle-<triple>":
-      enso:
+      ? path: enso/
+        type: project_manager_bundle
+        var: project_manager_bundle
   dist/:
     gui/:
       assets/:
@@ -46,6 +61,8 @@
   distribution/:
     editions/:
       <edition>.yaml:
+    enso.bundle.template:
+    launcher-manifest.yaml:
   engine/:
     runner-native/:
       src/:
@@ -62,6 +79,9 @@
           java/:
   target/:
     generated-java/:
+    parser-upload/:
+    test-results/:
+    scala-parser.js:
   test/:
     Benchmarks/:
   tools/:
@@ -75,24 +95,39 @@
   runner: # The runner native image (Linux only).
   CHANGELOG.md:
 
-project-manager/:
+# Launcher Package
+{ path: enso/, var: launcher_package }:
+  bin/:
+    enso<exe>:
+
+# Project Manager Package
+{ path: enso/, var: project_manager_package }:
+  bin/:
+    project-manager<exe>:
+
+# Project Manager Bundle
+# https://enso.org/docs/developer/enso/distribution/bundles.html#project-manager-bundle
+{ path: project-manager/, var: project_manager_bundle }:
   bin/:
     project-manager<exe>:
   dist/:
+    <version>/:
   runtime/:
+  .enso.bundle:
 
-# Engine Package
+# Engine Package aka Enso Version Package
 # https://enso.org/docs/developer/enso/distribution/distribution.html#layout-of-an-enso-version-package
 { path: enso-<version>/, var: engine_package }:
   bin/:
   components/:
   editions/:
   lib/:
+    Standard/:
   manifest.yaml:
 
-# Engine Bundle
+# Launcher Bundle aka Portable Enso Distribution
 # https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout
-{ path: enso/, var: engine_bundle }:
+{ path: enso/, var: launcher_bundle }:
   dist/:
     <version>/:
   edition/:

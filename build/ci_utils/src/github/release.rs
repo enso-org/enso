@@ -1,3 +1,5 @@
+//! Code supporting dealing with GitHub releases and their assets.
+
 use crate::prelude::*;
 
 use crate::github::Repo;
@@ -11,6 +13,15 @@ use tracing::instrument;
 
 
 
+/// The extensions that will be used for the archives in the GitHub release assets.
+///
+/// On Windows we use `.zip`, because it has out-of-the-box support in the Explorer.
+/// On other platforms we use `.tar.gz`, because it is a good default.
+pub const ARCHIVE_EXTENSION: &str = match TARGET_OS {
+    OS::Windows => "zip",
+    _ => "tar.gz",
+};
+
 /// Types that uniquely identify a release and can be used to fetch it from GitHub.
 pub trait IsRelease: Debug {
     /// The release ID.
@@ -23,6 +34,7 @@ pub trait IsRelease: Debug {
     fn octocrab(&self) -> &Octocrab;
 }
 
+/// Information about release that we can provide from the [`IsRelease`] trait.
 #[async_trait]
 pub trait IsReleaseExt: IsRelease + Sync {
     /// Upload a new asset to the release.
@@ -61,12 +73,10 @@ pub trait IsReleaseExt: IsRelease + Sync {
     #[instrument(skip_all, fields(source = %path.as_ref().display()))]
     async fn upload_asset_file(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
         let error_msg =
-            format!("Failed to upload an asset from the file under {}", path.as_ref().display());
+            format!("Failed to upload an asset from the file under {}.", path.as_ref().display());
         async move {
             let path = path.as_ref().to_path_buf();
-            let asset_name = path.file_name().with_context(|| {
-                format!("The given path {} does not contain a filename.", path.display())
-            })?;
+            let asset_name = path.try_file_name()?;
             let content_type = new_mime_guess::from_path(&path).first_or_octet_stream();
             let file_size = crate::fs::tokio::metadata(&path).await?.len();
             let file = crate::fs::tokio::open_stream(&path).await?;
@@ -77,15 +87,32 @@ pub trait IsReleaseExt: IsRelease + Sync {
         .context(error_msg)
     }
 
-    async fn upload_compressed_dir(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
-        let dir_to_upload = path.as_ref();
+    /// Upload given directory as a release asset.
+    ///
+    /// The given filename will be used, with appended [platform-specific
+    /// extension](ARCHIVE_EXTENSION).
+    async fn upload_compressed_dir_as(
+        &self,
+        dir_to_upload: impl AsRef<Path> + Send,
+        custom_name: impl AsRef<Path> + Send,
+    ) -> Result<Asset> {
+        let dir_to_upload = dir_to_upload.as_ref();
         let temp_dir = tempfile::tempdir()?;
         let archive_path =
-            dir_to_upload.with_parent(temp_dir.path()).with_appended_extension("tar.gz");
-        crate::archive::compress_directory(&archive_path, &dir_to_upload).await?;
+            custom_name.with_parent(temp_dir.path()).with_appended_extension(ARCHIVE_EXTENSION);
+        crate::archive::create(&archive_path, [&dir_to_upload]).await?;
         self.upload_asset_file(archive_path).await
     }
 
+    /// Upload given directory as a release asset.
+    ///
+    /// The archive name will be deduced from the directory name.
+    async fn upload_compressed_dir(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
+        let output_filename_stem = path.try_file_name()?.to_owned();
+        self.upload_compressed_dir_as(path, output_filename_stem).await
+    }
+
+    /// Get the information about the release.
     async fn get(&self) -> Result<Release> {
         self.octocrab()
             .repos(self.repo().owner(), self.repo().name())

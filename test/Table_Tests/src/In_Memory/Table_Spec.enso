@@ -458,38 +458,6 @@ spec =
             c = Column.from_vector 'c' ['z', 'a', 'd', 'f', 's', 'e\u0301', 'ś', 'ą', 's\u0301', 'w', 'b']
             c.sort.to_vector . should_equal ['a', 'ą', 'b', 'd', 'e\u0301', 'f', 's', 's\u0301', 'ś', 'w', 'z']
 
-    Test.group "Concatenating Tables" <|
-        Test.specify 'should concat tables with the same schema' <|
-            c_1_1 = ['foo', [1, 2, 3, 4]]
-            c_1_2 = ['bar', ['baz', 'quux', 'spam', 'eggs']]
-            t_1 = Table.new [c_1_1, c_1_2]
-
-            c_2_1 = ['foo', [5, 6, 7]]
-            c_2_2 = ['bar', [False, True, False]]
-            t_2 = Table.new [c_2_1, c_2_2]
-
-            r = t_1.concat t_2
-
-            r.column_count.should_equal 2
-            r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
-            r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', False, True, False]
-
-        Test.specify 'should missing-pad unmatched columns' <|
-            c_1_1 = ['foo', [1, 2, 3, 4]]
-            c_1_2 = ['bar', ['baz', 'quux', 'spam', 'eggs']]
-            t_1 = Table.new [c_1_1, c_1_2]
-
-            c_2_1 = ['foo', [5, 6, 7]]
-            c_2_2 = ['baz', [False, True, False]]
-            t_2 = Table.new [c_2_1, c_2_2]
-
-            r = t_1.concat t_2
-
-            r.column_count.should_equal 3
-            r.at 'foo' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7]
-            r.at 'bar' . to_vector . should_equal ['baz', 'quux', 'spam', 'eggs', Nothing, Nothing, Nothing]
-            r.at 'baz' . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, False, True, False]
-
     Test.group "Slicing Tables" <|
         Test.specify 'should allow taking first n rows' <|
             i_1 = ['ix', [1, 2, 3]]
