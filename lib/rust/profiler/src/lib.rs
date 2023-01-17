@@ -127,6 +127,10 @@
 
 // === Features ===
 #![feature(test)]
+#![feature(local_key_cell_methods)]
+#![feature(maybe_uninit_uninit_array)]
+#![feature(extend_one)]
+#![feature(result_option_inspect)]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -323,13 +327,160 @@ pub async fn join<T: futures::Future, U: futures::Future>(t: T, u: U) -> (T::Out
 #[doc(inline)]
 pub use enso_profiler_macros::profile;
 
-enso_profiler_macros::define_hierarchy![Objective, Task, Detail, Debug];
+enso_profiler_macros::define_profiling_levels![Objective, Task, Detail, Debug];
 
 
 // === APP_LIFETIME ===
 
 /// Pseudo-profiler serving as the root of the measurement hierarchy.
 pub const APP_LIFETIME: Objective = Objective(EventId::APP_LIFETIME);
+
+
+
+// ===================
+// === EventStream ===
+// ===================
+
+/// An iterator over all logged events. This is a resumable iterator: After [`next()`] returns
+/// [`None`], it can be iterated again to observe any additional events that have been logged since
+/// the last it was used.
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct EventStream {
+    next_i: usize,
+}
+
+impl Iterator for EventStream {
+    type Item = Event;
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = EVENTS.try_get(self.next_i, |e| *e);
+        result.inspect(|_| self.next_i += 1);
+        result
+    }
+}
+
+/// Return a stream that yields all logged events.
+pub fn event_stream() -> EventStream {
+    EventStream::default()
+}
+
+
+
+// ======================
+// === IntervalStream ===
+// ======================
+
+/// Return a stream that yields all logged events. This is a resumable iterator: After [`next()`]
+/// returns [`None`], it can be iterated again to observe any additional events that have been
+/// logged since the last it was used.
+pub fn interval_stream() -> IntervalStream {
+    IntervalStream {
+        events: EventStream::default().enumerate(),
+        resume: Default::default(),
+        parent: Default::default(),
+        stack:  Default::default(),
+    }
+}
+
+/// A stream that yields all logged events.
+#[derive(Debug, Clone)]
+pub struct IntervalStream {
+    events: std::iter::Enumerate<EventStream>,
+    // [`Timestamp`]s of events that have been paused (or started paused) and resumed. If a running
+    // event is not found in this collection, it has been running since its start event.
+    resume: std::collections::BTreeMap<EventId, Timestamp>,
+    parent: std::collections::BTreeMap<EventId, EventId>,
+    stack:  Vec<EventId>,
+}
+
+impl IntervalStream {
+    fn resolve_start_id(&self, id: EventId) -> usize {
+        let non_empty_stack = "For an internal to end, the stack must be non-empty.";
+        id.explicit().unwrap_or_else(|| *self.stack.last().expect(non_empty_stack)).0 as usize
+    }
+
+    fn record_parent(&mut self, id: EventId, parent: EventId) {
+        let parent = parent
+            .explicit()
+            .unwrap_or_else(|| self.stack.last().copied().unwrap_or(EventId::APP_LIFETIME));
+        self.parent.insert(id, parent);
+    }
+
+    fn resolve_start_time(&self, start: &Start) -> Timestamp {
+        start.start.unwrap_or_else(|| self.resolve_parent_start(start.parent))
+    }
+
+    fn resolve_parent_start(&self, id: EventId) -> Timestamp {
+        let parent_was_recorded =
+            "If the event ID is implicit, we must have resolved its parent when we encountered it.";
+        let id = id.explicit().unwrap_or_else(|| *self.parent.get(&id).expect(parent_was_recorded));
+        EVENTS.get(id.0 as usize, |event| self.resolve_start_time(&event.as_start().unwrap()))
+    }
+}
+
+impl Iterator for IntervalStream {
+    type Item = Interval;
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((i, event)) = self.events.next() {
+            let id = EventId(i as u32);
+            match event {
+                Event::Start(start) => {
+                    self.stack.push(id);
+                    self.record_parent(id, start.parent);
+                }
+                Event::StartPaused(start) => self.record_parent(id, start.parent),
+                Event::Resume { id, timestamp } => {
+                    self.resume.insert(id, timestamp);
+                    self.stack.push(id);
+                }
+                Event::End { id, timestamp } | Event::Pause { id, timestamp } => {
+                    let start = self.resume.remove(&id).or_else(|| {
+                        let id = self.resolve_start_id(id);
+                        EVENTS.get(id, |e| match e {
+                            Event::Start(start) => Some(self.resolve_start_time(start)),
+                            Event::StartPaused(_) => None,
+                            _ => unreachable!(),
+                        })
+                    });
+                    if let Some(start) = start {
+                        let label = EVENTS.get(id.0 as usize, |e| e.as_start().unwrap().label);
+                        let end = timestamp;
+                        return Some(Interval { label, start, end });
+                    }
+                }
+                Event::Metadata { .. } => {}
+            }
+        }
+        None
+    }
+}
+
+/// Identifies a time period in which a particular profiler was running.
+#[derive(Copy, Clone, Debug)]
+pub struct Interval {
+    label: Label,
+    start: Timestamp,
+    end:   Timestamp,
+}
+
+impl Interval {
+    /// Return a string identifying profiler, usually by the location in the code that it was
+    /// created.
+    pub fn label(&self) -> &'static str {
+        self.label.0
+    }
+
+    /// Return the time the profiler began running, in the same units as the [`DOMHighResTimeStamp`]
+    /// web API.
+    pub fn start(&self) -> f64 {
+        self.start.into_ms()
+    }
+
+    /// Return the time the profiler finished running, in the same units as the
+    /// [`DOMHighResTimeStamp`] web API.
+    pub fn end(&self) -> f64 {
+        self.end.into_ms()
+    }
+}
 
 
 
@@ -343,7 +494,7 @@ mod log_tests {
     use profiler::profile;
 
     fn get_log() -> Vec<profiler::internal::Event> {
-        crate::internal::take_raw_log().events
+        crate::internal::get_raw_log().events
     }
 
     #[test]
@@ -477,7 +628,8 @@ mod bench {
         for _ in 0..count {
             let _profiler = start_objective!(profiler::APP_LIFETIME, "log_measurement");
         }
-        test::black_box(crate::EVENTS.take_all());
+        let events: Vec<_> = crate::EVENTS.clone_all();
+        test::black_box(events);
     }
 
     #[bench]
@@ -497,6 +649,7 @@ mod bench {
                 parent: profiler::EventId::APP_LIFETIME,
                 start:  None,
                 label:  profiler::Label(""),
+                level:  Default::default(),
             }));
             log.push(profiler::Event::End {
                 id:        profiler::EventId::implicit(),

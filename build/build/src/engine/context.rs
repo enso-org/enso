@@ -1,14 +1,12 @@
 use crate::prelude::*;
 
 use crate::engine;
-use crate::engine::bundle::Bundle;
 use crate::engine::download_project_templates;
 use crate::engine::env;
 use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::Benchmarks;
 use crate::engine::BuildConfigurationResolved;
 use crate::engine::BuiltArtifacts;
-use crate::engine::ComponentPathExt;
 use crate::engine::Operation;
 use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
@@ -20,6 +18,7 @@ use crate::enso::IrCaches;
 use crate::paths::cache_directory;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
+use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
@@ -30,6 +29,8 @@ use ide_ci::programs::graal;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Flatc;
 use ide_ci::programs::Sbt;
+use std::env::consts::DLL_EXTENSION;
+use std::env::consts::EXE_EXTENSION;
 use sysinfo::SystemExt;
 
 
@@ -73,6 +74,34 @@ impl RunContext {
         let paths = crate::paths::Paths::new_versions(&inner.repo_root, triple.versions)?;
         let context = RunContext { config: config.into(), inner, paths, external_runtime };
         Ok(context)
+    }
+
+    pub fn expected_artifacts(&self) -> BuiltArtifacts {
+        BuiltArtifacts {
+            engine_package:          self.config.build_engine_package.then(|| {
+                self.repo_root.built_distribution.enso_engine_triple.engine_package.clone()
+            }),
+            launcher_package:        self.config.build_launcher_package.then(|| {
+                self.repo_root.built_distribution.enso_launcher_triple.launcher_package.clone()
+            }),
+            project_manager_package: self.config.build_project_manager_package.then(|| {
+                self.repo_root
+                    .built_distribution
+                    .enso_project_manager_triple
+                    .project_manager_package
+                    .clone()
+            }),
+            launcher_bundle:         self.config.build_launcher_bundle.then(|| {
+                self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle.clone()
+            }),
+            project_manager_bundle:  self.config.build_project_manager_bundle.then(|| {
+                self.repo_root
+                    .built_distribution
+                    .project_manager_bundle_triple
+                    .project_manager_bundle
+                    .clone()
+            }),
+        }
     }
 
     /// Check that required programs are present (if not, installs them, if supported). Set
@@ -179,8 +208,6 @@ impl RunContext {
     }
 
     pub async fn build(&self) -> Result<BuiltArtifacts> {
-        let mut ret = BuiltArtifacts::default();
-
         self.prepare_build_env().await?;
         if ide_ci::ci::run_in_ci() {
             // On CI we remove IR caches. They might contain invalid or outdated data, as are using
@@ -196,7 +223,10 @@ impl RunContext {
 
         if self.config.test_standard_library {
             // If we run tests, make sure that old and new results won't end up mixed together.
-            ide_ci::fs::reset_dir(&self.paths.test_results)?;
+            let test_results_dir = ENSO_TEST_JUNIT_DIR
+                .get()
+                .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
+            ide_ci::fs::reset_dir(test_results_dir)?;
         }
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
@@ -255,13 +285,13 @@ impl RunContext {
         let build_native_runner =
             self.config.build_engine_package() && big_memory_machine && TARGET_OS != OS::Windows;
 
+
         if big_memory_machine {
             let mut tasks = vec![];
 
             if self.config.build_engine_package() {
                 tasks.push("buildEngineDistribution");
                 tasks.push("engine-runner/assembly");
-                ret.packages.engine = Some(self.paths.engine.clone());
             }
             if build_native_runner {
                 tasks.push("engine-runner/buildNativeImage");
@@ -275,12 +305,10 @@ impl RunContext {
 
             if self.config.build_project_manager_package() {
                 tasks.push("buildProjectManagerDistribution");
-                ret.packages.project_manager = Some(self.paths.project_manager.clone());
             }
 
             if self.config.build_launcher_package() {
                 tasks.push("buildLauncherDistribution");
-                ret.packages.launcher = Some(self.paths.launcher.clone());
             }
 
             // This just compiles benchmarks, not run them. At least we'll know that they can be
@@ -343,6 +371,34 @@ impl RunContext {
                     sbt.call_arg(task).await?;
                 }
             }
+        } // End of Sbt run.
+
+        let ret = self.expected_artifacts();
+
+        // Native images built by GraalVM on Windows use MSVC build tools. Thus, the generated
+        // binaries have MSVC CRT (C++ standard library) linked. This means that we need to ship
+        // the MSVC CRT DLLs along with the binaries.
+        if TARGET_OS == OS::Windows {
+            debug!("Copying MSVC CRT DLLs to the distribution.");
+            for package in ret.packages() {
+                let package_dir = package.dir();
+                let binary_extensions = [EXE_EXTENSION, DLL_EXTENSION];
+                let binaries = binary_extensions
+                    .into_iter()
+                    .map(|extension| {
+                        let pattern = package_dir.join_iter(["**", "*"]).with_extension(extension);
+                        glob::glob(pattern.as_str())?.try_collect_vec()
+                    })
+                    .try_collect_vec()?
+                    .into_iter()
+                    .flatten()
+                    .collect_vec();
+
+                debug!(?binaries, "Found executables in the package.");
+                for binary in binaries {
+                    ide_ci::packaging::add_msvc_redist_dependencies(&binary).await?;
+                }
+            }
         }
 
         let enso = BuiltEnso { paths: self.paths.clone() };
@@ -388,8 +444,8 @@ impl RunContext {
             // Build the Parser JS Bundle
             sbt.call_arg("syntaxJS/fullOptJS").await?;
             ide_ci::fs::copy_to(
-                self.paths.target.join("scala-parser.js"),
-                self.paths.target.join("parser-upload"),
+                &self.paths.repo_root.target.scala_parser_js,
+                &self.paths.repo_root.target.parser_upload,
             )?;
         }
 
@@ -399,10 +455,12 @@ impl RunContext {
         }
 
         if self.config.build_engine_package() {
-            let std_libs = self.paths.engine.dir.join("lib").join("Standard");
+            let std_libs =
+                &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
+            // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
             // Compile the Standard Libraries (Unix)
             debug!("Compiling standard libraries under {}", std_libs.display());
-            for entry in ide_ci::fs::read_dir(&std_libs)? {
+            for entry in ide_ci::fs::read_dir(std_libs)? {
                 let entry = entry?;
                 let target = entry.path().join(self.paths.version().to_string());
                 enso.compile_lib(target)?.run_ok().await?;
@@ -432,6 +490,7 @@ impl RunContext {
         //     );
         // }
 
+
         // Verify License Packages in Distributions
         // FIXME apparently this does not work on Windows due to some CRLF issues?
         if self.config.verify_packages && TARGET_OS != OS::Windows {
@@ -442,23 +501,18 @@ impl RunContext {
                 test $engineversion = $refversion || (echo "Tag version $refversion and the engine version $engineversion do not match" && false)
             */
 
-            if self.config.build_engine_package() {
-                sbt.verify_generated_package("engine", &self.paths.engine.dir).await?;
-            }
-            if self.config.build_launcher_package() {
-                sbt.verify_generated_package("launcher", &self.paths.launcher.dir).await?;
-            }
-            if self.config.build_project_manager_package() {
-                sbt.verify_generated_package("project-manager", &self.paths.project_manager.dir)
-                    .await?;
+            for package in ret.packages() {
+                package.verify_package_sbt(&sbt).await?;
             }
             if self.config.build_engine_package {
                 for libname in ["Base", "Table", "Image", "Database"] {
                     let lib_path = self
-                        .paths
-                        .engine
-                        .dir
-                        .join_iter(["lib", "Standard", libname])
+                        .repo_root
+                        .built_distribution
+                        .enso_engine_triple
+                        .engine_package
+                        .lib
+                        .join_iter(["Standard", libname])
                         .join(self.paths.version().to_string());
                     sbt.verify_generated_package(libname, lib_path).await?;
                 }
@@ -483,14 +537,8 @@ impl RunContext {
             }
         }
 
-        if self.config.build_launcher_bundle {
-            ret.bundles.launcher =
-                Some(crate::engine::bundle::Launcher::create(&self.paths).await?);
-        }
-
-        if self.config.build_project_manager_bundle {
-            ret.bundles.project_manager =
-                Some(crate::engine::bundle::ProjectManager::create(&self.paths).await?);
+        for bundle in ret.bundles() {
+            bundle.create(&self.repo_root).await?;
         }
 
         Ok(ret)
@@ -507,13 +555,11 @@ impl RunContext {
                         repo,
                         release_id,
                     );
-                    for package in artifacts.packages.into_iter() {
-                        package.pack().await?;
-                        release.upload_asset_file(package.artifact_archive).await?;
+                    for package in artifacts.packages() {
+                        package.upload_as_asset(release.clone()).await?;
                     }
-                    for bundle in artifacts.bundles.into_iter() {
-                        bundle.pack().await?;
-                        release.upload_asset_file(bundle.artifact_archive).await?;
+                    for bundle in artifacts.bundles() {
+                        bundle.upload_as_asset(release.clone()).await?;
                     }
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;

@@ -437,10 +437,12 @@ impl Model {
                 if let Some(port_widget) = port_widget {
                     port_widget.set_x(unit * index as f32);
                     builder.parent.add_child(&port_widget);
-                    let range = port.payload.range();
-                    let code = &expression.viz_code[range];
+                    if port.is_argument() {
+                        let range = port.payload.range();
+                        let code = &expression.viz_code[range];
+                        port_widget.set_current_value(Some(code.into()));
+                    }
                     let last_arg_crumb = builder.parent_last_argument;
-                    port_widget.set_current_value(Some(code.into()));
                     frp::extend! { port_network
                         area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
                             f!([crumbs](v) {

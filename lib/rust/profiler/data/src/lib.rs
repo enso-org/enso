@@ -54,7 +54,7 @@
 //!     }
 //!
 //!     // Obtain log data directly; it could also be deserialized from a file.
-//!     let log = profiler::internal::take_log();
+//!     let log = profiler::internal::get_log();
 //!     // Parse the log. Interpret metadata according to the enum defined above.
 //!     let profile: profiler_data::Profile<MyMetadata> = log.parse().unwrap();
 //!     // Verify the MyData objects are present and attached to the right interval.
@@ -539,7 +539,7 @@ mod tests {
         }
         parent();
         let profile: profiler_data::Profile<OpaqueMetadata> =
-            profiler::internal::take_log().parse().unwrap();
+            profiler::internal::get_log().parse().unwrap();
         let roots = &profile.root_measurement().children;
         assert_eq!(roots.len(), 1);
         let parent = &profile[roots[0]];
@@ -566,7 +566,7 @@ mod tests {
         let future = parent();
         futures::executor::block_on(future);
         let profile: profiler_data::Profile<OpaqueMetadata> =
-            profiler::internal::take_log().parse().unwrap();
+            profiler::internal::get_log().parse().unwrap();
         let roots = &profile.root_measurement().children;
         assert_eq!(roots.len(), 1);
         let parent = &profile[roots[0]];
@@ -598,7 +598,7 @@ mod tests {
         // Create a Future, but don't await it.
         let _future = func();
         let profile: profiler_data::Profile<OpaqueMetadata> =
-            profiler::internal::take_log().parse().unwrap();
+            profiler::internal::get_log().parse().unwrap();
         let roots = &profile.root_measurement().children;
         assert!(!profile[roots[0]].finished);
     }
@@ -609,6 +609,7 @@ mod tests {
             profiler::internal::Label(label),
             Some(profiler::internal::Timestamp::now()),
             profiler::internal::StartState::Active,
+            Default::default(),
         )
     }
 
@@ -616,7 +617,7 @@ mod tests {
     fn unfinished_still_running() {
         start_profiler("unfinished (?:?)");
         let profile: profiler_data::Profile<OpaqueMetadata> =
-            profiler::internal::take_log().parse().unwrap();
+            profiler::internal::get_log().parse().unwrap();
         let roots = &profile.root_measurement().children;
         assert!(!profile[roots[0]].finished);
     }
@@ -626,7 +627,7 @@ mod tests {
         let id = start_profiler("unfinished (?:?)");
         profiler::internal::EventLog.pause(id, profiler::internal::Timestamp::now());
         let profile: profiler_data::Profile<OpaqueMetadata> =
-            profiler::internal::take_log().parse().unwrap();
+            profiler::internal::get_log().parse().unwrap();
         let roots = &profile.root_measurement().children;
         assert!(!profile[roots[0]].finished);
     }
@@ -652,7 +653,7 @@ mod tests {
             MyDataA(MyDataA),
             MyDataB(MyDataBExpected),
         }
-        let log = profiler::internal::take_log();
+        let log = profiler::internal::get_log();
         let root: Result<profiler_data::Profile<MyMetadata>, _> = log.parse();
         let root = match root {
             Err(profiler_data::Error::RecoverableFormatError { errors, with_missing_data }) => {

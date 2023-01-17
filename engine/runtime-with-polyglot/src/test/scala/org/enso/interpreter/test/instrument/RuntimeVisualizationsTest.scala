@@ -97,11 +97,11 @@ class RuntimeVisualizationsTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(63, 1)
-      val idMainY = metadata.addItem(73, 7)
-      val idMainZ = metadata.addItem(89, 5)
-      val idFooY  = metadata.addItem(133, 8)
-      val idFooZ  = metadata.addItem(150, 5)
+      val idMainX = metadata.addItem(63, 1, "aa")
+      val idMainY = metadata.addItem(73, 7, "ab")
+      val idMainZ = metadata.addItem(89, 5, "ac")
+      val idFooY  = metadata.addItem(133, 8, "ad")
+      val idFooZ  = metadata.addItem(150, 5, "ae")
 
       def code =
         metadata.appendToCode(
@@ -1153,15 +1153,11 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.VisualisationAttached()),
+    context.receiveN(1) should contain theSameElementsAs Seq(
       Api.Response(
-        Api.ExecutionFailed(
-          contextId,
-          Api.ExecutionResult.Failure("Execution stack is empty.", None)
-        )
-      ),
-      context.executionComplete(contextId)
+        requestId,
+        Api.ModuleNotFoundForExpression(context.Main.idMainX)
+      )
     )
 
     // push main
@@ -1173,17 +1169,40 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    val pushResponses = context.receiveNIgnorePendingExpressionUpdates(6)
-    pushResponses should contain allOf (
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              "Enso_Test.Test.Visualisation",
+              "x -> encode x"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receiveN(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) =
-      pushResponses.collectFirst {
+      attachVisualisationResponses.collectFirst {
         case Api.Response(
               None,
               Api.VisualisationUpdate(
@@ -2984,5 +3003,140 @@ class RuntimeVisualizationsTest
         data
     }
     new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
+  }
+
+  it should "emit visualisation update for the target of a method call" in {
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
+    val metadata        = new Metadata
+
+    val idX = metadata.addItem(65, 1, "aa")
+    val idY = metadata.addItem(65, 7, "ab")
+
+    val code =
+      """type T
+        |    C
+        |
+        |    inc self x = x + 1
+        |
+        |main =
+        |    x = T.C
+        |    y = x.inc 7
+        |    y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, idX, s"$moduleName.T"),
+      TestMessages.update(
+        contextId,
+        idY,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, s"$moduleName.T", "inc")
+      ),
+      context.executionComplete(contextId)
+    )
+
+    // attach visualisation
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          idX,
+          Api.VisualisationConfiguration(
+            contextId,
+            Api.VisualisationExpression.Text(
+              moduleName,
+              "x -> x.to_text"
+            )
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+    attachVisualisationResponses should contain allOf (
+      Api.Response(requestId, Api.VisualisationAttached()),
+      context.executionComplete(contextId)
+    )
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idX`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data, StandardCharsets.UTF_8) shouldEqual "C"
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(7, 8), model.Position(7, 9)),
+              "x"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+
+    val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
+    editFileResponse should contain(
+      context.executionComplete(contextId)
+    )
+    val Some(data1) = editFileResponse.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `idX`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    new String(data1, StandardCharsets.UTF_8) shouldEqual "C"
   }
 }

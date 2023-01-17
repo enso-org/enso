@@ -16,7 +16,6 @@
 
 fn main() {
     declare_env_dependence("ENSO_MAX_PROFILING_LEVEL");
-    declare_env_cfg_flag("ENSO_ENABLE_PROC_MACRO_SPAN", "enso_enable=\"proc_macro_span\"");
 }
 
 /// Make cargo aware that the result of compiling this crate depends on an environment variable.
@@ -25,13 +24,4 @@ fn declare_env_dependence(env: &str) {
     // This is a no-op assignment, except it makes cargo aware that the output depends on the env.
     let value = std::env::var(env).unwrap_or_default();
     println!("cargo:rustc-env={env}={value}");
-}
-
-/// Make cargo aware that the result of compiling this crate depends on an environment variable;
-/// convert that variable to a `cfg` flag so that it can be used for conditional compilation.
-fn declare_env_cfg_flag(env: &str, cfg: &str) {
-    println!("cargo:rerun-if-env-changed={env}");
-    if std::env::var(env).is_ok() {
-        println!("cargo:rustc-cfg={cfg}");
-    }
 }

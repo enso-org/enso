@@ -69,5 +69,6 @@ ensogl::read_args! {
         skip_min_version_check   : bool,
         preferred_engine_version : semver::Version,
         enable_new_component_browser : bool,
+        emit_user_timing_measurements : bool,
     }
 }

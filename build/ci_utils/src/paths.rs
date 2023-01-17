@@ -8,6 +8,7 @@ use proc_macro2::Span;
 use proc_macro2::TokenStream;
 use quote::quote;
 use regex::Regex;
+use std::cell::OnceCell;
 use std::collections::BTreeSet;
 use std::iter::zip;
 
@@ -110,11 +111,12 @@ pub fn get_string(
 pub struct Generator<'a> {
     all_nodes: &'a [&'a Node],
     stack:     Vec<&'a Node>,
+    empty_set: BTreeSet<Ident>,
 }
 
 impl<'a> Generator<'a> {
     pub fn new(all_nodes: &'a [&'a Node]) -> Self {
-        Self { all_nodes, stack: default() }
+        Self { all_nodes, stack: default(), empty_set: default() }
     }
 
     pub fn resolve(&self, r#type: &str) -> Result<&Node> {
@@ -164,7 +166,7 @@ impl<'a> Generator<'a> {
         let children_struct =
             children.iter().map(|child| child.field_type(full_path)).collect_vec();
 
-        let parameter_vars = last_node.all_parameters_vars();
+        let parameter_vars = last_node.all_parameters_vars(self)?;
         let own_parameter_vars = last_node.own_parameter_vars();
         let parent_parameter_vars: BTreeSet<_> =
             full_path.iter().flat_map(|n| n.own_parameter_vars()).collect();
@@ -173,8 +175,11 @@ impl<'a> Generator<'a> {
         let child_parameter_vars: BTreeSet<_> = last_node
             .children()
             .iter()
-            .flat_map(|node| node.parameters.iter())
-            .map(to_ident)
+            .map(|node| node.all_parameters_vars(self))
+            .try_collect_vec()?
+            .into_iter()
+            .flatten()
+            .cloned()
             .collect();
         let all_parameters = {
             let mut v = parent_parameter_vars;
@@ -195,21 +200,23 @@ impl<'a> Generator<'a> {
 
         let children_init = zip(last_node.children(), &children_struct)
             .map(|(child, children_struct)| {
-                if let Some(r#_type) = child.r#type.as_ref() {
-                // FIXME this should resolve target type and use its parameters
+                Result::Ok(if let Some(r#_type) = child.r#type.as_ref() {
+                    let resolved_type = self.resolve(r#_type)?;
                     let child_formatter = child.path_formatter();
-                    let child_child_parameters = child.children_parameters();
+                    println!("Resolved type: {}", resolved_type.path_formatter());
+                    info!("Resolved type: {}", resolved_type.path_formatter());
+                    let child_child_parameters = resolved_type.children_parameters(self)?;
                     quote! {
                         #children_struct::new_root(path.join(#child_formatter), #(&#child_child_parameters),*)
                     }
                 } else {
-                    let child_parameters = child.all_parameters_vars();
+                    let child_parameters = child.all_parameters_vars(self)?;
                     quote! {
                         #children_struct::new_under(&path, #(&#child_parameters),*)
                     }
-                }
+                })
             })
-            .collect_vec();
+            .try_collect_vec()?;
 
         let opt_conversions = if parameter_vars.is_empty() {
             quote! {
@@ -306,7 +313,7 @@ pub struct Node {
     #[shrinkwrap(main_field)]
     value:      String,
     /// All parameters needed for this node (directly and for the children).
-    parameters: BTreeSet<String>, // Wasteful but paths won't be that huge.
+    parameters: OnceCell<BTreeSet<Ident>>, // Wasteful but paths won't be that huge.
     /// The name that replaces value in variable-like contexts.
     /// Basically, we might not want use filepath name as name in the code.
     var_name:   Option<String>,
@@ -351,8 +358,32 @@ impl Node {
         }
     }
 
-    pub fn all_parameters_vars(&self) -> BTreeSet<Ident> {
-        self.parameters.iter().sorted().map(to_ident).collect()
+    pub fn type_dependent_parameters_vars<'a>(
+        &'a self,
+        g: &'a Generator,
+    ) -> Result<&'a BTreeSet<Ident>> {
+        if let Some(r#type) = &self.r#type {
+            let resolved_type = g.resolve(r#type)?;
+            resolved_type.all_parameters_vars(g)
+        } else {
+            Ok(&g.empty_set)
+        }
+    }
+
+    pub fn all_parameters_vars(&self, g: &Generator) -> Result<&BTreeSet<Ident>> {
+        self.parameters.get_or_try_init(|| {
+            let mut ret = BTreeSet::new();
+            for child in self.children() {
+                ret.extend(child.all_parameters_vars(g)?.clone());
+            }
+            ret.extend(self.own_parameter_vars());
+            ret.extend(self.type_dependent_parameters_vars(g)?.clone());
+            Ok(ret)
+        })
+        // let mut ret = BTreeSet::new();
+        // ret.extend(self.parameters.iter().sorted().map(to_ident));
+        // ret.extend(self.type_dependent_parameters_vars(g)?);
+        // Ok(ret)
     }
 
     pub fn own_parameters(&self) -> impl IntoIterator<Item = &str> {
@@ -363,8 +394,25 @@ impl Node {
         self.own_parameters().into_iter().map(to_ident).collect()
     }
 
-    pub fn children_parameters(&self) -> BTreeSet<Ident> {
-        self.children().iter().flat_map(|child| child.parameters.iter()).map(to_ident).collect()
+    pub fn children_parameters(&self, g: &Generator) -> Result<BTreeSet<Ident>> {
+        let mut ret = BTreeSet::new();
+        for child in self.children() {
+            ret.extend(child.all_parameters_vars(g)?.clone());
+        }
+        Ok(ret)
+        // let resolved_type_params = if let Some(r#type) = &self.r#type {
+        //     if let Ok(r#type) = g.resolve(r#type) {
+        //         // TODO: This might not work for parameters that are type-introduced in the
+        // subtree         //       of the resolved type.
+        //         r#type.all_parameters_vars(g).iter().map(to_ident).collect_vec()
+        //     } else {
+        //         warn!(%r#type, "Failed to resolve type.");
+        //         default()
+        //     }
+        // } else {
+        //     default()
+        // };
+        // direct_child_params.chain(resolved_type_params).collect()
     }
 
     pub fn children(&self) -> &[Node] {
@@ -440,18 +488,18 @@ pub fn generate(forest: Vec<Node>) -> Result<TokenStream> {
     generator.generate()
 }
 
-pub fn collect_parameters(value: &mut Node) {
-    let mut child_parameters = BTreeSet::new();
-    for child in value.children_mut() {
-        collect_parameters(child);
-        child_parameters.extend(child.parameters.clone());
-    }
-
-    let own_parameters = PARAMETER.find_all(&value.value).into_iter().map(ToString::to_string);
-    value.parameters.extend(own_parameters);
-    value.parameters.extend(child_parameters);
-    debug!("{} has {} parameters", value.value, value.parameters.len());
-}
+// pub fn collect_parameters(value: &mut Node) {
+//     let mut child_parameters = BTreeSet::new();
+//     for child in value.children_mut() {
+//         collect_parameters(child);
+//         child_parameters.extend(child.parameters.clone());
+//     }
+//
+//     let own_parameters = PARAMETER.find_all(&value.value).into_iter().map(ToString::to_string);
+//     value.parameters.extend(own_parameters);
+//     value.parameters.extend(child_parameters);
+//     debug!("{} has {} parameters", value.value, value.parameters.len());
+// }
 
 pub fn convert(value: &serde_yaml::Value) -> Result<Vec<Node>> {
     match value {
@@ -464,7 +512,7 @@ pub fn convert(value: &serde_yaml::Value) -> Result<Vec<Node>> {
                         node.add_child(child);
                     }
                 }
-                collect_parameters(&mut node);
+                // collect_parameters(&mut node);
                 ret.push(node)
             }
             Ok(ret)

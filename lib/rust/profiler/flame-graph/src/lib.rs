@@ -118,7 +118,7 @@ impl Graph {
     /// Gather and remove all logged measurements and return them as a `Graph`.
     pub fn take_from_log() -> Self {
         let profile: Result<data::Profile<data::OpaqueMetadata>, _> =
-            profiler::internal::take_log().parse();
+            profiler::internal::get_log().parse();
         if let Ok(profile) = profile {
             new_hybrid_graph(&profile)
         } else {
@@ -409,7 +409,7 @@ mod tests {
         profiled_a();
 
         let profile: data::Profile<data::OpaqueMetadata> =
-            profiler::internal::take_log().parse().unwrap();
+            profiler::internal::get_log().parse().unwrap();
         let flame_graph = Graph::new_callgraph(&profile);
         assert_eq!(flame_graph.activity_blocks.len(), 2);
 

@@ -1,34 +1,33 @@
+//! Wrapper for the [`vswhere`](https://github.com/microsoft/vswhere) program.
+
 use crate::prelude::*;
 
 
 
+/// Wrapper for the [`vswhere`](https://github.com/microsoft/vswhere) program.
+///
+/// It typically is installed as part of the Visual Studio installation.
 #[derive(Clone, Copy, Debug)]
 pub struct VsWhere;
 
 impl Program for VsWhere {
-    fn default_locations(&self) -> Vec<PathBuf> {
-        let dir_opt = crate::platform::win::program_files_x86()
-            .map(|program_files| program_files.join("Microsoft Visual Studio").join("Installer"));
-        Vec::from_iter(dir_opt)
-    }
-
     fn executable_name(&self) -> &'static str {
         "vswhere"
+    }
+
+    fn default_locations(&self) -> Vec<PathBuf> {
+        if let Ok(program_files) = crate::platform::win::program_files_x86() {
+            let subdir = ["Microsoft Visual Studio", "Installer"];
+            vec![program_files.join_iter(subdir)]
+        } else {
+            default()
+        }
     }
 }
 
 impl VsWhere {
-    pub async fn find_all_with(component: Component) -> Result<Vec<InstanceInfo>> {
-        let mut command = VsWhere.cmd()?;
-        command
-            .args(Option::Format(Format::Json).format_arguments())
-            .args(Option::Required(vec![component]).format_arguments())
-            .args(Option::ForceUTF8.format_arguments());
-
-        let stdout = command.run_stdout().await?;
-        serde_json::from_str(&stdout).anyhow_err()
-    }
-
+    /// Finds installation of Visual Studio that have installed the given component.
+    #[context("Failed to find Visual Studio installation with component {component}.")]
     pub async fn find_with(component: Component) -> Result<InstanceInfo> {
         let mut command = VsWhere.cmd()?;
         command
@@ -60,7 +59,7 @@ impl VsWhere {
 #[serde(rename_all = "camelCase")]
 pub struct InstanceInfo {
     pub install_date:         chrono::DateTime<chrono::Utc>,
-    /// Example: C:\\Program Files\\Microsoft Visual Studio\\2022\\Community
+    /// Example: `C:\Program Files\Microsoft Visual Studio\2022\Community`
     pub installation_path:    PathBuf,
     pub installation_version: String,
     pub is_prerelease:        bool,
