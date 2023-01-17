@@ -112,7 +112,6 @@ pub struct Model<T> {
 impl<T: 'static> Model<T> {
     /// Constructor.
     fn new(app: Application) -> Self {
-        let scene = &app.display.default_scene;
         let root = display::object::Instance::new();
         let clipping_div = web::document.create_div_or_panic();
         let clipping_div = DomSymbol::new(&clipping_div);
@@ -120,23 +119,11 @@ impl<T: 'static> Model<T> {
         let size = default();
         let text_provider = default();
 
-        clipping_div.set_style_or_warn("overflow", "hidden");
-        dom_entry_root.set_style_or_warn("position", "absolute");
-        scene.dom.layers.front.manage(&clipping_div);
-        root.add_child(&clipping_div);
-        clipping_div.append_or_warn(&dom_entry_root);
-
         let text_grid: GridView<grid_view_entry::Entry> = GridView::new(&app);
         root.add_child(&text_grid);
 
         let scroll_bar_horizontal = Scrollbar::new(&app);
-        root.add_child(&scroll_bar_horizontal);
         let scroll_bar_vertical = Scrollbar::new(&app);
-        root.add_child(&scroll_bar_vertical);
-        scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
-
-        app.display.default_scene.layers.above_nodes_text.add(&scroll_bar_horizontal);
-        app.display.default_scene.layers.above_nodes_text.add(&scroll_bar_vertical);
 
         Model {
             app,
@@ -149,6 +136,33 @@ impl<T: 'static> Model<T> {
             root,
             text_provider,
         }
+        .init()
+    }
+
+    fn init(self) -> Self {
+        self.init_dom();
+        self.init_scrollbars();
+        self
+    }
+
+    fn init_dom(&self) {
+        let scene = &self.app.display.default_scene;
+
+        self.clipping_div.set_style_or_warn("overflow", "hidden");
+        self.dom_entry_root.set_style_or_warn("position", "absolute");
+
+        scene.dom.layers.front.manage(&self.clipping_div);
+        self.root.add_child(&self.clipping_div);
+        self.clipping_div.append_or_warn(&self.dom_entry_root);
+    }
+
+    fn init_scrollbars(&self) {
+        self.root.add_child(&scroll_bar_horizontal);
+        self.root.add_child(&self.scroll_bar_vertical);
+        self.scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
+
+        self.app.display.default_scene.layers.above_nodes_text.add(&self.scroll_bar_horizontal);
+        self.app.display.default_scene.layers.above_nodes_text.add(&self.scroll_bar_vertical);
     }
 
     fn set_size(&self, size: Vector2) {
