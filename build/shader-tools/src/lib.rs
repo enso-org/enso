@@ -5,45 +5,71 @@ use prelude::*;
 
 pub const SPIRV_TOOLS_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
 
-pub struct CMake;
-impl Program for CMake {
-    fn executable_name(&self) -> &str {
-        "cmake"
-    }
-}
+pub mod cmake;
 
-/// Set the given variable in the CMake cache.
-pub struct SetVariable {
-    pub variable: String,
-    pub value:    String,
-}
+pub mod shaderc {
+    use crate::prelude::*;
 
-impl SetVariable {
-    pub fn option(name: impl Into<String>, value: bool) -> Self {
-        Self { variable: name.into(), value: if value { "ON" } else { "OFF" }.into() }
-    }
-
-    pub fn filepath(name: impl Into<String>, value: impl AsRef<Path>) -> Self {
-        Self { variable: name.into(), value: value.as_ref().as_str().into() }
-    }
-
-    pub fn path(name: impl Into<String>, value: impl AsRef<Path>) -> Self {
-        Self { variable: name.into(), value: value.as_ref().as_str().into() }
-    }
-}
-
-impl Manipulator for SetVariable {
-    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
-        command.arg("-D").arg(format!("{}={}", self.variable, self.value));
+    pub fn download_url() -> Result<Url> {
+        match TARGET_OS {
+            OS::Linux =>
+                "https://storage.googleapis.com/shaderc/badges/build_link_linux_gcc_release.html",
+            OS::MacOS =>
+                "https://storage.googleapis.com/shaderc/badges/build_link_macos_clang_release.html",
+            OS::Windows =>
+            "https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2017_release.html",
+            _ => bail!("Unsupported OS: {}.", TARGET_OS),
+        }
+            .parse2()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ide_ci::programs::git;
+    use crate::cmake::CMake;
+    use crate::cmake::SetVariable;
+    use ide_ci::io::web::download_file;
     use ide_ci::programs::vs::apply_dev_environment;
     use ide_ci::programs::Git;
+
+    #[tokio::test]
+    async fn strip_shaderc_package() -> Result {
+        setup_logging()?;
+        // As per https://uibakery.io/regex-library/url
+        let regex = regex::Regex::new(
+            r#"https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&/=]*)"#,
+        )?;
+
+        let url = shaderc::download_url()?;
+        let body = ide_ci::io::download_all(url).await?;
+        let text = std::str::from_utf8(&body)?;
+        println!("{}", text);
+        let dom = html_parser::Dom::parse(text)?;
+        debug!("{:#?}", &dom);
+        let [html_parser::Node::Element(element)] = dom.children.as_slice() else {
+            bail!("Expected one child node.");
+        };
+        ensure!(element.name == "meta", "Expected meta tag.");
+        let Some(Some(content)) = element.attributes.get("content") else {
+            bail!("Expected content attribute.");
+        };
+        let Some(url_match) = regex.captures(content).and_then(|captures| captures.get(0)) else {
+            bail!("Expected URL.");
+        };
+
+        let url: Url = url_match.as_str().parse2()?;
+        println!("{}", url);
+
+        let output_path = Path::new("shaderc.zip").absolutize()?;
+        download_file(url, &output_path).await?;
+
+        info!("Download to {} complete.", output_path.display());
+
+
+
+        Ok(())
+    }
 
     #[tokio::test]
     async fn compile_spirv_cross() -> Result {
@@ -89,8 +115,6 @@ mod tests {
         let archive_name = format!("spirv-cross-{}.tar.gz", TARGET_OS);
         let package =
             ide_ci::archive::create(&path.join(&archive_name), [install_dir.join("bin")]).await?;
-
-
 
         Ok(())
     }
