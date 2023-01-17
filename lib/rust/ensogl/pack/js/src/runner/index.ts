@@ -128,6 +128,71 @@ class Shader<T> {
 // === App ===
 // ===========
 
+class Scheduler {
+    done: Promise<void>
+    doneResolve: () => void = () => {}
+    time: DOMHighResTimeStamp = 0
+    tasks: (() => void)[] = []
+
+    constructor() {
+        this.done = new Promise(resolve => {
+            this.doneResolve = resolve
+        })
+    }
+
+    add(task: () => void) {
+        if (host.node) {
+            task()
+        } else {
+            this.tasks.push(task)
+        }
+    }
+
+    run(): Promise<void> {
+        if (host.node) {
+            for (const task of this.tasks) {
+                task()
+            }
+            this.doneResolve()
+        } else {
+            this.onFrame()
+        }
+        return this.done
+    }
+
+    onFrame() {
+        for (;;) {
+            const time = window.performance.now()
+            const delta = time - this.time
+            if (delta > 16) {
+                break
+            }
+            const task = this.tasks.pop()
+            if (task != null) {
+                task()
+            } else {
+                this.doneResolve()
+                break
+            }
+        }
+        if (this.tasks.length === 0) {
+            this.doneResolve()
+        } else {
+            this.time = window.performance.now()
+            window.requestAnimationFrame(this.onFrame.bind(this))
+        }
+    }
+}
+
+function longFakeEntryPoint() {
+    let i = 0
+    for (let j = 0; j < 10000; j++) {
+        for (let k = 0; k < 10000; k++) {
+            i += 1
+        }
+    }
+}
+
 /** The main application class. */
 export class App {
     packageInfo: debug.PackageInfo
@@ -188,7 +253,7 @@ export class App {
         } else {
             this.config.print()
             await this.loadAndInitWasm()
-            this.runEntryPoints()
+            await this.runEntryPoints()
         }
     }
 
@@ -261,23 +326,29 @@ export class App {
     }
 
     /** Run all before main entry points. See the docs of `wasm.entryPoint` to learn more. */
-    runBeforeMainEntryPoints() {
-        if (!this.beforeMainEntryPoints.size) {
-            return
-        }
+    async runBeforeMainEntryPoints(): Promise<void> {
         const count = this.beforeMainEntryPoints.size
-        const [time] = log.Task.withTimed(`Running ${count} before main entry points.`, () => {
+        const scheduler = new Scheduler()
+        if (this.beforeMainEntryPoints.size) {
             for (const entryPoint of this.beforeMainEntryPoints.values()) {
-                log.Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
-                    const fn = this.wasm[entryPoint.name()]
-                    if (fn != null) {
-                        fn()
-                    } else {
-                        logger.internalError(`Entry point not found.`)
-                    }
+                scheduler.add(() => {
+                    log.Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
+                        const fn = this.wasm[entryPoint.name()]
+                        if (fn != null) {
+                            fn()
+                        } else {
+                            logger.internalError(`Entry point not found.`)
+                        }
+                    })
                 })
             }
-        })
+        }
+        const [time] = await log.Task.asyncWithTimed(
+            `Running ${count} before main entry points.`,
+            async () => {
+                return await scheduler.run()
+            }
+        )
         this.checkBeforeMainEntryPointsTime(time)
     }
 
@@ -291,11 +362,11 @@ export class App {
     }
 
     /** Run both before main entry points and main entry point. */
-    runEntryPoints() {
+    async runEntryPoints() {
         const entryPointName = this.config.params.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
-            this.runBeforeMainEntryPoints()
+            await this.runBeforeMainEntryPoints()
             if (this.shaders) this.setShaders(this.shaders.map)
             if (this.loader) this.loader.destroy()
             logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)

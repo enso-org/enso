@@ -39,7 +39,9 @@ class App extends runner.App {
                         fileNames.push(fileName)
                     }
                     const fileListPath = path.join(target, 'list.txt')
+                    console.log('writing list.txt')
                     await fs.writeFile(fileListPath, fileNames.join('\n'))
+                    console.log('writing list.txt done')
                 })
             }
         })
@@ -52,8 +54,11 @@ class App extends runner.App {
             await log.Task.asyncWith('Running the program.', async () => {
                 app.config.print()
                 await app.loadAndInitWasm()
-                app.runBeforeMainEntryPoints()
-                await app.extractShaders(extractShadersPath)
+                const r = app.runBeforeMainEntryPoints().then(() => {
+                    console.log('BEFORE MAIN entry points run, extracting shaders.')
+                    return app.extractShaders(extractShadersPath)
+                })
+                await r
             })
         } else {
             parser.printHelpAndExit(1)
@@ -66,4 +71,6 @@ class App extends runner.App {
 // ============
 
 const app = new App()
+console.log('running app')
 void app.run()
+console.log('done running app')
