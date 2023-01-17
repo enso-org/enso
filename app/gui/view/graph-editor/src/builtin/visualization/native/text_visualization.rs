@@ -30,11 +30,11 @@ use crate::StyleWatchFrp;
 use enso_frp as frp;
 use enso_prelude::serde_reexports::Deserialize;
 use enso_prelude::serde_reexports::Serialize;
-use ensogl::application::command::FrpNetworkProvider;
 use ensogl::application::frp::API;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::DomSymbol;
+use ensogl::prelude::FrpNetworkProvider;
 use ensogl::system::web;
 use ensogl::system::web::CanvasRenderingContext2d;
 use ensogl_component::grid_view;
@@ -162,7 +162,7 @@ impl<T: 'static> Model<T> {
     }
 
     fn init_scrollbars(&self) {
-        self.root.add_child(&scroll_bar_horizontal);
+        self.root.add_child(&self.scroll_bar_horizontal);
         self.root.add_child(&self.scroll_bar_vertical);
         self.scroll_bar_vertical.set_rotation_z(-90.0_f32.to_radians());
 
@@ -226,44 +226,104 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         let network = &self.network;
         let frp = &self.frp;
         let text_provider = text_provider.frp();
-        let text_grid = &self.text_grid;
         let model = &self.model;
-        let scrollbar_h = &self.model.scroll_bar_horizontal;
-        let scrollbar_v = &self.model.scroll_bar_vertical;
-        let dom_entry_root = &self.model.dom_entry_root;
+
+        frp::extend! { network
+            init <- source::<()>();
+            on_data_update <- frp.send_data.constant(());
+            eval frp.set_size  ((size) model.set_size(*size));
+        }
+
+        self.init_text_grid_api(&init, &on_data_update);
+
+        self.init_scrolling(&init, text_provider, &on_data_update);
+        self.init_style(&init);
+
+        init.emit(());
+    }
+
+    fn init_style(&self, init: &frp::Source) {
+        let init = init.clone_ref();
 
         let scene = &self.model.app.display.default_scene;
         let style_watch = StyleWatchFrp::new(&scene.style_sheet);
         use theme::graph_editor::visualization::text_grid as text_grid_style;
         let font_name = style_watch.get_text(text_grid_style::font);
         let font_size = style_watch.get_number(text_grid_style::font_size);
+        let network = &self.network;
+        let fonts_loaded = on_fonts_loaded_event(network);
 
-        let longest_observed_line: Rc<Cell<u32>> = default();
-        let max_observed_lines: Rc<Cell<u32>> = default();
+        let dom_entry_root = &self.dom_entry_root;
+        let text_grid = &self.text_grid;
 
         frp::extend! { network
-            init <- source::<()>();
 
-            on_data_update <- frp.send_data.constant(());
+            theme_update <- all(init, font_name, font_size);
+            text_grid.set_entries_params <+  theme_update.map(
+                f!([dom_entry_root]((_, font_name, font_size)) {
+
+                    dom_entry_root.set_style_or_warn("font-family", font_name.clone());
+                    dom_entry_root.set_style_or_warn("font-size", format!("{}px", *font_size as u32));
+
+                    let parent = Some(dom_entry_root.clone_ref());
+                    grid_view_entry::Params { parent }
+                })
+            );
+
+            item_width_update <- all(init, fonts_loaded, font_name, font_size);
+            item_width <- item_width_update.map(f!([]((_, _, font_name, font_size)) {
+                let font_size = *font_size;
+                let char_width = measure_character_width(font_name, font_size);
+                CHARS_PER_CHUNK as f32 * char_width
+            })).on_change();
+            item_update <- all(init, item_width, font_size);
+            text_grid.set_entries_size <+ item_update.map(f!([]((_, item_width, item_height)) {
+                Vector2::new(*item_width, *item_height)
+            }));
+        }
+    }
+
+    fn init_text_grid_api(&self, init: &frp::Source, on_data_update: &frp::Stream) {
+        let network = &self.network;
+        let text_grid = &self.text_grid;
+        let model = &self.model;
+        let init = init.clone_ref();
+        let on_data_update = on_data_update.clone_ref();
+
+        frp::extend! { network
             text_grid.request_model_for_visible_entries <+ any(on_data_update,init);
 
-            // === Visualisation API Inputs ===
-
-            eval frp.set_size  ((size) model.set_size(*size));
-
-
-            // === Text Grid API ===
 
             requested_entry <- text_grid.model_for_entry_needed.map2(&text_grid.grid_size,
-                f!([model]((row, col), _grid_size) {
+                 f!([model]((row, col), _grid_size) {
                     let text = model.get_string_for_cell(*row,*col);
                     let model = grid_view_entry::Model{text};
                     (*row, *col, model)
                 })
             );
             text_grid.model_for_entry <+ requested_entry;
+        }
+    }
 
-            // === Scrolling ===
+    fn init_scrolling(
+        &self,
+        init: &frp::Source,
+        text_provider: &text_provider::Frp,
+        on_data_update: &frp::Stream,
+    ) {
+        let network = &self.network;
+        let text_grid = &self.text_grid;
+        let scrollbar_h = &self.model.scroll_bar_horizontal;
+        let scrollbar_v = &self.model.scroll_bar_vertical;
+        let dom_entry_root = &self.model.dom_entry_root;
+        let on_data_update = on_data_update.clone_ref();
+        let frp = &self.frp;
+        let init = init.clone_ref();
+
+        let longest_observed_line: Rc<Cell<u32>> = default();
+        let max_observed_lines: Rc<Cell<u32>> = default();
+
+        frp::extend! { network
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
 
@@ -361,40 +421,6 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             );
             text_grid.set_viewport <+ viewport;
         }
-
-
-        // === Style ===
-
-        let fonts_loaded = on_fonts_loaded_event(&network);
-
-        frp::extend! { network
-
-            theme_update <- all(init, font_name, font_size);
-            text_grid.set_entries_params <+  theme_update.map(
-                f!([dom_entry_root]((_, font_name, font_size)) {
-
-                    dom_entry_root.set_style_or_warn("font-family", font_name.clone());
-                    dom_entry_root.set_style_or_warn("font-size", format!("{}px", *font_size as u32));
-
-                    let parent = Some(dom_entry_root.clone_ref());
-                    grid_view_entry::Params { parent }
-                })
-            );
-
-            item_width_update <- all(init, fonts_loaded, font_name, font_size);
-            item_width <- item_width_update.map(f!([]((_, _, font_name, font_size)) {
-                let font_size = *font_size;
-                let char_width = measure_character_width(font_name, font_size);
-                CHARS_PER_CHUNK as f32 * char_width
-            })).on_change();
-            item_update <- all(init, item_width, font_size);
-            text_grid.set_entries_size <+ item_update.map(f!([]((_, item_width, item_height)) {
-                Vector2::new(*item_width, *item_height)
-            }));
-
-        }
-
-        init.emit(());
     }
 
     /// Set the text provider.
@@ -435,7 +461,7 @@ fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
     let text_metrics = context.measure_text(sample_text).unwrap();
     let text_length = sample_text.chars().count() as f32;
     let width = text_metrics.width();
-    let result = width as f32 / text_length as f32;
+    let result = width as f32 / text_length;
     result
 }
 

@@ -33,7 +33,6 @@
 //! case as it is outside of the padded area.
 
 use crate::prelude::*;
-use engine_protocol::prelude::StreamExt;
 
 use super::GridPosition;
 use super::GridSize;

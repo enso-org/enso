@@ -150,15 +150,11 @@ impl BackendTextProvider {
                 }
             }).unwrap();
             grid_data_update <- receive_data.map(|data| {
-                warn!("{:?}", data);
-
                 LazyGridData::try_from(data.clone()).ok()
             });
             grid_data_update <- grid_data_update.map(|data| data.clone()).unwrap();
             chunks_update <- grid_data_update.map(|grid_data| grid_data.chunks.clone());
             eval chunks_update([text_cache](chunks) {
-                warn!("{:?}", chunks.len());
-
                 for (pos, text) in chunks {
                     if let Some(text) = text {
                         text_cache.borrow_mut().add_item(*pos, text.clone());
@@ -178,7 +174,7 @@ impl TextProvider for BackendTextProvider {
         let y = line as i32;
         let x = chunk_index as i32;
         let result = self.text_cache.borrow_mut().get_item(Vector2::new(x, y));
-        // self.register_access.emit(());
+        self.register_access.emit(());
         result
     }
 
@@ -192,7 +188,7 @@ fn lazy_text_preprocessor(
     grid_position: GridPosition,
     grids_size: GridSize,
 ) -> PreprocessorConfiguration {
-    let p = PreprocessorConfiguration::new(
+    PreprocessorConfiguration::new(
         "Standard.Visualization.Preprocessor",
         "lazy_preprocessor",
         vec![
@@ -203,9 +199,7 @@ fn lazy_text_preprocessor(
             serde_json::to_string(&(CHARS_PER_CHUNK as u32))
                 .expect("Could not serialise [`u32`] as JSON string."),
         ],
-    );
-    warn!("{:?}", p);
-    p
+    )
 }
 
 
