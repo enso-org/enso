@@ -234,7 +234,11 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
         };
         let local_scope_entry_count = self.local_scope().matched_items.get();
         let namespace_section_count = self.top_section_count();
-        component_list_panel::grid::content::Info { groups, local_scope_entry_count, namespace_section_count }
+        component_list_panel::grid::content::Info {
+            groups,
+            local_scope_entry_count,
+            namespace_section_count,
+        }
     }
 
     fn get_entry_model(
