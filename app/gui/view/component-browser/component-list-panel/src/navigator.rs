@@ -42,7 +42,8 @@ const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
 const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
 const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
-const FIXED_BOTTOM_BUTTONS_COUNT: usize = 2;
+/// This is the minmum number of bottom buttons available, when no namespace sections are present.
+const MIN_BOTTOM_BUTTONS_COUNT: usize = 2;
 
 
 // =============
@@ -121,7 +122,7 @@ fn section_id_to_icon_id(section: SectionId) -> icon::Id {
 /// Convert [`SectionId`] to location on [`Navigator::bottom_buttons`].
 fn section_id_to_grid_loc(id: SectionId, sections_count: usize) -> (Row, Col) {
     const COLUMN: Col = 0;
-    let top_section_offset = sections_count - FIXED_BOTTOM_BUTTONS_COUNT;
+    let top_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
     match id {
         SectionId::Popular => (top_section_offset, COLUMN),
         SectionId::LocalScope => (top_section_offset + 1, COLUMN),
@@ -133,7 +134,7 @@ fn section_id_to_grid_loc(id: SectionId, sections_count: usize) -> (Row, Col) {
 /// Convert the location on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
 /// index and returns the id of topmost section.
 fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId {
-    let top_section_offset = sections_count - FIXED_BOTTOM_BUTTONS_COUNT;
+    let top_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
     match row {
         n if n == top_section_offset => SectionId::Popular,
         n if n == top_section_offset + 1 => SectionId::LocalScope,
@@ -190,7 +191,7 @@ impl Navigator {
             style <- any(...);
             set_top_section_count <- any(...);
             section_count <- set_top_section_count.map(
-                |&n: &usize| n + FIXED_BOTTOM_BUTTONS_COUNT
+                |&n: &usize| n + MIN_BOTTOM_BUTTONS_COUNT
             );
             bottom_buttons_shape <- section_count.map(|n| (*n, 1));
             bottom_button_params <- all2(&section_count, &style);
@@ -271,7 +272,7 @@ impl Navigator {
     pub(crate) fn update_layout(&self, style: &AllStyles) {
         let size = style.navigator.button_size;
         let top_buttons_height = size * TOP_BUTTONS_COUNT as f32;
-        let bottom_buttons_height = size * FIXED_BOTTOM_BUTTONS_COUNT as f32;
+        let bottom_buttons_height = size * MIN_BOTTOM_BUTTONS_COUNT as f32;
         self.bottom_buttons.set_entries_size(Vector2(size, size));
         self.top_buttons.set_entries_size(Vector2(size, size));
         let (top, left, right) = (0.0, 0.0, size);
