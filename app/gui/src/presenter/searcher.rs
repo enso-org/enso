@@ -230,13 +230,14 @@ impl Model {
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
         let components = self.controller.components();
-        let section_names = components.top_section_names();
-        match section_id {
-            component_grid::SectionId::Namespace(n) => self.set_section_name_crumb(
+        let section_names = components.top_module_section_names();
+        let name = match section_id {
+            component_grid::SectionId::Namespace(n) =>
                 section_names.get(n).map(|n| n.clone_ref()).unwrap_or_default(),
-            ),
-            section_id => self.set_section_name_crumb(ImString::new(section_id.as_str())),
-        }
+            component_grid::SectionId::Popular => "Popular".to_im_string(),
+            component_grid::SectionId::LocalScope => "Local".to_im_string(),
+        };
+        self.set_section_name_crumb(name);
     }
 
     fn module_entered(&self, module: component_grid::ElementId) {
@@ -363,8 +364,8 @@ impl Searcher {
                     eval_ action_list_changed ([model, grid, navigator] {
                         model.provider.take();
                         let controller_provider = model.controller.provider();
-                        let top_section_count = model.controller.provider().top_section_count();
-                        navigator.set_top_section_count.emit(top_section_count);
+                        let namespace_section_count = controller_provider.namespace_section_count();
+                        navigator.set_namespace_section_count.emit(namespace_section_count);
                         let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });

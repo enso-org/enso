@@ -307,17 +307,17 @@ impl List {
     }
 
     /// Get a vector of section names for the sections of the top modules.
-    pub fn top_section_names(&self) -> Vec<&ImString> {
+    pub fn top_module_section_names(&self) -> Vec<&ImString> {
         self.top_module_sections.iter().map(|s| &s.name).collect()
     }
 
     /// Get a map of section names to section indices for the sections of the top modules.
-    pub fn top_section_indices(&self) -> &HashMap<ImString, usize> {
+    pub fn top_module_section_indices(&self) -> &HashMap<ImString, usize> {
         &self.top_module_section_indices
     }
 
     /// Get the number of namespace sections.
-    pub fn top_section_count(&self) -> usize {
+    pub fn top_module_section_count(&self) -> usize {
         self.top_module_sections.len()
     }
 }

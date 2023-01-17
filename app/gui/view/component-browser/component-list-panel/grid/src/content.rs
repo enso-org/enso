@@ -26,16 +26,6 @@ pub enum SectionId {
     Namespace(usize),
 }
 
-impl SectionId {
-    /// Return a displayed name of the section.
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Popular => "Popular",
-            Self::LocalScope => "Local",
-            Self::Namespace(_) => "Namespace",
-        }
-    }
-}
 
 
 // === GroupId ===

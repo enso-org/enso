@@ -114,7 +114,7 @@ struct Sections<'a> {
 
 impl<'a> Sections<'a> {
     /// Collect module groups by namespace in alphabetical order.
-    fn new(groups: Vec<&ModuleGroups>) -> SectionList {
+    fn new(groups: Vec<&'a ModuleGroups>) -> Self {
         let mut modules: BTreeMap<_, Vec<&ModuleGroups>> = BTreeMap::new();
         for group in groups {
             let namespace = group.qualified_name.project().namespace.clone();
@@ -288,7 +288,7 @@ impl List {
         self.local_scope.update_sorting(components_order);
         let favorites = self.build_favorites_and_add_to_all_components();
         let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
-        let section_list_builder = SectionList::new(top_module_groups);
+        let section_list_builder = Sections::new(top_module_groups);
 
         component::List {
             all_components: Rc::new(self.all_components),

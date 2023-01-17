@@ -122,23 +122,24 @@ fn section_id_to_icon_id(section: SectionId) -> icon::Id {
 /// Convert [`SectionId`] to location on [`Navigator::bottom_buttons`].
 fn section_id_to_grid_loc(id: SectionId, sections_count: usize) -> (Row, Col) {
     const COLUMN: Col = 0;
-    let top_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
+    let namespace_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
     match id {
-        SectionId::Popular => (top_section_offset, COLUMN),
-        SectionId::LocalScope => (top_section_offset + 1, COLUMN),
-        SectionId::Namespace(n) if n < top_section_offset => (top_section_offset - n - 1, COLUMN),
-        SectionId::Namespace(_) => (top_section_offset, COLUMN),
+        SectionId::Popular => (namespace_section_offset, COLUMN),
+        SectionId::LocalScope => (namespace_section_offset + 1, COLUMN),
+        SectionId::Namespace(n) if n < namespace_section_offset =>
+            (namespace_section_offset - n - 1, COLUMN),
+        SectionId::Namespace(_) => (namespace_section_offset, COLUMN),
     }
 }
 
 /// Convert the location on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
 /// index and returns the id of topmost section.
 fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId {
-    let top_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
+    let namespace_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
     match row {
-        n if n == top_section_offset => SectionId::Popular,
-        n if n == top_section_offset + 1 => SectionId::LocalScope,
-        n if n < top_section_offset => SectionId::Namespace(top_section_offset - n - 1),
+        n if n == namespace_section_offset => SectionId::Popular,
+        n if n == namespace_section_offset + 1 => SectionId::LocalScope,
+        n if n < namespace_section_offset => SectionId::Namespace(namespace_section_offset - n - 1),
         _ => {
             error!("Tried to create SectionId from too high Navigator List row ({}).", row);
             SectionId::Popular
@@ -160,15 +161,15 @@ fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId
 /// section.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Navigator {
-    display_object:            display::object::Instance,
-    network:                   frp::Network,
-    bottom_buttons:            Grid,
-    top_buttons:               Grid,
-    tooltip:                   Tooltip,
-    pub set_top_section_count: frp::Any<usize>,
-    pub style:                 frp::Any<AllStyles>,
-    pub select_section:        frp::Any<Option<SectionId>>,
-    pub chosen_section:        frp::Stream<Option<SectionId>>,
+    display_object: display::object::Instance,
+    network: frp::Network,
+    bottom_buttons: Grid,
+    top_buttons: Grid,
+    tooltip: Tooltip,
+    pub set_namespace_section_count: frp::Any<usize>,
+    pub style: frp::Any<AllStyles>,
+    pub select_section: frp::Any<Option<SectionId>>,
+    pub chosen_section: frp::Stream<Option<SectionId>>,
 }
 
 impl Navigator {
@@ -189,8 +190,8 @@ impl Navigator {
         tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
             style <- any(...);
-            set_top_section_count <- any(...);
-            section_count <- set_top_section_count.map(
+            set_namespace_section_count <- any(...);
+            section_count <- set_namespace_section_count.map(
                 |&n: &usize| n + MIN_BOTTOM_BUTTONS_COUNT
             );
             bottom_buttons_shape <- section_count.map(|n| (*n, 1));
@@ -262,7 +263,7 @@ impl Navigator {
             bottom_buttons,
             tooltip,
             network,
-            set_top_section_count,
+            set_namespace_section_count,
             style,
             select_section,
             chosen_section,

@@ -511,7 +511,7 @@ impl ComponentsProvider {
             let section = components
                 .module_qualified_name(selected)
                 .and_then(|name| {
-                    components.top_section_indices().get(&name.project().namespace).copied()
+                    components.top_module_section_indices().get(&name.project().namespace).copied()
                 })
                 .unwrap_or_default();
             let submodules =
@@ -555,8 +555,8 @@ impl ComponentsProvider {
     }
 
     /// Returns the number of namespace sections.
-    pub fn top_section_count(&self) -> usize {
-        self.list.top_section_count()
+    pub fn namespace_section_count(&self) -> usize {
+        self.list.top_module_section_count()
     }
 }
 

@@ -198,9 +198,9 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             component_grid::SectionId::Popular => self.favorites().get(id.index).cloned(),
             component_grid::SectionId::LocalScope =>
                 (id.index == 0).as_some_from(|| self.local_scope().clone_ref()),
-            component_grid::SectionId::Namespace(id_section) => match self.top_modules() {
-                TopModules::All(modules) => modules.get(id_section)?.get(id.index).cloned(),
-                TopModules::Subset(modules, top_section) if id_section == top_section =>
+            component_grid::SectionId::Namespace(grid_idx) => match self.top_modules() {
+                TopModules::All(modules) => modules.get(grid_idx)?.get(id.index).cloned(),
+                TopModules::Subset(modules, top_module_idx) if grid_idx == top_module_idx =>
                     modules.get(id.index).cloned(),
                 _ => None,
             },
@@ -233,7 +233,7 @@ impl ControllerComponentsProviderExt for controller::searcher::ComponentsProvide
             }
         };
         let local_scope_entry_count = self.local_scope().matched_items.get();
-        let namespace_section_count = self.top_section_count();
+        let namespace_section_count = self.namespace_section_count();
         component_list_panel::grid::content::Info {
             groups,
             local_scope_entry_count,
