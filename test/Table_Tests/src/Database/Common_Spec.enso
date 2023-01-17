@@ -36,56 +36,6 @@ spec prefix connection =
             table = upload "Big" original
             table.read.row_count . should_equal n
 
-    Test.group prefix+"Mapping Operations" <|
-        t2 = upload "T2" <| Table.new [["x", [1, 4, 5, Nothing]], ["y", [2, 3, 5, Nothing]], ["b", [False, False, True, Nothing]]]
-        x = t2.at "x"
-        y = t2.at "y"
-        b = t2.at "b"
-        # TODO move these to Column_Operations_Spec
-        Test.specify "should allow combining columns with supported operations" <|
-            (x + y).to_vector . should_equal [3, 7, 10, Nothing]
-            (x - y).to_vector . should_equal [-1, 1, 0, Nothing]
-            (x * y).to_vector . should_equal [2, 12, 25, Nothing]
-            (x / y).to_vector . should_equal [0, 1, 1, Nothing]
-            #(x == y).to_vector . should_equal [False, False, True, Nothing]
-            #(x != y).to_vector . should_equal [True, True, False, Nothing]
-            (x < y).to_vector . should_equal [True, False, False, Nothing]
-            (x <= y).to_vector . should_equal [True, False, True, Nothing]
-            (x > y).to_vector . should_equal (x <= y).not.to_vector
-            (x >= y).to_vector . should_equal (x < y).not.to_vector
-            #(((x < y) || (x == y)) == (x <= y)).to_vector . should_equal [True, True, True, Nothing]
-            (b || b.not).to_vector . should_equal [True, True, True, Nothing]
-
-        Test.specify "should allow casting constants to be applied to the whole column" <|
-            (x + 100).to_vector . should_equal [101, 104, 105, Nothing]
-            (x * 10).to_vector . should_equal [10, 40, 50, Nothing]
-            (x / 2).to_vector . should_equal [0, 2, 2, Nothing]
-            (x - 10).to_vector . should_equal [-9, -6, -5, Nothing]
-            #(x == 4).to_vector . should_equal [False, True, False, Nothing]
-            (x < 1000).to_vector . should_equal [True, True, True, Nothing]
-            (b || False).to_vector . should_equal [False, False, True, Nothing]
-            (b || True).to_vector . should_equal [True, True, True, True]
-            (b && False).to_vector . should_equal [False, False, False, False]
-            (x + Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-            x.is_missing.to_vector . should_equal [False, False, False, True]
-            #(x == Nothing).to_vector . should_equal [Nothing, Nothing, Nothing, Nothing]
-
-        t3 = upload "T3" <| Table.new [["s1", ["foobar", "bar", "baz", Nothing]], ["s2", ["foo", "ar", "a", Nothing]]]
-        s1 = t3.at "s1"
-        s2 = t3.at "s2"
-        Test.specify "should handle Text operations" <|
-            s1.starts_with s2 . to_vector . should_equal [True, False, False, Nothing]
-            s1.starts_with "foo" . to_vector . should_equal [True, False, False, Nothing]
-            s1.starts_with "ba" . to_vector . should_equal [False, True, True, Nothing]
-
-            s1.contains s2 . to_vector . should_equal [True, True, True, Nothing]
-            s1.contains "a" . to_vector . should_equal [True, True, True, Nothing]
-            s1.contains "oo" . to_vector . should_equal [True, False, False, Nothing]
-
-            s1.ends_with s2 . to_vector . should_equal [False, True, False, Nothing]
-            s1.ends_with "ar" . to_vector . should_equal [True, True, False, Nothing]
-            s1.ends_with "a" . to_vector . should_equal [False, False, False, Nothing]
-
     Test.group prefix+"Masking Tables" <|
         Test.specify "should allow to select rows from a table or column based on an expression" <|
             t2 = t1.filter (t1.at "a" == 1)

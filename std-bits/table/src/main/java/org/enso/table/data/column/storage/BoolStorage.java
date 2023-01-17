@@ -32,6 +32,12 @@ public final class BoolStorage extends Storage<Boolean> {
     this.negated = negated;
   }
 
+  public static BoolStorage makeEmpty(int size) {
+    BitSet isMissing = new BitSet(size);
+    isMissing.set(0, size);
+    return new BoolStorage(new BitSet(), isMissing, size, false);
+  }
+
   @Override
   public int size() {
     return size;
@@ -207,7 +213,9 @@ public final class BoolStorage extends Storage<Boolean> {
             new MapOperation<>(Maps.EQ) {
               @Override
               public BoolStorage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean v) {
+                if (arg == null) {
+                  return BoolStorage.makeEmpty(storage.size);
+                } else if (arg instanceof Boolean v) {
                   if (v) {
                     return storage;
                   } else {
@@ -239,7 +247,9 @@ public final class BoolStorage extends Storage<Boolean> {
             new MapOperation<>(Maps.AND) {
               @Override
               public BoolStorage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean v) {
+                if (arg == null) {
+                  return BoolStorage.makeEmpty(storage.size);
+                } else if (arg instanceof Boolean v) {
                   if (v) {
                     return storage;
                   } else {
@@ -281,7 +291,9 @@ public final class BoolStorage extends Storage<Boolean> {
             new MapOperation<>(Maps.OR) {
               @Override
               public BoolStorage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean v) {
+                if (arg == null) {
+                  return BoolStorage.makeEmpty(storage.size);
+                } else if (arg instanceof Boolean v) {
                   if (v) {
                     return new BoolStorage(new BitSet(), storage.isMissing, storage.size, true);
                   } else {
