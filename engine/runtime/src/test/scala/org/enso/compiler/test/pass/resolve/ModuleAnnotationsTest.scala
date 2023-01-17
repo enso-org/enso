@@ -130,8 +130,8 @@ class ModuleAnnotationsTest extends CompilerTest {
       val anns =
         ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 2
-      anns(0).asInstanceOf[IR.Name].name shouldEqual "@a"
-      anns(1).asInstanceOf[IR.Name].name shouldEqual "@b"
+      anns(0).asInstanceOf[IR.Name].name shouldEqual "a"
+      anns(1).asInstanceOf[IR.Name].name shouldEqual "b"
     }
 
   }
@@ -143,8 +143,8 @@ class ModuleAnnotationsTest extends CompilerTest {
       val ir =
         """@My_Annotation
           |type Foo
-          |    @My_Annotation
-          |    Bar
+          |    @my annotation
+          |    Bar my
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
@@ -156,8 +156,7 @@ class ModuleAnnotationsTest extends CompilerTest {
         .unsafeGetMetadata(ModuleAnnotations, "")
         .annotations
         .head
-        .asInstanceOf[IR.Name]
-        .name shouldEqual "@My_Annotation"
+        .name shouldEqual "my"
     }
 
     "associate annotations with method definitions" in {
@@ -165,7 +164,7 @@ class ModuleAnnotationsTest extends CompilerTest {
         """type Foo
           |    Foo
           |
-          |    @My_Annotation
+          |    @a
           |    my_method a = a
           |""".stripMargin.preprocessModule.resolve
 
@@ -179,15 +178,14 @@ class ModuleAnnotationsTest extends CompilerTest {
         .unsafeGetMetadata(ModuleAnnotations, "")
         .annotations
         .head
-        .asInstanceOf[IR.Name]
-        .name shouldEqual "@My_Annotation"
+        .name shouldEqual "a"
     }
 
     "not associate annotations with comments" in {
       val ir =
         """
           |type Foo
-          |    @My_Annotation
+          |    @my annotation
           |    ## Doc comment
           |    Foo
           |""".stripMargin.preprocessModule.resolve
@@ -203,8 +201,7 @@ class ModuleAnnotationsTest extends CompilerTest {
         .unsafeGetMetadata(ModuleAnnotations, "")
         .annotations
         .head
-        .asInstanceOf[IR.Name]
-        .name shouldEqual "@My_Annotation"
+        .name shouldEqual "my"
     }
   }
 }

@@ -341,13 +341,14 @@ type_of value = @Builtin_Method "Meta.type_of"
 ## UNSTABLE
    ADVANCED
 
-   Given a method reference and a parameter name, return the associated annotation if it exists.
+   Given a type object, method name and a parameter name, return the associated annotation if it exists.
 
    Arguments:
-   - target: The method to get the attribute from.
+   - target: The value or type to get the attribute from.
+   - method_name: The name of the method to get the attribute for.
    - parameter_name: The name of the parameter to get the attribute for.
-get_annotation : Any -> Text -> Any | Nothing
-get_annotation target parameter_name = @Builtin_Method "Meta.get_annotation"
+get_annotation : Any -> Text -> Text -> Any | Nothing
+get_annotation target method_name parameter_name = @Builtin_Method "Meta.get_annotation"
 
 ## Represents a polyglot language.
 type Language

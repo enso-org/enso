@@ -230,6 +230,7 @@ public final class FunctionSchema {
    * @param name the annotation name.
    * @return the matching annotation expression.
    */
+  @CompilerDirectives.TruffleBoundary
   public Function getAnnotation(String name) {
     return Arrays.stream(annotations)
         .filter(fun -> name.equals(fun.getMethodName()))

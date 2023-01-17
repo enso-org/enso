@@ -2943,7 +2943,8 @@ object IR {
       override def children: List[IR] = List(argument)
 
       /** @inheritdoc */
-      override def showCode(indent: Int): String = s"@$name"
+      override def showCode(indent: Int): String =
+        s"@$name ${argument.showCode(indent)}"
     }
 
     /** A representation of the name `self`, used to refer to the current type.
