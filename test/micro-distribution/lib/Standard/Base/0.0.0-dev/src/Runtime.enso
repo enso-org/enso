@@ -1,3 +1,7 @@
+type IO_Permissions
+    Input
+    Output
+
 primitive_get_stack_trace = @Builtin_Method "Runtime.primitive_get_stack_trace"
 allow_input_in env = @Builtin_Method "Runtime.allow_input_in"
 allow_output_in env = @Builtin_Method "Runtime.allow_output_in"

@@ -188,4 +188,37 @@
         <netbeans.version>RELEASE113</netbeans.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
     </properties>
+    <profiles>
+        <profile>
+            <id>vsix</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.seovic.maven.plugins</groupId>
+                        <artifactId>npm-maven-plugin</artifactId>
+                        <version>1.0.4</version>
+                        <executions>
+                            <execution>
+                                <id>install</id>
+                                <phase>pre-integration-test</phase>
+                                <goals>
+                                    <goal>install</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>vsix</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <script>vsix</script>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

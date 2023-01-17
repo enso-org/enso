@@ -5,6 +5,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.resolve.TypeSignatures
 
 import scala.annotation.unused
 
@@ -19,7 +20,7 @@ case object GatherDiagnostics extends IRPass {
   override type Metadata = DiagnosticsMeta
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass]   = List()
+  override val precursorPasses: Seq[IRPass]   = List(TypeSignatures)
   override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
@@ -63,8 +64,17 @@ case object GatherDiagnostics extends IRPass {
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
     val diagnostics = ir.preorder.collect {
-      case err: IR.Diagnostic => List(err)
-      case x                  => x.diagnostics.toList
+      case err: IR.Diagnostic =>
+        List(err)
+      case x: IR.Module.Scope.Definition.Method =>
+        val typeSignatureDiagnostics =
+          x.getMetadata(TypeSignatures)
+            .map(_.signature.preorder.collect { case err: IR.Diagnostic =>
+              err
+            })
+            .getOrElse(Nil)
+        typeSignatureDiagnostics ++ x.diagnostics.toList
+      case x => x.diagnostics.toList
     }.flatten
     DiagnosticsMeta(
       diagnostics.distinctBy(d => new DiagnosticKeys(d))

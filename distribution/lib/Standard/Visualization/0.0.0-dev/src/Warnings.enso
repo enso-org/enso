@@ -1,0 +1,19 @@
+from Standard.Base import all
+
+## PRIVATE
+
+   Default preprocessor for the warnings visualization.
+
+   Generates JSON text describing the warnings visualization.
+
+   Arguments:
+   - value: the value to be visualized.
+process_to_json_text : Any -> Text
+process_to_json_text value =
+    warnings = Warning.get_all value
+    text = warnings.map w->w.value.to_display_text
+    json = text.to_json
+
+    ## Workaround so that the JS String is converted to a Text
+       https://www.pivotaltracker.com/story/show/184061302
+    "" + json

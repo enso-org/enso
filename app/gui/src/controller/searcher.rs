@@ -5,17 +5,16 @@ use crate::prelude::*;
 
 use crate::controller::graph::FailedToCreateNode;
 use crate::controller::searcher::component::group;
-use crate::model::module::MethodId;
 use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::suggestion_database;
-use crate::notification;
 
 use breadcrumbs::Breadcrumbs;
 use const_format::concatcp;
 use double_representation::graph::GraphInfo;
 use double_representation::graph::LocationHint;
 use double_representation::import;
+use double_representation::module::MethodId;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
@@ -1639,15 +1638,15 @@ pub mod test {
 
     use crate::controller::ide::plain::ProjectOperationsNotSupported;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::mock_suggestion_database;
-    use crate::model::suggestion_database::entry::Argument;
-    use crate::model::SuggestionDatabase;
     use crate::test::mock::data::project_qualified_name;
     use crate::test::mock::data::MAIN_FINISH;
     use crate::test::mock::data::MODULE_NAME;
 
     use engine_protocol::language_server::types::test::value_update_with_type;
     use engine_protocol::language_server::SuggestionId;
+    use enso_suggestion_database::entry::Argument;
+    use enso_suggestion_database::mock_suggestion_database;
+    use enso_suggestion_database::SuggestionDatabase;
     use json_rpc::expect_call;
     use std::assert_matches::assert_matches;
 

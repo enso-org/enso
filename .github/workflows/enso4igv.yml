@@ -33,7 +33,7 @@ jobs:
           mvn versions:set -DnewVersion=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`.$GITHUB_RUN_NUMBER
 
       - name: Build with Maven
-        run: mvn -B package --file tools/enso4igv/pom.xml
+        run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml
       - name: Archive NBM file
         uses: actions/upload-artifact@v3
         with:

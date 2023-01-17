@@ -77,21 +77,23 @@ object SuggestionRandom {
 
   def nextSuggestionFunction(): Suggestion.Function =
     Suggestion.Function(
-      externalId = optional(UUID.randomUUID()),
-      module     = "Test.Main",
-      name       = nextString(),
-      arguments  = Seq(),
-      returnType = nextString(),
-      scope      = nextScope()
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      arguments     = Seq(),
+      returnType    = nextString(),
+      scope         = nextScope(),
+      documentation = optional(nextString())
     )
 
   def nextSuggestionLocal(): Suggestion.Local =
     Suggestion.Local(
-      externalId = optional(UUID.randomUUID()),
-      module     = "Test.Main",
-      name       = nextString(),
-      returnType = nextString(),
-      scope      = nextScope()
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
+      name          = nextString(),
+      returnType    = nextString(),
+      scope         = nextScope(),
+      documentation = optional(nextString())
     )
 
   def nextScope(): Suggestion.Scope =

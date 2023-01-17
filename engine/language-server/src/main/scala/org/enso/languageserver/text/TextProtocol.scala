@@ -1,7 +1,11 @@
 package org.enso.languageserver.text
 
 import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
-import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.languageserver.filemanager.{
+  FileEventKind,
+  FileSystemFailure,
+  Path
+}
 import org.enso.languageserver.session.JsonSession
 import org.enso.polyglot.runtime.Runtime.Api.ExpressionId
 import org.enso.text.editing.model.TextEdit
@@ -131,6 +135,13 @@ object TextProtocol {
     * @param path path to the saved file
     */
   case class FileAutoSaved(path: Path)
+
+  /** A notification sent by the Language Server, notifying a client about
+    * a file event after reloading the buffer to sync with file system
+    *
+    * @param path path to the file
+    */
+  case class FileEvent(path: Path, event: FileEventKind)
 
   /** Requests the language server to save a file on behalf of a given user.
     *

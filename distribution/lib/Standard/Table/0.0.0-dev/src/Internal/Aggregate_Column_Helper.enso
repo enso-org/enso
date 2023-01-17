@@ -12,7 +12,7 @@ import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Data.Aggregate_Column.Aggregate_Column
 from project.Data.Aggregate_Column.Aggregate_Column import all
 import project.Data.Table.Table
-from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation, Floating_Point_Grouping, Unquoted_Delimiter, Additional_Warnings
+from project.Errors import No_Output_Columns, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Invalid_Aggregation
 
 polyglot java import org.enso.table.aggregations.Aggregator
 polyglot java import org.enso.table.aggregations.Concatenate as ConcatenateAggregator
@@ -30,10 +30,6 @@ polyglot java import org.enso.table.aggregations.Percentile as PercentileAggrega
 polyglot java import org.enso.table.aggregations.ShortestOrLongest as ShortestOrLongestAggregator
 polyglot java import org.enso.table.aggregations.StandardDeviation as StandardDeviationAggregator
 polyglot java import org.enso.table.aggregations.Sum as SumAggregator
-
-polyglot java import org.enso.table.data.table.problems.InvalidAggregation
-polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
-polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
 
 ## Result type for aggregate_columns validation
    - key_columns: Vector of Columns from the table to group by
@@ -76,10 +72,7 @@ prepare_aggregate_columns aggregates table =
     # Build Problems Output
     if renamed_columns.is_empty then
         problem_builder.report_other_warning No_Output_Columns
-    if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
-    if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
+    problem_builder.report_unique_name_strategy unique
 
     Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
 
@@ -223,18 +216,3 @@ java_aggregator name column =
         Concatenate c _ join prefix suffix quote -> ConcatenateAggregator.new name c.java_column join prefix suffix quote
         _ -> Error.throw (Invalid_Aggregation.Error name -1 "Unsupported aggregation")
 
-## PRIVATE
-   Convert Java aggregated problems to Enso Vector of equivalents
-parse_aggregated_problems : Any->Vector
-parse_aggregated_problems problems =
-    if problems.is_nothing then [] else
-        problems_array = problems.getProblems
-        parsed = Vector.new problems_array.length i->
-            p = problems_array.at i
-            if Java.is_instance p InvalidAggregation then Invalid_Aggregation.Error p.getColumnName (Vector.from_polyglot_array p.getRows) p.getMessage else
-                if Java.is_instance p FloatingPointGrouping then Floating_Point_Grouping.Error p.getColumnName else
-                    if Java.is_instance p UnquotedDelimiter then Unquoted_Delimiter.Error p.getColumnName (Vector.from_polyglot_array p.getRows) else
-                        Invalid_Aggregation.Error Nothing -1 "Unknown Error"
-
-        if problems.getCount == problems_array.length then parsed else
-            parsed + [Additional_Warnings.Error (problems.getCount - problems_array.length)]

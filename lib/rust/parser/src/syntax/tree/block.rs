@@ -47,37 +47,144 @@ impl<'s> span::Builder<'s> for Line<'s> {
 // === Body Block ===
 // ==================
 
-/// Build a body block from a sequence of lines; this involves reinterpreting the input expressions
-/// in statement context (i.e. expressions at the top-level of the block that involve the `=`
-/// operator will be reinterpreted as function/variable bindings).
+/// Build a body block from a sequence of lines; this includes:
+/// - Reinterpret the input expressions in statement context (i.e. expressions at the top-level of
+///   the block that involve the `=` operator will be reinterpreted as function/variable bindings).
+/// - Combine sibling lines in case of multi-line statements, such as annotated statements and
+///   documented statements.
 pub fn body_from_lines<'s>(lines: impl IntoIterator<Item = Line<'s>>) -> Tree<'s> {
     use crate::expression_to_statement;
-    let mut lines = lines.into_iter();
-    let mut statements = Vec::with_capacity(lines.size_hint().0);
-    while let Some(line) = lines.next() {
-        let mut statement = line.map_expression(expression_to_statement);
-        if let Some(Tree {
-            variant:
-                box Variant::Annotated(Annotated { newlines, expression, .. })
-                | box Variant::Documented(Documented {
-                    documentation: DocComment { newlines, .. },
-                    expression,
-                    ..
-                }),
-            ..
-        }) = &mut statement.expression
-        {
-            while expression.is_none() &&
-            let Some(line) = lines.next()
-            {
-                let statement = line.map_expression(expression_to_statement);
-                newlines.push(statement.newline);
-                *expression = statement.expression;
+    let lines = lines.into_iter().map(|l| l.map_expression(expression_to_statement));
+    let statements: Vec<_> = compound_lines(lines).collect();
+    Tree::body_block(statements)
+}
+
+
+// === Multi-line expression construction ===
+
+/// Adapts a sequence of lines by combining sibling lines in case of multi-line statements, such as
+/// annotated statements and documented statements.
+pub fn compound_lines<'s, I: IntoIterator<Item = Line<'s>>>(
+    lines: I,
+) -> CompoundLines<'s, I::IntoIter> {
+    CompoundLines { lines: lines.into_iter(), prefixes: default(), newline: default() }
+}
+
+/// [`Iterator`] that adapts a sequence of lines by merging multi-line statements.
+#[derive(Debug)]
+pub struct CompoundLines<'s, I> {
+    lines:    I,
+    prefixes: Vec<Prefix<'s>>,
+    newline:  Option<token::Newline<'s>>,
+}
+
+impl<'s, I> Iterator for CompoundLines<'s, I>
+where I: Iterator<Item = Line<'s>>
+{
+    type Item = Line<'s>;
+    fn next(&mut self) -> Option<Self::Item> {
+        for line in &mut self.lines {
+            match line.expression.map(Prefix::try_from) {
+                Some(Ok(prefix)) => {
+                    match self.prefixes.last_mut() {
+                        Some(prefix) => prefix.newlines().push(line.newline),
+                        None => self.newline = Some(line.newline),
+                    };
+                    self.prefixes.push(prefix);
+                }
+                Some(Err(mut statement)) => {
+                    return Some(match self.prefixes.last_mut() {
+                        Some(prefix) => {
+                            prefix.newlines().push(line.newline);
+                            for prefix in self.prefixes.drain(..).rev() {
+                                statement = prefix.apply_to(statement);
+                            }
+                            let newline = self.newline.take().unwrap();
+                            Line { newline, expression: Some(statement) }
+                        }
+                        None => Line { newline: line.newline, expression: Some(statement) },
+                    });
+                }
+                None => {
+                    match self.prefixes.last_mut() {
+                        Some(prefix) => prefix.newlines().push(line.newline),
+                        None => return Some(line.newline.into()),
+                    };
+                }
             }
         }
-        statements.push(statement);
+        if let Some(prefix) = self.prefixes.pop() {
+            let mut statement = prefix.into();
+            for prefix in self.prefixes.drain(..).rev() {
+                statement = prefix.apply_to(statement);
+            }
+            let newline = self.newline.take().unwrap();
+            return Some(Line { newline, expression: Some(statement) });
+        }
+        if let Some(line) = self.newline.take() {
+            return Some(line.into());
+        }
+        None
     }
-    Tree::body_block(statements)
+}
+
+
+// === Prefix-list representation ===
+
+/// Representation used to build multi-line statements.
+#[derive(Debug)]
+enum Prefix<'s> {
+    Annotation { node: Annotated<'s>, span: Span<'s> },
+    BuiltinAnnotation { node: AnnotatedBuiltin<'s>, span: Span<'s> },
+    Documentation { node: Documented<'s>, span: Span<'s> },
+}
+
+impl<'s> TryFrom<Tree<'s>> for Prefix<'s> {
+    type Error = Tree<'s>;
+    fn try_from(tree: Tree<'s>) -> Result<Self, Self::Error> {
+        match tree.variant {
+            box Variant::Annotated(node) => Ok(Prefix::Annotation { node, span: tree.span }),
+            box Variant::AnnotatedBuiltin(node @ AnnotatedBuiltin { expression: None, .. }) =>
+                Ok(Prefix::BuiltinAnnotation { node, span: tree.span }),
+            box Variant::Documented(node) => Ok(Prefix::Documentation { node, span: tree.span }),
+            _ => Err(tree),
+        }
+    }
+}
+
+impl<'s> Prefix<'s> {
+    fn newlines(&mut self) -> &mut Vec<token::Newline<'s>> {
+        match self {
+            Prefix::Annotation { node: Annotated { newlines, .. }, .. }
+            | Prefix::BuiltinAnnotation { node: AnnotatedBuiltin { newlines, .. }, .. }
+            | Prefix::Documentation {
+                node: Documented { documentation: DocComment { newlines, .. }, .. },
+                ..
+            } => newlines,
+        }
+    }
+
+    fn apply_to(mut self, expression: Tree<'s>) -> Tree<'s> {
+        *(match &mut self {
+            Prefix::Annotation { node, .. } => &mut node.expression,
+            Prefix::BuiltinAnnotation { node, .. } => &mut node.expression,
+            Prefix::Documentation { node, .. } => &mut node.expression,
+        }) = Some(expression);
+        self.into()
+    }
+}
+
+impl<'s> From<Prefix<'s>> for Tree<'s> {
+    fn from(prefix: Prefix<'s>) -> Self {
+        match prefix {
+            Prefix::Annotation { node, span } =>
+                Tree { variant: Box::new(Variant::Annotated(node)), span },
+            Prefix::BuiltinAnnotation { node, span } =>
+                Tree { variant: Box::new(Variant::AnnotatedBuiltin(node)), span },
+            Prefix::Documentation { node, span } =>
+                Tree { variant: Box::new(Variant::Documented(node)), span },
+        }
+    }
 }
 
 

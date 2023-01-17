@@ -210,6 +210,18 @@ impl Default for Parser {
 fn expression_to_statement(mut tree: syntax::Tree<'_>) -> syntax::Tree<'_> {
     use syntax::tree::*;
     let mut left_offset = source::span::Offset::default();
+    if let Tree { variant: box Variant::Annotated(annotated), .. } = &mut tree {
+        annotated.expression = annotated.expression.take().map(expression_to_statement);
+        return tree;
+    }
+    if let Tree { variant: box Variant::AnnotatedBuiltin(annotated), .. } = &mut tree {
+        annotated.expression = annotated.expression.take().map(expression_to_statement);
+        return tree;
+    }
+    if let Tree { variant: box Variant::Documented(documented), .. } = &mut tree {
+        documented.expression = documented.expression.take().map(expression_to_statement);
+        return tree;
+    }
     if let Tree { variant: box Variant::TypeAnnotated(annotated), span } = tree {
         let colon = annotated.operator;
         let type_ = annotated.type_;

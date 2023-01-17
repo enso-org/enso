@@ -3,10 +3,7 @@ import project.Helpers
 
 ## PRIVATE
    Default visualization preprocessor.
-default_preprocessor x =
-    ## Workaround so that the JS String is converted to a Text
-       https://www.pivotaltracker.com/story/show/184061302
-    "" + x.to_default_visualization_data
+default_preprocessor x = x.to_default_visualization_data
 
 ## PRIVATE
    Error visualization preprocessor.
@@ -18,6 +15,4 @@ error_preprocessor x =
         full_message = message + if stack_trace.length > 1 then " (" + stack_trace.at 1 . trim +")" else ""
         JS_Object.from_pairs [['kind', 'Dataflow'], ['message', full_message]] . to_json
 
-    ## Workaround so that the JS String is converted to a Text
-       https://www.pivotaltracker.com/story/show/184061302
-    "" + if result.is_error then result.catch else ok
+    if result.is_error then result.catch else ok
