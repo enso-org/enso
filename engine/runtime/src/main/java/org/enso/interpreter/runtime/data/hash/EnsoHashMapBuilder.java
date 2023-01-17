@@ -63,7 +63,7 @@ public final class EnsoHashMapBuilder {
   }
 
   /** Adds a key-value mapping, overriding any existing value. */
-  @TruffleBoundary
+  @TruffleBoundary(allowInlining = true)
   public void add(Object key, Object value) {
     var oldEntry = storage.get(key);
     int newEntryIndex = oldEntry != null ? oldEntry.index : size;
@@ -78,7 +78,7 @@ public final class EnsoHashMapBuilder {
     }
   }
 
-  @TruffleBoundary
+  @TruffleBoundary(allowInlining = true)
   public StorageEntry get(Object key) {
     return storage.get(key);
   }
