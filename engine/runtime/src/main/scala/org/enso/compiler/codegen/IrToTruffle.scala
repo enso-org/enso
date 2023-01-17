@@ -408,28 +408,29 @@ class IrToTruffle(
             val arguments  = bodyBuilder.args()
             // build annotations
             val annotationFunctions =
-              methodDef.getMetadata(ModuleAnnotations).toVector.flatMap { meta =>
-                meta.annotations
-                  .collect { case annotation: IR.Name.ModuleAnnotation =>
-                    val annotationBodyBuilder =
-                      new expressionProcessor.BuildFunctionBody(
-                        Nil,
-                        annotation.argument,
-                        effectContext,
-                        false
+              methodDef.getMetadata(ModuleAnnotations).toVector.flatMap {
+                meta =>
+                  meta.annotations
+                    .collect { case annotation: IR.Name.GenericAnnotation =>
+                      val annotationBodyBuilder =
+                        new expressionProcessor.BuildFunctionBody(
+                          Nil,
+                          annotation.expression,
+                          effectContext,
+                          false
+                        )
+                      val annotationRootNode = MethodRootNode.build(
+                        language,
+                        expressionProcessor.scope,
+                        moduleScope,
+                        () => annotationBodyBuilder.bodyNode(),
+                        makeSection(moduleScope, annotation.location),
+                        cons,
+                        annotation.name
                       )
-                    val annotationRootNode = MethodRootNode.build(
-                      language,
-                      expressionProcessor.scope,
-                      moduleScope,
-                      () => annotationBodyBuilder.bodyNode(),
-                      makeSection(moduleScope, annotation.location),
-                      cons,
-                      annotation.name
-                    )
-                    RuntimeFunction
-                      .thunk(annotationRootNode.getCallTarget, null)
-                  }
+                      RuntimeFunction
+                        .thunk(annotationRootNode.getCallTarget, null)
+                    }
               }
 
             Right(

@@ -2754,7 +2754,7 @@ object IR {
       override def showCode(indent: Int): String = name
     }
 
-    /** Base trait for annotations */
+    /** Base trait for annotations. */
     sealed trait Annotation extends Name with IR.Module.Scope.Definition {
 
       /** @inheritdoc */
@@ -2856,18 +2856,17 @@ object IR {
       override def showCode(indent: Int): String = s"@$name"
     }
 
-    /** The representation of annotations that can be found on module-level
-      * definitions.
+    /** The representation of common annotations of form `@name expression`.
       *
       * @param name the annotation text of the name
-      * @param argument the annotation argument
+      * @param expression the annotation expression
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
-    sealed case class ModuleAnnotation(
+    sealed case class GenericAnnotation(
       override val name: String,
-      argument: Expression,
+      expression: Expression,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -2877,7 +2876,7 @@ object IR {
       /** Creates a copy of `this`.
         *
         * @param name the annotation text of the name
-        * @param argument the annotation argument
+        * @param expression the annotation expression
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -2886,14 +2885,14 @@ object IR {
         */
       def copy(
         name: String                         = name,
-        argument: Expression                 = argument,
+        expression: Expression               = expression,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
-      ): ModuleAnnotation = {
+      ): GenericAnnotation = {
         val res =
-          ModuleAnnotation(name, argument, location, passData, diagnostics)
+          GenericAnnotation(name, expression, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2904,7 +2903,7 @@ object IR {
         keepMetadata: Boolean    = true,
         keepDiagnostics: Boolean = true,
         keepIdentifiers: Boolean = false
-      ): ModuleAnnotation =
+      ): GenericAnnotation =
         copy(
           location = if (keepLocations) location else None,
           passData =
@@ -2917,21 +2916,21 @@ object IR {
       /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
-      ): ModuleAnnotation =
+      ): GenericAnnotation =
         copy(location = location)
 
       /** @inheritdoc */
       override def mapExpressions(
         fn: Expression => Expression
-      ): ModuleAnnotation =
-        copy(argument = fn(argument))
+      ): GenericAnnotation =
+        copy(expression = fn(expression))
 
       /** @inheritdoc */
       override def toString: String =
         s"""
-           |IR.Name.ModuleAnnotation(
+           |IR.Name.GenericAnnotation(
            |name = $name,
-           |argument = $argument,
+           |expression = $expression,
            |location = $location,
            |passData = ${this.showPassData},
            |diagnostics = $diagnostics,
@@ -2940,11 +2939,11 @@ object IR {
            |""".toSingleLine
 
       /** @inheritdoc */
-      override def children: List[IR] = List(argument)
+      override def children: List[IR] = List(expression)
 
       /** @inheritdoc */
       override def showCode(indent: Int): String =
-        s"@$name ${argument.showCode(indent)}"
+        s"@$name ${expression.showCode(indent)}"
     }
 
     /** A representation of the name `self`, used to refer to the current type.

@@ -43,7 +43,7 @@ import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
 import org.enso.compiler.core.IR$Name$BuiltinAnnotation;
-import org.enso.compiler.core.IR$Name$ModuleAnnotation;
+import org.enso.compiler.core.IR$Name$GenericAnnotation;
 import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$Self;
@@ -270,7 +270,7 @@ final class TreeToIr {
 
       case Tree.Annotated anno -> {
         var annotationArgument = translateExpression(anno.getArgument());
-        var annotation = new IR$Name$ModuleAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
+        var annotation = new IR$Name$GenericAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
         yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
       }
 
@@ -402,7 +402,7 @@ final class TreeToIr {
 
       case Tree.Annotated anno -> {
         var annotationArgument = translateExpression(anno.getArgument());
-        var annotation = new IR$Name$ModuleAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
+        var annotation = new IR$Name$GenericAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
         yield translateTypeBodyExpression(anno.getExpression(), cons(annotation, appendTo));
       }
 

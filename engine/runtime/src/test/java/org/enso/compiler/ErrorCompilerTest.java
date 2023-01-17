@@ -10,24 +10,12 @@ import org.enso.compiler.core.IR$Error$Syntax$UnrecognizedToken$;
 import org.enso.compiler.core.IR$Error$Syntax$UnsupportedSyntax;
 import org.enso.syntax.text.Location;
 
-import org.junit.AfterClass;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import scala.collection.immutable.List;
 
 public class ErrorCompilerTest extends CompilerTest {
-
-  @BeforeClass
-  public static void initEnsoCompiler() {
-    ensoCompiler = new EnsoCompiler();
-  }
-
-  @AfterClass
-  public static void closeEnsoCompiler() throws Exception {
-    ensoCompiler.close();
-  }
 
   @Test
   public void spaceRequired() throws Exception {

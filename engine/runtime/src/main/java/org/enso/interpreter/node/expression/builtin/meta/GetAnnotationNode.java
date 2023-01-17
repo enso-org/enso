@@ -25,7 +25,8 @@ import org.enso.interpreter.runtime.state.State;
     autoRegister = false)
 public abstract class GetAnnotationNode extends Node {
 
-  abstract Object execute(VirtualFrame frame, State state, Object target, Object method, Object parameter);
+  abstract Object execute(
+      VirtualFrame frame, State state, Object target, Object method, Object parameter);
 
   @Specialization
   Object doExecute(
@@ -36,8 +37,7 @@ public abstract class GetAnnotationNode extends Node {
       Object parameter,
       @CachedLibrary(limit = "3") TypesLibrary types,
       @Cached ThunkExecutorNode thunkExecutorNode,
-      @Cached ExpectStringNode expectStringNode
-  ) {
+      @Cached ExpectStringNode expectStringNode) {
     String methodName = expectStringNode.execute(method);
     String parameterName = expectStringNode.execute(parameter);
     Type targetType = types.getType(target);

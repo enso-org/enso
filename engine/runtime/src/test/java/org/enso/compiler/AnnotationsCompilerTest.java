@@ -7,19 +7,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class AnnotationsCompilerTest extends CompilerTest {
-
-  @BeforeClass
-  public static void initEnsoCompiler() {
-    ensoCompiler = new EnsoCompiler();
-  }
-
-  @AfterClass
-  public static void closeEnsoCompiler() throws Exception {
-    ensoCompiler.close();
-  }
 
   @Test
   public void testMethodAnnotations() throws Exception {
