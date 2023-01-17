@@ -127,7 +127,7 @@ pub mod backdrop {
 
     ensogl::shape! {
         // Disable to allow interaction with the output port.
-        pointer_events = false;
+        pointer_events = true;
         (style:Style, selection:f32) {
 
             let width  = Var::<Pixels>::from("input_size.x");
@@ -727,7 +727,7 @@ impl Node {
 
             deselect_target  <- input.deselect.constant(0.0);
             select_target    <- input.select.constant(1.0);
-            selection.target <+ any(&deselect_target,&select_target);
+            selection.target <+ any(&deselect_target, &select_target);
             eval selection.value ((t) model.backdrop.selection.set(*t));
 
 

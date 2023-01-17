@@ -104,6 +104,11 @@ impl DummyTypeGenerator {
 fn init(app: &Application) {
     let _bg = app.display.default_scene.style_sheet.var(theme::application::background);
 
+    // FIXME: this sohuld not be needed
+    ensogl_hardcoded_theme::builtin::light::register(&app);
+    ensogl_hardcoded_theme::builtin::light::enable(&app);
+    app.themes.update();
+
     let world = &app.display;
     let scene = &world.default_scene;
 
