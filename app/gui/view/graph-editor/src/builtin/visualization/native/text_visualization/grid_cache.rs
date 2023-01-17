@@ -45,7 +45,6 @@ use super::GridWindow;
 // === GridCache ===
 // =================
 
-
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 /// A cache that stores a grid of items. The cache contains a grid of items, and a padding around

@@ -18,7 +18,6 @@ use std::fmt::Write;
 // === Model ===
 // =============
 
-
 /// Model that contains the data that is required to populate the data in an `Entry`.
 #[derive(Clone, Debug, Default)]
 pub struct Model {
@@ -44,7 +43,6 @@ pub struct Params {
 // =============
 // === Entry ===
 // =============
-
 
 /// Entry for use in GridView. Contains a dom element with a text, the Entry frp, and a dummy
 /// display object for compatibility with `GridView`. The `dummy_root` is not used for
