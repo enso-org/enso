@@ -505,7 +505,7 @@ pub type DebugTextGridVisualisation = TextGrid<String>;
 pub type TextVisualisation = TextGrid<BackendTextProvider>;
 
 /// Return definition of a lazy text visualisation.
-pub fn lazy_text_visualisation() -> visualization::Definition {
+pub fn text_visualisation() -> visualization::Definition {
     let path = visualization::Path::builtin("JSON");
     visualization::Definition::new(
         visualization::Signature::new_for_any_type(path, visualization::Format::Json),

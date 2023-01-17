@@ -146,7 +146,7 @@ impl BackendTextProvider {
                 if grid_size == GridSize::default() {
                     None
                 } else {
-                    Some(lazy_text_preprocessor(grid_posititon, grid_size))
+                    Some(text_preprocessor(grid_posititon, grid_size))
                 }
             }).unwrap();
             grid_data_update <- receive_data.map(|data| {
@@ -184,7 +184,7 @@ impl TextProvider for BackendTextProvider {
 }
 
 /// Crate a preprocessor configuration for the lazy text preprocessor.
-fn lazy_text_preprocessor(
+fn text_preprocessor(
     grid_position: GridPosition,
     grids_size: GridSize,
 ) -> PreprocessorConfiguration {
@@ -263,6 +263,10 @@ impl From<String> for LazyGridData {
     }
 }
 
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
