@@ -906,7 +906,7 @@ impl SceneData {
         // due to rounding errors. We round to the nearest integer to compensate for those errors.
         let width = canvas.width.round() as i32;
         let height = canvas.height.round() as i32;
-        debug_span!("Resized to {screen.width}px x {screen.height}px.").in_scope(|| {
+        debug_span!("Resized to {}px x {}px.", screen.width, screen.height).in_scope(|| {
             self.dom.layers.canvas.set_attribute_or_warn("width", width.to_string());
             self.dom.layers.canvas.set_attribute_or_warn("height", height.to_string());
             if let Some(context) = &*self.context.borrow() {

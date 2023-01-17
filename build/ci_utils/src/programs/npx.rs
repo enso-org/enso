@@ -10,3 +10,16 @@ impl Program for Npx {
         "npx"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    #[ignore]
+    async fn call_npx() -> Result {
+        setup_logging()?;
+        Npx.cmd()?.run_ok().await?;
+        Ok(())
+    }
+}

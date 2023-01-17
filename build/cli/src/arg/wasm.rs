@@ -57,6 +57,28 @@ impl From<ProfilingLevel> for enso_build::project::wasm::ProfilingLevel {
     }
 }
 
+// Follows hierarchy defined in  lib/rust/logging/src/lib.rs
+#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LogLevel {
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl From<LogLevel> for enso_build::project::wasm::LogLevel {
+    fn from(level: LogLevel) -> Self {
+        match level {
+            LogLevel::Error => Self::Error,
+            LogLevel::Warn => Self::Warn,
+            LogLevel::Info => Self::Info,
+            LogLevel::Debug => Self::Debug,
+            LogLevel::Trace => Self::Trace,
+        }
+    }
+}
+
 #[derive(Args, Clone, Debug, PartialEq, Eq)]
 pub struct BuildInput {
     /// Which crate should be treated as a WASM entry point. Relative path from source root.
@@ -83,6 +105,14 @@ pub struct BuildInput {
     /// Compiles Enso with given profiling level. If not set, defaults to minimum.
     #[clap(long, arg_enum, enso_env())]
     pub profiling_level: Option<ProfilingLevel>,
+
+    /// Compiles Enso with given log level. If not set, defaults to [`warn`].
+    #[clap(long, arg_enum, enso_env())]
+    pub log_level: Option<LogLevel>,
+
+    /// Compiles Enso with given uncollapsed log level. If not set, defaults to [`warn`].
+    #[clap(long, arg_enum, enso_env())]
+    pub uncollapsed_log_level: Option<LogLevel>,
 
     /// Fail the build if compressed WASM exceeds the specified size. Supports format like
     /// "4.06MiB". Pass "0" to disable check.

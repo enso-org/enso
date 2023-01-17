@@ -226,17 +226,18 @@ pub fn scene() -> Scene {
 #[allow(missing_docs)]
 pub struct WorldData {
     #[deref]
-    frp:                  api::private::Output,
-    pub default_scene:    Scene,
-    scene_dirty:          dirty::SharedBool,
-    uniforms:             Uniforms,
-    display_mode:         Rc<Cell<glsl::codes::DisplayModes>>,
-    stats:                Stats,
-    stats_monitor:        debug::monitor::Monitor,
-    stats_draw_handle:    callback::Handle,
-    pub on:               Callbacks,
+    frp: api::private::Output,
+    pub default_scene: Scene,
+    scene_dirty: dirty::SharedBool,
+    uniforms: Uniforms,
+    display_mode: Rc<Cell<glsl::codes::DisplayModes>>,
+    stats: Stats,
+    stats_monitor: debug::monitor::Monitor,
+    stats_draw_handle: callback::Handle,
+    pub on: Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
-    garbage_collector:    garbage::Collector,
+    garbage_collector: garbage::Collector,
+    emit_measurements_handle: Rc<RefCell<Option<callback::Handle>>>,
 }
 
 impl WorldData {
@@ -257,6 +258,7 @@ impl WorldData {
             stats_monitor.sample_and_draw(stats);
             log_render_stats(*stats)
         }));
+        let emit_measurements_handle = default();
 
         SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
 
@@ -272,6 +274,7 @@ impl WorldData {
             stats_monitor,
             stats_draw_handle,
             garbage_collector,
+            emit_measurements_handle,
         }
         .init()
     }
@@ -291,6 +294,7 @@ impl WorldData {
         let stats_monitor = self.stats_monitor.clone_ref();
         let display_mode = self.display_mode.clone_ref();
         let display_mode_uniform = self.uniforms.display_mode.clone_ref();
+        let emit_measurements_handle = self.emit_measurements_handle.clone_ref();
         let closure: Closure<dyn Fn(JsValue)> = Closure::new(move |val: JsValue| {
             let event = val.unchecked_into::<web::KeyboardEvent>();
             let digit_prefix = "Digit";
@@ -299,9 +303,19 @@ impl WorldData {
                 if key == "Backquote" {
                     stats_monitor.toggle()
                 } else if key == "KeyP" {
-                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                    if event.shift_key() {
+                        let forwarding_incrementally = emit_measurements_handle.borrow().is_some();
+                        // If we are submitting the data continuously, the hotkey is redundant.
+                        let enable_hotkey = !forwarding_incrementally;
+                        if enable_hotkey {
+                            profiler::interval_stream()
+                                .for_each(|interval| log_measurement(&interval));
+                        }
+                    } else {
+                        enso_debug_api::save_profile(&profiler::internal::get_log());
+                    }
                 } else if key == "KeyQ" {
-                    enso_debug_api::save_profile(&profiler::internal::take_log());
+                    enso_debug_api::save_profile(&profiler::internal::get_log());
                     enso_debug_api::LifecycleController::new().map(|api| api.quit());
                 } else if key.starts_with(digit_prefix) {
                     let code_value = key.trim_start_matches(digit_prefix).parse().unwrap_or(0);
@@ -349,6 +363,22 @@ impl WorldData {
         }
     }
 
+    /// Begin incrementally submitting [`profiler`] data to the User Timing web API.
+    ///
+    /// This will submit all measurements logged so far, and then periodically submit any new
+    /// measurements in batches.
+    pub fn connect_profiler_to_user_timing(&self) {
+        let mut handle = self.emit_measurements_handle.borrow_mut();
+        if handle.is_none() {
+            let mut intervals = profiler::interval_stream();
+            *handle = Some(self.on.after_frame.add(move |_| {
+                for interval in &mut intervals {
+                    log_measurement(&interval);
+                }
+            }));
+        }
+    }
+
     /// Perform to the next frame with the provided time information.
     ///
     /// Please note that the provided time information from the [`requestAnimationFrame`] JS
@@ -376,6 +406,25 @@ impl WorldData {
     pub fn collect_garbage<T: 'static>(&self, object: T) {
         self.garbage_collector.collect(object);
     }
+}
+
+mod js {
+    #[wasm_bindgen::prelude::wasm_bindgen(inline_js = r#"
+export function log_measurement(label, start, end) {
+    window.performance.measure(label, { "start": start, "end": end })
+}
+"#)]
+    extern "C" {
+        #[allow(unsafe_code)]
+        pub fn log_measurement(msg: String, start: f64, end: f64);
+    }
+}
+
+fn log_measurement(interval: &profiler::Interval) {
+    let label = interval.label().to_owned();
+    let start = interval.start();
+    let end = interval.end();
+    js::log_measurement(label, start, end);
 }
 
 

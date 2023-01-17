@@ -1,5 +1,6 @@
 from Standard.Base import all
 
+import project.Common_Table_Operations.Aggregate_Spec
 import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
 import project.Common_Table_Operations.Distinct_Spec
@@ -11,8 +12,7 @@ import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
-import project.Common_Table_Operations.Aggregate_Spec
-import project.Common_Table_Operations.Aggregate_Spec.Test_Selection as Aggregate_Test_Selection
+import project.Common_Table_Operations.Union_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
@@ -95,6 +95,7 @@ spec setup =
     Take_Drop_Spec.spec setup
     Expression_Spec.spec detailed=False setup
     Join_Spec.spec setup
+    Union_Spec.spec setup
     Distinct_Spec.spec setup
     Integration_Tests.spec setup
 

@@ -1242,6 +1242,19 @@ public class EnsoCompilerTest {
 
   }
 
+  @Test
+  public void ise_184219679() throws IOException {
+    parseTest("""
+    from Standard.Base import all
+
+    main =
+        x = 42
+        y = if x == 42 then 10 else
+        20
+        IO.println y
+    """);
+  }
+
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {
@@ -1335,8 +1348,12 @@ public class EnsoCompilerTest {
   }
 
   private static IR.Module compile(String code) {
+    return compile(ensoCompiler, code);
+  }
+
+  public static IR.Module compile(EnsoCompiler c, String code) {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
-    var ir = ensoCompiler.compile(src);
+    var ir = c.compile(src);
     assertNotNull("IR was generated", ir);
     return ir;
   }

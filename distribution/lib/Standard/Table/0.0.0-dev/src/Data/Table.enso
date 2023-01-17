@@ -1,6 +1,6 @@
 from Standard.Base import all
-import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Array_Proxy.Array_Proxy
+import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.No_Such_Method
@@ -11,13 +11,16 @@ import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Column.Column
+import project.Data.Column as Column_Module
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
+import project.Data.Match_Columns as Match_Columns_Helpers
 import project.Data.Position.Position
+import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Storage.Storage
 import project.Data.Value_Type.Value_Type
@@ -28,10 +31,10 @@ import project.Data.Storage.Storage
 import project.Internal.Aggregate_Column_Helper
 import project.Internal.Java_Problems
 import project.Internal.Join_Helpers
-import project.Internal.Table_Helpers
-import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import project.Data.Expression.Expression
 import project.Data.Expression.Expression_Error
@@ -44,6 +47,7 @@ from project.Errors import Column_Count_Mismatch, Missing_Input_Columns, Column_
 from project.Data.Column import get_item_string
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
+polyglot java import org.enso.table.data.column.builder.object.StorageTypeMismatch
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.Equals as Java_Join_Equals
@@ -661,7 +665,6 @@ type Table
             problems = java_table.getProblems
             Java_Problems.parse_aggregated_problems problems
 
-
     ## Parses columns within a Table to a specific value type.
        By default, it looks at all `Text` columns and attempts to deduce the
        type (columns with other types are not affected). If `column_types` are
@@ -972,13 +975,17 @@ type Table
 
              example_columns = Examples.inventory_table.columns
     columns : Vector
-    columns self = Vector.from_polyglot_array self.java_table.getColumns . map Column.Value
+    columns self = Vector.from_polyglot_array <|
+        Array_Proxy.new self.java_table.getColumns.length i->
+            Column.Value (self.java_table.getColumns.at i)
 
     ## UNSTABLE
 
        Returns the vector of column names contained in this table.
     column_names : Vector Text
-    column_names self = Vector.from_polyglot_array self.java_table.getColumns . map _.getName
+    column_names self = Vector.from_polyglot_array <|
+        Array_Proxy.new self.java_table.getColumns.length i->
+            self.java_table.getColumns.at i . getName
 
     ## Returns a vector of rows contained in this table.
 
@@ -1015,6 +1022,9 @@ type Table
            and an empty result is reported.
          - If a column index is invalid, an `Index_Out_Of_Bounds` is
            reported and an empty result is reported.
+         - If there are column names that are clashing between the two tables, a
+           `Duplicate_Output_Column_Names` is reported and the columns from the
+           table are renamed as described below.
          - If a join condition correlates columns whose types are not compatible
            (for example comparing numeric types with text), an
            `Invalid_Value_Type` is reported.
@@ -1051,11 +1061,7 @@ type Table
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
-        if Table_Helpers.is_table right . not then Error.throw (Type_Error.Error Table right "right") else
-            same_backend = case right of
-                _ : Table -> True
-                _ -> False
-            if same_backend . not then Error.throw (Illegal_Argument.Error "Currently cross-backend joins are not supported. Materialize the table using `.read` before joining it with an in-memory Table.") else
+        if check_table "right" right then
                 # [left_unmatched, matched, right_unmatched]
                 rows_to_keep = case join_kind of
                     Join_Kind.Inner           -> [False, True, False]
@@ -1082,6 +1088,116 @@ type Table
                 on_problems.attach_problems_after (Table.Value new_java_table) <|
                     problems = new_java_table.getProblems
                     Java_Problems.parse_aggregated_problems problems
+
+    ## ALIAS append, concat
+       Appends records from other table(s) to this table.
+
+       Arguments:
+       - tables: A single table or a vector of tables to append to this one. The
+         tables are concatenated in the order they are specified, with `self`
+         being the first one.
+       - match_columns: Specifies how to match the columns.
+         - If `Match_Columns.By_Name` - the columns are matched by name across
+           all provided tables.
+           If unmatched columns are to be dropped, the resulting table will keep
+           only the set of columns that appear in all provided tables, in the
+           relative order that they appeared in the `self` table.
+           If unmatched columns are kept, they are added in the order of
+           appearance - i.e. first all columns from `self` will be added in the
+           original order, then any columns from the second table that were not
+           matched will be added at the end (preserving their relative order),
+           and so on for all the remaining tables.
+         - If `Match_Columns.By_Position` - the columns are mapped by position.
+           If unmatched columns are to be dropped, the resulting table will have
+           as many columns as the table that had the least columns and the
+           column names of the first table (self) will be used.
+           If unmatched columns are kept, the resulting table will have as many
+           columns as the table with the most columns. Since the first table may
+           not have all the necessary columns to provide column names for the
+           result, the result will have column names taken from the first table
+           that has the biggest number of columns.
+       - keep_unmatched_columns: If set to `True`, unmatched columns are kept
+         and are padded with `Nothing` for tables that did not have them.
+         If set to `False`, only the common subset of columns is kept - any
+         column that is not present in all tables is dropped. Defaults to
+         `Report_Unmatched`, which behaves like `True` - unmatched columns are
+         kept and padded with `Nothing`, but a problem is reported.
+       - allow_type_widening: Specifies if the resulting column type should be
+         adjusted to fit columns from all arguments. If `True`, a common type
+         will be chosen for each column (see "Unifying Column Types" below).
+         If `False`, the resulting column type will be the same as in the first
+         table containing the column. In this case, all columns that are
+         concatenated must have the same type as the first one (unless this
+         had a `Mixed` type - in which case it will accept any other types).
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If `keep_unmatched_columns` is set to `Report_Unmatched` (the
+           default):
+           - If matching by name and there are columns that are not present in
+             all tables, `Unmatched_Columns` is reported.
+           - If matching by position and column counts of the merged tables
+             differ, then a `Column_Count_Mismatch` is reported. The error will
+             contain the greatest column count as its `expected` value and the
+             smallest one as its `actual` value.
+         - If `keep_unmatched_columns` is set to `False` and matching by name,
+           it is possible that there are no columns that are common to all
+           provided tables, in that case `No_Output_Columns` is thrown as a
+           dataflow error regardless of the `on_problems` setting, because there
+           are no columns to include in the resulting table.
+         - If type widening is disabled and one of corresponding columns has a
+           type that is incompatible with the type coming from the first table,
+           a `Column_Type_Mismatch` is reported. The problematic column will be
+           dropped from the resulting table. With type widening disabled, the
+           subsequent tables must have the same types as the first one, unless
+           the type of the first one was `Mixed` which will accept any other
+           type.
+         - If a common type coercion for a set of matched columns from
+           concatenated tables cannot be found, a `No_Common_Type` is reported.
+           In warning or ignore mode, the problematic column will be dropped
+           from the resulting table.
+
+       ? Unifying Column Types
+
+         If `allow_type_widening` is set to `True`, then the following rules are
+         used to find a common type that will fit values from all merged tables.
+
+         Numeric columns are unified by finding the most general type that can
+         fit all of the columns. The biggest integer type will be chosen and if
+         integers and decimals are mixed, the decimal type will be chosen.
+         If boolean columns are mixed with numeric columns, they will be coerced
+         to the numeric type (and converted to 0 and 1).
+
+         Text types will also be coerced according to the common rules - if
+         constant-length texts of different lengths are mixed, they will be
+         coerced to a varying-length type.
+
+         If one of the matched columns has `Mixed` type, that type will be used
+         regardless of types of other columns. Mixing any other types will
+         result in a `No_Common_Type` problem. If columns of incompatible types
+         are meant to be mixed, at least one of them should be explicitly
+         retyped to the `Mixed` type to indicate that intention.
+    union : (Table | Vector Table) -> Match_Columns -> Boolean | Report_Unmatched -> Boolean -> Problem_Behavior -> Table
+    union self tables match_columns=Match_Columns.By_Name keep_unmatched_columns=Report_Unmatched allow_type_widening=True on_problems=Report_Warning =
+        all_tables = case tables of
+            v : Vector -> [self] + v
+            single_table -> [self, single_table]
+        ## `is_everything_ok` should actually never be False; it will either be
+           True or will contain a dataflow error propagating through the if.
+        is_everything_ok = all_tables.all (check_table "tables")
+        if is_everything_ok then
+            problem_builder = Problem_Builder.new
+            matched_column_sets = Match_Columns_Helpers.match_columns all_tables match_columns keep_unmatched_columns problem_builder
+            result_row_count = all_tables.fold 0 c-> t-> c + t.row_count
+            merged_columns = matched_column_sets.map column_set->
+                case Table_Helpers.unify_result_type_for_union column_set all_tables allow_type_widening problem_builder of
+                    Nothing -> Nothing
+                    result_type : Value_Type ->
+                        concat_columns column_set all_tables result_type result_row_count
+            good_columns = merged_columns.filter Filter_Condition.Not_Nothing
+            if good_columns.is_empty then Error.throw No_Output_Columns else
+                problem_builder.attach_problems_before on_problems <|
+                    Table.new good_columns
 
     ## ALIAS dropna
        ALIAS drop_missing_rows
@@ -1125,33 +1241,6 @@ type Table
     info self =
         cols = self.columns
         Table.new [["Column", cols.map .name], ["Items Count", cols.map .count], ["Storage Type", cols.map .storage_type]]
-
-    ## UNSTABLE
-
-       Concatenates `other` to `self`, resulting in a table with the number of rows
-       being the sum of numbers of rows of `tables`. Any column that is present in
-       some tables, but missing in others, will be `Nothing`-padded in the positions
-       corresponding to the missing values.
-
-       Arguments:
-       - other: The table or vector of tables to concatenate to `self`.
-
-       Any column that is present in one table, but missing in another, will be
-       `Nothing`-padded in the positions corresponding to the missing column.
-
-       > Example
-         Concatenate two tables together.
-
-             import Standard.Examples
-
-             example_concat =
-                 Examples.inventory_table.concat Examples.popularity_table
-    concat : Table | Vector Table -> Table
-    concat self other = case other of
-        _ : Vector ->
-            java_tables = Vector.new (other.length + 1) i->(if i==0 then self else other.at i).java_table
-            Table.Value (Java_Table.concat java_tables.to_array)
-        Table.Value other_java_table -> Table.Value (Java_Table.concat [self.java_table, other_java_table].to_array)
 
     ## Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
@@ -1468,3 +1557,28 @@ make_join_helpers left_table right_table =
     make_between _ left right_lower right_upper =
         Java_Join_Between.new left.java_column right_lower.java_column right_upper.java_column
     Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+
+## PRIVATE
+   Checks if the argument is a proper table and comes from the current backend.
+   It returns True or throws a dataflow error explaining the issue.
+check_table arg_name table =
+    if Table_Helpers.is_table table . not then Error.throw (Type_Error.Error Table table arg_name) else
+            same_backend = table.is_a Table
+            case same_backend of
+                False ->
+                    Error.throw (Illegal_Argument.Error "Currently cross-backend operations are not supported. Materialize the table using `.read` before mixing it with an in-memory Table.")
+                True -> True
+
+## PRIVATE
+   A helper that efficiently concatenates storages of in-memory columns.
+concat_columns column_set all_tables result_type result_row_count =
+    storage_builder = Column_Module.make_storage_builder_for_type result_type initial_size=result_row_count
+    column_set.column_indices.zip all_tables i-> parent_table->
+        case i of
+            Nothing ->
+                null_row_count = parent_table.row_count
+                storage_builder.appendNulls null_row_count
+            _ : Integer ->
+                storage = parent_table.at i . java_column . getStorage
+                storage_builder.appendBulkStorage storage
+    Column.from_storage column_set.name storage_builder.seal
