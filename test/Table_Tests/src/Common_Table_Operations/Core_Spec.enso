@@ -77,7 +77,8 @@ spec setup =
             table.get 100 column_1 . name . should_equal "foo"
 
         Test.specify "should fail with Type Error is not an Integer or Text" <|
-            table.get (Pair.new 1 2) . should_fail_with Type_Error.Error
+            table.get (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
+            table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Type error: expected 'selector' to be either a Text or an Integer, but got Pair."
 
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|

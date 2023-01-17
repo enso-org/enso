@@ -88,4 +88,4 @@ Table.from_objects value fields=Nothing =
 
             Table.new (used_fields.zip used_values)
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
-        _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name v)+").")
+        _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
