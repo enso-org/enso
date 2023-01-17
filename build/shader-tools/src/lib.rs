@@ -61,21 +61,22 @@ mod tests {
         let url: Url = url_match.as_str().parse2()?;
         println!("{}", url);
 
-        let output_path = Path::new("shaderc.zip").absolutize()?;
-        download_file(url, &output_path).await?;
 
-        info!("Download to {} complete.", output_path.display());
+        let temp = tempfile::tempdir()?;
 
-        let extracted_archive = tempfile::tempdir()?;
-        ide_ci::archive::extract_to(&output_path, &extracted_archive).await?;
+        let downloaded_archive = ide_ci::io::download_to_dir(url, &temp).await?;
+        info!("Download to {} complete.", downloaded_archive.display());
+
+        let extracted_archive = temp.as_ref().join("extracted");
+        ide_ci::archive::extract_to(&downloaded_archive, &extracted_archive).await?;
         let binaries_to_package = ["glslc", "spirv-opt"];
 
-        let extracted_content_dir = extracted_archive.as_ref().join("install");
+        let extracted_content_dir = extracted_archive.join("install");
         let files_to_package = binaries_to_package
             .into_iter()
             .map(|binary| Path::new("bin").join(binary).with_executable_extension());
 
-        let stripped_down_archive = tempfile::tempdir()?;
+        let stripped_down_archive = temp.as_ref().join("stripped");
         for file in files_to_package {
             ide_ci::fs::tokio::copy_between(&extracted_content_dir, &stripped_down_archive, &file)
                 .await?;
@@ -94,7 +95,9 @@ mod tests {
         if TARGET_OS == OS::Windows {
             apply_dev_environment().await?;
         }
-        let path = Path::new(r"C:\temp\spirv-cross");
+        // let path = Path::new(r"C:\temp\spirv-cross");
+        let path = tempfile::tempdir()?;
+        let path = path.as_ref();
         let build_dir = path.join("_build");
         let install_dir = path.join("_install");
         ide_ci::fs::tokio::reset_dir(&path).await?;
@@ -130,8 +133,8 @@ mod tests {
             .await?;
 
         let archive_name = format!("spirv-cross-{}.tar.gz", TARGET_OS);
-        let package =
-            ide_ci::archive::create(&path.join(&archive_name), [install_dir.join("bin")]).await?;
+        let package = ide_ci::archive::create(&archive_name, [install_dir.join("bin")]).await?;
+
 
         Ok(())
     }
