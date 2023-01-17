@@ -148,11 +148,16 @@ impl<T: 'static> Model<T> {
     fn init_dom(&self) {
         let scene = &self.app.display.default_scene;
 
+        // The `clipping_div` needs to cut of its content.
         self.clipping_div.set_style_or_warn("overflow", "hidden");
-        self.dom_entry_root.set_style_or_warn("position", "absolute");
-
         scene.dom.layers.front.manage(&self.clipping_div);
         self.root.add_child(&self.clipping_div);
+
+        // The `dom_entry_root` is a container for the elements and its position is not managed
+        // through the display object hierarchy to a avoid issues with mixing the DOM and EnsoGL
+        // object hierarchies. See https://www.pivotaltracker.com/n/projects/2539304/stories/184051310
+        // for more ramification.
+        self.dom_entry_root.set_style_or_warn("position", "absolute");
         self.clipping_div.append_or_warn(&self.dom_entry_root);
     }
 
