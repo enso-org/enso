@@ -90,6 +90,52 @@ impl ModuleGroups {
 
 
 
+// ================
+// === Sections ===
+// ================
+
+/// Construct a component section from a list of module groups.
+fn new_section(name: ImString, modules: &Vec<&ModuleGroups>) -> component::Section {
+    let modules_iter = modules.iter();
+    let mut module_builder = component::group::AlphabeticalListBuilder::default();
+    module_builder.extend(modules_iter.clone().map(|g| g.content.clone_ref()));
+    let modules = module_builder.build();
+    let mut flattened_module_builder = component::group::AlphabeticalListBuilder::default();
+    flattened_module_builder.extend(modules_iter.filter_map(|g| g.flattened_content.clone()));
+    let modules_flattened = flattened_module_builder.build();
+    component::Section { modules, modules_flattened, name }
+}
+
+/// The sections builder collects module groups by namespace in alphabetical order. It builds a
+/// list of component sections.
+struct Sections<'a> {
+    modules: BTreeMap<ImString, Vec<&'a ModuleGroups>>,
+}
+
+impl<'a> Sections<'a> {
+    /// Collect module groups by namespace in alphabetical order.
+    fn new(groups: Vec<&ModuleGroups>) -> SectionList {
+        let mut modules: BTreeMap<_, Vec<&ModuleGroups>> = BTreeMap::new();
+        for group in groups {
+            let namespace = group.qualified_name.project().namespace.clone();
+            modules.entry(namespace).or_insert_with(default).push(group);
+        }
+        Sections { modules }
+    }
+
+    /// Build a list of component sections from the collected module groups.
+    fn build(&self) -> Vec<component::Section> {
+        self.modules.iter().map(|(name, modules)| new_section(name.clone(), modules)).collect()
+    }
+
+    /// Get a map from section names to section indices.
+    fn section_indices(&self) -> HashMap<ImString, usize> {
+        self.modules.keys().enumerate().map(|(pos, name)| (name.clone(), pos)).collect()
+    }
+}
+
+
+
 // ============
 // === List ===
 // ============
@@ -241,40 +287,13 @@ impl List {
         }
         self.local_scope.update_sorting(components_order);
         let favorites = self.build_favorites_and_add_to_all_components();
-
-        // Separate top module groups by namespace.
-        let mut top_modules_by_namespace: BTreeMap<_, Vec<&ModuleGroups>> = BTreeMap::new();
-        for group in self.module_groups.values().filter(|g| g.is_top_module) {
-            let namespace = group.qualified_name.project().namespace.clone();
-            top_modules_by_namespace.entry(namespace).or_insert_with(default).push(group);
-        }
-        // Create alphabetical lists of top modules per section.
-        let mut top_modules = Vec::new();
-        let mut top_modules_flattened = Vec::new();
-        let mut top_section_names = Vec::new();
-        for (namespace, modules) in top_modules_by_namespace {
-            let top_modules_iter = modules.iter();
-            let mut top_mdl_bld = component::group::AlphabeticalListBuilder::default();
-            top_mdl_bld.extend(top_modules_iter.clone().map(|g| g.content.clone_ref()));
-            top_modules.push(top_mdl_bld.build());
-            let mut top_mdl_flat_bld = component::group::AlphabeticalListBuilder::default();
-            top_mdl_flat_bld.extend(top_modules_iter.filter_map(|g| g.flattened_content.clone()));
-            top_modules_flattened.push(top_mdl_flat_bld.build());
-            top_section_names.push(namespace);
-        }
-        let top_section_positions = Rc::new(
-            top_section_names.iter().enumerate().map(|(pos, name)| (name.clone(), pos)).collect(),
-        );
-        let top_modules = Rc::new(top_modules);
-        let top_modules_flattened = Rc::new(top_modules_flattened);
-        let top_section_names = Rc::new(top_section_names);
+        let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
+        let section_list_builder = SectionList::new(top_module_groups);
 
         component::List {
             all_components: Rc::new(self.all_components),
-            top_modules,
-            top_modules_flattened,
-            top_section_names,
-            top_section_positions,
+            top_module_sections: Rc::new(section_list_builder.build()),
+            top_module_section_indices: Rc::new(section_list_builder.section_indices()),
             module_groups: Rc::new(
                 self.module_groups.into_iter().map(|(id, group)| (id, group.build())).collect(),
             ),

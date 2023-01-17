@@ -511,16 +511,16 @@ impl ComponentsProvider {
             let section = components
                 .module_qualified_name(selected)
                 .and_then(|name| {
-                    components.top_section_positions().get(&name.project().namespace).copied()
+                    components.top_section_indices().get(&name.project().namespace).copied()
                 })
                 .unwrap_or_default();
             let submodules =
                 components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default();
             TopModules::Subset(submodules, section)
         } else if *self.has_this_arg {
-            TopModules::All(components.top_modules_flattened().to_vec())
+            TopModules::All(components.top_modules_flattened())
         } else {
-            TopModules::All(components.top_modules().to_vec())
+            TopModules::All(components.top_modules())
         }
     }
 
@@ -556,7 +556,7 @@ impl ComponentsProvider {
 
     /// Returns the number of namespace sections.
     pub fn top_section_count(&self) -> usize {
-        self.list.top_section_names().len()
+        self.list.top_section_count()
     }
 }
 

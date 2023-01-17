@@ -208,6 +208,17 @@ pub struct ModuleGroups {
 }
 
 
+// === Submodule section
+
+/// Component groups that belong together in a section of the component browser.
+#[derive(Clone, CloneRef, Debug)]
+struct Section {
+    modules:           group::AlphabeticalList,
+    modules_flattened: group::AlphabeticalList,
+    name:              ImString,
+}
+
+
 // === List ===
 
 /// The Component List.
@@ -222,36 +233,34 @@ pub struct ModuleGroups {
 /// [`builder::List`].
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
-    all_components:        Rc<Vec<Component>>,
-    top_modules:           Rc<Vec<group::AlphabeticalList>>,
-    top_modules_flattened: Rc<Vec<group::AlphabeticalList>>,
-    top_section_names:     Rc<Vec<ImString>>,
-    top_section_positions: Rc<HashMap<ImString, usize>>,
-    module_groups:         Rc<HashMap<Id, ModuleGroups>>,
-    filtered:              Rc<Cell<bool>>,
+    all_components:             Rc<Vec<Component>>,
+    top_module_sections:        Rc<Vec<Section>>,
+    top_module_section_indices: Rc<HashMap<ImString, usize>>,
+    module_groups:              Rc<HashMap<Id, ModuleGroups>>,
+    filtered:                   Rc<Cell<bool>>,
     /// Components to display in the "Local Scope" section of the [Component
     /// Browser](crate::controller::Searcher).
-    pub local_scope:       Group,
+    pub local_scope:            Group,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
-    pub favorites:         group::List,
+    pub favorites:              group::List,
 }
 
 impl List {
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
     /// If the list is filtered, all top modules will be flattened.
-    pub fn top_modules(&self) -> &[group::AlphabeticalList] {
+    pub fn top_modules(&self) -> Vec<group::AlphabeticalList> {
         if self.filtered.get() {
-            &self.top_modules_flattened
+            self.top_module_sections.iter().map(|s| s.modules_flattened.clone()).collect()
         } else {
-            &self.top_modules
+            self.top_module_sections.iter().map(|s| s.modules.clone()).collect()
         }
     }
 
     /// Return the list of filtered top modules and their contents.
-    pub fn top_modules_flattened(&self) -> &[group::AlphabeticalList] {
-        &self.top_modules_flattened
+    pub fn top_modules_flattened(&self) -> Vec<group::AlphabeticalList> {
+        self.top_module_sections.iter().map(|s| s.modules_flattened.clone()).collect()
     }
 
     /// Get the list of given component submodules. Returns [`None`] if given component is not
@@ -293,18 +302,23 @@ impl List {
     /// All groups from [`List`] without the groups found in [`List::favorites`].
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
-        let flattened = self.top_modules_flattened.iter().flat_map(|group| group.iter());
+        let flattened = self.top_module_sections.iter().flat_map(|s| s.modules_flattened.iter());
         normal.chain(flattened).chain(std::iter::once(&self.local_scope))
     }
 
     /// Get a vector of section names for the sections of the top modules.
-    pub fn top_section_names(&self) -> &[ImString] {
-        &self.top_section_names
+    pub fn top_section_names(&self) -> Vec<&ImString> {
+        self.top_module_sections.iter().map(|s| &s.name).collect()
     }
 
-    /// Get a map of section names to section positions for the sections of the top modules.
-    pub fn top_section_positions(&self) -> &HashMap<ImString, usize> {
-        &self.top_section_positions
+    /// Get a map of section names to section indices for the sections of the top modules.
+    pub fn top_section_indices(&self) -> &HashMap<ImString, usize> {
+        &self.top_module_section_indices
+    }
+
+    /// Get the number of namespace sections.
+    pub fn top_section_count(&self) -> usize {
+        self.top_module_sections.len()
     }
 }
 
