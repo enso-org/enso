@@ -7395,6 +7395,13 @@ object IR {
           }
 
       }
+
+      case class MissingLibraryImportInFQNError(namespace: String)
+          extends Reason {
+        override def explain(originalName: IR.Name): String =
+          s"Fully qualified name involving $namespace.${originalName.name} is used but import statement is missing."
+      }
+
     }
 
     /** A representation of an error resulting from wrong pattern matches.

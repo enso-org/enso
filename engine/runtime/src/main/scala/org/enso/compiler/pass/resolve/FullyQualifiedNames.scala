@@ -3,6 +3,7 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Error.Resolution.MissingLibraryImportInFQNError
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{ModuleReference, Resolution}
@@ -229,11 +230,14 @@ case object FullyQualifiedNames extends IRPass {
       case List(thisArg) =>
         (thisArg.value.getMetadata(this).map(_.target), processedFun) match {
           case (Some(resolved @ ResolvedLibrary(_)), name: IR.Name.Literal) =>
-            resolveQualName(resolved, name, compiler).map(resolvedMod =>
-              freshNameSupply
-                .newName()
-                .updateMetadata(this -->> resolvedMod)
-                .setLocation(name.location)
+            resolveQualName(resolved, name, compiler).fold(
+              err => Some(err),
+              _.map(resolvedMod =>
+                freshNameSupply
+                  .newName()
+                  .updateMetadata(this -->> resolvedMod)
+                  .setLocation(name.location)
+              )
             )
           case _ =>
             None
@@ -251,26 +255,39 @@ case object FullyQualifiedNames extends IRPass {
     thisResolution: ResolvedLibrary,
     consName: IR.Name.Literal,
     optCompiler: Option[Compiler]
-  ): Option[FQNResolution] = {
-    optCompiler.flatMap { compiler =>
-      val pkgRepository = compiler.packageRepository
-      val libName       = LibraryName(thisResolution.namespace, consName.name)
-      pkgRepository.ensurePackageIsLoaded(libName).toOption.flatMap { _ =>
-        pkgRepository
-          .getLoadedModule(
-            s"${libName.toString}.${Imports.mainModuleName.name}"
-          )
-          .map { m =>
-            if (m.getIr == null) {
-              // If this is the first time a library is being imported, we won't have
-              // IR for it. We also need resolve all its imports which is why a full
-              // compiler run on the module is necessary
-              compiler.run(m)
+  ): Either[IR.Expression, Option[FQNResolution]] = {
+    optCompiler
+      .flatMap { compiler =>
+        val pkgRepository = compiler.packageRepository
+        val libName       = LibraryName(thisResolution.namespace, consName.name)
+        pkgRepository.ensurePackageIsLoaded(libName).toOption.flatMap { _ =>
+          pkgRepository
+            .getLoadedModule(
+              s"${libName.toString}.${Imports.mainModuleName.name}"
+            )
+            .map { m =>
+              if (m.getIr == null) {
+                // Limitation of Fully Qualified Names:
+                // If the library has not been imported explicitly, then we won't have
+                // IR for it. Triggering a full compilation at this stage may have
+                // undesired consequences and is therefore prohibited on purpose.
+                Left(
+                  IR.Error.Resolution(
+                    consName,
+                    MissingLibraryImportInFQNError(thisResolution.namespace)
+                  )
+                )
+              } else {
+                Right(
+                  Some(
+                    FQNResolution(ResolvedModule(ModuleReference.Concrete(m)))
+                  )
+                )
+              }
             }
-            FQNResolution(ResolvedModule(ModuleReference.Concrete(m)))
-          }
+        }
       }
-    }
+      .getOrElse(Right(None))
   }
 
   /** Updates the metadata in a copy of the IR when updating that metadata
