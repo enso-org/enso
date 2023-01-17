@@ -9,6 +9,7 @@ import project.Data.Join_Condition.Join_Condition
 import project.Data.Join_Kind.Join_Kind
 import project.Data.Match_Columns.Match_Columns
 import project.Data.Position.Position
+import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Table.Table
@@ -28,6 +29,7 @@ export project.Data.Join_Condition.Join_Condition
 export project.Data.Join_Kind.Join_Kind
 export project.Data.Match_Columns.Match_Columns
 export project.Data.Position.Position
+export project.Data.Report_Unmatched.Report_Unmatched
 export project.Data.Sort_Column.Sort_Column
 export project.Data.Sort_Column_Selector.Sort_Column_Selector
 export project.Data.Table.Table

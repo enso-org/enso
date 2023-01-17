@@ -169,7 +169,7 @@ impl WeakNetwork {
     pub fn upgrade_or_warn(&self) -> Option<Network> {
         let result = self.upgrade();
         if result.is_none() {
-            tracing::warn!("The Network is dropped in a place where we don't expect.");
+            warn!("The Network is dropped in a place where we don't expect.");
         }
         result
     }

@@ -1,9 +1,11 @@
 package org.enso.table.data.column.builder.object;
 
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.util.BitSets;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -99,6 +101,98 @@ public class NumericBuilder extends TypedBuilder {
     currentSize += count;
   }
 
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+     if (isDouble) {
+       appendBulkDouble(storage);
+     } else {
+        appendBulkLong(storage);
+     }
+  }
+
+  private void ensureFreeSpaceFor(int additionalSize) {
+    if (currentSize + additionalSize > data.length) {
+      grow(currentSize + additionalSize);
+    }
+  }
+
+  private void appendBulkDouble(Storage<?> storage) {
+    if (storage.getType() == Storage.Type.DOUBLE) {
+      if (storage instanceof DoubleStorage doubleStorage) {
+        int n = doubleStorage.size();
+        ensureFreeSpaceFor(n);
+        System.arraycopy(doubleStorage.getRawData(), 0, data, currentSize, n);
+        BitSets.copy(doubleStorage.getIsMissing(), isMissing, currentSize, n);
+        currentSize += n;
+      } else {
+        throw new IllegalStateException("Unexpected storage implementation for type DOUBLE: " + storage + ". This is a bug in the Table library.");
+      }
+    } else if (storage.getType() == Storage.Type.LONG) {
+      if (storage instanceof LongStorage longStorage) {
+        int n = longStorage.size();
+        BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+        for (int i = 0; i < n; i++) {
+          data[currentSize++] = Double.doubleToRawLongBits(longStorage.getItem(i));
+        }
+      } else {
+        throw new IllegalStateException("Unexpected storage implementation for type LONG: " + storage + ". This is a bug in the Table library.");
+      }
+    } else if (storage.getType() == Storage.Type.BOOL) {
+      if (storage instanceof BoolStorage boolStorage) {
+        int n = boolStorage.size();
+        for (int i = 0; i < n; i++) {
+          if (boolStorage.isNa(i)) {
+            isMissing.set(currentSize++);
+          } else {
+            double x = booleanAsDouble(boolStorage.getItem(i));
+            data[currentSize++] = Double.doubleToRawLongBits(x);
+          }
+        }
+      } else {
+        throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
+      }
+    } else {
+      throw new StorageTypeMismatch(getType(), storage.getType());
+    }
+  }
+
+  private void appendBulkLong(Storage<?> storage) {
+    if (storage.getType() == Storage.Type.LONG) {
+      if (storage instanceof LongStorage longStorage) {
+        int n = longStorage.size();
+        ensureFreeSpaceFor(n);
+        System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
+        BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
+        currentSize += n;
+      } else {
+        throw new IllegalStateException("Unexpected storage implementation for type DOUBLE: " + storage + ". This is a bug in the Table library.");
+      }
+    } else if (storage.getType() == Storage.Type.BOOL) {
+      if (storage instanceof BoolStorage boolStorage) {
+        int n = boolStorage.size();
+        for (int i = 0; i < n; i++) {
+          if (boolStorage.isNa(i)) {
+            isMissing.set(currentSize++);
+          } else {
+            data[currentSize++] = booleanAsLong(boolStorage.getItem(i));
+          }
+        }
+      } else {
+        throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
+      }
+    } else {
+      throw new StorageTypeMismatch(getType(), storage.getType());
+    }
+  }
+
+  private long booleanAsLong(boolean value) {
+    return value ? 1 : 0;
+  }
+
+  private double booleanAsDouble(boolean value) {
+    return value ? 1.0 : 0.0;
+  }
+
   /**
    * Append a new item in raw form to this builder, assuming that it has enough allocated space.
    *
@@ -155,6 +249,10 @@ public class NumericBuilder extends TypedBuilder {
     if (data.length > 1) {
       desiredCapacity = (data.length * 3 / 2);
     }
+    grow(desiredCapacity);
+  }
+
+  private void grow(int desiredCapacity) {
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 }

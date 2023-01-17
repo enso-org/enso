@@ -30,7 +30,7 @@ pub async fn main() {
     });
 
     // Emit profile and exit.
-    debug_api::save_profile(&profiler::internal::take_log());
+    debug_api::save_profile(&profiler::internal::get_log());
     debug_api::LifecycleController::new().expect("Workflows run in Electron").quit();
 }
 

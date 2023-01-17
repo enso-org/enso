@@ -667,7 +667,7 @@ impl Graph {
         let graph_notifications = self.model.controller.subscribe();
         let weak = Rc::downgrade(&self.model);
         spawn_stream_handler(weak, graph_notifications, move |notification, _model| {
-            tracing::debug!("Received controller notification {notification:?}");
+            debug!("Received controller notification {notification:?}");
             match notification {
                 executed::Notification::Graph(graph) => match graph {
                     Notification::Invalidate => update_view.emit(()),
@@ -709,7 +709,7 @@ impl Graph {
     /// content of a node. For example, the searcher uses this to allow the edit field to have a
     /// preview that is different from the actual node AST.
     pub fn allow_expression_auto_updates(&self, id: AstNodeId, allow: bool) {
-        tracing::debug!("Setting auto updates for {id:?} to {allow}");
+        debug!("Setting auto updates for {id:?} to {allow}");
         self.model.state.allow_expression_auto_updates(id, allow);
     }
 }

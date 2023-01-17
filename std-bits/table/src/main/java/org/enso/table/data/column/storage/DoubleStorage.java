@@ -169,6 +169,10 @@ public final class DoubleStorage extends NumericStorage<Double> {
     return isMissing;
   }
 
+  public long[] getRawData() {
+    return data;
+  }
+
   private static MapOpStorage<Double, DoubleStorage> buildOps() {
     MapOpStorage<Double, DoubleStorage> ops = new MapOpStorage<>();
     ops.add(
