@@ -202,10 +202,34 @@ type Table
         _ : Integer ->
             java_columns = Vector.from_polyglot_array self.java_table.getColumns
             Column.Value (java_columns.at selector)
-        _ : Text ->
-            case self.java_table.getColumnByName selector of
-                Nothing -> Error.throw (No_Such_Column.Error selector)
-                c -> Column.Value c
+        _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
+
+    ## Returns the column with the given name or index.
+
+       Arguments:
+       - selector: The name or index of the column being looked up.
+       - if_missing: The value to use if the selector isn't present.
+
+       > Example
+         Get the names of all of the items from the shop inventory.
+
+             import Standard.Examples
+
+             example_at = Examples.inventory_table.get "item_name"
+
+       > Example
+         Get the last column.
+
+             import Standard.Examples
+
+             example_at = Examples.inventory_table.get -1
+    get : Text | Integer -> Any -> Column | Any
+    get self selector=0 ~if_missing=Nothing =
+        java_column = case selector of
+            _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
+            _ : Text -> self.java_table.getColumnByName selector
+            _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
+        if java_column.is_nothing then if_missing else Column.Value java_column
 
     ## Returns the number of columns in the table.
     column_count : Integer
@@ -502,7 +526,7 @@ type Table
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Group_By "Key", Count Nothing]
+              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
     aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
@@ -924,7 +948,7 @@ type Table
     drop self range=(First 1) =
         Index_Sub_Range_Module.drop_helper self.row_count self.rows.at self.slice (slice_ranges self) range
 
-    ## ALIAS Add Column
+    ## ALIAS Add Column, Update Column
 
        Sets the column value at the given name.
 
