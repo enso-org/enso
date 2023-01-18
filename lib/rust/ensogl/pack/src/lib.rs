@@ -154,6 +154,7 @@ pub async fn build(
 
     let js_src_dir = js_dir.join("src");
 
+    /// brac pod uwage locka i package.json
     for entry in WalkDir::new(&js_src_dir) {
         let entry = entry?;
         let path = entry.path();
