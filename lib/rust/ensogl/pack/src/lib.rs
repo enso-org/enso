@@ -6,6 +6,7 @@ use ide_ci::prelude::*;
 use crate::shaderc::programs::glslc::Glslc;
 use crate::shaderc::programs::spirv_opt::SpirvOpt;
 use crate::spirvcross::program::SpirvCross;
+use ide_ci::github::setup_octocrab;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::wasm_pack::WasmPackCommand;
 use manifest_dir_macros::path;

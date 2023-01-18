@@ -38,13 +38,14 @@ pub fn get_redirection_target(html: &str) -> Result<Url> {
     url_match.as_str().parse2()
 }
 
-pub async fn strip_shaderc_package() -> Result {
+pub async fn strip_shaderc_package(output_dir: &Path) -> Result {
     let url = download_url()?;
+    println!("{}", url);
     let body = ide_ci::io::download_all(url).await?;
     let text = std::str::from_utf8(&body)?;
     println!("{}", text);
 
-    println!("{}", url);
+    let url = get_redirection_target(text)?;
 
 
     let temp = tempfile::tempdir()?;
@@ -61,15 +62,8 @@ pub async fn strip_shaderc_package() -> Result {
         .into_iter()
         .map(|binary| Path::new("bin").join(binary).with_executable_extension());
 
-    let stripped_down_archive = temp.as_ref().join("stripped");
     for file in files_to_package {
-        ide_ci::fs::tokio::copy_between(&extracted_content_dir, &stripped_down_archive, &file)
-            .await?;
+        ide_ci::fs::tokio::copy_between(&extracted_content_dir, &output_dir, &file).await?;
     }
-
-    let output_path = Path::new("shaderc-stripped.tar.gz");
-    ide_ci::fs::tokio::remove_file_if_exists(&output_path).await?;
-    ide_ci::archive::compress_directory(&output_path, &stripped_down_archive).await?;
-
     Ok(())
 }
