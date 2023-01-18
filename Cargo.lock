@@ -3134,6 +3134,7 @@ dependencies = [
  "regex",
  "tempfile",
  "tokio",
+ "walkdir",
 ]
 
 [[package]]

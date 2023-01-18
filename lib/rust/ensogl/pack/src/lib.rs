@@ -14,6 +14,7 @@ use std::env;
 use std::hash::Hasher;
 use std::path::Path;
 use std::path::PathBuf;
+use walkdir::WalkDir;
 
 pub mod shaderc;
 pub mod spirvcross;
@@ -149,6 +150,13 @@ pub async fn build(
     ide_ci::programs::Npm.cmd()?.install().current_dir(&js_dir).run_ok().await?;
     // with_pwd(&js_dir, || execute("npm", &["install"]));
     // }
+
+    let js_src_dir = js_dir.join("src");
+
+    for entry in WalkDir::new(&js_src_dir) {
+        println!(">>>> {}", entry?.path().display());
+    }
+
     compile_ts(&js_dir, "src/index.ts", &target_dist_dir).await?;
     compile_js(&wasm_pack_target_dir, "pkg.js", &target_dist_dir.join("main.js")).await?;
     // with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
