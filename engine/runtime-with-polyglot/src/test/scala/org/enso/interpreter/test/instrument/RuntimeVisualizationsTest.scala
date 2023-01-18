@@ -1174,7 +1174,7 @@ class RuntimeVisualizationsTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     val pushResponses = context.receiveNIgnorePendingExpressionUpdates(6)
-    pushResponses should contain allOf(
+    pushResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
