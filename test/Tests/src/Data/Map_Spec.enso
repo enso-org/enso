@@ -274,6 +274,26 @@ spec =
             m.at 200 . should_equal 3
             m.at Nothing . should_equal 1
 
+        Test.specify "should be able to remove entries (1)" <|
+            m1 = Map.empty.insert "A" 1 . insert "B" 2
+            m2 = m1.remove "B"
+            m2.get "A" . should_equal 1
+            m2.remove "A" . should_equal Map.empty
+            Test.expect_panic_with (m1.remove "foo") Any
+
+        Test.specify "should be able to remove entries (2)" <|
+            m1 = Map.empty.insert "A" 1
+            m2 = m1.insert "B" 2
+            m3 = m1.insert "C" 3
+            m2.remove "A" . to_vector . should_equal [["B", 2]]
+            m2.remove "B" . to_vector . should_equal [["A", 1]]
+            m3.remove "A" . to_vector . should_equal [["C", 3]]
+            m3.remove "C" . to_vector . should_equal [["A", 1]]
+
+        Test.specify "should be able to remove entries (3)" <|
+            m = Map.empty.insert "A" 1 . insert "B" 2 . insert "C" 3
+            m.remove "B" . should_equal (Map.singleton "A" 1 . insert "C" 3)
+
     Test.group "Polyglot keys and values" <|
         Test.specify "should support polyglot keys" <|
             map = Map.singleton (js_str "A") 42
@@ -296,6 +316,14 @@ spec =
         Test.specify "should support Python objects as values" pending=pending_python_missing <|
             map = Map.singleton "A" (py_wrapper 42)
             map.get "A" . data . should_equal 42
+
+        Test.specify "should insert entries to a polyglot map" <|
+            dict = py_dict_from_vec ["A", 1, "B", 2]
+            dict.insert "C" 3 . keys . sort . should_equal ["A", "B", "C"]
+
+        Test.specify "should remove entries from a polyglot map" <|
+            dict = py_dict_from_vec ["A", 1, "B", 2]
+            dict.remove "B" . to_vector . should_equal [["A", 1]]
 
     Test.group "non-linear inserts" <|
         Test.specify "should handle inserts with different keys" <|

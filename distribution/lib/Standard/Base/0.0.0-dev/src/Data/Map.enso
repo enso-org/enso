@@ -95,6 +95,25 @@ type Map key value
     insert : Any -> Any -> Map
     insert self key value = @Builtin_Method "Map.insert"
 
+    ## Removes an entry specified by the given key from this map, and
+       returns a new map without this entry. Throw `No_Such_Key.Error`
+       if `key` is not present.
+
+       Arguments:
+       - key: The key to look up in the map.
+
+       > Example
+         Remove key "A" from a map
+
+             import Standard.Data.Map.Map
+
+             Examples.map.remove "A"
+
+    remove : Any -> Map ! No_Such_Key
+    remove self key =
+        Panic.catch Any (self.remove_builtin key) _->
+            Error.throw No_Such_Key.Error self key
+
     ## Gets the value associated with `key` in this map, or throws a
        `No_Such_Key.Error` if `key` is not present.
 

@@ -105,6 +105,36 @@ public final class EnsoHashMapBuilder {
   }
 
   /**
+   * Removes an entry denoted by the given key.
+   *
+   * @return true if the removal was successful, i.e., the key was in the map and
+   *         was removed, false otherwise.
+   */
+  @TruffleBoundary
+  public boolean remove(Object key) {
+    var oldEntry = storage.removeKey(key);
+    if (oldEntry == null) {
+      return false;
+    } else {
+      sequentialEntries.remove(oldEntry.index);
+      // Rewrite rest of the sequentialEntries list and repair indexes in storage
+      for (int i = oldEntry.index; i < sequentialEntries.size(); i++) {
+        var entry = sequentialEntries.get(i);
+        StorageEntry newEntry = new StorageEntry(entry.key, entry.value, i);
+        sequentialEntries.set(i, newEntry);
+        storage.put(newEntry.key, newEntry);
+      }
+      size--;
+      return true;
+    }
+  }
+
+  @TruffleBoundary(allowInlining = true)
+  public boolean containsKey(Object key) {
+    return storage.containsKey(key);
+  }
+
+  /**
    * Creates a snapshot with the current size. The created snapshot contains all the entries that
    * are in the storage as of this moment, i.e., all the entries with their indexes lesser than
    * {@code size}.
@@ -115,20 +145,6 @@ public final class EnsoHashMapBuilder {
    */
   public EnsoHashMap build() {
     return EnsoHashMap.createWithBuilder(this, size);
-  }
-
-  /**
-   * Removes last {@code numEntries} from the storage.
-   *
-   * @param numEntries Number of last entries to be removed.
-   */
-  public void removeLastEntries(int numEntries) {
-    assert 0 < numEntries && numEntries <= size;
-    int fromIdx = size - numEntries;
-    var entriesToBeRemoved = sequentialEntries.subList(fromIdx, sequentialEntries.size());
-    entriesToBeRemoved.forEach(entry -> storage.removeKey(entry.key));
-    entriesToBeRemoved.clear();
-    size = fromIdx;
   }
 
   @Override
