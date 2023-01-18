@@ -771,6 +771,7 @@ impl application::View for View {
             (Press, "", "cmd r", "restore_project_snapshot"),
             (Press, "", "cmd z", "undo"),
             (Press, "", "cmd y", "redo"),
+            (Press, "", "cmd shift z", "redo"),
             (Press, "!debug_mode", DEBUG_MODE_SHORTCUT, "enable_debug_mode"),
             (Press, "debug_mode", DEBUG_MODE_SHORTCUT, "disable_debug_mode"),
             (Press, "", "cmd shift t", "execution_context_interrupt"),
