@@ -2,9 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::notification::Publisher;
-
 use flo_stream::Subscriber;
+use notification::Publisher;
 
 
 

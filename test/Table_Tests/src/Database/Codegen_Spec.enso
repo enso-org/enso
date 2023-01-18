@@ -75,10 +75,10 @@ spec =
             c = t1.at "C"
             arith = (a * 2) + 1
             logic = (c || c.not) && True
-            cmp = (a / a >= b) && (a - b < a)
+            cmp = (a * a >= b) && (a - b < a)
             arith.to_sql.prepare . should_equal ['SELECT (("T1"."A" * ?) + ?) AS "A" FROM "T1" AS "T1"', [[2, int], [1, int]]]
             logic.to_sql.prepare . should_equal ['SELECT (("T1"."C" OR (NOT "T1"."C")) AND ?) AS "C" FROM "T1" AS "T1"', [[True, bool]]]
-            cmp.to_sql.prepare . should_equal ['SELECT ((("T1"."A" / "T1"."A") >= "T1"."B") AND (("T1"."A" - "T1"."B") < "T1"."A")) AS "A" FROM "T1" AS "T1"', []]
+            cmp.to_sql.prepare . should_equal ['SELECT ((("T1"."A" * "T1"."A") >= "T1"."B") AND (("T1"."A" - "T1"."B") < "T1"."A")) AS "A" FROM "T1" AS "T1"', []]
 
         Test.specify "should support simple text operations" <|
             b = t1.at "B"
@@ -160,10 +160,10 @@ spec =
     Test.group "[Codegen] Aggregation" <|
         Test.specify "should allow to count rows" <|
             code = t1.aggregate [Group_By "A" "A grp", Count "counter"] . to_sql . prepare
-            code . should_equal ['SELECT "T1"."A" AS "A grp", COUNT(*) AS "counter" FROM "T1" AS "T1" GROUP BY "T1"."A"', []]
+            code . should_equal ['SELECT "T1"."A grp" AS "A grp", "T1"."counter" AS "counter" FROM (SELECT "T1"."A" AS "A grp", COUNT(*) AS "counter" FROM "T1" AS "T1" GROUP BY "T1"."A") AS "T1"', []]
 
         Test.specify "should allow to group by multiple fields" <|
             code = t1.aggregate [Sum "A" "sum_a", Group_By "C" Nothing, Group_By "B" "B grp"] . to_sql . prepare
-            code . should_equal ['SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B"', []]
+            code . should_equal ['SELECT "T1"."sum_a" AS "sum_a", "T1"."C" AS "C", "T1"."B grp" AS "B grp" FROM (SELECT SUM("T1"."A") AS "sum_a", "T1"."C" AS "C", "T1"."B" AS "B grp" FROM "T1" AS "T1" GROUP BY "T1"."C", "T1"."B") AS "T1"', []]
 
 main = Test_Suite.run_main spec

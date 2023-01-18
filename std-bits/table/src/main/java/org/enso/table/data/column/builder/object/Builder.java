@@ -46,9 +46,24 @@ public abstract class Builder {
    */
   public abstract void appendNulls(int count);
 
-  /** @return the number of appended elements */
+  /**
+   * Appends the whole contents of some other storage.
+   *
+   * <p>This may be used to efficiently copy a whole storage into the builder. Used for example when
+   * concatenating columns.
+   *
+   * <p>If the provided storage type is not compatible with the type of this builder, a {@code
+   * StorageTypeMismatch} exception may be thrown.
+   */
+  public abstract void appendBulkStorage(Storage<?> storage);
+
+  /**
+   * @return the number of appended elements
+   */
   public abstract int getCurrentSize();
 
-  /** @return a storage containing all the items appended so far */
+  /**
+   * @return a storage containing all the items appended so far
+   */
   public abstract Storage<?> seal();
 }

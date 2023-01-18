@@ -59,6 +59,17 @@ pub enum ProfilingLevel {
     Debug,
 }
 
+#[derive(Clone, Copy, Debug, Default, strum::Display, strum::EnumString, PartialEq, Eq)]
+#[strum(serialize_all = "kebab-case")]
+pub enum LogLevel {
+    Error,
+    #[default]
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
 #[derive(clap::ArgEnum, Clone, Copy, Debug, PartialEq, Eq, strum::Display, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Profile {
@@ -112,13 +123,15 @@ impl Profile {
 #[derivative(Debug)]
 pub struct BuildInput {
     /// Path to the crate to be compiled to WAM. Relative to the repository root.
-    pub crate_path:          PathBuf,
-    pub wasm_opt_options:    Vec<String>,
-    pub skip_wasm_opt:       bool,
-    pub extra_cargo_options: Vec<String>,
-    pub profile:             Profile,
-    pub profiling_level:     Option<ProfilingLevel>,
-    pub wasm_size_limit:     Option<byte_unit::Byte>,
+    pub crate_path:            PathBuf,
+    pub wasm_opt_options:      Vec<String>,
+    pub skip_wasm_opt:         bool,
+    pub extra_cargo_options:   Vec<String>,
+    pub profile:               Profile,
+    pub profiling_level:       Option<ProfilingLevel>,
+    pub log_level:             Option<LogLevel>,
+    pub uncollapsed_log_level: Option<LogLevel>,
+    pub wasm_size_limit:       Option<byte_unit::Byte>,
 }
 
 impl BuildInput {
@@ -191,6 +204,8 @@ impl IsTarget for Wasm {
                 extra_cargo_options,
                 profile,
                 profiling_level,
+                log_level,
+                uncollapsed_log_level,
                 wasm_size_limit: _wasm_size_limit,
             } = &inner;
 
@@ -206,7 +221,6 @@ impl IsTarget for Wasm {
                 .current_dir(&repo_root)
                 .kill_on_drop(true)
                 .env_remove(ide_ci::programs::rustup::env::RUSTUP_TOOLCHAIN.name())
-                .set_env(env::ENSO_ENABLE_PROC_MACRO_SPAN, &true)?
                 .build()
                 .arg(wasm_pack::Profile::from(*profile))
                 .target(wasm_pack::Target::Web)
@@ -220,6 +234,11 @@ impl IsTarget for Wasm {
             if let Some(profiling_level) = profiling_level {
                 command.set_env(env::ENSO_MAX_PROFILING_LEVEL, &profiling_level)?;
             }
+            command.set_env(env::ENSO_MAX_LOG_LEVEL, &log_level.unwrap_or_default())?;
+            command.set_env(
+                env::ENSO_MAX_UNCOLLAPSED_LOG_LEVEL,
+                &uncollapsed_log_level.unwrap_or_default(),
+            )?;
             command.run_ok().await?;
 
             Self::finalize_wasm(wasm_opt_options, *skip_wasm_opt, *profile, &temp_dist).await?;
@@ -280,6 +299,8 @@ impl IsWatchable for Wasm {
                 extra_cargo_options,
                 profile,
                 profiling_level,
+                log_level,
+                uncollapsed_log_level,
                 wasm_size_limit,
             } = inner;
 
@@ -322,6 +343,11 @@ impl IsWatchable for Wasm {
             if let Some(profiling_level) = profiling_level {
                 watch_cmd.args(["--profiling-level", profiling_level.to_string().as_str()]);
             }
+            watch_cmd.args(["--log-level", log_level.unwrap_or_default().to_string().as_str()]);
+            watch_cmd.args([
+                "--uncollapsed-log-level",
+                uncollapsed_log_level.unwrap_or_default().to_string().as_str(),
+            ]);
             for wasm_opt_option in wasm_opt_options {
                 watch_cmd.args(["--wasm-opt-option", &wasm_opt_option]);
             }

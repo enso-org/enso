@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.data;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -16,8 +18,12 @@ public final class ArrayOverBuffer implements TruffleObject {
   }
 
   @ExportMessage
-  Object readArrayElement(long index) {
-    return (long) buffer.get(buffer.position() + Math.toIntExact(index));
+  Object readArrayElement(long index) throws InvalidArrayIndexException {
+    try {
+      return (long) buffer.get(buffer.position() + Math.toIntExact(index));
+    } catch (IndexOutOfBoundsException e) {
+      throw InvalidArrayIndexException.create(index);
+    }
   }
 
   @ExportMessage
@@ -37,5 +43,11 @@ public final class ArrayOverBuffer implements TruffleObject {
 
   public static ArrayOverBuffer wrapBuffer(ByteBuffer buffer) {
     return new ArrayOverBuffer(buffer);
+  }
+
+  @ExportMessage
+  String toDisplayString(boolean allowSideEffects) {
+    final InteropLibrary iop = InteropLibrary.getUncached();
+    return DisplayArrayUtils.toDisplayString(this, allowSideEffects, iop);
   }
 }

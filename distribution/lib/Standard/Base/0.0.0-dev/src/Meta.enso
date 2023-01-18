@@ -273,6 +273,17 @@ get_constructor_name atom_constructor = @Builtin_Method "Meta.get_constructor_na
 new_atom : Any -> Array -> Atom
 new_atom constructor fields = @Builtin_Method "Meta.new_atom"
 
+## PRIVATE
+
+   Constructs a new atom with a "hole". Returns an object with `value` and
+   `fill` properties. Value contains the created atom and `fill` holds a
+   function to "fill the hole" later.
+
+   Arguments:
+   - factory: a function that takes the "hole" element and returns newly created atom
+atom_with_hole : (Any -> Atom) -> Any
+atom_with_hole factory = @Builtin_Method "Meta.atom_with_hole_builtin"
+
 ## UNSTABLE
    ADVANCED
 

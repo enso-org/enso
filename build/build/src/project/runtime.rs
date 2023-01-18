@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::engine::package::IsPackage;
 use crate::engine::BuildConfigurationFlags;
 use crate::paths::generated::EnginePackage;
 use crate::paths::TargetTriple;
@@ -55,12 +56,10 @@ impl IsTarget for Runtime {
         context
             .and_then_async(|context| async move {
                 let artifacts = context.build().await?;
-                let engine_package = artifacts
-                    .packages
-                    .engine
-                    .context("Failed to find engine package artifacts.")?;
-                ide_ci::fs::mirror_directory(&engine_package.dir, &destination).await?;
-                this.adapt_artifact(engine_package.dir).await
+                let engine_package =
+                    artifacts.engine_package.context("Failed to find engine package artifacts.")?;
+                ide_ci::fs::mirror_directory(engine_package.dir(), &destination).await?;
+                this.adapt_artifact(engine_package.dir()).await
             })
             .boxed()
     }

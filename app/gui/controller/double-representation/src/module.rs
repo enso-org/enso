@@ -480,6 +480,24 @@ impl DefinitionProvider for known::Module {
 
 
 
+// ================
+// === MethodId ===
+// ================
+
+/// A structure identifying a method.
+///
+/// It is very similar to MethodPointer from language_server API, however it may point to the method
+/// outside the currently opened project.
+#[derive(Clone, Debug, serde::Deserialize, Eq, Hash, PartialEq, serde::Serialize)]
+#[allow(missing_docs)]
+pub struct MethodId {
+    pub module:          QualifiedName,
+    pub defined_on_type: QualifiedName,
+    pub name:            String,
+}
+
+
+
 // ============
 // === Test ===
 // ============

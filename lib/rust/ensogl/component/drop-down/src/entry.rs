@@ -178,7 +178,6 @@ impl ensogl_grid_view::Entry for Entry {
                 #[allow(clippy::manual_clamp)]
                 width.max(params.min_width).min(params.max_width)
             });
-            trace limited_entry_width;
             out.minimum_column_width <+ limited_entry_width;
 
             view_width <- max_width.map2(&text_offset, |width, offset| Some(width - offset));

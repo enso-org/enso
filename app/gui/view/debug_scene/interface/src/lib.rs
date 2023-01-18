@@ -130,10 +130,12 @@ fn init(app: &Application) {
     let node1_id = graph_editor.model.add_node();
     let node2_id = graph_editor.model.add_node();
     let node3_id = graph_editor.model.add_node();
+    let node4_id = graph_editor.model.add_node();
 
     graph_editor.frp.set_node_position.emit((node1_id, Vector2(-150.0, 50.0)));
     graph_editor.frp.set_node_position.emit((node2_id, Vector2(50.0, 50.0)));
     graph_editor.frp.set_node_position.emit((node3_id, Vector2(150.0, 250.0)));
+    graph_editor.frp.set_node_position.emit((node4_id, Vector2(50.0, 150.0)));
 
 
     let expression_1 = expression_mock();
@@ -166,6 +168,9 @@ fn init(app: &Application) {
 
     let bar_node = graph_editor.model.add_node_below(node3_id);
     graph_editor.set_node_expression.emit((bar_node, Expression::new_plain("bar")));
+
+    let expression_4 = expression_mock_trim();
+    graph_editor.frp.set_node_expression.emit((node4_id, expression_4));
 
 
     // === Connections ===
@@ -327,8 +332,11 @@ pub fn expression_mock() -> Expression {
     let pattern = Some("var1".to_string());
     let code = "[1,2,3]".to_string();
     let parser = Parser::new_or_panic();
-    let this_param =
-        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Text".to_owned()) };
+    let this_param = span_tree::ArgumentInfo {
+        name: Some("self".to_owned()),
+        tp: Some("Text".to_owned()),
+        ..default()
+    };
     let parameters = vec![this_param];
     let ast = parser.parse_line_ast(&code).unwrap();
     let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
@@ -386,27 +394,70 @@ pub fn expression_mock3() -> Expression {
     // let code       = "image.blur ((foo   bar) baz)".to_string();
     let code = "Vector x y z".to_string();
     let parser = Parser::new_or_panic();
-    let this_param =
-        span_tree::ArgumentInfo { name: Some("self".to_owned()), tp: Some("Image".to_owned()) };
+    let this_param = span_tree::ArgumentInfo {
+        name: Some("self".to_owned()),
+        tp: Some("Image".to_owned()),
+        ..default()
+    };
     let param0 = span_tree::ArgumentInfo {
         name: Some("radius".to_owned()),
-        tp:   Some("Number".to_owned()),
+        tp: Some("Number".to_owned()),
+        ..default()
     };
-    let param1 =
-        span_tree::ArgumentInfo { name: Some("name".to_owned()), tp: Some("Text".to_owned()) };
+    let param1 = span_tree::ArgumentInfo {
+        name: Some("name".to_owned()),
+        tp: Some("Text".to_owned()),
+        ..default()
+    };
     let param2 = span_tree::ArgumentInfo {
         name: Some("area".to_owned()),
-        tp:   Some("Vector Int".to_owned()),
+        tp: Some("Vector Int".to_owned()),
+        ..default()
     };
     let param3 = span_tree::ArgumentInfo {
         name: Some("matrix".to_owned()),
-        tp:   Some("Vector String".to_owned()),
+        tp: Some("Vector String".to_owned()),
+        ..default()
     };
     let parameters = vec![this_param, param0, param1, param2, param3];
     let ast = parser.parse_line_ast(&code).unwrap();
     let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
     let ctx = span_tree::generate::MockContext::new_single(ast.id.unwrap(), invocation_info);
     let output_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap(); //span_tree::SpanTree::default();
+    let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
+    let whole_expression_id = default();
+    let code = code.into();
+    Expression { pattern, code, whole_expression_id, input_span_tree, output_span_tree }
+}
+
+pub fn expression_mock_trim() -> Expression {
+    let pattern = Some("trim_node".to_string());
+    let code = "\"  hello  \".trim".to_string();
+    let parser = Parser::new_or_panic();
+    let this_param = span_tree::ArgumentInfo {
+        name: Some("self".to_owned()),
+        tp: Some("Text".to_owned()),
+        ..default()
+    };
+    let param0 = span_tree::ArgumentInfo {
+        name:       Some("where".to_owned()),
+        tp:         Some("Location".to_owned()),
+        tag_values: vec![
+            "Location.Start".to_owned(),
+            "Location.End".to_owned(),
+            "Location.Both".to_owned(),
+        ],
+    };
+    let param1 = span_tree::ArgumentInfo {
+        name: Some("what".to_owned()),
+        tp: Some("Text".to_owned()),
+        ..default()
+    };
+    let parameters = vec![this_param, param0, param1];
+    let ast = parser.parse_line_ast(&code).unwrap();
+    let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
+    let ctx = span_tree::generate::MockContext::new_single(ast.id.unwrap(), invocation_info);
+    let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree = span_tree::SpanTree::new(&ast, &ctx).unwrap();
     let whole_expression_id = default();
     let code = code.into();

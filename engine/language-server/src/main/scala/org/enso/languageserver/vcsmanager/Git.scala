@@ -38,11 +38,17 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
 
   private def repository(root: Path): Repository = {
     val builder = new FileRepositoryBuilder()
-    builder
+    val repo = builder
       .setWorkTree(root.toFile)
       .setGitDir(root.resolve(gitDir).toFile)
       .setMustExist(true)
       .build()
+    disableAutoCRLF(repo)
+    repo
+  }
+
+  private def disableAutoCRLF(repo: Repository): Unit = {
+    repo.getConfig.setString("core", null, "autocrlf", "false")
   }
 
   override def init(root: Path): BlockingIO[VcsFailure, Unit] = {
@@ -71,6 +77,7 @@ private class Git(ensoDataDirectory: Option[Path]) extends VcsApi[BlockingIO] {
         .setDirectory(root.toFile)
         .setBare(false)
         .call()
+      disableAutoCRLF(jgit.getRepository)
 
       ensoDataDirectory.foreach { _ =>
         // When `gitDir` is set, JGit **always** creates a .git file (not a directory!) that points at the real

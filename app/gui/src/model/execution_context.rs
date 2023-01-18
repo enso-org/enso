@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::notification::Publisher;
-
 use double_representation::identifier::Identifier;
 use double_representation::name::project;
 use double_representation::name::QualifiedName;
@@ -16,6 +14,7 @@ use engine_protocol::language_server::VisualisationConfiguration;
 use ensogl::data::color;
 use flo_stream::Subscriber;
 use mockall::automock;
+use notification::Publisher;
 use serde::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;

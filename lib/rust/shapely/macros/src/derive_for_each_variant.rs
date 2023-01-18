@@ -39,6 +39,6 @@ fn derive_for_enum(decl: &syn::DeriveInput, data: &syn::DataEnum) -> TokenStream
             ( $f:ident($( $args:tt )*) ) => { $f!([ #variant_names ] $($args)*) }
         }
 
-        pub(crate) use #macro_name;
+        pub use #macro_name;
     }
 }
