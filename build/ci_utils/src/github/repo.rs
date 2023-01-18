@@ -119,6 +119,11 @@ pub trait IsRepo: Display {
             .context(format!("Failed to generate an URL for the {self} repository."))
     }
 
+    fn into_handle(self, octocrab: &Octocrab) -> Handle<Self>
+    where Self: Sized {
+        Handle { octocrab: octocrab.clone(), repo: self }
+    }
+
     fn handle(&self, octocrab: &Octocrab) -> Handle<Self>
     where Self: Clone + Sized {
         Handle { repo: self.clone(), octocrab: octocrab.clone() }
@@ -128,8 +133,10 @@ pub trait IsRepo: Display {
 /// A handle to a specific GitHub repository.
 ///
 /// It includes a client (so also an authentication token) and a repository.
-#[derive(Debug, Clone)]
+#[derive(Derivative, Clone)]
+#[derivative(Debug)]
 pub struct Handle<Repo> {
+    #[derivative(Debug = "ignore")]
     pub octocrab: Octocrab,
     pub repo:     Repo,
 }

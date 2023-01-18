@@ -34,7 +34,7 @@ pub async fn build_image_workflow_dispatch_input(octocrab: &Octocrab, version: &
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::setup_octocrab;
+    use ide_ci::github::setup_octocrab;
 
     #[tokio::test]
     #[ignore]

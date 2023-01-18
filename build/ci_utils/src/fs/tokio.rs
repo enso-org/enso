@@ -168,3 +168,19 @@ pub async fn remove_file_if_exists(path: impl AsRef<Path>) -> Result<()> {
         result => result.anyhow_err(),
     }
 }
+
+/// Fail if the given path does not exist.
+pub async fn require_exist(path: impl AsRef<Path>) -> Result {
+    if metadata(&path).await.is_ok() {
+        trace!("{} does exist.", path.as_ref().display());
+        Ok(())
+    } else {
+        bail!("{} does not exist.", path.as_ref().display())
+    }
+}
+
+pub async fn copy_to(source_file: impl AsRef<Path>, dest_dir: impl AsRef<Path>) -> Result<PathBuf> {
+    let source_file = source_file.as_ref().to_path_buf();
+    let dest_dir = dest_dir.as_ref().to_path_buf();
+    tokio::task::spawn_blocking(move || crate::fs::copy_to(&source_file, &dest_dir)).await?
+}

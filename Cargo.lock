@@ -2563,6 +2563,7 @@ version = "0.1.0"
 dependencies = [
  "html_parser",
  "ide-ci",
+ "octocrab",
  "regex",
  "tempfile",
  "tokio",

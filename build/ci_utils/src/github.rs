@@ -12,9 +12,71 @@ pub mod release;
 pub mod repo;
 pub mod workflow;
 
+use crate::define_env_var;
 pub use repo::Repo;
 pub use repo::RepoRef;
 
+define_env_var! {
+    /// GitHub Personal Access Token, used for authentication in GutHub API.
+    ///
+    /// Can be [created using GitHub web UI](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
+    GITHUB_TOKEN, String;
+}
+
+/// Tries to retrieve the GitHub Personal Access Token from the environment.
+pub fn retrieve_github_access_token() -> Result<String> {
+    fn get_token_from_file() -> Result<String> {
+        let path =
+            dirs::home_dir().context("Failed to locate home directory.")?.join("GITHUB_TOKEN");
+        debug!("Looking for GitHub token in the file {}", path.display());
+        let content = crate::fs::read_to_string(path)?;
+        Ok(content.trim().into())
+    }
+
+    GITHUB_TOKEN
+        .get()
+        .inspect(|_| debug!("Will use {GITHUB_TOKEN} environment variable."))
+        .inspect_err(|e| debug!("Failed to retrieve GitHub authentication from environment: {e}"))
+        .or_else(|_| get_token_from_file())
+}
+
+#[context("Failed to setup GitHub API client.")]
+pub async fn setup_octocrab() -> Result<Octocrab> {
+    let builder = octocrab::OctocrabBuilder::new();
+    let octocrab = if let Ok(access_token) = retrieve_github_access_token() {
+        let octocrab = builder.personal_token(access_token).build()?;
+        let username = octocrab
+            .current()
+            .user()
+            .await
+            .inspect_err(|e| warn!("Failed to retrieve GitHub username: {e}"))
+            .map_or_else(|_| "N/A".to_string(), |user| user.login);
+        info!("Using GitHub API with personal access token. Authenticated as {username}.",);
+        octocrab
+    } else {
+        info!("No GitHub Personal Access Token found. Will use anonymous API access.");
+        warn!(
+            "Anonymous GitHub API access is rate-limited. If you are experiencing issues, please \
+        set the GITHUB_TOKEN environment variable."
+        );
+        warn!(
+            "Additionally some APIs may not be available to anonymous users. This primarily \
+        pertains the release-related APIs."
+        );
+        builder.build()?
+    };
+
+    match octocrab.ratelimit().get().await {
+        Ok(rate) => info!(
+            "GitHub API rate limit: {}/{}.",
+            rate.resources.core.used, rate.resources.core.limit
+        ),
+        Err(e) => bail!(
+            "Failed to get rate limit info: {e}. GitHub Personal Access Token might be invalid."
+        ),
+    }
+    Ok(octocrab)
+}
 
 /// Goes over all the pages and returns result.
 ///
