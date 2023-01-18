@@ -17,7 +17,7 @@ use notification::Publisher;
 /// for sending through `Publisher`.
 #[derive(Clone, Debug, Fail)]
 #[fail(display = "Error while loading item")]
-pub struct LoadingError {}
+struct LoadingError {}
 
 
 
@@ -110,7 +110,12 @@ where K: Clone + Eq + Hash
         }
     }
 
-    pub async fn get(&self, key: &K) -> Result<Option<Rc<V>>, LoadingError> {
+    /// Get item under the key.
+    ///
+    /// This functions return handle to item under `key` if it's already loaded. If it is in
+    /// loading state (because another task is loading it asynchronously), it will be wait for that
+    /// loading to finish.
+    pub async fn get(&self, key: &K) -> FallibleResult<Option<Rc<V>>> {
         loop {
             let entry = self.registry.borrow_mut().get(key);
             match entry {
