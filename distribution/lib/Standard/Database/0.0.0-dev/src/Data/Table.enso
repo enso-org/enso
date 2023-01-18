@@ -101,9 +101,20 @@ type Table
     at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
-        _ : Text ->
-            internal_column = self.internal_columns.find if_missing=(Error.throw (No_Such_Column.Error selector)) (p -> p.name == selector)
-            self.make_column internal_column
+        _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
+
+    ## Returns the column with the given name or index.
+
+       Arguments:
+       - selector: The name or index of the column being looked up.
+       - if_missing: The value to use if the selector isn't present.
+    get : Text | Integer -> Any -> Column | Any
+    get self selector=0 ~if_missing=Nothing =
+        internal_column = case selector of
+            _ : Integer -> self.internal_columns.get selector if_missing=Nothing
+            _ : Text -> self.internal_columns.find (p -> p.name == selector) if_missing=Nothing
+            _ -> Error.throw (Illegal_Argument.Error "expected 'selector' to be either a Text or an Integer, but got "+(Meta.get_simple_type_name selector)+".")
+        if internal_column.is_nothing then if_missing else self.make_column internal_column
 
     ## Returns the number of columns in the table.
     column_count : Integer
@@ -497,6 +508,7 @@ type Table
         self.updated_context new_ctx
 
     ## UNSTABLE
+       ALIAS Add Column, Update Column
 
        Sets the column value at the given name.
 
@@ -893,7 +905,7 @@ type Table
        > Example
          Group by the Key column, count the rows
 
-              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count Nothing]
+              table.aggregate [Aggregate_Column.Group_By "Key", Aggregate_Column.Count]
     aggregate : Vector Aggregate_Column -> Problem_Behavior -> Table
     aggregate self columns (on_problems=Report_Warning) =
         validated = Aggregate_Column_Helper.prepare_aggregate_columns columns self
