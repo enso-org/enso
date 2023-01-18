@@ -95,7 +95,7 @@ impl ModuleGroups {
 // ================
 
 /// Construct a component section from a list of module groups.
-fn new_section(name: ImString, modules: &Vec<&ModuleGroups>) -> component::Section {
+fn new_section(name: ImString, modules: &[&ModuleGroups]) -> component::Section {
     let modules_iter = modules.iter();
     let mut module_builder = component::group::AlphabeticalListBuilder::default();
     module_builder.extend(modules_iter.clone().map(|g| g.content.clone_ref()));
