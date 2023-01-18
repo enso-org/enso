@@ -658,6 +658,13 @@ pub trait API: Debug + model::undo_redo::Aware {
 
     /// Returns self as any. Used for casting down the [`Module`] object.
     fn as_any(&self) -> &dyn Any;
+
+    /// Remove all temporary changes in the Module:
+    /// 1. All imports marked as temporary in metadata will be removed
+    /// 2. All nodes marked as edited in metadata will be removed (if they have been created), or
+    /// have their original expressions restored.
+    /// In both cases, the metadata marking as temporary will be removed.
+    fn restore_temporary_changes(&self) -> FallibleResult;
 }
 
 /// Trait for methods that cannot be defined in `API` because it is a trait object.
