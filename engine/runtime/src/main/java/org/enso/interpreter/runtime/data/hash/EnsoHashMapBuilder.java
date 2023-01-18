@@ -107,8 +107,8 @@ public final class EnsoHashMapBuilder {
   /**
    * Removes an entry denoted by the given key.
    *
-   * @return true if the removal was successful, i.e., the key was in the map and
-   *         was removed, false otherwise.
+   * @return true if the removal was successful, i.e., the key was in the map and was removed, false
+   *     otherwise.
    */
   @TruffleBoundary
   public boolean remove(Object key) {

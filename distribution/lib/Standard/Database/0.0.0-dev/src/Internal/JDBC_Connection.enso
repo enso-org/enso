@@ -138,7 +138,7 @@ create : Text -> Vector -> JDBC_Connection
 create url properties = handle_sql_errors <|
     java_props = Properties.new
     properties.each pair->
-        if pair.second.is_nothing.not then java_props.setProperty pair.first pair.second else
+        if pair.second.is_nothing.not then java_props.insert pair.first pair.second else
             java_props.remove pair.first
     java_connection = JDBCProxy.getConnection url java_props
 
