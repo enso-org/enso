@@ -13,29 +13,6 @@ pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
 /// We keep dependency to a fixed commit, so we can safely cache it.
 pub const GOOGLE_FONT_SHA1: &str = "ea893a43af7c5ab5ccee189fc2720788d99887ed";
 
-#[context("Failed to download Google font '{family}'.")]
-#[instrument(fields(output_path = %output_path.as_ref().display()), ret, err, skip(octocrab))]
-pub async fn download_google_font(
-    octocrab: &Octocrab,
-    family: &str,
-    r#ref: &str,
-    output_path: impl AsRef<Path>,
-) -> Result<Vec<repos::Content>> {
-    let destination_dir = output_path.as_ref();
-    let repo = GOOGLE_FONTS_REPOSITORY.handle(octocrab);
-    let path = format!("{GOOGLE_FONT_DIRECTORY}/{family}");
-    let files = repo.repos().get_content().r#ref(r#ref).path(path).send().await?;
-    let ttf_files =
-        files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect_vec();
-    for file in &ttf_files {
-        let destination_file = destination_dir.join(&file.name);
-        let url = file.download_url.as_ref().context("Missing 'download_url' in the reply.")?;
-        let reply = ide_ci::io::web::client::download(&octocrab.client, url).await?;
-        ide_ci::io::web::stream_to_file(reply, &destination_file).await?;
-    }
-    Ok(ttf_files)
-}
-
 /// Identifies uniquely a source of font family download.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Family {
@@ -132,7 +109,7 @@ impl Storable for DownloadFont {
     }
 }
 
-pub async fn download_google_font2(
+pub async fn download_google_font(
     cache: &Cache,
     octocrab: &Octocrab,
     family: &str,
@@ -157,23 +134,12 @@ mod tests {
 
     #[tokio::test]
     #[ignore]
-    async fn old_download() -> Result {
-        setup_logging()?;
-        let path = r"C:\temp\google_fonts1";
-        let octocrab = ide_ci::github::setup_octocrab().await?;
-        let result = download_google_font(&octocrab, "mplus1", GOOGLE_FONT_SHA1, path).await?;
-        dbg!(result);
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[ignore]
     async fn new_download() -> Result {
         setup_logging()?;
         let path = r"C:\temp\google_fonts2";
         let octocrab = ide_ci::github::setup_octocrab().await?;
         let cache = Cache::new_default().await?;
-        let aaa = download_google_font2(&cache, &octocrab, "mplus1", path).await?;
+        let aaa = download_google_font(&cache, &octocrab, "mplus1", path).await?;
         dbg!(aaa);
         Ok(())
     }

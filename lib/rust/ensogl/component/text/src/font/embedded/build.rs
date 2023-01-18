@@ -138,7 +138,7 @@ mod google_fonts {
     use super::*;
     use crate::CodeGenerator;
 
-    use enso_build::ide::web::google_font::download_google_font2;
+    use enso_build::ide::web::google_font::download_google_font;
 
     #[derive(Debug)]
     pub struct FaceDefinition {
@@ -159,7 +159,7 @@ mod google_fonts {
     ) -> Result<Vec<DownloadedFile>> {
         let octocrab = ide_ci::github::setup_octocrab().await?;
         let cache = ide_ci::cache::Cache::new_default().await?;
-        let result = download_google_font2(&cache, &octocrab, name.as_ref(), out_dir).await?;
+        let result = download_google_font(&cache, &octocrab, name.as_ref(), out_dir).await?;
         Ok(result
             .into_iter()
             .map(|font| Result::Ok(DownloadedFile { name: font.try_file_name()?.as_str().into() }))

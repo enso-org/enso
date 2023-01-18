@@ -150,7 +150,7 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
         let fonts_download =
-            google_font::download_google_font2(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
+            google_font::download_google_font(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
         ide.write_build_info(build_info)?;
