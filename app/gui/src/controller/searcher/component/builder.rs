@@ -365,8 +365,12 @@ mod tests {
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, second_part);
         let list = builder.build();
 
-        let top_modules: Vec<ComparableGroupData> =
-            list.top_modules.iter().flat_map(|section| section.iter()).map(Into::into).collect();
+        let top_modules: Vec<ComparableGroupData> = list
+            .top_module_sections
+            .iter()
+            .flat_map(|section| section.modules.iter())
+            .map(Into::into)
+            .collect();
         let expected = vec![
             ComparableGroupData {
                 name:         "Test.TopModule1",
@@ -382,9 +386,9 @@ mod tests {
         assert_eq!(top_modules, expected);
 
         let flattened_top_modules: Vec<ComparableGroupData> = list
-            .top_modules_flattened
+            .top_module_sections
             .iter()
-            .flat_map(|section| section.iter())
+            .flat_map(|section| section.modules_flattened.iter())
             .map(Into::into)
             .collect();
         let expected = vec![
