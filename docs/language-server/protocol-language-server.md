@@ -195,7 +195,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`EmptyStackError`](#emptystackerror)
   - [`InvalidStackItemError`](#invalidstackitemerror)
   - [`ModuleNotFoundError`](#modulenotfounderror)
-  - [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror)
   - [`VisualisationNotFoundError`](#visualisationnotfounderror)
   - [`VisualisationExpressionError`](#visualisationexpressionerror)
   - [`FileNotOpenedError`](#filenotopenederror)
@@ -3992,8 +3991,6 @@ null;
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
   the visualisation cannot be found.
-- [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror) to
-  signal that the module containing the provided expression cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
   the expression specified in the `VisualisationConfiguration` cannot be
   evaluated.
@@ -4032,8 +4029,6 @@ null;
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
   the visualisation cannot be found.
-- [`ModuleNotFoundForExpressionError`](#modulenotfoundforexpressionerror) to
-  signal that the module containing the provided expression cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
   the expression specified in the `VisualisationConfiguration` cannot be
   evaluated.
@@ -5502,18 +5497,6 @@ cannot be evaluated. The error contains an optional `data` field of type
     "expressionId" : "aa1f75c4-8c4d-493d-a6a7-72123a52f084",
     "stack" : []
   }
-}
-```
-
-### `ModuleNotFoundForExpressionError`
-
-It signals that the module containing the provided expression id cannot be
-found.
-
-```typescript
-"error" : {
-  "code" : 2008,
-  "message" : "Module not found for [aa1f75c4-8c4d-493d-a6a7-72123a52f084]"
 }
 ```
 
