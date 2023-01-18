@@ -114,11 +114,15 @@
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
   and Web versions of the IDE.
+- [Removed Cloud Dashboard][4047]. The Cloud Dashboard was being rewritten in
+  EnsoGL but after internal discussion we've decided to rewrite it in React,
+  with a shared implementation between the Desktop and Web versions of the IDE.
 - [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
   suitable for single and multi-select scenarios.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
+[4047]: https://github.com/enso-org/enso/pull/4047
 
 #### Enso Standard Library
 
