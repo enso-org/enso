@@ -304,13 +304,13 @@ public class Table {
 
     Column[] newColumns = new Column[this.columns.length + right.columns.length];
 
-    int leftColumns = this.columns.length;
-    int rightColumns = right.columns.length;
-    for (int i = 0; i < leftColumns; i++) {
+    int leftColumnCount = this.columns.length;
+    int rightColumnCount = right.columns.length;
+    for (int i = 0; i < leftColumnCount; i++) {
       newColumns[i] = this.columns[i].applyMask(leftMask);
     }
-    for (int i = 0; i < rightColumns; i++) {
-      newColumns[leftColumns + i] = right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
+    for (int i = 0; i < rightColumnCount; i++) {
+      newColumns[leftColumnCount + i] = right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
     }
 
     AggregatedProblems aggregatedProblems = AggregatedProblems.merge(AggregatedProblems.of(nameDeduplicator.getProblems()), joinResult.problems());
