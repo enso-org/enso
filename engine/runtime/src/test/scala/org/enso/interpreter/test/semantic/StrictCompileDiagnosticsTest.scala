@@ -23,7 +23,7 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
         """main =
           |    x = ()
           |    x = 5
-          |    y = @
+          |    y = `
           |""".stripMargin.linesIterator.mkString("\n")
       the[InterpreterException] thrownBy eval(code) should have message
       "Compilation aborted due to errors."
@@ -35,7 +35,7 @@ class StrictCompileDiagnosticsTest extends InterpreterTest {
         .toSet shouldEqual Set(
         "Test[2:9-2:10]: Parentheses can't be empty.",
         "Test[3:5-3:9]: Variable x is being redefined.",
-        "Test[4:9-4:9]: Unrecognized token.",
+        "Test[4:9-4:9]: Unexpected expression.",
         "Test[4:5-4:5]: Unused variable y.",
         "Test[2:5-2:5]: Unused variable x."
       )
