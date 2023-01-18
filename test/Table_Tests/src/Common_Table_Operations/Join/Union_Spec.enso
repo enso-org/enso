@@ -20,7 +20,7 @@ main = run_default_backend spec
 spec setup =
     prefix = setup.prefix
     table_builder = setup.table_builder
-    db_todo = if prefix.contains "In-Memory" then Nothing else "Union API is not yet implemented for the DB backend."
+    db_todo = if prefix.contains "In-Memory" then Nothing else "Table.union is not yet implemented for the DB backend."
     Test.group prefix+"Table.union" pending=db_todo <|
         Test.specify "should merge columns from multiple tables" <|
             t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
