@@ -280,7 +280,8 @@
   to the types.][4026]
 - [Implemented `Table.distinct` for Database backends.][4027]
 - [Implemented `Table.union` for the in-memory backend.][4052]
-- [Implemented `Table.cross_join` for the in-memory backend.][4063]
+- [Implemented `Table.cross_join` and `Table.zip` for the in-memory
+  backend.][4063]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
