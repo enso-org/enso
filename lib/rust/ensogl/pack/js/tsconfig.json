@@ -1,11 +1,13 @@
 {
+  "include": ["src/**/*"],
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
+    "rootDir": "src",
     "baseUrl": "./src",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSourceMap": true,
-    "isolatedModules": true,
+//    "isolatedModules": true,
     "lib": ["ES2021", "dom"],
     "module": "ESNext",
     "moduleResolution": "node",
@@ -18,7 +20,13 @@
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "ES2019"
+    "target": "ES2019",
+    "skipLibCheck": true,
+//    "composite": true,
+    "outDir": "dist",
+//    "tsBuildInfoFile": "dist/cache.tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
   },
   "ts-node": {
     "esm": true

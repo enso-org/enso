@@ -13,13 +13,14 @@ use crate::data::dirty;
 use crate::debug::stats::Stats;
 use crate::display;
 use crate::display::camera::Camera2d;
-use crate::display::{render, world};
+use crate::display::render;
 use crate::display::scene::dom::DomScene;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
+use crate::display::world;
 use crate::system;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
@@ -768,7 +769,17 @@ fn extractShadersFromJs(value: JsValue) -> Result<(), JsValue> {
     Ok(())
 }
 
+// use ensogl_hardcoded_theme;
+use crate::display::style::hardcoded_theme;
+use crate::display::style::theme;
+
 pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
+    let style_sheet = with_symbol_registry(|t| t.style_sheet.clone_ref());
+    let themes = theme::Manager::from(&style_sheet);
+    hardcoded_theme::builtin::light::register(&themes);
+    hardcoded_theme::builtin::light::enable(&themes);
+    themes.update();
+    mem::forget(themes);
     let mut map = HashMap::new();
     display::world::STATIC_SHAPES.with(|shapes| {
         for shape_cons in shapes.borrow().iter() {

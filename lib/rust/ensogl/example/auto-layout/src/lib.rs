@@ -16,6 +16,9 @@ use ensogl_core::data::color;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
+use ensogl_core::display::style::theme;
+
+use ensogl_hardcoded_theme;
 
 
 // ==============
@@ -29,7 +32,7 @@ mod rectangle {
             let width = Var::<Pixels>::from("input_size.x");
             let height = Var::<Pixels>::from("input_size.y");
             let rect = Rect((&width, &height)).corners_radius(10.0.px());
-            let shape = rect.fill(color::Rgba(0.0,0.0,0.0,0.2));
+            let shape = rect.fill(color::Rgba(0.0,0.0,0.0,0.3));
             shape.into()
         }
     }
@@ -62,6 +65,69 @@ pub mod cursor {
     }
 }
 
+pub mod node {
+    ensogl_core::shape_old! {
+        // Disable to allow interaction with the output port.
+        pointer_events = true;
+        (style:Style, selection:f32) {
+
+            let width  = Var::<Pixels>::from("input_size.x");
+            let height = Var::<Pixels>::from("input_size.y");
+            let width  = width  - 4.px();
+            let height = height - 4.px();
+
+            // === Shadow ===
+
+            // let shadow_radius = &height / 2.0;
+            // let shadow_base   = Rect((&width,&height)).corners_radius(shadow_radius);
+            // let shadow        = shadow::from_shape(shadow_base.into(),style);
+
+
+            // === Selection ===
+
+            // let sel_color  = style.get_color(ensogl_hardcoded_theme::graph_editor::node::selection);
+            let sel_size   = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::size);
+            let sel_offset = style.get_number(ensogl_hardcoded_theme::graph_editor::node::selection::offset);
+
+            warn!("sel_size: {:?}", sel_size);
+            warn!("sel_offset: {:?}", sel_offset);
+
+            let sel_width   = &width  - 2.px() + &sel_offset.px() * 2.0 * &selection;
+            let sel_height  = &height - 2.px() + &sel_offset.px() * 2.0 * &selection;
+            let sel_radius  = &sel_height / 2.0;
+            warn!("select size: {:?}, {:?}", sel_width, sel_height);
+            let select      = Rect((&sel_width,&sel_height)).corners_radius(sel_radius);
+
+            let sel2_width  = &width  - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
+            let sel2_height = &height - 2.px() + &(sel_size + sel_offset).px() * 2.0 * &selection;
+            let sel2_radius = &sel2_height / 2.0;
+            warn!("select2 size: {:?}, {:?}", sel2_width, sel2_height);
+            let select2     = Rect((&sel2_width,&sel2_height)).corners_radius(sel2_radius);
+
+            let select = select2 - select;
+            let select = select.fill(color::Rgba::green());
+
+
+             // === Error Pattern  Alternative ===
+             // TODO: Remove once the error indicator design is finalised.
+             // let repeat      =  Var::<Vector2<Pixels>>::from((10.px(), 10.px()));
+             // let error_width =  Var::<Pixels>::from(5.px());
+             //
+             // let stripe_red   = Rect((error_width, 99999.px()));
+             // let pattern = stripe_red.repeat(repeat).rotate(45.0.radians());
+             // let mask    = Rect((&width,&height)).corners_radius(&radius);
+             // let pattern1 = mask.intersection(pattern).fill(color::Rgba::red());
+
+             // let out =  select + shadow + shape + pattern1;
+
+            // === Final Shape ===
+
+            let out = select;// + shadow;
+            out.into()
+        }
+    }
+}
+
 
 // ===================
 // === Entry Point ===
@@ -82,11 +148,24 @@ pub fn main() {
     let camera = scene.camera().clone_ref();
     let navigator = Navigator::new(scene, &camera);
 
-    let cursor = cursor::View::new();
-    cursor.set_size(Vector2(20.0, 20.0));
-    cursor.radius.set(10.0);
-    cursor.color.set(color::Rgba::new(1.0, 0.0, 0.0, 0.3).into());
-    world.add_child(&cursor);
+    let themes = theme::Manager::from(&scene.style_sheet);
+    ensogl_hardcoded_theme::builtin::light::register(&themes);
+    ensogl_hardcoded_theme::builtin::light::enable(&themes);
+    themes.update();
+    mem::forget(themes);
+
+    // let cursor = cursor::View::new();
+    // cursor.set_size(Vector2(20.0, 20.0));
+    // cursor.radius.set(10.0);
+    // cursor.color.set(color::Rgba::new(1.0, 0.0, 0.0, 0.3).into());
+    // world.add_child(&cursor);
+
+    let node = node::View::new();
+    node.set_size(Vector2(200.0, 200.0));
+    node.selection.set(1.0);
+    world.add_child(&node);
+    mem::forget(node);
+
 
     // let rect1 = rectangle::View::new();
     // rect1.set_size(Vector2::new(100.0, 100.0));
@@ -123,7 +202,7 @@ pub fn main() {
 
     world.keep_alive_forever();
     mem::forget(navigator);
-    mem::forget(cursor);
+    // mem::forget(cursor);
     // mem::forget(root);
     // mem::forget(rect1);
     // mem::forget(rect2);

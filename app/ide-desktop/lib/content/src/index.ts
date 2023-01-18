@@ -211,8 +211,9 @@ class Main {
             if (appInstance.config.params.dataGathering.value) {
                 logger.log('Data gathering enabled. Initializing Mixpanel.')
                 mixpanelLogger = new mixpanel.MixpanelLogger(appInstance.config.params.debug.value)
+                // FIXME: mixpanel disabled because of performance reasons. It should log only
+                //   big tasks.
                 // logger.addConsumer(mixpanelLogger)
-                // wylaczylem tu mixpanel
             }
             if (!(await checkMinSupportedVersion(appInstance.config.params))) {
                 displayDeprecatedVersionDialog()

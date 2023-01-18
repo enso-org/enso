@@ -16,8 +16,8 @@ import { logger } from 'runner/log'
 // === Exports ===
 // ===============
 
-export * as log from 'runner/log/logger'
-export * as config from 'runner/config'
+export { log }
+export { config }
 export type { LogLevel } from 'runner/log/logger'
 
 export { logger, Logger, Consumer } from 'runner/log'

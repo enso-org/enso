@@ -6,7 +6,7 @@ import * as args from 'shader-extractor/args'
 import * as fs from 'shader-extractor/fs'
 import * as log from 'runner/log'
 import * as name from 'runner/name'
-import * as runner from 'runner/index'
+import * as runner from 'runner/app'
 
 // ===========
 // === App ===

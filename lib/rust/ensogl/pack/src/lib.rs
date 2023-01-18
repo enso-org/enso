@@ -9,9 +9,12 @@ use crate::spirvcross::program::SpirvCross;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::wasm_pack::WasmPackCommand;
 use manifest_dir_macros::path;
+use std::collections::hash_map::DefaultHasher;
 use std::env;
+use std::hash::Hasher;
 use std::path::Path;
 use std::path::PathBuf;
+use walkdir::WalkDir;
 
 pub mod shaderc;
 pub mod spirvcross;
@@ -81,14 +84,15 @@ async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
             .await
     };
 
-    info!("Type checking TypeScript sources.");
-    run_script("typecheck", &EMPTY_ARGS).await?;
-
-    // info!("Linting TypeScript sources.");
-    // run_script("lint", &EMPTY_ARGS).await?;
-
     info!("Building TypeScript sources.");
-    run_script("build", &["--", &format!("--outdir={}", out.display())]).await
+    // FIXME[WD]: why we need this hack?
+    let args = ["--", &format!("--out-dir={}", out.display())];
+    run_script("build", &args).await?;
+    let args = ["--", &format!("--out-dir={}", out.display())];
+    run_script("build-shader-extractor", &args).await?;
+
+    info!("Linting TypeScript sources.");
+    run_script("lint", &EMPTY_ARGS).await
 }
 
 /// The arguments to `wasm-pack build` that `ensogl-pack` wants to customize.
@@ -97,6 +101,12 @@ pub struct WasmPackOutputs {
     pub out_dir:  PathBuf,
     /// Value to passed as `--out-name` to `wasm-pack`.
     pub out_name: String,
+}
+
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }
 
 /// Wrapper over `wasm-pack build` command.
@@ -117,8 +127,11 @@ pub async fn build(
 
     let workspace_dir = workspace_dir().await?;
     let target_dir = workspace_dir.join("target").join("ensogl-pack");
+    // The `wasm_pack` artifacts are stored in a separate folder because `wasm_pack` re-creates it
+    // on every run.
+    let wasm_pack_target_dir = target_dir.join("wasm-pack");
     let replaced_args =
-        WasmPackOutputs { out_dir: target_dir.clone(), out_name: "pkg".to_string() };
+        WasmPackOutputs { out_dir: wasm_pack_target_dir.clone(), out_name: "pkg".to_string() };
     let target_dist_dir = target_dir.join("dist");
 
     let WasmPackOutputs { out_name, out_dir } = outputs;
@@ -131,15 +144,28 @@ pub async fn build(
     let js_dir = root_dir.join("js");
     let node_modules_dir = js_dir.join("node_modules");
     let app_js_path = target_dist_dir.join("app.js");
-    let shader_extractor_path = target_dist_dir.join("shader-extractor.js");
+    let shader_extractor_path = target_dist_dir.join("shader-extractor.cjs");
 
     // FIXME? [mwu] What if dependencies are updated without deleting node_modules?
     // if !node_modules_dir.is_dir() {
     ide_ci::programs::Npm.cmd()?.install().current_dir(&js_dir).run_ok().await?;
     // with_pwd(&js_dir, || execute("npm", &["install"]));
     // }
+
+    let js_src_dir = js_dir.join("src");
+
+    for entry in WalkDir::new(&js_src_dir) {
+        let entry = entry?;
+        let path = entry.path();
+        if entry.file_type().is_file() {
+            let metadata = entry.metadata()?;
+            let modified = metadata.modified()?;
+            println!(">>>> {} --- {:?}", path.display(), modified);
+        }
+    }
+
     compile_ts(&js_dir, "src/index.ts", &target_dist_dir).await?;
-    compile_js(&target_dir, "pkg.js", &target_dist_dir.join("main.js")).await?;
+    compile_js(&wasm_pack_target_dir, "pkg.js", &target_dist_dir.join("main.js")).await?;
     // with_pwd(&target_dir, || compile_js("pkg.js", &target_dist_dir.join("main.js")));
     //
     // println!(
@@ -147,13 +173,14 @@ pub async fn build(
     //     target_dir.join("pkg.wasm"),
     //     target_dist_dir.join(&format!("main.wasm"))
     // );
-    ide_ci::fs::copy(target_dir.join("pkg_bg.wasm"), target_dist_dir.join("main.wasm"))?;
+    ide_ci::fs::copy(wasm_pack_target_dir.join("pkg_bg.wasm"), target_dist_dir.join("main.wasm"))?;
     info!("Source files:");
     let paths = ide_ci::fs::read_dir(&target_dist_dir)?;
     for path in paths {
         println!("Name: {}", path?.path().display())
     }
 
+    let shaders_hash_dir = target_dir.join("shaders-hash");
 
     info!("Extracting shaders from generated WASM file.");
     let shaders_src_dir = target_dir.join("shaders");
@@ -185,6 +212,22 @@ pub async fn build(
             let stage_glsl_opt_path = stage_path.with_appended_extension("opt.glsl");
             let stage_glsl_opt_dist_path =
                 dist_shaders_dir.join(&format!("{shader_prefix}.{stage}.glsl"));
+
+            let hash_path = shaders_hash_dir.join(&format!("{shader_prefix}.{stage}.hash"));
+            let content = ide_ci::fs::read_to_string(&stage_glsl_path)?;
+            let old_hash = ide_ci::fs::read_to_string(&hash_path).ok();
+            let hash = calculate_hash(&content).to_string();
+
+            if let Some(old_hash) = old_hash {
+                if old_hash == hash {
+                    info!("Skipping '{shader_prefix}.{stage}' because it has not changed.");
+                    continue;
+                }
+            }
+
+            ide_ci::fs::write(&hash_path, hash)?;
+
+
 
             Glslc
                 .cmd()?
@@ -242,7 +285,6 @@ pub async fn build(
             let declarations = declarations.join("\n");
             let main_content = &content[main_start + main_start_str.len()..main_end];
             let code = format!("{}\n{}", declarations, main_content);
-
             ide_ci::fs::write(&stage_glsl_opt_dist_path, code)?;
         }
     }
@@ -259,14 +301,5 @@ pub async fn build(
     for path in paths {
         info!("Name: {}", path?.path().display())
     }
-
-    //
-    // println!("{:?}", out_dir);
-    // println!("{:?}", out_name);
-    // println!("{:?}", args);
-    //
-    //
-    //
-    // println!("target_dir: {}", target_dir.display());
     Ok(())
 }
