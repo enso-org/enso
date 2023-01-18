@@ -7399,7 +7399,7 @@ object IR {
       case class MissingLibraryImportInFQNError(namespace: String)
           extends Reason {
         override def explain(originalName: IR.Name): String =
-          s"Fully qualified name includes a library $namespace.${originalName.name} but import statement is missing."
+          s"Fully qualified name references a library $namespace.${originalName.name} but an import statement for it is missing."
       }
 
     }
