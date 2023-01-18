@@ -13,8 +13,11 @@ use crate::presenter::graph::ViewNodeId;
 use controller::ExecutedGraph;
 use engine_protocol::language_server::SuggestionId;
 use ensogl::define_endpoints_2;
+use executor::global::spawn;
+use ide_view::graph_editor::component::node::input::widget;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Metadata;
+use ide_view::graph_editor::data::enso::Code;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::WidgetUpdate;
 
@@ -34,7 +37,7 @@ define_endpoints_2! {
     }
     Output {
         /// Emitted when the node's visualization has been set.
-        widget_data(ViewNodeId, ast::Id, Vec<WidgetUpdate>),
+        widget_data(ViewNodeId, Vec<WidgetUpdate>),
     }
 }
 
@@ -118,8 +121,9 @@ pub struct Model {
 
 /// Definition of a widget query. Defines the operation expression that the widgets will be attached
 /// to.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct QueryDefinition {
+    /// The node id of a node that contains the operation expression.
     pub node_id:        ViewNodeId,
     /// Expression of the whole method call.
     pub call_expr_id:   ast::Id,
@@ -137,19 +141,49 @@ struct QueryData {
     arguments:    Vec<ImString>,
 }
 
+
 impl Model {
     fn handle_notification(
         &mut self,
         notification: Notification,
-    ) -> Option<(ViewNodeId, ast::Id, Vec<WidgetUpdate>)> {
+    ) -> Option<(ViewNodeId, Vec<WidgetUpdate>)> {
         match notification {
-            Notification::ValueUpdate { target, visualization_id, data } => {
-                let query_data = self.expr_queries.get(&visualization_id)?;
-                let data_string = String::from_utf8_lossy(&data);
-                warn!("[WIDGETS] Received value for {visualization_id}:\n{data_string:?}");
-                let updates = Vec::new();
+            Notification::ValueUpdate { target, data, .. } => {
+                let query_data = self.expr_queries.get(&target)?;
+                let data: serde_json::Value = serde_json::from_slice(&data).ok()?;
+                warn!("[WIDGETS] Received value for {target}:\n{data:?}");
+                let args = data.as_array()?;
+                let updates = args
+                    .iter()
+                    .filter_map(|arg_value| {
+                        let meta_value = arg_value.get(1)?;
+                        /*
+                           Array [
+                               Array [String("selector"), Object {"allow_custom": Bool(true), "constructor": String("Single_Choice"), "display": Object {"constructor": String("Always"), "type": String("Display")}, "label": Null, "quote_values": Bool(false), "type": String("Widget"), "values": Array [String("Foo"), String("Bar")]}]
+                           ]
+                        */
 
-                Some((query_data.node_id, query_data.call_expr_id, updates))
+                        let kind: widget::Kind =
+                            serde_json::from_value(meta_value.get("constructor")?.clone()).ok()?;
+                        let display: widget::Display = serde_json::from_value(
+                            meta_value.get("display")?.get("constructor")?.clone(),
+                        )
+                        .unwrap_or_default();
+                        let dynamic_entries: Vec<String> =
+                            serde_json::from_value(meta_value.get("values")?.clone())
+                                .unwrap_or_default();
+                        let dynamic_entries = dynamic_entries.into_iter().map(Into::into).collect();
+                        let meta = widget::Metadata { kind, display, dynamic_entries };
+
+                        let argument_name = arg_value.get(0)?.as_str()?.to_owned().into();
+                        Some(WidgetUpdate { argument_name, target_id: target, meta: Some(meta) })
+                    })
+                    .collect();
+
+                warn!("[WIDGETS] updates: {updates:?}");
+
+
+                Some((query_data.node_id, updates))
             }
             Notification::FailedToAttach { error, .. } => {
                 error!("[WIDGETS] failed to attach widget visualization: {error}");
@@ -203,7 +237,11 @@ impl Model {
                     let vis_metadata =
                         Self::query_vis_metadata(self.module.clone(), self.method.clone(), query);
                     warn!("[WIDGETS] Modifying visualization for {}", def.target_expr_id);
-                    self.manager.request_visualization(def.target_expr_id, vis_metadata);
+                    let manager = self.manager.clone_ref();
+                    let target_expr_id = def.target_expr_id;
+                    spawn(async move {
+                        manager.request_visualization(target_expr_id, vis_metadata);
+                    });
                 }
             }
             Entry::Vacant(vacant) => {
@@ -218,7 +256,12 @@ impl Model {
                 let vis_metadata =
                     Self::query_vis_metadata(self.module.clone(), self.method.clone(), query);
                 warn!("[WIDGETS] Registering visualization for {}", def.target_expr_id);
-                self.manager.request_visualization(def.target_expr_id, vis_metadata);
+
+                let manager = self.manager.clone_ref();
+                let target_expr_id = def.target_expr_id;
+                spawn(async move {
+                    manager.request_visualization(target_expr_id, vis_metadata);
+                });
             }
         }
     }
@@ -244,10 +287,11 @@ impl Model {
     }
 
     fn query_vis_metadata(module: ImString, method: ImString, query: &QueryData) -> Metadata {
-        let mut arguments: Vec<ide_view::graph_editor::data::enso::Code> =
-            Vec::with_capacity(query.arguments.len() + 1);
-        arguments.push(Self::escape_arg(&query.method_name));
-        arguments.extend(query.arguments.iter().map(|arg| Self::escape_arg(arg)));
+        let relevant_arguments = query.arguments.split_first().map_or_default(|(_self, args)| args);
+        let arguments: Vec<Code> = vec![
+            Self::escape_arg(&query.method_name).into(),
+            Self::arg_sequence(relevant_arguments).into(),
+        ];
 
         let preprocessor = visualization::instance::PreprocessorConfiguration {
             module:    module.into(),
@@ -257,11 +301,23 @@ impl Model {
         Metadata { preprocessor }
     }
 
-    fn escape_arg(arg: &str) -> ide_view::graph_editor::data::enso::Code {
+    fn escape_arg(arg: &str) -> String {
         let segment = ast::SegmentPlain { value: arg.into() };
         let text = ast::TextLineRaw { text: vec![segment.into()] };
         warn!("[WIDGETS] Escaping arg: {arg:?} -> {:?}", text.repr());
-        text.repr().into()
+        text.repr()
+    }
+
+    fn arg_sequence(args: &[ImString]) -> String {
+        let mut buffer = String::from("[");
+        for (i, arg) in args.iter().enumerate() {
+            if i > 0 {
+                buffer.push_str(", ");
+            }
+            buffer.push_str(&Self::escape_arg(&arg));
+        }
+        buffer.push_str("]");
+        buffer
     }
 
 
@@ -356,3 +412,10 @@ impl Model {
     //     );
     // }
 }
+
+
+// struct WidgetVisualizationData {
+//     widget_type: String,
+//     display:     Display,
+//     values:      Vec<String>,
+// }

@@ -27,18 +27,48 @@ ensogl::define_endpoints_2! {
     }
 }
 
+/// Widget metadata that needs to be fetched from the graph asynchronously.
 #[derive(Debug, Clone)]
 pub struct Metadata {
+    /// The kind of widget to use.
     pub kind:            Kind,
+    /// The widget display mode.
+    pub display:         Display,
+    /// Dynamically fetched widget entries.
     pub dynamic_entries: Vec<ImString>,
 }
 
+/// Widget display mode. Determines when the widget should be expanded.
+#[derive(serde::Deserialize, Debug, Clone, Copy)]
+pub enum Display {
+    /// The widget should always be in its expanded mode.
+    Always,
+    /// The widget should only be in its expanded mode when it has non-default value.
+    #[serde(rename = "When_Modified")]
+    WhenModified,
+    /// The widget should only be in its expanded mode whe the whole node is expanded.
+    #[serde(rename = "Expanded_Only")]
+    ExpandedOnly,
+}
+
+impl Default for Display {
+    fn default() -> Self {
+        Self::Always
+    }
+}
+
+/// The data of node port that this widget is attached to. Available immediately after widget
+/// creation. Can be updated later when the node data changes.
 #[derive(Debug, Clone, Default)]
 pub struct NodeData {
+    /// Argument info of the node port that this widget is attached to.
     pub argument_info: span_tree::ArgumentInfo,
+    /// The current height of the node that the widget can use for layout.
+    /// TODO [pg]: remove and use the automatic layout instead.
     pub node_height:   f32,
 }
 
+/// The node widget UI widget.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Widget {
     frp:   Frp,
@@ -47,12 +77,15 @@ pub struct Widget {
 
 
 impl Widget {
+    /// Create a new node widget. The widget is initialized into the `Unset` state, waiting for
+    /// metadata to be set.
     pub fn new(app: &Application) -> Self {
         let frp = Frp::new();
         let model = Rc::new(Model::new(app));
         Self { frp, model }.init()
     }
 
+    /// Widget FRP API. Contains all endpoints that can be used to control the widget of any kind.
     pub fn frp(&self) -> &Frp {
         &self.frp
     }
@@ -122,27 +155,6 @@ impl display::Object for Widget {
     }
 }
 
-// =================
-// === Dot Shape ===
-// =================
-
-/// Temporary dropdown activation shape definition.
-pub mod dot {
-    use super::*;
-    ensogl::shape! {
-        above = [
-            crate::component::node::background,
-            crate::component::node::input::port::hover
-        ];
-        (style:Style, color:Vector4) {
-            let size   = Var::canvas_size();
-            let radius = Min::min(size.x(),size.y()) / 2.0;
-            let shape  = Rect(size).corners_radius(radius);
-            shape.fill(color).into()
-        }
-    }
-}
-
 
 #[derive(Debug)]
 struct ModelCommon {
@@ -158,22 +170,31 @@ impl ModelCommon {
     }
 }
 
+// =========================
+// === ModelInner / Kind ===
+// =========================
+
 /// Possible widgets for a node input.
 ///
 /// Currently all widget types are hardcoded. This is likely to be a temporary solution. In the
 /// future the set of widget types might be dynamic, similar to visualizations.
+#[derive(serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Kind {
+    /// Placeholder widget data when no data is available.
+    #[serde(skip)]
+    Unset,
+    /// A widget for selecting a single value from a list of available options.
+    #[serde(rename = "Single_Choice")]
+    SingleChoice,
+}
+
+/// The widget model that is dependant on the widget kind.
 #[derive(Clone, Debug, CloneRef)]
 pub enum ModelInner {
     /// Placeholder widget data when no data is available.
     Unset,
     /// A widget for selecting a single value from a list of available options.
     SingleChoice(SingleChoiceModel),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Kind {
-    Unset,
-    SingleChoice,
 }
 
 impl ModelInner {
@@ -208,6 +229,7 @@ impl ModelInner {
                     meta.as_ref().map(|meta| meta.dynamic_entries.clone()).unwrap_or_else(|| {
                         node_data.argument_info.tag_values.iter().map(Into::into).collect()
                     });
+                warn!("New entries: {entries:?}");
                 inner.set_node_height(node_data.node_height);
                 inner.set_entries(entries);
             }
@@ -220,6 +242,31 @@ impl ModelInner {
         }
     }
 }
+
+
+
+// =================
+// === Dot Shape ===
+// =================
+
+/// Temporary dropdown activation shape definition.
+pub mod dot {
+    use super::*;
+    ensogl::shape! {
+        above = [
+            crate::component::node::background,
+            crate::component::node::input::port::hover
+        ];
+        (style:Style, color:Vector4) {
+            let size   = Var::canvas_size();
+            let radius = Min::min(size.x(),size.y()) / 2.0;
+            let shape  = Rect(size).corners_radius(radius);
+            shape.fill(color).into()
+        }
+    }
+}
+
+
 
 // ====================
 // === SingleChoice ===

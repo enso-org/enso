@@ -153,19 +153,26 @@ struct ApplicationBase<'a> {
     function_name: Option<&'a str>,
     /// True when Ast uses method notation to pass this as an invocation target.
     has_target:    bool,
+    /// The id of the target operand, if present.
+    target_id:     Option<Id>,
 }
 
 impl<'a> ApplicationBase<'a> {
     fn new(ast: &'a Ast) -> Self {
-        if let Some(chain) = ast::opr::as_access_chain(ast) {
-            let get_name = || -> Option<&'a str> {
-                let crumbs = chain.enumerate_operands().last()??.crumbs;
-                let ast = ast.get_traversing(&crumbs).ok()?;
-                ast::identifier::name(ast)
-            };
-            ApplicationBase { function_name: get_name(), has_target: true }
+        if let Some(infix) = GeneralizedInfix::try_new(ast)
+            .filter(|infix| infix.name() == ast::opr::predefined::ACCESS)
+        {
+            let target = infix.target_operand();
+            let target_id = target.as_ref().and_then(|t| t.arg.id);
+            let function = ast.get(&infix.argument_crumb()).ok();
+            let function_name = function.and_then(ast::identifier::name);
+            ApplicationBase { function_name, target_id, has_target: true }
         } else {
-            ApplicationBase { function_name: ast::identifier::name(ast), has_target: false }
+            ApplicationBase {
+                function_name: ast::identifier::name(ast),
+                target_id:     None,
+                has_target:    false,
+            }
         }
     }
 
@@ -173,7 +180,10 @@ impl<'a> ApplicationBase<'a> {
         &self,
         invocation_info: Option<CalledMethodInfo>,
     ) -> impl ExactSizeIterator<Item = ArgumentInfo> {
-        let mut ret = invocation_info.map(|info| info.parameters).unwrap_or_default().into_iter();
+        let mut ret = invocation_info
+            .map(|info| info.with_target_id(self.target_id).parameters)
+            .unwrap_or_default()
+            .into_iter();
         if self.has_target {
             ret.next();
         }
@@ -367,7 +377,8 @@ fn generate_node_for_prefix_chain<T: Payload>(
         let node = node?;
         let is_first = i == 0;
         let is_last = i + 1 == prefix_arity;
-        let arg_kind = if is_first && !base.has_target {
+        let is_target = is_first && base.has_target && node.ast_id == base.target_id;
+        let arg_kind = if is_target {
             node::Kind::from(node::Kind::this().with_removable(removable))
         } else {
             node::Kind::from(node::Kind::argument().with_removable(removable))

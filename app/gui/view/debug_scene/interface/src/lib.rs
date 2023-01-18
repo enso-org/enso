@@ -449,6 +449,7 @@ pub fn expression_mock_trim() -> Expression {
     let param0 = span_tree::ArgumentInfo {
         name:       Some("where".to_owned()),
         tp:         Some("Location".to_owned()),
+        target_id:  None,
         tag_values: vec![
             "Location.Start".to_owned(),
             "Location.End".to_owned(),

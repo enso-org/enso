@@ -309,7 +309,7 @@ ensogl::define_endpoints_2! {
         /// colored if the definition type was present.
         set_expression_usage_type         (Crumbs,Option<Type>),
         set_method_pointer                (Crumbs,Option<MethodPointer>),
-        set_expression_widgets            (Crumbs,Vec<WidgetUpdate>),
+        set_expression_widgets            (Vec<WidgetUpdate>),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         /// Show visualization preview until either editing of the node is finished or the
@@ -636,14 +636,6 @@ impl NodeModel {
         }
     }
 
-    fn set_expression_widgets(&self, crumbs: &Crumbs, widgets: Vec<WidgetUpdate>) {
-        match crumbs.endpoint {
-            Endpoint::Input => self.input.set_expression_widgets(&crumbs.crumbs, widgets),
-            Endpoint::Output => warn!("Cannot set widget on output expression."),
-        }
-    }
-
-
     #[profile(Debug)]
     fn set_width(&self, width: f32) -> Vector2 {
         let height = self.height();
@@ -772,6 +764,7 @@ impl Node {
 
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
+            model.input.set_expression_widgets    <+ input.set_expression_widgets;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;
 
 

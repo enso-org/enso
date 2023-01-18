@@ -181,8 +181,15 @@ pub struct Model {
     label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
+    widgets_map:    RefCell<HashMap<WidgetId, Crumbs>>,
     styles:         StyleWatch,
     styles_frp:     StyleWatchFrp,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+struct WidgetId {
+    target_id:     ast::Id,
+    argument_name: String,
 }
 
 impl Model {
@@ -198,6 +205,7 @@ impl Model {
         let expression = default();
         let styles = StyleWatch::new(&app.display.default_scene.style_sheet);
         let styles_frp = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
+        let widgets_map = default();
         display_object.add_child(&label);
         display_object.add_child(&ports);
         ports.add_child(&header);
@@ -209,6 +217,7 @@ impl Model {
             label,
             expression,
             id_crumbs_map,
+            widgets_map,
             styles,
             styles_frp,
         }
@@ -274,19 +283,32 @@ impl Model {
         }
     }
 
-    fn set_expression_widgets(&self, crumbs: &Crumbs, mut widgets: Vec<WidgetUpdate>) {
-        if let Ok(port) = self.expression.borrow().span_tree.root_ref().get_descendant(crumbs) {
-            let children = port.children_iter();
-            for child in children {
-                child.node.payload.widget.as_ref().and_then(|widget| {
-                    let arg_info = child.node.argument_info()?;
-                    let arg_name = arg_info.name.as_ref()?;
-                    let found_pos = widgets.iter().position(|w| &w.argument_name == arg_name)?;
-                    let update = widgets.swap_remove(found_pos);
-                    widget.set_metadata(update.meta);
-                    Some(())
-                });
+    fn set_expression_widgets(&self, updates: &[WidgetUpdate]) {
+        let expression = self.expression.borrow();
+        let widgets_map = self.widgets_map.borrow();
+        let mut errored = false;
+
+        for update in updates {
+            let widget_id = WidgetId {
+                target_id:     update.target_id,
+                argument_name: update.argument_name.to_string(),
+            };
+            let crumbs = widgets_map.get(&widget_id);
+            let root = expression.span_tree.root_ref();
+            let port = crumbs.and_then(|crumbs| root.get_descendant(crumbs).ok());
+            let widget = port.and_then(|port| port.payload.widget.clone_ref());
+            if let Some(widget) = widget {
+                widget.set_metadata(update.meta.clone());
+            } else {
+                error!(
+                    "[WIDGETS] Widget update failed for argument: {:?}, crumbs: {crumbs:?}",
+                    update.argument_name,
+                );
+                errored = true;
             }
+        }
+        if errored {
+            error!("[WIDGETS] span tree:\n{}", expression.span_tree.debug_print(&expression.code));
         }
     }
 
@@ -322,11 +344,21 @@ impl Model {
     ) {
         let mut is_header = true;
         let mut id_crumbs_map = HashMap::new();
+        let mut widgets_map = HashMap::new();
         let builder = PortLayerBuilder::empty(&self.ports);
         let code = &expression.viz_code;
+
+        warn!("BUILD EXPRESSION: \n{}", expression.span_tree.debug_print(&expression.viz_code));
+
+        let mut last_args = HashMap::new();
+        expression.span_tree.root_ref().dfs(|node| {
+            if let Some(target_id) = node.kind.target_id() {
+                last_args.insert(target_id, node.crumbs.clone());
+            }
+        });
+
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
             let is_parensed = node.is_parensed();
-            let last_argument = node.children.iter().rposition(|child| child.is_argument());
             let skip_opr = if SKIP_OPERATIONS {
                 node.is_operation() && !is_header
             } else {
@@ -370,7 +402,7 @@ impl Model {
                 builder.parent.clone_ref()
             } else {
                 let crumbs = node.crumbs.clone_ref();
-                let port = node.deref_mut();
+                let port = &mut node;
 
                 let index = local_char_offset + builder.shift;
                 let size = code[port.payload.range()].chars().count();
@@ -382,11 +414,16 @@ impl Model {
                 let size = Vector2(width, height);
                 let port_shape = port.payload.init_shape(size, node::HEIGHT);
 
-                let argument_info = port.kind.argument_info();
-                let port_widget = argument_info.map(|info| {
-                    let prev_widget = port.ast_id.and_then(|id| {
-                        let prev_crumbs_map = self.id_crumbs_map.borrow();
-                        let prev_crumbs = prev_crumbs_map.get(&id)?;
+                let port_widget = port.kind.target_id().and_then(|target_id| {
+                    let info = port.kind.argument_info()?;
+                    let argument_name = info.name.as_ref()?.clone();
+                    let widget_id = WidgetId {
+                        target_id,
+                        argument_name,
+                    };
+
+                    let prev_widgets_map = self.widgets_map.borrow();
+                    let prev_widget = prev_widgets_map.get(&widget_id).and_then(|prev_crumbs|{
                         let prev_expression = self.expression.borrow();
                         let prev_root = prev_expression.span_tree.root_ref();
                         let prev_node = prev_root.get_descendant(prev_crumbs).ok()?;
@@ -394,13 +431,21 @@ impl Model {
                         port.payload.widget = Some(prev_widget.clone_ref());
                         Some(prev_widget)
                     });
-                    let widget = prev_widget.unwrap_or_else(|| port.payload.init_widget(&self.app));
+
+                    widgets_map.insert(widget_id, crumbs.clone_ref());
+                    let widget = match prev_widget {
+                        Some(prev_widget) => port.payload.use_existing_widget(prev_widget),
+                        None => port.payload.init_widget(&self.app),
+                    };
+                    widget.set_x(unit * index as f32);
+                    builder.parent.add_child(&widget);
 
                     widget.set_node_data(widget::NodeData {
                         argument_info: info,
                         node_height: node::HEIGHT,
                     });
-                    widget
+
+                    Some(widget)
                 });
 
                 port_shape.set_x(unit * index as f32);
@@ -496,21 +541,23 @@ impl Model {
                 }
 
                 if let Some(port_widget) = port_widget {
-                    port_widget.set_x(unit * index as f32);
-                    builder.parent.add_child(&port_widget);
                     if port.is_argument() {
                         let range = port.payload.range();
                         let code = &expression.viz_code[range];
                         port_widget.set_current_value(Some(code.into()));
+                    } else {
+                        port_widget.set_current_value(None);
                     }
-                    let last_arg_crumb = builder.parent_last_argument;
+
+                    let can_be_removed = port.kind.target_id()
+                        .and_then(|id| last_args.get(&id))
+                        .map_or(false, |crumbs| crumbs == &port.crumbs);
+
                     frp::extend! { port_network
                         area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
                             f!([crumbs](v) {
-                                let crumbs = crumbs.clone_ref();
-                                let is_last_argument = crumbs.last().copied() == last_arg_crumb;
                                 (crumbs.clone_ref(), v.clone().unwrap_or_else(|| {
-                                    if is_last_argument { default() } else { "_".into() }
+                                    if can_be_removed { default() } else { "_".into() }
                                 }))
                             })
                         );
@@ -532,9 +579,10 @@ impl Model {
             }
             let new_parent_frp = Some(node.frp.output.clone_ref());
             let new_shift = if !not_a_port { 0 } else { builder.shift + local_char_offset };
-            builder.nested(new_parent, new_parent_frp, is_parensed, last_argument, new_shift)
+            builder.nested(new_parent, new_parent_frp, is_parensed, new_shift)
         });
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
+        *self.widgets_map.borrow_mut() = widgets_map;
     }
 
     /// Initializes FRP network for every port. Please note that the networks are connected
@@ -795,7 +843,7 @@ ensogl::define_endpoints! {
 
         /// Set the method pointer for the port indicated by the breadcrumbs. Useful for updating
         /// argument labels and querying for widgets.
-        set_expression_widgets   (Crumbs,Vec<WidgetUpdate>),
+        set_expression_widgets   (Vec<WidgetUpdate>),
 
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
@@ -941,7 +989,7 @@ impl Area {
             frp.output.source.requested_widgets <+ frp.set_method_pointer.filter_map(
                 f!(((a,b)) model.widgets_for_operation(a,b))
             );
-            eval frp.set_expression_widgets (((a,b)) model.set_expression_widgets(a,b.clone()));
+            eval frp.set_expression_widgets ((a) model.set_expression_widgets(a));
 
             // === View Mode ===
 
@@ -1017,19 +1065,17 @@ impl Area {
 /// parent layer when building the nested one.
 #[derive(Clone, Debug)]
 struct PortLayerBuilder {
-    parent_frp:           Option<port::FrpEndpoints>,
+    parent_frp:      Option<port::FrpEndpoints>,
     /// Parent port display object.
-    parent:               display::object::Instance,
+    parent:          display::object::Instance,
     /// Information whether the parent port was a parensed expression.
-    parent_parensed:      bool,
+    parent_parensed: bool,
     /// The number of chars the expression should be shifted. For example, consider
     /// `(foo bar)`, where expression `foo bar` does not get its own port, and thus a 1 char
     /// shift should be applied when considering its children.
-    shift:                usize,
+    shift:           usize,
     /// The depth at which the current expression is, where root is at depth 0.
-    depth:                usize,
-    /// The crumb of last child argument of parent node. Does not count insertion points.
-    parent_last_argument: Option<Crumb>,
+    depth:           usize,
 }
 
 impl PortLayerBuilder {
@@ -1039,16 +1085,15 @@ impl PortLayerBuilder {
         parent: impl display::Object,
         parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        parent_last_argument: Option<Crumb>,
         shift: usize,
         depth: usize,
     ) -> Self {
         let parent = parent.display_object().clone_ref();
-        Self { parent_frp, parent, parent_parensed, shift, depth, parent_last_argument }
+        Self { parent_frp, parent, parent_parensed, shift, depth }
     }
 
     fn empty(parent: impl display::Object) -> Self {
-        Self::new(parent, default(), default(), default(), default(), default())
+        Self::new(parent, default(), default(), default(), default())
     }
 
     /// Create a nested builder with increased depth and updated `parent_frp`.
@@ -1058,12 +1103,11 @@ impl PortLayerBuilder {
         parent: display::object::Instance,
         new_parent_frp: Option<port::FrpEndpoints>,
         parent_parensed: bool,
-        parent_last_argument: Option<Crumb>,
         shift: usize,
     ) -> Self {
         let depth = self.depth + 1;
         let parent_frp = new_parent_frp.or_else(|| self.parent_frp.clone());
-        Self::new(parent, parent_frp, parent_parensed, parent_last_argument, shift, depth)
+        Self::new(parent, parent_frp, parent_parensed, shift, depth)
     }
 }
 

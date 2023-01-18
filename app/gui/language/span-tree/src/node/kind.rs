@@ -129,11 +129,31 @@ impl Kind {
         Some(match self {
             Self::This(t) => ArgumentInfo::this(t.tp.clone()),
             Self::Argument(t) =>
-                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.tag_values.clone()),
+                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.target_id, t.tag_values.clone()),
             Self::InsertionPoint(t) =>
-                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.tag_values.clone()),
+                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.target_id, t.tag_values.clone()),
             _ => return None,
         })
+    }
+
+    /// Returns the name of the argument. Does not copy or allocate.
+    pub fn argument_name(&self) -> Option<&str> {
+        match self {
+            Self::This(_) => Some(This::NAME),
+            Self::Argument(t) => t.name.as_deref(),
+            Self::InsertionPoint(t) => t.name.as_deref(),
+            _ => None,
+        }
+    }
+
+
+    /// Returns the name of the argument. Does not copy or allocate.
+    pub fn target_id(&self) -> Option<ast::Id> {
+        match self {
+            Self::Argument(t) => t.target_id,
+            Self::InsertionPoint(t) => t.target_id,
+            _ => None,
+        }
     }
 
     /// `ArgumentInfo` setter. Returns bool indicating whether the operation was possible
@@ -147,12 +167,14 @@ impl Kind {
             Self::Argument(t) => {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
+                t.target_id = argument_info.target_id;
                 t.tag_values = argument_info.tag_values;
                 true
             }
             Self::InsertionPoint(t) => {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
+                t.target_id = argument_info.target_id;
                 t.tag_values = argument_info.tag_values;
                 true
             }
@@ -254,6 +276,7 @@ pub struct Argument {
     pub removable:  bool,
     pub name:       Option<String>,
     pub tp:         Option<String>,
+    pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
 
@@ -286,6 +309,10 @@ impl Argument {
         self.tp = tp;
         self
     }
+    pub fn with_target_id(mut self, target_id: Option<ast::Id>) -> Self {
+        self.target_id = target_id;
+        self
+    }
 }
 
 impl From<Argument> for Kind {
@@ -310,6 +337,7 @@ pub struct InsertionPoint {
     pub kind:       InsertionPointType,
     pub name:       Option<String>,
     pub tp:         Option<String>,
+    pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
 
@@ -354,6 +382,10 @@ impl InsertionPoint {
     }
     pub fn with_tp(mut self, tp: Option<String>) -> Self {
         self.tp = tp;
+        self
+    }
+    pub fn with_target_id(mut self, target_id: Option<ast::Id>) -> Self {
+        self.target_id = target_id;
         self
     }
 }

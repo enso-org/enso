@@ -118,7 +118,7 @@ impl<'a, T> Implementation for node::Ref<'a, T> {
                 use node::InsertionPointType::*;
                 let kind = &ins_point.kind;
                 let ast = root.get_traversing(&self.ast_crumbs)?;
-                let expect_arg = matches!(kind, ExpectedArgument(_));
+                let expect_arg = kind.is_expected_argument();
                 let extended_infix =
                     (!expect_arg).and_option_from(|| ast::opr::Chain::try_new(ast));
                 let new_ast = modify_preserving_id(ast, |ast| {
@@ -256,7 +256,7 @@ mod test {
             fn run(&self, parser: &Parser) {
                 let ast = parser.parse_line_ast(self.expr).unwrap();
                 let ast_id = ast.id;
-                let tree = ast.generate_tree(&context::Empty).unwrap(): SpanTree;
+                let tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
                 let node = tree.root_ref().find_by_span(&self.span.clone().into());
                 let node = node.unwrap_or_else(|| {
                     panic!("Invalid case {:?}: no node with span {:?}", self, self.span)

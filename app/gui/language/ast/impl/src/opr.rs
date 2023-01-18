@@ -260,18 +260,28 @@ impl GeneralizedInfix {
     }
 
     /// The self operand, target of the application.
-    pub fn target_operand(&self) -> Operand {
+    pub fn target_operand(&self) -> &Operand {
         match self.assoc() {
-            Assoc::Left => self.left.clone(),
-            Assoc::Right => self.right.clone(),
+            Assoc::Left => &self.left,
+            Assoc::Right => &self.right,
         }
     }
 
     /// Operand other than self.
-    pub fn argument_operand(&self) -> Operand {
+    pub fn argument_operand(&self) -> &Operand {
         match self.assoc() {
-            Assoc::Left => self.right.clone(),
-            Assoc::Right => self.left.clone(),
+            Assoc::Left => &self.right,
+            Assoc::Right => &self.left,
+        }
+    }
+
+    /// Get a relative AST crumb pointing to the argument operand.
+    pub fn argument_crumb(&self) -> Crumb {
+        match self.assoc() {
+            Assoc::Left if self.left.is_some() => InfixCrumb::RightOperand.into(),
+            Assoc::Left => SectionRightCrumb::Arg.into(),
+            Assoc::Right if self.right.is_some() => InfixCrumb::LeftOperand.into(),
+            Assoc::Right => SectionLeftCrumb::Arg.into(),
         }
     }
 
@@ -283,11 +293,11 @@ impl GeneralizedInfix {
     }
 
     fn flatten_with_offset(&self, offset: usize) -> Chain {
-        let target = self.target_operand();
+        let target = self.target_operand().clone();
         let rest = ChainElement {
             offset,
             operator: self.opr.clone(),
-            operand: self.argument_operand(),
+            operand: self.argument_operand().clone(),
             infix_id: self.id,
         };
 

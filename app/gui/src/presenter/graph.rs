@@ -637,9 +637,6 @@ impl Graph {
             view.set_visualization <+ added_node_update.filter_map(|update| Some((update.view_id?, Some(update.visualization.clone()?))));
             view.enable_visualization <+ added_node_update.filter_map(|update| update.visualization.is_some().and_option(update.view_id));
 
-            any_node_expression <- any(init_node_expression, update_node_expression);
-            // eval any_node_expression([model]((id, expr)) model._widgets.node_expression_updated(*id, expr));
-
 
             // === Refreshing Connections ===
 

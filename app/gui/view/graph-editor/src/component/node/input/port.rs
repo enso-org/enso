@@ -192,6 +192,11 @@ impl Model {
         widget
     }
 
+    pub fn use_existing_widget(&mut self, widget: Widget) -> Widget {
+        self.widget = Some(widget.clone_ref());
+        widget
+    }
+
     /// The range of this port.
     pub fn range(&self) -> enso_text::Range<ByteDiff> {
         let start = self.index;

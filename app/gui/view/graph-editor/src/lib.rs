@@ -603,7 +603,7 @@ ensogl::define_endpoints_2! {
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
         set_method_pointer           ((NodeId,ast::Id,Option<MethodPointer>)),
-        set_expression_widgets       ((NodeId, ast::Id, Vec<WidgetUpdate>)),
+        set_expression_widgets       ((NodeId,Vec<WidgetUpdate>)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
@@ -1057,6 +1057,8 @@ impl Grid {
 /// A structure describing a widget update for specific argument of a function call.
 #[derive(Debug, Clone)]
 pub struct WidgetUpdate {
+    /// The function call target expression id.
+    pub target_id:     ast::Id,
     /// The function argument name that this widget is for.
     pub argument_name: ImString,
     /// Widget metadata queried from the language server.
@@ -2146,12 +2148,9 @@ impl GraphEditorModel {
         }
     }
 
-    fn set_expression_widgets(&self, node_id: NodeId, ast_id: ast::Id, updates: &[WidgetUpdate]) {
+    fn set_expression_widgets(&self, node_id: NodeId, updates: &[WidgetUpdate]) {
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            let crumbs = node.view.model().get_crumbs_by_id(ast_id);
-            if let Some(crumbs) = crumbs {
-                node.view.set_expression_widgets.emit((crumbs, updates.to_vec()));
-            }
+            node.view.set_expression_widgets.emit(updates.to_vec());
         }
     }
 
@@ -3289,6 +3288,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
     eval inputs.set_method_pointer (
         ((id, ast_id, method)) model.set_node_method_pointer(*id, *ast_id, method.clone())
     );
+    eval inputs.set_expression_widgets(((node, updates)) model.set_expression_widgets(*node, updates));
     }
 
 
