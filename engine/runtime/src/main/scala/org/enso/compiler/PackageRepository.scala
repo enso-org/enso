@@ -53,6 +53,9 @@ trait PackageRepository {
     libraryName: LibraryName
   ): Either[PackageRepository.Error, Unit]
 
+  /** Checks if the library has already been loaded */
+  def isPackageLoaded(libraryName: LibraryName): Boolean
+
   /** Get a sequence of currently loaded packages. */
   def getLoadedPackages: Seq[Package[TruffleFile]]
 
@@ -528,6 +531,11 @@ object PackageRepository {
               }
         }
       }
+
+    /** @inheritdoc */
+    def isPackageLoaded(libraryName: LibraryName): Boolean = {
+      loadedPackages.keySet.contains(libraryName)
+    }
 
     /** @inheritdoc */
     override def getLoadedModules: Seq[Module] =

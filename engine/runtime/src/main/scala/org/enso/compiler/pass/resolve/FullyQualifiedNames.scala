@@ -265,7 +265,7 @@ case object FullyQualifiedNames extends IRPass {
     optPkgRepo
       .flatMap { pkgRepo =>
         val libName = LibraryName(thisResolution.namespace, consName.name)
-        pkgRepo.ensurePackageIsLoaded(libName).toOption.flatMap { _ =>
+        if (pkgRepo.isPackageLoaded(libName)) {
           pkgRepo
             .getLoadedModule(
               s"${libName.toString}.${Imports.mainModuleName.name}"
@@ -290,6 +290,15 @@ case object FullyQualifiedNames extends IRPass {
                 )
               }
             }
+        } else {
+          Some(
+            Left(
+              IR.Error.Resolution(
+                consName,
+                MissingLibraryImportInFQNError(thisResolution.namespace)
+              )
+            )
+          )
         }
       }
       .getOrElse(Right(None))
