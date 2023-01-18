@@ -1,4 +1,11 @@
-import Standard.Base.Data.Vector.Vector
+from Standard.Base import all
+import Standard.Base.Error.Common.Index_Out_Of_Bounds
+import Standard.Base.Error.Illegal_State.Illegal_State
+
+import Standard.Table.Data.Value_Type.Value_Type
+
+polyglot java import org.enso.table.data.column.builder.object.Builder
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 
 ## Represents different types of underlying storage for Columns.
 type Storage
@@ -29,7 +36,46 @@ type Storage
     ## PRIVATE
        Enumerates storage types in a way that is consistent with
        `org.enso.table.data.Storage.Storage`, i.e.
-       `storage_type.at org.enso.table.data.Storage.Storage.LONG` will yield the
+       `storage_type.at org.enso.table.data.Storage.Type.LONG` will yield the
        corresponding `Storage.Integer`.
     types : Vector Storage
     types = [Storage.Any, Storage.Integer, Storage.Decimal, Storage.Text, Storage.Boolean, Storage.Date, Storage.Time_Of_Day, Storage.Date_Time]
+
+    ## PRIVATE
+       Converts a `Storage` to a Java storage id.
+    to_java : Integer
+    to_java self = case self of
+        Storage.Any -> Java_Storage.Type.OBJECT
+        Storage.Integer -> Java_Storage.Type.LONG
+        Storage.Decimal -> Java_Storage.Type.DOUBLE
+        Storage.Text -> Java_Storage.Type.STRING
+        Storage.Boolean -> Java_Storage.Type.BOOL
+        Storage.Date -> Java_Storage.Type.DATE
+        Storage.Time_Of_Day -> Java_Storage.Type.TIME_OF_DAY
+        Storage.Date_Time -> Java_Storage.Type.DATE_TIME
+
+    ## PRIVATE
+       Converts a Java storage id to a `Storage`.
+    from_java : Integer -> Storage
+    from_java id =
+        Storage.types.at id . catch Index_Out_Of_Bounds.Error _->
+            Panic.throw (Illegal_State.Error "Unknown storage type: "+id.to_text)
+
+    ## PRIVATE
+       Converts this storage type to a value type closest representing it.
+    to_approximate_value_type : Value_Type
+    to_approximate_value_type self = case self of
+        Storage.Text -> Value_Type.Char
+        Storage.Integer -> Value_Type.Integer
+        Storage.Decimal -> Value_Type.Float
+        Storage.Boolean -> Value_Type.Boolean
+        Storage.Date -> Value_Type.Date
+        Storage.Time_Of_Day -> Value_Type.Time
+        Storage.Date_Time -> Value_Type.Date_Time
+        Storage.Any -> Value_Type.Mixed
+
+    ## PRIVATE
+       Creates a column storage builder for the given storage type.
+    make_builder : Storage -> Integer -> Builder
+    make_builder storage initial_size=64 =
+        Builder.getForType storage.to_java initial_size

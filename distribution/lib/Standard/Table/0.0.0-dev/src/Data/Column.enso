@@ -14,6 +14,7 @@ from project.Data.Table import print_table
 
 from project.Errors import No_Index_Set_Error
 
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
@@ -33,6 +34,11 @@ type Column
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
     from_vector name items = Column.Value (Java_Column.fromItems name items.to_array)
+
+    ## PRIVATE
+       Creates a new column given a name and an internal Java storage.
+    from_storage : Text -> Java_Storage -> Column
+    from_storage name storage = Column.Value (Java_Column.new name storage)
 
     ## Creates a new column given a name and a vector of elements repeated over and over.
 
@@ -1013,20 +1019,11 @@ type Column
     storage_type : Storage
     storage_type self =
         tp = self.java_column.getStorage.getType
-        Storage.types.at tp . catch Index_Out_Of_Bounds.Error _->
-            Panic.throw (Illegal_State.Error "Unknown storage type: "+tp.to_text)
+        Storage.from_java tp
 
     ## UNSTABLE TODO this is a prototype that will be revisited later on
     value_type : Value_Type
-    value_type self = case self.storage_type of
-        Storage.Text -> Value_Type.Char
-        Storage.Integer -> Value_Type.Integer
-        Storage.Decimal -> Value_Type.Float
-        Storage.Boolean -> Value_Type.Boolean
-        Storage.Date -> Value_Type.Date
-        Storage.Time_Of_Day -> Value_Type.Time
-        Storage.Date_Time -> Value_Type.Date_Time
-        Storage.Any -> Value_Type.Mixed
+    value_type self = self.storage_type.to_approximate_value_type
 
     ## UNSTABLE
 
@@ -1323,3 +1320,44 @@ get_item_string column ix =
 slice_ranges column ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Column.Value (column.java_column.slice normalized.to_array)
+
+## PRIVATE
+   Creates a storage builder suitable for building a column for the provided
+   column type.
+
+   This relies on a rudimentary mapping between `Value_Type` and `Storage`. It
+   does not ensure validity checks for the particular type, like checking string
+   length or number size.
+
+   It may be tempting to return an `InferredBuilder` for the `Mixed` type - as
+   this will use a more compact storage if a mixed type column contains only
+   numbers. However, since currently `Column.value_type` is derived directly
+   from its storage type, that would result in a changed `value_type` in the
+   result. Whereas we want to ensure that if the requested type is `Mixed`, the
+   resulting column should also report `Mixed` value type. Once the types work
+   decouples `value_type` from `storage_type`, this logic could be adjusted.
+
+   Due to the coupling of value types and storage, `value_type` of the created
+   column may not be exactly the same as the one requested here, it will be the
+   closest one currently supported by our storage (i.e. any constraints like
+   integer size or constant text width will be dropped). This will need to be
+   revisited as part of the types work:
+   https://www.pivotaltracker.com/story/show/183854180
+make_storage_builder_for_type value_type initial_size=128 =
+    closest_storage_type = case value_type of
+        Value_Type.Boolean -> Storage.Boolean
+        Value_Type.Byte -> Storage.Integer
+        Value_Type.Integer _ -> Storage.Integer
+        Value_Type.Float _ -> Storage.Decimal
+        ## Arbitrary precision numbers are not currently representable by our
+           specialized in-memory storage, so falling back to object storage.
+        Value_Type.Decimal _ _ -> Storage.Any
+        Value_Type.Char _ _ -> Storage.Text
+        Value_Type.Date -> Storage.Date
+        Value_Type.Date_Time with_timezone ->
+            ## Our specialized storage is only capable of storing date time with timezone. If we want to store a different kind of date-time, we will
+            if with_timezone then Storage.Date_Time else Storage.Any
+        Value_Type.Time -> Storage.Time_Of_Day
+        Value_Type.Mixed -> Storage.Any
+        _ -> Storage.Any
+    Storage.make_builder closest_storage_type initial_size

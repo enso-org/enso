@@ -110,12 +110,15 @@ pub fn is_archive_name(path: impl AsRef<Path>) -> bool {
     Format::from_filename(path).is_ok()
 }
 
+/// Create an archive with directory contents.
+///
+/// Note that the archive will contain directory's children, not the directory itself.
 #[tracing::instrument(
     name="Packing directory.",
     skip_all,
     fields(src=%root_directory.as_ref().display(), dest=%output_archive.as_ref().display()),
     err)]
-pub async fn compress_directory(
+pub async fn compress_directory_contents(
     output_archive: impl AsRef<Path>,
     root_directory: impl AsRef<Path>,
 ) -> Result {

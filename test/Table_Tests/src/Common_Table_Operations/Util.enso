@@ -1,7 +1,7 @@
 from Standard.Base import all
 
-import Standard.Test
-from Standard.Test import Test_Suite
+from Standard.Test import Test, Test_Suite
+import Standard.Test.Extensions
 
 import project.In_Memory.Common_Spec as In_Memory_Table_Spec
 
@@ -13,3 +13,14 @@ expect_column_names names table =
    a shortcut that allows to run these tests with the in-memory backend.
 run_default_backend spec =
     Test_Suite.run_main (In_Memory_Table_Spec.run_common_spec spec)
+
+## Adds a clue which will display the provided table next to the failed test
+   description.
+
+   > Example
+     Test a property of the table, displaying its contents if the test fails.
+
+         t = Table.new [["A", [1, 2, 3]]]
+         within_table t <|
+             t.at "A" . to_vector . should_equal [1, 2, 3]
+within_table table = Test.with_clue 'Resulting table:\n'+table.display+'\n\n'
