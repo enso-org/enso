@@ -9,18 +9,17 @@ use crate::project::ProcessWrapper;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
-use ide_ci::github::RepoRef;
 use ide_ci::io::download_all;
 use ide_ci::program::command;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
-use octocrab::models::repos::Content;
 use std::process::Stdio;
 use tempfile::TempDir;
 use tokio::process::Child;
 use tracing::Span;
 
+pub mod google_font;
 
 
 lazy_static! {
@@ -34,10 +33,6 @@ pub const IDE_ASSETS_URL: &str =
     "https://github.com/enso-org/ide-assets/archive/refs/heads/main.zip";
 
 pub const ARCHIVED_ASSET_FILE: &str = "ide-assets-main/content/assets/";
-
-pub const GOOGLE_FONTS_REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
-
-pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
 
 pub mod env {
     use super::*;
@@ -102,28 +97,6 @@ impl command::FallibleManipulator for IconsArtifacts {
     }
 }
 
-#[context("Failed to download Google font '{family}'.")]
-#[instrument(fields(output_path = %output_path.as_ref().display()), ret, err, skip(octocrab))]
-pub async fn download_google_font(
-    octocrab: &Octocrab,
-    family: &str,
-    output_path: impl AsRef<Path>,
-) -> Result<Vec<Content>> {
-    let destination_dir = output_path.as_ref();
-    let repo = GOOGLE_FONTS_REPOSITORY.handle(octocrab);
-    let path = format!("{GOOGLE_FONT_DIRECTORY}/{family}");
-    let files = repo.repos().get_content().path(path).send().await?;
-    let ttf_files =
-        files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect_vec();
-    for file in &ttf_files {
-        let destination_file = destination_dir.join(&file.name);
-        let url = file.download_url.as_ref().context("Missing 'download_url' in the reply.")?;
-        let reply = ide_ci::io::web::client::download(&octocrab.client, url).await?;
-        ide_ci::io::web::stream_to_file(reply, &destination_file).await?;
-    }
-    Ok(ttf_files)
-}
-
 /// Fill the directory under `output_path` with the assets.
 pub async fn download_js_assets(output_path: impl AsRef<Path>) -> Result {
     let output = output_path.as_ref();
@@ -176,7 +149,8 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         let installation = ide.install();
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
-        let fonts_download = download_google_font(&ide.octocrab, "mplus1", &asset_dir);
+        let fonts_download =
+            google_font::download_google_font2(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
         ide.write_build_info(build_info)?;

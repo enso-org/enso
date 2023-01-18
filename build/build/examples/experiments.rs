@@ -1,6 +1,6 @@
 use enso_build::prelude::*;
 
-use enso_build::setup_octocrab;
+use ide_ci::github::setup_octocrab;
 use ide_ci::github::Repo;
 use octocrab::models::ReleaseId;
 

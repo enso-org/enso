@@ -21,6 +21,8 @@ pub async fn download(
     client: &Client,
     url: impl IntoUrl,
 ) -> Result<impl Stream<Item = reqwest::Result<Bytes>>> {
+    let url = url.into_url()?;
+    debug!("Downloading {url}.");
     Ok(client.get(url).send().await?.error_for_status()?.bytes_stream())
 }
 

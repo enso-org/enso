@@ -20,14 +20,14 @@ pub use enso_build_base::fs::*;
 src  = %source_file.as_ref().display(),
 dest = %dest_dir.as_ref().display()),
 err)]
-pub fn copy_to(source_file: impl AsRef<Path>, dest_dir: impl AsRef<Path>) -> Result {
+pub fn copy_to(source_file: impl AsRef<Path>, dest_dir: impl AsRef<Path>) -> Result<PathBuf> {
     require_exist(&source_file)?;
     create_dir_if_missing(dest_dir.as_ref())?;
     debug!("Will copy {} to {}", source_file.as_ref().display(), dest_dir.as_ref().display());
     let mut options = CopyOptions::new();
     options.overwrite = true;
-    fs_extra::copy_items(&[source_file], dest_dir, &options)?;
-    Ok(())
+    fs_extra::copy_items(&[&source_file], &dest_dir, &options)?;
+    Ok(dest_dir.as_ref().join(source_file.as_ref().try_file_name()?))
 }
 
 

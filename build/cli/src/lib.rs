@@ -65,7 +65,6 @@ use enso_build::project::IsTarget;
 use enso_build::project::IsWatchable;
 use enso_build::project::IsWatcher;
 use enso_build::project::ProcessWrapper;
-use enso_build::setup_octocrab;
 use enso_build::source::BuildTargetJob;
 use enso_build::source::CiRunSource;
 use enso_build::source::ExternalSource;
@@ -81,6 +80,7 @@ use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
 use ide_ci::define_env_var;
 use ide_ci::fs::remove_if_exists;
+use ide_ci::github::setup_octocrab;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::cargo;
@@ -467,7 +467,7 @@ impl Processor {
             arg::ide::Command::Build { params } => self.build_ide(params).void_ok().boxed(),
             arg::ide::Command::Upload { params, release_id } => {
                 let build_job = self.build_ide(params);
-                let release = ide_ci::github::release::ReleaseHandle::new(
+                let release = ide_ci::github::release::Handle::new(
                     &self.octocrab,
                     self.remote_repo.clone(),
                     release_id,

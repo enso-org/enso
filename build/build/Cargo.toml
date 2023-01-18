@@ -43,9 +43,7 @@ lazy_static = "1.4.0"
 mime = "0.3.16"
 new_mime_guess = "4.0.1"
 nix = { workspace = true }
-octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
-  "rustls"
-] }
+octocrab = { workspace = true }
 ouroboros = "0.15.0"
 paste = "1.0.7"
 path-absolutize = "3.0.11"
