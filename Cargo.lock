@@ -3755,6 +3755,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "horrorshow"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8371fb981840150b1a54f7cb117bf6699f7466a1d4861daac33bc6fe2b5abea0"
+
+[[package]]
 name = "http"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4162,9 +4168,11 @@ dependencies = [
  "enso-frp",
  "enso-logger",
  "enso-prelude",
+ "enso-suggestion-database",
  "ensogl",
  "ensogl-component",
  "ensogl-hardcoded-theme",
+ "horrorshow",
  "ide-ci",
  "ide-view-graph-editor",
  "serde_json",
