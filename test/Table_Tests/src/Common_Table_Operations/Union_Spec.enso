@@ -148,7 +148,7 @@ spec setup =
             t3 = t1.union t2 match_columns=Match_Columns.By_Position
             within_table t3 <|
                 check t3
-            Warning.get_all t3 . map .value . should_equal [Column_Count_Mismatch.Error 2 1]
+            Problems.get_attached_warnings t3 . should_equal [Column_Count_Mismatch.Error 2 1]
 
             t4 = t1.union t2 match_columns=Match_Columns.By_Position keep_unmatched_columns=True
             within_table t4 <|

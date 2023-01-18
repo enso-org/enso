@@ -2,6 +2,10 @@ from Standard.Base import all
 
 import project.Extensions
 
+## Returns values of warnings attached to the value.Nothing
+get_attached_warnings v =
+    Warning.get_all v . map .value
+
 ## UNSTABLE
    Tests how a specific operation behaves depending on the requested
    `Problem_Behavior`.
@@ -58,12 +62,10 @@ test_advanced_problem_handling action error_checker warnings_checker result_chec
     # Lastly, we check the report warnings mode and ensure that both the result is correct and the warnings are as expected.
     result_warning = action Problem_Behavior.Report_Warning
     result_checker result_warning
-    warnings = Warning.get_all result_warning . map .value
-    warnings_checker warnings
+    warnings_checker (get_attached_warnings result_warning)
 
 ## UNSTABLE
    Checks if the provided value does not have any attached problems.
 assume_no_problems result =
     result.is_error.should_be_false
-    warnings = Warning.get_all result . map .value
-    warnings.should_equal []
+    (get_attached_warnings result).should_equal []
