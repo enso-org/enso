@@ -84,14 +84,15 @@ async fn compile_ts(js_dir: &Path, main: &str, out: &Path) -> Result {
             .await
     };
 
-    info!("Type checking TypeScript sources.");
-    run_script("typecheck", &EMPTY_ARGS).await?;
+    info!("Building TypeScript sources.");
+    // FIXME[WD]: why we need this hack?
+    let args = ["--", &format!("--out-dir={}", out.display())];
+    run_script("build", &args).await?;
+    let args = ["--", &format!("--out-dir={}", out.display())];
+    run_script("build-shader-extractor", &args).await?;
 
     info!("Linting TypeScript sources.");
-    run_script("lint", &EMPTY_ARGS).await?;
-
-    info!("Building TypeScript sources.");
-    run_script("build", &["--", &format!("--outdir={}", out.display())]).await
+    run_script("lint", &EMPTY_ARGS).await
 }
 
 /// The arguments to `wasm-pack build` that `ensogl-pack` wants to customize.
@@ -143,7 +144,7 @@ pub async fn build(
     let js_dir = root_dir.join("js");
     let node_modules_dir = js_dir.join("node_modules");
     let app_js_path = target_dist_dir.join("app.js");
-    let shader_extractor_path = target_dist_dir.join("shader-extractor.js");
+    let shader_extractor_path = target_dist_dir.join("shader-extractor.cjs");
 
     // FIXME? [mwu] What if dependencies are updated without deleting node_modules?
     // if !node_modules_dir.is_dir() {
@@ -154,7 +155,13 @@ pub async fn build(
     let js_src_dir = js_dir.join("src");
 
     for entry in WalkDir::new(&js_src_dir) {
-        println!(">>>> {}", entry?.path().display());
+        let entry = entry?;
+        let path = entry.path();
+        if entry.file_type().is_file() {
+            let metadata = entry.metadata()?;
+            let modified = metadata.modified()?;
+            println!(">>>> {} --- {:?}", path.display(), modified);
+        }
     }
 
     compile_ts(&js_dir, "src/index.ts", &target_dist_dir).await?;

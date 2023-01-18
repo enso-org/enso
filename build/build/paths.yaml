@@ -43,7 +43,7 @@
         var: wasm_main_raw
       ? path: main.js
         var: wasm_glue
-      ? path: app.js
+      ? path: app.cjs
         var: app
   distribution/:
     editions/:

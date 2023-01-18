@@ -22,9 +22,11 @@
     "strictPropertyInitialization": true,
     "target": "ES2019",
     "skipLibCheck": true,
-    "composite": true,
+//    "composite": true,
     "outDir": "dist",
-    "tsBuildInfoFile": "dist/cache.tsbuildinfo"
+//    "tsBuildInfoFile": "dist/cache.tsbuildinfo",
+    "declaration": true,
+    "declarationMap": true,
   },
   "ts-node": {
     "esm": true

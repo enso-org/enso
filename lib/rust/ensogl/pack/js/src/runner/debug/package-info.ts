@@ -10,18 +10,18 @@ import { logger } from 'runner/log'
  * See `bundle.ts` to learn more. It can also contain additional info provided by the user of this
  * library. */
 export class PackageInfo {
-    gitHash: string
-    gitStatus: string
+    // gitHash: string
+    // gitStatus: string
 
     /** Constructor. */
     constructor(userProvidedInfo?: Record<string, string>) {
         const infoObject = userProvidedInfo ?? {}
-        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
-        // @ts-expect-error
-        this.gitHash = GIT_HASH
-        /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
-        // @ts-expect-error
-        this.gitStatus = GIT_STATUS
+        // /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+        // // @ts-expect-error
+        // this.gitHash = GIT_HASH
+        // /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
+        // // @ts-expect-error
+        // this.gitStatus = GIT_STATUS
         Object.assign(this, infoObject)
     }
 
