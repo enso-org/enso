@@ -788,6 +788,45 @@ type Table
             problem_builder.attach_problems_before on_problems <|
                 self.connection.dialect.prepare_join self.connection sql_join_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
 
+    ## ALIAS Cartesian Join
+       Joins tables by pairing every row of the left table with every row of the
+       right table.
+
+       Arguments:
+       - right: The table to join with.
+       - right_row_limit: If the number of rows in the right table exceeds this,
+         then a `Cross_Join_Row_Limit_Exceeded` problem is raised. The check
+         exists to avoid exploding the size of the table by accident. This check
+         can be disabled by setting this parameter to `Nothing`.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If the `right` table has more rows than the `right_row_limit` allows,
+           a `Cross_Join_Row_Limit_Exceeded` is reported. In warning/ignore
+           mode, the join is still executed.
+
+       ? Column Renaming
+
+         If columns from the two tables have colliding names, a prefix (by
+         default `Right_`) is added to the name of the column from the right
+         table. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent `_1`, `_2` etc.
+
+       ? Result Ordering
+
+         Rows in the result are first ordered by the order of the corresponding
+         rows from the left table and then the order of rows from the right
+         table. This applies only if the order of the rows was specified (for
+         example, by sorting the table; in-memory tables will keep the memory
+         layout order while for database tables the order may be unspecified).
+    cross_join : Table -> Integer | Nothing -> Table
+    cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
+        _ = [right, right_row_limit, right_prefix, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.cross_join is not implemented yet for the Database backends.")
+
     ## ALIAS append, concat
        Appends records from other table(s) to this table.
 
