@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.hash;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -80,6 +81,7 @@ public abstract class HashMapRemoveNode extends Node {
     if (keyToRemoveFound) {
       return EnsoHashMap.createWithBuilder(mapBuilder, mapBuilder.getSize());
     } else {
+      CompilerDirectives.transferToInterpreter();
       throw DataflowError.withoutTrace("No such key " + keyToRemove, interop);
     }
   }

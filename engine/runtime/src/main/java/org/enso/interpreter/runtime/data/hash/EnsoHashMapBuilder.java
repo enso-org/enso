@@ -79,6 +79,7 @@ public final class EnsoHashMapBuilder {
   }
 
   /** Duplicates this builder with all its entries. */
+  @TruffleBoundary
   public EnsoHashMapBuilder duplicate() {
     return new EnsoHashMapBuilder(this);
   }
