@@ -168,7 +168,7 @@ class ImportsTest extends PackageTest {
     outLines should have length 3
     outLines(
       2
-    ) shouldEqual "Main.enso[2:14-2:17]: Fully qualified name includes a library Standard.Base but import statement is missing."
+    ) shouldEqual "Main.enso[2:14-2:17]: Fully qualified name references a library Standard.Base but an import statement for it is missing."
   }
 
   "Fully qualified names" should "be resolved when library has already been loaded" in {
