@@ -90,11 +90,15 @@ impl View {
             hide              <- any(frp.input.hide,hide_after_toggle);
 
             eval_ show (height_fraction.set_target_value(HEIGHT_FRACTION));
-            eval_ show (model.deprecated_focus());
+            eval_ show ({
+                model.deprecated_focus();
+                model.focus();
+            });
             eval_ hide (height_fraction.set_target_value(0.0));
             eval_ hide ([model] {
                 model.remove_all_cursors();
                 model.deprecated_defocus();
+                model.blur();
             });
 
             frp.source.is_visible <+ bool(&frp.input.hide,&frp.input.show);
