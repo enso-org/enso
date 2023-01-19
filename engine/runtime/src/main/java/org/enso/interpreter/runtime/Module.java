@@ -210,7 +210,7 @@ public final class Module implements TruffleObject {
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
     this.disposeInteractive();
-    this.sources = ModuleSources.NONE;
+    this.sources = this.sources.reset();
     this.compilationStage = CompilationStage.INITIAL;
   }
 

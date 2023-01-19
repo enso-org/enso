@@ -60,6 +60,7 @@ class Passes(
     List(
       ExpressionAnnotations,
       AliasAnalysis,
+      FullyQualifiedNames,
       GlobalNames,
       TypeNames,
       MethodCalls,
