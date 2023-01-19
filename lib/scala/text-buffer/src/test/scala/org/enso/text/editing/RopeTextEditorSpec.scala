@@ -40,6 +40,23 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |    result""".stripMargin
   }
 
+  it should "not crash in a replacement that is longer" in {
+    //given
+    val mainPosition =
+      Range(Position(6, 4), Position(6, 12)) // result ends at (6, 10)
+    val mainReplacement = TextEdit(mainPosition, "result + 1")
+    //when
+    val result = RopeTextEditor.edit(testSnippet, mainReplacement)
+    //then
+    result.toString mustBe """
+                             |main =
+                             |    apply = v f -> f v
+                             |    adder = a b -> a + b
+                             |    plusOne = apply (f = adder 1)
+                             |    result = plusOne 10
+                             |    result + 1""".stripMargin
+  }
+
   it should "replace a multiline substring" in {
     //given
     val resultPosition = Range(Position(5, 4), Position(6, 10))

@@ -63,6 +63,8 @@ use web::HtmlElement;
 use web::JsCast;
 use web::MouseEvent;
 
+pub mod html;
+
 
 // ==============
 // === Export ===
@@ -83,8 +85,6 @@ pub const VIEW_HEIGHT: f32 = 300.0;
 
 /// Content in the documentation view when there is no data available.
 const CORNER_RADIUS: f32 = graph_editor::component::node::CORNER_RADIUS;
-const PADDING: f32 = 15.0;
-const PADDING_TOP: f32 = 5.0;
 const CODE_BLOCK_CLASS: &str = "doc-code-container";
 const COPY_BUTTON_CLASS: &str = "doc-copy-btn";
 
@@ -121,8 +121,7 @@ impl Model {
         let outer_dom = DomSymbol::new(&outer_div);
         let inner_div = web::document.create_div_or_panic();
         let inner_dom = DomSymbol::new(&inner_div);
-        let size =
-            Rc::new(Cell::new(Vector2(VIEW_WIDTH - PADDING, VIEW_HEIGHT - PADDING - PADDING_TOP)));
+        let size = Rc::new(Cell::new(Vector2(VIEW_WIDTH, VIEW_HEIGHT)));
         let overlay = overlay::View::new();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -144,8 +143,6 @@ impl Model {
         inner_dom.dom().set_style_or_warn("white-space", "normal");
         inner_dom.dom().set_style_or_warn("overflow-y", "auto");
         inner_dom.dom().set_style_or_warn("overflow-x", "auto");
-        inner_dom.dom().set_style_or_warn("padding", format!("{}px", PADDING));
-        inner_dom.dom().set_style_or_warn("padding-top", "5px");
         inner_dom.dom().set_style_or_warn("pointer-events", "auto");
         inner_dom.dom().set_style_or_warn("border-radius", format!("{}px", CORNER_RADIUS));
 
@@ -267,11 +264,8 @@ impl Model {
 
     fn reload_style(&self) {
         let size = self.size.get();
-        let padding = (size.x.min(size.y) / 2.0).min(PADDING);
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
-        self.inner_dom.set_dom_size(Vector2(size.x - padding, size.y - padding - PADDING_TOP));
-        self.inner_dom.dom().set_style_or_warn("padding", format!("{}px", padding));
-        self.inner_dom.dom().set_style_or_warn("padding-top", format!("{}px", PADDING_TOP));
+        self.inner_dom.set_dom_size(Vector2(size.x, size.y));
     }
 }
 

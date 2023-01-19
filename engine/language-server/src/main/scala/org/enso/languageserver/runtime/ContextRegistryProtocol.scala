@@ -505,13 +505,6 @@ object ContextRegistryProtocol {
     */
   case class ModuleNotFound(moduleName: String) extends Failure
 
-  /** Signals that the module containing the provided expression id cannot be
-    * found.
-    *
-    * @param expressionId the expression id
-    */
-  case class ModuleNotFoundForExpression(expressionId: UUID) extends Failure
-
   /** Signals that visualisation cannot be found.
     */
   case object VisualisationNotFound extends Failure
