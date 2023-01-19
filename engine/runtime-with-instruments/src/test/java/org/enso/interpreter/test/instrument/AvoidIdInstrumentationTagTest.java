@@ -25,28 +25,24 @@ import org.junit.Test;
 
 public class AvoidIdInstrumentationTagTest {
 
-  private Engine engine;
   private Context context;
   private NodeCountingTestInstrument nodes;
 
   @Before
   public void initContext() {
-    engine = Engine.newBuilder()
+    context = Context.newBuilder()
         .allowExperimentalOptions(true)
         .option(
             RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
             Paths.get("../../distribution/component").toFile().getAbsolutePath()
         )
         .logHandler(OutputStream.nullOutputStream())
-        .build();
-
-    context = Context.newBuilder()
-        .engine(engine)
         .allowExperimentalOptions(true)
         .allowIO(true)
         .allowAllAccess(true)
         .build();
 
+    var engine = context.getEngine();
     Map<String, Language> langs = engine.getLanguages();
     Assert.assertNotNull("Enso found: " + langs, langs.get("enso"));
 
@@ -57,7 +53,6 @@ public class AvoidIdInstrumentationTagTest {
   @After
   public void disposeContext() {
     context.close();
-    engine.close();
   }
 
   @Test
