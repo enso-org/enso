@@ -317,11 +317,11 @@ spec =
             map = Map.singleton "A" (py_wrapper 42)
             map.get "A" . data . should_equal 42
 
-        Test.specify "should insert entries to a polyglot map" <|
+        Test.specify "should insert entries to a polyglot map" pending=pending_python_missing <|
             dict = py_dict_from_vec ["A", 1, "B", 2]
             dict.insert "C" 3 . keys . sort . should_equal ["A", "B", "C"]
 
-        Test.specify "should remove entries from a polyglot map" <|
+        Test.specify "should remove entries from a polyglot map" pending=pending_python_missing <|
             dict = py_dict_from_vec ["A", 1, "B", 2]
             dict.remove "B" . to_vector . should_equal [["A", 1]]
 
@@ -432,7 +432,7 @@ spec =
             m5.to_vector.sort on=_.first . should_equal [["A", 1], ["B", 2], ["E", 5]]
 
     Test.group "Polyglot hash maps" <|
-        Test.specify "should pass maps as immutable maps to other langs" <|
+        Test.specify "should pass maps as immutable maps to other langs" pending=pending_python_missing <|
             map = Map.singleton "A" 1
             # Python's KeyError should be raised
             Test.expect_panic_with (py_update_dict map "A" 2) Any
