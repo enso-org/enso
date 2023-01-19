@@ -19,10 +19,9 @@ public abstract class Builtin {
       this(name, Arrays.asList(params));
     }
 
-    private AtomConstructor build(ModuleScope scope, Type type) {
+    private AtomConstructor build(EnsoLanguage language, ModuleScope scope, Type type) {
       var res = new AtomConstructor(name, scope, type,true);
-      res.initializeFields(
-          IntStream.range(0, params.size())
+      res.initializeFields(language, IntStream.range(0, params.size())
               .mapToObj(
                   i ->
                       new ArgumentDefinition(
@@ -66,7 +65,7 @@ public abstract class Builtin {
       var conses = getDeclaredConstructors();
       constructors = new AtomConstructor[conses.size()];
       for (int i = 0; i < constructors.length; i++) {
-        var cons = conses.get(i).build(scope, type);
+        var cons = conses.get(i).build(language, scope, type);
         constructors[i] = cons;
         type.registerConstructor(cons);
       }

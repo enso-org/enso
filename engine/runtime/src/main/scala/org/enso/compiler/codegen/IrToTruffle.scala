@@ -260,6 +260,7 @@ class IrToTruffle(
           val (assignments, reads) = argumentExpressions.unzip
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
+              language,
               localScope,
               assignments.toArray,
               reads.toArray,

@@ -35,6 +35,9 @@ public abstract class EnsoRootNode extends RootNode {
       String name,
       SourceSection sourceSection) {
     super(language, localScope.frameDescriptor());
+    if (language == null) {
+      throw new NullPointerException();
+    }
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;

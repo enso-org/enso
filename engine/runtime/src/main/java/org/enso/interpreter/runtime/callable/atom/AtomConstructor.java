@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
@@ -81,12 +82,12 @@ public final class AtomConstructor implements TruffleObject {
    *
    * @return {@code this}, for convenience
    */
-  public AtomConstructor initializeFields(ArgumentDefinition... args) {
+  public AtomConstructor initializeFields(EnsoLanguage language, ArgumentDefinition... args) {
     ExpressionNode[] reads = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {
       reads[i] = ReadArgumentNode.build(i, null);
     }
-    return initializeFields(LocalScope.root(), new ExpressionNode[0], reads, args);
+    return initializeFields(language, LocalScope.root(), new ExpressionNode[0], reads, args);
   }
 
   /**
@@ -99,12 +100,14 @@ public final class AtomConstructor implements TruffleObject {
    * @return {@code this}, for convenience
    */
   public AtomConstructor initializeFields(
+      EnsoLanguage language,
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
-    this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
+    this.constructorFunction =
+        buildConstructorFunction(language, localScope, assignments, varReads, args);
     generateQualifiedAccessor();
     if (args.length == 0) {
       cachedInstance = new Atom(this);
@@ -128,16 +131,16 @@ public final class AtomConstructor implements TruffleObject {
    *     {@link AtomConstructor}
    */
   private Function buildConstructorFunction(
+      EnsoLanguage language,
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
       ArgumentDefinition[] args) {
-
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
     BlockNode instantiateBlock = BlockNode.buildSilent(assignments, instantiateNode);
     RootNode rootNode =
         ClosureRootNode.build(
-            null,
+            language,
             localScope,
             definitionScope,
             instantiateBlock,
