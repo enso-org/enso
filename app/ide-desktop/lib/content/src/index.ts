@@ -9,6 +9,7 @@ import * as mixpanel from './mixpanel'
 import * as app from 'ensogl_app'
 import * as semver from 'semver'
 
+console.log(app)
 const logger = app.log.logger
 const config = app.config
 
@@ -191,8 +192,8 @@ class Main {
     async main(inputConfig: any) {
         const config = Object.assign(
             {
-                mainWasmUrl: 'assets/main-opt.wasm',
-                mainJsUrl: 'assets/main.js',
+                pkgWasmUrl: 'assets/main-opt.wasm',
+                pkgJsUrl: 'assets/main.js',
                 shadersUrl: 'assets/shaders',
             },
             inputConfig

@@ -6,7 +6,7 @@ import * as args from 'shader-extractor/args'
 import * as fs from 'shader-extractor/fs'
 import * as log from 'runner/log'
 import * as name from 'runner/name'
-import * as runner from 'runner/app'
+import * as runner from 'runner/index'
 
 // ===========
 // === App ===
@@ -16,8 +16,8 @@ import * as runner from 'runner/app'
  * not optimized shaders and saves them to files. */
 class App extends runner.App {
     override async loadWasm() {
-        const mainJsUrl = path.join(__dirname, this.config.params.mainJsUrl.value)
-        const mainWasmUrl = path.join(__dirname, this.config.params.mainWasmUrl.value)
+        const mainJsUrl = path.join(__dirname, this.config.params.pkgJsUrl.value)
+        const mainWasmUrl = path.join(__dirname, this.config.params.pkgWasmUrl.value)
         const mainJs = await fs.readFile(mainJsUrl, 'utf8')
         const mainWasm = await fs.readFile(mainWasmUrl)
         this.wasm = await this.compileAndRunWasm(mainJs, mainWasm)

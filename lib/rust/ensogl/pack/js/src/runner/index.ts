@@ -128,6 +128,8 @@ class Shader<T> {
 // === App ===
 // ===========
 
+/// A task scheduler used to run tasks in the next animation frame if the current animation frame is
+/// running too long.
 class Scheduler {
     done: Promise<void>
     doneResolve: () => void = () => {}
@@ -184,14 +186,9 @@ class Scheduler {
     }
 }
 
-function longFakeEntryPoint() {
-    let i = 0
-    for (let j = 0; j < 10000; j++) {
-        for (let k = 0; k < 10000; k++) {
-            i += 1
-        }
-    }
-}
+// ===========
+// === App ===
+// ===========
 
 /** The main application class. */
 export class App {
@@ -288,8 +285,8 @@ export class App {
         })
 
         const files = new Files(
-            this.config.params.mainJsUrl.value,
-            this.config.params.mainWasmUrl.value
+            this.config.params.pkgJsUrl.value,
+            this.config.params.pkgWasmUrl.value
         )
         for (const mangledName of shadersNames) {
             const unmangledName = name.unmangle(mangledName)
