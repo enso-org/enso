@@ -35,11 +35,13 @@ object RopeTextEditor extends TextEditor[Rope] {
     fullLines ++ rest
   }
 
-  private def cutOutTail(buffer: Rope, diff: TextEdit): Rope =
-    buffer.lines
+  private def cutOutTail(buffer: Rope, diff: TextEdit): Rope = {
+    val codePoints = buffer.lines
       .drop(diff.range.end.line)
       .codePoints
-      .drop(diff.range.end.character)
+    if (codePoints.length < diff.range.end.character) Rope.empty
+    else codePoints.drop(diff.range.end.character)
+  }
 
   /** Returns a number of lines in a buffer.
     *
