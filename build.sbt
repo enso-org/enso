@@ -1133,6 +1133,7 @@ val truffleRunOptionsSettings = Seq(
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
+    frgaalJavaCompilerSetting,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
