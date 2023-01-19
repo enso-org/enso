@@ -321,7 +321,7 @@ public class Table {
    * Zips rows of this table with rows of the right table.
    */
   public Table zip(Table right, boolean keepUnmatched, String rightPrefix) {
-    
+
   }
 
   /**
