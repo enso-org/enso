@@ -110,7 +110,7 @@ spec =
             json.field_names.should_equal ['data','axis']
             data = json.get 'data'
             data.length . should_equal 10
-            (data.take (First 3)).to_text . should_equal '[{"x":0,"y":225}, {"x":15,"y":0}, {"x":29,"y":196}]'
+            (data.take (First 3)).to_text . should_equal '[{"x":0,"y":225}, {"x":29,"y":196}, {"x":15,"y":0}]'
 
         Test.specify "filter the elements" <|
             vector = [0,10,20,30]

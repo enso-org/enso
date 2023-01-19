@@ -16,7 +16,7 @@ import io.circe._
   */
 case class SerializedException(
   name: String,
-  message: String,
+  message: Option[String],
   stackTrace: Seq[SerializedException.TraceElement],
   cause: Option[SerializedException]
 )
@@ -33,7 +33,7 @@ object SerializedException {
   ): SerializedException =
     SerializedException(
       name       = name,
-      message    = message,
+      message    = Some(message),
       stackTrace = stackTrace,
       cause      = Some(cause)
     )
@@ -45,17 +45,12 @@ object SerializedException {
     message: String,
     stackTrace: Seq[SerializedException.TraceElement]
   ): SerializedException =
-    SerializedException(
+    new SerializedException(
       name       = name,
-      message    = message,
+      message    = Some(message),
       stackTrace = stackTrace,
       cause      = None
     )
-
-  /** Creates a [[SerializedException]] from a [[Throwable]].
-    */
-  def apply(throwable: Throwable): SerializedException =
-    fromException(throwable)
 
   /** Encodes a JVM [[Throwable]] as [[SerializedException]].
     */
@@ -66,7 +61,7 @@ object SerializedException {
       else Option(throwable.getCause).map(fromException)
     SerializedException(
       name       = Option(clazz.getCanonicalName).getOrElse(clazz.getName),
-      message    = throwable.getMessage,
+      message    = Option(throwable.getMessage),
       stackTrace = throwable.getStackTrace.toSeq.map(encodeStackTraceElement),
       cause      = cause
     )
@@ -164,7 +159,7 @@ object SerializedException {
   ): Decoder.Result[SerializedException] = {
     for {
       name       <- json.get[String](JsonFields.Name)
-      message    <- json.get[String](JsonFields.Message)
+      message    <- json.get[Option[String]](JsonFields.Message)
       stackTrace <- json.get[Seq[TraceElement]](JsonFields.StackTrace)
       cause <-
         json.getOrElse[Option[SerializedException]](JsonFields.Cause)(None)

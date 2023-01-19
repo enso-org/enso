@@ -377,7 +377,7 @@ type Column
        by `other`.  If `other` is a column, the operation is performed pairwise
        between corresponding elements of `self` and `other`.
     / : Column | Any -> Column
-    / self other = self.make_binary_op "/" other
+    / self other = self.make_binary_op "/" other new_type=SQL_Type.double
 
     ## Element-wise modulus.
 

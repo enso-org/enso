@@ -117,7 +117,7 @@ impl<T:Storable> {
     /// Constructor.
     pub fn new<OnMut:callback::NoArgs, OnResize:callback::NoArgs>
     (stats:&Stats, on_mut:OnMut, on_resize:OnResize) -> Self {
-        debug_span!("Creating new {T::type_display()} buffer.").in_scope(|| {
+        debug_span!("Creating new {} buffer.", T::type_display()).in_scope(|| {
             stats.inc_buffer_count();
             let mut_dirty     = MutDirty::new(Box::new(on_mut));
             let resize_dirty  = ResizeDirty::new(Box::new(on_resize));

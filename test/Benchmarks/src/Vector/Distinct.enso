@@ -12,13 +12,13 @@ polyglot java import org.enso.base.Time_Utils
 ## Bench Utilities ============================================================
 
 iter_size = 100
-num_iterations = 10
+num_iterations = 20
 
 # The Benchmarks ==============================================================
 
 bench =
-    random_vec = Utils.make_random_vec 10000
-    uniform_vec = Base.Vector.fill 10000 1
+    random_vec = Utils.make_random_vec 100000
+    uniform_vec = Base.Vector.fill 100000 1
 
     random_text_vec = random_vec.map .to_text
     uniform_text_vec = random_vec.map .to_text

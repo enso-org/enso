@@ -75,10 +75,10 @@ spec =
             c = t1.at "C"
             arith = (a * 2) + 1
             logic = (c || c.not) && True
-            cmp = (a / a >= b) && (a - b < a)
+            cmp = (a * a >= b) && (a - b < a)
             arith.to_sql.prepare . should_equal ['SELECT (("T1"."A" * ?) + ?) AS "A" FROM "T1" AS "T1"', [[2, int], [1, int]]]
             logic.to_sql.prepare . should_equal ['SELECT (("T1"."C" OR (NOT "T1"."C")) AND ?) AS "C" FROM "T1" AS "T1"', [[True, bool]]]
-            cmp.to_sql.prepare . should_equal ['SELECT ((("T1"."A" / "T1"."A") >= "T1"."B") AND (("T1"."A" - "T1"."B") < "T1"."A")) AS "A" FROM "T1" AS "T1"', []]
+            cmp.to_sql.prepare . should_equal ['SELECT ((("T1"."A" * "T1"."A") >= "T1"."B") AND (("T1"."A" - "T1"."B") < "T1"."A")) AS "A" FROM "T1" AS "T1"', []]
 
         Test.specify "should support simple text operations" <|
             b = t1.at "B"
