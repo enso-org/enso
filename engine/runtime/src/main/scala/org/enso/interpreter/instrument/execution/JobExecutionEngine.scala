@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{Job, UniqueJob}
-import org.enso.polyglot.RuntimeServerInfo
 import org.enso.text.Sha3_224VersionCalculator
 
 import java.util.UUID
@@ -36,10 +35,18 @@ final class JobExecutionEngine(
 
   private val context = interpreterContext.executionService.getContext
 
-  private val jobParallelism =
+  private val jobParallelism = 1
+  /*
+java.lang.AssertionError
+at org.graalvm.truffle/com.oracle.truffle.polyglot.OptionValuesImpl.get(OptionValuesImpl.java:202)
+at org.enso.interpreter.instrument.execution.JobExecutionEngine.<init>(JobExecutionEngine.scala:41)
+at org.enso.interpreter.instrument.execution.CommandExecutionEngine.<init>(CommandExecutionEngine.scala:36)
+
+
     interpreterContext.executionService.getContext.getEnvironment.getOptions
       .get(RuntimeServerInfo.JOB_PARALLELISM_KEY)
       .intValue()
+   */
 
   val jobExecutor: ExecutorService =
     Executors.newFixedThreadPool(
