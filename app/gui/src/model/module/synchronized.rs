@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 use enso_text::index::*;
-use ensogl_component::text::FromInContextSnapped;
 
 use crate::model::module::Content;
 use crate::model::module::ImportMetadata;
