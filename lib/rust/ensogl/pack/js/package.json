@@ -16,8 +16,8 @@
   },
   "scripts": {
     "typecheck": "npx tsc --noEmit",
-    "build": "npx --yes tsup src/runner/app.ts --dts",
-    "build-shader-extractor": "npx --yes tsup src/shader-extractor/shader-extractor.ts --dts",
+    "build": "npx --yes tsup src/runner/app.ts --dts --sourcemap",
+    "build-shader-extractor": "npx --yes tsup src/shader-extractor/shader-extractor.ts --dts --sourcemap",
     "lint": "npx --yes eslint src"
   },
   "bugs": {

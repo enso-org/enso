@@ -38,7 +38,7 @@ mod rectangle {
     }
 }
 
-const PADDING: f32 = 2.0;
+const PADDING: f32 = 3.0;
 const SIDES_PADDING: f32 = PADDING * 2.0;
 
 pub mod cursor {
