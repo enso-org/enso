@@ -77,13 +77,12 @@ spec =
         Test.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument.Error
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument.Error
+            Table.new [] . should_fail_with Illegal_Argument.Error
 
             Table.from_rows ["X", "X"] [] . should_fail_with Illegal_Argument.Error
             Table.from_rows ["X", "Y"] [[1,2], [1]] . should_fail_with Index_Out_Of_Bounds.Error
-
-        Test.specify "should handle error scenarios gracefully (merge with above once enabled)" pending="To be enabled after errors refactor where instead of returning a table with no columns we throw an error." <|
-            Table.new [] . should_fail_with Illegal_Argument.Error
             Table.from_rows [] [] . should_fail_with Illegal_Argument.Error
+            Table.from_rows [] [[]] . should_fail_with Illegal_Argument.Error
 
         Test.specify "should correctly infer storage types" <|
             varied_type_table.at "strs" . storage_type . should_equal Storage.Text

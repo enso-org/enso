@@ -79,11 +79,10 @@ type Table
             case c of
                 _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
                 Column.Value java_col -> java_col
-        # TODO enable this once we stop returning tables without columns
-        # if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
-        if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
-            if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
-                Table.Value (Java_Table.new cols.to_array)
+        if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
+            if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
+                if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
+                    Table.Value (Java_Table.new cols.to_array)
 
     ## Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
