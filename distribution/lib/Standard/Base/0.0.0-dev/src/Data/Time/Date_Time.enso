@@ -701,3 +701,12 @@ type Date_Time
             sign = Time_Utils.compare_to_zoneddatetime self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error.Error Date_Time that "that")
+
+    comparator : Date_Time_Comparator
+    comparator = Date_Time_Comparator
+
+
+## PRIVATE
+type Date_Time_Comparator
+    compare self d1 d2 = d1.compare_to d2
+    hash self _ = Error.throw "no hash for Date_Time"

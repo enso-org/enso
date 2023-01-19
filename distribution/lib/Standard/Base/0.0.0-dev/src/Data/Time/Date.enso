@@ -589,6 +589,7 @@ type Date
     format : Text -> Text
     format self pattern = Time_Utils.local_date_format self pattern
 
+    # TODO: Remove and replace only with comparator
     ## Compares `self` to `that` to produce an ordering.
 
        Arguments:
@@ -604,6 +605,9 @@ type Date
             sign = Time_Utils.compare_to_localdate self that
             Ordering.from_sign sign
         _ -> Error.throw (Type_Error.Error Date that "that")
+
+    comparator : Date_Comparator
+    comparator = Date_Comparator
 
 
 ## PRIVATE
@@ -641,3 +645,9 @@ is_weekend date =
 ## PRIVATE
 fits_in_range start end date =
     (start <= date) && (date < end)
+
+
+## PRIVATE
+type Date_Comparator
+    compare self d1 d2 = d1.compare_to d2
+    hash self _ = Error.throw "no hash for Date"

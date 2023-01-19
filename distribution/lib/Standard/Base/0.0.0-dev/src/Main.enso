@@ -29,6 +29,7 @@ import project.System.Platform
 import project.System.Process
 import project.System.Process.Exit_Code.Exit_Code
 import project.Warning.Warning
+from project.Data.Eq import all
 
 export project.Any.Any
 export project.Data.Array.Array
@@ -57,6 +58,7 @@ export project.System.Platform
 export project.System.Process
 export project.System.Process.Exit_Code.Exit_Code
 export project.Warning.Warning
+from project.Data.Eq export all
 
 from project.Data.Boolean export Boolean, True, False
 from project.Function export all

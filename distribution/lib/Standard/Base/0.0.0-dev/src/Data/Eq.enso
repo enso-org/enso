@@ -1,0 +1,29 @@
+import project.Meta
+import project.IO
+
+from project.Data.Boolean import Boolean, True, False
+from project.Data.Json import all
+from project.Data.Range import all
+from project.Error.Common import Error, dataflow_error_handler
+
+# TODO: Do we need Num_Eq? isn't that implemented in some builtin?
+type Num_Eq
+    hash self n = n
+    compare self n1 n2 = if n1 == n2 then Ordering.Ordering.Equal else
+        if n1 < n2 then Ordering.Ordering.Less else Ordering.Ordering.Greater
+
+Comparable.from (_:Number) = Num_Eq
+
+Any.=== self that =
+    eq_self = Comparable.from self
+    eq_that = Comparable.from that
+
+    if eq_self.is_nothing then False else
+        # There might be one comparator for multiple types. Therefore, we do not
+        # check for type equality of `self` and `that`.
+        similar_type = eq_self == eq_that
+        if similar_type.not then False else
+            hash_self = eq_self.hash self
+            hash_that = eq_that.hash that
+            if hash_self != hash_that then False else
+                eq_self.compare self that == Ordering.Ordering.Equal

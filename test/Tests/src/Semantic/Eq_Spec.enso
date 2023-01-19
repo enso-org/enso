@@ -1,0 +1,71 @@
+# TODO[PM]: This file should be merged with Equals_Spec.enso once the usage of equality is
+# unified.
+
+from Standard.Base import all
+import Standard.Base.Data.Index_Sub_Range
+from Standard.Base.Data.Eq import all
+
+from Standard.Test import Test, Test_Suite
+
+spec =
+    Test.group "Test equality on numbers" <|
+        Test.specify "Compare different numbers" <|
+            10 === 20.3 . should_be_false
+
+        Test.specify "Compare same numbers" <|
+            10 === 10 . should_be_true
+
+        Test.specify "Different hash prevents equality" <|
+            x = Wrong_Hash.Elem1
+            y = Wrong_Hash.Elem2
+
+            t = x === y
+            t . should_equal False
+
+    Test.group "Test inequality on numbers" <|
+        Test.specify "Compare two numbers" <|
+            x = 10
+            y = 11
+            t = x < y
+            t . should_equal True
+
+    Test.group "Rational Numbers" <|
+        Test.specify "3/4 == 6/8" <|
+            r1 = Rational.Fraction 3 4
+            r2 = Rational.Fraction 6 8
+            t = r1 === r2
+            t . should_equal True
+
+        Test.specify "1/2 != 2/6" <|
+            r1 = Rational.Fraction 1 2
+            r2 = Rational.Fraction 2 6
+            t = r1 === r2
+            t . should_equal False
+
+type Wrong_Hash
+    Elem1
+    Elem2
+
+Comparable.from (_ : Wrong_Hash) = Wrong_Hash_Eq
+
+type Wrong_Hash_Eq
+    hash self e = case e of
+        Wrong_Hash.Elem1 -> 1
+        Wrong_Hash.Elem2 -> 2
+    compare self _ _ = True
+
+type Rational
+    Fraction (numerator:Integer) (denominator:Integer)
+
+Comparable.from (_ : Rational) = Rational_Ordering
+
+type Rational_Ordering
+    compare self r1 r2 =
+        v1 = r1.numerator * r2.denominator
+        v2 = r2.numerator * r1.denominator
+        if v1 < v2 then Ordering.Less else
+            if v1 > v2 then Ordering.Greater else
+                Ordering.Equal
+    hash self _ = 42
+
+main = Test_Suite.run_main spec

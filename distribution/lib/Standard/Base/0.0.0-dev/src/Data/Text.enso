@@ -50,6 +50,9 @@ type Text
             Ordering.from_sign comparison_result
         _ -> Error.throw (Type_Error.Error Text that "that")
 
+    comparator : Text_Comparator
+    comparator = Text_Comparator
+
     ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
        Arguments:
@@ -134,3 +137,8 @@ type Text
        Conversion to Text that overrides the default `to_text` behavior.
     to_text : Text
     to_text self = self
+
+## PRIVATE
+type Text_Comparator
+    compare self t1 t2 = t1.compare_to t2
+    hash self _ = Error.throw "No hash for Text"
