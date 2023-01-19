@@ -316,6 +316,17 @@ impl Ast {
         self.iter_recursive().find(|ast| ast.id == Some(id))
     }
 
+    pub fn find_many_by_ids<IdLike>(
+        &self,
+        ids: impl IntoIterator<Item = IdLike>,
+    ) -> impl Iterator<Item = &Ast>
+    where
+        IdLike: std::borrow::Borrow<Id> + Eq + Hash,
+    {
+        let ids_set: HashSet<IdLike> = ids.into_iter().collect();
+        self.iter_recursive().filter(move |ast| ast.id.map_or(false, |id| ids_set.contains(&id)))
+    }
+
     /// Find a node in the AST with text representation equal to given string.
     ///
     /// If multiple nodes match, it is unspecified which one of them will be returned.

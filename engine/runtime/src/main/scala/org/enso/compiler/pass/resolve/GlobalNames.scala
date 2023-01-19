@@ -7,7 +7,8 @@ import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
   Resolution,
   ResolutionNotFound,
-  ResolvedMethod
+  ResolvedMethod,
+  ResolvedModule
 }
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -36,7 +37,7 @@ case object GlobalNames extends IRPass {
 
   /** The passes that this pass depends _directly_ on to run. */
   override val precursorPasses: Seq[IRPass] =
-    Seq(AliasAnalysis, BindingAnalysis)
+    Seq(AliasAnalysis, BindingAnalysis, FullyQualifiedNames)
 
   /** The passes that are invalidated by running this pass. */
   override val invalidatedPasses: Seq[IRPass] = Seq(AliasAnalysis)
@@ -150,53 +151,62 @@ case object GlobalNames extends IRPass {
             )
           )
       case lit: IR.Name.Literal =>
-        if (!lit.isMethod && !isLocalVar(lit)) {
-          val resolution = bindings.resolveName(lit.name)
-          resolution match {
-            case Left(error) =>
-              IR.Error.Resolution(
-                lit,
-                IR.Error.Resolution.ResolverError(error)
-              )
-            case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
-              if (isInsideApplication) {
-                lit.updateMetadata(this -->> BindingsMap.Resolution(r))
-              } else {
-                val self = freshNameSupply
-                  .newName()
-                  .updateMetadata(
-                    this -->> BindingsMap.Resolution(
-                      BindingsMap.ResolvedModule(mod)
-                    )
-                  )
-                // The synthetic applications gets the location so that instrumentation
-                // identifies the node correctly
-                val fun = lit.copy(
-                  name     = method.name,
-                  location = None
+        lit.getMetadata(FullyQualifiedNames) match {
+          case Some(
+                FullyQualifiedNames.FQNResolution(
+                  FullyQualifiedNames.ResolvedModule(modRef)
                 )
-                val app = IR.Application.Prefix(
-                  fun,
-                  List(IR.CallArgument.Specified(None, self, None)),
-                  hasDefaultsSuspended = false,
-                  lit.location
-                )
-                fun
-                  .getMetadata(ExpressionAnnotations)
-                  .foreach(annotationsMeta =>
-                    app.updateMetadata(
-                      ExpressionAnnotations -->> annotationsMeta
-                    )
+              ) =>
+            lit.updateMetadata(this -->> Resolution(ResolvedModule(modRef)))
+          case _ =>
+            if (!lit.isMethod && !isLocalVar(lit)) {
+              val resolution = bindings.resolveName(lit.name)
+              resolution match {
+                case Left(error) =>
+                  IR.Error.Resolution(
+                    lit,
+                    IR.Error.Resolution.ResolverError(error)
                   )
-                fun.passData.remove(ExpressionAnnotations)
-                app
+                case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
+                  if (isInsideApplication) {
+                    lit.updateMetadata(this -->> BindingsMap.Resolution(r))
+                  } else {
+                    val self = freshNameSupply
+                      .newName()
+                      .updateMetadata(
+                        this -->> BindingsMap.Resolution(
+                          BindingsMap.ResolvedModule(mod)
+                        )
+                      )
+                    // The synthetic applications gets the location so that instrumentation
+                    // identifies the node correctly
+                    val fun = lit.copy(
+                      name     = method.name,
+                      location = None
+                    )
+                    val app = IR.Application.Prefix(
+                      fun,
+                      List(IR.CallArgument.Specified(None, self, None)),
+                      hasDefaultsSuspended = false,
+                      lit.location
+                    )
+                    fun
+                      .getMetadata(ExpressionAnnotations)
+                      .foreach(annotationsMeta =>
+                        app.updateMetadata(
+                          ExpressionAnnotations -->> annotationsMeta
+                        )
+                      )
+                    fun.passData.remove(ExpressionAnnotations)
+                    app
+                  }
+                case Right(value) =>
+                  lit.updateMetadata(this -->> BindingsMap.Resolution(value))
               }
-            case Right(value) =>
-              lit.updateMetadata(this -->> BindingsMap.Resolution(value))
-          }
 
-        } else {
-          lit
+            } else {
+              lit
+            }
         }
       case app: IR.Application.Prefix =>
         app.function match {

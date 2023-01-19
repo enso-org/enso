@@ -96,7 +96,7 @@ make_internal_generator_dialect =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest]+concat_ops+cases
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan]
+    arith_extensions = [is_nan, decimal_div]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -288,3 +288,7 @@ is_nan = Base_Generator.lift_unary_op "IS_NAN" arg->
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     code "bool_or(" ++ arg ++ ")"
+
+## PRIVATE
+decimal_div = Base_Generator.lift_binary_op "/" x-> y->
+    code "CAST(" ++ x ++ " AS double precision) / CAST(" ++ y ++ " AS double precision)"
