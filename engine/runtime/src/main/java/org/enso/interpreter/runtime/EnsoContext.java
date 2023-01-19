@@ -70,6 +70,9 @@ public class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
+  private final Assumption chromeInspectorNotAttached =
+      Truffle.getRuntime().createAssumption("chromeInspectorNotAttached");
+
   private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
   private final IOPermissions rootIOPermissions;
 
@@ -203,6 +206,11 @@ public class EnsoContext {
    */
   public final Compiler getCompiler() {
     return compiler;
+  }
+
+  /** Returns an {@link Assumption} that Chrome inspector is not attached to this context. */
+  public Assumption getChromeInspectorNotAttached() {
+    return chromeInspectorNotAttached;
   }
 
   /**
