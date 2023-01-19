@@ -91,8 +91,12 @@ public class BlockNode extends ExpressionNode {
 
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
-    return super.hasTag(tag)
-        || tag == StandardTags.RootBodyTag.class
-        || tag == StandardTags.RootTag.class;
+    if (super.hasTag(tag)) {
+      return true;
+    }
+    if (tag  == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class) {
+      return getSourceSection() != null;
+    }
+    return false;
   }
 }
