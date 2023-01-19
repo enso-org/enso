@@ -30,15 +30,15 @@ export { Param } from 'runner/config'
 /** Files that are downloaded from server during app startup. */
 class Files<T> {
     /** Main JS file that is responsible for initializing and compiling WASM. */
-    mainJs: T
+    pkgJs: T
     /** Main WASM file that contains the compiled WASM code. */
-    mainWasm: T
+    pkgWasm: T
     /** Precompiled shaders files. */
     shaders = new Shaders<T>()
 
-    constructor(mainJs: T, mainWasm: T) {
-        this.mainJs = mainJs
-        this.mainWasm = mainWasm
+    constructor(pkgJs: T, pkgWasm: T) {
+        this.pkgJs = pkgJs
+        this.pkgWasm = pkgWasm
     }
 
     async mapAndAwaitAll<S>(f: (t: T) => Promise<S>): Promise<Files<S>> {
@@ -53,15 +53,15 @@ class Files<T> {
 
     /** Converts the structure fields to an array. */
     toArray(): T[] {
-        return [this.mainJs, this.mainWasm, ...this.shaders.toArray()]
+        return [this.pkgJs, this.pkgWasm, ...this.shaders.toArray()]
     }
 
     /** Assign array values to the structure fields. The elements order should be the same as the
      * output of the `toArray` function. */
     fromArray<S>(array: S[]): Files<S> | null {
-        const [mainJs, mainWasm, ...shaders] = array
-        if (mainJs != null && mainWasm != null) {
-            const files = new Files<S>(mainJs, mainWasm)
+        const [pkgJs, pkgWasm, ...shaders] = array
+        if (pkgJs != null && pkgWasm != null) {
+            const files = new Files<S>(pkgJs, pkgWasm)
             files.shaders = this.shaders.fromArray(shaders) ?? new Shaders()
             return files
         } else {
@@ -255,14 +255,14 @@ export class App {
     }
 
     /** Compiles and runs the downloaded WASM file. */
-    async compileAndRunWasm(mainJs: string, wasm: Buffer | Response): Promise<unknown> {
+    async compileAndRunWasm(pkgJs: string, wasm: Buffer | Response): Promise<unknown> {
         return await log.Task.asyncNoGroupWith<unknown>('WASM compilation', async () => {
             /* eslint @typescript-eslint/no-implied-eval: "off" */
             /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
             const snippetsFn: any = Function(
                 `const __dirname = 'undefined_dirname'
                  const module = {}
-                 ${mainJs}
+                 ${pkgJs}
                  module.exports.init = pkg_default
                  return module.exports`
             )()
@@ -306,9 +306,9 @@ export class App {
             logger.log(`Downloading '${file}'.`)
         }
 
-        const mainJs = await responses.mainJs.text()
+        const pkgJs = await responses.pkgJs.text()
         this.loader = loader
-        this.wasm = await this.compileAndRunWasm(mainJs, responses.mainWasm)
+        this.wasm = await this.compileAndRunWasm(pkgJs, responses.pkgWasm)
         this.shaders = await responses.shaders.mapAndAwaitAll(t => t.text())
     }
 

@@ -192,8 +192,8 @@ class Main {
     async main(inputConfig: any) {
         const config = Object.assign(
             {
-                pkgWasmUrl: 'assets/main-opt.wasm',
-                pkgJsUrl: 'assets/main.js',
+                pkgWasmUrl: 'assets/pkg-opt.wasm',
+                pkgJsUrl: 'assets/pkg.js',
                 shadersUrl: 'assets/shaders',
             },
             inputConfig

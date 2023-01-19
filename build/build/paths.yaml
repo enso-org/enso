@@ -37,11 +37,11 @@
 
     # Final WASM artifacts in `dist` directory.
     wasm/:
-      ? path: main-opt.wasm
+      ? path: pkg-opt.wasm
         var: wasm_main
-      ? path: main.wasm
+      ? path: pkg.wasm
         var: wasm_main_raw
-      ? path: main.js
+      ? path: pkg.js
         var: wasm_glue
       ? path: app.cjs
         var: app
