@@ -374,8 +374,8 @@ public final class Module implements TruffleObject {
         patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
     var start = sourceStartIndex + startDelta;
     var length = sourceLength + endDelta - startDelta;
-    if (start + length > src.getLength()) {
-      length = src.getLength() - start;
+    if (start + length == src.getLength() + 1) {
+      length--;
     }
     return src.createSection(start, length);
   }
