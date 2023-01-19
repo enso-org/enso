@@ -84,7 +84,7 @@ public class BlockNode extends ExpressionNode {
     if (super.hasTag(tag)) {
       return true;
     }
-    if (tag  == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class) {
+    if (tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class) {
       return getSourceSection() != null;
     }
     return false;
