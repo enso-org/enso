@@ -276,8 +276,7 @@ public class Table {
       for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
         Column column = rightColumnsToKeep.get(i);
         String newName = newRightColumnNames.get(i);
-        Storage<?> newStorage = column.getStorage().applyMask(rightMask);
-        Column newColumn = new Column(newName, newStorage);
+        Column newColumn = column.applyMask(rightMask).rename(newName);
         newColumns.add(newColumn);
       }
     }
@@ -321,7 +320,28 @@ public class Table {
    * Zips rows of this table with rows of the right table.
    */
   public Table zip(Table right, boolean keepUnmatched, String rightPrefix) {
+    NameDeduplicator nameDeduplicator = new NameDeduplicator();
 
+    int leftRowCount = this.rowCount();
+    int rightRowCount = right.rowCount();
+    int resultRowCount = keepUnmatched ? Math.max(leftRowCount, rightRowCount) : Math.min(leftRowCount, rightRowCount);
+
+    List<String> leftColumnNames = Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> rightColumNames = Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, rightPrefix);
+
+    Column[] newColumns = new Column[this.columns.length + right.columns.length];
+
+    int leftColumnCount = this.columns.length;
+    int rightColumnCount = right.columns.length;
+    for (int i = 0; i < leftColumnCount; i++) {
+      newColumns[i] = this.columns[i].resize(resultRowCount);
+    }
+    for (int i = 0; i < rightColumnCount; i++) {
+      newColumns[leftColumnCount + i] = right.columns[i].resize(resultRowCount).rename(newRightColumnNames.get(i));
+    }
+
+    return new Table(newColumns, AggregatedProblems.of(nameDeduplicator.getProblems()));
   }
 
   /**

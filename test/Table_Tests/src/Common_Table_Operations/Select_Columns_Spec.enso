@@ -87,7 +87,9 @@ spec setup =
             err_checker err =
                 err.catch.should_be_a Input_Indices_Already_Matched.Error
                 err.catch.indices.should_contain_the_same_elements_as [-7, 1]
-            Problems.test_advanced_problem_handling action err_checker (x-> x) tester
+            warn_checker problem =
+                problems.contains problem . should_be_true
+            Problems.test_advanced_problem_handling action err_checker warn_checker tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
             selector = By_Name ["foo", "foo"]

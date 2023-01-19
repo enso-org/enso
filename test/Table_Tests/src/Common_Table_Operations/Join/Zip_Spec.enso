@@ -66,7 +66,7 @@ spec setup =
                 table.at "Z" . to_vector . should_equal ['a', 'b', Nothing]
                 table.at "W" . to_vector . should_equal ['x', 'd', Nothing]
             problems_1 = [Row_Count_Mismatch.Error 3 2]
-            Problems.test_problem_handling action_1 tester_1 problems_1
+            Problems.test_problem_handling action_1 problems_1 tester_1
 
             action_2 = t2.zip t1 on_problems=_
             tester_2 table =
@@ -76,7 +76,7 @@ spec setup =
                 table.at "X" . to_vector . should_equal [1, 2, 3]
                 table.at "Y" . to_vector . should_equal [4, 5, 6]
             problems_2 = [Row_Count_Mismatch.Error 2 3]
-            Problems.test_problem_handling action_2 tester_2 problems_2
+            Problems.test_problem_handling action_2 problems_2 tester_2
 
         Test.specify "should allow to keep the unmatched rows padded with nulls without reporting problems" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -111,13 +111,29 @@ spec setup =
 
             t3 = t1.zip empty
             expect_column_names ["X", "Y", "Z", "W"] t3
-            t3.row_count . should_equal 0
-            t3.at "X" . to_vector . should_equal []
+            t3.row_count . should_equal 2
+            t3.at "X" . to_vector . should_equal [1, 2]
+            t3.at "Y" . to_vector . should_equal [4, 5]
+            t3.at "Z" . to_vector . should_equal [Nothing, Nothing]
+            t3.at "W" . to_vector . should_equal [Nothing, Nothing]
 
             t4 = empty.zip t1
             expect_column_names ["Z", "W", "X", "Y"] t4
-            t4.row_count . should_equal 0
-            t4.at "X" . to_vector . should_equal []
+            t4.row_count . should_equal 2
+            t4.at "X" . to_vector . should_equal [1, 2]
+            t4.at "Y" . to_vector . should_equal [4, 5]
+            t4.at "Z" . to_vector . should_equal [Nothing, Nothing]
+            t4.at "W" . to_vector . should_equal [Nothing, Nothing]
+
+            t5 = t1.zip empty keep_unmatched=False
+            expect_column_names ["X", "Y", "Z", "W"] t5
+            t5.row_count . should_equal 0
+            t5.at "X" . to_vector . should_equal []
+
+            t6 = empty.zip t1 keep_unmatched=False
+            expect_column_names ["Z", "W", "X", "Y"] t6
+            t6.row_count . should_equal 0
+            t6.at "X" . to_vector . should_equal []
 
         Test.specify "should not report unmatched rows for rows that simply are all null" <|
             t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
@@ -134,22 +150,30 @@ spec setup =
             t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]]]
             t2 = table_builder [["X", ['a']], ["Y", ['d']]]
 
-            t3 = t1.zip t2
+            t3 = t1.zip t2 keep_unmatched=True
             expect_column_names ["X", "Y", "Right_X", "Right_Y"] t3
             Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["X", "Y"]]
-            t3.row_count . should_equal 1
+            t3.row_count . should_equal 2
             t3.at "X" . to_vector . should_equal [1, 2]
             t3.at "Y" . to_vector . should_equal [5, 6]
             t3.at "Right_X" . to_vector . should_equal ['a', Nothing]
             t3.at "Right_Y" . to_vector . should_equal ['d', Nothing]
 
-            t1.zip t2 on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
+            t1.zip t2 keep_unmatched=False on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
 
             expect_column_names ["X", "Y", "X_1", "Y_1"] (t1.zip t2 right_prefix="")
 
             t4 = table_builder [["X", [1]], ["Right_X", [5]]]
             expect_column_names ["X", "Y", "Right_X_1", "Right_X"] (t1.zip t4)
             expect_column_names ["X", "Right_X", "Right_X_1", "Y"] (t4.zip t1)
+
+        Test.specify "should report both row count mismatch and duplicate column warnings at the same time" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]]]
+            t2 = table_builder [["X", ['a']], ["Z", ['d']]]
+
+            t3 = t1.zip t2
+            expected_problems = [Row_Count_Mismatch.Error 2 1, Duplicate_Output_Column_Names.Error ["X"]]
+            Problems.get_attached_warnings t3 . should_contain_the_same_elements_as expected_problems
 
         Test.specify "should allow to zip the table with itself" <|
             ## Even though this does not seem very useful, we should verify that
