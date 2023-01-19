@@ -535,7 +535,7 @@ impl Module {
         edits: Vec<TextEdit>,
     ) -> impl Future<Output = FallibleResult<ParsedContentSummary>> + 'static {
         let summary = ParsedContentSummary::from_source(new_file);
-        let edit = language_server::types::FileEdit {
+        let edit = FileEdit {
             edits,
             path: self.path().file_path().clone(),
             old_version: ls_content.digest.clone(),

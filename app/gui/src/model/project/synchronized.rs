@@ -523,7 +523,6 @@ impl Project {
                                 let module =
                                     module_registry.get(&module_path).await.unwrap().unwrap();
                                 module.apply_file_edit(edit, &parser).await.unwrap();
-                                //module.reload_file(&parser).await.unwrap();
                             }
                         }
                     });
