@@ -429,6 +429,7 @@
 [3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
+[3878]: https://github.com/enso-org/enso/pull/3878
 [3997]: https://github.com/enso-org/enso/pull/3997
 [4013]: https://github.com/enso-org/enso/pull/4013
 [4026]: https://github.com/enso-org/enso/pull/4026
@@ -514,6 +515,7 @@
 - [Sync language server with file system after VCS restore][4020]
 - [`ArrayOverBuffer` behaves like an `Array` and `Array.sort` no longer sorts in
   place][4022]
+- [Implement hashing functionality for all objects][3878]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
 - [Attach visualizations to sub-expressions][4048]
