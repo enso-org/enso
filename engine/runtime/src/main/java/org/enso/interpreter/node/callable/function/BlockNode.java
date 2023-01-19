@@ -6,6 +6,7 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.source.SourceSection;
 import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
 
@@ -80,12 +81,18 @@ public class BlockNode extends ExpressionNode {
   }
 
   @Override
+  public SourceSection getSourceSection() {
+    var ss = super.getSourceSection();
+    return ss != null ? ss : getRootNode().getSourceSection();
+  }
+
+  @Override
   public boolean hasTag(Class<? extends Tag> tag) {
     if (super.hasTag(tag)) {
       return true;
     }
     if (tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class) {
-      return getSourceSection() != null;
+      return true;
     }
     return false;
   }
