@@ -206,6 +206,7 @@ public final class TopLevelScope implements TruffleObject {
         || member.equals(MethodNames.TopScope.CREATE_MODULE)
         || member.equals(MethodNames.TopScope.REGISTER_MODULE)
         || member.equals(MethodNames.TopScope.UNREGISTER_MODULE)
+        || member.equals(MethodNames.TopScope.LEAK_CONTEXT)
         || member.equals(MethodNames.TopScope.COMPILE);
   }
 
