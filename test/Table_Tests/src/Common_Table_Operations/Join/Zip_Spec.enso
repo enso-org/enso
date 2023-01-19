@@ -3,6 +3,7 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 from Standard.Table import all hiding Table
 from Standard.Table.Errors import all
+import Standard.Table.Data.Value_Type.Value_Type
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 
@@ -187,3 +188,51 @@ spec setup =
             t2.at "Y" . to_vector . should_equal [4, 5]
             t2.at "Right_X" . to_vector . should_equal [1, 2]
             t2.at "Right_Y" . to_vector . should_equal [4, 5]
+
+        if setup.is_database.not then
+            Test.specify "should correctly pad/truncate all kinds of column types" <|
+                primitives = [["ints", [1, 2, 3]], ["strs", ['a', 'b', 'c']], ["bools", [True, Nothing, False]]]
+                times = [["dates", [Date.new 1999 1 1, Date.new 2000 4 1, Date.new 2001 1 2]], ["times", [Time_Of_Day.new 23 59, Time_Of_Day.new 0 0, Time_Of_Day.new 12 34]], ["datetimes", [Date_Time.new 1999 1 1 23 59, Date_Time.new 2000 4 1 0 0, Date_Time.new 2001 1 2 12 34]]]
+                t = table_builder <|
+                    primitives + times + [["mixed", ['a', 2, True]]]
+
+                t1 = table_builder [["X", [1]]]
+                t5 = table_builder [["X", 0.up_to 5 . to_vector]]
+
+                truncated = t.zip t1 keep_unmatched=False
+                expect_column_names ["ints", "strs", "bools", "dates", "times", "datetimes", "mixed", "X"] truncated
+                truncated.row_count . should_equal 1
+                truncated.at "ints" . to_vector . should_equal [1]
+                truncated.at "strs" . to_vector . should_equal ['a']
+                truncated.at "bools" . to_vector . should_equal [True]
+                truncated.at "dates" . to_vector . should_equal [Date.new 1999 1 1]
+                truncated.at "times" . to_vector . should_equal [Time_Of_Day.new 23 59]
+                truncated.at "datetimes" . to_vector . should_equal [Date_Time.new 1999 1 1 23 59]
+                truncated.at "mixed" . to_vector . should_equal ['a']
+
+                truncated.at "ints" . value_type . should_equal Value_Type.Integer
+                truncated.at "strs" . value_type . should_equal Value_Type.Char
+                truncated.at "bools" . value_type . should_equal Value_Type.Boolean
+                truncated.at "dates" . value_type . should_equal Value_Type.Date
+                truncated.at "times" . value_type . should_equal Value_Type.Time
+                truncated.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+                truncated.at "mixed" . value_type . should_equal Value_Type.Mixed
+
+                padded = t.zip t5 keep_unmatched=True
+                expect_column_names ["ints", "strs", "bools", "dates", "times", "datetimes", "mixed", "X"] padded
+                padded.row_count . should_equal 5
+                padded.at "ints" . to_vector . should_equal [1, 2, 3, Nothing, Nothing]
+                padded.at "strs" . to_vector . should_equal ['a', 'b', 'c', Nothing, Nothing]
+                padded.at "bools" . to_vector . should_equal [True, Nothing, False, Nothing, Nothing]
+                padded.at "dates" . to_vector . should_equal [Date.new 1999 1 1, Date.new 2000 4 1, Date.new 2001 1 2, Nothing, Nothing]
+                padded.at "times" . to_vector . should_equal [Time_Of_Day.new 23 59, Time_Of_Day.new 0 0, Time_Of_Day.new 12 34, Nothing, Nothing]
+                padded.at "datetimes" . to_vector . should_equal [Date_Time.new 1999 1 1 23 59, Date_Time.new 2000 4 1 0 0, Date_Time.new 2001 1 2 12 34, Nothing, Nothing]
+                padded.at "mixed" . to_vector . should_equal ['a', 2, True, Nothing, Nothing]
+
+                padded.at "ints" . value_type . should_equal Value_Type.Integer
+                padded.at "strs" . value_type . should_equal Value_Type.Char
+                padded.at "bools" . value_type . should_equal Value_Type.Boolean
+                padded.at "dates" . value_type . should_equal Value_Type.Date
+                padded.at "times" . value_type . should_equal Value_Type.Time
+                padded.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+                padded.at "mixed" . value_type . should_equal Value_Type.Mixed

@@ -257,7 +257,10 @@ public abstract class Storage<T> {
   /** @return a copy of the storage containing a slice of the original data */
   public abstract Storage<T> slice(int offset, int limit);
 
-  /** @return a new storage instance, containing the same elements as this one, with {@code count} nulls appended at the end */
+  /**
+   * @return a new storage instance, containing the same elements as this one, with {@code count}
+   *     nulls appended at the end
+   */
   public Storage<?> appendNulls(int count) {
     Builder builder = new InferredBuilder(size() + count);
     builder.appendBulkStorage(this);
@@ -265,9 +268,10 @@ public abstract class Storage<T> {
     return builder.seal();
   }
 
-  /** Creates a builder that is capable of creating storages of the same type as the current one.
-   * <p>
-   * This is useful for example when copying the current storage with some modifications.
+  /**
+   * Creates a builder that is capable of creating storages of the same type as the current one.
+   *
+   * <p>This is useful for example when copying the current storage with some modifications.
    */
   public abstract Builder createDefaultBuilderOfSameType(int capacity);
 
