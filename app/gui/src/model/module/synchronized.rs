@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use enso_text::index::*;
+use ensogl_component::text::FromInContextSnapped;
 
 use crate::model::module::Content;
 use crate::model::module::ImportMetadata;
@@ -19,6 +20,7 @@ use double_representation::graph::Id;
 use double_representation::import;
 use engine_protocol::language_server;
 use engine_protocol::language_server::TextEdit;
+use engine_protocol::language_server::FileEdit;
 use engine_protocol::types::Sha3_224;
 use enso_text::text;
 use enso_text::Location;
@@ -195,7 +197,7 @@ impl Module {
     }
 
     /// Reload file from language server.
-    pub async fn reload_text_file(&self, parser: Parser) -> FallibleResult {
+    pub async fn reload_file(&self, parser: &Parser) -> FallibleResult {
         let file_path = self.path();
         self.language_server.client.close_text_file(file_path).await?;
         let opened = self.language_server.client.open_text_file(file_path).await?;
@@ -206,6 +208,46 @@ impl Module {
         let digest = opened.current_version;
         let summary = ContentSummary { digest, end_of_file };
         let source = parser.parse_with_metadata(opened.content)?;
+        self.model.set_content(source, NotificationKind::Reloaded{ summary })
+    }
+
+    /// Apply text changes from language server.
+    pub async fn apply_file_edit(&self, file_edit: FileEdit, parser: &Parser) -> FallibleResult {
+        let old_content = self.serialized_content()?.content;
+        let old_version = Sha3_224::new(old_content.as_bytes());
+
+        assert_eq!(old_version, file_edit.old_version);
+
+        // apply changes
+        let mut content: text::Rope = old_content.into();
+        for edit in file_edit.edits {
+            let TextEdit{ range, text } = edit;
+
+            let start = content.location_of_utf16_code_unit_location_snapped(range.start.into());
+            let end = content.location_of_utf16_code_unit_location_snapped(range.end.into());
+            let start = <Byte as enso_text::FromInContextSnapped<&text::Rope, Location<Byte>>>::from_in_context_snapped(&content, start);
+            let end = <Byte as enso_text::FromInContextSnapped<&text::Rope, Location<Byte>>>::from_in_context_snapped(&content, end);
+
+            // FIXME: fix for wrong edit.text content
+            assert_eq!(Sha3_224::new(text.as_bytes()), file_edit.new_version);
+            let start = Byte::from(0);
+            let end = content.last_byte_index();
+
+            let range = Range { start, end };
+            let change = TextChange { range, text };
+            content.apply_change(change);
+        }
+
+        let end_of_file_byte = content.last_line_end_location();
+        let end_of_file = content.utf16_code_unit_location_of_location(end_of_file_byte);
+
+        let content: String = content.into();
+        let new_version = Sha3_224::new(content.as_bytes());
+
+        assert_eq!(new_version, file_edit.new_version);
+
+        let summary = ContentSummary { digest: new_version, end_of_file };
+        let source = parser.parse_with_metadata(content)?;
         self.model.set_content(source, NotificationKind::Reloaded{ summary })
     }
 }

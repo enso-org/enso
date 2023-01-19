@@ -522,7 +522,8 @@ impl Project {
                                 let module_path = module::Path::from_file_path(file_path).unwrap();
                                 let module =
                                     module_registry.get(&module_path).await.unwrap().unwrap();
-                                module.reload_text_file(parser.clone()).await.unwrap();
+                                module.apply_file_edit(edit, &parser).await.unwrap();
+                                //module.reload_file(&parser).await.unwrap();
                             }
                         }
                     });
