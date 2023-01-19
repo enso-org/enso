@@ -62,7 +62,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return new StringBuilder(capacity);
   }
 

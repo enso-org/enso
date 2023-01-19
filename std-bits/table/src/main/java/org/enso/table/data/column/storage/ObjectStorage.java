@@ -33,7 +33,7 @@ public final class ObjectStorage extends SpecializedStorage<Object> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return new ObjectBuilder(capacity);
   }
 

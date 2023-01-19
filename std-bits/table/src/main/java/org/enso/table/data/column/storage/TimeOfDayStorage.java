@@ -41,7 +41,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return new TimeOfDayBuilder(capacity);
   }
 }

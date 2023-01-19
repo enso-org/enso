@@ -367,7 +367,7 @@ public final class BoolStorage extends Storage<Boolean> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return new BoolBuilder(capacity);
   }
 

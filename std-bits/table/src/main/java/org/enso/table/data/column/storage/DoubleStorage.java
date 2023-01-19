@@ -299,7 +299,7 @@ public final class DoubleStorage extends NumericStorage<Double> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return NumericBuilder.createDoubleBuilder(capacity);
   }
 

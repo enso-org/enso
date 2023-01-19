@@ -43,7 +43,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return new DateTimeBuilder(capacity);
   }
 }

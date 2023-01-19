@@ -41,7 +41,7 @@ public final class DateStorage extends SpecializedStorage<LocalDate> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return new DateBuilder(capacity);
   }
 }

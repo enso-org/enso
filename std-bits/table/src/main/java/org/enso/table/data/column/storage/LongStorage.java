@@ -359,7 +359,7 @@ public final class LongStorage extends NumericStorage<Long> {
   }
 
   @Override
-  public Builder createDefaultBuilder(int capacity) {
+  public Builder createDefaultBuilderOfSameType(int capacity) {
     return NumericBuilder.createLongBuilder(capacity);
   }
 
