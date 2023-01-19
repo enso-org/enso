@@ -1191,18 +1191,18 @@ mod test {
     fn applying_simple_fields_modification() {
         let mut test = ApplyModificationTest::new();
         let modification = SuggestionsDatabaseModification {
-            arguments:          vec![],
-            module:             Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
-            self_type:          Some(FieldUpdate::set(
+            arguments:              vec![],
+            module:                 Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
+            self_type:              Some(FieldUpdate::set(
                 "local.Project.NewModule.NewType".to_owned(),
             )),
-            return_type:        Some(FieldUpdate::set(
+            return_type:            Some(FieldUpdate::set(
                 "local.Project.NewModule.NewReturnType".to_owned(),
             )),
-            documentation:      None,
-            documentation_html: Some(FieldUpdate::set("NewDocumentation".to_owned())),
-            scope:              None,
-            reexport:           Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
+            documentation:          Some(FieldUpdate::set("NewDocumentation".to_owned())),
+            documentation_sections: None,
+            scope:                  None,
+            reexport:               Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
         };
         test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
         test.expected_entry.self_type = Some("local.Project.NewModule.NewType".try_into().unwrap());
@@ -1218,7 +1218,7 @@ mod test {
     fn removing_field_values() {
         let mut test = ApplyModificationTest::new();
         let modification = SuggestionsDatabaseModification {
-            documentation_html: Some(FieldUpdate::remove()),
+            documentation: Some(FieldUpdate::remove()),
             ..default()
         };
         test.expected_entry.documentation_html = None;
@@ -1235,7 +1235,7 @@ mod test {
         };
         let modification = SuggestionsDatabaseModification {
             module: Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
-            documentation_html: Some(FieldUpdate::remove()),
+            documentation: Some(FieldUpdate::remove()),
             scope: Some(FieldUpdate::set(new_scope.into())),
             ..default()
         };

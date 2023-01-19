@@ -74,17 +74,18 @@ fn render_documentation(docs: Documentation) -> String {
     match docs {
         Documentation::Module(module_docs) => render_module_documentation(&module_docs, None),
         Documentation::Type(type_docs) => render_type_documentation(&type_docs, None),
+        Documentation::Function(docs) => render_function_documentation(&docs),
+        Documentation::Local(docs) => render_local_documentation(&docs),
         Documentation::Constructor { type_docs, name } =>
             render_type_documentation(&type_docs, Some(&name)),
         Documentation::Method { type_docs, name } =>
             render_type_documentation(&type_docs, Some(&name)),
         Documentation::ModuleMethod { module_docs, name } =>
             render_module_documentation(&module_docs, Some(&name)),
-        Documentation::Function(docs) => render_function_documentation(&docs),
-        Documentation::Local(docs) => render_local_documentation(&docs),
     }
 }
 
+/// Render the documentation of the virtual component group. Includes the name of the group.
 fn render_virtual_component_group_docs(name: ImString) -> String {
     let content = owned_html! {
         h1(class="text-2xl font-bold") {
@@ -94,9 +95,10 @@ fn render_virtual_component_group_docs(name: ImString) -> String {
     docs_content(content).into_string().unwrap()
 }
 
-fn render_builtin_docs(docs: ImString) -> String {
+/// Render a documentation of a builtin entry that is not present in the suggestion database.
+fn render_builtin_docs(html_docs: ImString) -> String {
     let content = owned_html! {
-        : Raw(&*docs);
+        : Raw(&*html_docs);
     };
     docs_content(content).into_string().unwrap()
 }
@@ -111,19 +113,19 @@ fn render_builtin_docs(docs: ImString) -> String {
 /// - Methods.
 /// - Examples.
 fn render_type_documentation(
-    type_docs: &TypeDocumentation,
+    docs: &TypeDocumentation,
     function_name: Option<&QualifiedName>,
 ) -> String {
-    let TypeDocumentation {
-        name, arguments, constructors, methods, synopsis, examples, tags, ..
-    } = type_docs;
-
-    let methods_exist = !methods.is_empty();
-    let examples_exist = !examples.is_empty();
+    let methods_exist = !docs.methods.is_empty();
+    let examples_exist = !docs.examples.is_empty();
+    let name = &docs.name;
+    let arguments = &docs.arguments;
+    let synopsis = &docs.synopsis;
+    let constructors = &docs.constructors;
     let synopsis = section_content(type_synopsis(synopsis, constructors, function_name));
-    let methods = section_content(list_of_functions(&methods, function_name));
-    let examples = section_content(list_of_examples(&examples));
-    let tags = section_content(list_of_tags(&tags));
+    let methods = section_content(list_of_functions(&docs.methods, function_name));
+    let examples = section_content(list_of_examples(&docs.examples));
+    let tags = section_content(list_of_tags(&docs.tags));
 
     let content = owned_html! {
         : header(ICON_TYPE, type_header(name.name(), arguments_list(arguments)));
@@ -177,13 +179,14 @@ fn type_synopsis<'a>(
         }
         ul(class="list-disc list-outside marker:text-typeName") {
             @ for method in constructors.iter() {
-                : constructor(method, function_name);
+                : single_constructor(method, function_name);
             }
         }
     }
 }
 
-fn constructor<'a>(
+/// A documentation for a single constructor in the list.
+fn single_constructor<'a>(
     method: &'a Function,
     function_name: Option<&'a QualifiedName>,
 ) -> Box<dyn Render + 'a> {
@@ -201,6 +204,7 @@ fn constructor<'a>(
     }
 }
 
+/// A list of methods defined for the type.
 fn list_of_functions<'a>(
     functions: &'a [Function],
     function_name: Option<&'a QualifiedName>,
@@ -208,33 +212,35 @@ fn list_of_functions<'a>(
     box_html! {
         ul(class="list-disc list-inside") {
             @ for f in functions.iter() {
-                : function(f, function_name);
+                : single_function(f, function_name);
             }
         }
     }
 }
 
-fn function<'a>(
-    method: &'a Function,
+/// A documentation for a single method in the list.
+fn single_function<'a>(
+    function: &'a Function,
     function_name: Option<&'a QualifiedName>,
 ) -> Box<dyn Render + 'a> {
-    let highlight = function_name.map(|n| n == &*method.name).unwrap_or(false);
+    let highlight = function_name.map(|n| n == &*function.name).unwrap_or(false);
     box_html! {
-        li(id=anchor_name(&method.name)) {
+        li(id=anchor_name(&function.name)) {
             span(class=labels!("text-methodName", "font-semibold", "bg-yellow-100" => highlight)) {
                 span(class="opacity-85") {
-                    : method.name.name();
+                    : function.name.name();
                 }
-                span(class="opacity-34") { : arguments_list(&method.arguments); }
+                span(class="opacity-34") { : arguments_list(&function.arguments); }
             }
-            : function_docs(method);
+            : function_docs(function);
         }
     }
 }
 
-/// Documentation of a function. If the first [`DocSection`] is of type
+/// Synopsis of a function. If the first [`DocSection`] is of type
 /// [`DocSection::Paragraph`], it is rendered on the first line, after the list of arguments. All
-/// other sections are rendered as separate paragraphs below.
+/// other sections are rendered as separate paragraphs below. Examples for the function are rendered
+/// below the main part of the documentation in a separate subsection.
 fn function_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
     let (first, rest) = match &constructor.synopsis.as_ref()[..] {
         [DocSection::Paragraph { body }, rest @ ..] => (Some(body), rest),
@@ -269,19 +275,18 @@ fn function_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
 /// - Functions.
 /// - Examples.
 fn render_module_documentation(
-    module_docs: &ModuleDocumentation,
+    docs: &ModuleDocumentation,
     function_name: Option<&QualifiedName>,
 ) -> String {
-    let ModuleDocumentation { name, types, methods, synopsis, examples, tags, .. } = module_docs;
-
-    let types_exist = !types.is_empty();
-    let methods_exist = !methods.is_empty();
-    let examples_exist = !examples.is_empty();
-    let synopsis = section_content(module_synopsis(synopsis));
-    let types = section_content(list_of_types(&types));
-    let methods = section_content(list_of_functions(&methods, function_name));
-    let examples = section_content(list_of_examples(examples));
-    let tags = section_content(list_of_tags(&tags));
+    let types_exist = !docs.types.is_empty();
+    let methods_exist = !docs.methods.is_empty();
+    let examples_exist = !docs.examples.is_empty();
+    let name = &docs.name;
+    let synopsis = section_content(module_synopsis(&docs.synopsis));
+    let types = section_content(list_of_types(&docs.types));
+    let methods = section_content(list_of_functions(&docs.methods, function_name));
+    let examples = section_content(list_of_examples(&docs.examples));
+    let tags = section_content(list_of_tags(&docs.tags));
     let content = owned_html! {
         : header(ICON_TYPE, module_header(name.name()));
         : &tags;
@@ -302,17 +307,19 @@ fn render_module_documentation(
     docs_content(content).into_string().unwrap()
 }
 
+/// A list of types defined in the module.
 fn list_of_types<'a>(types: &'a Types) -> Box<dyn Render + 'a> {
     box_html! {
         ul(class="list-disc list-inside") {
             @ for type_ in types.iter() {
-                : type_item(type_);
+                : single_type(type_);
             }
         }
     }
 }
 
-fn type_item<'a>(type_: &'a TypeDocumentation) -> Box<dyn Render + 'a> {
+/// A single type in the list.
+fn single_type<'a>(type_: &'a TypeDocumentation) -> Box<dyn Render + 'a> {
     box_html! {
         li(id=anchor_name(&type_.name), class="text-typeName font-semibold") {
             span(class="opacity-85") {
@@ -323,17 +330,20 @@ fn type_item<'a>(type_: &'a TypeDocumentation) -> Box<dyn Render + 'a> {
     }
 }
 
+/// List of examples for the entity.
 fn list_of_examples<'a>(examples: &'a Examples) -> Box<dyn Render + 'a> {
     box_html! {
         @ for example in examples.iter() {
             div(class="bg-exampleBackground rounded p-3 mb-1") {
-                : Raw(get_example(example));
+                : Raw(example_from_doc_section(example));
             }
         }
     }
 }
 
-fn get_example(doc_section: &DocSection) -> String {
+/// Build an HTML code of the example from the documentation section. Engine already provides as
+/// with a preformatted HTML code, but we need to modify some tags in order to properly style it.
+fn example_from_doc_section(doc_section: &DocSection) -> String {
     match doc_section {
         DocSection::Marked { mark: Mark::Example, body, .. } => body
             .replace("<pre>", "<div class=\"whitespace-pre overflow-x-auto py-2\">")
@@ -387,7 +397,7 @@ fn render_function_documentation(docs: &FunctionDocumentation) -> String {
 
     let examples_exist = !docs.examples.is_empty();
     let synopsis = section_content(function_synopsis(synopsis));
-    let tags = section_content(list_of_tags(&tags));
+    let tags = section_content(list_of_tags(tags));
     let examples = section_content(list_of_examples(&docs.examples));
     let content = owned_html! {
         : header(ICON_TYPE, function_header(name.name(), arguments_list(arguments)));
@@ -429,7 +439,7 @@ fn render_local_documentation(docs: &LocalDocumentation) -> String {
 
     let examples_exist = !docs.examples.is_empty();
     let synopsis = section_content(local_synopsis(synopsis));
-    let tags = section_content(list_of_tags(&tags));
+    let tags = section_content(list_of_tags(tags));
     let examples = section_content(list_of_examples(&docs.examples));
 
     let content = owned_html! {
@@ -551,7 +561,7 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
         DocSection::Marked { mark, header, body } => {
             let background_color = match mark {
                 Mark::Important => "bg-importantBackground",
-                Mark::Info => "bg-info",
+                Mark::Info => "bg-infoBackground",
                 _ => "",
             };
             let mark = match mark {
@@ -575,6 +585,7 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
     }
 }
 
+/// A list of tags.
 fn list_of_tags<'a>(tags: &'a [Tag]) -> Box<dyn Render + 'a> {
     box_html! {
         div(class="flex flex-row flex-wrap") {
@@ -585,6 +596,7 @@ fn list_of_tags<'a>(tags: &'a [Tag]) -> Box<dyn Render + 'a> {
     }
 }
 
+/// A single tag in the list.
 fn single_tag<'a>(tag: &'a Tag) -> Box<dyn Render + 'a> {
     box_html! {
         div(class="bg-tagBackground rounded-lg px-2 py-1 mr-2 mb-1") {
@@ -600,5 +612,5 @@ fn single_tag<'a>(tag: &'a Tag) -> Box<dyn Render + 'a> {
 /// Anchor name for the provided qualified name. It is used to set the unique `id` attribute for the
 /// generated HTML elements.
 pub fn anchor_name(name: &QualifiedName) -> String {
-    name.to_string().replace(".", "_").to_lowercase()
+    name.to_string().replace('.', "_").to_lowercase()
 }

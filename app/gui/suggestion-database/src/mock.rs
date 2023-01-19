@@ -12,6 +12,7 @@ use double_representation::name::QualifiedName;
 use enso_text::Location;
 
 
+
 // =================
 // === Constants ===
 // =================
@@ -73,6 +74,8 @@ impl Builder {
         default()
     }
 
+    /// Create a builder from an already existing database. The builder will start with the next
+    /// available entry id.
     pub fn from_existing_db(db: SuggestionDatabase) -> Self {
         let next_id = db.entries.borrow().keys().cloned().max().unwrap_or_default() + 1;
         Self { next_id, result: db, in_module: None, in_type: None }
@@ -92,15 +95,9 @@ impl Builder {
     /// module, the `segment` shall be just a name of the new sub-module.
     pub fn add_and_enter_module<S>(&mut self, segment: S, modifier: impl FnOnce(Entry) -> Entry)
     where S: Into<ImString> + TryInto<QualifiedName, Error: Debug> {
-        let module_path = if let Some(path) = &mut self.in_module {
-            path.push_segment(segment.into());
-            path.clone()
-        } else {
-            let initial_path = segment.try_into().unwrap();
-            self.in_module = Some(initial_path.clone());
-            initial_path
-        };
-        self.add_entry(Entry::new_module(module_path), modifier);
+        self.enter_module(segment);
+        let module_path = self.in_module.as_ref().unwrap();
+        self.add_entry(Entry::new_module(module_path.clone()), modifier);
     }
 
     /// Add a new type and set it as new context, so the next entries will be added inside this type
@@ -132,7 +129,7 @@ impl Builder {
             path.push_segment(segment.into());
         } else {
             let initial_path = segment.try_into().unwrap();
-            self.in_module = Some(initial_path.clone());
+            self.in_module = Some(initial_path);
         }
     }
 
@@ -198,11 +195,9 @@ impl Builder {
     ) {
         let in_module = self.in_module.as_ref().expect("Cannot add function without context.");
         let return_type = return_type.try_into().expect("Invalid return type.");
-        self.add_entry(
-            Entry::new_function(in_module.clone(), name, return_type, scope)
-                .with_arguments(arguments),
-            modifier,
-        );
+        let function = Entry::new_function(in_module.clone(), name, return_type, scope);
+        let entry = function.with_arguments(arguments);
+        self.add_entry(entry, modifier);
     }
 
     /// Add a new local.
@@ -215,7 +210,7 @@ impl Builder {
         scope: RangeInclusive<Location<enso_text::Utf16CodeUnit>>,
         modifier: impl FnOnce(Entry) -> Entry,
     ) {
-        let in_module = self.in_module.as_ref().expect("Cannot add function without context.");
+        let in_module = self.in_module.as_ref().expect("Cannot add local without context.");
         let return_type = return_type.try_into().expect("Invalid return type.");
         self.add_entry(Entry::new_local(in_module.clone(), name, return_type, scope), modifier);
     }

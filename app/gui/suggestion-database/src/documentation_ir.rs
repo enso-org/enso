@@ -60,10 +60,14 @@ impl EntryDocumentation {
                 }
                 Kind::Constructor => Self::constructor_docs(db, &entry)?,
                 Kind::Method => Self::method_docs(db, &entry)?,
-                Kind::Function =>
-                    Documentation::Function(FunctionDocumentation::from_entry(&entry).into()).into(),
-                Kind::Local =>
-                    Documentation::Local(LocalDocumentation::from_entry(&entry).into()).into(),
+                Kind::Function => {
+                    let function_docs = FunctionDocumentation::from_entry(&entry).into();
+                    Documentation::Function(function_docs).into()
+                }
+                Kind::Local => {
+                    let local_docs = LocalDocumentation::from_entry(&entry).into();
+                    Documentation::Local(local_docs).into()
+                }
             },
             Err(_) => {
                 error!("No entry found for id: {id:?}");
@@ -160,30 +164,18 @@ pub enum Placeholder {
 pub enum Documentation {
     Module(Rc<ModuleDocumentation>),
     Type(Rc<TypeDocumentation>),
-    Constructor {
-        name:      Rc<QualifiedName>,
-        type_docs: Rc<TypeDocumentation>,
-    },
-    Method {
-        name:      Rc<QualifiedName>,
-        type_docs: Rc<TypeDocumentation>,
-    },
-    ModuleMethod {
-        name:        Rc<QualifiedName>,
-        module_docs: Rc<ModuleDocumentation>,
-    },
-    /// We temporarily do not support documentation of the `Local` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
+    Constructor { name: Rc<QualifiedName>, type_docs: Rc<TypeDocumentation> },
+    Method { name: Rc<QualifiedName>, type_docs: Rc<TypeDocumentation> },
+    ModuleMethod { name: Rc<QualifiedName>, module_docs: Rc<ModuleDocumentation> },
     Function(Rc<FunctionDocumentation>),
-    /// We temporarily do not support documentation of the `Local` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
     Local(Rc<LocalDocumentation>),
 }
 
 impl Documentation {
-    /// Qualified name of the documented function. Functions are the part of the documentation for
-    /// the larger entity, e.g. constructor documentation is embedded into the type
-    /// documentation. This getter is used to scroll to the function name in the documentation.
+    /// Qualified name of the documented function. Functions are part of the documentation for
+    /// the larger entity, e.g., constructor documentation is embedded into the type
+    /// documentation. The returned qualified name is used to scroll to the corresponding section in
+    /// a larger documentation page.
     pub fn function_name(&self) -> Option<&QualifiedName> {
         match self {
             Documentation::Constructor { name, .. } => Some(name),

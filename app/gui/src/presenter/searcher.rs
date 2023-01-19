@@ -295,7 +295,7 @@ impl Model {
             if let Some(id) = group.component_id {
                 self.controller.documentation_for_entry(id)
             } else {
-                Placeholder::VirtualComponentGroup { name: group.name.clone().into() }.into()
+                Placeholder::VirtualComponentGroup { name: group.name.clone() }.into()
             }
         } else {
             default()

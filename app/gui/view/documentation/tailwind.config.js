@@ -18,9 +18,9 @@ module.exports = {
                 tagBackground: '#f5f5f5',
             },
             opacity: {
-                '85': '.85',
-                '34': '.34'
-            }
+                85: '.85',
+                34: '.34',
+            },
         },
     },
     plugins: [],
