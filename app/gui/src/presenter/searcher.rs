@@ -19,6 +19,7 @@ use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 
 use enso_frp as frp;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::Placeholder;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
@@ -268,43 +269,18 @@ impl Model {
         })
     }
 
-    fn documentation_of_component2(
+    fn documentation_of_component(
         &self,
         id: view::component_browser::component_list_panel::grid::GroupEntryId,
     ) -> EntryDocumentation {
         let component = self.controller.provider().component_by_view_id(id);
         if let Some(component) = component {
-            let id = component.id();
-            if let Some(id) = id {
-                self.controller.documentation_for_entry(id)
-            } else {
-                EntryDocumentation::default()
-            }
-        } else {
-            EntryDocumentation::default()
-        }
-    }
-
-    fn documentation_of_component(
-        &self,
-        id: view::component_browser::component_list_panel::grid::GroupEntryId,
-    ) -> String {
-        let component = self.controller.provider().component_by_view_id(id);
-        if let Some(component) = component {
             match component.data {
-                component::Data::FromDatabase { entry, .. } => {
-                    if let Some(documentation) = &entry.documentation_html {
-                        let title = title_for_docs(&entry);
-                        format!(
-                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
-                        )
-                    } else {
-                        doc_placeholder_for(&entry)
-                    }
-                }
+                component::Data::FromDatabase { id, .. } =>
+                    self.controller.documentation_for_entry(*id),
                 component::Data::Virtual { snippet } => {
                     if let Some(documentation) = &snippet.documentation_html {
-                        documentation.to_string()
+                        EntryDocumentation::Builtin(documentation.into())
                     } else {
                         default()
                     }
@@ -315,10 +291,14 @@ impl Model {
         }
     }
 
-    fn documentation_of_group(&self, id: component_grid::GroupId) -> String {
+    fn documentation_of_group(&self, id: component_grid::GroupId) -> EntryDocumentation {
         let group = self.controller.provider().group_by_view_id(id);
         if let Some(group) = group {
-            iformat!("<div class=\"enso docs summary\"><p />{group.name}</div>")
+            if let Some(id) = group.component_id {
+                self.controller.documentation_for_entry(id)
+            } else {
+                Placeholder::VirtualComponentGroup { name: group.name.clone().into() }.into()
+            }
         } else {
             default()
         }
@@ -383,20 +363,12 @@ impl Searcher {
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
                     entry_hovered <- grid.hovered.map(|&s| s?.as_entry_id());
-                    // entry_docs <- all_with3(&action_list_changed,
-                    //     &entry_selected,
-                    //     &entry_hovered,
-                    //     f!([model](_, selected, hovered) {
-                    //         let entry = hovered.as_ref().unwrap_or(selected);
-                    //         model.documentation_of_component(*entry)
-                    //     })
-                    // );
                     entry_docs <- all_with3(&action_list_changed,
                         &entry_selected,
                         &entry_hovered,
                         f!([model](_, selected, hovered) {
                             let entry = hovered.as_ref().unwrap_or(selected);
-                            model.documentation_of_component2(*entry)
+                            model.documentation_of_component(*entry)
                         })
                     );
                     header_selected <- grid.active.filter_map(|element| {
@@ -408,7 +380,7 @@ impl Searcher {
                         }
                     });
                     header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
-                    documentation.frp.display_docs <+ entry_docs;
+                    documentation.frp.display_documentation <+ entry_docs;
                     documentation.frp.display_documentation <+ header_docs;
 
                     eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));

@@ -3,15 +3,20 @@
 use enso_prelude::*;
 use horrorshow::prelude::*;
 
+use double_representation::name::QualifiedName;
 use enso_suggestion_database::documentation_ir::Constructors;
 use enso_suggestion_database::documentation_ir::Documentation;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::Examples;
 use enso_suggestion_database::documentation_ir::Function;
 use enso_suggestion_database::documentation_ir::FunctionDocumentation;
 use enso_suggestion_database::documentation_ir::LocalDocumentation;
 use enso_suggestion_database::documentation_ir::ModuleDocumentation;
+use enso_suggestion_database::documentation_ir::Placeholder;
 use enso_suggestion_database::documentation_ir::Synopsis;
+use enso_suggestion_database::documentation_ir::Tag;
 use enso_suggestion_database::documentation_ir::TypeDocumentation;
+use enso_suggestion_database::documentation_ir::Types;
 use enso_suggestion_database::engine_protocol::language_server::DocSection;
 use enso_suggestion_database::engine_protocol::language_server::Mark;
 use enso_suggestion_database::entry::Argument;
@@ -55,22 +60,45 @@ fn svg_icon(content: &'static str) -> impl Render {
 /// Render entry documentation to HTML code with Tailwind CSS styles.
 pub fn render(docs: EntryDocumentation) -> String {
     match docs {
-        EntryDocumentation::Placeholder(_) => String::from("No documentation"),
+        EntryDocumentation::Placeholder(placeholder) => match placeholder {
+            Placeholder::NoDocumentation => String::from("No documentation available."),
+            Placeholder::VirtualComponentGroup { name } =>
+                render_virtual_component_group_docs(name),
+        },
         EntryDocumentation::Docs(docs) => render_documentation(docs),
+        EntryDocumentation::Builtin(docs) => render_builtin_docs(docs),
     }
 }
 
 fn render_documentation(docs: Documentation) -> String {
     match docs {
-        Documentation::Module(module_docs) => render_module_documentation(&module_docs),
-        Documentation::Type(type_docs) => render_type_documentation(&type_docs),
-        Documentation::Constructor { type_docs, .. } => render_type_documentation(&type_docs),
-        Documentation::Method { type_docs, .. } => render_type_documentation(&type_docs),
-        Documentation::ModuleMethod { module_docs, .. } =>
-            render_module_documentation(&module_docs),
+        Documentation::Module(module_docs) => render_module_documentation(&module_docs, None),
+        Documentation::Type(type_docs) => render_type_documentation(&type_docs, None),
+        Documentation::Constructor { type_docs, name } =>
+            render_type_documentation(&type_docs, Some(&name)),
+        Documentation::Method { type_docs, name } =>
+            render_type_documentation(&type_docs, Some(&name)),
+        Documentation::ModuleMethod { module_docs, name } =>
+            render_module_documentation(&module_docs, Some(&name)),
         Documentation::Function(docs) => render_function_documentation(&docs),
         Documentation::Local(docs) => render_local_documentation(&docs),
     }
+}
+
+fn render_virtual_component_group_docs(name: ImString) -> String {
+    let content = owned_html! {
+        h1(class="text-2xl font-bold") {
+            : &*name
+        }
+    };
+    docs_content(content).into_string().unwrap()
+}
+
+fn render_builtin_docs(docs: ImString) -> String {
+    let content = owned_html! {
+        : Raw(&*docs);
+    };
+    docs_content(content).into_string().unwrap()
 }
 
 // === Types ===
@@ -80,25 +108,35 @@ fn render_documentation(docs: Documentation) -> String {
 /// Consists of the following parts:
 /// - Type name.
 /// - Synopsis and a list of constructors.
-/// - Methods TODO(https://www.pivotaltracker.com/story/show/184024167).
-/// - Examples TODO(https://www.pivotaltracker.com/story/show/184024198).
-fn render_type_documentation(type_docs: &TypeDocumentation) -> String {
-    let TypeDocumentation { name, arguments, constructors, methods, synopsis, .. } = type_docs;
+/// - Methods.
+/// - Examples.
+fn render_type_documentation(
+    type_docs: &TypeDocumentation,
+    function_name: Option<&QualifiedName>,
+) -> String {
+    let TypeDocumentation {
+        name, arguments, constructors, methods, synopsis, examples, tags, ..
+    } = type_docs;
+
+    let methods_exist = !methods.is_empty();
+    let examples_exist = !examples.is_empty();
+    let synopsis = section_content(type_synopsis(synopsis, constructors, function_name));
+    let methods = section_content(list_of_functions(&methods, function_name));
+    let examples = section_content(list_of_examples(&examples));
+    let tags = section_content(list_of_tags(&tags));
 
     let content = owned_html! {
         : header(ICON_TYPE, type_header(name.name(), arguments_list(arguments)));
-        : type_synopsis(synopsis, constructors);
-        : header(ICON_METHODS, methods_header());
-        ul(class="list-disc list-inside") {
-            @ for method in methods.iter() {
-                li(class="text-base") {
-                    : method.name.name();
-                    : arguments_list(&method.arguments);
-                    : function_docs(method);
-                }
-            }
+        : &tags;
+        : &synopsis;
+        @ if methods_exist {
+            : header(ICON_METHODS, methods_header());
+            : &methods;
         }
-        : header(ICON_EXAMPLES, examples_header());
+        @ if examples_exist {
+            : header(ICON_EXAMPLES, examples_header());
+            : &examples;
+        }
     };
     docs_content(content).into_string().unwrap()
 }
@@ -106,9 +144,9 @@ fn render_type_documentation(type_docs: &TypeDocumentation) -> String {
 /// A header for the type documentation.
 fn type_header<'a>(name: &'a str, arguments: impl Render + 'a) -> Box<dyn Render + 'a> {
     box_html! {
-        span(class="text-2xl font-bold") {
-            span(class="text-type") { : name }
-            span(class="text-arguments") { : &arguments }
+        span(class="text-2xl font-bold text-typeName") {
+            span { : name }
+            span(class="opacity-34") { : &arguments }
         }
     }
 }
@@ -116,7 +154,7 @@ fn type_header<'a>(name: &'a str, arguments: impl Render + 'a) -> Box<dyn Render
 /// A header for the "Methods" section.
 fn methods_header() -> impl Render {
     owned_html! {
-        h1(class="text-xl font-semibold text-methods") {
+        h1(class="text-xl font-semibold text-methodsHeader") {
             : "Methods"
         }
     }
@@ -126,28 +164,70 @@ fn methods_header() -> impl Render {
 fn type_synopsis<'a>(
     synopsis: &'a Synopsis,
     constructors: &'a Constructors,
+    function_name: Option<&'a QualifiedName>,
 ) -> Box<dyn Render + 'a> {
     box_html! {
-        div(class="pl-7") {
-            @ for p in synopsis.iter() {
-                : paragraph(p);
-            }
+        @ for p in synopsis.iter() {
+            : paragraph(p);
         }
         @ if !constructors.is_empty() {
-            p(class="pl-7") {
+            p {
                 : "Constructors:"
             }
         }
-        ul(class="pl-7 list-disc list-outside marker:text-type") {
+        ul(class="list-disc list-outside marker:text-typeName") {
             @ for method in constructors.iter() {
-                li {
-                    span(class="text-type font-bold") {
-                        : method.name.name();
-                        : arguments_list(&method.arguments);
-                    }
-                    : function_docs(method);
-                }
+                : constructor(method, function_name);
             }
+        }
+    }
+}
+
+fn constructor<'a>(
+    method: &'a Function,
+    function_name: Option<&'a QualifiedName>,
+) -> Box<dyn Render + 'a> {
+    let highlight = function_name.map(|n| n == &*method.name).unwrap_or(false);
+    box_html! {
+        li(id=anchor_name(&method.name)) {
+            span(class=labels!("text-typeName", "font-bold", "bg-yellow-100" => highlight)) {
+                span(class="opacity-85") {
+                    : method.name.name();
+                }
+                span(class="opacity-34") { : arguments_list(&method.arguments); }
+            }
+            : function_docs(method);
+        }
+    }
+}
+
+fn list_of_functions<'a>(
+    functions: &'a [Function],
+    function_name: Option<&'a QualifiedName>,
+) -> Box<dyn Render + 'a> {
+    box_html! {
+        ul(class="list-disc list-inside") {
+            @ for f in functions.iter() {
+                : function(f, function_name);
+            }
+        }
+    }
+}
+
+fn function<'a>(
+    method: &'a Function,
+    function_name: Option<&'a QualifiedName>,
+) -> Box<dyn Render + 'a> {
+    let highlight = function_name.map(|n| n == &*method.name).unwrap_or(false);
+    box_html! {
+        li(id=anchor_name(&method.name)) {
+            span(class=labels!("text-methodName", "font-semibold", "bg-yellow-100" => highlight)) {
+                span(class="opacity-85") {
+                    : method.name.name();
+                }
+                span(class="opacity-34") { : arguments_list(&method.arguments); }
+            }
+            : function_docs(method);
         }
     }
 }
@@ -161,12 +241,18 @@ fn function_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
         [_, rest @ ..] => (None, rest),
         [] => (None, default()),
     };
+    let tags = list_of_tags(&constructor.tags);
     box_html! {
         @ if let Some(first) = first {
-            span { : ", "; : first; }
+            span { : ", "; : Raw(first); }
         }
+        : &tags;
         @ for p in rest {
             : paragraph(p);
+        }
+        @ if !constructor.examples.is_empty() {
+            h2(class="font-semibold") { : "Examples" }
+            : list_of_examples(&constructor.examples);
         }
     }
 }
@@ -179,46 +265,72 @@ fn function_docs<'a>(constructor: &'a Function) -> Box<dyn Render + 'a> {
 /// Consists of the following parts:
 /// - Module name
 /// - Synopsis.
-/// - Types TODO(https://www.pivotaltracker.com/story/show/184024179).
-/// - Functions TODO(https://www.pivotaltracker.com/story/show/184024167).
-/// - Examples TODO(https://www.pivotaltracker.com/story/show/184024198).
-fn render_module_documentation(module_docs: &ModuleDocumentation) -> String {
-    let ModuleDocumentation { name, types, methods, synopsis, .. } = module_docs;
+/// - Types.
+/// - Functions.
+/// - Examples.
+fn render_module_documentation(
+    module_docs: &ModuleDocumentation,
+    function_name: Option<&QualifiedName>,
+) -> String {
+    let ModuleDocumentation { name, types, methods, synopsis, examples, tags, .. } = module_docs;
 
+    let types_exist = !types.is_empty();
+    let methods_exist = !methods.is_empty();
+    let examples_exist = !examples.is_empty();
+    let synopsis = section_content(module_synopsis(synopsis));
+    let types = section_content(list_of_types(&types));
+    let methods = section_content(list_of_functions(&methods, function_name));
+    let examples = section_content(list_of_examples(examples));
+    let tags = section_content(list_of_tags(&tags));
     let content = owned_html! {
         : header(ICON_TYPE, module_header(name.name()));
-        : module_synopsis(synopsis);
-        : header(ICON_METHODS, types_header());
-        ul(class="list-disc list-inside") {
-            @ for ty in types.iter() {
-                li(class="text-base") {
-                    : ty.name.name()
-                }
-            }
+        : &tags;
+        : &synopsis;
+        @ if types_exist {
+            : header(ICON_METHODS, types_header());
+            : &types;
         }
-        : header(ICON_METHODS, functions_header());
-        ul(class="list-disc list-inside") {
-            @ for method in methods.iter() {
-                li(class="text-base") {
-                    : method.name.name();
-                    : arguments_list(&method.arguments);
-                    : function_docs(method);
-                    @ for example in method.examples.iter() {
-                        div(class="bg-gray-200 rounded p-4") {
-                            : Raw(get_example(example));
-                        }
-                    }
-                }
-            }
+        @ if methods_exist {
+            : header(ICON_METHODS, functions_header());
+            : &methods;
         }
-        : header(ICON_EXAMPLES, examples_header());
-        @ for example in module_docs.examples.iter() {
-            div(class="bg-gray-200 rounded p-4") {
-                : Raw(get_example(example));
-            }
+        @ if examples_exist {
+            : header(ICON_EXAMPLES, examples_header());
+            : &examples;
         }
     };
     docs_content(content).into_string().unwrap()
+}
+
+fn list_of_types<'a>(types: &'a Types) -> Box<dyn Render + 'a> {
+    box_html! {
+        ul(class="list-disc list-inside") {
+            @ for type_ in types.iter() {
+                : type_item(type_);
+            }
+        }
+    }
+}
+
+fn type_item<'a>(type_: &'a TypeDocumentation) -> Box<dyn Render + 'a> {
+    box_html! {
+        li(id=anchor_name(&type_.name), class="text-typeName font-semibold") {
+            span(class="opacity-85") {
+                : type_.name.name();
+            }
+            span(class="opacity-34") { : arguments_list(&type_.arguments); }
+        }
+    }
+}
+
+fn list_of_examples<'a>(examples: &'a Examples) -> Box<dyn Render + 'a> {
+    box_html! {
+        @ for example in examples.iter() {
+            div(class="bg-exampleBackground rounded p-3 mb-1") {
+                : Raw(get_example(example));
+            }
+        }
+    }
 }
 
 fn get_example(doc_section: &DocSection) -> String {
@@ -233,7 +345,7 @@ fn get_example(doc_section: &DocSection) -> String {
 /// A header for the module documentation.
 fn module_header<'a>(name: &'a str) -> Box<dyn Render + 'a> {
     box_html! {
-        h1(class="text-2xl font-bold text-module") {
+        h1(class="text-2xl font-bold text-moduleName") {
             : name
         }
     }
@@ -242,7 +354,7 @@ fn module_header<'a>(name: &'a str) -> Box<dyn Render + 'a> {
 /// A header for the "Functions" section.
 fn functions_header() -> impl Render {
     owned_html! {
-        h1(class="text-xl font-semibold text-methods") {
+        h1(class="text-xl font-semibold text-methodsHeader") {
             : "Functions"
         }
     }
@@ -251,7 +363,7 @@ fn functions_header() -> impl Render {
 /// A header for the "Types" section.
 fn types_header() -> impl Render {
     owned_html! {
-        h1(class="text-xl font-semibold text-types") {
+        h1(class="text-xl font-semibold text-typesHeader") {
             : "Types"
         }
     }
@@ -260,10 +372,8 @@ fn types_header() -> impl Render {
 /// A synopsis of the module.
 fn module_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
     box_html! {
-        div(class="pl-7") {
-            @ for p in synopsis.iter() {
-                : paragraph(p);
-            }
+        @ for p in synopsis.iter() {
+            : paragraph(p);
         }
     }
 }
@@ -273,16 +383,19 @@ fn module_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 
 /// Render documentation of a function.
 fn render_function_documentation(docs: &FunctionDocumentation) -> String {
-    let FunctionDocumentation { name, arguments, synopsis, .. } = docs;
+    let FunctionDocumentation { name, arguments, synopsis, tags, .. } = docs;
 
+    let examples_exist = !docs.examples.is_empty();
+    let synopsis = section_content(function_synopsis(synopsis));
+    let tags = section_content(list_of_tags(&tags));
+    let examples = section_content(list_of_examples(&docs.examples));
     let content = owned_html! {
         : header(ICON_TYPE, function_header(name.name(), arguments_list(arguments)));
-        : function_synopsis(synopsis);
-        : header(ICON_EXAMPLES, examples_header());
-        @ for example in docs.examples.iter() {
-            div(class="bg-gray-200 rounded p-4") {
-                : Raw(get_example(example));
-            }
+        : &tags;
+        : &synopsis;
+        @ if examples_exist {
+            : header(ICON_EXAMPLES, examples_header());
+            : &examples;
         }
     };
     docs_content(content).into_string().unwrap()
@@ -291,9 +404,9 @@ fn render_function_documentation(docs: &FunctionDocumentation) -> String {
 /// A header for the function documentation.
 fn function_header<'a>(name: &'a str, arguments: impl Render + 'a) -> Box<dyn Render + 'a> {
     box_html! {
-        span(class="text-2xl font-bold") {
-            span(class="text-type") { : name }
-            span(class="text-arguments") { : &arguments }
+        span(class="text-2xl font-bold text-typeName") {
+            span { : name }
+            span(class="opacity-34") { : &arguments }
         }
     }
 }
@@ -301,10 +414,8 @@ fn function_header<'a>(name: &'a str, arguments: impl Render + 'a) -> Box<dyn Re
 /// A synopsis of the function.
 fn function_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
     box_html! {
-        div(class="pl-7") {
-            @ for p in synopsis.iter() {
-                : paragraph(p);
-            }
+        @ for p in synopsis.iter() {
+            : paragraph(p);
         }
     }
 }
@@ -314,16 +425,20 @@ fn function_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 
 /// Render documentation of a function.
 fn render_local_documentation(docs: &LocalDocumentation) -> String {
-    let LocalDocumentation { name, synopsis, return_type, .. } = docs;
+    let LocalDocumentation { name, synopsis, return_type, tags, .. } = docs;
+
+    let examples_exist = !docs.examples.is_empty();
+    let synopsis = section_content(local_synopsis(synopsis));
+    let tags = section_content(list_of_tags(&tags));
+    let examples = section_content(list_of_examples(&docs.examples));
 
     let content = owned_html! {
         : header(ICON_TYPE, local_header(name.name(), return_type.name()));
-        : local_synopsis(synopsis);
-        : header(ICON_EXAMPLES, examples_header());
-        @ for example in docs.examples.iter() {
-            div(class="bg-gray-200 rounded p-4") {
-                : Raw(get_example(example));
-            }
+        : &tags;
+        : &synopsis;
+        @ if examples_exist {
+            : header(ICON_EXAMPLES, examples_header());
+            : &examples;
         }
     };
     docs_content(content).into_string().unwrap()
@@ -343,10 +458,8 @@ fn local_header<'a>(name: &'a str, return_type: &'a str) -> Box<dyn Render + 'a>
 /// A synopsis of the local.
 fn local_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
     box_html! {
-        div(class="pl-7") {
-            @ for p in synopsis.iter() {
-                : paragraph(p);
-            }
+        @ for p in synopsis.iter() {
+            : paragraph(p);
         }
     }
 }
@@ -361,7 +474,15 @@ fn local_synopsis<'a>(synopsis: &'a Synopsis) -> Box<dyn Render + 'a> {
 /// class.
 fn docs_content(content: impl Render) -> impl Render {
     owned_html! {
-        div(class="enso-docs text-base pl-4 pr-2") {
+        div(class="enso-docs text-docsText bg-docsBackground pl-4 pr-2") {
+            : &content;
+        }
+    }
+}
+
+fn section_content(content: impl Render) -> impl Render {
+    owned_html! {
+        div(class="pl-7") {
             : &content;
         }
     }
@@ -406,7 +527,7 @@ fn single_argument(argument: &Argument) -> impl Render {
 /// A header for the "Examples" section.
 fn examples_header() -> impl Render {
     owned_html! {
-        h1(class="text-xl font-semibold text-examples") {
+        h1(class="text-xl font-semibold text-examplesHeader") {
             : "Examples"
         }
     }
@@ -418,7 +539,7 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
     match doc_section {
         DocSection::Keyed { key, body } => {
             box_html! {
-                p { : key; : ": "; }
+                p { : Raw(key); : ": "; }
                 : Raw(body);
             }
         }
@@ -429,7 +550,7 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
         }
         DocSection::Marked { mark, header, body } => {
             let background_color = match mark {
-                Mark::Important => "bg-important",
+                Mark::Important => "bg-importantBackground",
                 Mark::Info => "bg-info",
                 _ => "",
             };
@@ -452,4 +573,32 @@ fn paragraph<'a>(doc_section: &'a DocSection) -> Box<dyn Render + 'a> {
             p { : "Unexpected doc section type." }
         },
     }
+}
+
+fn list_of_tags<'a>(tags: &'a [Tag]) -> Box<dyn Render + 'a> {
+    box_html! {
+        div(class="flex flex-row flex-wrap") {
+            @ for tag in tags {
+                : single_tag(tag);
+            }
+        }
+    }
+}
+
+fn single_tag<'a>(tag: &'a Tag) -> Box<dyn Render + 'a> {
+    box_html! {
+        div(class="bg-tagBackground rounded-lg px-2 py-1 mr-2 mb-1") {
+            : &*tag.name;
+            @if !tag.body.is_empty() {
+                : "=";
+                : &*tag.body;
+            }
+        }
+    }
+}
+
+/// Anchor name for the provided qualified name. It is used to set the unique `id` attribute for the
+/// generated HTML elements.
+pub fn anchor_name(name: &QualifiedName) -> String {
+    name.to_string().replace(".", "_").to_lowercase()
 }

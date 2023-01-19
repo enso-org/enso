@@ -12,6 +12,7 @@ use wasm_bindgen::prelude::*;
 
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use enso_suggestion_database::engine_protocol::language_server::DocSection;
 use enso_suggestion_database::engine_protocol::language_server::Mark;
 use enso_suggestion_database::entry::Argument;
@@ -70,12 +71,11 @@ impl DatabaseWrapper {
     }
 
     /// Documentation for the currently selected entry.
-    fn documentation(&self) -> String {
+    fn documentation(&self) -> EntryDocumentation {
         let index = self.current_entry.get();
         let ids = self.database.keys();
         let id = ids[index];
-        let docs = self.database.documentation_for_entry(id);
-        ide_view_documentation::html::render(docs)
+        self.database.documentation_for_entry(id)
     }
 }
 
@@ -101,8 +101,9 @@ fn database() -> SuggestionDatabase {
                 None;
 
                 #[with_doc_section(doc_section!("Documentation for the is_some() method."))]
+                #[with_doc_section(doc_section!("Arguments" => "<ul><li>self</li></ul>"))]
                 #[with_doc_section(doc_section!(! "Important", "This method is important."))]
-                fn is_some() -> Standard.Base.Boolean;
+                fn is_some(self) -> Standard.Base.Boolean;
 
                 #[with_doc_section(doc_section!("Documentation for the Maybe.map() method."))]
                 fn map (f) -> Standard.Base.Maybe;

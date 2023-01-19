@@ -50,6 +50,8 @@ use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
+use enso_frp::web::document;
+use enso_frp::web::Element;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use ensogl::application::Application;
 use ensogl::display;
@@ -246,19 +248,26 @@ impl Model {
             visualization::Data::Binary =>
                 return Err(visualization::DataError::BinaryNotSupported),
         };
-        self.display_doc(&string);
+        // self.display_doc(&string);
         Ok(())
     }
 
-    fn display_doc2(&self, docs: EntryDocumentation) {
+    fn display_doc(&self, docs: EntryDocumentation) {
+        let anchor = docs.function_name().map(html::anchor_name);
         let html = html::render(docs);
         self.inner_dom.dom().set_inner_html(&html);
-    }
-
-    /// Displays the received data in the panel.
-    fn display_doc(&self, content: &str) {
-        self.push_to_dom(String::from(content));
-        self.attach_listeners_to_copy_buttons();
+        if let Some(anchor) = anchor {
+            if let Some(element) = document.get_element_by_id(&anchor) {
+                let offset = if let Some(html_element) = element.dyn_ref::<HtmlElement>() {
+                    html_element.offset_top()
+                } else {
+                    0
+                };
+                self.inner_dom.dom().set_scroll_top(offset);
+            }
+        } else {
+            self.inner_dom.dom().set_scroll_top(0);
+        }
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
@@ -283,9 +292,8 @@ impl Model {
 
 ensogl::define_endpoints! {
     Input {
-        /// Display documentation of the entity represented by given code.
-        display_documentation (String),
-        display_docs (EntryDocumentation),
+        /// Display documentation of the specific entry from the suggestion database.
+        display_documentation (EntryDocumentation),
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -348,13 +356,12 @@ impl View {
 
             // === Displaying documentation ===
 
-            eval frp.display_documentation ((cont) model.display_doc(cont));
-            eval frp.display_docs((docs) model.display_doc2(docs.clone()));
-            eval visualization.send_data([visualization,model](data) {
-                if let Err(error) = model.receive_data(data) {
-                    visualization.data_receive_error.emit(error)
-                }
-            });
+            eval frp.display_documentation ((docs) model.display_doc(docs.clone_ref()));
+            // eval visualization.send_data([visualization,model](data) {
+            //     if let Err(error) = model.receive_data(data) {
+            //         visualization.data_receive_error.emit(error)
+            //     }
+            // });
 
 
             // === Size and position ===

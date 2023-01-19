@@ -32,8 +32,10 @@ use std::cmp::Ordering;
 pub enum EntryDocumentation {
     /// No documentation available.
     Placeholder(Placeholder),
-    /// Documentation of the entry.
+    /// Documentation of the entry provided by the Engine.
     Docs(Documentation),
+    /// Documentation of builtin components that are not included in the suggestion database.
+    Builtin(ImString),
 }
 
 impl Default for EntryDocumentation {
@@ -69,6 +71,14 @@ impl EntryDocumentation {
             }
         };
         Ok(result)
+    }
+
+    /// Qualified name of the function-like entry. See [`Documentation::function_name`].
+    pub fn function_name(&self) -> Option<&QualifiedName> {
+        match self {
+            EntryDocumentation::Docs(docs) => docs.function_name(),
+            _ => None,
+        }
     }
 
     fn method_docs(
@@ -133,11 +143,13 @@ impl EntryDocumentation {
 // === Placeholder ===
 
 /// No documentation is available for the entry.
-#[derive(Debug, Clone, CloneRef, Copy, PartialEq)]
+#[derive(Debug, Clone, CloneRef, PartialEq)]
 #[allow(missing_docs)]
 pub enum Placeholder {
     /// Documentation is empty.
     NoDocumentation,
+    /// Documentation for the Virtual Component group.
+    VirtualComponentGroup { name: ImString },
 }
 
 // === Documentation ===
@@ -166,6 +178,20 @@ pub enum Documentation {
     /// We temporarily do not support documentation of the `Local` entries because the language
     /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
     Local(Rc<LocalDocumentation>),
+}
+
+impl Documentation {
+    /// Qualified name of the documented function. Functions are the part of the documentation for
+    /// the larger entity, e.g. constructor documentation is embedded into the type
+    /// documentation. This getter is used to scroll to the function name in the documentation.
+    pub fn function_name(&self) -> Option<&QualifiedName> {
+        match self {
+            Documentation::Constructor { name, .. } => Some(name),
+            Documentation::Method { name, .. } => Some(name),
+            Documentation::ModuleMethod { name, .. } => Some(name),
+            _ => None,
+        }
+    }
 }
 
 // =========================
