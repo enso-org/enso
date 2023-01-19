@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -185,8 +184,7 @@ public class DebugLocalScope implements TruffleObject {
     if (framePtr == null) {
       return null;
     } else {
-      Object value = getValue(frame, framePtr);
-      return HostObjectDebugWrapper.wrapHostValues(value, interop);
+      return getValue(frame, framePtr);
     }
   }
 

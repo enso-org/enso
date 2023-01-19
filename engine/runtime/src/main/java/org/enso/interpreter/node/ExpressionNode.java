@@ -212,25 +212,6 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     return new ExpressionNodeWrapper(this, probe);
   }
 
-  /**
-   * Transitively converts the given value to a wrapper that treats the host objects
-   * as simple strings. This is a workaround for https://github.com/oracle/graal/issues/5513
-   * - there is a bug in chromeinspector which reinterprets host objects in host original
-   * language, which causes NullPointerException. Therefore, we have to wrap all the
-   * host objects.
-   * @param retValue Value returned from this expression node
-   * @return Value with all the host objects wrapped.
-   */
-  @OutgoingConverter
-  public Object wrapHostObjects(Object retValue) {
-    // Wrap only if chrome inspector is attached.
-    if (EnsoContext.get(this).getChromeInspectorNotAttached().isValid()) {
-      return retValue;
-    } else {
-      return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached());
-    }
-  }
-
   @ExportMessage
   boolean hasScope(Frame frame) {
     return isInstrumentable();
