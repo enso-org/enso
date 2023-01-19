@@ -10,8 +10,7 @@ import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvaluationFailed,
   EvaluationResult,
-  ModuleNotFound,
-  ModuleNotFoundForExpressionException
+  ModuleNotFound
 }
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
@@ -98,10 +97,6 @@ class UpsertVisualisationJob(
               Some(Executable(config.executionContextId, stack))
           }
       }
-    } catch {
-      case err: ModuleNotFoundForExpressionException =>
-        replyWithError(Api.ModuleNotFoundForExpression(err.expressionId))
-        None
     } finally {
       ctx.locking.releaseWriteCompilationLock()
       ctx.locking.releaseContextLock(config.executionContextId)
@@ -128,10 +123,6 @@ class UpsertVisualisationJob(
 }
 
 object UpsertVisualisationJob {
-
-  private class ModuleNotFoundForExpressionException(
-    val expressionId: ExpressionId
-  ) extends Exception
 
   /** The number of times to retry the expression evaluation. */
   val MaxEvaluationRetryCount: Int = 5
@@ -445,44 +436,44 @@ object UpsertVisualisationJob {
   private def invalidateFirstDependent(
     expressionId: ExpressionId
   )(implicit ctx: RuntimeContext): Unit = {
-    val module = ctx.executionService.getContext
+    ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
-      .orElseThrow(() => new ModuleNotFoundForExpressionException(expressionId))
-
-    module.getIr
-      .getMetadata(DataflowAnalysis)
-      .foreach { metadata =>
-        module.getIr.preorder
-          .find(_.getExternalId.contains(expressionId))
-          .collect {
-            case name: IR.Name =>
-              DataflowAnalysis.DependencyInfo.Type
-                .Dynamic(name.name, Some(expressionId))
-            case ir =>
-              DataflowAnalysis.DependencyInfo.Type
-                .Static(ir.getId, ir.getExternalId)
-          }
-          .flatMap { expressionKey =>
-            metadata.dependents.getExternal(expressionKey)
-          }
-          .foreach { dependents =>
-            val stacks = ctx.contextManager.getAllContexts.values
-            stacks.foreach { stack =>
-              stack.headOption.foreach { frame =>
-                dependents
-                  .find { id => frame.cache.get(id) ne null }
-                  .foreach { firstDependent =>
-                    CacheInvalidation.run(
-                      stack,
-                      CacheInvalidation(
-                        CacheInvalidation.StackSelector.Top,
-                        CacheInvalidation.Command
-                          .InvalidateKeys(Seq(firstDependent))
-                      )
-                    )
-                  }
+      .ifPresent { module =>
+        module.getIr
+          .getMetadata(DataflowAnalysis)
+          .foreach { metadata =>
+            module.getIr.preorder
+              .find(_.getExternalId.contains(expressionId))
+              .collect {
+                case name: IR.Name =>
+                  DataflowAnalysis.DependencyInfo.Type
+                    .Dynamic(name.name, Some(expressionId))
+                case ir =>
+                  DataflowAnalysis.DependencyInfo.Type
+                    .Static(ir.getId, ir.getExternalId)
               }
-            }
+              .flatMap { expressionKey =>
+                metadata.dependents.getExternal(expressionKey)
+              }
+              .foreach { dependents =>
+                val stacks = ctx.contextManager.getAllContexts.values
+                stacks.foreach { stack =>
+                  stack.headOption.foreach { frame =>
+                    dependents
+                      .find { id => frame.cache.get(id) ne null }
+                      .foreach { firstDependent =>
+                        CacheInvalidation.run(
+                          stack,
+                          CacheInvalidation(
+                            CacheInvalidation.StackSelector.Top,
+                            CacheInvalidation.Command
+                              .InvalidateKeys(Seq(firstDependent))
+                          )
+                        )
+                      }
+                  }
+                }
+              }
           }
       }
   }

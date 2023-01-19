@@ -159,7 +159,8 @@ type File
     with_input_stream self open_options action =
         Managed_Resource.bracket (self.new_input_stream open_options) (_.close) action
 
-    ## Read a file using the specified file format
+    ## ALIAS Load, Open
+       Read a file using the specified file format
 
        Arguments:
        - format: A `File_Format` object used to read file into memory.
@@ -192,7 +193,8 @@ type File
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         format.read self on_problems
 
-    ## Reads all bytes in this file into a byte vector.
+    ## ALIAS Load Bytes, Open Bytes
+       Reads all bytes in this file into a byte vector.
 
        > Example
          Read all of the bytes in the file.
@@ -205,7 +207,8 @@ type File
         opts = [File_Access.Read]
         self.with_input_stream opts (_.read_all_bytes)
 
-    ## Reads the whole file into a `Text`, with specified encoding.
+    ## ALIAS Load Text, Open Text
+       Reads the whole file into a `Text`, with specified encoding.
 
        Arguments:
        - encoding: The text encoding to decode the file with. Defaults to UTF-8.
@@ -241,6 +244,31 @@ type File
     / : (Text | File) -> File
     / self subpath = self.resolve subpath
 
+    ## Join two or more path segments together, normalizing the `..` and `.` subpaths.
+
+       Arguments:
+       - subpaths: The path segment or segments to join to the path of `self`.
+
+       > Example
+         Concatenate two file path segments.
+
+             import Standard.Examples
+
+             example_append = Examples.data_dir.join "scratch_file"
+
+       > Example
+         Concatenate multiple file path segments and normalizes the result.
+
+             import Standard.Examples
+
+             example_append = Examples.data_dir.join ["2022", "10", "31", "scratch_file"]
+    join : (Text | File | Vector) -> File
+    join self subpaths = case subpaths of
+        _ : Vector -> (subpaths.fold self c->p-> c / p) . normalize
+        _ -> self.join [subpaths]
+
+    ## PRIVATE
+       Internal method to join two path segments together.
     resolve : (Text | File) -> File
     resolve self = @Builtin_Method "File.resolve"
 

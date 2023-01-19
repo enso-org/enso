@@ -340,6 +340,10 @@ impl API for Module {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn restore_temporary_changes(&self) -> FallibleResult {
+        self.model.restore_temporary_changes()
+    }
 }
 
 
