@@ -227,11 +227,6 @@ impl Module {
             let start = <Byte as enso_text::FromInContextSnapped<&text::Rope, Location<Byte>>>::from_in_context_snapped(&content, start);
             let end = <Byte as enso_text::FromInContextSnapped<&text::Rope, Location<Byte>>>::from_in_context_snapped(&content, end);
 
-            // FIXME: fix for wrong edit.text content
-            assert_eq!(Sha3_224::new(text.as_bytes()), file_edit.new_version);
-            let start = Byte::from(0);
-            let end = content.last_byte_index();
-
             let range = Range { start, end };
             let change = TextChange { range, text };
             content.apply_change(change);
