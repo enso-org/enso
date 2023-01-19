@@ -21,6 +21,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Map;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 
@@ -222,6 +223,16 @@ public final class Atom implements TruffleObject {
       msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
     }
     return Text.create(msg);
+  }
+
+  @ExportMessage
+  Class<EnsoLanguage> getLanguage(@CachedLibrary("this") InteropLibrary node) {
+    return EnsoLanguage.class;
+  }
+
+  @ExportMessage
+  boolean hasLanguage() {
+    return true;
   }
 
   @ExportMessage
