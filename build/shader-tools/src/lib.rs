@@ -1,3 +1,5 @@
+#![feature(default_free_fn)]
+
 use prelude::*;
 
 use ide_ci::define_env_var;
@@ -8,6 +10,7 @@ use ide_ci::github::RepoRef;
 
 pub use ide_ci::prelude;
 
+pub mod ci;
 pub mod cmake;
 pub mod shaderc;
 pub mod spirv_cross;
@@ -19,27 +22,13 @@ define_env_var! {
     ENSO_RELEASE_ID, octocrab::models::ReleaseId;
 }
 
-#[tokio::test]
-#[ignore]
-async fn test_run() -> Result {
-    let tag = "0.1.0";
-
-    setup_logging()?;
-    let octo = setup_octocrab().await?;
-    let handle = SHADER_TOOLS_REPO.handle(&octo);
-    let release = create_release(handle, tag).await?;
-
+pub async fn create_package(output_archive: &Path) -> Result {
     let package = tempfile::tempdir()?;
     shaderc::strip_shaderc_package(package.path()).await?;
     spirv_cross::compile_spirv_cross(package.path()).await?;
-
-    let release_handle = release::Handle::new(&octo, SHADER_TOOLS_REPO, release.id);
-    release_handle.upload_compressed_dir(package.path()).await?;
-
-
+    ide_ci::archive::compress_directory(&output_archive, package.path()).await?;
     Ok(())
 }
-
 
 pub async fn repo_handle_from_env() -> Result<repo::Handle<RepoRef<'static>>> {
     let octo = setup_octocrab().await?;

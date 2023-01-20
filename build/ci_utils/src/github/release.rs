@@ -94,6 +94,17 @@ pub trait IsReleaseExt: IsRelease + Sync {
             .await
             .anyhow_err()
     }
+
+    async fn publish(&self) -> Result<Release> {
+        self.octocrab()
+            .repos(self.repo().owner(), self.repo().name())
+            .releases()
+            .update(self.id().0)
+            .draft(false)
+            .send()
+            .await
+            .with_context(|| format!("Failed to publish the release {}.", self.id()))
+    }
 }
 
 impl<T> IsReleaseExt for T where T: IsRelease + Sync {}
