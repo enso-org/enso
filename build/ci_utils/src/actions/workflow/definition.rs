@@ -7,6 +7,8 @@ use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::convert::identity;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
 
 
 pub const DEFAULT_TIMEOUT_IN_MINUTES: u32 = 360;
@@ -174,7 +176,9 @@ impl Workflow {
 impl Workflow {
     pub fn add_job(&mut self, job: Job) -> String {
         let key = job.name.to_kebab_case();
-        self.jobs.insert(key.clone(), job);
+        if let Some(_) = self.jobs.insert(key.clone(), job) {
+            warn!("Job with name {key} already exists.");
+        }
         key
     }
 
@@ -617,8 +621,10 @@ impl Job {
     }
 
     pub fn add_step_with_output(&mut self, mut step: Step, output: impl Into<String>) {
-        // A step must have an id if we want to access its output.
-        let id = step.id.unwrap_or_else(|| Uuid::new_v4().to_string());
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        // A step must have an unique id if we want to access its output.
+        let id =
+            step.id.unwrap_or_else(|| format!("step_{}", COUNTER.fetch_add(1, Ordering::SeqCst)));
         step.id = Some(id.clone());
         self.steps.push(step);
         self.expose_output(id, output);
