@@ -1061,7 +1061,7 @@ type Builder
     unsafe_append : Any -> Nothing
     unsafe_append self item = self.java_builder.add item
 
-    ## Gets an element from the vector at a specified index (0-based).
+    ## Gets an element from the vector builder at a specified index (0-based).
 
        Arguments:
        - index: The location in the vector to get the element from. The index is
