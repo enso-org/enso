@@ -16,8 +16,6 @@ pub fn job_that_runs(bin: &str, runs_on: RunnerLabel, output: Option<&str>) -> J
 
     let mut job = Job::new(format!("Run {bin} ({runs_on:?})"), [runs_on]);
     job.steps.extend(checkout_steps);
-    // job.expose_secret_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN");
-
     let main_step = run_bin(bin).with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN");
     if let Some(output) = output {
         job.add_step_with_output(main_step, output);
@@ -30,14 +28,18 @@ pub fn job_that_runs(bin: &str, runs_on: RunnerLabel, output: Option<&str>) -> J
 #[tokio::test]
 #[ignore]
 pub async fn ci_gen() -> Result {
+    // FIXME switch to our runners once CMake is added
+    let linux = RunnerLabel::LinuxLatest;
+    let windows = RunnerLabel::WindowsLatest;
+    let macos = RunnerLabel::MacOSLatest;
+
     let mut workflow = Workflow::new("Package Tools");
     workflow.on.workflow_dispatch(default());
     workflow.on.push(default());
-    let create_release_job =
-        job_that_runs("create", RunnerLabel::Linux, Some(ENSO_RELEASE_ID.as_ref()));
+    let create_release_job = job_that_runs("create", linux, Some(ENSO_RELEASE_ID.as_ref()));
     let create_job_id = workflow.add_job(create_release_job);
 
-    let package_job_ids = [RunnerLabel::Linux, RunnerLabel::Windows, RunnerLabel::MacOS]
+    let package_job_ids = [linux, windows, macos]
         .into_iter()
         .map(|target| {
             let mut job = job_that_runs("package", target, None);
@@ -46,7 +48,7 @@ pub async fn ci_gen() -> Result {
         })
         .collect_vec();
 
-    let mut publish_job = job_that_runs("publish", RunnerLabel::Linux, None);
+    let mut publish_job = job_that_runs("publish", linux, None);
     workflow.expose_outputs(&create_job_id, &mut publish_job);
     for package_job_id in package_job_ids {
         publish_job.needs(package_job_id);
