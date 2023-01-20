@@ -661,7 +661,6 @@ fn analyze_operator(token: &str) -> token::OperatorProperties {
         "@" =>
             return operator
                 .with_unary_prefix_mode(token::Precedence::max())
-                .with_binary_infix_precedence(20)
                 .as_compile_time_operation()
                 .as_annotation(),
         "-" =>

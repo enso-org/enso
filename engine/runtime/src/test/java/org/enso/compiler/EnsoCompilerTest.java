@@ -582,12 +582,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testEmptyGroup2AndAtSymbol() throws Exception {
+  public void testEmptyGroup2() throws Exception {
     parseTest("""
     main =
         x = ()
         x = 5
-        y = @
     """);
   }
 
@@ -598,15 +597,6 @@ public class EnsoCompilerTest {
 
     type Test
         group2 : Text -> Any -> (Text | Nothing) -> Nothing
-    """);
-  }
-
-  @Test
-  public void testNotAnOperator() throws Exception {
-    parseTest("""
-    main =
-        x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
-        x.to_text
     """);
   }
 
