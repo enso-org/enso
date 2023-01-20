@@ -1,5 +1,6 @@
 name: Package Tools
 on:
+  push: {}
   workflow_dispatch: {}
 jobs:
   run-create:
@@ -21,13 +22,13 @@ jobs:
         repository: enso-org/shader-tools
         clean: false
         submodules: recursive
-    - id: 65480e11-cb35-4034-9c2f-11b27f6bb93f
+    - id: 1656e6c1-8bc3-411a-bedb-74d94d958730
       run: cargo run --package enso-shader-tools --bin create
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 360
     outputs:
-      ENSO_RELEASE_ID: ${{ steps.65480e11-cb35-4034-9c2f-11b27f6bb93f.outputs.ENSO_RELEASE_ID }}
+      ENSO_RELEASE_ID: ${{ steps.1656e6c1-8bc3-411a-bedb-74d94d958730.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
   run-package:
     name: Run package

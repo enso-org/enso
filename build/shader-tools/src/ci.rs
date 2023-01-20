@@ -46,6 +46,7 @@ pub fn job_that_runs(bin: &str, runs_on: RunnerLabel, output: Option<&str>) -> J
 pub async fn ci_gen() -> Result {
     let mut workflow = Workflow::new("Package Tools");
     workflow.on.workflow_dispatch(default());
+    workflow.on.push(default());
     let create_release_job =
         job_that_runs("create", RunnerLabel::Linux, Some(ENSO_RELEASE_ID.as_ref()));
     let create_job_id = workflow.add_job(create_release_job);
