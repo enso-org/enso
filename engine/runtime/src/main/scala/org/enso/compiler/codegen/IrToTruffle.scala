@@ -408,7 +408,7 @@ class IrToTruffle(
             val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
             // build annotations
-            val annotationFunctions =
+            val annotations =
               methodDef.getMetadata(GenericAnnotations).toVector.flatMap { meta =>
                 meta.annotations
                   .collect { case annotation: IR.Name.GenericAnnotation =>
@@ -442,7 +442,7 @@ class IrToTruffle(
                     val expressionNode =
                       expressionProcessor.run(annotation.expression)
                     val closureName =
-                      s"<default::${expressionProcessor.scopeName}::${annotation.name}>"
+                      s"<default::${expressionProcessor.scopeName}>"
                     val closureRootNode = ClosureRootNode.build(
                       language,
                       expressionProcessor.scope,
@@ -462,7 +462,7 @@ class IrToTruffle(
                 new RuntimeFunction(
                   callTarget,
                   null,
-                  new FunctionSchema(annotationFunctions.toArray, arguments: _*)
+                  new FunctionSchema(annotations.toArray, arguments: _*)
                 )
               )
             )

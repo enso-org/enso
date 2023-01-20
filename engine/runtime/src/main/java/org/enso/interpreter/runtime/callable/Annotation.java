@@ -2,6 +2,9 @@ package org.enso.interpreter.runtime.callable;
 
 import com.oracle.truffle.api.nodes.RootNode;
 
+/**
+ * Annotation with callable expression.
+ */
 public class Annotation {
 
   private final RootNode expression;
@@ -12,10 +15,12 @@ public class Annotation {
     this.expression = expression;
   }
 
+  /** @return the annotation name. */
   public String getName() {
     return name;
   }
 
+  /** @return the annotation expression. */
   public RootNode getExpression() {
     return expression;
   }

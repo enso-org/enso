@@ -11,7 +11,6 @@ import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -43,8 +42,7 @@ public abstract class GetAnnotationNode extends BaseNode {
     Function function = scope.lookupMethodDefinition(targetType, methodName);
     if (function != null) {
       String parameterName = expectStringNode.execute(parameter);
-      FunctionSchema schema = function.getSchema();
-      Annotation annotation = schema.getAnnotation(parameterName);
+      Annotation annotation = function.getSchema().getAnnotation(parameterName);
       if (annotation != null) {
         var thunk = Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
         return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());

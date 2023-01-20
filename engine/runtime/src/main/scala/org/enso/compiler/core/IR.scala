@@ -8965,7 +8965,7 @@ object IR {
     @throws[CompilerError]
     def unsafeGetMetadata[K <: IRPass](
       pass: IRPass,
-      msg: String
+      msg: => String
     ): pass.Metadata = {
       ir.passData.getUnsafe(pass)(msg)
     }
