@@ -725,9 +725,6 @@ use wasm_bindgen::JsCast;
 #[before_main]
 pub fn register_get_shaders() {
     let closure = Closure::wrap(Box::new(|| {
-        // warn!(">>x2, {:?}", web_sys::window());
-        // let world = World::new();
-        // let scene = &world.default_scene;
         let map = gather_shaders();
         let js_map = js_sys::Map::new();
         for (key, code) in map {
@@ -770,18 +767,9 @@ fn extractShadersFromJs(value: JsValue) -> Result<(), JsValue> {
     Ok(())
 }
 
-// use ensogl_hardcoded_theme;
-use crate::display::style::hardcoded_theme;
-use crate::display::style::theme;
 
 pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_symbol_registry(|t| t.run_mode.set(RunMode::ShaderExtraction));
-    let style_sheet = with_symbol_registry(|t| t.style_sheet.clone_ref());
-    let themes = theme::Manager::from(&style_sheet);
-    hardcoded_theme::builtin::light::register(&themes);
-    hardcoded_theme::builtin::light::enable(&themes);
-    themes.update();
-    mem::forget(themes);
     let mut map = HashMap::new();
     display::world::STATIC_SHAPES.with(|shapes| {
         for shape_cons in shapes.borrow().iter() {

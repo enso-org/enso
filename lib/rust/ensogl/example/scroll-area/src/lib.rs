@@ -96,10 +96,6 @@ mod background {
 // ========================
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(app);
-    theme::builtin::light::register(app);
-    theme::builtin::light::enable(app);
-
     let scene = &app.display.default_scene;
     scene.camera().set_xy(Vector2(100.0, -100.0));
 

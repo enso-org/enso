@@ -17,10 +17,16 @@ export async function start({ root, assets, port }) {
 
     const freePort = await portfinder.getPortPromise({ port: port ?? DEFAULT_PORT })
 
+    // Added to test if it fixes the issue: https://github.com/expressjs/serve-static/issues/155
+    // It does not, should probably be removed. To be checked when the issue is resolved.
+    const setHeaders = (res) => {
+        res.setHeader('Cache-Control', 'no-store')
+    }
+
     const app = connect()
         .use(logger('dev', { skip: (req, res) => res.statusCode < 400 }))
-        .use(serveStatic(root))
-        .use('/assets', serveStatic(assets))
+        .use(serveStatic(root, {setHeaders}))
+        .use('/assets', serveStatic(assets, {setHeaders}))
 
     const server = app.listen(freePort)
     const wsServer = new WebSocketServer({ server, clientTracking: true, path: '/live-reload' })

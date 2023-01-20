@@ -6,7 +6,6 @@
 // ==============
 
 pub mod data;
-pub mod hardcoded_theme;
 pub mod javascript;
 pub mod path;
 pub mod sheet;

@@ -301,12 +301,14 @@ impl Model {
     }
 
     fn set_light_style(&self) {
-        ensogl_hardcoded_theme::builtin::light::enable(&self.app);
+        // FIXME
+        // ensogl_hardcoded_theme::builtin::light::enable(&self.app);
         self.set_html_style("light-theme");
     }
 
     fn set_dark_style(&self) {
-        ensogl_hardcoded_theme::builtin::dark::enable(&self.app);
+        // FIXME:
+        // ensogl_hardcoded_theme::builtin::dark::enable(&self.app);
         self.set_html_style("dark-theme");
     }
 
@@ -446,20 +448,10 @@ impl Deref for View {
 impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        ensogl_hardcoded_theme::builtin::dark::register(app);
-        ensogl_hardcoded_theme::builtin::light::register(app);
         let theme = match ARGS.theme.as_deref() {
-            Some("dark") => {
-                ensogl_hardcoded_theme::builtin::dark::enable(app);
-                Theme::Dark
-            }
-            _ => {
-                ensogl_hardcoded_theme::builtin::light::enable(app);
-                Theme::Light
-            }
+            Some("dark") => Theme::Dark,
+            _ => Theme::Light,
         };
-
-        display::style::javascript::expose_to_window(&app.themes);
 
         let scene = app.display.default_scene.clone_ref();
         let model = Model::new(app);
@@ -476,7 +468,6 @@ impl View {
         model.set_style(theme);
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
-        app.themes.update();
         let input_change_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {

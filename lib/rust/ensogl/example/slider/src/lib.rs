@@ -327,10 +327,6 @@ pub fn main() {
 
 /// Initialize a `SliderCollection` and do not drop it.
 fn init(app: &Application) {
-    theme::builtin::dark::register(app);
-    theme::builtin::light::register(app);
-    theme::builtin::light::enable(app);
-
     let slider_collection = app.new_view::<SliderCollection>();
     app.display.add_child(&slider_collection);
     Leak::new(slider_collection);

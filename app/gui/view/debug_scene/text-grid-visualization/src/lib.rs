@@ -85,10 +85,6 @@ fn init(app: &Application) {
         .expect("Failed to add font to HTML body.");
 
     let closure = ensogl::system::web::Closure::new(move |_| {
-        ensogl_hardcoded_theme::builtin::dark::register(&app);
-        ensogl_hardcoded_theme::builtin::light::register(&app);
-        ensogl_hardcoded_theme::builtin::light::enable(&app);
-
         let world = &app.display;
         let scene = &world.default_scene;
         let camera = scene.camera();

@@ -69,12 +69,15 @@ impl Registry {
         let label = V::label();
         let was_registered = self.definitions.borrow().get(label).is_some();
         if !was_registered {
-            warning!(
-                &self.logger,
-                "The view '{label}' was created but never registered, performing automatic \
-                registration. You should always register available views as soon as possible to \
-                enable their default shortcuts and spread the information about their API."
-            );
+            // FIXME[WD]: Topic of automatic registration should be re-visited when we will re-visit
+            //     the topic of shortcuts handling. We can now use the #[before_main] macro to
+            //     automatically register components.
+            // warning!(
+            //     &self.logger,
+            //     "The view '{label}' was created but never registered, performing automatic \
+            //     registration. You should always register available views as soon as possible to \
+            //     enable their default shortcuts and spread the information about their API."
+            // );
             self.register::<V>();
         }
         let view = V::new(app);

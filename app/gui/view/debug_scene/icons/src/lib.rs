@@ -49,9 +49,6 @@ mod frame {
 #[allow(dead_code)]
 pub fn entry_point_searcher_icons() {
     let app = Application::new("root");
-    ensogl_hardcoded_theme::builtin::dark::register(&app);
-    ensogl_hardcoded_theme::builtin::light::register(&app);
-    ensogl_hardcoded_theme::builtin::light::enable(&app);
     let world = app.display.clone();
     mem::forget(app);
     let scene = &world.default_scene;

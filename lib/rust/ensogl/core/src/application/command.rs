@@ -200,12 +200,15 @@ impl Registry {
         let was_registered = self.name_map.borrow().get(label).is_some();
         if !was_registered {
             self.register::<T>();
-            warning!(
-                &self.logger,
-                "The command provider '{label}' was created but never registered. You should \
-                always register available command providers as soon as possible to spread the \
-                information about their API."
-            );
+            // FIXME[WD]: Topic of automatic registration should be re-visited when we will re-visit
+            //     the topic of shortcuts handling. We can now use the #[before_main] macro to
+            //     automatically register components.
+            // warning!(
+            //     &self.logger,
+            //     "The command provider '{label}' was created but never registered. You should \
+            //     always register available command providers as soon as possible to spread the \
+            //     information about their API."
+            // );
         };
         let id = instance.id();
         self.name_map.borrow_mut().get_mut(label).unwrap().push(instance.clone_ref());

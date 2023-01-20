@@ -9,3 +9,5 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 ensogl-core = { path = "../../../core" }
+enso-shapely = { path = "../../../../shapely" }
+enso-prelude = { path = "../../../../prelude" }

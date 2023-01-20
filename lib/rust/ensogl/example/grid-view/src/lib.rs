@@ -172,10 +172,6 @@ fn pair_to_vec2(pair: (f32, f32)) -> Vector2 {
 // ========================
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(app);
-    theme::builtin::light::register(app);
-    theme::builtin::light::enable(app);
-
     let main_layer = &app.display.default_scene.layers.node_searcher;
     let grids_layer = main_layer.create_sublayer("grids");
     let hover_layer = main_layer.create_sublayer("hover");

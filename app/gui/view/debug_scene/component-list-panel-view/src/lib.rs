@@ -188,9 +188,6 @@ fn snap_to_pixel_offset(size: Vector2, scene_shape: &display::scene::Shape) -> V
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = Application::new("root");
-        theme::builtin::light::register(&app);
-        theme::builtin::light::enable(&app);
-
 
         let world = &app.display;
         let scene = &world.default_scene;
