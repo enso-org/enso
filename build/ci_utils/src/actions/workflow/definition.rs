@@ -6,7 +6,7 @@ use heck::ToKebabCase;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-
+use std::convert::identity;
 
 
 pub const DEFAULT_TIMEOUT_IN_MINUTES: u32 = 360;
@@ -604,8 +604,24 @@ pub struct Job {
 }
 
 impl Job {
-    pub fn new(name: impl Into<String>) -> Self {
-        Self { name: name.into(), timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES), ..default() }
+    pub fn new(
+        name: impl Into<String>,
+        runs_on: impl IntoIterator<Item: Into<RunnerLabel>>,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            timeout_minutes: Some(DEFAULT_TIMEOUT_IN_MINUTES),
+            runs_on: runs_on.into_iter().map(Into::into).collect(),
+            ..Default::default()
+        }
+    }
+
+    pub fn add_step_with_output(&mut self, mut step: Step, output: impl Into<String>) {
+        // A step must have an id if we want to access its output.
+        let id = step.id.unwrap_or_else(|| Uuid::new_v4().to_string());
+        step.id = Some(id.clone());
+        self.steps.push(step);
+        self.expose_output(id, output);
     }
 
     pub fn expose_output(&mut self, step_id: impl AsRef<str>, output_name: impl Into<String>) {
@@ -817,6 +833,7 @@ pub enum CheckoutArgumentSubmodules {
 
 pub mod step {
     use super::*;
+    use crate::github;
 
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -825,6 +842,11 @@ pub mod step {
     pub enum Argument {
         #[serde(rename_all = "kebab-case")]
         Checkout {
+            #[serde(
+                skip_serializing_if = "Option::is_none",
+                with = "crate::serde::via_string_opt"
+            )]
+            repository: Option<github::Repo>,
             #[serde(skip_serializing_if = "Option::is_none")]
             clean:      Option<bool>,
             #[serde(skip_serializing_if = "Option::is_none")]
@@ -879,7 +901,7 @@ pub enum RunnerLabel {
     MatrixOs,
 }
 
-pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
+pub fn checkout_repo_step_customized(f: impl FnOnce(Step) -> Step) -> Vec<Step> {
     // This is a workaround for a bug in GH actions/checkout. If a submodule is added and removed,
     // it effectively breaks any future builds of this repository on a given self-hosted runner.
     // The workaround step below comes from:
@@ -921,12 +943,19 @@ pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
         //        shallow copy of the repo.
         uses: Some("actions/checkout@v2".into()),
         with: Some(step::Argument::Checkout {
+            repository: None,
             clean:      Some(false),
             submodules: Some(CheckoutArgumentSubmodules::Recursive),
         }),
         ..default()
     };
-    [submodules_workaround_win, submodules_workaround_linux, actual_checkout]
+    // Apply customization.
+    let actual_checkout = f(actual_checkout);
+    vec![submodules_workaround_win, submodules_workaround_linux, actual_checkout]
+}
+
+pub fn checkout_repo_step() -> impl IntoIterator<Item = Step> {
+    checkout_repo_step_customized(identity)
 }
 
 pub trait JobArchetype {

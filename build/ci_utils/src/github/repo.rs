@@ -348,4 +348,9 @@ impl<R: IsRepo> Handle<R> {
         let default_branch = self.default_branch().await?;
         crate::github::workflow::dispatch(self, workflow_id, default_branch, inputs).await
     }
+
+    pub fn release_handle(&self, id: ReleaseId) -> crate::github::release::Handle {
+        let repo = Repo::new(self.owner(), self.name());
+        crate::github::release::Handle::new(&self.octocrab, repo, id)
+    }
 }
