@@ -713,13 +713,6 @@ final class TreeToIr {
           default -> {
             var lhs = unnamedCallArgument(app.getLhs());
             var rhs = unnamedCallArgument(app.getRhs());
-            if ("@".equals(op.codeRepr()) && lhs.value() instanceof IR$Application$Prefix fn) {
-                final Option<IdentifiedLocation> where = getIdentifiedLocation(op);
-                var err = translateSyntaxError(where.get(), IR$Error$Syntax$UnrecognizedToken$.MODULE$);
-                var errArg = new IR$CallArgument$Specified(Option.empty(), err, where, meta(), diag());
-                var args = cons(rhs, cons(errArg, fn.arguments()));
-                yield new IR$Application$Prefix(fn.function(), args.reverse(), false, getIdentifiedLocation(app), meta(), diag());
-            }
             var name = new IR$Name$Literal(
               op.codeRepr(), true, getIdentifiedLocation(op), meta(), diag()
             );
