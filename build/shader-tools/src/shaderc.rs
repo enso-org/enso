@@ -1,5 +1,15 @@
 use crate::prelude::*;
 
+/// Program that discards symbols and other data from object files.
+#[derive(Debug, Clone, Copy)]
+pub struct Strip;
+
+impl Program for Strip {
+    fn executable_name(&self) -> &str {
+        "strip"
+    }
+}
+
 /// Regex that matches URLs.
 pub fn url_regex() -> regex::Regex {
     // As per https://uibakery.io/regex-library/url
@@ -63,7 +73,11 @@ pub async fn strip_shaderc_package(output_dir: &Path) -> Result {
         .map(|binary| Path::new("bin").join(binary).with_executable_extension());
 
     for file in files_to_package {
-        ide_ci::fs::tokio::copy_between(&extracted_content_dir, &output_dir, &file).await?;
+        let path =
+            ide_ci::fs::tokio::copy_between(&extracted_content_dir, &output_dir, &file).await?;
+        if TARGET_OS == OS::Linux {
+            Strip.cmd()?.arg(&path).run_ok().await?;
+        }
     }
     Ok(())
 }

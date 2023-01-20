@@ -3,10 +3,10 @@ on:
   push: {}
   workflow_dispatch: {}
 jobs:
-  run-create-linux:
-    name: Run create (Linux)
+  run-create-linux-latest:
+    name: Run create (LinuxLatest)
     runs-on:
-    - Linux
+    - ubuntu-latest
     steps:
     - if: runner.os == 'Windows'
       name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
@@ -29,12 +29,12 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: ${{ steps.step_0.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
-  run-package-linux:
-    name: Run package (Linux)
+  run-package-linux-latest:
+    name: Run package (LinuxLatest)
     needs:
-    - run-create-linux
+    - run-create-linux-latest
     runs-on:
-    - Linux
+    - ubuntu-latest
     steps:
     - if: runner.os == 'Windows'
       name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
@@ -54,14 +54,14 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
-  run-package-mac-os:
-    name: Run package (MacOS)
+  run-package-mac-os-latest:
+    name: Run package (MacOSLatest)
     needs:
-    - run-create-linux
+    - run-create-linux-latest
     runs-on:
-    - macOS
+    - macos-latest
     steps:
     - if: runner.os == 'Windows'
       name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
@@ -81,14 +81,14 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
-  run-package-windows:
-    name: Run package (Windows)
+  run-package-windows-latest:
+    name: Run package (WindowsLatest)
     needs:
-    - run-create-linux
+    - run-create-linux-latest
     runs-on:
-    - Windows
+    - windows-latest
     steps:
     - if: runner.os == 'Windows'
       name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
@@ -108,17 +108,17 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
-  run-publish-linux:
-    name: Run publish (Linux)
+  run-publish-linux-latest:
+    name: Run publish (LinuxLatest)
     needs:
-    - run-create-linux
-    - run-package-linux
-    - run-package-mac-os
-    - run-package-windows
+    - run-create-linux-latest
+    - run-package-linux-latest
+    - run-package-mac-os-latest
+    - run-package-windows-latest
     runs-on:
-    - Linux
+    - ubuntu-latest
     steps:
     - if: runner.os == 'Windows'
       name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
@@ -138,7 +138,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
       timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux-latest.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: 'true'
