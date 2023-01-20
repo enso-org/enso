@@ -158,6 +158,8 @@ impl BackendTextProvider {
                 for (pos, text) in chunks {
                     if let Some(text) = text {
                         text_cache.borrow_mut().add_item(*pos, text.clone());
+                    } else {
+                        text_cache.borrow_mut().add_item(*pos, "".to_string());
                     }
                 }
             });
