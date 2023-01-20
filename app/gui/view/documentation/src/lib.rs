@@ -50,7 +50,9 @@ use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
+use enso_frp::io::timer::DelayedInterval;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
@@ -85,6 +87,9 @@ pub const VIEW_HEIGHT: f32 = 300.0;
 
 /// Content in the documentation view when there is no data available.
 const CORNER_RADIUS: f32 = graph_editor::component::node::CORNER_RADIUS;
+
+/// Delay before updating the displayed documentation.
+const DISPLAY_DELAY_MS: i32 = 300;
 
 
 
@@ -275,12 +280,16 @@ impl View {
         let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
+        let display_delay = frp::io::timer::Timeout::new(&network);
         frp::extend! { network
 
             // === Displaying documentation ===
 
-            eval frp.display_documentation ((docs) model.display_doc(docs.clone_ref()));
-
+            docs <- any(...);
+            docs <+ frp.display_documentation;
+            display_delay.restart <+ frp.display_documentation.constant(DISPLAY_DELAY_MS);
+            display_docs <- display_delay.on_expired.map2(&docs,|_,docs| docs.clone_ref());
+            eval display_docs((docs) model.display_doc(docs.clone_ref()));
 
             // === Size and position ===
 
