@@ -289,10 +289,7 @@ impl SpriteSystem {
     /// Constructor.
     #[profile(Detail)]
     pub fn new() -> Self {
-        // let scene = scene();
         let (stats, symbol) = scene::with_symbol_registry(|t| (t.stats.clone_ref(), t.new()));
-        // let stats = scene.stats.clone_ref();
-        // let symbol = scene.new_symbol();
         let mesh = symbol.surface();
         let point_scope = mesh.point_scope();
         let instance_scope = mesh.instance_scope();

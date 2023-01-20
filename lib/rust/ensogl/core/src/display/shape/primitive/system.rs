@@ -442,15 +442,12 @@ impl ShapeSystemModel {
         if let Some(shader) = crate::display::world::PRECOMPILED_SHADERS
             .with_borrow(|map| map.get(*self.definition_path).cloned())
         {
-            self.material.borrow_mut().set_code(
-                crate::display::shader::builder::CodeTemplate::new("", shader.fragment, ""),
-            );
+            let code = crate::display::shader::builder::CodeTemplate::new("", shader.fragment, "");
+            self.material.borrow_mut().set_code(code);
         } else {
             if !scene::with_symbol_registry(|t| t.run_mode.get().is_shader_extraction()) {
-                warn!(
-                    "No precompiled shader found for '{}'. This will affect app performance.",
-                    *self.definition_path
-                );
+                let path = *self.definition_path;
+                warn!("No precompiled shader found for '{path}'. This will affect performance.");
             }
             if !self.do_not_use_shape_definition.get() {
                 let code =
@@ -564,6 +561,8 @@ macro_rules! shape {
     };
 }
 
+// FIXME[WD]: This macro was left in the code because glyphs are not able to use the shader
+//    precompilation pipeline. It will be removed in the next PR.
 /// Defines a new shape system. This is the macro that you want to use to define new shapes. The
 /// shapes will be automatically managed in a highly efficient manner by the [`ShapeSystem`].
 #[macro_export]
@@ -865,6 +864,8 @@ macro_rules! _shape {
                 })?
             }
 
+            /// Register the shape definition in the global shape registry. It is used for shader
+            /// compilation during build.
             #[before_main]
             pub fn register_shape() {
                 $crate::display::world::STATIC_SHAPES.with(|shapes| {

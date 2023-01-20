@@ -62,7 +62,6 @@ pub use animation::Easing;
 pub use display::event;
 pub use enso_frp as frp;
 pub use enso_types as types;
-pub use ensogl_core_macros::*;
 
 
 /// Commonly used utilities.

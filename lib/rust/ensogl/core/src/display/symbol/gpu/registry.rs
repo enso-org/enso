@@ -30,7 +30,15 @@ use crate::system::web::traits::*;
 pub type Dirty = dirty::SharedSet<SymbolId>;
 
 
+// ===============
+// === RunMode ===
+// ===============
+
+/// The application run mode. It can be set to either [`Normal`] or [`ShaderExtraction`] mode. In
+/// the latter case some warnings are suppressed. For example, there will be no warning that
+/// precompiled shapes shaders were not found, as they are yet to be generated.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)]
 pub enum RunMode {
     #[default]
     Normal,
@@ -38,10 +46,12 @@ pub enum RunMode {
 }
 
 impl RunMode {
+    /// Check whether the mode is set to [`Normal`].
     pub fn is_normal(self) -> bool {
         self == Self::Normal
     }
 
+    /// Check whether the mode is set to [`ShaderExtraction`].
     pub fn is_shader_extraction(self) -> bool {
         self == Self::ShaderExtraction
     }

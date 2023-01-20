@@ -99,8 +99,6 @@ impl Application {
         let views = view::Registry::create(&logger, &display, &commands, &shortcuts);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
-        // FIXME:
-        // let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
         let frp = Frp::new();
 
         let data = ApplicationData { logger, cursor, display, commands, shortcuts, views, frp };

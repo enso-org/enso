@@ -260,6 +260,7 @@ pub struct WorldData {
     stats_draw_handle:    callback::Handle,
     pub on:               Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
+    update_themes_handle: callback::Handle,
     garbage_collector:    garbage::Collector,
 }
 
@@ -268,7 +269,6 @@ impl WorldData {
     pub fn new(frp: &api::private::Output) -> Self {
         // FIXME: describe
         scene::with_symbol_registry(|_| {});
-
 
         let frp = frp.clone_ref();
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
@@ -285,6 +285,8 @@ impl WorldData {
             stats_monitor.sample_and_draw(stats);
             log_render_stats(*stats)
         }));
+        let themes = scene::with_symbol_registry(|t| t.theme_manager.clone_ref());
+        let update_themes_handle = on.before_frame.add(f_!(themes.update()));
 
         SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
 
@@ -299,6 +301,7 @@ impl WorldData {
             debug_hotkeys_handle,
             stats_monitor,
             stats_draw_handle,
+            update_themes_handle,
             garbage_collector,
         }
         .init()
