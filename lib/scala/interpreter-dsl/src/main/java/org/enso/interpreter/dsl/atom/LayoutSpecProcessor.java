@@ -90,8 +90,10 @@ public class LayoutSpecProcessor extends AbstractProcessor {
       }
       for (int i = 0; i < countBoxed; i++) {
         writeObjectGetter(out, i + countUnboxed, className);
+        writeSetter(out, i + countUnboxed, className);
       }
       writeFieldGetterFactoryGetter(out, className, countUnboxed, countBoxed);
+      writeFieldSetterFactoryGetter(out, className, countUnboxed, countBoxed);
       writeInstantiator(out, className, countUnboxed, countBoxed);
       out.println("}");
     }
@@ -120,6 +122,26 @@ public class LayoutSpecProcessor extends AbstractProcessor {
               + "_NodeFactory.getInstance();");
     }
     out.println("      default -> throw new IllegalArgumentException(\"Invalid storage index\");");
+    out.println("    };");
+    out.println("  }");
+  }
+
+  private void writeFieldSetterFactoryGetter(
+      PrintWriter out, String className, int countUnboxed, int countBoxed) {
+    out.println(
+        "  public static NodeFactory<? extends FieldSetterNode> getFieldSetterNodeFactory(int storageIndex) {");
+    out.println("    return switch (storageIndex) {");
+    for (int i = countUnboxed; i < countBoxed + countUnboxed; i++) {
+      out.println(
+          "      case "
+              + i
+              + " -> "
+              + className
+              + "Factory.FieldSetter_"
+              + i
+              + "_NodeFactory.getInstance();");
+    }
+    out.println("      default -> null;");
     out.println("    };");
     out.println("  }");
   }
@@ -184,6 +206,18 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     out.println();
   }
 
+  private void writeSetter(PrintWriter out, int index, String className) {
+    out.println(
+        "  public static abstract class FieldSetter_" + index + "_Node extends FieldSetterNode {");
+    out.println("    @Specialization");
+    out.println("    void doAtom(" + className + " atom, Object value) {");
+    out.println("      atom." + fieldName(index) + "= value;");
+    out.println("    }");
+    out.println("  }");
+    out.println();
+  }
+
+
   private void writeFields(PrintWriter out, int countUnboxed, int countBoxed) {
     for (int i = 0; i < countUnboxed; i++) {
       out.println("  private long " + fieldName(i) + ";");
@@ -228,6 +262,7 @@ public class LayoutSpecProcessor extends AbstractProcessor {
       out.println();
       out.println("public class " + name + " {");
       writeGetterFactory(out, layoutName, spec);
+      writeSetterFactory(out, layoutName, spec);
       writeInstantiatorFactory(out, layoutName, spec);
       out.println("}");
     }
@@ -244,8 +279,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
       out.println("      case " + unboxedCase + ":");
       out.println("        switch (numBoxed) {");
       for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
-          boxedCase + unboxedCase <= spec.maxFields();
-          boxedCase++) {
+           boxedCase + unboxedCase <= spec.maxFields();
+           boxedCase++) {
         out.println("          case " + boxedCase + ":");
         out.println("            for (int i = 0; i < numDoubles; i++) {");
         out.println(
@@ -276,6 +311,37 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     out.println();
   }
 
+  private void writeSetterFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
+    out.println(
+        "  public static NodeFactory<UnboxingAtom.FieldSetterNode>[] getFieldSetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
+    out.println("    var arity = numDoubles + numLongs + numBoxed;");
+    out.println("    var numUnboxed = numDoubles + numLongs;");
+    out.println("    var result = new NodeFactory[arity];");
+    out.println("    switch (numUnboxed) {");
+    for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
+      out.println("      case " + unboxedCase + ":");
+      out.println("        switch (numBoxed) {");
+      for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
+           boxedCase + unboxedCase <= spec.maxFields();
+           boxedCase++) {
+        out.println("          case " + boxedCase + ":");
+        out.println("            for (int i = numUnboxed; i < arity; i++) {");
+        out.println(
+            "              result[i] = "
+                + atomClassName(layoutName, unboxedCase, boxedCase)
+                + ".getFieldSetterNodeFactory(i);");
+        out.println("            }");
+        out.println("            break;");
+      }
+      out.println("        }");
+      out.println("        break;");
+    }
+    out.println("    }");
+    out.println("    return result;");
+    out.println("  }");
+    out.println();
+  }
+
   private void writeInstantiatorFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
     out.println(
         "  public static NodeFactory<? extends UnboxingAtom.InstantiatorNode> getInstantiatorNodeFactory(int numUnboxed, int numBoxed) {");
@@ -283,8 +349,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
       out.println("      case " + unboxedCase + " -> switch (numBoxed) {");
       for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
-          boxedCase + unboxedCase <= spec.maxFields();
-          boxedCase++) {
+           boxedCase + unboxedCase <= spec.maxFields();
+           boxedCase++) {
         out.println(
             "        case "
                 + boxedCase

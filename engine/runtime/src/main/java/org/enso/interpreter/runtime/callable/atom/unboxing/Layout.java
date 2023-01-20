@@ -41,27 +41,42 @@ public class Layout {
   final long inputFlags;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) int[] fieldToStorage;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<
-          ? extends UnboxingAtom.FieldGetterNode>[]
+      ? extends UnboxingAtom.FieldGetterNode>[]
       fieldGetterFactories;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldGetterNode[]
       uncachedFieldGetters;
+
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<
+      ? extends UnboxingAtom.FieldSetterNode>[]
+      fieldSetterFactories;
+
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldSetterNode[]
+      uncachedFieldSetters;
   private final @CompilerDirectives.CompilationFinal NodeFactory<
-          ? extends UnboxingAtom.InstantiatorNode>
+      ? extends UnboxingAtom.InstantiatorNode>
       instantiatorFactory;
 
   public Layout(
       long inputFlags,
       int[] fieldToStorage,
       NodeFactory<? extends UnboxingAtom.FieldGetterNode>[] fieldGetterFactories,
+      NodeFactory<? extends UnboxingAtom.FieldSetterNode>[] fieldSetterFactories,
       NodeFactory<? extends UnboxingAtom.InstantiatorNode> instantiatorFactory) {
     this.inputFlags = inputFlags;
     this.fieldToStorage = fieldToStorage;
+    this.instantiatorFactory = instantiatorFactory;
     this.fieldGetterFactories = fieldGetterFactories;
     this.uncachedFieldGetters = new UnboxingAtom.FieldGetterNode[fieldGetterFactories.length];
-    this.instantiatorFactory = instantiatorFactory;
     for (int i = 0; i < fieldGetterFactories.length; i++) {
       this.uncachedFieldGetters[i] = fieldGetterFactories[i].getUncachedInstance();
       assert this.uncachedFieldGetters[i] != null;
+    }
+    this.fieldSetterFactories = fieldSetterFactories;
+    this.uncachedFieldSetters = new UnboxingAtom.FieldSetterNode[fieldSetterFactories.length];
+    for (int i = 0; i < fieldSetterFactories.length; i++) {
+      if (fieldSetterFactories[i] != null) {
+        this.uncachedFieldSetters[i] = fieldSetterFactories[i].getUncachedInstance();
+      }
     }
   }
 
@@ -93,16 +108,22 @@ public class Layout {
 
     var storageGetterFactories =
         LayoutFactory.getFieldGetterNodeFactories(numDouble, numLong, numBoxed);
-
     var getterFactories = new NodeFactory[arity];
-
     for (int i = 0; i < arity; i++) {
       getterFactories[i] = storageGetterFactories[fieldToStorage[i]];
     }
 
+    var storageSetterFactories =
+        LayoutFactory.getFieldSetterNodeFactories(numDouble, numLong, numBoxed);
+    var setterFactories = new NodeFactory[arity];
+    for (int i = 0; i < arity; i++) {
+      setterFactories[i] = storageSetterFactories[fieldToStorage[i]];
+    }
+
+
     var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
 
-    return new Layout(typeFlags, fieldToStorage, getterFactories, instantiatorFactory);
+    return new Layout(typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory);
   }
 
   public UnboxingAtom.FieldGetterNode[] getUncachedFieldGetters() {
@@ -115,6 +136,22 @@ public class Layout {
       getters[i] = fieldGetterFactories[i].createNode();
     }
     return getters;
+  }
+
+  public UnboxingAtom.FieldGetterNode getUncachedFieldGetter(int index) {
+    return getUncachedFieldGetters()[index];
+  }
+
+  public UnboxingAtom.FieldGetterNode buildGetter(int index) {
+    return fieldGetterFactories[index].createNode();
+  }
+
+  public UnboxingAtom.FieldSetterNode getUncachedFieldSetter(int index) {
+    return uncachedFieldSetters[index];
+  }
+
+  public UnboxingAtom.FieldSetterNode buildSetter(int index) {
+    return fieldSetterFactories[index].createNode();
   }
 
   public boolean isDoubleAt(int fieldIndex) {

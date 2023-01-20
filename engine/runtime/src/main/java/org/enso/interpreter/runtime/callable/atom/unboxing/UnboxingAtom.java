@@ -23,15 +23,40 @@ public abstract class UnboxingAtom extends Atom {
   }
 
   @ExportMessage
-  Object getField(int i, @CachedLibrary("this") StructsLibrary structs) {
-    // TODO NOPEEEEE
-    return structs.getFields(this)[i];
+  static class GetField {
+    @Specialization(guards = {"cachedLayout == atom.layout", "cachedIndex == index"}, limit = "10")
+    static Object doCached(
+        UnboxingAtom atom,
+        int index,
+        @Cached("atom.layout") Layout cachedLayout,
+        @Cached("index") int cachedIndex,
+        @Cached(value = "cachedLayout.buildGetter(cachedIndex)") FieldGetterNode getter) {
+      return getter.execute(atom);
+    }
+
+    @Specialization(replaces = "doCached")
+    static Object doUncached(UnboxingAtom atom, int index) {
+      return atom.layout.getUncachedFieldGetter(index).execute(atom);
+    }
   }
 
   @ExportMessage
-  void setField(int i, Object value) {
-    // TODO
-    return;
+  static class SetField {
+    @Specialization(guards = {"cachedLayout == atom.layout", "cachedIndex == index"}, limit = "10")
+    static void doCached(
+        UnboxingAtom atom,
+        int index,
+        Object value,
+        @Cached("atom.layout") Layout cachedLayout,
+        @Cached("index") int cachedIndex,
+        @Cached(value = "cachedLayout.buildSetter(cachedIndex)") FieldSetterNode setter) {
+      setter.execute(atom, value);
+    }
+
+    @Specialization(replaces = "doCached")
+    static void doUncached(UnboxingAtom atom, int index, Object value) {
+      atom.layout.getUncachedFieldSetter(index).execute(atom, value);
+    }
   }
 
   @ExportMessage(name = "getFields")
@@ -79,8 +104,10 @@ public abstract class UnboxingAtom extends Atom {
   }
 
   public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {
-    @Child Layout.DirectCreateLayoutInstanceNode boxedLayout;
-    @Children Layout.DirectCreateLayoutInstanceNode[] unboxedLayouts;
+    @Child
+    Layout.DirectCreateLayoutInstanceNode boxedLayout;
+    @Children
+    Layout.DirectCreateLayoutInstanceNode[] unboxedLayouts;
     private final int arity;
     private @CompilerDirectives.CompilationFinal boolean constructorAtCapacity;
 

@@ -10,7 +10,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -22,7 +21,6 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Map;
 
-import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 /**
