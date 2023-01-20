@@ -28,6 +28,8 @@ jobs:
       timeout-minutes: 360
     outputs:
       ENSO_RELEASE_ID: ${{ steps.step_0.outputs.ENSO_RELEASE_ID }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
     timeout-minutes: 360
   run-package-linux:
     name: Run package (Linux)
@@ -55,6 +57,7 @@ jobs:
       timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
     timeout-minutes: 360
   run-package-mac-os:
     name: Run package (MacOS)
@@ -82,6 +85,7 @@ jobs:
       timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
     timeout-minutes: 360
   run-package-windows:
     name: Run package (Windows)
@@ -109,6 +113,7 @@ jobs:
       timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
     timeout-minutes: 360
   run-publish-linux:
     name: Run publish (Linux)
@@ -139,6 +144,7 @@ jobs:
       timeout-minutes: 360
     env:
       ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+      GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
     timeout-minutes: 360
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: 'true'
