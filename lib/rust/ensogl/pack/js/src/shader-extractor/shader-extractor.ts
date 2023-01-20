@@ -24,10 +24,10 @@ class App extends runner.App {
     }
 
     async extractShaders(target: string) {
-        await log.Task.asyncWith('Extracting shaders code.', async () => {
+        await log.Task.asyncRun('Extracting shaders code.', async () => {
             const shadersMap = this.getShaders()
             if (shadersMap) {
-                await log.Task.asyncWith(`Writing shaders to '${target}'.`, async () => {
+                await log.Task.asyncRun(`Writing shaders to '${target}'.`, async () => {
                     await fs.rm(target, { recursive: true, force: true })
                     await fs.mkdir(target)
                     const fileNames = []
@@ -51,11 +51,10 @@ class App extends runner.App {
         const parser = args.parse()
         const extractShadersPath = parser.args.extractShaders.value
         if (extractShadersPath) {
-            await log.Task.asyncWith('Running the program.', async () => {
+            await log.Task.asyncRun('Running the program.', async () => {
                 app.config.print()
                 await app.loadAndInitWasm()
                 const r = app.runBeforeMainEntryPoints().then(() => {
-                    console.log('BEFORE MAIN entry points run, extracting shaders.')
                     return app.extractShaders(extractShadersPath)
                 })
                 await r
@@ -71,6 +70,4 @@ class App extends runner.App {
 // ============
 
 const app = new App()
-console.log('running app')
 void app.run()
-console.log('done running app')

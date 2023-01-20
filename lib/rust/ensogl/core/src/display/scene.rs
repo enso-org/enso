@@ -18,6 +18,7 @@ use crate::display::scene::dom::DomScene;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
+use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
 use crate::display::world;
@@ -774,6 +775,7 @@ use crate::display::style::hardcoded_theme;
 use crate::display::style::theme;
 
 pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
+    with_symbol_registry(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let style_sheet = with_symbol_registry(|t| t.style_sheet.clone_ref());
     let themes = theme::Manager::from(&style_sheet);
     hardcoded_theme::builtin::light::register(&themes);
@@ -789,6 +791,7 @@ pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
             map.insert(path, code);
         }
     });
+    with_symbol_registry(|t| t.run_mode.set(RunMode::Normal));
     map
 }
 

@@ -84,7 +84,7 @@ export class Params {
             'which may cause additional logs to be printed.'
     )
     maxBeforeMainEntryPointsTimeMs = new Param<number>(
-        30,
+        300,
         'The maximum time in milliseconds a before main entry point is allowed to run. After ' +
             'this time, an error will be printed, but the execution will continue.'
     )

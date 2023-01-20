@@ -94,7 +94,7 @@ export class Task {
     }
 
     /** Start the task, evaluate the provided function, and end the task. */
-    static with<T>(message: string, f: () => T): T {
+    static run<T>(message: string, f: () => T): T {
         const task = Task.start(message)
         const out = f()
         task.end()
@@ -103,7 +103,7 @@ export class Task {
 
     /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
      * function, and end the task. */
-    static withCollapsed<T>(message: string, f: () => T): T {
+    static runCollapsed<T>(message: string, f: () => T): T {
         const task = Task.startCollapsed(message)
         const out = f()
         task.end()
@@ -111,7 +111,7 @@ export class Task {
     }
 
     /** Start the task, evaluate the provided async function, and end the task. */
-    static async asyncWith<T>(message: string, f: () => Promise<T>): Promise<T> {
+    static async asyncRun<T>(message: string, f: () => Promise<T>): Promise<T> {
         const task = Task.start(message)
         const out = await f()
         task.end()
@@ -120,7 +120,7 @@ export class Task {
 
     /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
      * async function, and end the task. */
-    static async asyncWithCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
+    static async asyncRunCollapsed<T>(message: string, f: () => Promise<T>): Promise<T> {
         const task = Task.startCollapsed(message)
         const out = await f()
         task.end()
@@ -129,7 +129,7 @@ export class Task {
 
     /** Start the task, evaluate the provided async function, and end the task. Do not group
      * subsequent logs. */
-    static async asyncNoGroupWith<T>(message: string, f: () => Promise<T>): Promise<T> {
+    static async asyncRunNoGroup<T>(message: string, f: () => Promise<T>): Promise<T> {
         const task = Task.startNoGroup(message)
         const out = await f()
         task.endNoGroup()
@@ -138,7 +138,7 @@ export class Task {
 
     /** Start the task, evaluate the provided function, and end the task. Return the function result
      * together with the time information. */
-    static withTimed<T>(message: string, f: () => T): [number, T] {
+    static runTimed<T>(message: string, f: () => T): [number, T] {
         const task = Task.start(message)
         const out = f()
         const ms = task.end()
@@ -147,7 +147,7 @@ export class Task {
 
     /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided
      * function, and end the task. Return the function result together with the time information. */
-    static withCollapsedTimed<T>(message: string, f: () => T): [number, T] {
+    static runCollapsedTimed<T>(message: string, f: () => T): [number, T] {
         const task = Task.startCollapsed(message)
         const out = f()
         const ms = task.end()
@@ -156,8 +156,20 @@ export class Task {
 
     /** Start the task, evaluate the provided async function, and end the task. Return the function
      * result together with the time information. */
-    static async asyncWithTimed<T>(message: string, f: () => Promise<T>): Promise<[number, T]> {
+    static async asyncRunTimed<T>(message: string, f: () => Promise<T>): Promise<[number, T]> {
         const task = Task.start(message)
+        const out = await f()
+        const ms = task.end()
+        return [ms, out]
+    }
+
+    /** Start the task, hide all subsequent logs in a collapsed group, evaluate the provided async
+     * function, and end the task. Return the function result together with the time information. */
+    static async asyncRunCollapsedTimed<T>(
+        message: string,
+        f: () => Promise<T>
+    ): Promise<[number, T]> {
+        const task = Task.startCollapsed(message)
         const out = await f()
         const ms = task.end()
         return [ms, out]

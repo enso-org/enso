@@ -446,10 +446,12 @@ impl ShapeSystemModel {
                 crate::display::shader::builder::CodeTemplate::new("", shader.fragment, ""),
             );
         } else {
-            warn!(
-                "No precompiled shader found for '{}'. This will affect app performance.",
-                *self.definition_path
-            );
+            if !scene::with_symbol_registry(|t| t.run_mode.get().is_shader_extraction()) {
+                warn!(
+                    "No precompiled shader found for '{}'. This will affect app performance.",
+                    *self.definition_path
+                );
+            }
             if !self.do_not_use_shape_definition.get() {
                 let code =
                     shader::builder::Builder::run(&*self.shape.borrow(), *self.pointer_events);

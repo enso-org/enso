@@ -30,6 +30,23 @@ use crate::system::web::traits::*;
 pub type Dirty = dirty::SharedSet<SymbolId>;
 
 
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub enum RunMode {
+    #[default]
+    Normal,
+    ShaderExtraction,
+}
+
+impl RunMode {
+    pub fn is_normal(self) -> bool {
+        self == Self::Normal
+    }
+
+    pub fn is_shader_extraction(self) -> bool {
+        self == Self::ShaderExtraction
+    }
+}
+
 
 // ======================
 // === SymbolRegistry ===
@@ -55,6 +72,7 @@ pub type Dirty = dirty::SharedSet<SymbolId>;
 /// general-purpose weak reference is used here because it's a well-known abstraction.
 #[derive(Clone, CloneRef, Debug)]
 pub struct SymbolRegistry {
+    pub run_mode:       Rc<Cell<RunMode>>,
     symbols:            Rc<RefCell<WeakValueHashMap<SymbolId, WeakSymbol>>>,
     global_id_provider: symbol::GlobalInstanceIdProvider,
     pub dirty:          Dirty,
@@ -72,6 +90,7 @@ impl SymbolRegistry {
     /// Constructor.
     pub fn mk() -> Self {
         debug!("Initializing.");
+        let run_mode = default();
         let dirty = Dirty::new(());
         let symbols = default();
         let variables = UniformScope::new();
@@ -85,6 +104,7 @@ impl SymbolRegistry {
         let style_sheet = style::Sheet::new();
         let layers = scene::HardcodedLayers::new();
         Self {
+            run_mode,
             symbols,
             global_id_provider,
             dirty,

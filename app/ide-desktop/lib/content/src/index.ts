@@ -9,7 +9,6 @@ import * as mixpanel from './mixpanel'
 import * as app from 'ensogl_app'
 import * as semver from 'semver'
 
-console.log(app)
 const logger = app.log.logger
 const config = app.config
 

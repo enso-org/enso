@@ -256,7 +256,7 @@ export class App {
 
     /** Compiles and runs the downloaded WASM file. */
     async compileAndRunWasm(pkgJs: string, wasm: Buffer | Response): Promise<unknown> {
-        return await log.Task.asyncNoGroupWith<unknown>('WASM compilation', async () => {
+        return await log.Task.asyncRunNoGroup<unknown>('WASM compilation', async () => {
             /* eslint @typescript-eslint/no-implied-eval: "off" */
             /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
             const snippetsFn: any = Function(
@@ -278,11 +278,14 @@ export class App {
         const loader = new wasm.Loader(this.config)
 
         const shadersUrl = this.config.params.shadersUrl.value
-        const shadersNames = await log.Task.asyncWith('Downloading shaders list.', async () => {
-            const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
-            const shadersList = await shadersListResponse.text()
-            return shadersList.split('\n').filter(line => line.length > 0)
-        })
+        const shadersNames = await log.Task.asyncRunCollapsed(
+            'Downloading shaders list.',
+            async () => {
+                const shadersListResponse = await fetch(`${shadersUrl}/list.txt`)
+                const shadersList = await shadersListResponse.text()
+                return shadersList.split('\n').filter(line => line.length > 0)
+            }
+        )
 
         const files = new Files(
             this.config.params.pkgJsUrl.value,
@@ -329,7 +332,7 @@ export class App {
         if (this.beforeMainEntryPoints.size) {
             for (const entryPoint of this.beforeMainEntryPoints.values()) {
                 scheduler.add(() => {
-                    log.Task.withTimed(`Running ${entryPoint.displayName()}.`, () => {
+                    log.Task.runTimed(`Running ${entryPoint.displayName()}.`, () => {
                         const fn = this.wasm[entryPoint.name()]
                         if (fn != null) {
                             fn()
@@ -340,7 +343,7 @@ export class App {
                 })
             }
         }
-        const [time] = await log.Task.asyncWithTimed(
+        const [time] = await log.Task.asyncRunCollapsedTimed(
             `Running ${count} before main entry points.`,
             async () => {
                 return await scheduler.run()
@@ -353,8 +356,10 @@ export class App {
      * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
         if (time > this.config.params.maxBeforeMainEntryPointsTimeMs.value) {
-            logger.error(`Entry points took ${time} milliseconds to run. This is too long.`)
-            logger.error('Before main entry points should be used for fast initialization only.')
+            logger.error(
+                `Entry points took ${time} milliseconds to run. This is too long. ` +
+                    'Before main entry points should be used for fast initialization only.'
+            )
         }
     }
 
@@ -366,7 +371,7 @@ export class App {
             await this.runBeforeMainEntryPoints()
             if (this.shaders) this.setShaders(this.shaders.map)
             if (this.loader) this.loader.destroy()
-            logger.log(`Running the main entry point: ${entryPoint.displayName()}.`)
+            logger.log(`Running the main entry point '${entryPoint.displayName()}'.`)
             const fn = this.wasm[entryPoint.name()]
             if (fn != null) {
                 fn()
@@ -446,7 +451,7 @@ export class App {
 
     /* Get not optimized shaders from WASM. */
     getShaders(): Map<string, { vertex: string; fragment: string }> | null {
-        return log.Task.with('Getting shaders from Rust.', () => {
+        return log.Task.run('Getting shaders from Rust.', () => {
             if (!rustGetShadersFn) {
                 logger.error('The Rust shader extraction function was not registered.')
                 return null
@@ -460,7 +465,7 @@ export class App {
 
     /* Set optimized shaders in WASM. */
     setShaders(map: Map<string, { vertex: string; fragment: string }>) {
-        log.Task.with('Sending shaders to Rust.', () => {
+        log.Task.runCollapsed('Sending shaders to Rust.', () => {
             if (!rustSetShadersFn) {
                 logger.error('The Rust shader injection function was not registered.')
             } else {
