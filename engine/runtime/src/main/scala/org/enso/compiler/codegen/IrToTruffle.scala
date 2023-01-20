@@ -412,6 +412,33 @@ class IrToTruffle(
               methodDef.getMetadata(GenericAnnotations).toVector.flatMap { meta =>
                 meta.annotations
                   .collect { case annotation: IR.Name.GenericAnnotation =>
+                    val scopeElements = Seq(
+                      cons.getName,
+                      methodDef.methodName.name,
+                      annotation.name
+                    )
+                    val scopeName =
+                      scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+                    val scopeInfo = annotation
+                      .unsafeGetMetadata(
+                        AliasAnalysis,
+                        s"Missing scope information for annotation " +
+                        s"${annotation.name} of method " +
+                        scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
+                      )
+                      .unsafeAs[AliasAnalysis.Info.Scope.Root]
+                    val dataflowInfo = annotation.unsafeGetMetadata(
+                      DataflowAnalysis,
+                      "Missing dataflow information for annotation " +
+                        s"${annotation.name} of method " +
+                        scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
+                    )
+                    val expressionProcessor = new ExpressionProcessor(
+                      scopeName,
+                      scopeInfo.graph,
+                      scopeInfo.graph.rootScope,
+                      dataflowInfo
+                    )
                     val expressionNode =
                       expressionProcessor.run(annotation.expression)
                     val closureName =
