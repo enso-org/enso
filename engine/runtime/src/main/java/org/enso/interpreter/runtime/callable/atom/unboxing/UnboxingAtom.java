@@ -24,7 +24,9 @@ public abstract class UnboxingAtom extends Atom {
 
   @ExportMessage
   static class GetField {
-    @Specialization(guards = {"cachedLayout == atom.layout", "cachedIndex == index"}, limit = "10")
+    @Specialization(
+        guards = {"cachedLayout == atom.layout", "cachedIndex == index"},
+        limit = "10")
     static Object doCached(
         UnboxingAtom atom,
         int index,
@@ -42,7 +44,9 @@ public abstract class UnboxingAtom extends Atom {
 
   @ExportMessage
   static class SetField {
-    @Specialization(guards = {"cachedLayout == atom.layout", "cachedIndex == index"}, limit = "10")
+    @Specialization(
+        guards = {"cachedLayout == atom.layout", "cachedIndex == index"},
+        limit = "10")
     static void doCached(
         UnboxingAtom atom,
         int index,
@@ -104,10 +108,8 @@ public abstract class UnboxingAtom extends Atom {
   }
 
   public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {
-    @Child
-    Layout.DirectCreateLayoutInstanceNode boxedLayout;
-    @Children
-    Layout.DirectCreateLayoutInstanceNode[] unboxedLayouts;
+    @Child Layout.DirectCreateLayoutInstanceNode boxedLayout;
+    @Children Layout.DirectCreateLayoutInstanceNode[] unboxedLayouts;
     private final int arity;
     private @CompilerDirectives.CompilationFinal boolean constructorAtCapacity;
 

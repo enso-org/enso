@@ -185,8 +185,8 @@ public class DebugLocalScope implements TruffleObject {
   @ExportMessage
   Object readMember(
       String member,
-      @CachedLibrary("this") InteropLibrary interop,
-      @CachedLibrary("this") StructsLibrary structs) {
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") StructsLibrary structs) {
     FramePointer framePtr = allBindings.get(member);
     if (framePtr == null) {
       return null;

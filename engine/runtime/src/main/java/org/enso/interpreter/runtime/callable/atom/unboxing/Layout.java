@@ -41,19 +41,19 @@ public class Layout {
   final long inputFlags;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) int[] fieldToStorage;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<
-      ? extends UnboxingAtom.FieldGetterNode>[]
+          ? extends UnboxingAtom.FieldGetterNode>[]
       fieldGetterFactories;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldGetterNode[]
       uncachedFieldGetters;
 
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) NodeFactory<
-      ? extends UnboxingAtom.FieldSetterNode>[]
+          ? extends UnboxingAtom.FieldSetterNode>[]
       fieldSetterFactories;
 
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) UnboxingAtom.FieldSetterNode[]
       uncachedFieldSetters;
   private final @CompilerDirectives.CompilationFinal NodeFactory<
-      ? extends UnboxingAtom.InstantiatorNode>
+          ? extends UnboxingAtom.InstantiatorNode>
       instantiatorFactory;
 
   public Layout(
@@ -120,10 +120,10 @@ public class Layout {
       setterFactories[i] = storageSetterFactories[fieldToStorage[i]];
     }
 
-
     var instantiatorFactory = LayoutFactory.getInstantiatorNodeFactory(numUnboxed, numBoxed);
 
-    return new Layout(typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory);
+    return new Layout(
+        typeFlags, fieldToStorage, getterFactories, setterFactories, instantiatorFactory);
   }
 
   public UnboxingAtom.FieldGetterNode[] getUncachedFieldGetters() {

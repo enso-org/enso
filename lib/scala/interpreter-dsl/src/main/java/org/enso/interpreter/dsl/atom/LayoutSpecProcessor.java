@@ -217,7 +217,6 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     out.println();
   }
 
-
   private void writeFields(PrintWriter out, int countUnboxed, int countBoxed) {
     for (int i = 0; i < countUnboxed; i++) {
       out.println("  private long " + fieldName(i) + ";");
@@ -279,8 +278,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
       out.println("      case " + unboxedCase + ":");
       out.println("        switch (numBoxed) {");
       for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
-           boxedCase + unboxedCase <= spec.maxFields();
-           boxedCase++) {
+          boxedCase + unboxedCase <= spec.maxFields();
+          boxedCase++) {
         out.println("          case " + boxedCase + ":");
         out.println("            for (int i = 0; i < numDoubles; i++) {");
         out.println(
@@ -322,8 +321,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
       out.println("      case " + unboxedCase + ":");
       out.println("        switch (numBoxed) {");
       for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
-           boxedCase + unboxedCase <= spec.maxFields();
-           boxedCase++) {
+          boxedCase + unboxedCase <= spec.maxFields();
+          boxedCase++) {
         out.println("          case " + boxedCase + ":");
         out.println("            for (int i = numUnboxed; i < arity; i++) {");
         out.println(
@@ -349,8 +348,8 @@ public class LayoutSpecProcessor extends AbstractProcessor {
     for (int unboxedCase = 0; unboxedCase <= spec.maxFields(); unboxedCase++) {
       out.println("      case " + unboxedCase + " -> switch (numBoxed) {");
       for (int boxedCase = Math.max(spec.minFields() - unboxedCase, 0);
-           boxedCase + unboxedCase <= spec.maxFields();
-           boxedCase++) {
+          boxedCase + unboxedCase <= spec.maxFields();
+          boxedCase++) {
         out.println(
             "        case "
                 + boxedCase
