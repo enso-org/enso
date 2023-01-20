@@ -775,7 +775,7 @@ pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
         for shape_cons in shapes.borrow().iter() {
             let shape = shape_cons();
             let path = shape.definition_path();
-            let code = shape.abstract_shader_code();
+            let code = shape.abstract_shader_code_in_glsl_310();
             map.insert(path, code);
         }
     });
