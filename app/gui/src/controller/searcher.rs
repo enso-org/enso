@@ -518,9 +518,9 @@ impl ComponentsProvider {
                 components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default();
             TopModules::Subset(submodules, section)
         } else if *self.has_this_arg {
-            TopModules::All(components.top_modules_flattened())
+            TopModules::All(components.top_modules_flattened().collect())
         } else {
-            TopModules::All(components.top_modules())
+            TopModules::All(components.top_modules().collect())
         }
     }
 

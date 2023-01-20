@@ -250,17 +250,19 @@ impl List {
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
     /// If the list is filtered, all top modules will be flattened.
-    pub fn top_modules(&self) -> Vec<group::AlphabeticalList> {
-        if self.filtered.get() {
-            self.top_module_sections.iter().map(|s| s.modules_flattened.clone()).collect()
-        } else {
-            self.top_module_sections.iter().map(|s| s.modules.clone()).collect()
-        }
+    pub fn top_modules(&self) -> impl Iterator<Item = group::AlphabeticalList> + '_ {
+        self.top_module_sections.iter().map(|section|
+            if self.filtered.get() {
+                section.modules_flattened.clone_ref()
+            } else {
+                section.modules.clone_ref()
+            }
+        )
     }
 
     /// Return the list of filtered top modules and their contents.
-    pub fn top_modules_flattened(&self) -> Vec<group::AlphabeticalList> {
-        self.top_module_sections.iter().map(|s| s.modules_flattened.clone()).collect()
+    pub fn top_modules_flattened(&self) -> impl Iterator<Item = group::AlphabeticalList> + '_ {
+        self.top_module_sections.iter().map(|s| s.modules_flattened.clone_ref())
     }
 
     /// Get the list of given component submodules. Returns [`None`] if given component is not
@@ -307,8 +309,8 @@ impl List {
     }
 
     /// Get a vector of section names for the sections of the top modules.
-    pub fn top_module_section_names(&self) -> Vec<&ImString> {
-        self.top_module_sections.iter().map(|s| &s.name).collect()
+    pub fn top_module_section_names(&self) -> impl Iterator<Item = &ImString> {
+        self.top_module_sections.iter().map(|s| &s.name)
     }
 
     /// Get a map of section names to section indices for the sections of the top modules.

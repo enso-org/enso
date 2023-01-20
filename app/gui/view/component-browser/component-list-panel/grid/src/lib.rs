@@ -478,10 +478,9 @@ impl Model {
             (0..info.namespace_section_count).into_iter().map(SectionId::Namespace);
         let sections = iter::once(SectionId::Popular)
             .chain(top_module_sections)
-            .chain(iter::once(SectionId::LocalScope))
-            .collect::<Vec<_>>();
-        let pick_location = |s: &SectionId| self.entry_to_select_when_switching_to_section(*s);
-        sections.iter().filter_map(pick_location).next()
+            .chain(iter::once(SectionId::LocalScope));
+        let pick_location = |s: SectionId| self.entry_to_select_when_switching_to_section(s);
+        sections.filter_map(pick_location).next()
     }
 
     fn selection_after_jump_group_up(

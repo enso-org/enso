@@ -230,10 +230,10 @@ impl Model {
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
         let components = self.controller.components();
-        let section_names = components.top_module_section_names();
+        let mut section_names = components.top_module_section_names();
         let name = match section_id {
             component_grid::SectionId::Namespace(n) =>
-                section_names.get(n).map(|n| n.clone_ref()).unwrap_or_default(),
+                section_names.nth(n).map(|n| n.clone_ref()).unwrap_or_default(),
             component_grid::SectionId::Popular => "Popular".to_im_string(),
             component_grid::SectionId::LocalScope => "Local".to_im_string(),
         };
