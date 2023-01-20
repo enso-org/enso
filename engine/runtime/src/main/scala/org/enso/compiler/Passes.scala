@@ -84,7 +84,8 @@ class Passes(
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
-      UnusedBindings
+      UnusedBindings,
+      GenericAnnotations
     )
   )
 
@@ -95,7 +96,11 @@ class Passes(
     * these dependencies.
     */
   val passOrdering: List[PassGroup] = passes.getOrElse(
-    List(moduleDiscoveryPasses, globalTypingPasses, functionBodyPasses)
+    List(
+      moduleDiscoveryPasses,
+      globalTypingPasses,
+      functionBodyPasses
+    )
   )
 
   /** The ordered representation of all passes run by the compiler. */

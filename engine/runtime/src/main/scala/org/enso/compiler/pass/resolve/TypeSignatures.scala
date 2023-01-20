@@ -133,13 +133,14 @@ case object TypeSignatures extends IRPass {
         res
       case ut: IR.Module.Scope.Definition.Type =>
         Some(ut.mapExpressions(resolveExpression))
-      case err: IR.Error => Some(err)
+      case err: IR.Error                  => Some(err)
+      case ann: IR.Name.GenericAnnotation => Some(ann)
       case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during type " +
           "signature resolution."
         )
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "type signature resolution."

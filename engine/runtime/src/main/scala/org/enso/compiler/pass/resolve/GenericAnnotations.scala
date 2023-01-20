@@ -1,33 +1,22 @@
 package org.enso.compiler.pass.resolve
 
-import org.enso.compiler.Compiler
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Name
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies
-}
-
-import scala.annotation.unused
+import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
 
 /** A pass responsible for the discovery of module annotations, and for
   * associating them with the corresponding construct.
   */
-case object ModuleAnnotations extends IRPass {
+case object GenericAnnotations extends IRPass {
   override type Metadata = Annotations
   override type Config   = IRPass.Configuration.Default
-  override val precursorPasses: Seq[IRPass] = Seq()
-  override val invalidatedPasses: Seq[IRPass] = Seq(
-    DocumentationComments,
-    ComplexType,
-    FunctionBinding,
-    GenerateMethodBodies
-  )
+  override val precursorPasses: Seq[IRPass]   = Seq()
+  override val invalidatedPasses: Seq[IRPass] = Seq()
 
   /** Resolves module-level annotations.
     *
@@ -41,14 +30,17 @@ case object ModuleAnnotations extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[IR.Name.GenericAnnotation] = Seq()
     val newBindings = ir.bindings.map {
       case ann: Name.BuiltinAnnotation =>
+        throw new CompilerError(
+          s"Builtin annotations should not be present at generic annotations pass [${ann.name}]."
+        )
+      case ann: Name.GenericAnnotation =>
         lastAnnotations :+= ann
         None
-      case ann: Name.GenericAnnotation =>
-        Some(ann)
-      case comment: IR.Comment => Some(comment)
+      case comment: IR.Comment =>
+        Some(comment)
       case typ: Definition.SugaredType =>
         val res = Some(
           resolveComplexType(typ).updateMetadata(
@@ -75,14 +67,17 @@ case object ModuleAnnotations extends IRPass {
   private def resolveComplexType(
     typ: Definition.SugaredType
   ): Definition.SugaredType = {
-    var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
+    var lastAnnotations: Seq[IR.Name.GenericAnnotation] = Seq()
     val newBodyElems = typ.body.flatMap {
       case ann: Name.BuiltinAnnotation =>
+        throw new CompilerError(
+          s"Builtin annotations should not be present at generic annotations pass [${ann.name}]."
+        )
+      case ann: Name.GenericAnnotation =>
         lastAnnotations :+= ann
         None
-      case ann: Name.GenericAnnotation =>
-        Some(ann)
-      case comment: IR.Comment => Some(comment)
+      case comment: IR.Comment =>
+        Some(comment)
       case entity =>
         val res = Some(
           entity.updateMetadata(this -->> Annotations(lastAnnotations))
@@ -105,53 +100,12 @@ case object ModuleAnnotations extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = ir
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
-
-  /** A container for annotations on an IR construct.
-    *
-    * @param annotations the initial annotations for the container
-    */
-  case class Annotations(annotations: Seq[IR.Name.Annotation])
-      extends IRPass.Metadata {
-    override val metadataName: String                 = "Annotations"
-    override def duplicate(): Option[IRPass.Metadata] = Some(this.copy())
-
-    /** Add an annotation to the annotations container.
-      *
-      * @param annotation the annotation to add
-      * @return `this`, with `annotation` added to it
-      */
-    def addAnnotation(annotation: IR.Name.Annotation): Annotations =
-      this.copy(annotations = this.annotations :+ annotation)
-
-    /** @inheritdoc */
-    override def prepareForSerialization(compiler: Compiler): Annotations = {
-      annotations.foreach(ir =>
-        ir.preorder.foreach(_.passData.prepareForSerialization(compiler))
-      )
-      this
-    }
-
-    /** @inheritdoc */
-    override def restoreFromSerialization(
-      compiler: Compiler
-    ): Option[IRPass.Metadata] = {
-      annotations.foreach { ann =>
-        ann.preorder.foreach { ir =>
-          if (!ir.passData.restoreFromSerialization(compiler)) {
-            return None
-          }
-        }
-      }
-
-      Some(this)
-    }
-  }
 }

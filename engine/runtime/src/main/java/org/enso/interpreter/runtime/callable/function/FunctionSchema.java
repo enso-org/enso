@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.callable.function;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 
@@ -36,7 +37,7 @@ public final class FunctionSchema {
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
-  private final @CompilationFinal(dimensions = 1) Function[] annotations;
+  private final @CompilationFinal(dimensions = 1) Annotation[] annotations;
   private final boolean hasAnyPreApplied;
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
@@ -59,7 +60,7 @@ public final class FunctionSchema {
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
       CallArgumentInfo[] oversaturatedArguments,
-      Function[] annotations) {
+      Annotation[] annotations) {
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
@@ -88,7 +89,7 @@ public final class FunctionSchema {
    */
   public FunctionSchema(
       CallerFrameAccess callerFrameAccess,
-      Function[] annotations,
+      Annotation[] annotations,
       ArgumentDefinition... argumentInfos) {
     this(
         callerFrameAccess,
@@ -107,7 +108,7 @@ public final class FunctionSchema {
    * @param annotations the list of annotations defined on this function.
    * @param argumentInfos Definition site arguments information.
    */
-  public FunctionSchema(Function[] annotations, ArgumentDefinition... argumentInfos) {
+  public FunctionSchema(Annotation[] annotations, ArgumentDefinition... argumentInfos) {
     this(CallerFrameAccess.NONE, annotations, argumentInfos);
   }
 
@@ -120,7 +121,7 @@ public final class FunctionSchema {
    * @param argumentInfos Definition site arguments information
    */
   public FunctionSchema(ArgumentDefinition... argumentInfos) {
-    this(CallerFrameAccess.NONE, new Function[0], argumentInfos);
+    this(CallerFrameAccess.NONE, new Annotation[0], argumentInfos);
   }
 
   /**
@@ -220,7 +221,7 @@ public final class FunctionSchema {
   }
 
   /** @return annotations defined on this function. */
-  public Function[] getAnnotations() {
+  public Annotation[] getAnnotations() {
     return annotations;
   }
 
@@ -231,9 +232,9 @@ public final class FunctionSchema {
    * @return the matching annotation expression.
    */
   @CompilerDirectives.TruffleBoundary
-  public Function getAnnotation(String name) {
+  public Annotation getAnnotation(String name) {
     return Arrays.stream(annotations)
-        .filter(fun -> name.equals(fun.getMethodName()))
+        .filter(annotation -> annotation.getName().equals(name))
         .findFirst()
         .orElse(null);
   }

@@ -17,6 +17,7 @@ import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Array;
@@ -104,7 +105,7 @@ public final class Function implements TruffleObject {
       BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = node.getCallTarget();
     FunctionSchema schema =
-        new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, new Function[0], args);
+        new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, new Annotation[0], args);
     return new Function(callTarget, null, schema);
   }
 
@@ -120,14 +121,6 @@ public final class Function implements TruffleObject {
   /** @return the name of this function. */
   public String getName() {
     return getCallTarget().getRootNode().getName();
-  }
-
-  public String getMethodName() {
-    RootNode rootNode = getCallTarget().getRootNode();
-    if (rootNode instanceof MethodRootNode methodRootNode) {
-      return methodRootNode.getMethodName();
-    }
-    return rootNode.getName();
   }
 
   /** @return the source section this function was defined in. */

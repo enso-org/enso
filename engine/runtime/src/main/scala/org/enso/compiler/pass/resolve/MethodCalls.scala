@@ -35,11 +35,10 @@ object MethodCalls extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
+  ): IR.Module =
     ir.mapExpressions(
       doExpression(ir.unsafeGetMetadata(BindingAnalysis, ""), _)
     )
-  }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir` in an inline context.

@@ -104,7 +104,7 @@ case object SuspendedArguments extends IRPass {
     * @param binding the top-level binding to resolve suspensions in
     * @return `binding`, with any suspended arguments resolved
     */
-  def resolveModuleBinding(
+  private def resolveModuleBinding(
     binding: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     binding match {
@@ -193,11 +193,12 @@ case object SuspendedArguments extends IRPass {
         throw new CompilerError("Type ascriptions should not be present.")
       case _: IR.Comment =>
         throw new CompilerError("Comments should not be present.")
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "suspended arguments analysis."
         )
+      case ann: IR.Name.GenericAnnotation => ann
     }
   }
 
@@ -206,7 +207,7 @@ case object SuspendedArguments extends IRPass {
     * @param expression the expression to perform resolution in
     * @return `expression`, with any suspended arguments resolved
     */
-  def resolveExpression(expression: IR.Expression): IR.Expression = {
+  private def resolveExpression(expression: IR.Expression): IR.Expression = {
     expression.transformExpressions {
       case bind @ IR.Expression.Binding(_, expr, _, _, _) =>
         val newExpr = bind.getMetadata(TypeSignatures) match {
@@ -244,7 +245,7 @@ case object SuspendedArguments extends IRPass {
     * @param signature the type signature to split
     * @return the segments of `signature`
     */
-  def toSegments(signature: IR.Expression): List[IR.Expression] = {
+  private def toSegments(signature: IR.Expression): List[IR.Expression] = {
     signature match {
       case IR.Type.Function(args, ret, _, _, _) => args :+ ret
       case _                                    => List(signature)
@@ -270,7 +271,7 @@ case object SuspendedArguments extends IRPass {
     * @param pair an argument and its corresponding type signature segment
     * @return the argument from `pair`, with its suspension marked appropriately
     */
-  def markSuspended(
+  private def markSuspended(
     pair: (IR.DefinitionArgument, IR.Expression)
   ): IR.DefinitionArgument =
     pair match {
@@ -289,7 +290,7 @@ case object SuspendedArguments extends IRPass {
     * @param signature the signature of the function
     * @return `args`, appropriately marked as suspended or not
     */
-  def computeSuspensions(
+  private def computeSuspensions(
     args: List[IR.DefinitionArgument],
     signature: IR.Expression
   ): List[IR.DefinitionArgument] = {

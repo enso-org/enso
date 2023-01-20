@@ -3,14 +3,13 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
@@ -23,7 +22,7 @@ import org.enso.interpreter.runtime.state.State;
     name = "get_annotation",
     description = "Get annotation associated with an object",
     autoRegister = false)
-public abstract class GetAnnotationNode extends Node {
+public abstract class GetAnnotationNode extends BaseNode {
 
   abstract Object execute(
       VirtualFrame frame, State state, Object target, Object method, Object parameter);
@@ -39,15 +38,16 @@ public abstract class GetAnnotationNode extends Node {
       @Cached ThunkExecutorNode thunkExecutorNode,
       @Cached ExpectStringNode expectStringNode) {
     String methodName = expectStringNode.execute(method);
-    String parameterName = expectStringNode.execute(parameter);
     Type targetType = types.getType(target);
     ModuleScope scope = targetType.getDefinitionScope();
     Function function = scope.lookupMethodDefinition(targetType, methodName);
     if (function != null) {
+      String parameterName = expectStringNode.execute(parameter);
       FunctionSchema schema = function.getSchema();
-      Function expr = schema.getAnnotation(parameterName);
-      if (expr != null) {
-        return thunkExecutorNode.executeThunk(expr, state, BaseNode.TailStatus.NOT_TAIL);
+      Annotation annotation = schema.getAnnotation(parameterName);
+      if (annotation != null) {
+        var thunk = Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
+        return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
       }
     }
     return EnsoContext.get(this).getNothing();

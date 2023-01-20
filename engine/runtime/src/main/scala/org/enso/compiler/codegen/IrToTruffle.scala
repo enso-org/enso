@@ -23,9 +23,9 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
+  GenericAnnotations,
   GlobalNames,
   MethodDefinitions,
-  ModuleAnnotations,
   Patterns,
   TypeSignatures
 }
@@ -68,6 +68,7 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.callable.{
+  Annotation => RuntimeAnnotation,
   UnresolvedConversion,
   UnresolvedSymbol
 }
@@ -408,29 +409,25 @@ class IrToTruffle(
             val arguments  = bodyBuilder.args()
             // build annotations
             val annotationFunctions =
-              methodDef.getMetadata(ModuleAnnotations).toVector.flatMap {
-                meta =>
-                  meta.annotations
-                    .collect { case annotation: IR.Name.GenericAnnotation =>
-                      val annotationBodyBuilder =
-                        new expressionProcessor.BuildFunctionBody(
-                          Nil,
-                          annotation.expression,
-                          effectContext,
-                          false
-                        )
-                      val annotationRootNode = MethodRootNode.build(
-                        language,
-                        expressionProcessor.scope,
-                        moduleScope,
-                        () => annotationBodyBuilder.bodyNode(),
-                        makeSection(moduleScope, annotation.location),
-                        cons,
-                        annotation.name
-                      )
-                      RuntimeFunction
-                        .thunk(annotationRootNode.getCallTarget, null)
-                    }
+              methodDef.getMetadata(GenericAnnotations).toVector.flatMap { meta =>
+                meta.annotations
+                  .collect { case annotation: IR.Name.GenericAnnotation =>
+                    val expressionNode =
+                      expressionProcessor.run(annotation.expression)
+                    val closureName =
+                      s"<default::${expressionProcessor.scopeName}::${annotation.name}>"
+                    val closureRootNode = ClosureRootNode.build(
+                      language,
+                      expressionProcessor.scope,
+                      moduleScope,
+                      expressionNode,
+                      makeSection(moduleScope, annotation.location),
+                      closureName,
+                      true,
+                      false
+                    )
+                    new RuntimeAnnotation(annotation.name, closureRootNode)
+                  }
               }
 
             Right(
@@ -1683,7 +1680,7 @@ class IrToTruffle(
       * @param application the function application to generate code for
       * @return the truffle nodes corresponding to `application`
       */
-    def processApplication(
+    private def processApplication(
       application: IR.Application,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =

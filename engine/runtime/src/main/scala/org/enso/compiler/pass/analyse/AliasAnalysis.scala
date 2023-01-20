@@ -280,11 +280,21 @@ case object AliasAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "alias analysis."
         )
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of alias " +
           "analysis."
         )
+      case ann: IR.Name.GenericAnnotation =>
+        ann
+          .copy(expression =
+            analyseExpression(
+              ann.expression,
+              topLevelGraph,
+              topLevelGraph.rootScope
+            )
+          )
+          .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
       case err: IR.Error => err
     }
   }

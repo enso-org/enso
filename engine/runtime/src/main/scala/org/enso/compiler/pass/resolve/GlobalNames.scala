@@ -60,7 +60,7 @@ case object GlobalNames extends IRPass {
     )
     val freshNameSupply = moduleContext.freshNameSupply.getOrElse(
       throw new CompilerError(
-        "No fresh name supply passed to UppercaseNames resolver."
+        "No fresh name supply passed to GlobalNames resolver."
       )
     )
     val new_bindings =
@@ -138,7 +138,7 @@ case object GlobalNames extends IRPass {
     freshNameSupply: FreshNameSupply,
     selfTypeResolution: Option[Resolution],
     isInsideApplication: Boolean = false
-  ): IR.Expression =
+  ): IR.Expression = {
     ir.transformExpressions {
       case selfTp: IR.Name.SelfType =>
         selfTypeResolution
@@ -229,6 +229,7 @@ case object GlobalNames extends IRPass {
         }
 
     }
+  }
 
   private def resolveReferantApplication(
     app: IR.Application.Prefix,

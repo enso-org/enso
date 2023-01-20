@@ -94,6 +94,8 @@ case object DocumentationComments extends IRPass {
   private def resolveList[T <: IR](items: List[T]): List[T] = {
     var lastDoc: Option[IR.Comment.Documentation] = None
     items.flatMap {
+      case annotation: IR.Name.Annotation =>
+        Some(annotation.asInstanceOf[T])
       case doc: IR.Comment.Documentation =>
         lastDoc = Some(doc)
         None
@@ -158,10 +160,11 @@ case object DocumentationComments extends IRPass {
         method.copy(body = resolveExpression(method.body))
       case tpe: IR.Module.Scope.Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
-      case doc: IR.Comment.Documentation => doc
-      case tySig: IR.Type.Ascription     => tySig
-      case err: IR.Error                 => err
-      case _: IR.Name.Annotation =>
+      case doc: IR.Comment.Documentation  => doc
+      case tySig: IR.Type.Ascription      => tySig
+      case err: IR.Error                  => err
+      case ann: IR.Name.GenericAnnotation => ann
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "documentation comment resolution."

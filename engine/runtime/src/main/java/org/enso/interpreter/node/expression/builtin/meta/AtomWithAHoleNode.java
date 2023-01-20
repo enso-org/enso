@@ -2,6 +2,7 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -123,7 +124,7 @@ public abstract class AtomWithAHoleNode extends Node {
         new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
         true, false
-      }, new CallArgumentInfo[0], new Function[0]);
+      }, new CallArgumentInfo[0], new Annotation[0]);
     }
 
     static SwapAtomFieldNode create() {

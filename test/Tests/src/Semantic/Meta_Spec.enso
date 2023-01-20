@@ -13,10 +13,21 @@ from Standard.Test import Test, Test_Suite
 import Standard.Test.Extensions
 from Standard.Base.Error.Common import Uninitialized_State
 
+type T
+   C x
+
 type My_Type
     Value foo bar baz
 
+@a (test_method 1 2)
+@b 42
+other_method a = a
+
 My_Type.my_method self = self.foo + self.bar + self.baz
+
+@a "Hello"
+@b (Test_Type.Value 49)
+test_method a b = a + b
 
 type Test_Type
     Value x
@@ -171,6 +182,10 @@ spec =
             (Test_Type.Value a)==(Test_Type.Value a) . should_be_true
             (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
             (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
+
+        Test.specify "get annotations" <|
+            #value = My_Type.Value 99 "bar" True
+            Meta.get_annotation Meta_Spec "other_method" "a" . should_equal "Hello world!"
 
     Test.group "Atom with holes" <|
         Test.specify "construct and fill" <|
