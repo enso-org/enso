@@ -241,6 +241,8 @@ pub struct Expression {
     pub expression_type: Option<view::graph_editor::Type>,
     /// A pointer to the method called by this expression.
     pub method_pointer:  Option<view::graph_editor::MethodPointer>,
+    /// A call expression expression id that a widget was requested on.
+    pub widget_target:   Option<ast::Id>,
 }
 
 /// The data of node's expressions.
@@ -629,12 +631,16 @@ impl<'a> ControllerChange<'a> {
         &self,
         id: ast::Id,
         method_ptr: Option<view::graph_editor::MethodPointer>,
-    ) -> Option<ViewNodeId> {
+    ) -> Option<(ViewNodeId, Option<ast::Id>)> {
         let mut expressions = self.expressions.borrow_mut();
         let to_update = expressions.get_mut(id).filter(|d| d.method_pointer != method_ptr);
         if let Some(displayed) = to_update {
             displayed.method_pointer = method_ptr;
-            self.nodes.borrow().get(displayed.node).and_then(|node| node.view_id)
+            self.nodes
+                .borrow()
+                .get(displayed.node)
+                .and_then(|node| node.view_id)
+                .map(|id| (id, displayed.widget_target))
         } else {
             None
         }
@@ -743,6 +749,23 @@ impl<'a> ViewChange<'a> {
             debug!("Setting node expression from view: {} -> {}", displayed.expression, expression);
             displayed.expression = expression;
             Some(ast_id)
+        } else {
+            None
+        }
+    }
+
+    /// Set the call expression's widget target expression ID.
+    pub fn set_expression_widget_target(
+        &self,
+        expression: ast::Id,
+        widget_target: Option<ast::Id>,
+    ) -> Option<AstNodeId> {
+        let mut expressions = self.expressions.borrow_mut();
+        let to_update =
+            expressions.get_mut(expression).filter(|d| d.widget_target != widget_target);
+        if let Some(displayed) = to_update {
+            displayed.widget_target = widget_target;
+            Some(displayed.node)
         } else {
             None
         }
@@ -1033,8 +1056,11 @@ mod tests {
             name:            "foo".to_string(),
         };
         let method_ptr = Some(view::graph_editor::MethodPointer::from(method_ptr));
-        assert_eq!(updater.set_expression_method_pointer(expr, method_ptr.clone()), Some(view));
+        assert_eq!(
+            updater.set_expression_method_pointer(expr, method_ptr.clone()),
+            Some((view, None))
+        );
         assert_eq!(updater.set_expression_method_pointer(expr, method_ptr), None);
-        assert_eq!(updater.set_expression_method_pointer(expr, None), Some(view));
+        assert_eq!(updater.set_expression_method_pointer(expr, None), Some((view, None)));
     }
 }

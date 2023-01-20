@@ -96,10 +96,11 @@ impl Widget {
         let network = &frp.network;
         let input = &frp.input;
 
+        let weak_frp = frp.downgrade();
         frp::extend! { network
             widget_data <- all(&input.set_metadata, &input.set_node_data);
-            eval widget_data([model, frp]((meta, node_data)) {
-                model.set_widget_data(&frp, meta, node_data);
+            eval widget_data([model, weak_frp]((meta, node_data)) {
+                model.set_widget_data(&weak_frp, meta, node_data);
             });
         }
 
@@ -121,7 +122,7 @@ impl Model {
         Self { common, inner }
     }
 
-    fn set_widget_data(&self, frp: &Frp, meta: &Option<Metadata>, node_data: &NodeData) {
+    fn set_widget_data(&self, frp: &WeakFrp, meta: &Option<Metadata>, node_data: &NodeData) {
         let kind_fallback = || {
             if !node_data.argument_info.tag_values.is_empty() {
                 Kind::SingleChoice
@@ -189,7 +190,7 @@ pub enum Kind {
 }
 
 /// The widget model that is dependant on the widget kind.
-#[derive(Clone, Debug, CloneRef)]
+#[derive(Debug)]
 pub enum ModelInner {
     /// Placeholder widget data when no data is available.
     Unset,
@@ -201,7 +202,7 @@ impl ModelInner {
     fn new(
         kind: Kind,
         common: &ModelCommon,
-        frp: &Frp,
+        frp: &WeakFrp,
         meta: &Option<Metadata>,
         node_data: &NodeData,
     ) -> Self {
@@ -274,8 +275,9 @@ pub mod dot {
 
 /// A widget for selecting a single value from a list of available options. The options can be
 /// provided as a static list of strings from argument `tag_values`, or as a dynamic expression.
-#[derive(Clone, Debug, CloneRef)]
+#[derive(Debug)]
 pub struct SingleChoiceModel {
+    #[allow(dead_code)]
     network:        frp::Network,
     dropdown:       Rc<RefCell<LazyDropdown>>,
     /// temporary click handling
@@ -283,7 +285,7 @@ pub struct SingleChoiceModel {
 }
 
 impl SingleChoiceModel {
-    fn new(common: &ModelCommon, frp: &Frp, node_height: f32, entries: Vec<ImString>) -> Self {
+    fn new(common: &ModelCommon, frp: &WeakFrp, node_height: f32, entries: Vec<ImString>) -> Self {
         let display_object = &common.display_object;
         let input = &frp.input;
         let output = &frp.private.output;

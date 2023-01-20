@@ -14,7 +14,7 @@ use crate::node::profiling;
 use crate::view;
 use crate::MethodPointer;
 use crate::Type;
-use crate::WidgetUpdate;
+use crate::WidgetUpdates;
 
 use enso_frp as frp;
 use enso_frp;
@@ -283,26 +283,26 @@ impl Model {
         }
     }
 
-    fn set_expression_widgets(&self, updates: &[WidgetUpdate]) {
+    fn set_expression_widgets(&self, updates: &WidgetUpdates) {
         let expression = self.expression.borrow();
         let widgets_map = self.widgets_map.borrow();
         let mut errored = false;
-
-        for update in updates {
-            let widget_id = WidgetId {
-                target_id:     update.target_id,
-                argument_name: update.argument_name.to_string(),
-            };
+        let WidgetUpdates { target_id, updates } = updates;
+        for update in updates.iter() {
+            let argument_name = update.argument_name.to_string();
+            let widget_id = WidgetId { target_id: *target_id, argument_name };
             let crumbs = widgets_map.get(&widget_id);
+
             let root = expression.span_tree.root_ref();
             let port = crumbs.and_then(|crumbs| root.get_descendant(crumbs).ok());
             let widget = port.and_then(|port| port.payload.widget.clone_ref());
+
             if let Some(widget) = widget {
                 widget.set_metadata(update.meta.clone());
             } else {
                 error!(
                     "[WIDGETS] Widget update failed for argument: {:?}, crumbs: {crumbs:?}",
-                    update.argument_name,
+                    update.argument_name
                 );
                 errored = true;
             }
@@ -312,24 +312,24 @@ impl Model {
         }
     }
 
-    fn widgets_for_operation(
-        &self,
-        crumbs: &Crumbs,
-        method_pointer: &Option<MethodPointer>,
-    ) -> Option<(ast::Id, ast::Id)> {
-        warn!("set_method_pointer: {:?} {:?}", crumbs, method_pointer);
+    // fn widgets_for_operation(
+    //     &self,
+    //     crumbs: &Crumbs,
+    //     method_pointer: &Option<MethodPointer>,
+    // ) -> Option<(ast::Id, ast::Id)> {
+    //     warn!("set_method_pointer: {:?} {:?}", crumbs, method_pointer);
 
-        // do not request anything if there is no method pointer set
-        let _ = method_pointer.as_ref()?;
+    //     // do not request anything if there is no method pointer set
+    //     let _ = method_pointer.as_ref()?;
 
-        let expression = self.expression.borrow();
-        let call = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
-        let call_id = call.node.ast_id?;
-        const INFIX_LEFT: ast::Crumb = ast::Crumb::Infix(ast::crumbs::InfixCrumb::LeftOperand);
-        let left_operand = call.get_descendant_by_ast_crumbs(&[INFIX_LEFT])?;
-        let target_id = left_operand.node.ast_id?;
-        Some((call_id, target_id))
-    }
+    //     let expression = self.expression.borrow();
+    //     let call = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
+    //     let call_id = call.node.ast_id?;
+    //     const INFIX_LEFT: ast::Crumb = ast::Crumb::Infix(ast::crumbs::InfixCrumb::LeftOperand);
+    //     let left_operand = call.get_descendant_by_ast_crumbs(&[INFIX_LEFT])?;
+    //     let target_id = left_operand.node.ast_id?;
+    //     Some((call_id, target_id))
+    // }
 
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
@@ -343,6 +343,11 @@ impl Model {
         area_frp: &FrpEndpoints,
     ) {
         let mut is_header = true;
+
+        // let prev_id_crumbs_map = self.id_crumbs_map.take();
+        let prev_widgets_map = self.widgets_map.take();
+        let prev_expression = self.expression.borrow();
+
         let mut id_crumbs_map = HashMap::new();
         let mut widgets_map = HashMap::new();
         let builder = PortLayerBuilder::empty(&self.ports);
@@ -414,7 +419,8 @@ impl Model {
                 let size = Vector2(width, height);
                 let port_shape = port.payload.init_shape(size, node::HEIGHT);
 
-                let port_widget = port.kind.target_id().and_then(|target_id| {
+                let call_data = port.kind.call_id().zip(port.kind.target_id());
+                let port_widget = call_data.and_then(|(call_id, target_id)| {
                     let info = port.kind.argument_info()?;
                     let argument_name = info.name.as_ref()?.clone();
                     let widget_id = WidgetId {
@@ -422,9 +428,7 @@ impl Model {
                         argument_name,
                     };
 
-                    let prev_widgets_map = self.widgets_map.borrow();
                     let prev_widget = prev_widgets_map.get(&widget_id).and_then(|prev_crumbs|{
-                        let prev_expression = self.expression.borrow();
                         let prev_root = prev_expression.span_tree.root_ref();
                         let prev_node = prev_root.get_descendant(prev_crumbs).ok()?;
                         let prev_widget = prev_node.payload.widget.as_ref()?.clone_ref();
@@ -434,8 +438,13 @@ impl Model {
 
                     widgets_map.insert(widget_id, crumbs.clone_ref());
                     let widget = match prev_widget {
-                        Some(prev_widget) => port.payload.use_existing_widget(prev_widget),
-                        None => port.payload.init_widget(&self.app),
+                        Some(prev_widget) => {
+                            warn!("Reusing widget for port: {:?}", port.ast_id);
+                            port.payload.use_existing_widget(prev_widget)
+                        },
+                        None => {
+                            warn!("New widget for port: {:?}", port.ast_id);
+                            port.payload.init_widget(&self.app)},
                     };
                     widget.set_x(unit * index as f32);
                     builder.parent.add_child(&widget);
@@ -554,13 +563,15 @@ impl Model {
                         .map_or(false, |crumbs| crumbs == &port.crumbs);
 
                     frp::extend! { port_network
-                        area_frp.source.on_port_code_update <+ port_widget.value_changed.map(
+                        code_update <- port_widget.value_changed.map(
                             f!([crumbs](v) {
                                 (crumbs.clone_ref(), v.clone().unwrap_or_else(|| {
                                     if can_be_removed { default() } else { "_".into() }
                                 }))
                             })
                         );
+                        trace code_update;
+                        area_frp.source.on_port_code_update <+ code_update;
                     }
                 }
 
@@ -605,7 +616,6 @@ impl Model {
 
 
             // === Type Computation ===
-
             let parent_tp = parent_tp.clone().unwrap_or_else(|| {
                 frp::extend! { port_network
                     empty_parent_tp <- source::<Option<Type>>();
@@ -765,11 +775,16 @@ impl Model {
     /// may require some edges to re-color, which consequently will require to checking the current
     /// expression types.
     #[profile(Debug)]
-    fn init_new_expression(&self, expression: Expression) {
+    fn init_new_expression(&self, expression: Expression, area_frp: &FrpEndpoints) {
         *self.expression.borrow_mut() = expression;
         let expression = self.expression.borrow();
         expression.root_ref().dfs_with_layer_data((), |node, _| {
             node.frp.set_definition_type(node.tp().cloned().map(|t| t.into()));
+            let widget_request = node.kind.call_id().zip(node.kind.target_id());
+            if let Some(widget_request) = widget_request {
+                warn!("[WIDGETS] Widget request: {widget_request:?}");
+                area_frp.source.requested_widgets.emit(widget_request);
+            }
         });
     }
 
@@ -789,7 +804,7 @@ impl Model {
         self.set_label_on_new_expression(&new_expression);
         self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);
         self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
-        self.init_new_expression(new_expression.clone());
+        self.init_new_expression(new_expression.clone(), area_frp);
         if is_editing {
             self.label.set_cursor_at_text_end();
         }
@@ -843,7 +858,7 @@ ensogl::define_endpoints! {
 
         /// Set the method pointer for the port indicated by the breadcrumbs. Useful for updating
         /// argument labels and querying for widgets.
-        set_expression_widgets   (Vec<WidgetUpdate>),
+        set_expression_widgets   (WidgetUpdates),
 
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
         /// if any. It is used to highlight ports if they are missing type information or if their
@@ -986,9 +1001,9 @@ impl Area {
 
             // === Widgets ===
 
-            frp.output.source.requested_widgets <+ frp.set_method_pointer.filter_map(
-                f!(((a,b)) model.widgets_for_operation(a,b))
-            );
+            // frp.output.source.requested_widgets <+ frp.set_method_pointer.filter_map(
+            //     f!(((a,b)) model.widgets_for_operation(a,b))
+            // );
             eval frp.set_expression_widgets ((a) model.set_expression_widgets(a));
 
             // === View Mode ===

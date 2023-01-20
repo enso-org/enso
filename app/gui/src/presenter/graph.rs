@@ -196,8 +196,12 @@ impl Model {
         call_expression: ast::Id,
         target_expression: ast::Id,
     ) {
+        self.state
+            .update_from_view()
+            .set_expression_widget_target(call_expression, Some(target_expression));
+
         if let Some(method_id) = self.expression_method_suggestion(call_expression) {
-            self.widgets.register_query(widgets::QueryDefinition {
+            self.widgets.request_widgets(widgets::QueryDefinition {
                 node_id,
                 call_expr_id: call_expression,
                 target_expr_id: target_expression,
@@ -289,6 +293,7 @@ impl Model {
         &self,
         node: ViewNodeId,
     ) -> Vec<(ViewNodeId, ast::Id, Option<view::graph_editor::MethodPointer>)> {
+        warn!("[WIDGETS] all_method_pointers_of_node");
         let subexpressions = self.state.expressions_of_node(node);
         subexpressions
             .into_iter()
@@ -318,10 +323,17 @@ impl Model {
     ) -> Option<(ViewNodeId, ast::Id, Option<view::graph_editor::MethodPointer>)> {
         let suggestion_id = self.expression_method_suggestion(expr_id)?;
         let method_pointer = self.suggestion_method_pointer(suggestion_id);
-        let node_id = self
+        let (node_id, widget_target_id) = self
             .state
             .update_from_controller()
             .set_expression_method_pointer(expr_id, method_pointer.clone())?;
+
+        warn!("[WIDGETS] method pointer found for {expr_id:?}, target: {widget_target_id:?}");
+
+        if let Some(target_id) = widget_target_id {
+            warn!("[WIDGETS] widget_target_id detected on expr {expr_id:?} refresh");
+            self.widgets_requested(node_id, expr_id, target_id);
+        }
 
         Some((node_id, expr_id, method_pointer))
     }

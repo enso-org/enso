@@ -115,6 +115,20 @@ impl Shape {
 
         Self { root, hover, viz }
     }
+
+    pub fn set_size(&self, size: Vector2, hover_height: f32) {
+        let width_padded = size.x + 2.0 * PADDING_X;
+        self.hover.set_size((width_padded, hover_height));
+        self.viz.set_size((width_padded, size.y));
+        self.hover.set_x(size.x / 2.0);
+        self.viz.set_x(size.x / 2.0);
+    }
+
+    pub fn remove_child_shapes(&self) {
+        self.root.remove_all_children();
+        self.root.add_child(&self.hover);
+        self.root.add_child(&self.viz);
+    }
 }
 
 impl display::Object for Shape {
@@ -184,6 +198,13 @@ impl Model {
         self.shape.as_ref().unwrap().clone_ref()
     }
 
+    /// Assing an existing shape to this port.
+    pub fn use_existing_shape(&mut self, shape: Shape, size: Vector2, hover_height: f32) -> Shape {
+        shape.set_size(size, hover_height);
+        self.shape = Some(shape.clone_ref());
+        shape
+    }
+
     /// Widget initialization. Only nodes that represent function arguments, either existing or
     /// potential ones, will have widgets created for them.
     pub fn init_widget(&mut self, app: &Application) -> Widget {
@@ -192,6 +213,7 @@ impl Model {
         widget
     }
 
+    /// Assign an existing widget to this port.
     pub fn use_existing_widget(&mut self, widget: Widget) -> Widget {
         self.widget = Some(widget.clone_ref());
         widget

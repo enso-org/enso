@@ -77,6 +77,7 @@ use crate::generate::Context;
 pub struct ArgumentInfo {
     pub name:       Option<String>,
     pub tp:         Option<String>,
+    pub call_id:    Option<ast::Id>,
     pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
@@ -86,16 +87,17 @@ impl ArgumentInfo {
     pub fn new(
         name: Option<String>,
         tp: Option<String>,
+        call_id: Option<ast::Id>,
         target_id: Option<ast::Id>,
         tag_values: Vec<String>,
     ) -> Self {
-        Self { name, tp, target_id, tag_values }
+        Self { name, tp, call_id, target_id, tag_values }
     }
 
     /// Specialized constructor for "this" argument.
     pub fn this(tp: Option<String>) -> Self {
         let name = Some(node::This::NAME.into());
-        Self { name, tp, target_id: None, tag_values: Vec::new() }
+        Self { name, tp, call_id: None, target_id: None, tag_values: Vec::new() }
     }
 }
 

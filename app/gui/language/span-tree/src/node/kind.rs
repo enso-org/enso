@@ -128,10 +128,20 @@ impl Kind {
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
         Some(match self {
             Self::This(t) => ArgumentInfo::this(t.tp.clone()),
-            Self::Argument(t) =>
-                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.target_id, t.tag_values.clone()),
-            Self::InsertionPoint(t) =>
-                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.target_id, t.tag_values.clone()),
+            Self::Argument(t) => ArgumentInfo::new(
+                t.name.clone(),
+                t.tp.clone(),
+                t.call_id,
+                t.target_id,
+                t.tag_values.clone(),
+            ),
+            Self::InsertionPoint(t) => ArgumentInfo::new(
+                t.name.clone(),
+                t.tp.clone(),
+                t.call_id,
+                t.target_id,
+                t.tag_values.clone(),
+            ),
             _ => return None,
         })
     }
@@ -146,8 +156,16 @@ impl Kind {
         }
     }
 
+    /// Returns the argument's whole call node ast id.
+    pub fn call_id(&self) -> Option<ast::Id> {
+        match self {
+            Self::Argument(t) => t.call_id,
+            Self::InsertionPoint(t) => t.call_id,
+            _ => None,
+        }
+    }
 
-    /// Returns the name of the argument. Does not copy or allocate.
+    /// Returns the argument's call target node ast id.
     pub fn target_id(&self) -> Option<ast::Id> {
         match self {
             Self::Argument(t) => t.target_id,
@@ -167,6 +185,7 @@ impl Kind {
             Self::Argument(t) => {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
+                t.call_id = argument_info.call_id;
                 t.target_id = argument_info.target_id;
                 t.tag_values = argument_info.tag_values;
                 true
@@ -174,6 +193,7 @@ impl Kind {
             Self::InsertionPoint(t) => {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
+                t.call_id = argument_info.call_id;
                 t.target_id = argument_info.target_id;
                 t.tag_values = argument_info.tag_values;
                 true
@@ -276,6 +296,7 @@ pub struct Argument {
     pub removable:  bool,
     pub name:       Option<String>,
     pub tp:         Option<String>,
+    pub call_id:    Option<ast::Id>,
     pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
@@ -309,6 +330,10 @@ impl Argument {
         self.tp = tp;
         self
     }
+    pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
+        self.target_id = call_id;
+        self
+    }
     pub fn with_target_id(mut self, target_id: Option<ast::Id>) -> Self {
         self.target_id = target_id;
         self
@@ -337,6 +362,7 @@ pub struct InsertionPoint {
     pub kind:       InsertionPointType,
     pub name:       Option<String>,
     pub tp:         Option<String>,
+    pub call_id:    Option<ast::Id>,
     pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }

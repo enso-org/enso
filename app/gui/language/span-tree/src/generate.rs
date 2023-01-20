@@ -154,11 +154,12 @@ struct ApplicationBase<'a> {
     /// True when Ast uses method notation to pass this as an invocation target.
     has_target:    bool,
     /// The id of the target operand, if present.
+    call_id:       Option<Id>,
     target_id:     Option<Id>,
 }
 
 impl<'a> ApplicationBase<'a> {
-    fn new(ast: &'a Ast) -> Self {
+    fn new(ast: &'a Ast, call_id: Option<Id>) -> Self {
         if let Some(infix) = GeneralizedInfix::try_new(ast)
             .filter(|infix| infix.name() == ast::opr::predefined::ACCESS)
         {
@@ -166,10 +167,11 @@ impl<'a> ApplicationBase<'a> {
             let target_id = target.as_ref().and_then(|t| t.arg.id);
             let function = ast.get(&infix.argument_crumb()).ok();
             let function_name = function.and_then(ast::identifier::name);
-            ApplicationBase { function_name, target_id, has_target: true }
+            ApplicationBase { function_name, call_id, target_id, has_target: true }
         } else {
             ApplicationBase {
                 function_name: ast::identifier::name(ast),
+                call_id:       None,
                 target_id:     None,
                 has_target:    false,
             }
@@ -181,7 +183,7 @@ impl<'a> ApplicationBase<'a> {
         invocation_info: Option<CalledMethodInfo>,
     ) -> impl ExactSizeIterator<Item = ArgumentInfo> {
         let mut ret = invocation_info
-            .map(|info| info.with_target_id(self.target_id).parameters)
+            .map(|info| info.with_ast_ids(self.call_id, self.target_id).parameters)
             .unwrap_or_default()
             .into_iter();
         if self.has_target {
@@ -212,7 +214,7 @@ fn generate_node_for_ast<T: Payload>(
     // Code like `ast.func` or `a+b+c`.
     if let Some(infix) = GeneralizedInfix::try_new(ast) {
         let chain = infix.flatten();
-        let app_base = ApplicationBase::new(ast);
+        let app_base = ApplicationBase::new(ast, ast.id);
         let invocation = || -> Option<CalledMethodInfo> {
             context.call_info(ast.id?, Some(app_base.function_name?))
         }();
@@ -363,7 +365,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
     kind: node::Kind,
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
-    let base = ApplicationBase::new(&this.func);
+    let base = ApplicationBase::new(&this.func, this.id());
     let invocation_info = this.id().and_then(|id| context.call_info(id, base.function_name));
     let known_args = invocation_info.is_some();
     let mut known_params = base.prefix_params(invocation_info);

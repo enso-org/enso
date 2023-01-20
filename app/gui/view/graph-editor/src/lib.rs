@@ -3,6 +3,7 @@
 //! be of poor quality. Expect drastic changes.
 
 // === Features ===
+#![feature(adt_const_params)]
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(entry_insert)]
@@ -603,7 +604,7 @@ ensogl::define_endpoints_2! {
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
         set_method_pointer           ((NodeId,ast::Id,Option<MethodPointer>)),
-        set_expression_widgets       ((NodeId,Vec<WidgetUpdate>)),
+        set_expression_widgets       ((NodeId,WidgetUpdates)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId,Option<visualization::Path>)),
         register_visualization       (Option<visualization::Definition>),
@@ -1051,16 +1052,22 @@ impl Grid {
 
 
 // ====================
-// === WidgetUpdate ===
+// === WidgetUpdates ===
 // ====================
 
-/// A structure describing a widget update for specific argument of a function call.
-#[derive(Debug, Clone)]
-pub struct WidgetUpdate {
+/// A structure describing a widget update batch for arguments of single function call.
+#[derive(Debug, Default, Clone)]
+pub struct WidgetUpdates {
     /// The function call target expression id.
-    pub target_id:     ast::Id,
+    pub target_id: ast::Id,
+    pub updates:   Rc<Vec<WidgetUpdate>>,
+}
+
+/// A structure describing a widget update for specific argument of a function call.
+#[derive(Debug)]
+pub struct WidgetUpdate {
     /// The function argument name that this widget is for.
-    pub argument_name: ImString,
+    pub argument_name: String,
     /// Widget metadata queried from the language server.
     pub meta:          Option<node::input::widget::Metadata>,
 }
@@ -2148,9 +2155,9 @@ impl GraphEditorModel {
         }
     }
 
-    fn set_expression_widgets(&self, node_id: NodeId, updates: &[WidgetUpdate]) {
+    fn set_expression_widgets(&self, node_id: NodeId, updates: &WidgetUpdates) {
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.view.set_expression_widgets.emit(updates.to_vec());
+            node.view.set_expression_widgets.emit(updates.clone());
         }
     }
 

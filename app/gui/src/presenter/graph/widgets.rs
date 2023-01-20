@@ -20,6 +20,7 @@ use ide_view::graph_editor::component::visualization::Metadata;
 use ide_view::graph_editor::data::enso::Code;
 use ide_view::graph_editor::GraphEditor;
 use ide_view::graph_editor::WidgetUpdate;
+use ide_view::graph_editor::WidgetUpdates;
 
 
 // ===============
@@ -29,7 +30,7 @@ use ide_view::graph_editor::WidgetUpdate;
 define_endpoints_2! {
     Input {
         /// Create or update widget query with given definition.
-        register_query(QueryDefinition),
+        request_widgets(QueryDefinition),
         /// Remove all widget queries of given node that are not on this list.
         retain_node_expressions(ViewNodeId, HashSet<ast::Id>),
         /// Remove all widget queries of given node.
@@ -37,7 +38,7 @@ define_endpoints_2! {
     }
     Output {
         /// Emitted when the node's visualization has been set.
-        widget_data(ViewNodeId, Vec<WidgetUpdate>),
+        widget_data(ViewNodeId, WidgetUpdates),
     }
 }
 
@@ -64,8 +65,11 @@ impl Widgets {
         let (manager, manager_notifications) = Manager::new(executed_graph.clone_ref());
         let frp = Frp::new();
 
-        let module = executed_graph.module_qualified_name(&*project).to_string_with_main_segment();
-        let method = "get_annotation_vis";
+        // let module =
+        // executed_graph.module_qualified_name(&*project).to_string_with_main_segment();
+        // let method = "get_annotation_vis";
+        let module = "Standard.Visualization.Widgets";
+        let method = "get_full_annotations_json";
 
         let model = Rc::new(RefCell::new(Model {
             manager,
@@ -81,7 +85,10 @@ impl Widgets {
         let output = &frp.private.output;
 
         frp::extend! { network
-            eval input.register_query((definition) model.borrow_mut().register_query(definition));
+            updates_from_cache <- input.request_widgets.filter_map(
+                f!((definition) model.borrow_mut().register_query(definition))
+            );
+            output.widget_data <+ updates_from_cache;
             eval input.retain_node_expressions(((node_id, expr_ids)) {
                 model.borrow_mut().retain_node_expressions(*node_id, expr_ids)
             });
@@ -139,6 +146,7 @@ struct QueryData {
     call_expr_id: ast::Id,
     method_name:  ImString,
     arguments:    Vec<ImString>,
+    last_update:  Option<WidgetUpdates>,
 }
 
 
@@ -146,10 +154,10 @@ impl Model {
     fn handle_notification(
         &mut self,
         notification: Notification,
-    ) -> Option<(ViewNodeId, Vec<WidgetUpdate>)> {
+    ) -> Option<(ViewNodeId, WidgetUpdates)> {
         match notification {
             Notification::ValueUpdate { target, data, .. } => {
-                let query_data = self.expr_queries.get(&target)?;
+                let query_data = self.expr_queries.get_mut(&target)?;
                 let data: serde_json::Value = serde_json::from_slice(&data).ok()?;
                 warn!("[WIDGETS] Received value for {target}:\n{data:?}");
                 let args = data.as_array()?;
@@ -157,11 +165,6 @@ impl Model {
                     .iter()
                     .filter_map(|arg_value| {
                         let meta_value = arg_value.get(1)?;
-                        /*
-                           Array [
-                               Array [String("selector"), Object {"allow_custom": Bool(true), "constructor": String("Single_Choice"), "display": Object {"constructor": String("Always"), "type": String("Display")}, "label": Null, "quote_values": Bool(false), "type": String("Widget"), "values": Array [String("Foo"), String("Bar")]}]
-                           ]
-                        */
 
                         let kind: widget::Kind =
                             serde_json::from_value(meta_value.get("constructor")?.clone()).ok()?;
@@ -176,13 +179,14 @@ impl Model {
                         let meta = widget::Metadata { kind, display, dynamic_entries };
 
                         let argument_name = arg_value.get(0)?.as_str()?.to_owned().into();
-                        Some(WidgetUpdate { argument_name, target_id: target, meta: Some(meta) })
+                        Some(WidgetUpdate { argument_name, meta: Some(meta) })
                     })
                     .collect();
 
+
+                let updates = WidgetUpdates { target_id: target, updates: Rc::new(updates) };
                 warn!("[WIDGETS] updates: {updates:?}");
-
-
+                query_data.last_update = Some(updates.clone());
                 Some((query_data.node_id, updates))
             }
             Notification::FailedToAttach { error, .. } => {
@@ -200,9 +204,9 @@ impl Model {
         }
     }
 
-    fn register_query(&mut self, def: &QueryDefinition) {
+    fn register_query(&mut self, def: &QueryDefinition) -> Option<(ViewNodeId, WidgetUpdates)> {
         let suggestion_db = &self.graph.borrow_graph().suggestion_db;
-        let Ok(entry) = suggestion_db.lookup(def.method_id) else { return };
+        let entry = suggestion_db.lookup(def.method_id).ok()?;
 
         use std::collections::hash_map::Entry;
         match self.expr_queries.entry(def.target_expr_id) {
@@ -243,6 +247,9 @@ impl Model {
                         manager.request_visualization(target_expr_id, vis_metadata);
                     });
                 }
+
+                // In the mean time, return last data, even if it wasn't exactly matching.
+                query.last_update.as_ref().map(|updates| (query.node_id, updates.clone()))
             }
             Entry::Vacant(vacant) => {
                 let node_id = def.node_id;
@@ -251,7 +258,8 @@ impl Model {
                 self.expr_of_node.entry(def.node_id).or_default().push(def.target_expr_id);
                 let arguments = entry.arguments.iter().map(|arg| arg.name.clone().into()).collect();
 
-                let query_data = QueryData { node_id, arguments, method_name, call_expr_id };
+                let query_data =
+                    QueryData { node_id, arguments, method_name, call_expr_id, last_update: None };
                 let query = vacant.insert(query_data);
                 let vis_metadata =
                     Self::query_vis_metadata(self.module.clone(), self.method.clone(), query);
@@ -262,6 +270,7 @@ impl Model {
                 spawn(async move {
                     manager.request_visualization(target_expr_id, vis_metadata);
                 });
+                None
             }
         }
     }

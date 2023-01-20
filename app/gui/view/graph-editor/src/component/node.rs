@@ -13,7 +13,7 @@ use crate::tooltip;
 use crate::view;
 use crate::MethodPointer;
 use crate::Type;
-use crate::WidgetUpdate;
+use crate::WidgetUpdates;
 
 use super::edge;
 use enso_frp as frp;
@@ -309,7 +309,7 @@ ensogl::define_endpoints_2! {
         /// colored if the definition type was present.
         set_expression_usage_type         (Crumbs,Option<Type>),
         set_method_pointer                (Crumbs,Option<MethodPointer>),
-        set_expression_widgets            (Vec<WidgetUpdate>),
+        set_expression_widgets            (WidgetUpdates),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
         /// Show visualization preview until either editing of the node is finished or the
