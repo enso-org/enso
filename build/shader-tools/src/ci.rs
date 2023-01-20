@@ -1,7 +1,6 @@
 use crate::prelude::*;
 use crate::ENSO_RELEASE_ID;
-use ide_ci::actions::workflow::definition::checkout_repo_step_customized;
-use ide_ci::actions::workflow::definition::step;
+use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
@@ -13,24 +12,10 @@ pub fn run_bin(binary: &str) -> Step {
 }
 
 pub fn job_that_runs(bin: &str, runs_on: RunnerLabel, output: Option<&str>) -> Job {
-    let checkout_steps = checkout_repo_step_customized(|mut step| {
-        let repo = crate::SHADER_TOOLS_REPO.into();
-        let with = match &mut step.with {
-            Some(step::Argument::Checkout { repository: _, clean, submodules }) =>
-                step::Argument::Checkout {
-                    repository: Some(repo),
-                    clean:      *clean,
-                    submodules: *submodules,
-                },
-            _ => panic!("Unexpected step with argument: {:?}", step.with),
-        };
-        step.with = Some(with);
-        step
-    });
-
+    let checkout_steps = checkout_repo_step();
 
     let mut job = Job::new(format!("Run {bin}"), [runs_on]);
-    job.steps.extend(checkout_steps.clone());
+    job.steps.extend(checkout_steps);
 
     let main_step = run_bin(bin);
     if let Some(output) = output {

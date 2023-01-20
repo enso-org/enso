@@ -19,7 +19,6 @@ jobs:
     - name: Checking out the repository
       uses: actions/checkout@v2
       with:
-        repository: enso-org/shader-tools
         clean: false
         submodules: recursive
     - id: step_0
@@ -48,7 +47,6 @@ jobs:
     - name: Checking out the repository
       uses: actions/checkout@v2
       with:
-        repository: enso-org/shader-tools
         clean: false
         submodules: recursive
     - run: cargo run --package enso-shader-tools --bin package
@@ -77,7 +75,6 @@ jobs:
     - name: Checking out the repository
       uses: actions/checkout@v2
       with:
-        repository: enso-org/shader-tools
         clean: false
         submodules: recursive
     - run: cargo run --package enso-shader-tools --bin publish
