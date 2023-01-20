@@ -33,7 +33,7 @@ pub struct Uniform;
 ///
 /// Please note that WebGL is using GLSL 300 ES, which does not allow for explicit uniform locations
 /// and requires explicit fragment output attributes locations. However, GLSL optimizer (`shaderc`)
-/// supports GLSL 330+ and requires explicit layout location of all inputs. The code generated with
+/// supports GLSL 310+ and requires explicit layout location of all inputs. The code generated with
 /// all locations is used by the optimizer only and the original body is replaced with the optimized
 /// one in the end.
 #[derive(Clone, Copy, Debug)]

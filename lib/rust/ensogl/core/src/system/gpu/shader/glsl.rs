@@ -21,7 +21,7 @@ use nalgebra::OMatrix;
 // ===============
 
 /// Version of the GLSL to be used. Please note that WebGL 2.0 supports only GLSL 3.00 ES, however,
-/// GLSL optimizers require GLSL 3.10 ES+. Therefore, we need to generate GLSL 3.10 ES+ code for the
+/// GLSL optimizers require GLSL 3.10+. Therefore, we need to generate GLSL 3.10+ code for the
 /// optimizer and GLSL 3.00 ES for WebGL.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Version {
@@ -31,10 +31,13 @@ pub enum Version {
 }
 
 impl Version {
+    /// The GLSL code header.
     pub fn code(self) -> String {
         format!("#version {} es", self as usize)
     }
 
+    /// Check whether the GLSL version requires explicit layout qualifiers on all shader's
+    /// parameters.
     pub fn requires_layout(&self) -> bool {
         *self > Version::V300
     }

@@ -119,7 +119,9 @@ impl {
         }
     }
 
-    pub fn abstract_shader_code(&self) -> crate::system::gpu::shader::Code {
+    /// Get the shader code in GLSL 310 format. The shader parameters will not be bound to any
+    /// particular mesh and thus this code can be used for optimization purposes only.
+    pub fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
         let bindings = self.collect_variables().into_iter().map(|mut binding| {
             binding.scope = Some(ScopeType::Mesh(crate::display::symbol::geometry::primitive::mesh::ScopeType::Instance));
             binding

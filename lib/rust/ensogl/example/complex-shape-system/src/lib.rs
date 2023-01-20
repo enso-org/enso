@@ -56,6 +56,9 @@ mod mask {
 // === Entry Point ===
 // ===================
 
+// FIXME: this scene does not work anymore, as it was using dynamic theme changes. This needs to be
+// fixed in this PR.
+
 /// The example entry point.
 #[entry_point]
 #[allow(dead_code)]

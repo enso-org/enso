@@ -23,14 +23,23 @@ pub use crate::display::scene::PointerTarget;
 
 
 
+// ====================
+// === AnyShapeView ===
+// ====================
+
+/// Generalization for any shape view. Allows storing different user-defined shapes in a single
+/// collection.
 pub trait AnyShapeView {
-    fn abstract_shader_code(&self) -> crate::system::gpu::shader::Code;
+    /// Get the shape's shader code in GLSL 330 format. The shader parameters will not be bound to
+    /// any particular mesh and thus this code can be used for optimization purposes only.
+    fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code;
+    /// The shape definition path (file:line:column).
     fn definition_path(&self) -> &'static str;
 }
 
 impl<S: Shape> AnyShapeView for ShapeView<S> {
-    fn abstract_shader_code(&self) -> crate::system::gpu::shader::Code {
-        self.sprite.borrow().symbol.shader().abstract_shader_code()
+    fn abstract_shader_code_in_glsl_310(&self) -> crate::system::gpu::shader::Code {
+        self.sprite.borrow().symbol.shader().abstract_shader_code_in_glsl_310()
     }
 
     fn definition_path(&self) -> &'static str {
