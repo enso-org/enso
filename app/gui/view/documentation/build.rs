@@ -23,6 +23,7 @@ async fn main() -> Result {
     // We should rerun the tailwind on changes in the input CSS file.
     // It may contain custom CSS rules.
     println!("cargo:rerun-if-changed={CSS_INPUT_PATH}");
+    println!("cargo:rerun-if-changed=tailwind.config.js");
 
     install_and_run_tailwind().await?;
     Ok(())

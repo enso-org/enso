@@ -162,10 +162,6 @@ object Runtime {
         name  = "moduleNotFound"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ModuleNotFoundForExpression],
-        name  = "moduleNotFoundForExpression"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.ExecutionUpdate],
         name  = "executionUpdate"
       ),
@@ -1221,13 +1217,6 @@ object Runtime {
       * @param moduleName the module name
       */
     final case class ModuleNotFound(moduleName: String) extends Error
-
-    /** Signals that a module cannot be found for the provided expression id.
-      *
-      * @param expressionId the expression id
-      */
-    final case class ModuleNotFoundForExpression(expressionId: ExpressionId)
-        extends Error
 
     /** Signals that execution of a context completed.
       *

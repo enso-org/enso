@@ -8,3 +8,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.enso-docs {
+  font-family: "M PLUS 1", DejaVuSansMonoBook, sans-serif;
+}
+
+ul {
+  list-style-type: disc;
+  list-style-position: inside;
+}

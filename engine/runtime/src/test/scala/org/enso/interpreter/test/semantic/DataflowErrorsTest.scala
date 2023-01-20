@@ -198,14 +198,14 @@ class DataflowErrorsTest extends InterpreterTest {
         """from Standard.Base import all
           |
           |main =
-          |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+          |    x = Panic.catch_primitive ` .convert_to_dataflow_error
           |    IO.println x
           |    IO.println (x.catch Any .to_text)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List(
-        "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
-        "(Syntax_Error.Error 'Unrecognized token.')"
+        "(Error: (Syntax_Error.Error 'Unexpected expression.'))",
+        "(Syntax_Error.Error 'Unexpected expression.')"
       )
     }
   }
