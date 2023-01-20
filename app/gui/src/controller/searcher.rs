@@ -2097,7 +2097,7 @@ pub mod test {
         test.run_until_stalled();
         // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
-        if let [module_group] = &components.top_modules()[0][..] {
+        if let [module_group] = &components.top_modules().next().unwrap()[..] {
             let expected_group_name =
                 format!("{}.{}", entry3.defined_in.project().project, entry3.defined_in.name());
             assert_eq!(module_group.name, expected_group_name);
@@ -2105,7 +2105,7 @@ pub mod test {
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name()
     == entry9.name);
         } else {
-            ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
+            ipanic!("Wrong top modules in Component List: {components.top_modules().collect::<Vec<_>>():?}");
         }
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);
