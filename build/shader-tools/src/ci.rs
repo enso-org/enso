@@ -69,7 +69,7 @@ pub async fn ci_gen() -> Result {
 
     let yaml = serde_yaml::to_string(&workflow)?;
     println!("{}", yaml);
-    ide_ci::fs::tokio::write(".github/workflows/shader-tools.yml", yaml).await?;
+    ide_ci::fs::tokio::write("../../.github/workflows/shader-tools.yml", yaml).await?;
 
 
     Ok(())
