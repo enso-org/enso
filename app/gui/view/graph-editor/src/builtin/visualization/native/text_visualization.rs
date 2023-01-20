@@ -151,7 +151,8 @@ impl<T: 'static> Model<T> {
 
         // The `clipping_div` needs to cut of its content.
         self.clipping_div.set_style_or_warn("overflow", "hidden");
-        scene.dom.layers.front.manage(&self.clipping_div);
+        self.clipping_div.set_style_or_warn("z-index", "2");
+        scene.dom.layers.back.manage(&self.clipping_div);
         self.root.add_child(&self.clipping_div);
 
         // The `dom_entry_root` is a container for the elements and its position is not managed
