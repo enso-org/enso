@@ -261,8 +261,25 @@ impl From<String> for LazyGridData {
             .collect();
         let line_count = content.lines().count() as u32;
         let longest_line = content.lines().map(|l| l.len()).max().unwrap_or_default() as u32;
+        let chunks = fill_emtpy_chunks(chunks);
         LazyGridData { chunks, line_count, longest_line }
     }
+}
+
+/// Take a vector of chunks and fill the empty spaces of the bounding grid with `None`. The bounding
+/// grid is determined by the maximum x and y values of the chunks.
+fn fill_emtpy_chunks(chunks: Vec<Chunk>) -> Vec<Chunk> {
+    let grid_width = chunks.iter().map(|(pos, _)| pos.x).max().unwrap_or_default() + 1;
+    let grid_height = chunks.iter().map(|(pos, _)| pos.y).max().unwrap_or_default() + 1;
+    let chunk_map: HashMap<GridPosition, Option<String>> = chunks.into_iter().collect();
+    let full_grid_coordinates = (0..grid_width).cartesian_product(0..grid_height);
+    full_grid_coordinates
+        .map(|(x, y)| {
+            let pos = GridPosition::new(x, y);
+            let chunk = chunk_map.get(&pos).cloned().flatten();
+            (pos, chunk)
+        })
+        .collect()
 }
 
 
