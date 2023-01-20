@@ -5,6 +5,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Workflow;
+use ide_ci::github::GITHUB_TOKEN;
 
 pub fn run_bin(binary: &str) -> Step {
     let command = format!("cargo run --package enso-shader-tools --bin {binary}");
@@ -16,7 +17,7 @@ pub fn job_that_runs(bin: &str, runs_on: RunnerLabel, output: Option<&str>) -> J
 
     let mut job = Job::new(format!("Run {bin} ({runs_on:?})"), [runs_on]);
     job.steps.extend(checkout_steps);
-    let main_step = run_bin(bin).with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN");
+    let main_step = run_bin(bin).with_secret_exposed_as("CI_PRIVATE_TOKEN", GITHUB_TOKEN);
     if let Some(output) = output {
         job.add_step_with_output(main_step, output);
     } else {

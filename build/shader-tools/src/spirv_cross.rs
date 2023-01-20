@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-use crate::cmake::CMake;
-use crate::cmake::SetVariable;
+use ide_ci::programs::cmake::SetVariable;
 use ide_ci::programs::vs::apply_dev_environment;
 use ide_ci::programs::vs::Cl;
+use ide_ci::programs::CMake;
 use ide_ci::programs::Git;
 
 pub const SPIRV_TOOLS_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
