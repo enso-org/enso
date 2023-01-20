@@ -49,7 +49,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 /// │  ╰─ js                             | This crate's JS sources.
 /// ╰─ target                            | Directory where Rust and wasm-pack store build artifacts.
 ///    ╰─ ensogl-pack                    | Directory where ensogl-pack stores its build artifacts.
-///       ├─ wasm-pack                   | Wasm-pack artifacts, re-created it on every run.
+///       ├─ wasm-pack                   | Wasm-pack artifacts, re-created on every run.
 ///       │  ├─ pkg.js                   | Wasm-pack JS file to load WASM and glue it with snippets.
 ///       │  ├─ pkg_bg.wasm              | Wasm-pack WASM bundle.
 ///       │  ╰─ snippets                 | Rust-extracted JS snippets.
@@ -148,7 +148,7 @@ pub mod paths {
         TargetEnsoglPackDist {
             app:              PathBuf,
             shader_extractor: PathBuf,
-            main_js:          PathBuf,
+            pkg_js:          PathBuf,
             main_wasm:        PathBuf,
             shaders:          TargetEnsoglPackDistShaders,
         }
@@ -182,7 +182,7 @@ impl Paths {
         p.target.ensogl_pack.dist.app = p.target.ensogl_pack.dist.join("index.cjs");
         p.target.ensogl_pack.dist.shader_extractor =
             p.target.ensogl_pack.dist.join("shader-extractor.cjs");
-        p.target.ensogl_pack.dist.main_js = p.target.ensogl_pack.dist.join("pkg.js");
+        p.target.ensogl_pack.dist.pkg_js = p.target.ensogl_pack.dist.join("pkg.js");
         p.target.ensogl_pack.dist.main_wasm = p.target.ensogl_pack.dist.join("pkg.wasm");
         p.target.ensogl_pack.dist.shaders.root = p.target.ensogl_pack.dist.join("shaders");
         p.target.ensogl_pack.dist.shaders.list = p.target.ensogl_pack.dist.shaders.join("list.txt");
@@ -252,7 +252,6 @@ async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
         };
 
         info!("Building TypeScript sources.");
-        // FIXME[WD]: why we need this hack?
         let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
         run_script("build", &args).await?;
         let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
@@ -279,7 +278,7 @@ pub async fn run_wasm_pack(
     compile_wasm_pack_artifacts(
         &paths.target.ensogl_pack.wasm_pack,
         &paths.target.ensogl_pack.wasm_pack.pkg_js,
-        &paths.target.ensogl_pack.dist.main_js,
+        &paths.target.ensogl_pack.dist.pkg_js,
     )
     .await?;
     ide_ci::fs::copy(
@@ -289,20 +288,20 @@ pub async fn run_wasm_pack(
 }
 
 /// Compile wasm-pack artifacts (JS sources and snippets) to a single bundle.
-async fn compile_wasm_pack_artifacts(target_dir: &Path, main: &Path, out: &Path) -> Result {
-    info!("Compiling {}.", main.display());
+async fn compile_wasm_pack_artifacts(pwd: &Path, pkg_js: &Path, out: &Path) -> Result {
+    info!("Compiling {}.", pkg_js.display());
     ide_ci::programs::Npx
         .cmd()?
         .args(&[
             "--yes",
             "esbuild",
-            main.display().to_string().as_str(),
+            pkg_js.display().to_string().as_str(),
             "--bundle",
             "--sourcemap",
             "--platform=node",
             &format!("--outfile={}", out.display()),
         ])
-        .current_dir(target_dir)
+        .current_dir(pwd)
         .run_ok()
         .await
 }
