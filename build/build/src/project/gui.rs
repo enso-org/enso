@@ -83,7 +83,6 @@ impl IsTarget for Gui {
         async move {
             let ide = ide_desktop_from_context(&context);
             let wasm = Wasm.get(context, inner.wasm);
-            // HERE
             ide.build_content(wasm, &inner.build_info.await?, &destination).await?;
             Ok(Artifact::new(destination))
         }

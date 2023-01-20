@@ -733,6 +733,13 @@ define_themes! { [light:0, dark:1]
 }
 
 
+// ==========================
+// === Theme registration ===
+// ==========================
+
+/// Default theme registration. The theme is registered and enabled in a before-main entry point in
+/// order for it to be visible when shaders are being gathered during compilation phase. This makes
+/// themes not switchable at runtime, which we might want to fix somehow in the future.
 #[before_main]
 pub fn enable_default_theme() {
     let themes = ensogl_core::display::scene::with_symbol_registry(|t| t.theme_manager.clone());

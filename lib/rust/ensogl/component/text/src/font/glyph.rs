@@ -161,6 +161,8 @@ impl ShapeData {
 
 mod glyph_shape {
     use super::*;
+    // FIXME[WD]: We are using old shape generator here which does not use shader precompilation.
+    //   To be fixed in the next PR.
     ensogl_core::shape_old! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;

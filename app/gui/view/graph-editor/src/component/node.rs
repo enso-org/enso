@@ -126,8 +126,8 @@ pub mod backdrop {
     use super::*;
 
     ensogl::shape! {
-        // Disable to allow interaction with the output port.
-        pointer_events = true;
+        // Disabled to allow interaction with the output port.
+        pointer_events = false;
         (style:Style, selection:f32) {
 
             let width  = Var::<Pixels>::from("input_size.x");

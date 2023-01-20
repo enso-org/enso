@@ -51,7 +51,8 @@ export class MixpanelLogger extends Consumer {
         try {
             let payload: any = { level }
             if (data != null) {
-                // FIXME: make data passing more intelligent here. If arg is object, just pass it to mixpanel with stringified vlaues - to be checked in mixpanel manual
+                // FIXME[WD]: make data passing more intelligent here. If arg is an object, just
+                //  pass it to mixpanel with stringified values.
                 payload.data = this.trim_message(JSON.stringify(data))
             }
             this.mixpanel.track(trimmedMessage, payload, response => {

@@ -293,6 +293,9 @@ impl Model {
     }
 
     /// Sets style of IDE to the one defined by parameter `theme`.
+    ///
+    /// This does not change the EnsoGL theme. Changing it is not supported currently because
+    /// the theme is used for shader-precompilation.
     pub fn set_style(&self, theme: Theme) {
         match theme {
             Theme::Light => self.set_light_style(),
@@ -301,14 +304,10 @@ impl Model {
     }
 
     fn set_light_style(&self) {
-        // FIXME
-        // ensogl_hardcoded_theme::builtin::light::enable(&self.app);
         self.set_html_style("light-theme");
     }
 
     fn set_dark_style(&self) {
-        // FIXME:
-        // ensogl_hardcoded_theme::builtin::dark::enable(&self.app);
         self.set_html_style("dark-theme");
     }
 

@@ -231,29 +231,6 @@ impl IsTarget for Wasm {
             )
             .await?;
 
-
-
-            // let mut command = EnsoglPack.cmd()?;
-            // command
-            //     .current_dir(&repo_root)
-            //     .kill_on_drop(true)
-            //     .env_remove(ide_ci::programs::rustup::env::RUSTUP_TOOLCHAIN.name())
-            //     .set_env(env::ENSO_ENABLE_PROC_MACRO_SPAN, &true)?
-            //     .build()
-            //     .arg(wasm_pack::Profile::from(*profile))
-            //     .target(wasm_pack::Target::Web)
-            //     .output_directory(&temp_dist)
-            //     .output_name(OUTPUT_NAME)
-            //     .arg(crate_path)
-            //     .arg("--")
-            //     .apply(&cargo::Color::Always)
-            //     .args(extra_cargo_options);
-
-            // if let Some(profiling_level) = profiling_level {
-            //     command.set_env(env::ENSO_MAX_PROFILING_LEVEL, &profiling_level)?;
-            // }
-            // command.run_ok().await?;
-
             Self::finalize_wasm(wasm_opt_options, *skip_wasm_opt, *profile, &temp_dist).await?;
 
             ide_ci::fs::create_dir_if_missing(&destination)?;
