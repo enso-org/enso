@@ -251,13 +251,13 @@ impl List {
     ///
     /// If the list is filtered, all top modules will be flattened.
     pub fn top_modules(&self) -> impl Iterator<Item = group::AlphabeticalList> + '_ {
-        self.top_module_sections.iter().map(|section|
+        self.top_module_sections.iter().map(|section| {
             if self.filtered.get() {
                 section.modules_flattened.clone_ref()
             } else {
                 section.modules.clone_ref()
             }
-        )
+        })
     }
 
     /// Return the list of filtered top modules and their contents.
