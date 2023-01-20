@@ -141,7 +141,9 @@ type Table
          - If two distinct indices would refer to the same column, a
            `Input_Indices_Already_Matched`, indicating that the additional
            indices will not introduce additional columns.
-         - If there are no columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
 
        > Example
          Select columns by name.
@@ -193,7 +195,9 @@ type Table
          - If two distinct indices would refer to the same column, a
            `Input_Indices_Already_Matched`, indicating that the additional
            indices will not introduce additional columns.
-         - If there are no columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
 
        > Example
          Remove columns with given names.
@@ -982,7 +986,9 @@ type Table
          The following problems can occur:
          - If a column name is not in the input table, a `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If there are no valid columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
          - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
          - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
          - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
