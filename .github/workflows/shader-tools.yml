@@ -3,8 +3,8 @@ on:
   push: {}
   workflow_dispatch: {}
 jobs:
-  run-create:
-    name: Run create
+  run-create-linux:
+    name: Run create (Linux)
     runs-on:
     - Linux
     steps:
@@ -29,10 +29,37 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: ${{ steps.step_0.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
-  run-package:
-    name: Run package
+  run-package-linux:
+    name: Run package (Linux)
     needs:
-    - run-create
+    - run-create-linux
+    runs-on:
+    - Linux
+    steps:
+    - if: runner.os == 'Windows'
+      name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+      run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+      shell: cmd
+    - if: runner.os != 'Windows'
+      name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+      run: 'git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :'
+      shell: bash
+    - name: Checking out the repository
+      uses: actions/checkout@v2
+      with:
+        clean: false
+        submodules: recursive
+    - run: cargo run --package enso-shader-tools --bin package
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+    timeout-minutes: 360
+  run-package-mac-os:
+    name: Run package (MacOS)
+    needs:
+    - run-create-linux
     runs-on:
     - macOS
     steps:
@@ -54,13 +81,42 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.run-create.outputs.ENSO_RELEASE_ID }}
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
-  run-publish:
-    name: Run publish
+  run-package-windows:
+    name: Run package (Windows)
     needs:
-    - run-create
-    - run-package
+    - run-create-linux
+    runs-on:
+    - Windows
+    steps:
+    - if: runner.os == 'Windows'
+      name: Workaround for https://github.com/actions/checkout/issues/590 (Windows)
+      run: '"c:\Program Files\Git\bin\bash.exe" -c "git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :"'
+      shell: cmd
+    - if: runner.os != 'Windows'
+      name: Workaround for  https://github.com/actions/checkout/issues/590 (non-Windows)
+      run: 'git checkout -f $(git -c user.name=x -c user.email=x@x commit-tree $(git hash-object -t tree /dev/null) < /dev/null) || :'
+      shell: bash
+    - name: Checking out the repository
+      uses: actions/checkout@v2
+      with:
+        clean: false
+        submodules: recursive
+    - run: cargo run --package enso-shader-tools --bin package
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      timeout-minutes: 360
+    env:
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
+    timeout-minutes: 360
+  run-publish-linux:
+    name: Run publish (Linux)
+    needs:
+    - run-create-linux
+    - run-package-linux
+    - run-package-mac-os
+    - run-package-windows
     runs-on:
     - Linux
     steps:
@@ -82,7 +138,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.run-create.outputs.ENSO_RELEASE_ID }}
+      ENSO_RELEASE_ID: ${{ needs.run-create-linux.outputs.ENSO_RELEASE_ID }}
     timeout-minutes: 360
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: 'true'

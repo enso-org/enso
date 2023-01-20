@@ -32,8 +32,8 @@ pub async fn create_package(output_archive: &Path) -> Result {
 
 pub async fn repo_handle_from_env() -> Result<repo::Handle<RepoRef<'static>>> {
     let octo = setup_octocrab().await?;
-    let repo = RepoRef::new("enso-org", "enso");
-    let handle = repo.into_handle(&octo);
+    // let repo = RepoRef::new("enso-org", "enso");
+    let handle = SHADER_TOOLS_REPO.into_handle(&octo);
     Ok(handle)
 }
 

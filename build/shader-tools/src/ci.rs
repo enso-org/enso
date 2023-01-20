@@ -14,7 +14,7 @@ pub fn run_bin(binary: &str) -> Step {
 pub fn job_that_runs(bin: &str, runs_on: RunnerLabel, output: Option<&str>) -> Job {
     let checkout_steps = checkout_repo_step();
 
-    let mut job = Job::new(format!("Run {bin}"), [runs_on]);
+    let mut job = Job::new(format!("Run {bin} ({runs_on:?})"), [runs_on]);
     job.steps.extend(checkout_steps);
 
     let main_step = run_bin(bin);
