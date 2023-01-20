@@ -25,8 +25,6 @@ pub fn job_that_runs(bin: &str, runs_on: RunnerLabel, output: Option<&str>) -> J
     job
 }
 
-#[tokio::test]
-#[ignore]
 pub async fn ci_gen() -> Result {
     // FIXME switch to our runners once CMake is added
     let linux = RunnerLabel::LinuxLatest;
@@ -62,4 +60,15 @@ pub async fn ci_gen() -> Result {
 
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    #[ignore]
+    async fn ci_gen() -> Result {
+        super::ci_gen().await
+    }
 }

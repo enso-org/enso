@@ -130,7 +130,7 @@ pub async fn copy_between(
     source_dir: impl AsRef<Path>,
     destination_dir: impl AsRef<Path>,
     source_file: impl AsRef<Path>,
-) -> Result {
+) -> Result<PathBuf> {
     let source_file = source_file.as_ref();
     let source_file = if source_file.is_absolute() {
         source_file.strip_prefix(source_dir.as_ref()).with_context(|| {
@@ -147,7 +147,8 @@ pub async fn copy_between(
     let destination_path = destination_dir.as_ref().join(&source_file);
     copy(&source_path, &destination_path)
         .instrument(info_span!("copy_between", ?source_path, ?destination_path))
-        .await
+        .await?;
+    Ok(destination_path)
 }
 
 pub async fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -> Result {
