@@ -406,6 +406,7 @@ pub async fn build(
     outputs: WasmPackOutputs,
     provider: impl FnOnce(WasmPackOutputs) -> Result<WasmPackCommand>,
 ) -> Result {
+    // FIXME: [mwu] To be removed, when shader tools are properly handled as a goodie-thingy.
     let _ = ide_ci::env::prepend_to_path(r"C:\varia\install\bin");
     let paths = Paths::new().await?;
     compile_this_crate_ts_sources(&paths).await?;
