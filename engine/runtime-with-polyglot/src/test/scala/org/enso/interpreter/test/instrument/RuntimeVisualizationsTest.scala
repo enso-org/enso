@@ -1153,11 +1153,15 @@ class RuntimeVisualizationsTest
         )
       )
     )
-    context.receiveN(1) should contain theSameElementsAs Seq(
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
       Api.Response(
-        requestId,
-        Api.ModuleNotFoundForExpression(context.Main.idMainX)
-      )
+        Api.ExecutionFailed(
+          contextId,
+          Api.ExecutionResult.Failure("Execution stack is empty.", None)
+        )
+      ),
+      context.executionComplete(contextId)
     )
 
     // push main
@@ -1169,40 +1173,17 @@ class RuntimeVisualizationsTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receiveNIgnorePendingExpressionUpdates(
-      5
-    ) should contain theSameElementsAs Seq(
+    val pushResponses = context.receiveNIgnorePendingExpressionUpdates(6)
+    pushResponses should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
       context.executionComplete(contextId)
     )
-
-    // attach visualisation
-    context.send(
-      Api.Request(
-        requestId,
-        Api.AttachVisualisation(
-          visualisationId,
-          context.Main.idMainX,
-          Api.VisualisationConfiguration(
-            contextId,
-            Api.VisualisationExpression.Text(
-              "Enso_Test.Test.Visualisation",
-              "x -> encode x"
-            )
-          )
-        )
-      )
-    )
-    val attachVisualisationResponses = context.receiveN(2)
-    attachVisualisationResponses should contain(
-      Api.Response(requestId, Api.VisualisationAttached())
-    )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) =
-      attachVisualisationResponses.collectFirst {
+      pushResponses.collectFirst {
         case Api.Response(
               None,
               Api.VisualisationUpdate(

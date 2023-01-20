@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.ibm.icu.text.Normalizer;
+import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -9,7 +10,9 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnknownKeyException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -31,6 +34,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.State;
@@ -157,18 +161,46 @@ public abstract class EqualsAnyNode extends Node {
     }
   }
 
+  @Specialization(limit = "3")
+  boolean equalsTexts(Text selfText, Text otherText,
+      @CachedLibrary("selfText") InteropLibrary selfInterop,
+      @CachedLibrary("otherText") InteropLibrary otherInterop) {
+    if (selfText.is_normalized() && otherText.is_normalized()) {
+      return selfText.toString().compareTo(otherText.toString()) == 0;
+    } else {
+      return equalsStrings(selfText, otherText, selfInterop, otherInterop);
+    }
+  }
+
   /** Interop libraries **/
 
   @Specialization(guards = {
-      "selfInterop.isNull(selfNull)",
-      "otherInterop.isNull(otherNull)"
+      "selfInterop.isNull(selfNull) || otherInterop.isNull(otherNull)",
   }, limit = "3")
   boolean equalsNull(
       Object selfNull, Object otherNull,
       @CachedLibrary("selfNull") InteropLibrary selfInterop,
       @CachedLibrary("otherNull") InteropLibrary otherInterop
   ) {
-    return true;
+    return selfInterop.isNull(selfNull) && otherInterop.isNull(otherNull);
+  }
+
+  @Specialization(guards = {
+      "isHostObject(selfHostObject)",
+      "isHostObject(otherHostObject)",
+  })
+  boolean equalsHostObjects(
+      Object selfHostObject, Object otherHostObject,
+      @CachedLibrary(limit = "5") InteropLibrary interop
+  ) {
+    try {
+      return interop.asBoolean(
+          interop.invokeMember(selfHostObject, "equals", otherHostObject)
+      );
+    } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
+             UnsupportedTypeException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   @Specialization(guards = {
@@ -373,6 +405,43 @@ public abstract class EqualsAnyNode extends Node {
     }
   }
 
+  @Specialization(guards = {
+      "selfInterop.hasHashEntries(selfHashMap)",
+      "otherInterop.hasHashEntries(otherHashMap)"
+  }, limit = "3")
+  boolean equalsHashMaps(Object selfHashMap, Object otherHashMap,
+      @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
+      @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
+      @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
+      @Cached EqualsAnyNode equalsNode) {
+    try {
+      int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
+      int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
+      if (selfHashSize != otherHashSize) {
+        return false;
+      }
+      Object selfEntriesIter = selfInterop.getHashEntriesIterator(selfHashMap);
+      while (entriesInterop.hasIteratorNextElement(selfEntriesIter)) {
+        Object selfKeyValue = entriesInterop.getIteratorNextElement(selfEntriesIter);
+        Object key = entriesInterop.readArrayElement(selfKeyValue, 0);
+        Object selfValue = entriesInterop.readArrayElement(selfKeyValue, 1);
+        if (otherInterop.isHashEntryExisting(otherHashMap, key)
+            && otherInterop.isHashEntryReadable(otherHashMap, key)) {
+          Object otherValue = otherInterop.readHashValue(otherHashMap, key);
+          if (!equalsNode.execute(selfValue, otherValue)) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+      return true;
+    } catch (UnsupportedMessageException | StopIterationException | UnknownKeyException |
+             InvalidArrayIndexException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   /** Equals for Atoms and AtomConstructors */
 
   @Specialization
@@ -534,24 +603,13 @@ public abstract class EqualsAnyNode extends Node {
   @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
       @CachedLibrary(limit = "5") InteropLibrary interop) {
-    EnsoContext ctx = EnsoContext.get(interop);
-    if (isHostObject(ctx, left) && isHostObject(ctx, right)) {
-      try {
-        return interop.asBoolean(
-            interop.invokeMember(left, "equals", right)
-        );
-      } catch (UnsupportedMessageException | ArityException | UnknownIdentifierException |
-               UnsupportedTypeException e) {
-        throw new IllegalStateException(e);
-      }
-    } else {
       return left == right
-          || left.equals(right)
-          || interop.isIdentical(left, right, interop);
-    }
+          || interop.isIdentical(left, right, interop)
+          || left.equals(right);
   }
 
-  private static boolean isHostObject(EnsoContext context, Object object) {
-    return context.getEnvironment().isHostObject(object);
+  @TruffleBoundary
+  boolean isHostObject(Object object) {
+    return EnsoContext.get(this).getEnvironment().isHostObject(object);
   }
 }
