@@ -47,6 +47,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 /// workspace                            | The main workspace directory (repo root).
 /// ├─ ... / this_crate                  | This crate's directory.
 /// │  ╰─ js                             | This crate's JS sources.
+/// |     ╰─ wasm-pack-bundle
 /// ╰─ target                            | Directory where Rust and wasm-pack store build artifacts.
 ///    ╰─ ensogl-pack                    | Directory where ensogl-pack stores its build artifacts.
 ///       ├─ wasm-pack                   | Wasm-pack artifacts, re-created on every run.
@@ -122,7 +123,11 @@ pub mod paths {
     use super::*;
     define_paths! {
         ThisCrate {
-            js: PathBuf,
+            js: ThisCrateJS,
+        }
+
+        ThisCrateJS {
+            wasm_pack_bundle: PathBuf,
         }
 
         Target {
@@ -166,7 +171,9 @@ impl Paths {
         let mut p = Paths::default();
         let current_cargo_path = Path::new(path!("Cargo.toml"));
         p.this_crate.root = current_cargo_path.try_parent()?.into();
-        p.this_crate.js = p.this_crate.join("js");
+        p.this_crate.js.root = p.this_crate.join("js");
+        p.this_crate.js.wasm_pack_bundle =
+            p.this_crate.js.root.join("src").join("wasm-pack-bundle");
         p.workspace = workspace_dir().await?;
         p.target.root = p.workspace.join("target");
         p.target.ensogl_pack.root = p.target.join("ensogl-pack");
@@ -275,6 +282,9 @@ pub async fn run_wasm_pack(
     };
     let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
     command.run_ok().await?;
+    // println!(">>>>>>>>>>>>");
+    // ide_ci::fs::copy(&paths.this_crate.js.wasm_pack_bundle,
+    // &paths.target.ensogl_pack.wasm_pack)?;
     compile_wasm_pack_artifacts(
         &paths.target.ensogl_pack.wasm_pack,
         &paths.target.ensogl_pack.wasm_pack.pkg_js,
