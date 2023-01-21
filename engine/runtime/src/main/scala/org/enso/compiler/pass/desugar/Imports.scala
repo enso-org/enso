@@ -22,7 +22,7 @@ case object Imports extends IRPass {
   /** The passes that are invalidated by running this pass. */
   override val invalidatedPasses: Seq[IRPass] = Seq()
 
-  private val mainModuleName =
+  val mainModuleName =
     IR.Name.Literal(
       "Main",
       isMethod = false,

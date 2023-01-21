@@ -339,7 +339,11 @@ public class EnsoContext {
     return getTopScope().getModules().stream()
         .filter(
             module ->
-                module.getIr().preorder().exists(ir -> ir.getExternalId().contains(expressionId)))
+                module.getIr() != null
+                    && module
+                        .getIr()
+                        .preorder()
+                        .exists(ir -> ir.getExternalId().contains(expressionId)))
         .findFirst();
   }
 

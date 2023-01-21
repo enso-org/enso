@@ -114,11 +114,15 @@
   steps towards migrating the Cloud Dashboard from the existing React (web-only)
   implementation towards a shared structure that can be used in both the Desktop
   and Web versions of the IDE.
+- [Removed Cloud Dashboard][4047]. The Cloud Dashboard was being rewritten in
+  EnsoGL but after internal discussion we've decided to rewrite it in React,
+  with a shared implementation between the Desktop and Web versions of the IDE.
 - [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
   suitable for single and multi-select scenarios.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
+[4047]: https://github.com/enso-org/enso/pull/4047
 
 #### Enso Standard Library
 
@@ -273,6 +277,7 @@
 - [Aligning core APIs for Vector, List and Range. Adding some missing functions
   to the types.][4026]
 - [Implemented `Table.distinct` for Database backends.][4027]
+- [Implemented `Table.union` for the in-memory backend.][4052]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -424,10 +429,12 @@
 [3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
+[3878]: https://github.com/enso-org/enso/pull/3878
 [3997]: https://github.com/enso-org/enso/pull/3997
 [4013]: https://github.com/enso-org/enso/pull/4013
 [4026]: https://github.com/enso-org/enso/pull/4026
 [4027]: https://github.com/enso-org/enso/pull/4027
+[4052]: https://github.com/enso-org/enso/pull/4052
 
 #### Enso Compiler
 
@@ -508,8 +515,11 @@
 - [Sync language server with file system after VCS restore][4020]
 - [`ArrayOverBuffer` behaves like an `Array` and `Array.sort` no longer sorts in
   place][4022]
+- [Implement hashing functionality for all objects][3878]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
+- [Attach visualizations to sub-expressions][4048]
+- [Resolve Fully Qualified Names][4056]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -594,6 +604,8 @@
 [4022]: https://github.com/enso-org/enso/pull/4022
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
+[4048]: https://github.com/enso-org/enso/pull/4048
+[4056]: https://github.com/enso-org/enso/pull/4056
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

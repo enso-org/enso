@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Unimplemented.Unimplemented
 
 import project.Data.Table.Table
@@ -50,7 +51,7 @@ Table.from_objects value fields=Nothing =
         _ : Number -> ["Value"]
         _ : Boolean -> ["Value"]
         _ : Text -> ["Value"]
-        _ -> Error.throw (Type_Error.Error Any "Invalid item within Vector for Table.from_objects. Currently only JS_Object, Number, Boolean, Text and Nothing are supported.")
+        _ -> Error.throw (Illegal_Argument.Error "Invalid item within Vector for Table.from_objects. Currently only JS_Object, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name v)+").")
 
     get_value v field = case v of
         _ : JS_Object -> v.get field
@@ -87,4 +88,4 @@ Table.from_objects value fields=Nothing =
 
             Table.new (used_fields.zip used_values)
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
-        _ -> Error.throw (Type_Error.Error Any "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported.")
+        _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")

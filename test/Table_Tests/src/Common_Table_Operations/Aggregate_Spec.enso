@@ -41,7 +41,7 @@ spec setup =
 
     Test.group prefix+"Table.aggregate should summarize whole table" <|
         Test.specify "should be able to count" <|
-            grouped = table.aggregate [Count Nothing]
+            grouped = table.aggregate [Count]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
@@ -194,7 +194,7 @@ spec setup =
 
     Test.group prefix+"Table.aggregate should summarize empty table" <|
         Test.specify "should be able to count" <|
-            grouped = empty_table.aggregate [Count Nothing]
+            grouped = empty_table.aggregate [Count]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 1
@@ -307,7 +307,7 @@ spec setup =
 
     Test.group prefix+"Table.aggregate should not summarize empty table when grouped" <|
         Test.specify "should be able to count" <|
-            grouped = empty_table.aggregate [Group_By 0, Count Nothing]
+            grouped = empty_table.aggregate [Group_By 0, Count]
             materialized = materialize grouped
             grouped.row_count . should_equal 0
             materialized.column_count . should_equal 2
@@ -407,7 +407,7 @@ spec setup =
 
     Test.group prefix+"Table.aggregate should be able to group on single field" <|
         Test.specify "should be able to count" <|
-            grouped = table.aggregate [Group_By "Index", Count Nothing]
+            grouped = table.aggregate [Group_By "Index", Count]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 2
@@ -597,7 +597,7 @@ spec setup =
 
     Test.group prefix+"Table.aggregate should be able to group on multiple fields not in left columns" <|
         Test.specify "should be able to count" <|
-            grouped = table.aggregate [Group_By "Flag", Count Nothing, Group_By "Index"]
+            grouped = table.aggregate [Group_By "Flag", Count, Group_By "Index"]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 3
@@ -1331,7 +1331,7 @@ spec setup =
             problems.at 0 . rows . length . should_equal 15
 
         Test.specify "should merge Floating Point Grouping warnings" <|
-            new_table = table.aggregate [Group_By "Float", Count Nothing]
+            new_table = table.aggregate [Group_By "Float", Count]
             problems = Warning.get_all new_table . map .value
             problems.length . should_equal 1
             problems.at 0 . is_a Floating_Point_Grouping.Error . should_be_true

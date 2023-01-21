@@ -1,7 +1,15 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 
+import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.ValueProfile;
+import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
@@ -11,11 +19,16 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -30,6 +43,7 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 @ExportLibrary(TypesLibrary.class)
 public abstract class Atom implements TruffleObject {
   final AtomConstructor constructor;
+  private Integer hashCode;
 
   /**
    * Creates a new Atom for a given constructor.
@@ -51,6 +65,15 @@ public abstract class Atom implements TruffleObject {
 
   private final Object[] getFields() {
     return StructsLibrary.getUncached().getFields(this);
+  }
+
+  public void setHashCode(int hashCode) {
+    assert this.hashCode == null : "setHashCode must be called at most once";
+    this.hashCode = hashCode;
+  }
+
+  public Integer getHashCode() {
+    return hashCode;
   }
 
   private void toString(StringBuilder builder, boolean shouldParen, int depth) {

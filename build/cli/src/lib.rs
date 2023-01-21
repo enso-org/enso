@@ -620,6 +620,8 @@ impl Resolvable for Wasm {
             wasm_opt_option: wasm_opt_options,
             cargo_options,
             profiling_level,
+            wasm_log_level,
+            wasm_uncollapsed_log_level,
             wasm_size_limit,
             skip_wasm_opt,
         } = from;
@@ -629,7 +631,9 @@ impl Resolvable for Wasm {
             skip_wasm_opt,
             extra_cargo_options: cargo_options,
             profile: wasm_profile,
-            profiling_level: profiling_level.map(into),
+            profiling_level,
+            log_level: wasm_log_level,
+            uncollapsed_log_level: wasm_uncollapsed_log_level,
             wasm_size_limit: wasm_size_limit.filter(|size_limit| size_limit.get_bytes() > 0),
         })
     }

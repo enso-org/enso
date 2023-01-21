@@ -99,9 +99,9 @@ type Time_Zone
        > Example
          Get time zone 1 hour 1 minute and 50 seconds from UTC.
 
-             from Standard.Base import Zone
+             from Standard.Base.Time.Time_Zone import Time_Zone
 
-             example_new = Zone.new 1 1 50
+             example_new = Time_Zone.new 1 1 50
     new : Integer -> Integer -> Integer -> Time_Zone
     new (hours = 0) (minutes = 0) (seconds = 0) =
         new_builtin hours minutes seconds

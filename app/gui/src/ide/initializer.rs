@@ -75,6 +75,9 @@ impl Initializer {
             config::InitialView::Project => view.switch_view_to_project(),
         }
 
+        if enso_config::ARGS.emit_user_timing_measurements.unwrap_or_default() {
+            ensogl_app.display.connect_profiler_to_user_timing();
+        }
         let status_bar = view.status_bar().clone_ref();
         ensogl_app.display.add_child(&view);
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting

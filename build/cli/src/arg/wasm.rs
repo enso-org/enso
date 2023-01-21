@@ -7,7 +7,6 @@ use crate::source_args_hlp;
 use crate::BuildJob;
 use crate::IsWatchableSource;
 
-use clap::ArgEnum;
 use clap::Args;
 use clap::Subcommand;
 use enso_build::project::wasm::test::Browser;
@@ -19,7 +18,9 @@ use std::sync::OnceLock;
 // === Export ===
 // ==============
 
+pub use enso_build::project::wasm::LogLevel;
 pub use enso_build::project::wasm::Profile;
+pub use enso_build::project::wasm::ProfilingLevel;
 
 
 
@@ -35,26 +36,6 @@ pub fn initialize_default_wasm_size_limit(limit: byte_unit::Byte) -> Result {
     DEFAULT_WASM_SIZE_LIMIT
         .set(limit.get_appropriate_unit(true).to_string())
         .map_err(|e| anyhow!("WASM size limit was already set to {e}."))
-}
-
-// Follows hierarchy defined in  lib/rust/profiler/src/lib.rs
-#[derive(ArgEnum, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ProfilingLevel {
-    Objective,
-    Task,
-    Detail,
-    Debug,
-}
-
-impl From<ProfilingLevel> for enso_build::project::wasm::ProfilingLevel {
-    fn from(profile: ProfilingLevel) -> Self {
-        match profile {
-            ProfilingLevel::Objective => Self::Objective,
-            ProfilingLevel::Task => Self::Task,
-            ProfilingLevel::Detail => Self::Detail,
-            ProfilingLevel::Debug => Self::Debug,
-        }
-    }
 }
 
 #[derive(Args, Clone, Debug, PartialEq, Eq)]
@@ -83,6 +64,14 @@ pub struct BuildInput {
     /// Compiles Enso with given profiling level. If not set, defaults to minimum.
     #[clap(long, arg_enum, enso_env())]
     pub profiling_level: Option<ProfilingLevel>,
+
+    /// Compiles Enso with given log level.
+    #[clap(long, arg_enum, enso_env(), default_value_t)]
+    pub wasm_log_level: LogLevel,
+
+    /// Compiles Enso with given uncollapsed log level.
+    #[clap(long, arg_enum, enso_env(), default_value_t)]
+    pub wasm_uncollapsed_log_level: LogLevel,
 
     /// Fail the build if compressed WASM exceeds the specified size. Supports format like
     /// "4.06MiB". Pass "0" to disable check.

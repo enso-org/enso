@@ -58,6 +58,7 @@ ensogl::read_args! {
         node_labels            : bool,
         crash_report_host      : String,
         data_gathering         : bool,
+        mixpanel_token         : String,
         is_in_cloud            : bool,
         verbose                : bool,
         authentication_enabled : bool,
@@ -69,5 +70,6 @@ ensogl::read_args! {
         skip_min_version_check   : bool,
         preferred_engine_version : semver::Version,
         enable_new_component_browser : bool,
+        emit_user_timing_measurements : bool,
     }
 }

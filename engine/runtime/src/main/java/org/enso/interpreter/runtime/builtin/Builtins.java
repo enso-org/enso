@@ -93,6 +93,7 @@ public class Builtins {
   private final Builtin text;
   private final Builtin array;
   private final Builtin vector;
+  private final Builtin map;
   private final Builtin dataflowError;
   private final Builtin ref;
   private final Builtin managedResource;
@@ -138,6 +139,7 @@ public class Builtins {
     text = builtins.get(Text.class);
     array = builtins.get(Array.class);
     vector = builtins.get(Vector.class);
+    map = builtins.get(org.enso.interpreter.node.expression.builtin.Map.class);
     dataflowError = builtins.get(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = builtins.get(Ref.class);
     managedResource = builtins.get(ManagedResource.class);
@@ -551,6 +553,10 @@ public class Builtins {
 
   public Type vector() {
     return vector.getType();
+  }
+
+  public Type map() {
+    return map.getType();
   }
 
   /** @return the Ref constructor. */

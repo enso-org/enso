@@ -138,60 +138,22 @@ pub mod serde_reexports {
 
 
 // ===============
-// === Tracing ===
+// === Logging ===
 // ===============
 
-pub mod tracing {
-    pub use tracing::*;
-    pub use tracing_subscriber::*;
-}
-
-pub use ::tracing::debug;
-pub use ::tracing::debug_span;
-pub use ::tracing::error;
-pub use ::tracing::error_span;
-pub use ::tracing::info;
-pub use ::tracing::info_span;
-pub use ::tracing::trace;
-pub use ::tracing::trace_span;
-pub use ::tracing::warn;
-pub use ::tracing::warn_span;
-
-pub const ERROR: tracing::Level = tracing::Level::ERROR;
-pub const WARN: tracing::Level = tracing::Level::WARN;
-pub const INFO: tracing::Level = tracing::Level::INFO;
-pub const DEBUG: tracing::Level = tracing::Level::DEBUG;
-pub const TRACE: tracing::Level = tracing::Level::TRACE;
-
-
-use std::sync::Once;
-
-/// Tracing's `set_global_default` can be called only once. When running tests this can fail if
-/// not fenced.
-static TRACING_INIT_ONCE: Once = Once::new();
-
-pub fn init_tracing(level: tracing::Level) {
-    TRACING_INIT_ONCE.call_once(|| {
-        #[cfg(not(target_arch = "wasm32"))]
-        let subscriber = tracing::fmt()
-            .compact()
-            .with_target(false)
-            .with_max_level(level)
-            .without_time()
-            .finish();
-        #[cfg(target_arch = "wasm32")]
-        let subscriber = {
-            use tracing_subscriber::layer::SubscriberExt;
-            use tracing_wasm::*;
-            let config = WASMLayerConfigBuilder::new().set_max_level(level).build();
-            tracing::Registry::default().with(WASMLayer::new(config))
-        };
-        tracing::subscriber::set_global_default(subscriber).expect("Failed to initialize logger.");
-    });
-}
+pub use enso_logging::debug;
+pub use enso_logging::debug_span;
+pub use enso_logging::error;
+pub use enso_logging::error_span;
+pub use enso_logging::info;
+pub use enso_logging::info_span;
+pub use enso_logging::prelude::*;
+pub use enso_logging::trace;
+pub use enso_logging::trace_span;
+pub use enso_logging::warn;
+pub use enso_logging::warn_span;
 
 pub fn init_global() {
-    init_tracing(WARN);
     init_global_internal();
 }
 
