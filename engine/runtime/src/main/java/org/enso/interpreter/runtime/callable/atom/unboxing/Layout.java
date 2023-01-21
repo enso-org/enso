@@ -3,22 +3,30 @@ package org.enso.interpreter.runtime.callable.atom.unboxing;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.node.expression.atom.InstantiateNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
+/**
+ * This class mediates the use of {@link UnboxingAtom} instances. It is responsible for describing
+ * the mapping between logical and actual storage of fields. The {@link LayoutSpec} annotation will
+ * also generate the necessary atom subclasses and a {@link LayoutFactory}, which exposes dynamic
+ * access to the generated classes for use in the {@link #create(int, long)} method. This is quite
+ * useful, as with the current parameters, we generate 180 different getter nodes and similar
+ * numbers of other nodes participating in this system.
+ */
 @LayoutSpec(minFields = Layout.MIN_FIELDS, maxFields = Layout.MAX_FIELDS)
 public class Layout {
   static final int MAX_FIELDS = 4;
   static final int MIN_FIELDS = 1;
 
+  /** Helpers for reading compressed field data this layout holds. */
   public static class Flags {
     public static final long DOUBLE_MASK = 0b10;
     public static final long ALL_DOUBLES_MASK = 0xAAAAAAAAAAAAAAAAL;
     public static final long LONG_MASK = 0b01;
     public static final long ALL_LONGS_MASK = 0x5555555555555555L;
-    public static final long UNBOXED_MASK = DOUBLE_MASK | LONG_MASK;
 
     public static boolean isDoubleAt(long flags, int index) {
       return (flags & (DOUBLE_MASK << (index * 2))) != 0;
@@ -84,6 +92,11 @@ public class Layout {
     return arity >= MIN_FIELDS && arity <= MAX_FIELDS;
   }
 
+  /**
+   * Creates a new instance for the given arity and flags. This method will figure out the
+   * appropriate field reorderings and castings and select the correct atom subclass, together with
+   * factories for getters, setters and instantiators.
+   */
   public static Layout create(int arity, long typeFlags) {
     if (arity > 32) {
       throw new IllegalArgumentException("Too many fields in unboxed atom");
@@ -162,68 +175,106 @@ public class Layout {
     return fieldToStorage.length;
   }
 
-  static class DirectCreateLayoutInstanceNode extends Node {
-    final Layout layout;
-    final AtomConstructor constructor;
-    private @Children ReadAtIndexNode[] argReaderNodes;
-    private @Child UnboxingAtom.InstantiatorNode instantiator;
+  public int[] getFieldToStorage() {
+    return fieldToStorage;
+  }
 
-    public DirectCreateLayoutInstanceNode(AtomConstructor constructor, Layout layout) {
+  public NodeFactory<? extends UnboxingAtom.InstantiatorNode> getInstantiatorFactory() {
+    return instantiatorFactory;
+  }
+
+  /**
+   * This acts as the main method of instantiating unboxing atoms throughout the system. It will try
+   * to reuse a known layout if it fits the data, or allocate a new one. The list of allocated
+   * layouts is stored in the constructor. This way we can better reuse them, allowing for less
+   * splitting throughout the system. This node will allocate these layouts, until a limit is
+   * reached, at which point it will fall back onto {@link AtomConstructor#getBoxedLayout()} for
+   * data that does not fit the known layouts.
+   */
+  public static class CreateUnboxedInstanceNode extends InstantiateNode.CreateInstanceNode {
+    @Child UnboxingAtom.DirectCreateLayoutInstanceNode boxedLayout;
+    @Children UnboxingAtom.DirectCreateLayoutInstanceNode[] unboxedLayouts;
+    private final int arity;
+    private @CompilerDirectives.CompilationFinal boolean constructorAtCapacity;
+
+    private final AtomConstructor constructor;
+
+    CreateUnboxedInstanceNode(AtomConstructor constructor) {
       this.constructor = constructor;
-      this.layout = layout;
-      this.argReaderNodes = new ReadAtIndexNode[layout.arity()];
-      for (int i = 0; i < layout.arity(); i++) {
-        this.argReaderNodes[layout.fieldToStorage[i]] =
-            ReadAtIndexNode.create(i, layout.isDoubleAt(i));
+      this.arity = constructor.getArity();
+      this.boxedLayout =
+          new UnboxingAtom.DirectCreateLayoutInstanceNode(
+              constructor, constructor.getBoxedLayout());
+      unboxedLayouts = new UnboxingAtom.DirectCreateLayoutInstanceNode[0];
+      updateFromConstructor();
+    }
+
+    public static CreateUnboxedInstanceNode create(AtomConstructor constructor) {
+      return new CreateUnboxedInstanceNode(constructor);
+    }
+
+    @Override
+    @ExplodeLoop
+    public Object execute(Object[] arguments) {
+      var flags = computeFlags(arguments);
+      if (flags == 0) {
+        return boxedLayout.execute(arguments);
       }
-      this.instantiator = layout.instantiatorFactory.createNode();
+      for (int i = 0; i < unboxedLayouts.length; i++) {
+        if (unboxedLayouts[i].layout.inputFlags == flags) {
+          return unboxedLayouts[i].execute(arguments);
+        }
+      }
+
+      if (!constructorAtCapacity) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        var lock = constructor.getLayoutsLock();
+        lock.lock();
+        try {
+          var layouts = constructor.getUnboxingLayouts();
+          if (layouts.length != this.unboxedLayouts.length) {
+            // Layouts changed since we last tried; Update & try again
+            updateFromConstructor();
+            return execute(arguments);
+          }
+
+          // Layouts didn't change; just create a new one and register it
+          var newLayout = Layout.create(arity, flags);
+          constructor.addLayout(newLayout);
+          updateFromConstructor();
+          return unboxedLayouts[unboxedLayouts.length - 1].execute(arguments);
+        } finally {
+          lock.unlock();
+        }
+      }
+
+      return boxedLayout.execute(arguments);
+    }
+
+    void updateFromConstructor() {
+      var layouts = constructor.getUnboxingLayouts();
+      var newLayouts = new UnboxingAtom.DirectCreateLayoutInstanceNode[layouts.length];
+      System.arraycopy(unboxedLayouts, 0, newLayouts, 0, unboxedLayouts.length);
+      for (int i = unboxedLayouts.length; i < newLayouts.length; i++) {
+        newLayouts[i] = new UnboxingAtom.DirectCreateLayoutInstanceNode(constructor, layouts[i]);
+      }
+      if (layouts.length == EnsoContext.get(this).getMaxUnboxingLayouts()) {
+        constructorAtCapacity = true;
+      }
+      unboxedLayouts = newLayouts;
     }
 
     @ExplodeLoop
-    public Atom execute(Object[] args) {
-      var arguments = new Object[argReaderNodes.length];
-      for (int i = 0; i < argReaderNodes.length; i++) {
-        arguments[i] = argReaderNodes[i].execute(args);
+    long computeFlags(Object[] arguments) {
+      long flags = 0;
+      for (int i = 0; i < arity; i++) {
+        if (arguments[i] instanceof Double) {
+          flags |= Flags.DOUBLE_MASK << (i * 2);
+        } else if (arguments[i] instanceof Long) {
+          flags |= Flags.LONG_MASK << (i * 2);
+        }
       }
-      return instantiator.execute(constructor, layout, arguments);
-    }
-
-    abstract static class ReadAtIndexNode extends Node {
-      final int index;
-
-      public static ReadAtIndexNode create(int fieldIndex, boolean isDouble) {
-        return isDouble
-            ? new ReadDoubleAtIndexNode(fieldIndex)
-            : new ReadObjectAtIndexNode(fieldIndex);
-      }
-
-      public ReadAtIndexNode(int index) {
-        this.index = index;
-      }
-
-      public abstract Object execute(Object[] args);
-    }
-
-    static class ReadObjectAtIndexNode extends ReadAtIndexNode {
-      ReadObjectAtIndexNode(int index) {
-        super(index);
-      }
-
-      @Override
-      public Object execute(Object[] args) {
-        return args[index];
-      }
-    }
-
-    static class ReadDoubleAtIndexNode extends ReadAtIndexNode {
-      ReadDoubleAtIndexNode(int index) {
-        super(index);
-      }
-
-      @Override
-      public Object execute(Object[] args) {
-        return Double.doubleToRawLongBits((double) args[index]);
-      }
+      return flags;
     }
   }
 }
