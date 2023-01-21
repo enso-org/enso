@@ -185,7 +185,7 @@ impl IsTarget for Wasm {
             // We want to be able to pass --profile this way.
             WasmPack.require_present_that(VersionReq::parse(">=0.10.1")?).await?;
 
-            ShaderTools.install_if_missing(&context.cache).await?;
+            ShaderTools.install_if_missing(&cache).await?;
 
             let BuildInput {
                 crate_path,
