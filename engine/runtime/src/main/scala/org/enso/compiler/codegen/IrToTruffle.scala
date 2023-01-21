@@ -61,7 +61,7 @@ import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
-import org.enso.interpreter.runtime.callable.atom.{AtomConstructor, Atom}
+import org.enso.interpreter.runtime.callable.atom.{Atom, AtomConstructor}
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
