@@ -88,7 +88,6 @@ public abstract class Atom implements TruffleObject {
     builder.append(getConstructor().getName());
     for (var obj : getFields()) {
       builder.append(" ");
-      // TODO non-leaf check
       if (obj instanceof Atom atom) {
         atom.toString(builder, true, depth - 1);
       } else {

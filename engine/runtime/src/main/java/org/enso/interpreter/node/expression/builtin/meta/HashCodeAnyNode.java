@@ -56,9 +56,7 @@ public abstract class HashCodeAnyNode extends Node {
 
   public abstract long execute(@AcceptsError Object self);
 
-  /**
-   * Specializations for primitive values *
-   */
+  /** Specializations for primitive values * */
   @Specialization
   long hashCodeForShort(short s) {
     return s;
@@ -113,9 +111,7 @@ public abstract class HashCodeAnyNode extends Node {
     return System.identityHashCode(atomConstructor);
   }
 
-  /**
-   * How many {@link HashCodeAnyNode} nodes should be created for fields in atoms.
-   */
+  /** How many {@link HashCodeAnyNode} nodes should be created for fields in atoms. */
   static final int hashCodeNodeCountForFields = 10;
 
   static HashCodeAnyNode[] createHashCodeNodes(int size) {
@@ -128,7 +124,7 @@ public abstract class HashCodeAnyNode extends Node {
   long hashCodeForAtom(
       Atom atom,
       @Cached(value = "createHashCodeNodes(hashCodeNodeCountForFields)", allowUncached = true)
-      HashCodeAnyNode[] fieldHashCodeNodes,
+          HashCodeAnyNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
       @Cached ConditionProfile enoughHashCodeNodesForFields,
       @Cached LoopConditionProfile loopProfile,
@@ -181,9 +177,7 @@ public abstract class HashCodeAnyNode extends Node {
     }
   }
 
-  /**
-   * Specializations for interop values *
-   */
+  /** Specializations for interop values * */
   @Specialization(
       guards = {"interop.isBoolean(selfBool)"},
       limit = "3")
@@ -199,9 +193,9 @@ public abstract class HashCodeAnyNode extends Node {
   @TruffleBoundary
   @Specialization(
       guards = {
-          "!interop.isDate(selfTimeZone)",
-          "!interop.isTime(selfTimeZone)",
-          "interop.isTimeZone(selfTimeZone)",
+        "!interop.isDate(selfTimeZone)",
+        "!interop.isTime(selfTimeZone)",
+        "interop.isTimeZone(selfTimeZone)",
       },
       limit = "3")
   long hashCodeForTimeZoneInterop(
@@ -216,9 +210,9 @@ public abstract class HashCodeAnyNode extends Node {
   @TruffleBoundary
   @Specialization(
       guards = {
-          "interop.isDate(selfZonedDateTime)",
-          "interop.isTime(selfZonedDateTime)",
-          "interop.isTimeZone(selfZonedDateTime)",
+        "interop.isDate(selfZonedDateTime)",
+        "interop.isTime(selfZonedDateTime)",
+        "interop.isTimeZone(selfZonedDateTime)",
       },
       limit = "3")
   long hashCodeForZonedDateTimeInterop(
@@ -236,9 +230,9 @@ public abstract class HashCodeAnyNode extends Node {
 
   @Specialization(
       guards = {
-          "interop.isDate(selfDateTime)",
-          "interop.isTime(selfDateTime)",
-          "!interop.isTimeZone(selfDateTime)",
+        "interop.isDate(selfDateTime)",
+        "interop.isTime(selfDateTime)",
+        "!interop.isTimeZone(selfDateTime)",
       },
       limit = "3")
   long hashCodeForDateTimeInterop(
@@ -253,9 +247,9 @@ public abstract class HashCodeAnyNode extends Node {
 
   @Specialization(
       guards = {
-          "!interop.isDate(selfTime)",
-          "interop.isTime(selfTime)",
-          "!interop.isTimeZone(selfTime)",
+        "!interop.isDate(selfTime)",
+        "interop.isTime(selfTime)",
+        "!interop.isTimeZone(selfTime)",
       },
       limit = "3")
   long hashCodeForTimeInterop(Object selfTime, @CachedLibrary("selfTime") InteropLibrary interop) {
@@ -268,9 +262,9 @@ public abstract class HashCodeAnyNode extends Node {
 
   @Specialization(
       guards = {
-          "interop.isDate(selfDate)",
-          "!interop.isTime(selfDate)",
-          "!interop.isTimeZone(selfDate)",
+        "interop.isDate(selfDate)",
+        "!interop.isTime(selfDate)",
+        "!interop.isTimeZone(selfDate)",
       },
       limit = "3")
   long hashCodeForDateInterop(Object selfDate, @CachedLibrary("selfDate") InteropLibrary interop) {
@@ -283,7 +277,7 @@ public abstract class HashCodeAnyNode extends Node {
 
   @Specialization(
       guards = {
-          "interop.isDuration(selfDuration)",
+        "interop.isDuration(selfDuration)",
       },
       limit = "3")
   long hashCodeForDurationInterop(
@@ -372,7 +366,7 @@ public abstract class HashCodeAnyNode extends Node {
     } catch (UnsupportedMessageException | StopIterationException | InvalidArrayIndexException e) {
       throw new IllegalStateException(e);
     }
-    return Arrays.hashCode(new long[]{keysHashCode, valuesHashCode, mapSize});
+    return Arrays.hashCode(new long[] {keysHashCode, valuesHashCode, mapSize});
   }
 
   @Specialization(
@@ -390,9 +384,9 @@ public abstract class HashCodeAnyNode extends Node {
       assert interop.fitsInInt(hashCodeRes);
       return interop.asInt(hashCodeRes);
     } catch (UnsupportedMessageException
-             | ArityException
-             | UnknownIdentifierException
-             | UnsupportedTypeException e) {
+        | ArityException
+        | UnknownIdentifierException
+        | UnsupportedTypeException e) {
       throw new IllegalStateException(e);
     }
   }
