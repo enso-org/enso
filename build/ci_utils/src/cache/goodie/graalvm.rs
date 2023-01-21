@@ -1,3 +1,5 @@
+use crate::cache::goodie;
+use crate::cache::Cache;
 use crate::prelude::*;
 
 use crate::cache::goodie::Goodie;
@@ -45,17 +47,17 @@ pub struct GraalVM {
 }
 
 impl Goodie for GraalVM {
-    fn url(&self) -> BoxFuture<'static, Result<Url>> {
-        let platform_string = self.platform_string();
-        let graal_version = self.graal_version.clone();
-        let client = self.client.clone();
-        async move {
-            let repo = CE_BUILDS_REPOSITORY.handle(&client);
-            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
-            crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
-        }
-        .boxed()
+    fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+        goodie::download_try_future_url(self.url(), cache)
+        // let url = self.url();
+        // let cache = cache.clone();
+        // async move {
+        //     let url = url.await?;
+        //     goodie::download_url(url, &cache).await
+        // }
+        // .boxed()
     }
+
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         let expected_graal_version = self.graal_version.clone();
@@ -90,6 +92,18 @@ impl Goodie for GraalVM {
 }
 
 impl GraalVM {
+    pub fn url(&self) -> BoxFuture<'static, Result<Url>> {
+        let platform_string = self.platform_string();
+        let graal_version = self.graal_version.clone();
+        let client = self.client.clone();
+        async move {
+            let repo = CE_BUILDS_REPOSITORY.handle(&client);
+            let release = repo.find_release_by_text(&graal_version.to_string()).await?;
+            crate::github::find_asset_url_by_text(&release, &platform_string).cloned()
+        }
+        .boxed()
+    }
+
     pub fn platform_string(&self) -> String {
         let Self { graal_version: _graal_version, java_version, arch, os, client: _client } = &self;
         let os_name = match *os {

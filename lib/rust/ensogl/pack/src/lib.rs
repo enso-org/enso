@@ -6,10 +6,10 @@
 pub use ide_ci::prelude;
 use ide_ci::prelude::*;
 
-use crate::shaderc::programs::glslc::Glslc;
-use crate::shaderc::programs::spirv_opt::SpirvOpt;
-use crate::spirvcross::program::SpirvCross;
 use ide_ci::program::EMPTY_ARGS;
+use ide_ci::programs::shaderc::Glslc;
+use ide_ci::programs::shaderc::SpirvOpt;
+use ide_ci::programs::spirv_cross::SpirvCross;
 use ide_ci::programs::wasm_pack::WasmPackCommand;
 use manifest_dir_macros::path;
 use std::collections::hash_map::DefaultHasher;
@@ -18,10 +18,6 @@ use std::hash::Hasher;
 use std::path::Path;
 use std::path::PathBuf;
 use walkdir::WalkDir;
-
-pub mod shaderc;
-pub mod spirvcross;
-
 
 
 // =====================
@@ -283,8 +279,7 @@ pub async fn run_wasm_pack(
     let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
     command.run_ok().await?;
     // println!(">>>>>>>>>>>>");
-    // ide_ci::fs::copy(&paths.this_crate.js.wasm_pack_bundle,
-    // &paths.target.ensogl_pack.wasm_pack)?;
+    ide_ci::fs::copy(&paths.this_crate.js.wasm_pack_bundle, &paths.target.ensogl_pack.wasm_pack)?;
     compile_wasm_pack_artifacts(
         &paths.target.ensogl_pack.wasm_pack,
         &paths.target.ensogl_pack.wasm_pack.pkg_js,

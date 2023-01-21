@@ -26,6 +26,8 @@ pub mod rustup;
 pub mod sbt;
 pub mod seven_zip;
 pub mod sh;
+pub mod shaderc;
+pub mod spirv_cross;
 pub mod tar;
 pub mod vs;
 pub mod vswhere;
