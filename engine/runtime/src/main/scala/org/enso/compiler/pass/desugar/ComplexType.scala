@@ -27,8 +27,6 @@ import org.enso.compiler.pass.resolve.{
 }
 import org.enso.compiler.core.ir.MetadataStorage._
 
-import scala.annotation.unused
-
 /** Desugars complex type definitions to simple type definitions in the module
   * scope.
   *
@@ -75,7 +73,7 @@ case object ComplexType extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    @unused moduleContext: ModuleContext
+    moduleContext: ModuleContext
   ): IR.Module =
     ir.copy(
       bindings = ir.bindings.flatMap {
@@ -94,12 +92,12 @@ case object ComplexType extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = ir
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 
@@ -113,18 +111,18 @@ case object ComplexType extends IRPass {
   private def desugarComplexType(
     typ: IR.Module.Scope.Definition.SugaredType
   ): List[IR.Module.Scope.Definition] = {
-    val annotations                                       = typ.getMetadata(ModuleAnnotations)
-    var lastAnnotation: Option[IR.Name.GenericAnnotation] = None
-    var seenAnnotations: Set[IR.Name.GenericAnnotation]   = Set()
+    val annotations     = typ.getMetadata(ModuleAnnotations)
+    var lastAnnotations = Seq.empty[IR.Name.GenericAnnotation]
+    var seenAnnotations = Set.empty[IR.Name.GenericAnnotation]
     val atomDefs = typ.body
       .flatMap {
         case ann: IR.Name.GenericAnnotation =>
-          lastAnnotation = Some(ann)
+          lastAnnotations :+= ann
           None
         case d: IR.Module.Scope.Definition.Data =>
-          val res = Some(d.copy(annotations = d.annotations ++ lastAnnotation))
-          lastAnnotation.foreach(seenAnnotations += _)
-          lastAnnotation = None
+          val res = Some(d.copy(annotations = d.annotations ++ lastAnnotations))
+          lastAnnotations.foreach(seenAnnotations += _)
+          lastAnnotations = Seq()
           res
         case _ =>
           None
