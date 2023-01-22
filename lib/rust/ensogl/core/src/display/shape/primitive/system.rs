@@ -66,7 +66,6 @@ use crate::system::gpu::types::*;
 use crate::display;
 use crate::display::object::instance::GenericLayoutApi;
 use crate::display::scene;
-use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
 use crate::display::symbol::geometry::Sprite;

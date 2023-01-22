@@ -15,7 +15,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use crate::text_grid::TextGrid;
 

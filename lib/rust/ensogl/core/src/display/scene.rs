@@ -410,8 +410,7 @@ pub struct Dirty {
 
 impl Dirty {
     pub fn new<OnMut: Fn() + Clone + 'static>(on_mut: OnMut) -> Self {
-        let shape = ShapeDirty::new(Box::new(on_mut.clone()));
-        Self { shape }
+        Self { shape: ShapeDirty::new(Box::new(on_mut)) }
     }
 }
 
@@ -710,7 +709,9 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
+    #[allow(unsafe_code)]
     fn registerGetShadersRustFn(closure: &Closure<dyn FnMut() -> JsValue>);
+    #[allow(unsafe_code)]
     fn registerSetShadersRustFn(closure: &Closure<dyn FnMut(JsValue)>);
 }
 
@@ -719,12 +720,11 @@ pub fn init() {
     init_global();
 }
 
-use crate::display::world::World;
 use wasm_bindgen::JsCast;
 
 #[before_main]
 pub fn register_get_shaders() {
-    let closure = Closure::wrap(Box::new(|| {
+    let closure = Closure::new(|| {
         let map = gather_shaders();
         let js_map = js_sys::Map::new();
         for (key, code) in map {
@@ -734,16 +734,16 @@ pub fn register_get_shaders() {
             js_map.set(&key.into(), &value);
         }
         js_map.into()
-    }) as Box<dyn FnMut() -> JsValue>);
+    });
     registerGetShadersRustFn(&closure);
     mem::forget(closure);
 
 
-    let closure = Closure::wrap(Box::new(|value: JsValue| {
+    let closure = Closure::new(|value: JsValue| {
         if extractShadersFromJs(value).err().is_some() {
             warn!("Internal error. Downloaded shaders are provided in a wrong format.")
         }
-    }) as Box<dyn FnMut(JsValue)>);
+    });
     registerSetShadersRustFn(&closure);
     mem::forget(closure);
 }

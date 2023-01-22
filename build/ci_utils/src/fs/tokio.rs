@@ -143,8 +143,8 @@ pub async fn copy_between(
     } else {
         source_file
     };
-    let source_path = source_dir.as_ref().join(&source_file);
-    let destination_path = destination_dir.as_ref().join(&source_file);
+    let source_path = source_dir.as_ref().join(source_file);
+    let destination_path = destination_dir.as_ref().join(source_file);
     copy(&source_path, &destination_path)
         .instrument(info_span!("copy_between", ?source_path, ?destination_path))
         .await?;

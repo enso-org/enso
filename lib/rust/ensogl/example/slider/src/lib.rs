@@ -22,7 +22,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::shortcut;
@@ -30,7 +29,6 @@ use ensogl_core::application::Application;
 use ensogl_core::application::View;
 use ensogl_core::data::color;
 use ensogl_core::display;
-use ensogl_hardcoded_theme as theme;
 use ensogl_slider as slider;
 use ensogl_text_msdf::run_once_initialized;
 

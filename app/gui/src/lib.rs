@@ -62,7 +62,6 @@
 extern crate core;
 
 use prelude::*;
-use wasm_bindgen::prelude::*;
 
 
 // ==============

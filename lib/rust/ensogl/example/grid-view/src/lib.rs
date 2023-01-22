@@ -23,7 +23,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application::Application;
@@ -34,7 +33,6 @@ use ensogl_grid_view as grid_view;
 use ensogl_grid_view::Col;
 use ensogl_grid_view::Margins;
 use ensogl_grid_view::Row;
-use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf::run_once_initialized;
 
 

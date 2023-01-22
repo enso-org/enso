@@ -176,7 +176,7 @@ impl Workflow {
 impl Workflow {
     pub fn add_job(&mut self, job: Job) -> String {
         let key = job.name.to_kebab_case();
-        if let Some(_) = self.jobs.insert(key.clone(), job) {
+        if self.jobs.insert(key.clone(), job).is_some() {
             warn!("Job with name {key} already exists.");
         }
         key

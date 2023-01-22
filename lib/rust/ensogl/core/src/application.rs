@@ -4,10 +4,8 @@ use crate::prelude::*;
 use enso_web::traits::*;
 
 use crate::application::command::FrpNetworkProvider;
-use crate::control::callback;
 use crate::display;
 use crate::display::scene::DomPath;
-use crate::display::style::theme;
 use crate::display::world::World;
 use crate::gui::cursor::Cursor;
 use crate::system::web;

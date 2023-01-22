@@ -40,7 +40,6 @@ use ensogl_text::buffer;
 use ensogl_text::formatting;
 use ensogl_text::Text;
 use ensogl_text_msdf::run_once_initialized;
-use wasm_bindgen::prelude::wasm_bindgen;
 
 
 

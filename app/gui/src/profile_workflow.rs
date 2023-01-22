@@ -1,7 +1,6 @@
 //! Defines profilable workflows, and an entry point that runs a specified workflow.
 
 use crate::integration_test::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_debug_api as debug_api;
 

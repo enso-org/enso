@@ -7,7 +7,6 @@ use crate::data::dirty;
 use crate::data::OptVec;
 use crate::display;
 use crate::display::camera::Camera2d;
-use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::ShapeSystemFlavor;
 use crate::display::shape::system::Shape;
 use crate::display::shape::system::ShapeInstance;

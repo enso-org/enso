@@ -160,10 +160,10 @@ mod google_fonts {
         let octocrab = ide_ci::github::setup_octocrab().await?;
         let cache = ide_ci::cache::Cache::new_default().await?;
         let result = download_google_font(&cache, &octocrab, name.as_ref(), out_dir).await?;
-        Ok(result
+        result
             .into_iter()
-            .map(|font| Result::Ok(DownloadedFile { name: font.try_file_name()?.as_str().into() }))
-            .try_collect()?)
+            .map(|font| Ok(DownloadedFile { name: font.try_file_name()?.as_str().into() }))
+            .try_collect()
     }
 
     pub async fn load(out_dir: &Path, buffer: &mut CodeGenerator, family_name: &str) -> Result {
