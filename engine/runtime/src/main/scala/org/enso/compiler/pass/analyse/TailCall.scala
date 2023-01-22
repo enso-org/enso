@@ -133,9 +133,11 @@ case object TailCall extends IRPass {
         )
       case ann: IR.Name.GenericAnnotation =>
         ann
-          .copy(expression = analyseExpression(ann.expression, isInTailPosition = true))
+          .copy(expression =
+            analyseExpression(ann.expression, isInTailPosition = true)
+          )
           .updateMetadata(this -->> TailPosition.Tail)
-      case err: IR.Error                  => err
+      case err: IR.Error => err
     }
   }
 

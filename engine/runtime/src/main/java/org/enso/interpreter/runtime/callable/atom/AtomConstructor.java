@@ -87,7 +87,8 @@ public final class AtomConstructor implements TruffleObject {
     for (int i = 0; i < args.length; i++) {
       reads[i] = ReadArgumentNode.build(i, null);
     }
-    return initializeFields(LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
+    return initializeFields(
+        LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
   }
 
   /**
@@ -106,7 +107,8 @@ public final class AtomConstructor implements TruffleObject {
       Annotation[] annotations,
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
-    this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, annotations, args);
+    this.constructorFunction =
+        buildConstructorFunction(localScope, assignments, varReads, annotations, args);
     generateQualifiedAccessor();
     if (args.length == 0) {
       cachedInstance = new Atom(this);

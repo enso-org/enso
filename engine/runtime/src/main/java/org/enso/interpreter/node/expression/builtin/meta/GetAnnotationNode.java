@@ -45,7 +45,8 @@ public abstract class GetAnnotationNode extends BaseNode {
       String parameterName = expectStringNode.execute(parameter);
       Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
       if (annotation != null) {
-        Function thunk = Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
+        Function thunk =
+            Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
         return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
       }
     }
@@ -55,7 +56,8 @@ public abstract class GetAnnotationNode extends BaseNode {
       String parameterName = expectStringNode.execute(parameter);
       Annotation annotation = constructorFunction.getSchema().getAnnotation(parameterName);
       if (annotation != null) {
-        Function thunk = Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
+        Function thunk =
+            Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
         return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
       }
     }

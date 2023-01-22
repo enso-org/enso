@@ -2,9 +2,7 @@ package org.enso.interpreter.runtime.callable;
 
 import com.oracle.truffle.api.nodes.RootNode;
 
-/**
- * Annotation with callable expression.
- */
+/** Annotation with callable expression. */
 public class Annotation {
 
   private final RootNode expression;
