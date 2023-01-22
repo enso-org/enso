@@ -230,11 +230,11 @@ case object ComplexType extends IRPass {
     * The signature _must_ correctly match the method definition.
     *
     * @param ir the definition to generate a method from
-    * @param names the names on which the method is being defined
+    * @param typeName the type name on which the method is being defined
     * @param signature the type signature for the method, if it exists
     * @return `ir` as a method
     */
-  def genMethodDef(
+  private def genMethodDef(
     ir: IR,
     typeName: IR.Name,
     signature: Option[IR.Type.Ascription]
@@ -293,7 +293,7 @@ case object ComplexType extends IRPass {
     * @param signature the method's type signature, if it exists
     * @return a top-level method definition
     */
-  def genForName(
+  private def genForName(
     typeName: IR.Name,
     name: IR.Name,
     args: List[IR.DefinitionArgument],

@@ -6,7 +6,6 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
 
-import scala.annotation.unused
 import scala.collection.mutable
 
 /** This pass performs static detection of method overloads and emits errors
@@ -156,7 +155,7 @@ case object OverloadsResolution extends IRPass {
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 }

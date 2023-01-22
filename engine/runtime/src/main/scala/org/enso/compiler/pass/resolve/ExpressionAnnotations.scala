@@ -8,8 +8,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
 
-import scala.annotation.unused
-
 case object ExpressionAnnotations extends IRPass {
   val tailCallName      = "@Tail_Call"
   val builtinMethodName = "@Builtin_Method"
@@ -62,7 +60,7 @@ case object ExpressionAnnotations extends IRPass {
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 

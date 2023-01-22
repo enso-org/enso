@@ -14,8 +14,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants
 
-import scala.annotation.unused
-
 /** Resolves name occurences in non-pattern contexts.
   *
   * 1. Attaches resolution metadata to encountered constructors, modules,
@@ -95,7 +93,7 @@ case object GlobalNames extends IRPass {
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 

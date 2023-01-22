@@ -32,23 +32,21 @@ case object GenericAnnotations extends IRPass {
   ): IR.Module = {
     var lastAnnotations: Seq[IR.Name.GenericAnnotation] = Seq()
     val newBindings = ir.bindings.map {
-      case ann: Name.BuiltinAnnotation =>
+      case _: Name.BuiltinAnnotation =>
         throw new CompilerError(
-          s"Builtin annotations should not be present at generic annotations pass [${ann.name}]."
+          s"Builtin annotations should not be present at generic annotations pass."
+        )
+      case _: Definition.SugaredType =>
+        throw new CompilerError(
+          s"Sugared types should not be present at generic annotations pass."
+        )
+      case _: IR.Comment =>
+        throw new CompilerError(
+          "Comments should not be present at generic annotations pass."
         )
       case ann: Name.GenericAnnotation =>
         lastAnnotations :+= ann
         None
-      case comment: IR.Comment =>
-        Some(comment)
-      case typ: Definition.SugaredType =>
-        val res = Some(
-          resolveComplexType(typ).updateMetadata(
-            this -->> Annotations(lastAnnotations)
-          )
-        )
-        lastAnnotations = Seq()
-        res
       case entity =>
         val res = Some(
           entity.updateMetadata(this -->> Annotations(lastAnnotations))
@@ -57,35 +55,6 @@ case object GenericAnnotations extends IRPass {
         res
     }
     ir.copy(bindings = newBindings.flatten)
-  }
-
-  /** Resolves top level annotations within a complex type.
-    *
-    * @param typ the type in which to resolve annotations
-    * @return `typ` with all top-level annotations resolved
-    */
-  private def resolveComplexType(
-    typ: Definition.SugaredType
-  ): Definition.SugaredType = {
-    var lastAnnotations: Seq[IR.Name.GenericAnnotation] = Seq()
-    val newBodyElems = typ.body.flatMap {
-      case ann: Name.BuiltinAnnotation =>
-        throw new CompilerError(
-          s"Builtin annotations should not be present at generic annotations pass [${ann.name}]."
-        )
-      case ann: Name.GenericAnnotation =>
-        lastAnnotations :+= ann
-        None
-      case comment: IR.Comment =>
-        Some(comment)
-      case entity =>
-        val res = Some(
-          entity.updateMetadata(this -->> Annotations(lastAnnotations))
-        )
-        lastAnnotations = Seq()
-        res
-    }
-    typ.copy(body = newBodyElems)
   }
 
   /** Execute the pass on an expression.

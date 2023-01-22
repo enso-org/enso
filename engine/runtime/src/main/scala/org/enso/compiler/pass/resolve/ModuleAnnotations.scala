@@ -13,8 +13,6 @@ import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies
 }
 
-import scala.annotation.unused
-
 /** A pass responsible for the discovery of module annotations, and for
   * associating them with the corresponding construct.
   */
@@ -105,12 +103,12 @@ case object ModuleAnnotations extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = ir
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 

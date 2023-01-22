@@ -13,8 +13,6 @@ import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.TypeSignatures.Signature
 
-import scala.annotation.unused
-
 /** This pass is responsible for analysing type signatures to determine which
   * arguments in a function definition are suspended.
   *
@@ -69,7 +67,7 @@ case object SuspendedArguments extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    @unused moduleContext: ModuleContext
+    moduleContext: ModuleContext
   ): IR.Module =
     ir.copy(
       bindings = ir.bindings.map(resolveModuleBinding)
@@ -85,12 +83,12 @@ case object SuspendedArguments extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = resolveExpression(ir)
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 

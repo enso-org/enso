@@ -9,8 +9,6 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
 
-import scala.annotation.unused
-
 /** Associates doc comments with the commented entities as metadata.
   *
   * If the first module definition is a documentation comment, it is treated as
@@ -61,7 +59,7 @@ case object DocumentationComments extends IRPass {
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 

@@ -14,7 +14,6 @@ import org.enso.syntax.text.Debug
 
 import java.io.Serializable
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 /** This pass performs scope identification and analysis, as well as symbol
@@ -1228,7 +1227,8 @@ case object AliasAnalysis extends IRPass {
         mapping.get(this) match {
           case Some(newCorrespondingScope) => newCorrespondingScope
           case None =>
-            val childScopeCopies: mutable.ListBuffer[Scope] = ListBuffer()
+            val childScopeCopies: mutable.ListBuffer[Scope] =
+              mutable.ListBuffer()
             this.childScopes.foreach(scope =>
               childScopeCopies += scope.deepCopy(mapping)
             )
