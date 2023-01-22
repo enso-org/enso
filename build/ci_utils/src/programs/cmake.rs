@@ -1,6 +1,8 @@
 use crate::prelude::*;
-use ide_ci::program::command::Manipulator;
 
+use crate::program::command::Manipulator;
+
+#[derive(Clone, Debug, Copy)]
 pub struct CMake;
 
 impl Program for CMake {
@@ -9,9 +11,12 @@ impl Program for CMake {
     }
 }
 
-/// Set the given variable in the CMake cache.
+/// Defines the given variable in the CMake cache.
+#[derive(Clone, Debug)]
 pub struct SetVariable {
+    /// Variable name.
     pub variable: String,
+    /// Variable value.
     pub value:    String,
 }
 

@@ -11,7 +11,6 @@ use ide_ci::github::RepoRef;
 pub use ide_ci::prelude;
 
 pub mod ci;
-pub mod cmake;
 pub mod shaderc;
 pub mod spirv_cross;
 

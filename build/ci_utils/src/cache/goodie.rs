@@ -16,7 +16,8 @@ pub mod sbt;
 
 /// Something that can be downloaded and, after that, enabled by modifying global state.
 pub trait Goodie: Debug + Clone + Send + Sync + 'static {
-    fn url(&self) -> BoxFuture<'static, Result<Url>>;
+    // fn url(&self) -> BoxFuture<'static, Result<Url>>;
+    fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>>;
     fn is_active(&self) -> BoxFuture<'static, Result<bool>>;
     fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>>;
     fn activate(&self, package_path: &Path) -> Result {
@@ -42,7 +43,7 @@ pub trait GoodieExt: Goodie {
                 trace!("Skipping activation of {this:?} because it already present.",);
                 Result::Ok(None)
             } else {
-                let package = this.download(&cache).await?;
+                let package = this.get(&cache).await?;
                 this.activate(&package)?;
                 Result::Ok(Some(package))
             }
@@ -51,28 +52,69 @@ pub trait GoodieExt: Goodie {
     }
 
 
-    fn package(
-        &self,
-    ) -> BoxFuture<'static, Result<cache::archive::ExtractedArchive<cache::download::DownloadFile>>>
-    {
-        let url_fut = self.url();
-        async move {
-            let url = url_fut.await?;
-            let archive_source = cache::download::DownloadFile::new(url)?;
-            let path_to_extract = None;
-            Ok(cache::archive::ExtractedArchive { archive_source, path_to_extract })
-        }
-        .boxed()
-    }
-
-    fn download(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
-        let package = self.package();
-        let cache = cache.clone();
-        async move { cache.get(package.await?).await }.boxed()
-    }
+    // fn package(
+    //     &self,
+    // ) -> BoxFuture<'static,
+    // Result<cache::archive::ExtractedArchive<cache::download::DownloadFile>>> {
+    //     let url_fut = self.url();
+    //     async move {
+    //         let url = url_fut.await?;
+    //         let archive_source = cache::download::DownloadFile::new(url)?;
+    //         let path_to_extract = None;
+    //         Ok(cache::archive::ExtractedArchive { archive_source, path_to_extract })
+    //     }
+    //     .boxed()
+    // }
+    //
+    // fn download(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+    //     let package = self.package();
+    //     let cache = cache.clone();
+    //     async move { cache.get(package.await?).await }.boxed()
+    // }
 }
 
 impl<T: Goodie> GoodieExt for T {}
+
+
+pub fn download_url(url: Url, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+    download_try_url(Ok(url), cache)
+    // let archive_source = cache::download::DownloadFile::new(url);
+    // let cache = cache.clone();
+    // let package = archive_source.map(|archive_source| cache::archive::ExtractedArchive {
+    //     archive_source,
+    //     path_to_extract: None,
+    // });
+    // async move { cache.get(package?).await }.boxed()
+}
+
+
+pub fn download_try_url(url: Result<Url>, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+    download_try_future_url(ready(url), cache)
+    // let cache = cache.clone();
+    // let archive_source = url.and_then(|url| cache::download::DownloadFile::new(url));
+    // let package = archive_source.map(|archive_source| cache::archive::ExtractedArchive {
+    //     archive_source,
+    //     path_to_extract: None,
+    // });
+    // async move { cache.get(package?).await }.boxed()
+}
+
+
+pub fn download_try_future_url(
+    url: impl Future<Output = Result<Url>> + Send + 'static,
+    cache: &Cache,
+) -> BoxFuture<'static, Result<PathBuf>> {
+    let cache = cache.clone();
+    async move {
+        let url = url.await?;
+        let archive_source = cache::download::DownloadFile::new(url)?;
+        let package = cache::archive::ExtractedArchive { archive_source, path_to_extract: None };
+        cache.get(package).await
+    }
+    .boxed()
+}
+
+
 //
 // /// Whoever owns a token, can assume that the Goodie is available.
 // #[derive(Clone, Debug, Display)]

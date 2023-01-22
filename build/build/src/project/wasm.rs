@@ -15,6 +15,7 @@ use derivative::Derivative;
 use ide_ci::cache;
 use ide_ci::fs::compressed_size;
 use ide_ci::fs::copy_file_if_different;
+use ide_ci::goodies::shader_tools::ShaderTools;
 use ide_ci::programs::cargo;
 use ide_ci::programs::wasm_opt;
 use ide_ci::programs::wasm_opt::WasmOpt;
@@ -183,6 +184,8 @@ impl IsTarget for Wasm {
             // Old wasm-pack does not pass trailing `build` command arguments to the Cargo.
             // We want to be able to pass --profile this way.
             WasmPack.require_present_that(VersionReq::parse(">=0.10.1")?).await?;
+
+            ShaderTools.install_if_missing(&cache).await?;
 
             let BuildInput {
                 crate_path,
