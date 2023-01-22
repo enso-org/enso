@@ -25,7 +25,6 @@
 extern crate proc_macro;
 
 mod before_main;
-mod definition_path;
 mod derive_clone_ref;
 mod derive_entry_point;
 mod derive_for_each_variant;
@@ -33,6 +32,7 @@ mod derive_iterator;
 mod derive_no_clone;
 mod gen;
 mod overlappable;
+mod root_call_path;
 mod tagged_enum;
 
 mod prelude {
@@ -333,7 +333,9 @@ pub fn before_main(
     before_main::run(attr, input)
 }
 
+/// Macro reporting the root call path of itself. If it was used inside another macro "A", the
+/// reported path will be the place where "A" was called.
 #[proc_macro]
-pub fn definition_path(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    definition_path::run(input)
+pub fn root_call_path(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    root_call_path::run(input)
 }

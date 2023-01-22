@@ -1,3 +1,6 @@
+//! Macro reporting the root call path of itself. If it was used inside another macro "A", the
+//! reported path will be the place where "A" was called.
+
 use crate::prelude::*;
 
 
@@ -6,12 +9,8 @@ use crate::prelude::*;
 // === Main entry point ===
 // ========================
 
-// FIXME!!!!!!!!!!!!!!!!!!!!
-// FIXME: fix the unwraps and parents
-
-/// Functions exposed in WASM have to have unique names. This utility creates a name based on the
-/// location (module path, line number, column number) the function was defined.
-pub fn definition_path() -> String {
+/// Get the root call path of the call side at compile time.
+pub fn root_call_path() -> String {
     let mut span = proc_macro::Span::call_site();
     while let Some(parent) = span.parent() {
         span = parent;
@@ -22,8 +21,10 @@ pub fn definition_path() -> String {
     format!("{path}:{}:{}", start.line, start.column)
 }
 
+/// Macro reporting the root call path of itself. If it was used inside another macro "A", the
+/// reported path will be the place where "A" was called.
 pub fn run(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let path = definition_path();
+    let path = root_call_path();
     let output = quote! {
         #path
     };

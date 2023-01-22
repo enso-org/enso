@@ -645,7 +645,7 @@ macro_rules! _shape_old {
                 type ShapeData = ($($shape_data)?);
 
                 fn definition_path() -> &'static str {
-                    definition_path!()
+                    root_call_path!()
                 }
 
                 fn pointer_events() -> bool {
@@ -800,7 +800,7 @@ macro_rules! _shape {
                 type ShapeData = ($($shape_data)?);
 
                 fn definition_path() -> &'static str {
-                    definition_path!()
+                    root_call_path!()
                 }
 
                 fn pointer_events() -> bool {

@@ -283,8 +283,10 @@ pub async fn run_wasm_pack(
     let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
     command.run_ok().await?;
     // println!(">>>>>>>>>>>>");
-    // ide_ci::fs::copy(&paths.this_crate.js.wasm_pack_bundle,
-    // &paths.target.ensogl_pack.wasm_pack)?;
+    // std::fs::copy(
+    //     &paths.this_crate.js.wasm_pack_bundle.join("wasm-pack-bundle.ts"),
+    //     &paths.target.ensogl_pack.wasm_pack.join("wasm-pack-bundle.ts"),
+    // )?;
     compile_wasm_pack_artifacts(
         &paths.target.ensogl_pack.wasm_pack,
         &paths.target.ensogl_pack.wasm_pack.pkg_js,
