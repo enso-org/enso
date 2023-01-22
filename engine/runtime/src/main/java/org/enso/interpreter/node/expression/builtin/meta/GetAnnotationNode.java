@@ -10,6 +10,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.Annotation;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -39,12 +40,22 @@ public abstract class GetAnnotationNode extends BaseNode {
     String methodName = expectStringNode.execute(method);
     Type targetType = types.getType(target);
     ModuleScope scope = targetType.getDefinitionScope();
-    Function function = scope.lookupMethodDefinition(targetType, methodName);
-    if (function != null) {
+    Function methodFunction = scope.lookupMethodDefinition(targetType, methodName);
+    if (methodFunction != null) {
       String parameterName = expectStringNode.execute(parameter);
-      Annotation annotation = function.getSchema().getAnnotation(parameterName);
+      Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
       if (annotation != null) {
-        var thunk = Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
+        Function thunk = Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
+        return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
+      }
+    }
+    AtomConstructor constructor = targetType.getConstructors().get(methodName);
+    if (constructor != null) {
+      Function constructorFunction = constructor.getConstructorFunction();
+      String parameterName = expectStringNode.execute(parameter);
+      Annotation annotation = constructorFunction.getSchema().getAnnotation(parameterName);
+      if (annotation != null) {
+        Function thunk = Function.thunk(annotation.getExpression().getCallTarget(), frame.materialize());
         return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
       }
     }

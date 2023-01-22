@@ -11,6 +11,7 @@ import org.enso.interpreter.epb.EpbParser
 import org.enso.syntax.text.{AST, Debug, Location}
 
 import java.util.UUID
+
 import scala.annotation.unused
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
@@ -1068,6 +1069,7 @@ object IR {
           *
           * @param name the name of the atom
           * @param arguments the arguments to the atom constructor
+          * @param annotations the list of annotations
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
@@ -1075,6 +1077,7 @@ object IR {
         sealed case class Data(
           name: IR.Name,
           arguments: List[DefinitionArgument],
+          annotations: List[IR.Name.GenericAnnotation],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1086,6 +1089,7 @@ object IR {
             *
             * @param name the name of the atom
             * @param arguments the arguments to the atom constructor
+            * @param annotations the list of annotations
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
@@ -1093,14 +1097,22 @@ object IR {
             * @return a copy of `this`, updated with the specified values
             */
           def copy(
-            name: IR.Name                        = name,
-            arguments: List[DefinitionArgument]  = arguments,
-            location: Option[IdentifiedLocation] = location,
-            passData: MetadataStorage            = passData,
-            diagnostics: DiagnosticStorage       = diagnostics,
-            id: Identifier                       = id
+            name: IR.Name                                = name,
+            arguments: List[DefinitionArgument]          = arguments,
+            annotations: List[IR.Name.GenericAnnotation] = annotations,
+            location: Option[IdentifiedLocation]         = location,
+            passData: MetadataStorage                    = passData,
+            diagnostics: DiagnosticStorage               = diagnostics,
+            id: Identifier                               = id
           ): Data = {
-            val res = Data(name, arguments, location, passData, diagnostics)
+            val res = Data(
+              name,
+              arguments,
+              annotations,
+              location,
+              passData,
+              diagnostics
+            )
             res.id = id
             res
           }
@@ -1142,8 +1154,9 @@ object IR {
           /** @inheritdoc */
           override def mapExpressions(fn: Expression => Expression): Data = {
             copy(
-              name      = name.mapExpressions(fn),
-              arguments = arguments.map(_.mapExpressions(fn))
+              name        = name.mapExpressions(fn),
+              arguments   = arguments.map(_.mapExpressions(fn)),
+              annotations = annotations.map(_.mapExpressions(fn))
             )
           }
 
@@ -1153,6 +1166,7 @@ object IR {
             |IR.Module.Scope.Definition.Data(
             |name = $name,
             |arguments = $arguments,
+            |annotations = $annotations,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
@@ -1161,7 +1175,7 @@ object IR {
             |""".toSingleLine
 
           /** @inheritdoc */
-          override def children: List[IR] = name :: arguments
+          override def children: List[IR] = name :: arguments ::: annotations
 
           /** @inheritdoc */
           override def showCode(indent: Int): String = {

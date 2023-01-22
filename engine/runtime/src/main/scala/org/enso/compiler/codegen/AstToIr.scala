@@ -309,12 +309,18 @@ object AstToIr {
     inputAst match {
       case AST.Ident.Cons.any(cons) =>
         IR.Module.Scope.Definition
-          .Data(buildName(cons), List(), getIdentifiedLocation(inputAst))
+          .Data(
+            buildName(cons),
+            List(),
+            List(),
+            getIdentifiedLocation(inputAst)
+          )
       case AstView.SpacedList(AST.Ident.Cons.any(cons) :: args) =>
         IR.Module.Scope.Definition
           .Data(
             buildName(cons),
             args.map(translateArgumentDefinition(_)),
+            List(),
             getIdentifiedLocation(inputAst)
           )
       case AST.Ident.Annotation.any(ann) =>

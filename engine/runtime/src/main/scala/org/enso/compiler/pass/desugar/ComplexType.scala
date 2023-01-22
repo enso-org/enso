@@ -110,12 +110,25 @@ case object ComplexType extends IRPass {
     * @param typ the type definition to desugar
     * @return the top-level definitions corresponding to the desugaring of `typ`
     */
-  def desugarComplexType(
+  private def desugarComplexType(
     typ: IR.Module.Scope.Definition.SugaredType
   ): List[IR.Module.Scope.Definition] = {
-    val annotations = typ.getMetadata(ModuleAnnotations)
+    val annotations                                       = typ.getMetadata(ModuleAnnotations)
+    var lastAnnotation: Option[IR.Name.GenericAnnotation] = None
+    var seenAnnotations: Set[IR.Name.GenericAnnotation]   = Set()
     val atomDefs = typ.body
-      .collect { case d: IR.Module.Scope.Definition.Data => d }
+      .flatMap {
+        case ann: IR.Name.GenericAnnotation =>
+          lastAnnotation = Some(ann)
+          None
+        case d: IR.Module.Scope.Definition.Data =>
+          val res = Some(d.copy(annotations = d.annotations ++ lastAnnotation))
+          lastAnnotation.foreach(seenAnnotations += _)
+          lastAnnotation = None
+          res
+        case _ =>
+          None
+      }
       // TODO[MK] this is probably removable
       .map(atom =>
         annotations
@@ -133,6 +146,7 @@ case object ComplexType extends IRPass {
 
     val remainingEntities = typ.body.filterNot {
       case _: IR.Module.Scope.Definition.Data => true
+      case ann: IR.Name.GenericAnnotation     => seenAnnotations.contains(ann)
       case _                                  => false
     }
 

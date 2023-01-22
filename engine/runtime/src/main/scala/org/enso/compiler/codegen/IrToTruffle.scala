@@ -260,11 +260,42 @@ class IrToTruffle(
           }
 
           val (assignments, reads) = argumentExpressions.unzip
+          // annotations
+          val annotations = atomDefn.annotations.map { annotation =>
+            val scopeElements = Seq(
+              tpDef.name.name,
+              atomDefn.name.name,
+              annotation.name
+            )
+            val scopeName =
+              scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+            val expressionProcessor = new ExpressionProcessor(
+              scopeName,
+              scopeInfo.graph,
+              scopeInfo.graph.rootScope,
+              dataflowInfo
+            )
+            val expressionNode =
+              expressionProcessor.run(annotation.expression)
+            val closureName = s"<default::$scopeName>"
+            val closureRootNode = ClosureRootNode.build(
+              language,
+              expressionProcessor.scope,
+              moduleScope,
+              expressionNode,
+              makeSection(moduleScope, annotation.location),
+              closureName,
+              true,
+              false
+            )
+            new RuntimeAnnotation(annotation.name, closureRootNode)
+          }
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
               localScope,
               assignments.toArray,
               reads.toArray,
+              annotations.toArray,
               argDefs: _*
             )
           }
@@ -409,52 +440,53 @@ class IrToTruffle(
             val arguments  = bodyBuilder.args()
             // build annotations
             val annotations =
-              methodDef.getMetadata(GenericAnnotations).toVector.flatMap { meta =>
-                meta.annotations
-                  .collect { case annotation: IR.Name.GenericAnnotation =>
-                    val scopeElements = Seq(
-                      cons.getName,
-                      methodDef.methodName.name,
-                      annotation.name
-                    )
-                    val scopeName =
-                      scopeElements.mkString(Constants.SCOPE_SEPARATOR)
-                    val scopeInfo = annotation
-                      .unsafeGetMetadata(
-                        AliasAnalysis,
-                        s"Missing scope information for annotation " +
+              methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
+                meta =>
+                  meta.annotations
+                    .collect { case annotation: IR.Name.GenericAnnotation =>
+                      val scopeElements = Seq(
+                        cons.getName,
+                        methodDef.methodName.name,
+                        annotation.name
+                      )
+                      val scopeName =
+                        scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+                      val scopeInfo = annotation
+                        .unsafeGetMetadata(
+                          AliasAnalysis,
+                          s"Missing scope information for annotation " +
+                          s"${annotation.name} of method " +
+                          scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
+                        )
+                        .unsafeAs[AliasAnalysis.Info.Scope.Root]
+                      val dataflowInfo = annotation.unsafeGetMetadata(
+                        DataflowAnalysis,
+                        "Missing dataflow information for annotation " +
                         s"${annotation.name} of method " +
                         scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
                       )
-                      .unsafeAs[AliasAnalysis.Info.Scope.Root]
-                    val dataflowInfo = annotation.unsafeGetMetadata(
-                      DataflowAnalysis,
-                      "Missing dataflow information for annotation " +
-                        s"${annotation.name} of method " +
-                        scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
-                    )
-                    val expressionProcessor = new ExpressionProcessor(
-                      scopeName,
-                      scopeInfo.graph,
-                      scopeInfo.graph.rootScope,
-                      dataflowInfo
-                    )
-                    val expressionNode =
-                      expressionProcessor.run(annotation.expression)
-                    val closureName =
-                      s"<default::${expressionProcessor.scopeName}>"
-                    val closureRootNode = ClosureRootNode.build(
-                      language,
-                      expressionProcessor.scope,
-                      moduleScope,
-                      expressionNode,
-                      makeSection(moduleScope, annotation.location),
-                      closureName,
-                      true,
-                      false
-                    )
-                    new RuntimeAnnotation(annotation.name, closureRootNode)
-                  }
+                      val expressionProcessor = new ExpressionProcessor(
+                        scopeName,
+                        scopeInfo.graph,
+                        scopeInfo.graph.rootScope,
+                        dataflowInfo
+                      )
+                      val expressionNode =
+                        expressionProcessor.run(annotation.expression)
+                      val closureName =
+                        s"<default::${expressionProcessor.scopeName}>"
+                      val closureRootNode = ClosureRootNode.build(
+                        language,
+                        expressionProcessor.scope,
+                        moduleScope,
+                        expressionNode,
+                        makeSection(moduleScope, annotation.location),
+                        closureName,
+                        true,
+                        false
+                      )
+                      new RuntimeAnnotation(annotation.name, closureRootNode)
+                    }
               }
 
             Right(

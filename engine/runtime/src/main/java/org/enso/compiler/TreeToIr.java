@@ -311,14 +311,14 @@ final class TreeToIr {
   }
 
   private List<IR.DefinitionArgument> translateArgumentsDefinition(java.util.List<ArgumentDefinition> args) {
-    return CollectionConverters.asScala(args.stream().map(p -> translateArgumentDefinition(p)).iterator()).toList();
+    return CollectionConverters.asScala(args.stream().map(this::translateArgumentDefinition).iterator()).toList();
   }
 
   IR translateConstructorDefinition(Tree.ConstructorDefinition cons, Tree inputAst) {
     var constructorName = buildName(inputAst, cons.getConstructor());
     List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
     var cAt = getIdentifiedLocation(inputAst);
-    return new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+    return new IR$Module$Scope$Definition$Data(constructorName, args, nil(), cAt, meta(), diag());
   }
 
   /** Translates any expression that can be found in the body of a type

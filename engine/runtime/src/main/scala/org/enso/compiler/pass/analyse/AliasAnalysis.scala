@@ -257,12 +257,23 @@ case object AliasAnalysis extends IRPass {
           ),
           members = t.members.map(d => {
             val graph = new Graph
-            d.copy(arguments =
-              analyseArgumentDefs(
+            d.copy(
+              arguments = analyseArgumentDefs(
                 d.arguments,
                 graph,
                 graph.rootScope
-              )
+              ),
+              annotations = d.annotations.map { ann =>
+                ann
+                  .copy(
+                    expression = analyseExpression(
+                      ann.expression,
+                      topLevelGraph,
+                      topLevelGraph.rootScope
+                    )
+                  )
+                  .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+              }
             ).updateMetadata(this -->> Info.Scope.Root(graph))
           })
         ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
@@ -571,7 +582,7 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope the scope in which the arguments are defined
     * @return `args`, with aliasing information attached to each argument
     */
-  def analyseCallArguments(
+  private def analyseCallArguments(
     args: List[IR.CallArgument],
     graph: AliasAnalysis.Graph,
     parentScope: AliasAnalysis.Graph.Scope

@@ -149,22 +149,21 @@ case object DataflowAnalysis extends IRPass {
           info.dependencies.updateAt(tpDep, Set(paramDep))
           analyseDefinitionArgument(param, info)
         }
-        val newMembers = members.map {
-          case data @ IR.Module.Scope.Definition.Data(_, arguments, _, _, _) =>
-            val dataDep = asStatic(data)
-            info.dependents.updateAt(dataDep, Set(tpDep))
-            info.dependencies.updateAt(tpDep, Set(dataDep))
-            arguments.foreach(arg => {
-              val argDep = asStatic(arg)
-              info.dependents.updateAt(argDep, Set(dataDep))
-              info.dependencies.updateAt(dataDep, Set(argDep))
-            })
+        val newMembers = members.map { data =>
+          val dataDep = asStatic(data)
+          info.dependents.updateAt(dataDep, Set(tpDep))
+          info.dependencies.updateAt(tpDep, Set(dataDep))
+          data.arguments.foreach(arg => {
+            val argDep = asStatic(arg)
+            info.dependents.updateAt(argDep, Set(dataDep))
+            info.dependencies.updateAt(dataDep, Set(argDep))
+          })
 
-            data
-              .copy(
-                arguments = arguments.map(analyseDefinitionArgument(_, info))
-              )
-              .updateMetadata(this -->> info)
+          data
+            .copy(
+              arguments = data.arguments.map(analyseDefinitionArgument(_, info))
+            )
+            .updateMetadata(this -->> info)
         }
         tp.copy(params = newParams, members = newMembers)
           .updateMetadata(this -->> info)
