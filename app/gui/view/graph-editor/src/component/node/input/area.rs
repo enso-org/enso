@@ -391,18 +391,7 @@ impl Model {
                 let size = Vector2(width, height);
                 let position_x = unit * index as f32;
 
-                let prev_ast_id_crumbs = port.ast_id.as_ref().and_then(|id| prev_id_crumbs_map.get(id));
-                let prev_node = prev_ast_id_crumbs.and_then(|crumbs| {
-                    let prev_root = prev_expression.span_tree.root_ref();
-                    prev_root.get_descendant(crumbs).ok()
-                });
-
-                let prev_shape = prev_node.and_then(|node| node.payload.shape.clone_ref());
-                let shape_was_reused = prev_shape.is_some();
-                let port_shape = match prev_shape {
-                    Some(shape) => port.payload.use_existing_shape(shape, size, node::HEIGHT),
-                    None => port.payload.init_shape(size, node::HEIGHT),
-                };
+                let port_shape = port.payload.init_shape(size, node::HEIGHT);
 
                 let known_call_target_id = port.kind.call_id().and(port.kind.target_id());
                 let port_widget = known_call_target_id.and_then(|target_id| {
@@ -418,7 +407,9 @@ impl Model {
                     // when the target expression was replaced, but the widget argument expression
                     // wasn't. In that case, try to reuse the widget from old argument node under
                     // the same ast ID.
-                    let prev_crumbs = prev_widgets_map.get(&widget_id).or(prev_ast_id_crumbs);
+                    let prev_crumbs = prev_widgets_map.get(&widget_id).or_else(|| {
+                        port.ast_id.as_ref().and_then(|id| prev_id_crumbs_map.get(id))
+                    });
                     let prev_widget = prev_crumbs.and_then(|crumbs|{
                         let prev_root = prev_expression.span_tree.root_ref();
                         let prev_node = prev_root.get_descendant(crumbs).ok()?;
@@ -566,9 +557,7 @@ impl Model {
                     }
                 }
 
-                if !shape_was_reused {
-                    init_color.emit(());
-                }
+                init_color.emit(());
                 
                 port_shape.display_object().clone_ref()
             };
