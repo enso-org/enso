@@ -420,9 +420,3 @@ type Locale
              example_to_text = Locale.default.to_text
     to_text : Text | Nothing
     to_text self = self.java_locale.toLanguageTag
-
-    ## Compares two locales for equality.
-    == : Any -> Boolean
-    == self other = case other of
-        Locale.Value other_java_locale -> self.java_locale.equals other_java_locale
-        _ -> False

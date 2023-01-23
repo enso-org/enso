@@ -498,11 +498,9 @@ impl ShaderBuilder {
     }
 
     fn gen_outputs_code(&mut self, cfg: &ShaderConfig) {
-        if !cfg.outputs.is_empty() {
-            cfg.outputs.iter().enumerate().for_each(|(loc, (name, qual))| {
-                let name = mk_out_name(name);
-                self.fragment.add(qual.to_output_var(name, &mut self.layout.frag_out));
-            });
+        for (name, qual) in &cfg.outputs {
+            let name = mk_out_name(name);
+            self.fragment.add(qual.to_output_var(name, &mut self.layout.frag_out));
         }
     }
 

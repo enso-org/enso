@@ -31,4 +31,8 @@ spec =
         Test.specify "should return Syntax_Error when parsing invalid URI" <|
             URI.parse "a b c" . should_fail_with Syntax_Error.Error
 
+        Test.specify "should compare two URIs for equality" <|
+            (URI.parse "http://google.com").should_equal (URI.parse "http://google.com")
+            (URI.parse "http://google.com").should_not_equal (URI.parse "http://amazon.com")
+
 main = Test_Suite.run_main spec

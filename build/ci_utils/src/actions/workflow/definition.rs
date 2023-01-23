@@ -176,7 +176,7 @@ impl Workflow {
 impl Workflow {
     pub fn add_job(&mut self, job: Job) -> String {
         let key = job.name.to_kebab_case();
-        if let Some(_) = self.jobs.insert(key.clone(), job) {
+        if self.jobs.insert(key.clone(), job).is_some() {
             warn!("Job with name {key} already exists.");
         }
         key
@@ -234,7 +234,7 @@ pub struct Push {
 
 /// Common branch-related fields between some event triggers.
 ///
-/// See: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpull_requestpull_request_targetbranchesbranches-ignore
+/// See: <https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpull_requestpull_request_targetbranchesbranches-ignore>
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Branches {
@@ -250,7 +250,7 @@ impl Branches {
     }
 }
 
-/// See: https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+/// See: <https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request>
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PullRequestActivityType {

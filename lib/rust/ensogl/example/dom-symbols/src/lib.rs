@@ -22,7 +22,6 @@
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 use ensogl_core::system::web::traits::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::symbol::geometry::Sprite;
@@ -65,7 +64,7 @@ fn update_shape(screen: Shape, sprites: &[Sprite], dom_symbols: &[DomSymbol]) {
     }
     for symbol in dom_symbols {
         let size = Vector2::new(width, height * HEIGHT_FRACTION - HTML_PADDING * 2.0);
-        symbol.set_size(size);
+        symbol.set_dom_size(size);
         symbol.update_x(|y| y - HTML_PADDING);
         symbol.update_y(|y| y + HTML_PADDING);
         symbol.update_y(|y| {

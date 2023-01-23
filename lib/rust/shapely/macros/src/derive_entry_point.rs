@@ -46,11 +46,8 @@ pub fn derive(
             for attr in &f.attrs {
                 if attr.path.is_ident("doc") {
                     for token in attr.tokens.clone() {
-                        match token {
-                            proc_macro2::TokenTree::Literal(lit) => {
-                                docs.push_str(lit.to_string().trim_matches('"'));
-                            }
-                            _ => {}
+                        if let proc_macro2::TokenTree::Literal(lit) = token {
+                            docs.push_str(lit.to_string().trim_matches('"'));
                         }
                     }
                 }

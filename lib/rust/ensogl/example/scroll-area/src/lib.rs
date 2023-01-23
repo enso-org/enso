@@ -24,12 +24,10 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_hardcoded_theme as theme;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -107,7 +105,6 @@ fn init(app: &Application) {
     // === Scroll Area ===
 
     let scroll_area = ScrollArea::new(app);
-    scroll_area.set_camera(scene.camera());
     app.display.add_child(&scroll_area);
     scroll_area.resize(Vector2(200.0, 200.0));
     scroll_area.set_content_width(300.0);

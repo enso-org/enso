@@ -63,4 +63,4 @@ curry f = x -> y -> f [x, y]
 
 # uncurry : (a -> b -> c) -> ([a, b] -> c)
 uncurry : (Any -> Any -> Any) -> (Vector Any -> Any)
-uncurry f = (pair -> f pair.head pair.second)
+uncurry f = (pair -> f pair.first pair.second)

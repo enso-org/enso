@@ -2,7 +2,9 @@ import project.Any.Any
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
+import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Error.Common.Index_Out_Of_Bounds
 import project.Error.Error
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Function.Function
@@ -53,18 +55,21 @@ type Range
         _ ->
             Error.throw (Illegal_Argument.Error "Range step should be an integer.")
 
+    ## Returns the first element that is included within the range or `Nothing`
+       if the range is empty.
+    first : Integer ! Index_Out_Of_Bounds
+    first self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else self.start
+
+    ## Returns the second element that is included within the range or `Nothing`
+       if the range has less than 2 element
+    second : Integer ! Index_Out_Of_Bounds
+    second self = if self.length < 2 then Error.throw (Index_Out_Of_Bounds.Error 1 self.length) else self.start + self.step
+
     ## Returns the last element that is included within the range or `Nothing`
        if the range is empty.
-    last : Integer | Nothing
-    last self = if self.is_empty then Nothing else case self.step > 0 of
-        True ->
-            diff = self.end - self.start
-            rem = diff % self.step
-            if rem == 0 then self.end - self.step else self.end - rem
-        False ->
-            diff = self.start - self.end
-            rem = diff % (-self.step)
-            if rem == 0 then self.end - self.step else self.end + rem
+    last : Integer ! Index_Out_Of_Bounds
+    last self = if self.is_empty then Error.throw (Index_Out_Of_Bounds.Error 0 0) else
+        self.start + self.step*(self.length - 1)
 
     ## Get the number of elements in the range.
 
@@ -73,9 +78,45 @@ type Range
 
             0.up_to 100 . length
     length : Number
-    length self = case self.last of
-        Nothing -> 0
-        last -> ((last - self.start) . div self.step) + 1
+    length self = if self.is_empty then 0 else
+        diff = self.end - self.start
+        steps = diff . div self.step
+        if self.start + steps*self.step == self.end then steps else steps+1
+
+    ## Gets an element from the Range at a specified index (0-based).
+
+       Arguments:
+       - index: The location in the Range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the final item, i.e. -1 will correspond to the last element.
+
+       > Example
+         Get the second element of a range.
+
+             0.up_to 10 . get 1 == 1
+
+       > Example
+         Get the last element of a range with step.
+
+            0.up_to 10 . with_step 2 . get -1 == 8
+    at : Integer -> Any ! Index_Out_Of_Bounds
+    at self index =
+        self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
+
+    ## Gets an element from the Range at a specified index (0-based).
+       If the index is invalid then `if_missing` is returned.
+
+       Arguments:
+       - index: The location in the Range to get the element from. The index is
+         also allowed be negative, then the elements are indexed from the back
+         of the Range, i.e. -1 will correspond to the last element.
+       - if_missing: The value to return if the index is out of bounds.
+    get : Integer -> Any -> Any
+    get self index ~if_missing=Nothing =
+        len = self.length
+        used_index = if index < 0 then len + index else index
+        if used_index >= 0 && used_index < len then self.start + used_index * self.step else
+            if_missing
 
     ## Checks if this range is empty.
 
@@ -235,21 +276,7 @@ type Range
 
              10.up_to 100 . all (> 5)
     all : (Number -> Boolean) -> Boolean
-    all self predicate = self . exists (predicate >> .not) . not
-
-    ## Checks whether `predicate` is satisfied for any number in this range.
-
-       Arguments:
-       - predicate: A function that takes a list element and returns a boolean
-         value that says whether that value satisfies the conditions of the
-         function.
-
-       > Example
-         Checking that at least one number in the range is greater than 10.
-
-             1.up_to 100 . exists (> 10)
-    exists : (Number -> Boolean) -> Boolean
-    exists self predicate = self.find predicate . is_nothing . not
+    all self predicate = self . any (predicate >> .not) . not
 
     ## Checks whether `predicate` is satisfied for any number in this range.
 
@@ -263,38 +290,28 @@ type Range
 
              1.up_to 100 . any (> 10)
     any : (Number -> Boolean) -> Boolean
-    any self predicate = self.exists predicate
+    any self predicate = self.find predicate . is_nothing . not
 
     ## Gets the first index when `predicate` is satisfied this range.
-       If no index satisfies the predicate, return Nothing
+       If no index satisfies the predicate, returns `if_missing`.
 
        Arguments:
        - predicate: A function that takes a list element and returns a boolean
          value that says whether that value satisfies the conditions of the
          function.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the range.
+       - if_missing: Value returned if no element satisfies the predicate.
 
        > Example
          Get the first number in the range divisible by 2, 3 and 5.
 
              1.up_to 100 . find i->(i%2==0 && i%3==0 && i%5==0)
-    find : (Integer -> Boolean) -> Integer | Nothing
-    find self predicate =
-        if self.step == 0 then throw_zero_step_error else
-            end_condition = if self.step > 0 then (>=) else (<=)
-            go current =
-                if end_condition current self.end then Nothing else
-                    if predicate current then current else
-                        @Tail_Call go current+self.step
-            go self.start
-
-    ## Converts the range to a vector containing the numbers in the range.
-
-       > Example
-         Getting a vector of the numbers 1 to 5.
-
-             1.up_to 6 . to_vector
-    to_vector : Vector
-    to_vector self = self.map x->x
+    find : (Integer -> Boolean) -> Integer -> Any -> Any
+    find self predicate start=0 ~if_missing=Nothing =
+        check_start_valid start self used_start->
+            result = find_internal self used_start predicate
+            if result.is_nothing then if_missing else result.first
 
     ## Checks if the range contains the specified value.
 
@@ -313,8 +330,145 @@ type Range
            add this so that we avoid a confusing
            `Range 0 10 . contains 3.0 == False` and get a type error for
            decimals instead.
-        _ ->
-            Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
+        _ -> Error.throw (Illegal_Argument.Error "`Range.contains` only accepts Integers.")
+
+    ## Returns the index of an element in the range.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The integer to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching from. If the index is negative, it
+         is counted from the end of the range.
+
+       > Example
+         Find the index of an element in a range.
+
+             0.up_to 100 . index_of 20 == 20
+             0.up_to 100 . with_step 5 . index_of 20 == 4
+             0.up_to 100 . with_step 5 . index_of (>10) == 3
+    index_of : (Integer | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    index_of self element start=0 =
+        check_start_valid start self used_start->
+            case element of
+                _ : Integer -> get_index self used_start self.length-1 element
+                _ : Function ->
+                    result = find_internal self used_start element
+                    if result.is_nothing then Nothing else result.second
+                _ -> Error.throw (Illegal_Argument.Error "`Range.index_of` only accepts Integers or a predicate.")
+
+    ## Returns the last index of an element in the range.
+       Returns Nothing if the element is not found.
+
+       Arguments:
+       - element: The integer to search for or a predicate function to test for
+         each element.
+       - start: The index to start searching backwards from. If the index is
+         negative, it is counted from the end of the range.
+
+       > Example
+         Find the last index of an element in a pair.
+
+             Pair.new 2 2 . last_index_of 2 == 1
+    last_index_of : (Any | (Any -> Boolean)) -> Integer -> Integer | Nothing
+    last_index_of self element start=-1 =
+        if self.is_empty && (start==-1 || start==0) then Nothing else
+            check_start_valid start self include_end=False used_start->
+                case element of
+                    _ : Integer -> get_index self 0 used_start element
+                    _ : Function ->
+                        start_value = self.start + used_start*self.step
+                        go current idx =
+                            if element current then idx else
+                                if current == self.start then Nothing else
+                                    @Tail_Call go current-self.step idx-1
+                        go start_value used_start
+                    _ -> Error.throw (Illegal_Argument.Error "`Range.last_index_of` only accepts Integers or a predicate.")
+
+    ## Reverses the range, returning a range with the same elements, but in
+       the opposite order.
+
+       > Example
+         Reverse a step 5 from 0 to 23
+
+             Range.new 0 23 . with_step 5 . reverse
+    reverse : Range
+    reverse self =
+        if self.step == 0 then throw_zero_step_error else
+            Range.Between self.last (self.first-self.step) (-self.step)
+
+    ## Converts the range to a vector containing the numbers in the range.
+
+       > Example
+         Getting a vector of the numbers 1 to 5.
+
+             1.up_to 6 . to_vector
+    to_vector : Vector
+    to_vector self = self.map x->x
+
+    ## Combines all the elements of a non-empty range using a binary operation.
+       If the range is empty, returns `if_empty`.
+
+       Arguments:
+       - function: A binary operation that takes two items and combines them.
+       - if_empty: Value returned if the range is empty.
+
+       > Example
+         Compute the sum of all the elements in a range.
+
+             0.up_to 10 . reduce (+)
+    reduce : (Any -> Any -> Any) -> Any -> Any
+    reduce self function ~if_empty=(Error.throw Empty_Error) =
+        len = self.length
+        case len of
+            0 -> if_empty
+            1 -> self.start
+            _ ->
+                end_condition = if self.step > 0 then (>=self.end) else (<=self.end)
+                fold_function current value =
+                    if end_condition value then current else
+                        @Tail_Call fold_function (function current value) (value + self.step)
+                fold_function self.start self.start+self.step
 
 ## PRIVATE
 throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")
+
+## PRIVATE
+   Check inputs are valid for a range
+check_start_valid start range function include_end=True =
+    if range.step == 0 then throw_zero_step_error else
+        self_len = range.length
+        used_start = if start < 0 then start + self_len else start
+        max = if include_end then self_len+1 else self_len
+        if used_start < 0 || used_start >= max then Error.throw (Index_Out_Of_Bounds.Error start max) else
+            function used_start
+
+## PRIVATE
+   Find value and index for a predicate
+find_internal range start predicate =
+    end_condition = if range.step > 0 then (>=) else (<=)
+    start_value = range.start + start*range.step
+    go current idx =
+        if end_condition current range.end then Nothing else
+            if predicate current then [current, idx] else
+                @Tail_Call go current+range.step idx+1
+    go start_value start
+
+## PRIVATE
+   Work out the index of a value in a range
+get_index range min max value =
+    diff = value - range.start
+    if diff % range.step != 0 then Nothing else
+        index = (diff / range.step).floor
+        if index < min || index > max then Nothing else
+            index
+
+## UNSTABLE
+
+   An error representing that the list is empty.
+type Empty_Error
+    ## PRIVATE
+
+       Pretty prints the empty error.
+    to_display_text : Text
+    to_display_text self = "The Range is empty."

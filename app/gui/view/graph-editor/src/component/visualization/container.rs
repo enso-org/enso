@@ -355,7 +355,7 @@ impl ContainerModel {
         preprocessor: &frp::Any<PreprocessorConfiguration>,
     ) {
         let size = self.size.get();
-        visualization.set_size.emit(size);
+        visualization.frp.set_size.emit(size);
         frp::new_network! { vis_frp_connection
             // We need an additional "copy" node here. We create a new network to manage lifetime of
             // connection between `visualization.on_preprocessor_change` and `preprocessor`.
@@ -387,11 +387,8 @@ impl ContainerModel {
         let dom = self.view.background_dom.dom();
         let bg_dom = self.fullscreen_view.background_dom.dom();
         let size = size.into();
-        self.display_object().set_size(size);
+        self.size.set(size);
         if self.is_fullscreen.get() {
-            // self.fullscreen_view.background.shape.radius.set(CORNER_RADIUS);
-            // self.fullscreen_view.background.shape.sprite.set_size(size);
-            // self.view.background.shape.sprite.set_size(zero());
             self.view.overlay.set_size(Vector2(0.0, 0.0));
             dom.set_style_or_warn("width", "0");
             dom.set_style_or_warn("height", "0");
@@ -399,7 +396,6 @@ impl ContainerModel {
             bg_dom.set_style_or_warn("height", format!("{}px", size[1]));
             self.action_bar.frp.set_size.emit(Vector2::zero());
         } else {
-            // self.view.background.shape.radius.set(CORNER_RADIUS);
             self.view.overlay.radius.set(CORNER_RADIUS);
             self.view.background.radius.set(CORNER_RADIUS);
             self.view.overlay.set_size(size);
@@ -408,7 +404,6 @@ impl ContainerModel {
             dom.set_style_or_warn("height", format!("{}px", size[1]));
             bg_dom.set_style_or_warn("width", "0");
             bg_dom.set_style_or_warn("height", "0");
-            // self.fullscreen_view.background.shape.sprite.set_size(zero());
 
             let action_bar_size = Vector2::new(size.x, ACTION_BAR_HEIGHT);
             self.action_bar.frp.set_size.emit(action_bar_size);
@@ -417,7 +412,7 @@ impl ContainerModel {
         self.action_bar.set_y((size.y - ACTION_BAR_HEIGHT) / 2.0);
 
         if let Some(viz) = &*self.visualization.borrow() {
-            viz.set_size.emit(size);
+            viz.frp.set_size.emit(size);
         }
     }
 

@@ -1,0 +1,12 @@
+[package]
+name = "enso-executor"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+futures = { version = "0.3.1" }
+enso-prelude = { path = "../prelude" }
+ensogl-core = { path = "../ensogl/core" }
+enso-profiler = { path = "../profiler" }

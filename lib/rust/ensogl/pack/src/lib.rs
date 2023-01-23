@@ -176,8 +176,8 @@ impl Paths {
         p.target.ensogl_pack.wasm_pack.root = p.target.ensogl_pack.join("wasm-pack");
         let pkg_wasm = format!("{WASM_PACK_OUT_NAME}_bg.wasm");
         let pkg_js = format!("{WASM_PACK_OUT_NAME}.js");
-        p.target.ensogl_pack.wasm_pack.pkg_bg = p.target.ensogl_pack.wasm_pack.join(&pkg_wasm);
-        p.target.ensogl_pack.wasm_pack.pkg_js = p.target.ensogl_pack.wasm_pack.join(&pkg_js);
+        p.target.ensogl_pack.wasm_pack.pkg_bg = p.target.ensogl_pack.wasm_pack.join(pkg_wasm);
+        p.target.ensogl_pack.wasm_pack.pkg_js = p.target.ensogl_pack.wasm_pack.join(pkg_js);
         p.target.ensogl_pack.shaders.root = p.target.ensogl_pack.join("shaders");
         p.target.ensogl_pack.shaders.list = p.target.ensogl_pack.shaders.join("list.txt");
         p.target.ensogl_pack.shaders_hash = p.target.ensogl_pack.join("shaders-hash");
@@ -242,7 +242,7 @@ fn check_if_ts_needs_rebuild(paths: &Paths) -> Result<bool> {
 
 /// Compile TypeScript sources of this crate in case they were not compiled yet.
 async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
-    if check_if_ts_needs_rebuild(&paths)? {
+    if check_if_ts_needs_rebuild(paths)? {
         info!("EnsoGL Pack TypeScript sources changed, recompiling.");
         ide_ci::programs::Npm.cmd()?.install().current_dir(&paths.this_crate.js).run_ok().await?;
         let run_script = async move |script_name, script_args: &[&str]| {
@@ -279,7 +279,10 @@ pub async fn run_wasm_pack(
     let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
     command.run_ok().await?;
     // println!(">>>>>>>>>>>>");
-    ide_ci::fs::copy(&paths.this_crate.js.wasm_pack_bundle, &paths.target.ensogl_pack.wasm_pack)?;
+    // std::fs::copy(
+    //     &paths.this_crate.js.wasm_pack_bundle.join("wasm-pack-bundle.ts"),
+    //     &paths.target.ensogl_pack.wasm_pack.join("wasm-pack-bundle.ts"),
+    // )?;
     compile_wasm_pack_artifacts(
         &paths.target.ensogl_pack.wasm_pack,
         &paths.target.ensogl_pack.wasm_pack.pkg_js,
@@ -297,7 +300,7 @@ async fn compile_wasm_pack_artifacts(pwd: &Path, pkg_js: &Path, out: &Path) -> R
     info!("Compiling {}.", pkg_js.display());
     ide_ci::programs::Npx
         .cmd()?
-        .args(&[
+        .args([
             "--yes",
             "esbuild",
             pkg_js.display().to_string().as_str(),
@@ -361,11 +364,11 @@ async fn optimize_shaders(paths: &Paths) -> Result<()> {
             let glsl_path = glsl_path.as_str();
             let shader_stage = &format!("-fshader-stage={stage}");
             let glslc_args = ["--target-env=opengl", shader_stage, "-o", spv_path, glsl_path];
-            let spirv_opt_args = ["-O", "-o", &spv_opt_path.as_str(), &spv_path.as_str()];
-            let spirv_cross_args = ["--output", &glsl_opt_path.as_str(), &spv_opt_path.as_str()];
-            Glslc.cmd()?.args(&glslc_args).run_ok().await?;
-            SpirvOpt.cmd()?.args(&spirv_opt_args).run_ok().await?;
-            SpirvCross.cmd()?.args(&spirv_cross_args).run_ok().await?;
+            let spirv_opt_args = ["-O", "-o", spv_opt_path.as_str(), spv_path.as_str()];
+            let spirv_cross_args = ["--output", glsl_opt_path.as_str(), spv_opt_path.as_str()];
+            Glslc.cmd()?.args(glslc_args).run_ok().await?;
+            SpirvOpt.cmd()?.args(spirv_opt_args).run_ok().await?;
+            SpirvCross.cmd()?.args(spirv_cross_args).run_ok().await?;
 
             let content = ide_ci::fs::read_to_string(&glsl_opt_path)?.replace("\r\n", "\n");
             let extract_err = || format!("Failed to process shader '{}'.", glsl_opt_path.as_str());
@@ -373,7 +376,7 @@ async fn optimize_shaders(paths: &Paths) -> Result<()> {
             ide_ci::fs::write(&glsl_opt_dist_path, code)?;
         }
     }
-    ide_ci::fs::write(&&paths.target.ensogl_pack.dist.shaders.list, &shaders_list)
+    ide_ci::fs::write(&paths.target.ensogl_pack.dist.shaders.list, &shaders_list)
 }
 
 /// Read the optimized shader code, extract the main function body and preserve all top-level
@@ -381,9 +384,9 @@ async fn optimize_shaders(paths: &Paths) -> Result<()> {
 fn extract_main_shader_code(code: &str) -> Result<String> {
     let main_start_str = "void main()\n{";
     let main_end_str = "}";
-    let main_fn_find_err = || format!("Failed to find main function.");
-    let main_start = code.find(main_start_str).with_context(main_fn_find_err)?;
-    let main_end = code.rfind(main_end_str).with_context(main_fn_find_err)?;
+    let main_fn_find_err = "Failed to find main function.";
+    let main_start = code.find(main_start_str).with_context(|| main_fn_find_err)?;
+    let main_end = code.rfind(main_end_str).with_context(|| main_fn_find_err)?;
     let before_main = &code[..main_start];
     let declarations: Vec<&str> = before_main
         .lines()
@@ -418,5 +421,5 @@ pub async fn build(
     extract_shaders(&paths).await?;
     optimize_shaders(&paths).await?;
     let out_dir = Path::new(&outputs.out_dir);
-    ide_ci::fs::copy(&paths.target.ensogl_pack.dist, &out_dir)
+    ide_ci::fs::copy(&paths.target.ensogl_pack.dist, out_dir)
 }

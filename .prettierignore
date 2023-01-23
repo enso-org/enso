@@ -24,6 +24,7 @@ THIRD-PARTY
 # Generated files
 app/ide-desktop/build.json
 app/ide-desktop/lib/client/electron-builder-config.json
+app/gui/view/documentation/assets/stylesheet.css
 Cargo.lock
 
 # Engine Builds can leave these nested working copies.

@@ -28,7 +28,7 @@ mod tests {
         let ws = WebSocket::new_opened(logger, "ws://localhost:30535").await;
         let ws = ws.expect("Couldn't connect to WebSocket server.");
         let client = Client::new(ws);
-        let _executor = enso_gui::initializer::setup_global_executor();
+        let _executor = enso_executor::setup_global_executor();
 
         executor::global::spawn(client.runner());
 

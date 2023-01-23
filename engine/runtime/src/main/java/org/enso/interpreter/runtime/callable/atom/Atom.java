@@ -1,24 +1,41 @@
 package org.enso.interpreter.runtime.callable.atom;
 
 
+import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.dsl.Cached.Shared;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.profiles.ConditionProfile;
+import com.oracle.truffle.api.profiles.ValueProfile;
+import com.oracle.truffle.api.utilities.TriState;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.api.profiles.BranchProfile;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Array;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.Map;
+import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.error.WarningsLibrary;
 
 /** A runtime representation of an Atom in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -26,6 +43,7 @@ import java.util.Map;
 public final class Atom implements TruffleObject {
   final AtomConstructor constructor;
   private final Object[] fields;
+  private Integer hashCode;
 
   /**
    * Creates a new Atom for a given constructor.
@@ -54,6 +72,15 @@ public final class Atom implements TruffleObject {
    */
   public Object[] getFields() {
     return fields;
+  }
+
+  public void setHashCode(int hashCode) {
+    assert this.hashCode == null : "setHashCode must be called at most once";
+    this.hashCode = hashCode;
+  }
+
+  public Integer getHashCode() {
+    return hashCode;
   }
 
   private void toString(StringBuilder builder, boolean shouldParen, int depth) {
@@ -86,13 +113,27 @@ public final class Atom implements TruffleObject {
    */
   @Override
   public String toString() {
-    return toString(10);
+    return toString(null, 10, null, null);
   }
 
   @CompilerDirectives.TruffleBoundary
-  private String toString(int depth) {
+  private String toString(String prefix, int depth, String suffix, Object obj) {
     StringBuilder sb = new StringBuilder();
+    if (prefix != null) {
+      sb.append(prefix);
+    }
     toString(sb, false, depth);
+    if (suffix != null) {
+      sb.append(suffix);
+    }
+    if (obj != null) {
+      var errorMessage = InteropLibrary.getUncached().toDisplayString(obj);
+      if (errorMessage != null) {
+        sb.append(errorMessage);
+      } else {
+        sb.append("Nothing");
+      }
+    }
     return sb.toString();
   }
 
@@ -179,16 +220,31 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  Text toDisplayString(boolean allowSideEffects, @CachedLibrary("this") InteropLibrary atoms) {
+  Text toDisplayString(
+    boolean allowSideEffects,
+    @CachedLibrary("this") InteropLibrary atoms,
+    @CachedLibrary(limit="3") WarningsLibrary warnings,
+    @Cached BranchProfile handleError
+  ) {
+    Object result = null;
+    String msg;
     try {
-      return TypesGen.expectText(atoms.invokeMember(this, "to_text"));
-    } catch (UnsupportedMessageException
-        | ArityException
-        | UnknownIdentifierException
-        | UnsupportedTypeException
-        | UnexpectedResultException e) {
-      return Text.create(this.toString(10));
+      result = atoms.invokeMember(this, "to_text");
+      if (warnings.hasWarnings(result)) {
+        result = warnings.removeWarnings(result);
+      }
+      if (TypesGen.isDataflowError(result)) {
+        msg = this.toString("Error in method `to_text` of [", 10, "]: ", result);
+      } else if (TypesGen.isText(result)) {
+        return TypesGen.asText(result);
+      } else {
+        msg = this.toString("Error in method `to_text` of [", 10, "]: Expected Text but got ", result);
+      }
+    } catch (AbstractTruffleException | UnsupportedMessageException | ArityException | UnknownIdentifierException | UnsupportedTypeException panic) {
+      handleError.enter();
+      msg = this.toString("Panic in method `to_text` of [", 10, "]: ", panic);
     }
+    return Text.create(msg);
   }
 
   @ExportMessage
@@ -197,7 +253,17 @@ public final class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  Type getType() {
+  public Type getType() {
     return getConstructor().getType();
+  }
+
+  @ExportMessage
+  Type getMetaObject() {
+      return getType();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+      return true;
   }
 }

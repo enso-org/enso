@@ -6,7 +6,7 @@ import org.enso.table.data.column.builder.object.*;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-import org.enso.table.data.table.problems.AggregatedProblems;
+import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.util.ConstantList;
 
@@ -66,9 +66,8 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
           final int row = i;
           key.floatColumnPositions()
               .forEach(
-                  columnIx -> {
-                    problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row));
-                  });
+                  columnIx ->
+                      problems.add(new FloatingPointGrouping(keyColumns[columnIx].getName(), row)));
         }
 
         List<Integer> ids = this.locs.computeIfAbsent(key, x -> new ArrayList<>());
@@ -182,7 +181,9 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
 
     int offset = groupingColumns.length;
     for (List<Integer> name_locs : nameIndex.locs.values()) {
-      String name = nameColumn.getStorage().getItemBoxed(name_locs.get(0)).toString();
+      // ToDo: Use the NameDeduplicator here.
+      Object boxed = nameColumn.getStorage().getItemBoxed(name_locs.get(0));
+      String name = boxed == null ? "" : boxed.toString();
 
       for (int i = 0; i < aggregates.length; i++) {
         output[offset + i] =

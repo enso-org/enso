@@ -2,7 +2,6 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.instrument.execution.Timer
 import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
@@ -26,12 +25,6 @@ class RuntimeServerTest
     extends AnyFlatSpec
     with Matchers
     with BeforeAndAfterEach {
-
-  // === Test Timer ===========================================================
-
-  class TestTimer extends Timer {
-    override def getTime(): Long = 0
-  }
 
   // === Test Utilities =======================================================
 
@@ -59,6 +52,7 @@ class RuntimeServerTest
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(
           RuntimeOptions.DISABLE_IR_CACHES,
           InstrumentTestContext.DISABLE_IR_CACHE
@@ -84,11 +78,6 @@ class RuntimeServerTest
       .getBindings(LanguageInfo.ID)
       .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
       .asHostObject[EnsoContext]
-    val info =
-      languageContext.getEnvironment.getPublicLanguages.get(LanguageInfo.ID)
-    languageContext.getLanguage.getIdExecutionService.ifPresent(
-      _.overrideTimer(new TestTimer)
-    )
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -183,8 +172,7 @@ class RuntimeServerTest
 
         def mainY(
           contextId: UUID,
-          fromCache: Boolean = false,
-          noPointer: Boolean = false
+          fromCache: Boolean = false
         ): Api.Response =
           Api.Response(
             Api.ExpressionUpdates(
@@ -193,15 +181,13 @@ class RuntimeServerTest
                 Api.ExpressionUpdate(
                   Main.idMainY,
                   Some(ConstantsGen.INTEGER),
-                  if (noPointer) None
-                  else
-                    Some(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        ConstantsGen.NUMBER,
-                        "foo"
-                      )
-                    ),
+                  Some(
+                    Api.MethodPointer(
+                      "Enso_Test.Test.Main",
+                      ConstantsGen.NUMBER,
+                      "foo"
+                    )
+                  ),
                   Vector(Api.ProfilingInfo.ExecutionTime(0)),
                   fromCache,
                   Api.ExpressionUpdate.Payload.Value()
@@ -425,7 +411,7 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(5) should contain theSameElementsAs Seq(
+    context.receiveN(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       Api.Response(
         None,
@@ -437,7 +423,6 @@ class RuntimeServerTest
           )
         )
       ),
-      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
     )
@@ -1122,19 +1107,13 @@ class RuntimeServerTest
 
     // pop the foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(6) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages
         .pending(
           contextId,
-          fooX
-        ),
-      TestMessages
-        .update(
-          contextId,
-          mainFoo,
-          ConstantsGen.INTEGER,
-          fromCache = true
+          fooX,
+          mainFoo
         ),
       TestMessages
         .update(
@@ -1147,9 +1126,7 @@ class RuntimeServerTest
           contextId,
           mainFoo,
           ConstantsGen.INTEGER,
-          Api
-            .MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo"),
-          fromCache = true
+          Api.MethodPointer(moduleName, moduleName, "foo")
         ),
       context.executionComplete(contextId)
     )
@@ -1265,7 +1242,7 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("6")
   }
 
-  it should "not send updates when the type is not changed" in {
+  it should "send updates when the type is not changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
@@ -1327,7 +1304,7 @@ class RuntimeServerTest
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receiveN(
-      6
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       Api.Response(
@@ -1340,7 +1317,6 @@ class RuntimeServerTest
           )
         )
       ),
-      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
       context.Main.Update.mainY(contextId, fromCache = true),
       context.executionComplete(contextId)
@@ -1464,7 +1440,7 @@ class RuntimeServerTest
         |pie = 3
         |uwu = 7
         |hie = "hie!"
-        |Number.x y = y
+        |Number.x self y = y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1704,7 +1680,12 @@ class RuntimeServerTest
         contextId,
         idMainA
       ),
-      TestMessages.update(contextId, idMainA, ConstantsGen.TEXT),
+      TestMessages.update(
+        contextId,
+        idMainA,
+        ConstantsGen.TEXT,
+        Api.MethodPointer(moduleName, moduleName, "hie")
+      ),
       TestMessages.update(
         contextId,
         idMainP,
@@ -1745,8 +1726,8 @@ class RuntimeServerTest
         |    10.overloaded x
         |    Nothing.Nothing
         |
-        |Text.overloaded arg = arg + 1
-        |Number.overloaded arg = arg + 2
+        |Text.overloaded self arg = arg + 1
+        |Number.overloaded self arg = arg + 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -1822,12 +1803,13 @@ class RuntimeServerTest
 
     // pop call1
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(8) should contain theSameElementsAs Seq(
+    context.receiveN(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       TestMessages.update(
         contextId,
         id1,
         ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
         fromCache = true
       ),
       TestMessages.update(
@@ -1846,13 +1828,6 @@ class RuntimeServerTest
         contextId,
         idMain,
         ConstantsGen.NOTHING
-      ),
-      TestMessages.update(
-        contextId,
-        id1,
-        ConstantsGen.INTEGER,
-        Api.MethodPointer(moduleName, ConstantsGen.NUMBER, "overloaded"),
-        fromCache = true
       ),
       context.executionComplete(contextId)
     )
@@ -2134,6 +2109,92 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List()
   }
 
+  it should "support file modifications after reopening the file" in {
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    val moduleName = "Enso_Test.Test.Main"
+    val code =
+      """import Standard.Base.IO
+        |
+        |main = IO.println "I'm a file!"
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    // Create a new file
+    val mainFile = context.writeMain(code)
+
+    // Open the new file
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
+    context.receiveNone shouldEqual None
+    context.consumeOut shouldEqual List()
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("I'm a file!")
+
+    // Close the file
+    context.send(Api.Request(Api.CloseFileNotification(mainFile)))
+    context.consumeOut shouldEqual List()
+
+    val contextId2 = UUID.randomUUID()
+    val requestId2 = UUID.randomUUID()
+
+    context.send(Api.Request(requestId2, Api.CreateContextRequest(contextId2)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId2, Api.CreateContextResponse(contextId2))
+    )
+
+    // Re-open the the file and apply the same operation
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
+    context.receiveNone shouldEqual None
+    context.consumeOut shouldEqual List()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(2, 25), model.Position(2, 29)),
+              "modified"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(1) shouldEqual Seq(
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("I'm a modified!")
+
+  }
+
   it should "support file modification operations with attached ids" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -2253,7 +2314,7 @@ class RuntimeServerTest
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receiveN(
-      6
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
       Api.Response(
@@ -2266,7 +2327,6 @@ class RuntimeServerTest
           )
         )
       ),
-      context.Main.Update.mainY(contextId, fromCache = true, noPointer = true),
       Api.Response(
         Api.ExpressionUpdates(
           contextId,
@@ -3300,7 +3360,7 @@ class RuntimeServerTest
       """from Standard.Base import all
         |
         |main =
-        |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+        |    x = Panic.catch_primitive ` .convert_to_dataflow_error
         |    IO.println x
         |    IO.println (x.catch Any .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
@@ -3342,7 +3402,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Unrecognized token.",
+              "Unexpected expression.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
             )
@@ -3352,8 +3412,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
-      "(Syntax_Error.Error 'Unrecognized token.')"
+      "(Error: (Syntax_Error.Error 'Unexpected expression.'))",
+      "(Syntax_Error.Error 'Unexpected expression.')"
     )
   }
 

@@ -1,0 +1,22 @@
+[package]
+name = "enso-logging"
+version = "0.3.1"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2021"
+description = "An efficient logger for writing applications in Rust."
+readme = "README.md"
+homepage = "https://github.com/enso-org/enso/lib/rust/logging"
+repository = "https://github.com/enso-org/enso"
+license-file = "../../LICENSE"
+keywords = ["logging"]
+categories = ["development-tools::debugging"]
+
+[lib]
+
+[features]
+default = []
+
+[dependencies]
+wasm-bindgen = { workspace = true }
+enso-logging-macros = { path = "macros" }
+web-sys = { version = "0.3.4", features = ["console"] }

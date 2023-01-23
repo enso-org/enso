@@ -217,7 +217,7 @@ case object UnusedBindings extends IRPass {
     */
   def lintCase(cse: IR.Case, context: InlineContext): IR.Case = {
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
           scrutinee = runExpression(scrutinee, context),
           branches  = branches.map(lintCaseBranch(_, context))

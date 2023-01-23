@@ -1,0 +1,295 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+import Standard.Table.Data.Value_Type.Value_Type
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend, within_table
+import project.Util
+
+type My_Type
+    Value x y
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    db_todo = if prefix.contains "In-Memory" then Nothing else "Union API is not yet implemented for the DB backend."
+    Test.group prefix+"Table.union" pending=db_todo <|
+        Test.specify "should merge columns from multiple tables" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", ["d", "e", "f"]]]
+            t3 = table_builder [["A", [7, 8, 9]], ["B", ["g", "h", "i"]]]
+
+            t4 = t1.union t2
+            expect_column_names ["A", "B"] t4
+            t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            t4.at "B" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
+
+            t5 = t3.union [t1, t2]
+            expect_column_names ["A", "B"] t5
+            t5.at "A" . to_vector . should_equal [7, 8, 9, 1, 2, 3, 4, 5, 6]
+            t5.at "B" . to_vector . should_equal ["g", "h", "i", "a", "b", "c", "d", "e", "f"]
+
+        Test.specify "should fill unmatched columns (by name matching) with nulls and report a warning by default" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
+            t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+
+            action = t1.union [t2, t3] on_problems=_
+            tester table =
+                expect_column_names ["A", "B", "C", "D"] table
+                table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, Nothing]
+                table.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
+                table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+            problems = [Unmatched_Columns.Error ["A", "B", "C", "D"]]
+            Problems.test_problem_handling action problems tester
+
+            action2 = t2.union t3 on_problems=_
+            tester2 table =
+                expect_column_names ["C", "A", "D"] table
+                table.at "C" . to_vector . should_equal ["d", "e", "f", "g", "h", "i"]
+                table.at "A" . to_vector . should_equal [4, 5, 6, Nothing, Nothing, Nothing]
+                table.at "D" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, 0]
+            problems2 = [Unmatched_Columns.Error ["A", "D"]]
+            Problems.test_problem_handling action2 problems2 tester2
+
+        Test.specify "should drop unmatched columns if asked to" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
+            t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+
+            t4 = t1.union [t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Report_Error
+            Problems.assume_no_problems t4
+            expect_column_names ["A"] t4
+            t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
+
+        Test.specify "should keep unmatched columns without errors if asked to" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
+            t3 = table_builder [["A", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+
+            t4 = t1.union [t2, t3] keep_unmatched_columns=True on_problems=Problem_Behavior.Report_Error
+            Problems.assume_no_problems t4
+            expect_column_names ["A", "B", "C"] t4
+            t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, Nothing, Nothing, 0]
+            t4.at "B" . to_vector . should_equal ["a", "b", "c", Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+            t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, "d", "e", "f", "g", "h", "i"]
+
+        Test.specify "should fail if asked to drop unmatched columns but the set of common columns is empty" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["C", ["d", "e", "f"]], ["A", [4, 5, 6]]]
+            t3 = table_builder [["D", [Nothing, Nothing, 0]], ["C", ["g", "h", "i"]]]
+
+            t4 = t1.union [t2, t3] keep_unmatched_columns=False on_problems=Problem_Behavior.Ignore
+            t4.should_fail_with No_Output_Columns
+
+        Test.specify "should ignore colum names when matching by position" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["Y", ["a", "b", "c"]]]
+            t2 = table_builder [["X", [4, 5, 6]], ["A", ["d", "e", "f"]]]
+
+            t3 = t1.union t2  match_columns=Match_Columns.By_Position
+            expect_column_names ["A", "Y"] t3
+            t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            t3.at "Y" . to_vector . should_equal ["a", "b", "c", "d", "e", "f"]
+
+        Test.specify "should fill extra columns (positional matching) with nulls and report a warning by default" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
+            t3 = table_builder [["A2", [10, 20, 30]]]
+
+            action = t1.union [t2, t3] match_columns=Match_Columns.By_Position on_problems=_
+            tester table =
+                expect_column_names ["A1", "B1", "C"] table
+                table.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+                table.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
+                table.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
+            problems = [Column_Count_Mismatch.Error 3 1]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should keep the least number of columns with positional matching if asked to drop unmatched ones" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
+            t3 = table_builder [["A2", [10, 20, 30]]]
+
+            t4 = t1.union [t2, t3] keep_unmatched_columns=False match_columns=Match_Columns.By_Position on_problems=Problem_Behavior.Report_Error
+            Problems.assume_no_problems t4
+            expect_column_names ["A"] t4
+            t4.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+
+        Test.specify "should keep the greatest number of columns with positional matching if asked to keep unmatched ones, filling missing values with null and reporting no problems" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+            t2 = table_builder [["A1", [4, 5, 6]], ["B1", ["d", "e", "f"]], ["C", [7, 8, 9]]]
+            t3 = table_builder [["A2", [10, 20, 30]]]
+
+            t4 = t1.union [t2, t3] match_columns=Match_Columns.By_Position keep_unmatched_columns=True on_problems=Problem_Behavior.Ignore
+            Problems.assume_no_problems t4
+            expect_column_names ["A1", "B1", "C"] t4
+            t4.at "A1" . to_vector . should_equal [1, 2, 3, 4, 5, 6, 10, 20, 30]
+            t4.at "B1" . to_vector . should_equal ["a", "b", "c", "d", "e", "f", Nothing, Nothing, Nothing]
+            t4.at "C" . to_vector . should_equal [Nothing, Nothing, Nothing, 7, 8, 9, Nothing, Nothing, Nothing]
+
+        Test.specify "should use column names from the first table that has enough columns in positional matching mode" <|
+            t1 = table_builder [["A", [1, 2, 3]]]
+            t2 = table_builder [["X", [4, 5, 6]], ["A", ["a", "b", "c"]]]
+
+            check table =
+                expect_column_names ["X", "A"] table
+                table.at "X" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+                table.at "A" . to_vector . should_equal [Nothing, Nothing, Nothing, "a", "b", "c"]
+
+            t3 = t1.union t2 match_columns=Match_Columns.By_Position
+            within_table t3 <|
+                check t3
+            Warning.get_all t3 . map .value . should_equal [Column_Count_Mismatch.Error 2 1]
+
+            t4 = t1.union t2 match_columns=Match_Columns.By_Position keep_unmatched_columns=True
+            within_table t4 <|
+                check t4
+
+            t5 = table_builder [["Y", [7, 8, 9]], ["A", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
+            t6 = table_builder [["W", [0]]]
+            t7 = table_builder [["X", [7, 8, 9]], ["Y", ["d", "e", "f"]], ["Z", [10, 11, 12]]]
+            t8 = t1.union [t2, t5, t6, t7] match_columns=Match_Columns.By_Position
+            expect_column_names ["Y", "A", "Z"] t8
+
+        Test.specify "should gracefully handle the case where no tables to union were provided" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]]]
+
+            t1.union [] . should_equal t1
+            t1.union [] match_columns=Match_Columns.By_Position . should_equal t1
+
+            t1.union [] keep_unmatched_columns=False . should_equal t1
+            t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=False . should_equal t1
+
+            t1.union [] keep_unmatched_columns=True . should_equal t1
+            t1.union [] match_columns=Match_Columns.By_Position keep_unmatched_columns=True . should_equal t1
+
+        Test.specify "should find a common type that will fit the merged columns" <|
+            t1 = table_builder [["int+bool", [1, 2, 3]], ["int+float", [0, 1, 2]]]
+            t2 = table_builder [["int+bool", [True, False, Nothing]], ["int+float", [1.0, 2.0, 2.5]]]
+
+            t1.at "int+bool" . value_type . should_equal Value_Type.Integer
+            t1.at "int+float" . value_type . should_equal Value_Type.Integer
+            t2.at "int+bool" . value_type . should_equal Value_Type.Boolean
+            t2.at "int+float" . value_type . should_equal Value_Type.Float
+
+            t3 = t1.union t2
+            expect_column_names ["int+bool", "int+float"] t3
+            t3.at "int+bool" . value_type . should_equal Value_Type.Integer
+            t3.at "int+float" . value_type . should_equal Value_Type.Float
+            t3.at "int+bool" . to_vector . should_equal [1, 2, 3, 1, 0, Nothing]
+            t3.at "int+float" . to_vector . should_equal [0, 1, 2, 1.0, 2.0, 2.5]
+
+            t4 = table_builder [["float", [1.0, 2.0, 3.3]]]
+            t5 = t1.union [t2, t4] match_columns=Match_Columns.By_Position keep_unmatched_columns=False
+            expect_column_names ["int+bool"] t5
+            t5.at "int+bool" . value_type . should_equal Value_Type.Float
+            t5.at "int+bool" . to_vector . should_equal [1, 2, 3, 1, 0, Nothing, 1.0, 2.0, 3.3]
+
+        Test.specify "should resort to Mixed value type only if at least one column is already Mixed" <|
+            ## TODO currently no way to retype a column to Mixed, so we are
+               using a custom object; this test won't work in DB so it will need
+               to be adapted once proper type support is implemented
+            t1 = table_builder [["A", [1, 2, 3]], ["mixed", ["a", My_Type.Value 1 2, Nothing]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["mixed", [1, 2, 3]]]
+            t1.at "mixed" . value_type . should_equal Value_Type.Mixed
+            t2.at "mixed" . value_type . should_equal Value_Type.Integer
+
+            t3 = t1.union t2
+            Problems.assume_no_problems t3
+            expect_column_names ["A", "mixed"] t3
+            t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            t3.at "mixed" . to_vector . should_equal ["a", My_Type.Value 1 2, Nothing, 1, 2, 3]
+
+            t4 = table_builder [["A", [1, 3]], ["mixed", [True, False]]]
+            t5 = table_builder [["A", [4, 5]], ["mixed", ["X", "y"]]]
+            t4.at "mixed" . value_type . should_equal Value_Type.Boolean
+            t5.at "mixed" . value_type . should_equal Value_Type.Char
+
+            t6 = t5.union [t1, t2, t4]
+            Problems.assume_no_problems t6
+            expect_column_names ["A", "mixed"] t6
+            t6.at "A" . to_vector . should_equal [4, 5, 1, 2, 3, 4, 5, 6, 1, 3]
+            t6.at "mixed" . to_vector . should_equal ["X", "y", "a", My_Type.Value 1 2, Nothing, 1, 2, 3, True, False]
+            t6.at "mixed" . value_type . should_equal Value_Type.Mixed
+
+        Test.specify "if no common type can be found, should report error and drop the problematic column" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", ["a", "b", "c"]], ["C", [True, False, Nothing]]]
+            t2 = table_builder [["C", ["x", "Y", "Z"]], ["A", [4, 5, 6]], ["B", [1, 2, 3]]]
+
+            action = t1.union t2 on_problems=_
+            tester table =
+                expect_column_names ["A"] table
+                table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            problems = [No_Common_Type.Error "B", No_Common_Type.Error "C"]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "if type widening is not allowed, should use the type from first table that contained the given column" <|
+            t1 = table_builder [["A", [1, 2, 3]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", [1.2, 2.2, 3.1]]]
+
+            t2.at "B" . value_type . should_equal Value_Type.Float
+
+            t3 = t1.union t2 allow_type_widening=False keep_unmatched_columns=True
+            within_table t3 <|
+                Problems.assume_no_problems t3
+                expect_column_names ["A", "B"] t3
+                t3.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+                t3.at "A" . value_type . should_equal Value_Type.Integer
+                t3.at "B" . to_vector . should_equal [Nothing, Nothing, Nothing, 1.2, 2.2, 3.1]
+                t3.at "B" . value_type . should_equal Value_Type.Float
+
+        Test.specify "if type widening is not allowed and types do not match, should report error and drop the problematic column" <|
+            t1 = table_builder [["A", [1, 2, 3]], ["B", [1, 2, 3]], ["C", [True, False, Nothing]], ["D", [10, 20, 30]], ["E", [1.1, 2.5, 3.2]]]
+            t2 = table_builder [["A", [4, 5, 6]], ["B", [1.5, 2.5, 3.5]], ["C", [1, 2, 3]], ["D", [True, True, True]], ["E", [1, 2, 3]]]
+
+            t1.at "B" . value_type . should_equal Value_Type.Integer
+            t1.at "C" . value_type . should_equal Value_Type.Boolean
+            t1.at "D" . value_type . should_equal Value_Type.Integer
+            t1.at "E" . value_type . should_equal Value_Type.Float
+
+            t2.at "B" . value_type . should_equal Value_Type.Float
+            t2.at "C" . value_type . should_equal Value_Type.Integer
+            t2.at "D" . value_type . should_equal Value_Type.Boolean
+            t2.at "E" . value_type . should_equal Value_Type.Integer
+
+            action = t1.union t2 allow_type_widening=False on_problems=_
+            tester table =
+                expect_column_names ["A"] table
+                table.at "A" . to_vector . should_equal [1, 2, 3, 4, 5, 6]
+            problems = [Column_Type_Mismatch.Error "B" Value_Type.Integer Value_Type.Float, Column_Type_Mismatch.Error "C" Value_Type.Boolean Value_Type.Integer, Column_Type_Mismatch.Error "D" Value_Type.Integer Value_Type.Boolean, Column_Type_Mismatch.Error "E" Value_Type.Float Value_Type.Integer]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "even if type widening is not allowed, if the first column is mixed, it should accept any column to be concatenated to it" <|
+            t1 = table_builder [["X", ["a", 1, Nothing]]]
+            t2 = table_builder [["X", [1]]]
+            t3 = table_builder [["X", [1.2, 2.3, 3.4]]]
+            t4 = table_builder [["X", ["a", "b"]]]
+            t5 = table_builder [["X", [True, False]]]
+
+            t1.at "X" . value_type . should_equal Value_Type.Mixed
+            t2.at "X" . value_type . should_equal Value_Type.Integer
+
+            t6 = t1.union [t2, t3, t4, t5] allow_type_widening=False
+            Problems.assume_no_problems t6
+            t6.at "X" . value_type . should_equal Value_Type.Mixed
+            t6.at "X" . to_vector . should_equal ["a", 1, Nothing, 1, 1.2, 2.3, 3.4, "a", "b", True, False]
+
+        Test.specify "if type mismatches cause all columns to be dropped, fail with No_Output_Columns" <|
+            t1 = table_builder [["A", [1, 2, 3]]]
+            t2 = table_builder [["A", ['x']]]
+
+            e3 = t1.union t2 allow_type_widening=True on_problems=Problem_Behavior.Ignore
+            e3.should_fail_with No_Output_Columns
+
+            t4 = table_builder [["A", [1.5]]]
+            e5 = t1.union t4 allow_type_widening=False on_problems=Problem_Behavior.Ignore
+            e5.should_fail_with No_Output_Columns

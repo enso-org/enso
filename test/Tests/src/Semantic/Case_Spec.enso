@@ -58,26 +58,26 @@ spec = Test.group "Pattern Matches" <|
             _ : Number -> Nothing
             _ -> Test.fail "Expected a number to match."
         case Number of
-            _ : Number -> Nothing
-            _ -> Test.fail "Expected the Number constructor to match."
+            _ : Number -> Test.fail "Type cannot match the Number type"
+            _ -> Nothing
         case Number of
             Number -> Nothing
             _ -> Test.fail "Expected the Number constructor to match."
         case Integer of
-            _ : Number -> Nothing
-            _ -> Test.fail "Expected the Integer constructor to match."
+            _ : Number -> Test.fail "Integer type isn't instance of Number type"
+            _ -> Nothing
         case Decimal of
-            _ : Number -> Nothing
-            _ -> Test.fail "Expected the Decimal constructor to match."
+            _ : Number -> Test.fail "Decimal type isn't instance of Number type"
+            _ -> Nothing
     Test.specify "should be able to match on the Text type" <|
         case "foo" of
             Text -> Test.fail "Expected a text type to match."
             _ : Text -> Nothing
             _ -> Test.fail "Expected a text type to match."
         case Text of
-            _ : Text -> Nothing
+            _ : Text -> Test.fail "Text type isn't instance of Text type"
             Text_Module -> Test.fail "Expected the Text constructor to match4."
-            Text -> Test.fail "Expected the Text constructor to match4."
+            Text -> Nothing
             _ -> Test.fail "Expected the Text constructor to matc5h."
         case Text_Module of
             _ : Text -> Test.fail "Expected the Text module to match4."
@@ -90,8 +90,9 @@ spec = Test.group "Pattern Matches" <|
             _ : Array -> Nothing
             _ -> Test.fail "Expected an array type to match."
         case [1] of
-            _ : Array -> Nothing
-            _ -> Test.fail "Expected an array type to match."
+            _ : Array -> Test.fail "Expected an vector type to match."
+            _ : Vector -> Nothing
+            _ -> Test.fail "Expected an vector type to match."
         case [1] of
             _ : Vector -> Nothing
             _ : Array -> Test.fail "Expected an vector type to match."
@@ -272,8 +273,9 @@ spec = Test.group "Pattern Matches" <|
         # Tests a bug where array matching a polyglot Object[] array would fail if the same branch mis-matched earlier.
         foo x = case x of
             _ : Array -> "array"
+            _ : Vector -> "vector"
             _ : Text -> "text"
-            _ -> "invalid"
+            _ -> "invalid" + x.to_text
         v = ["X", list.toArray, list]
         u = v.map foo
         u.should_equal ["text", "array", "array"]

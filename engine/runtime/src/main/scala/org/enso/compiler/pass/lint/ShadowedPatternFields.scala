@@ -104,7 +104,7 @@ case object ShadowedPatternFields extends IRPass {
     */
   def lintCase(cse: IR.Case): IR.Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _, _) =>
         expr.copy(
           scrutinee = lintExpression(scrutinee),
           branches  = branches.map(lintCaseBranch)

@@ -1,7 +1,6 @@
 //! Defines profilable workflows, and an entry point that runs a specified workflow.
 
 use crate::integration_test::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_debug_api as debug_api;
 
@@ -30,7 +29,7 @@ pub async fn main() {
     });
 
     // Emit profile and exit.
-    debug_api::save_profile(&profiler::internal::take_log());
+    debug_api::save_profile(&profiler::internal::get_log());
     debug_api::LifecycleController::new().expect("Workflows run in Electron").quit();
 }
 

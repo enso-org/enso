@@ -33,6 +33,12 @@ spec =
             d3 . should_equal d4
             d4 . should_equal d5
 
+        Test.specify "should provide equality operator" <|
+            (Date_Time.new 2022 zone=(Time_Zone.parse "CET")).should_not_equal (Date_Time.new 2022 zone=(Time_Zone.parse "UTC"))
+            (Date_Time.new 2022 zone=(Time_Zone.parse "CET")).should_equal (Date_Time.new 2022 zone=(Time_Zone.parse "CET"))
+            (Date_Time.new 2022 12 12).should_equal (Date_Time.new 2022 12 12)
+            (Date_Time.new 2022 12 12).should_not_equal (Date_Time.new 1996)
+
 spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=False =
     Test.group name <|
 
@@ -67,7 +73,7 @@ spec_with name create_new_datetime parse_datetime nanoseconds_loss_in_precision=
             time.to_json.should_equal <|
                 zone_pairs = [["zone", Time_Zone.utc]]
                 time_pairs = [["year", time.year], ["month", time.month], ["day", time.day], ["hour", time.hour], ["minute", time.minute], ["second", time.second], ["nanosecond", time.nanosecond]]
-                Json.from_pairs ([["type", "Date_Time"]] + time_pairs + zone_pairs)
+                JS_Object.from_pairs ([["type", "Date_Time"], ["constructor", "new"]] + time_pairs + zone_pairs) . to_text
 
         Test.specify "should parse default time format" <|
             text = create_new_datetime 1970 (zone = Time_Zone.utc) . to_text

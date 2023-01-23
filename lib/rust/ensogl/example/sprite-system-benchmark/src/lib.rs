@@ -21,7 +21,6 @@
 
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;

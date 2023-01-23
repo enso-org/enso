@@ -1,5 +1,4 @@
 import project.Any.Any
-import project.Data.Json.Json
 import project.Data.Pair.Pair
 import project.Data.Text.Text
 import project.Data.Time.Duration.Duration
@@ -261,15 +260,15 @@ type HTTP
 
 
        > Example
-         Send a Post request with json data. NOTE: This example will make a network
-         request.
+         Send a Post request with json data.
+         NOTE: This example will make a network request.
 
              import Standard.Examples
 
              example_post_json =
-                 json = Json.parse '{"key":"val"}'
+                 json = '{"key":"val"}'
                  Examples.http_client.post_json "http://httpbin.org/post" json
-    post_json : (Text | URI) -> (Text | Json) -> Vector -> Response ! Request_Error
+    post_json : (Text | URI) -> Text -> Vector -> Response ! Request_Error
     post_json self uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.post uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -305,15 +304,15 @@ type HTTP
        - headers: Any headers for the options request.
 
        > Example
-         Send a Put request with json data. NOTE: This example will make a
-         network request.
+         Send a Put request with json data.
+         NOTE: This example will make a network request.
 
              import Standard.Examples
 
              example_post_json =
-                 json = Json.parse '{"key":"val"}'
+                 json = '{"key":"val"}'
                  Examples.http_client.put_json "http://httpbin.org/post" json
-    put_json : (Text | URI) -> (Text | Json) -> Vector -> Response ! Request_Error
+    put_json : (Text | URI) -> Text -> Vector -> Response ! Request_Error
     put_json self uri body_json (headers = []) =
         new_headers = [Header.application_json]
         req = Request.put uri (Request_Body.Json body_json) headers . with_headers new_headers
@@ -434,10 +433,7 @@ type HTTP
                     Pair.new req (body_publishers.ofString text)
                 Request_Body.Json json ->
                     builder.header Header.application_json.name Header.application_json.value
-                    json_body = case json of
-                        _ : Text -> json
-                        _ -> json.to_text
-                    Pair.new req (body_publishers.ofString json_body)
+                    Pair.new req (body_publishers.ofString json)
                 Request_Body.Form form ->
                     add_multipart form =
                         body_builder = Http_Utils.multipart_body_builder

@@ -1075,27 +1075,27 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.1.15"
+version = "3.2.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85a35a599b11c089a7f49105658d089b8f2cf0882993c17daf6de15285c2c35d"
+checksum = "71655c45cb9845d3270c9d6df84ebe72b4dad3c2ba3f7023ad47c144e4e473a5"
 dependencies = [
  "atty",
  "bitflags",
  "clap_derive",
  "clap_lex",
  "indexmap",
- "lazy_static",
+ "once_cell",
  "strsim",
  "termcolor",
- "terminal_size",
- "textwrap 0.15.0",
+ "terminal_size 0.2.3",
+ "textwrap 0.16.0",
 ]
 
 [[package]]
 name = "clap_derive"
-version = "3.1.7"
+version = "3.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3aab4734e083b809aaf5794e14e756d1c798d2c69c7f7de7a09a2f5214993c1"
+checksum = "ea0c8bce528c4be4da13ea6fead8965e95b6073585a2f05204bd8f4119f82a65"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -1190,7 +1190,7 @@ dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
- "terminal_size",
+ "terminal_size 0.1.17",
  "unicode-width",
  "winapi 0.3.9",
 ]
@@ -1520,6 +1520,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ee2393c4a91429dffb4bedf19f4d6abf27d8a732c8ce4980305d782e5426d57"
 
 [[package]]
+name = "dataview"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47a802a2cad0ff4dfc4f3110da174b7a6928c315cae523e88638cfb72941b4d5"
+dependencies = [
+ "derive_pod",
+]
+
+[[package]]
+name = "dataview"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50eb3a329e19d78c3a3dfa4ec5a51ecb84fa3a20c06edad04be25356018218f9"
+dependencies = [
+ "derive_pod",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1552,6 +1570,19 @@ dependencies = [
  "ensogl-text-msdf",
  "ide-view-component-list-panel",
  "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "debug-scene-documentation"
+version = "0.1.0"
+dependencies = [
+ "enso-suggestion-database",
+ "ensogl",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
+ "ide-view-documentation",
+ "ide-view-graph-editor",
  "wasm-bindgen",
 ]
 
@@ -1616,6 +1647,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "dependency_runner"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e37adbef02511efe61ff835c8e30d8d5c6a00e4688184512d831a371f2615466"
+dependencies = [
+ "anyhow",
+ "clap 3.2.23",
+ "dataview 1.0.1",
+ "fs-err",
+ "msvc-demangler",
+ "ntapi",
+ "pelite",
+ "regex",
+ "roxmltree",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1638,6 +1690,12 @@ dependencies = [
  "rustc_version 0.4.0",
  "syn",
 ]
+
+[[package]]
+name = "derive_pod"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2ea6706d74fca54e15f1d40b5cf7fe7f764aaec61352a9fcec58fe27e042fc8"
 
 [[package]]
 name = "difference"
@@ -1799,7 +1857,7 @@ dependencies = [
  "cached",
  "cfg-if 1.0.0",
  "chrono",
- "clap 3.1.15",
+ "clap 3.2.23",
  "console-subscriber",
  "derivative",
  "derive_more",
@@ -1881,7 +1939,7 @@ dependencies = [
  "anyhow",
  "byte-unit",
  "chrono",
- "clap 3.1.15",
+ "clap 3.2.23",
  "derivative",
  "enso-build",
  "enso-build-base",
@@ -1975,10 +2033,21 @@ name = "enso-debug-scene"
 version = "0.1.0"
 dependencies = [
  "debug-scene-component-list-panel-view",
+ "debug-scene-documentation",
  "debug-scene-icons",
  "debug-scene-interface",
  "debug-scene-text-grid-visualization",
  "debug-scene-visualization",
+]
+
+[[package]]
+name = "enso-executor"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "enso-profiler",
+ "ensogl-core",
+ "futures 0.3.24",
 ]
 
 [[package]]
@@ -2034,11 +2103,14 @@ dependencies = [
  "enso-data-structures",
  "enso-debug-api",
  "enso-debug-scene",
+ "enso-executor",
  "enso-frp",
  "enso-logger",
+ "enso-notification",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",
+ "enso-suggestion-database",
  "enso-text",
  "enso-web",
  "ensogl",
@@ -2078,6 +2150,7 @@ version = "0.1.0"
 dependencies = [
  "approx 0.5.1",
  "engine-protocol",
+ "enso-executor",
  "enso-frp",
  "enso-gui",
  "enso-prelude",
@@ -2098,6 +2171,25 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "enso-logging"
+version = "0.3.1"
+dependencies = [
+ "enso-logging-macros",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "enso-logging-macros"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2129,6 +2221,16 @@ dependencies = [
  "enso-reflect",
  "lexpr",
  "serde",
+]
+
+[[package]]
+name = "enso-notification"
+version = "0.1.0"
+dependencies = [
+ "enso-executor",
+ "enso-prelude",
+ "flo_stream",
+ "futures 0.3.24",
 ]
 
 [[package]]
@@ -2209,6 +2311,7 @@ dependencies = [
  "derivative",
  "derive_more",
  "enclose",
+ "enso-logging",
  "enso-reflect",
  "enso-shapely",
  "enso-web",
@@ -2225,9 +2328,6 @@ dependencies = [
  "serde_json",
  "shrinkwraprs 0.3.0",
  "smallvec 1.9.0",
- "tracing",
- "tracing-subscriber",
- "tracing-wasm",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "weak-table",
@@ -2377,6 +2477,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-suggestion-database"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "convert_case 0.5.0",
+ "double-representation",
+ "engine-protocol",
+ "enso-data-structures",
+ "enso-executor",
+ "enso-notification",
+ "enso-prelude",
+ "enso-text",
+ "failure",
+ "flo_stream",
+ "futures 0.3.24",
+ "parser-scala",
+ "span-tree",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "enso-text"
 version = "0.1.0"
 dependencies = [
@@ -2406,12 +2527,12 @@ dependencies = [
  "console_error_panic_hook",
  "derivative",
  "enso-debug-api",
+ "enso-logging",
  "enso-shapely",
  "failure",
  "gloo-timers",
  "js-sys",
  "nalgebra",
- "tracing",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
@@ -2438,6 +2559,7 @@ name = "ensogl-component"
 version = "0.1.0"
 dependencies = [
  "ensogl-button",
+ "ensogl-drop-down",
  "ensogl-drop-down-menu",
  "ensogl-drop-manager",
  "ensogl-file-browser",
@@ -2460,6 +2582,7 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "bit_field",
+ "bitflags",
  "code-builder",
  "console_error_panic_hook",
  "enso-callback",
@@ -2500,6 +2623,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "ensogl-drop-down"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-grid-view",
+ "ensogl-gui-component",
+ "ensogl-hardcoded-theme",
+ "ensogl-text",
 ]
 
 [[package]]
@@ -2571,6 +2706,19 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "nalgebra",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "ensogl-example-drop-down"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "ensogl-core",
+ "ensogl-drop-down",
+ "ensogl-grid-view",
+ "ensogl-hardcoded-theme",
+ "ensogl-text-msdf",
  "wasm-bindgen",
 ]
 
@@ -2752,6 +2900,7 @@ dependencies = [
  "ensogl-example-complex-shape-system",
  "ensogl-example-custom-shape-system",
  "ensogl-example-dom-symbols",
+ "ensogl-example-drop-down",
  "ensogl-example-drop-manager",
  "ensogl-example-easing-animator",
  "ensogl-example-focus-management",
@@ -3042,6 +3191,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "errno"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f639046355ee4f37944e44f60642c6f3a7efa3cf6b78c78a0d989a8ce6c396a1"
+dependencies = [
+ "errno-dragonfly",
+ "libc",
+ "winapi 0.3.9",
+]
+
+[[package]]
+name = "errno-dragonfly"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3209,6 +3379,12 @@ name = "fragile"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85dcb89d2b10c5f6133de2efd8c11959ce9dbb46a2f7a4cab208c4eeda6ce1ab"
+
+[[package]]
+name = "fs-err"
+version = "2.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0845fa252299212f0389d64ba26f34fa32cfe41588355f21ed507c59a0f64541"
 
 [[package]]
 name = "fs_extra"
@@ -3609,6 +3785,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "horrorshow"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8371fb981840150b1a54f7cb117bf6699f7466a1d4861daac33bc6fe2b5abea0"
+
+[[package]]
 name = "html_parser"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3848,10 +4030,11 @@ dependencies = [
  "cached",
  "cfg-if 1.0.0",
  "chrono",
- "clap 3.1.15",
+ "clap 3.2.23",
  "convert_case 0.6.0",
  "cron",
  "data-encoding",
+ "dependency_runner",
  "derivative",
  "derive_more",
  "dirs",
@@ -3937,6 +4120,7 @@ dependencies = [
  "ensogl-text",
  "ensogl-text-msdf",
  "ide-view-component-browser",
+ "ide-view-documentation",
  "ide-view-graph-editor",
  "js-sys",
  "multi-map",
@@ -4019,6 +4203,26 @@ version = "0.1.0"
 dependencies = [
  "ensogl-core",
  "failure",
+]
+
+[[package]]
+name = "ide-view-documentation"
+version = "0.1.0"
+dependencies = [
+ "enso-frp",
+ "enso-logger",
+ "enso-prelude",
+ "enso-suggestion-database",
+ "ensogl",
+ "ensogl-component",
+ "ensogl-hardcoded-theme",
+ "horrorshow",
+ "ide-ci",
+ "ide-view-graph-editor",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -4154,6 +4358,16 @@ name = "intellij-run-config-gen"
 version = "0.1.0"
 dependencies = [
  "toml",
+]
+
+[[package]]
+name = "io-lifetimes"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46112a93252b123d31a119a8d1a1ac19deac4fac6e0e8b0df58f0d4e5870e63c"
+dependencies = [
+ "libc",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
@@ -4363,6 +4577,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "292a948cd991e376cf75541fe5b97a1081d713c618b4f1b9500f8844e49eb565"
 
 [[package]]
+name = "linux-raw-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
+
+[[package]]
 name = "lock_api"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4404,7 +4624,7 @@ dependencies = [
 name = "logstat"
 version = "0.1.0"
 dependencies = [
- "clap 3.1.15",
+ "clap 3.2.23",
  "enso-prelude",
  "lazy_static",
  "regex",
@@ -4605,6 +4825,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "msvc-demangler"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfb67c6dd0fa9b00619c41c5700b6f92d5f418be49b45ddb9970fbd4569df3c8"
+dependencies = [
+ "bitflags",
+]
+
+[[package]]
 name = "multi-map"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4714,6 +4943,12 @@ dependencies = [
  "pin-utils",
  "static_assertions",
 ]
+
+[[package]]
+name = "no-std-compat"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
 
 [[package]]
 name = "nom"
@@ -5179,6 +5414,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
+name = "pelite"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a821dd5a5c4744099b50dc94a6a381c8b4b007f4d80da5334428e220945319b"
+dependencies = [
+ "dataview 0.1.2",
+ "libc",
+ "no-std-compat",
+ "pelite-macros",
+ "winapi 0.3.9",
+]
+
+[[package]]
+name = "pelite-macros"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a7cf3f8ecebb0f4895f4892a8be0a0dc81b498f9d56735cb769dc31bf00815b"
+
+[[package]]
 name = "pem"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5201,9 +5455,9 @@ checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
 name = "pest"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f400b0f7905bf702f9f3dc3df5a121b16c54e9e8012c082905fdf09a931861a"
+checksum = "cc8bed3549e0f9b0a2a78bf7c0018237a2cdf085eecbbc048e52612438e4e9d0"
 dependencies = [
  "thiserror",
  "ucd-trie",
@@ -5211,9 +5465,9 @@ dependencies = [
 
 [[package]]
 name = "pest_derive"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "423c2ba011d6e27b02b482a3707c773d19aec65cc024637aec44e19652e66f63"
+checksum = "cdc078600d06ff90d4ed238f0119d84ab5d43dbaad278b0e33a8820293b32344"
 dependencies = [
  "pest",
  "pest_generator",
@@ -5221,9 +5475,9 @@ dependencies = [
 
 [[package]]
 name = "pest_generator"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e64e6c2c85031c02fdbd9e5c72845445ca0a724d419aa0bc068ac620c9935c1"
+checksum = "28a1af60b1c4148bb269006a750cff8e2ea36aff34d2d96cf7be0b14d1bed23c"
 dependencies = [
  "pest",
  "pest_meta",
@@ -5234,9 +5488,9 @@ dependencies = [
 
 [[package]]
 name = "pest_meta"
-version = "2.5.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57959b91f0a133f89a68be874a5c88ed689c19cd729ecdb5d762ebf16c64d662"
+checksum = "fec8605d59fc2ae0c6c1aefc0c7c7a9769732017c0ce07f7a9cfffa7b4404f20"
 dependencies = [
  "once_cell",
  "pest",
@@ -5854,6 +6108,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "roxmltree"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "112908c3ac4711a1554b3948432ecaf5f061a951aa326977b63f7f72a86a4c0e"
+dependencies = [
+ "xmlparser",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5881,6 +6144,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
  "semver 1.0.14",
+]
+
+[[package]]
+name = "rustix"
+version = "0.36.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3807b5d10909833d3e9acd1eb5fb988f79376ff10fce42937de71a449c4c588"
+dependencies = [
+ "bitflags",
+ "errno",
+ "io-lifetimes",
+ "libc",
+ "linux-raw-sys",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
@@ -6554,6 +6831,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "terminal_size"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb20089a8ba2b69debd491f8d2d023761cbf196e999218c591fa1e7e15a21907"
+dependencies = [
+ "rustix",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
 name = "termtree"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6570,11 +6857,11 @@ dependencies = [
 
 [[package]]
 name = "textwrap"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
+checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 dependencies = [
- "terminal_size",
+ "terminal_size 0.2.3",
 ]
 
 [[package]]
@@ -7024,17 +7311,6 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
-]
-
-[[package]]
-name = "tracing-wasm"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4575c663a174420fa2d78f4108ff68f65bf2fbb7dd89f33749b6e826b3626e07"
-dependencies = [
- "tracing",
- "tracing-subscriber",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -7828,7 +8104,7 @@ name = "wstest"
 version = "0.1.0"
 dependencies = [
  "base64 0.13.0",
- "clap 3.1.15",
+ "clap 3.2.23",
  "either",
  "enso-prelude",
  "futures 0.3.24",

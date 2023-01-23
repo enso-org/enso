@@ -62,7 +62,6 @@
 extern crate core;
 
 use prelude::*;
-use wasm_bindgen::prelude::*;
 
 
 // ==============
@@ -72,17 +71,16 @@ use wasm_bindgen::prelude::*;
 pub mod config;
 pub mod constants;
 pub mod controller;
-pub mod executor;
 pub mod ide;
 pub mod integration_test;
 pub mod model;
-pub mod notification;
 pub mod presenter;
 pub mod sync;
 pub mod test;
 pub mod transport;
 
 pub use crate::ide::*;
+pub use engine_protocol;
 pub use ide_view as view;
 
 
@@ -98,7 +96,6 @@ pub mod prelude {
 
     pub use crate::constants;
     pub use crate::controller;
-    pub use crate::executor;
     pub use crate::model;
     pub use crate::model::traits::*;
 
@@ -114,6 +111,9 @@ pub mod prelude {
     pub use futures::FutureExt;
     pub use futures::Stream;
     pub use futures::StreamExt;
+
+    pub use enso_executor as executor;
+    pub use enso_notification as notification;
 
     pub use std::ops::Range;
 
@@ -158,7 +158,7 @@ pub fn main() {
     );
     let config =
         crate::config::Startup::from_web_arguments().expect("Failed to read configuration");
-    let executor = crate::ide::initializer::setup_global_executor();
+    let executor = crate::executor::setup_global_executor();
     let initializer = crate::ide::initializer::Initializer::new(config);
     executor::global::spawn(async move {
         let ide = initializer.start().await;

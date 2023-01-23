@@ -89,23 +89,23 @@ pub fn without_macros(ast: &Ast) -> Ast {
 
 /// Execute [`f`], preserving the usage of the [`SKIP`] macro. [`f`] receives AST without [`SKIP`],
 /// and the macro would be preserved in the final result if it existed. Preserves the id of the AST.
-pub fn preserving_skip(ast: &mut Ast, f: impl Fn(&mut Ast)) -> Ast {
+pub fn preserving_skip(ast: &mut Ast, f: impl FnOnce(&mut Ast)) -> Ast {
     preserving_macro(ast, f, SKIP_MACRO_IDENTIFIER, |info| info.skip)
 }
 
 /// Execute [`f`], preserving the usage of the [`SKIP`] macro. [`f`] receives AST without [`SKIP`],
 /// and the macro would be preserved in the final result if it existed. Preserves the id of the AST.
-pub fn preserving_freeze(ast: &mut Ast, f: impl Fn(&mut Ast)) -> Ast {
+pub fn preserving_freeze(ast: &mut Ast, f: impl FnOnce(&mut Ast)) -> Ast {
     preserving_macro(ast, f, FREEZE_MACRO_IDENTIFIER, |info| info.freeze)
 }
 
 /// A combination oof [`preserving_skip`] and [`preserving_freeze`]. Preserves both macros.
-pub fn preserving_skip_and_freeze(ast: &mut Ast, f: impl Fn(&mut Ast)) -> Ast {
+pub fn preserving_skip_and_freeze(ast: &mut Ast, f: impl FnOnce(&mut Ast)) -> Ast {
     let skip = SKIP_MACRO_IDENTIFIER;
     let freeze = FREEZE_MACRO_IDENTIFIER;
     let is_skipped = |info: &MacrosInfo| info.skip;
     let is_frozen = |info: &MacrosInfo| info.freeze;
-    let preserve_freeze = |ast: &mut Ast| *ast = preserving_macro(ast, &f, freeze, is_frozen);
+    let preserve_freeze = move |ast: &mut Ast| *ast = preserving_macro(ast, f, freeze, is_frozen);
     preserving_macro(ast, preserve_freeze, skip, is_skipped)
 }
 
@@ -115,7 +115,7 @@ pub fn preserving_skip_and_freeze(ast: &mut Ast, f: impl Fn(&mut Ast)) -> Ast {
 /// existed. Preserves the id of the AST.
 fn preserving_macro(
     ast: &mut Ast,
-    f: impl Fn(&mut Ast),
+    f: impl FnOnce(&mut Ast),
     macro_name: &str,
     does_contain_macro: impl Fn(&MacrosInfo) -> bool,
 ) -> Ast {

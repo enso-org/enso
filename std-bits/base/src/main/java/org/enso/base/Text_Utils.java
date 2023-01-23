@@ -161,6 +161,21 @@ public class Text_Utils {
   }
 
   /**
+   * Compares {@code a} to {@code b} according to the lexicographical order, with optional Unicode
+   * normalization depending on the {@code isNormalized} parameter.
+   *
+   * @param a the left operand
+   * @param b the right operand
+   * @param isNormalized {@code true} if both input strings are normalized
+   * @return a negative value if {@code a} is before {@code b}, 0 if both values are equal and a
+   *     positive value if {@code a} is after {@code b}
+   */
+  public static int compare(String a, String b, boolean isNormalized) {
+    int options = isNormalized ? Normalizer.FOLD_CASE_DEFAULT | Normalizer.INPUT_IS_FCD : Normalizer.FOLD_CASE_DEFAULT;
+    return Normalizer.compare(a, b, options);
+  }
+
+  /**
    * Compares {@code a} to {@code b} according to the lexicographical order, handling Unicode
    * normalization.
    *

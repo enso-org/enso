@@ -61,15 +61,16 @@ export project.Warning.Warning
 from project.Data.Boolean export Boolean, True, False
 from project.Function export all
 from project.Data.Numbers export Number, Integer, Decimal
-from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect
+from project.System.File_Format export File_Format, Plain_Text_Format, Plain_Text, Bytes, Infer, Auto_Detect, JSON_File
 
 import project.Data
 import project.Data.Filter_Condition.Filter_Condition
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Interval.Bound
 import project.Data.Interval.Interval
-import project.Data.Json.Json
 import project.Data.Json.Extensions
+import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Maybe.Maybe
 import project.Data.Noise
@@ -119,8 +120,9 @@ export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Index_Sub_Range.Index_Sub_Range
 export project.Data.Interval.Bound
 export project.Data.Interval.Interval
-export project.Data.Json.Json
 export project.Data.Json.Extensions
+export project.Data.Json.Json
+export project.Data.Json.JS_Object
 export project.Data.Locale.Locale
 export project.Data.Maybe.Maybe
 export project.Data.Ordering.Natural_Order

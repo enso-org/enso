@@ -66,7 +66,6 @@ use crate::system::gpu::types::*;
 use crate::display;
 use crate::display::object::instance::GenericLayoutApi;
 use crate::display::scene;
-use crate::display::scene::Scene;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
 use crate::display::symbol::geometry::Sprite;
@@ -190,7 +189,12 @@ impl<S: Shape> ShapeInstance<S> {
     pub(crate) fn swap(&self, other: &Self) {
         self.shape.as_ref().swap(other.shape.as_ref());
         self.sprite.swap(&other.sprite);
-        self.display_object.replace_children(other.display_object.remove_all_children());
+        // After we swap the sprites between shape instances, we need to update their parents to
+        // the corresponding display object of each instance. It is important to not swap all other
+        // children, as they might have been added externally directly to the instance's display
+        // object (by calling `add_child` on the shape).
+        self.display_object.add_child(&*self.sprite.borrow());
+        other.display_object.add_child(&*other.sprite.borrow());
         // This function is called during display object hierarchy update, before updating children
         // of this display object, but after updating its layout. Thus, we need to update the layout
         // of the new sprite. Please note, that changing layout in the middle of the display object
@@ -645,7 +649,7 @@ macro_rules! _shape_old {
                 type ShapeData = ($($shape_data)?);
 
                 fn definition_path() -> &'static str {
-                    definition_path!()
+                    root_call_path!()
                 }
 
                 fn pointer_events() -> bool {
@@ -800,7 +804,7 @@ macro_rules! _shape {
                 type ShapeData = ($($shape_data)?);
 
                 fn definition_path() -> &'static str {
-                    definition_path!()
+                    root_call_path!()
                 }
 
                 fn pointer_events() -> bool {

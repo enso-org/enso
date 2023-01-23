@@ -883,7 +883,7 @@ impl AddMut<Expr> for Module {
 
 impl HasCodeRepr for Module {
     fn build(&self, builder: &mut CodeBuilder) {
-        builder.add(self.version.code());
+        builder.add(&self.version.code());
         builder.newline();
         builder.newline();
 

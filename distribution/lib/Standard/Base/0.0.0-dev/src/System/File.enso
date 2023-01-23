@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Array.Array
 import project.Data.Index_Sub_Range.Index_Sub_Range
-import project.Data.Json.Json
+import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
@@ -26,6 +26,8 @@ import project.System.File.File_Permissions.File_Permissions
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Encoding_Utils
+polyglot java import org.enso.base.encoding.ReportingStreamDecoder
+polyglot java import org.enso.base.encoding.ReportingStreamEncoder
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
 polyglot java import java.nio.file.FileSystems
@@ -157,7 +159,8 @@ type File
     with_input_stream self open_options action =
         Managed_Resource.bracket (self.new_input_stream open_options) (_.close) action
 
-    ## Read a file using the specified file format
+    ## ALIAS Load, Open
+       Read a file using the specified file format
 
        Arguments:
        - format: A `File_Format` object used to read file into memory.
@@ -190,7 +193,8 @@ type File
     read self format=Auto_Detect (on_problems=Problem_Behavior.Report_Warning) =
         format.read self on_problems
 
-    ## Reads all bytes in this file into a byte vector.
+    ## ALIAS Load Bytes, Open Bytes
+       Reads all bytes in this file into a byte vector.
 
        > Example
          Read all of the bytes in the file.
@@ -203,7 +207,8 @@ type File
         opts = [File_Access.Read]
         self.with_input_stream opts (_.read_all_bytes)
 
-    ## Reads the whole file into a `Text`, with specified encoding.
+    ## ALIAS Load Text, Open Text
+       Reads the whole file into a `Text`, with specified encoding.
 
        Arguments:
        - encoding: The text encoding to decode the file with. Defaults to UTF-8.
@@ -239,19 +244,47 @@ type File
     / : (Text | File) -> File
     / self subpath = self.resolve subpath
 
-    resolve : (Text | File) -> File
-    resolve self = @Builtin_Method "File.resolve"
+    ## Join two or more path segments together, normalizing the `..` and `.` subpaths.
 
-    ## A File to JSON conversion.
+       Arguments:
+       - subpaths: The path segment or segments to join to the path of `self`.
 
        > Example
-         Get a JSON representation of a file.
+         Concatenate two file path segments.
 
              import Standard.Examples
 
-             example_to_json = Examples.csv.to_json
-    to_json : Json
-    to_json self = Json.from_pairs [["type", "File"], ["path", self.path]]
+             example_append = Examples.data_dir.join "scratch_file"
+
+       > Example
+         Concatenate multiple file path segments and normalizes the result.
+
+             import Standard.Examples
+
+             example_append = Examples.data_dir.join ["2022", "10", "31", "scratch_file"]
+    join : (Text | File | Vector) -> File
+    join self subpaths = case subpaths of
+        _ : Vector -> (subpaths.fold self c->p-> c / p) . normalize
+        _ -> self.join [subpaths]
+
+    ## PRIVATE
+       Internal method to join two path segments together.
+    resolve : (Text | File) -> File
+    resolve self = @Builtin_Method "File.resolve"
+
+    ## Convert the file descriptor to a JS_Object.
+
+       > Example
+         Convert a file to a JS_Object.
+
+             import Standard.Examples
+
+             example_to_json = Examples.csv.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        type_pair = ["type", "File"]
+        cons_pair = ["constructor", "new"]
+        JS_Object.from_pairs [type_pair, cons_pair, ["path", self.path]]
 
     ## Checks whether the file exists.
 
@@ -423,17 +456,6 @@ type File
              example_normalize = Examples.csv.normalize
     normalize : File
     normalize self = @Builtin_Method "File.normalize"
-
-    ## Checks if this file has the same `path` as `that`.
-
-       > Example
-         Check if two files are equivalent.
-
-             import Standard.Examples
-
-             example_eq = Examples.csv == Examples.scratch_file
-    == : File -> Boolean
-    == self that = @Builtin_Method "File.=="
 
     ## Deletes the file.
 

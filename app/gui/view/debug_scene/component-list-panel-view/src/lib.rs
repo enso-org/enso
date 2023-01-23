@@ -37,14 +37,12 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::frp;
-use ensogl_hardcoded_theme as theme;
 use ensogl_text as text;
 use ide_view_component_list_panel::grid;
 use ide_view_component_list_panel::grid::entry::icon;

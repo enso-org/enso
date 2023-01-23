@@ -10,4 +10,12 @@
             </folder>
         </folder>
     </folder>
+    <folder name="Toolbars">
+        <folder name="File">
+            <file name="org-netbeans-modules-debugger-ui-actions-ConnectAction.shadow">
+                <attr name="originalFile" stringvalue="Actions/Debug/org-netbeans-modules-debugger-ui-actions-ConnectAction.instance"/>
+                <attr name="position" intvalue="9535"/>
+            </file>
+        </folder>
+    </folder>
 </filesystem>
