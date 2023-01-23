@@ -11,7 +11,6 @@ use crate::component::visualization;
 use crate::selection::BoundingBox;
 use crate::tooltip;
 use crate::view;
-use crate::MethodPointer;
 use crate::Type;
 use crate::WidgetUpdates;
 
@@ -308,7 +307,6 @@ ensogl::define_endpoints_2! {
         /// `set_expression` instead. In case the usage type is set to None, ports still may be
         /// colored if the definition type was present.
         set_expression_usage_type         (Crumbs,Option<Type>),
-        set_method_pointer                (Crumbs,Option<MethodPointer>),
         set_expression_widgets            (WidgetUpdates),
         set_output_expression_visibility  (bool),
         set_vcs_status                    (Option<vcs::Status>),
@@ -629,13 +627,6 @@ impl NodeModel {
         }
     }
 
-    fn set_method_pointer(&self, crumbs: &Crumbs, method_pointer: &Option<MethodPointer>) {
-        match crumbs.endpoint {
-            Endpoint::Input => self.input.set_method_pointer(&crumbs.crumbs, method_pointer),
-            Endpoint::Output => warn!("Cannot set method pointer on output."),
-        }
-    }
-
     #[profile(Debug)]
     fn set_width(&self, width: f32) -> Vector2 {
         let height = self.height();
@@ -756,7 +747,6 @@ impl Node {
                 move |(_,tp)| *tp != unresolved_symbol_type
             );
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
-            eval input.set_method_pointer (((a,b)) model.set_method_pointer(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
             out.expression                  <+ model.input.frp.expression;
             out.expression_span             <+ model.input.frp.on_port_code_update;

@@ -200,6 +200,7 @@ impl Model {
 
     /// Assing an existing shape to this port.
     pub fn use_existing_shape(&mut self, shape: Shape, size: Vector2, hover_height: f32) -> Shape {
+        shape.remove_child_shapes();
         shape.set_size(size, hover_height);
         self.shape = Some(shape.clone_ref());
         shape

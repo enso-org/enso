@@ -312,25 +312,6 @@ impl Model {
         }
     }
 
-    // fn widgets_for_operation(
-    //     &self,
-    //     crumbs: &Crumbs,
-    //     method_pointer: &Option<MethodPointer>,
-    // ) -> Option<(ast::Id, ast::Id)> {
-    //     warn!("set_method_pointer: {:?} {:?}", crumbs, method_pointer);
-
-    //     // do not request anything if there is no method pointer set
-    //     let _ = method_pointer.as_ref()?;
-
-    //     let expression = self.expression.borrow();
-    //     let call = expression.span_tree.root_ref().get_descendant(crumbs).ok()?;
-    //     let call_id = call.node.ast_id?;
-    //     const INFIX_LEFT: ast::Crumb = ast::Crumb::Infix(ast::crumbs::InfixCrumb::LeftOperand);
-    //     let left_operand = call.get_descendant_by_ast_crumbs(&[INFIX_LEFT])?;
-    //     let target_id = left_operand.node.ast_id?;
-    //     Some((call_id, target_id))
-    // }
-
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.label.set_content(expression.viz_code.clone());
@@ -344,7 +325,7 @@ impl Model {
     ) {
         let mut is_header = true;
 
-        // let prev_id_crumbs_map = self.id_crumbs_map.take();
+        let prev_id_crumbs_map = self.id_crumbs_map.take();
         let prev_widgets_map = self.widgets_map.take();
         let prev_expression = self.expression.borrow();
 
@@ -417,10 +398,23 @@ impl Model {
                 let height = 18.0;
                 let padded_size = Vector2(width_padded, height);
                 let size = Vector2(width, height);
-                let port_shape = port.payload.init_shape(size, node::HEIGHT);
+                let position_x = unit * index as f32;
 
-                let call_data = port.kind.call_id().zip(port.kind.target_id());
-                let port_widget = call_data.and_then(|(call_id, target_id)| {
+                let prev_ast_id_crumbs = port.ast_id.as_ref().and_then(|id| prev_id_crumbs_map.get(id));
+                let prev_node = prev_ast_id_crumbs.and_then(|crumbs| {
+                    let prev_root = prev_expression.span_tree.root_ref();
+                    prev_root.get_descendant(crumbs).ok()
+                });
+
+                let prev_shape = prev_node.and_then(|node| node.payload.shape.clone_ref());
+                let shape_was_reused = prev_shape.is_some();
+                let port_shape = match prev_shape {
+                    Some(shape) => port.payload.use_existing_shape(shape, size, node::HEIGHT),
+                    None => port.payload.init_shape(size, node::HEIGHT),
+                };
+
+                let known_call_target_id = port.kind.call_id().and(port.kind.target_id());
+                let port_widget = known_call_target_id.and_then(|target_id| {
                     let info = port.kind.argument_info()?;
                     let argument_name = info.name.as_ref()?.clone();
                     let widget_id = WidgetId {
@@ -428,9 +422,15 @@ impl Model {
                         argument_name,
                     };
 
-                    let prev_widget = prev_widgets_map.get(&widget_id).and_then(|prev_crumbs|{
+                    // Try getting the previous widget by exact target/argument ID first, which is
+                    // necessary when the argument expression was replaced. This lookup can fail
+                    // when the target expression was replaced, but the widget argument expression
+                    // wasn't. In that case, try to reuse the widget from old argument node under
+                    // the same ast ID.
+                    let prev_crumbs = prev_widgets_map.get(&widget_id).or(prev_ast_id_crumbs);
+                    let prev_widget = prev_crumbs.and_then(|crumbs|{
                         let prev_root = prev_expression.span_tree.root_ref();
-                        let prev_node = prev_root.get_descendant(prev_crumbs).ok()?;
+                        let prev_node = prev_root.get_descendant(crumbs).ok()?;
                         let prev_widget = prev_node.payload.widget.as_ref()?.clone_ref();
                         port.payload.widget = Some(prev_widget.clone_ref());
                         Some(prev_widget)
@@ -446,7 +446,7 @@ impl Model {
                             warn!("New widget for port: {:?}", port.ast_id);
                             port.payload.init_widget(&self.app)},
                     };
-                    widget.set_x(unit * index as f32);
+                    widget.set_x(position_x);
                     builder.parent.add_child(&widget);
 
                     widget.set_node_data(widget::NodeData {
@@ -457,7 +457,7 @@ impl Model {
                     Some(widget)
                 });
 
-                port_shape.set_x(unit * index as f32);
+                port_shape.set_x(position_x);
                 if DEBUG {
                     port_shape.set_y(DEBUG_PORT_OFFSET);
                 }
@@ -575,9 +575,10 @@ impl Model {
                     }
                 }
 
-
-                init_color.emit(());
-                area_frp.set_view_mode.emit(area_frp.view_mode.value());
+                if !shape_was_reused {
+                    init_color.emit(());
+                }
+                
                 port_shape.display_object().clone_ref()
             };
 
@@ -594,6 +595,7 @@ impl Model {
         });
         *self.id_crumbs_map.borrow_mut() = id_crumbs_map;
         *self.widgets_map.borrow_mut() = widgets_map;
+        area_frp.set_view_mode.emit(area_frp.view_mode.value());
     }
 
     /// Initializes FRP network for every port. Please note that the networks are connected
@@ -854,10 +856,6 @@ ensogl::define_endpoints! {
 
         /// Set the method pointer for the port indicated by the breadcrumbs. Useful for updating
         /// argument labels and querying for widgets.
-        set_method_pointer   (Crumbs,Option<MethodPointer>),
-
-        /// Set the method pointer for the port indicated by the breadcrumbs. Useful for updating
-        /// argument labels and querying for widgets.
         set_expression_widgets   (WidgetUpdates),
 
         /// Enable / disable port hovering. The optional type indicates the type of the active edge
@@ -1001,9 +999,6 @@ impl Area {
 
             // === Widgets ===
 
-            // frp.output.source.requested_widgets <+ frp.set_method_pointer.filter_map(
-            //     f!(((a,b)) model.widgets_for_operation(a,b))
-            // );
             eval frp.set_expression_widgets ((a) model.set_expression_widgets(a));
 
             // === View Mode ===

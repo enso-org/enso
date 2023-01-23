@@ -626,24 +626,18 @@ impl<'a> ControllerChange<'a> {
     }
 
     /// Set the new expression's method pointer. If the method pointer actually changes, the
-    /// to-be-updated view is returned.
+    /// to-be-updated view and widget data is returned.
     pub fn set_expression_method_pointer(
         &self,
         id: ast::Id,
         method_ptr: Option<view::graph_editor::MethodPointer>,
     ) -> Option<(ViewNodeId, Option<ast::Id>)> {
         let mut expressions = self.expressions.borrow_mut();
-        let to_update = expressions.get_mut(id).filter(|d| d.method_pointer != method_ptr);
-        if let Some(displayed) = to_update {
-            displayed.method_pointer = method_ptr;
-            self.nodes
-                .borrow()
-                .get(displayed.node)
-                .and_then(|node| node.view_id)
-                .map(|id| (id, displayed.widget_target))
-        } else {
-            None
-        }
+        let displayed = expressions.get_mut(id).filter(|d| d.method_pointer != method_ptr)?;
+        displayed.method_pointer = method_ptr;
+        let nodes = self.nodes.borrow();
+        let node = nodes.get(displayed.node)?;
+        Some((node.view_id?, displayed.widget_target))
     }
 }
 

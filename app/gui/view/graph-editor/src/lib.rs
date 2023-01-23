@@ -537,11 +537,16 @@ ensogl::define_endpoints_2! {
 
         // === Visualization ===
 
-        /// Simulates a visualization open press event. In case the event will be shortly followed by `release_visualization_visibility`, the visualization will be shown permanently. In other case, it will be disabled as soon as the `release_visualization_visibility` is emitted.
+        /// Simulates a visualization open press event. In case the event will be shortly followed
+        /// by `release_visualization_visibility`, the visualization will be shown permanently. In
+        /// other case, it will be disabled as soon as the `release_visualization_visibility` is
+        /// emitted.
         press_visualization_visibility(),
-        /// Simulates a visualization open double press event. This event toggles the visualization fullscreen mode.
+        /// Simulates a visualization open double press event. This event toggles the visualization
+        /// fullscreen mode.
         double_press_visualization_visibility(),
-        /// Simulates a visualization open release event. See `press_visualization_visibility` to learn more.
+        /// Simulates a visualization open release event. See `press_visualization_visibility` to
+        /// learn more.
         release_visualization_visibility(),
         /// Cycle the visualization for the selected nodes.
         cycle_visualization_for_selected_node(),
@@ -571,7 +576,8 @@ ensogl::define_endpoints_2! {
         debug_push_breadcrumb(),
         /// Pop a breadcrumb without notifying the controller.
         debug_pop_breadcrumb(),
-        /// Set a test visualization data for the selected nodes. Useful for testing visualizations during their development.
+        /// Set a test visualization data for the selected nodes. Useful for testing visualizations
+        /// during their development.
         debug_set_test_visualization_data_for_selected_node(),
 
 
@@ -603,7 +609,6 @@ ensogl::define_endpoints_2! {
         set_node_comment             ((NodeId,node::Comment)),
         set_node_position            ((NodeId,Vector2)),
         set_expression_usage_type    ((NodeId,ast::Id,Option<Type>)),
-        set_method_pointer           ((NodeId,ast::Id,Option<MethodPointer>)),
         set_expression_widgets       ((NodeId,WidgetUpdates)),
         cycle_visualization          (NodeId),
         set_visualization            ((NodeId,Option<visualization::Path>)),
@@ -1051,15 +1056,16 @@ impl Grid {
 }
 
 
-// ====================
+// =====================
 // === WidgetUpdates ===
-// ====================
+// =====================
 
 /// A structure describing a widget update batch for arguments of single function call.
 #[derive(Debug, Default, Clone)]
 pub struct WidgetUpdates {
     /// The function call target expression id.
     pub target_id: ast::Id,
+    /// Update of a widget for each function argument.
     pub updates:   Rc<Vec<WidgetUpdate>>,
 }
 
@@ -2136,21 +2142,6 @@ impl GraphEditorModel {
             let crumbs = node.view.model().get_crumbs_by_id(ast_id);
             if let Some(crumbs) = crumbs {
                 node.view.set_expression_usage_type.emit((crumbs, maybe_type));
-            }
-        }
-    }
-
-    fn set_node_method_pointer(
-        &self,
-        node_id: NodeId,
-        ast_id: ast::Id,
-        method_pointer: Option<MethodPointer>,
-    ) {
-        let node_id = node_id.into();
-        if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            let crumbs = node.view.model().get_crumbs_by_id(ast_id);
-            if let Some(crumbs) = crumbs {
-                node.view.set_method_pointer.emit((crumbs, method_pointer));
             }
         }
     }
@@ -3292,9 +3283,6 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
          nodes.get_cloned_ref(node_id).map(|node| node.all_edges())
     )).unwrap();
     eval edges_to_refresh ((edge) model.refresh_edge_position(*edge));
-    eval inputs.set_method_pointer (
-        ((id, ast_id, method)) model.set_node_method_pointer(*id, *ast_id, method.clone())
-    );
     eval inputs.set_expression_widgets(((node, updates)) model.set_expression_widgets(*node, updates));
     }
 
@@ -3685,6 +3673,16 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         eval allow_area_selection ((area_selection)
             selection_controller.enable_area_selection.emit(area_selection)
         );
+    }
+
+
+    // ========================
+    // === Focus management ===
+    // ========================
+
+    frp::extend! { network
+        // Remove focus from any element when background is clicked.
+        eval_ touch.background.down (model.display_object.blur_tree());
     }
 
 
