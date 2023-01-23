@@ -70,7 +70,7 @@ public abstract class GetAnnotationNode extends BaseNode {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private AtomConstructor getAtomConstructor(Type type, String name) {
+  private static AtomConstructor getAtomConstructor(Type type, String name) {
     return type.getConstructors().get(name);
   }
 }
