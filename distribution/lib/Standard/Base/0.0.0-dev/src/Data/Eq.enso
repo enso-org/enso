@@ -47,8 +47,11 @@ Any.>== self that =
    If they are not of same type, a `Type_Error` is thrown.
    If the comparators are either `Incomparable`, or unordered, `False` is returned.
 assert_ordered_comparators : Any -> Any -> (Any -> Any) -> Any
-assert_ordered_comparators self that ~action =
-    comp_self = Comparable.from self
+assert_ordered_comparators this that ~action =
+    comp_this = Comparable.from this
     comp_that = Comparable.from that
-    if comp_self.type_of != comp_that.type_of then Error.throw (Type_Error.Error comp_self.type_of "self" self) else
-        if comp_self.is_a Incomparable || comp_self.is_ordered.not then False else action
+    case Meta.type_of comp_this == Meta.type_of comp_that of
+        False ->
+            Error.throw (Type_Error.Error (Meta.type_of comp_this) "this" this)
+        True ->
+            if comp_this.is_a Incomparable || comp_this.is_ordered.not then False else action
