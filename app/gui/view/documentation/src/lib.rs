@@ -106,6 +106,7 @@ type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
 pub struct Model {
     logger:             Logger,
     outer_dom:          DomSymbol,
+    caption_dom:        DomSymbol,
     inner_dom:          DomSymbol,
     size:               Rc<Cell<Vector2>>,
     /// The purpose of this overlay is stop propagating mouse events under the documentation panel
@@ -126,6 +127,9 @@ impl Model {
         let inner_dom = DomSymbol::new(&inner_div);
         let size = Rc::new(Cell::new(Vector2(VIEW_WIDTH, VIEW_HEIGHT)));
         let overlay = overlay::View::new();
+        let caption_div = web::document.create_div_or_panic();
+        let caption_dom = DomSymbol::new(&caption_div);
+        caption_dom.set_inner_html("Hovered item preview");
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -152,14 +156,25 @@ impl Model {
         overlay.roundness.set(1.0);
         overlay.radius.set(CORNER_RADIUS);
         display_object.add_child(&outer_dom);
+        outer_dom.add_child(&caption_dom);
         outer_dom.add_child(&inner_dom);
         display_object.add_child(&overlay);
         scene.dom.layers.node_searcher.manage(&outer_dom);
         scene.dom.layers.node_searcher.manage(&inner_dom);
+        scene.dom.layers.node_searcher.manage(&caption_dom);
 
         let code_copy_closures = default();
-        Model { logger, outer_dom, inner_dom, size, overlay, display_object, code_copy_closures }
-            .init()
+        Model {
+            logger,
+            outer_dom,
+            inner_dom,
+            caption_dom,
+            size,
+            overlay,
+            display_object,
+            code_copy_closures,
+        }
+        .init()
     }
 
     fn init(self) -> Self {
@@ -209,6 +224,7 @@ impl Model {
         let size = self.size.get();
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
         self.inner_dom.set_dom_size(Vector2(size.x, size.y));
+        self.caption_dom.set_dom_size(Vector2(size.x, size.y));
     }
 }
 

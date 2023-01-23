@@ -361,6 +361,12 @@ impl Searcher {
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
                     entry_hovered <- grid.hovered.map(|&s| s?.as_entry_id());
+                    no_entry_hovered <- grid.hovered.map(|s| s.is_none()).on_true();
+                    any_entry_hovered <- entry_hovered.filter_map(|e| *e);
+                    hovered_not_selected <- any(...);
+                    hovered_not_selected <+ any_entry_hovered.map2(&entry_selected, |h, s| h != s);
+                    hovered_not_selected <+ no_entry_hovered.constant(false);
+                    eval hovered_not_selected([](hs) DEBUG!("Hovered not selected: {hs}"));
                     entry_docs <- all_with3(&action_list_changed,
                         &entry_selected,
                         &entry_hovered,
