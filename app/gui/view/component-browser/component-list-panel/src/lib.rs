@@ -171,6 +171,7 @@ impl AllStyles {
 
 // === Background ===
 
+#[allow(missing_docs)]
 pub mod background {
     use super::*;
 
