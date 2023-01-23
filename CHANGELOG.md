@@ -81,6 +81,8 @@
 - [Added shortcut to interrupt the program][3967]
 - [Added suggestion dropdown for function arguments][4013]. The dropdown is
   present only when the argument is of type that has a predefined set of values.
+- [Separate component browser navigator sections for modules imported from
+  different namespaces][4044]
 
 #### EnsoGL (rendering engine)
 
@@ -434,6 +436,7 @@
 [4013]: https://github.com/enso-org/enso/pull/4013
 [4026]: https://github.com/enso-org/enso/pull/4026
 [4027]: https://github.com/enso-org/enso/pull/4027
+[4044]: https://github.com/enso-org/enso/pull/4044
 [4052]: https://github.com/enso-org/enso/pull/4052
 
 #### Enso Compiler
