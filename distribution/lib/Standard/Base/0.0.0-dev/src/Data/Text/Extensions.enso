@@ -716,10 +716,8 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 
    Arguments:
    - prefix: The prefix to see if `self` starts with.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher.
-     If a `Regex_Matcher`, the term is used as a regular expression and matched
-     using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -727,37 +725,22 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
      ensures that different ways of expressing the same character in the
      underlying binary representation are considered equal.
 
-     This however is not always well handled by the regex engine. The behaviour
-     is as follows:
-
          'ś' . starts_with 's' == False
          's\u{301}' . starts_with 's' == False
          's\u{301}' . starts_with 'ś' == True
          'ś' . starts_with 's\u{301}' == True
-
-         'ś' . starts_with 's' Regex_Matcher == True
-         's\u{301}' . starts_with 's' Regex_Matcher == True
-         's\u{301}' . starts_with 'ś' Regex_Matcher == True
-         'ś' . starts_with 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello!" starts with the specified prefix.
 
          "Hello!".starts_with "Hello" == True
          "Hello!".starts_with "hello" == False
-         "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) == True
-         "Hello!".starts_with "[a-z]" Regex_Matcher == False
-         "Hello!".starts_with "[A-Z]" Regex_Matcher == True
-Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
-Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher of
-    Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
-    Text_Matcher.Case_Insensitive locale ->
+         "Hello!".starts_with "hello" Case_Sensitivity.Insensitive == True
+Text.starts_with : Text -> Case_Sensitivity -> Boolean
+Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Sensitive -> Text_Utils.starts_with self prefix
+    Case_Sensitivity.Insensitive locale ->
             self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
-    _ : Regex_Matcher ->
-        preprocessed_pattern = "\A(?:" + prefix + ")"
-        compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match self Matching_Mode.First
-        match.is_nothing.not
 
 ## ALIAS Check Suffix
 

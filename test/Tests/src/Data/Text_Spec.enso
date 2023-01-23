@@ -884,82 +884,26 @@ spec =
         Test.specify "starts_with should work as shown in the examples" <|
             "Hello!".starts_with "Hello" . should_be_true
             "Hello!".starts_with "hello" . should_be_false
-            "Hello!".starts_with "hello" Text_Matcher.Case_Insensitive . should_be_true
-            "Hello!".starts_with "[a-z]" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            "Hello!".starts_with "[A-Z]" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
+            "Hello!".starts_with "hello" Case_Sensitivity.Insensitive . should_be_true
 
         Test.specify "should allow for case-insensitive starts_with checks" <|
-            "Hello".starts_with "he" Text_Matcher.Case_Insensitive . should_be_true
+            "Hello".starts_with "he" Case_Sensitivity.Insensitive . should_be_true
 
-            "Ściana".starts_with 's\u{301}' Text_Matcher.Case_Insensitive . should_be_true
-            "Ściana".starts_with 's' Text_Matcher.Case_Insensitive . should_be_false
-            'S\u{301}ciana'.starts_with 'ś' Text_Matcher.Case_Insensitive . should_be_true
-            'S\u{301}ciana'.starts_with 's\u{301}' Text_Matcher.Case_Insensitive . should_be_true
-            'S\u{301}ciana'.starts_with 's' Text_Matcher.Case_Insensitive . should_be_false
+            "Ściana".starts_with 's\u{301}' Case_Sensitivity.Insensitive . should_be_true
+            "Ściana".starts_with 's' Case_Sensitivity.Insensitive . should_be_false
+            'S\u{301}ciana'.starts_with 'ś' Case_Sensitivity.Insensitive . should_be_true
+            'S\u{301}ciana'.starts_with 's\u{301}' Case_Sensitivity.Insensitive . should_be_true
+            'S\u{301}ciana'.starts_with 's' Case_Sensitivity.Insensitive . should_be_false
 
-            "ABC" . starts_with "A" Text_Matcher.Case_Insensitive . should_be_true
-            "ABC" . starts_with "a" Text_Matcher.Case_Insensitive . should_be_true
-            "ABC" . starts_with "C" Text_Matcher.Case_Insensitive . should_be_false
-            "" . starts_with "foo" Text_Matcher.Case_Insensitive . should_be_false
-            "abc" . starts_with "" Text_Matcher.Case_Insensitive . should_be_true
-            "" . starts_with "" Text_Matcher.Case_Insensitive . should_be_true
-            "fOo FOO foo" . starts_with "FoO" Text_Matcher.Case_Insensitive . should_be_true
+            "ABC" . starts_with "A" Case_Sensitivity.Insensitive . should_be_true
+            "ABC" . starts_with "a" Case_Sensitivity.Insensitive . should_be_true
+            "ABC" . starts_with "C" Case_Sensitivity.Insensitive . should_be_false
+            "" . starts_with "foo" Case_Sensitivity.Insensitive . should_be_false
+            "abc" . starts_with "" Case_Sensitivity.Insensitive . should_be_true
+            "" . starts_with "" Case_Sensitivity.Insensitive . should_be_true
+            "fOo FOO foo" . starts_with "FoO" Case_Sensitivity.Insensitive . should_be_true
 
-            "Hello!".starts_with "he" Text_Matcher.Case_Insensitive . should_be_true
-
-        Test.specify "should allow for Regex starts_with checks" <|
-            "Hello!".starts_with "[A-Z]" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "foobar" . starts_with ".o." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "foob" . starts_with ".f." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-
-            "123 meters and 4 centimeters" . starts_with "[0-9]+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "foo 123" . starts_with "[0-9]+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-
-            # Correct non-regex behaviour for reference.
-            'ś' . starts_with 's' == False
-            's\u{301}' . starts_with 's' == False
-            's\u{301}' . starts_with 'ś' == True
-            'ś' . starts_with 's\u{301}' == True
-
-            # These two behave as expected.
-            's\u{301}' . starts_with 'ś' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) == True
-            'ś' . starts_with 's\u{301}' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) == True
-
-            ## These two are included to document the current behaviour
-               (even though ideally, we would want them to return False).
-            'ś' . starts_with 's' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) == True
-            's\u{301}' . starts_with 's' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) == True
-
-            "ściana" . starts_with "ś" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "ściana" . starts_with 's\u{301}' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            's\u{301}ciana' . starts_with 's\u{301}' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            's\u{301}ciana' . starts_with 'ś' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-
-            ## These two tests below are disabled due to how regex is handling
-               letters with accents. See the tests above for explanation.
-            #"ściana" . starts_with "s" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            # 's\u{301}ciana' . starts_with 's' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-
-            "fOOBar" . starts_with ".o." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
-            "faaaar" . starts_with ".o." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_false
-
-            long_text = """
-                EOL
-                SOL Hmm...
-            long_text . starts_with "EOL.SOL" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
-            long_text . starts_with "EOL.SOL" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
-
-            "aaazzz" . starts_with "a|b" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "bbbzzz" . starts_with "a|b" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "zzzaaa" . starts_with "a|b" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            "zzzbbb" . starts_with "a|b" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            "aaazzz" . starts_with "(a|b){2}" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "bbbzzz" . starts_with "(a|b){2}" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "zzzaaa" . starts_with "(a|b){2}" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            "ABC" . starts_with "\AA" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "ABC" . starts_with "\AA\z" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            "foobar" . starts_with "" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "" . starts_with "" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
+            "Hello!".starts_with "he" Case_Sensitivity.Insensitive . should_be_true
 
         Test.specify "should check for ends_with using Unicode normalization" <|
             "Hello".ends_with "lo" . should_be_true
