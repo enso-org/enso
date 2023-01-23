@@ -12,10 +12,7 @@ import org.enso.table.data.index.Index;
 import org.enso.table.data.index.MultiValueIndex;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
-import org.enso.table.data.table.join.IndexJoin;
-import org.enso.table.data.table.join.JoinCondition;
-import org.enso.table.data.table.join.JoinResult;
-import org.enso.table.data.table.join.JoinStrategy;
+import org.enso.table.data.table.join.*;
 import org.enso.table.problems.AggregatedProblems;
 import org.enso.table.error.UnexpectedColumnTypeException;
 import org.enso.table.operations.Distinct;
@@ -219,57 +216,47 @@ public class Table {
    */
   public Table join(Table right, List<JoinCondition> conditions, boolean keepLeftUnmatched, boolean keepMatched, boolean keepRightUnmatched, boolean includeLeftColumns, boolean includeRightColumns, List<String> rightColumnsToDrop, String right_prefix, Comparator<Object> objectComparator, BiFunction<Object, Object, Boolean> equalityFallback) {
     NameDeduplicator nameDeduplicator = new NameDeduplicator();
-    JoinResult joinResult = null;
-    // Only compute the join if there are any results to be returned.
-    if (keepLeftUnmatched || keepMatched || keepRightUnmatched) {
-      JoinStrategy strategy = new IndexJoin(objectComparator, equalityFallback);
-      joinResult = strategy.join(this, right, conditions);
+    if (!keepLeftUnmatched && !keepMatched && !keepRightUnmatched) {
+      throw new IllegalArgumentException("At least one of keepLeftUnmatched, keepMatched or keepRightUnmatched must be true.");
     }
 
-    List<Integer> leftRows = new ArrayList<>();
-    List<Integer> rightRows = new ArrayList<>();
+    JoinStrategy strategy = new IndexJoin(objectComparator, equalityFallback);
+    JoinResult joinResult = strategy.join(this, right, conditions);
+
+    List<JoinResult> resultsToKeep = new ArrayList<>();
 
     if (keepMatched) {
-      for (var match : joinResult.matchedRows()) {
-        leftRows.add(match.getLeft());
-        rightRows.add(match.getRight());
-      }
+      resultsToKeep.add(joinResult);
     }
 
     if (keepLeftUnmatched) {
-      HashSet<Integer> matchedLeftRows = new HashSet<>();
-      for (var match : joinResult.matchedRows()) {
-        matchedLeftRows.add(match.getLeft());
-      }
-
+      Set<Integer> matchedLeftRows = joinResult.leftMatchedRows();
+      JoinResult.Builder leftUnmatchedBuilder = new JoinResult.Builder();
       for (int i = 0; i < this.rowCount(); i++) {
         if (!matchedLeftRows.contains(i)) {
-          leftRows.add(i);
-          rightRows.add(Index.NOT_FOUND);
+          leftUnmatchedBuilder.addRow(i, Index.NOT_FOUND);
         }
       }
+
+      resultsToKeep.add(leftUnmatchedBuilder.build(AggregatedProblems.of()));
     }
 
     if (keepRightUnmatched) {
-      HashSet<Integer> matchedRightRows = new HashSet<>();
-      for (var match : joinResult.matchedRows()) {
-        matchedRightRows.add(match.getRight());
-      }
-
+      Set<Integer> matchedRightRows = joinResult.rightMatchedRows();
+      JoinResult.Builder rightUnmatchedBuilder = new JoinResult.Builder();
       for (int i = 0; i < right.rowCount(); i++) {
         if (!matchedRightRows.contains(i)) {
-          leftRows.add(Index.NOT_FOUND);
-          rightRows.add(i);
+          rightUnmatchedBuilder.addRow(Index.NOT_FOUND, i);
         }
       }
-    }
 
-    OrderMask leftMask = OrderMask.fromList(leftRows);
-    OrderMask rightMask = OrderMask.fromList(rightRows);
+      resultsToKeep.add(rightUnmatchedBuilder.build(AggregatedProblems.of()));
+    }
 
     List<Column> newColumns = new ArrayList<>();
 
     if (includeLeftColumns) {
+      OrderMask leftMask = OrderMask.concat(resultsToKeep.stream().map(JoinResult::getLeftOrderMask).collect(Collectors.toList()));
       for (Column column : this.columns) {
         Column newColumn = column.applyMask(leftMask);
         newColumns.add(newColumn);
@@ -277,6 +264,7 @@ public class Table {
     }
 
     if (includeRightColumns) {
+      OrderMask rightMask = OrderMask.concat(resultsToKeep.stream().map(JoinResult::getRightOrderMask).collect(Collectors.toList()));
       List<String> leftColumnNames = newColumns.stream().map(Column::getName).collect(Collectors.toList());
 
       HashSet<String> toDrop = new HashSet<>(rightColumnsToDrop);
@@ -288,15 +276,72 @@ public class Table {
       for (int i = 0; i < rightColumnsToKeep.size(); ++i) {
         Column column = rightColumnsToKeep.get(i);
         String newName = newRightColumnNames.get(i);
-        Storage<?> newStorage = column.getStorage().applyMask(rightMask);
-        Column newColumn = new Column(newName, newStorage);
+        Column newColumn = column.applyMask(rightMask).rename(newName);
         newColumns.add(newColumn);
       }
     }
 
     AggregatedProblems joinProblems = joinResult != null ? joinResult.problems() : null;
-    AggregatedProblems aggregatedProblems = AggregatedProblems.merge(joinProblems, AggregatedProblems.of(nameDeduplicator.getProblems()));
+    AggregatedProblems aggregatedProblems = AggregatedProblems.merge(AggregatedProblems.of(nameDeduplicator.getProblems()), joinProblems);
     return new Table(newColumns.toArray(new Column[0]), aggregatedProblems);
+  }
+
+  /**
+   * Performs a cross-join of this table with the right table.
+   */
+  public Table crossJoin(Table right, String rightPrefix) {
+    NameDeduplicator nameDeduplicator = new NameDeduplicator();
+
+    List<String> leftColumnNames = Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> rightColumNames = Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
+
+    List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, rightPrefix);
+
+    JoinResult joinResult = CrossJoin.perform(this.rowCount(), right.rowCount());
+    OrderMask leftMask = joinResult.getLeftOrderMask();
+    OrderMask rightMask = joinResult.getRightOrderMask();
+
+    Column[] newColumns = new Column[this.columns.length + right.columns.length];
+
+    int leftColumnCount = this.columns.length;
+    int rightColumnCount = right.columns.length;
+    for (int i = 0; i < leftColumnCount; i++) {
+      newColumns[i] = this.columns[i].applyMask(leftMask);
+    }
+    for (int i = 0; i < rightColumnCount; i++) {
+      newColumns[leftColumnCount + i] = right.columns[i].applyMask(rightMask).rename(newRightColumnNames.get(i));
+    }
+
+    AggregatedProblems aggregatedProblems = AggregatedProblems.merge(AggregatedProblems.of(nameDeduplicator.getProblems()), joinResult.problems());
+    return new Table(newColumns, aggregatedProblems);
+  }
+
+  /**
+   * Zips rows of this table with rows of the right table.
+   */
+  public Table zip(Table right, boolean keepUnmatched, String rightPrefix) {
+    NameDeduplicator nameDeduplicator = new NameDeduplicator();
+
+    int leftRowCount = this.rowCount();
+    int rightRowCount = right.rowCount();
+    int resultRowCount = keepUnmatched ? Math.max(leftRowCount, rightRowCount) : Math.min(leftRowCount, rightRowCount);
+
+    List<String> leftColumnNames = Arrays.stream(this.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> rightColumNames = Arrays.stream(right.columns).map(Column::getName).collect(Collectors.toList());
+    List<String> newRightColumnNames = nameDeduplicator.combineWithPrefix(leftColumnNames, rightColumNames, rightPrefix);
+
+    Column[] newColumns = new Column[this.columns.length + right.columns.length];
+
+    int leftColumnCount = this.columns.length;
+    int rightColumnCount = right.columns.length;
+    for (int i = 0; i < leftColumnCount; i++) {
+      newColumns[i] = this.columns[i].resize(resultRowCount);
+    }
+    for (int i = 0; i < rightColumnCount; i++) {
+      newColumns[leftColumnCount + i] = right.columns[i].resize(resultRowCount).rename(newRightColumnNames.get(i));
+    }
+
+    return new Table(newColumns, AggregatedProblems.of(nameDeduplicator.getProblems()));
   }
 
   /**

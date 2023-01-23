@@ -1,14 +1,13 @@
 package org.enso.table.data.column.builder.object;
 
+import java.util.Arrays;
+import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.util.BitSets;
-
-import java.util.Arrays;
-import java.util.BitSet;
 
 /** A builder for numeric columns. */
 public class NumericBuilder extends TypedBuilder {
@@ -103,11 +102,11 @@ public class NumericBuilder extends TypedBuilder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-     if (isDouble) {
-       appendBulkDouble(storage);
-     } else {
-        appendBulkLong(storage);
-     }
+    if (isDouble) {
+      appendBulkDouble(storage);
+    } else {
+      appendBulkLong(storage);
+    }
   }
 
   private void ensureFreeSpaceFor(int additionalSize) {
@@ -125,7 +124,10 @@ public class NumericBuilder extends TypedBuilder {
         BitSets.copy(doubleStorage.getIsMissing(), isMissing, currentSize, n);
         currentSize += n;
       } else {
-        throw new IllegalStateException("Unexpected storage implementation for type DOUBLE: " + storage + ". This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type DOUBLE: "
+                + storage
+                + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() == Storage.Type.LONG) {
       if (storage instanceof LongStorage longStorage) {
@@ -135,7 +137,10 @@ public class NumericBuilder extends TypedBuilder {
           data[currentSize++] = Double.doubleToRawLongBits(longStorage.getItem(i));
         }
       } else {
-        throw new IllegalStateException("Unexpected storage implementation for type LONG: " + storage + ". This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type LONG: "
+                + storage
+                + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() == Storage.Type.BOOL) {
       if (storage instanceof BoolStorage boolStorage) {
@@ -149,7 +154,10 @@ public class NumericBuilder extends TypedBuilder {
           }
         }
       } else {
-        throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type BOOLEAN: "
+                + storage
+                + ". This is a bug in the Table library.");
       }
     } else {
       throw new StorageTypeMismatch(getType(), storage.getType());
@@ -165,7 +173,10 @@ public class NumericBuilder extends TypedBuilder {
         BitSets.copy(longStorage.getIsMissing(), isMissing, currentSize, n);
         currentSize += n;
       } else {
-        throw new IllegalStateException("Unexpected storage implementation for type DOUBLE: " + storage + ". This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type DOUBLE: "
+                + storage
+                + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() == Storage.Type.BOOL) {
       if (storage instanceof BoolStorage boolStorage) {
@@ -178,7 +189,10 @@ public class NumericBuilder extends TypedBuilder {
           }
         }
       } else {
-        throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
+        throw new IllegalStateException(
+            "Unexpected storage implementation for type BOOLEAN: "
+                + storage
+                + ". This is a bug in the Table library.");
       }
     } else {
       throw new StorageTypeMismatch(getType(), storage.getType());
