@@ -149,6 +149,40 @@ fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId
 
 
 
+// =============================
+// === Bottom Buttons Layout ===
+// =============================
+
+fn get_bottom_buttons_entries_size(style: &AllStyles) -> Vector2<f32> {
+    let size = style.navigator.button_size;
+    Vector2(size, size)
+}
+
+fn get_bottom_buttons_entries_params(style: &AllStyles) -> entry::Params {
+    entry::Params::from(style.navigator)
+}
+
+fn get_bottom_buttons_viewport((buttons_count, style): &(usize, AllStyles)) -> grid::Viewport {
+    let size = style.navigator.button_size;
+    let bottom = -size * (*buttons_count as f32);
+    grid::Viewport { top: 0.0, bottom, left: 0.0, right: size }
+}
+
+fn get_bottom_buttons_pos((buttons_count, style): &(usize, AllStyles)) -> Vector2<f32> {
+    let size = style.navigator.button_size;
+    let width = style.navigator.width;
+    let height = style.grid.height + style.panel.menu_height;
+    let padding = style.navigator.bottom_padding;
+    let buttons_height = size * (*buttons_count as f32);
+    let bottom = (-height / 2.0).floor();
+    let left = -style.grid.width / 2.0 - width / 2.0;
+    let x_pos = left + (width / 2.0).floor() - size / 2.0;
+    let y_pos = bottom + buttons_height + padding;
+    Vector2(x_pos, y_pos)
+}
+
+
+
 // =================
 // === Navigator ===
 // =================
@@ -195,12 +229,14 @@ impl Navigator {
                 |&n: &usize| n + MIN_BOTTOM_BUTTONS_COUNT
             );
             bottom_buttons_shape <- section_count.map(|n| (*n, 1));
-            bottom_button_params <- all2(&section_count, &style);
-            bottom_button_viewport <- bottom_button_params.map(get_bottom_button_viewport);
-            bottom_button_y_pos <- bottom_button_params.map(get_bottom_button_y_pos);
+            bottom_buttons_params <- all2(&section_count, &style);
+            bottom_buttons_viewport <- bottom_buttons_params.map(get_bottom_buttons_viewport);
+            bottom_buttons_pos <- bottom_buttons_params.map(get_bottom_buttons_pos);
+            bottom_buttons.set_entries_params <+ style.map(get_bottom_buttons_entries_params);
+            bottom_buttons.set_entries_size <+ style.map(get_bottom_buttons_entries_size);
             bottom_buttons.reset_entries <+ bottom_buttons_shape;
-            bottom_buttons.set_viewport <+ bottom_button_viewport;
-            eval bottom_button_y_pos ((y) bottom_buttons.set_y(*y));
+            bottom_buttons.set_viewport <+ bottom_buttons_viewport;
+            eval bottom_buttons_pos ((pos) bottom_buttons.set_xy(*pos));
 
             select_section <- any(...);
             user_selected_section <- all2(&select_section, &section_count);
@@ -273,17 +309,10 @@ impl Navigator {
     pub(crate) fn update_layout(&self, style: &AllStyles) {
         let size = style.navigator.button_size;
         let top_buttons_height = size * TOP_BUTTONS_COUNT as f32;
-        let bottom_buttons_height = size * MIN_BOTTOM_BUTTONS_COUNT as f32;
-        self.bottom_buttons.set_entries_size(Vector2(size, size));
         self.top_buttons.set_entries_size(Vector2(size, size));
         let (top, left, right) = (0.0, 0.0, size);
-        let viewport = grid::Viewport { top, bottom: 0.0, left, right };
-        let top_buttons_viewport = grid::Viewport { bottom: -top_buttons_height, ..viewport };
-        let bottom_buttons_viewport = grid::Viewport { bottom: -bottom_buttons_height, ..viewport };
-        self.top_buttons.set_viewport(top_buttons_viewport);
-        self.bottom_buttons.set_viewport(bottom_buttons_viewport);
-        let buttons_params = entry::Params::from(style.navigator);
-        self.bottom_buttons.set_entries_params(buttons_params);
+        let viewport = grid::Viewport { top, bottom: -top_buttons_height, left, right };
+        self.top_buttons.set_viewport(viewport);
         let disabled_params = entry::Params {
             hover_color:              color::Lcha::transparent(),
             selection_color:          color::Lcha::transparent(),
@@ -295,32 +324,12 @@ impl Navigator {
         let width = style.navigator.width;
         let height = style.grid.height + style.panel.menu_height;
         let top = height / 2.0;
-        let bottom = (-height / 2.0).floor();
         let left = -style.grid.width / 2.0 - width / 2.0;
         let top_padding = style.navigator.top_padding;
-        let bottom_padding = style.navigator.bottom_padding;
         let x_pos = left + (width / 2.0).floor() - size / 2.0;
         let top_buttons_y = top - top_padding;
-        let bottom_buttons_y = bottom + bottom_buttons_height + bottom_padding;
         self.top_buttons.set_xy(Vector2(x_pos, top_buttons_y));
-        self.bottom_buttons.set_xy(Vector2(x_pos, bottom_buttons_y));
     }
-}
-
-fn get_bottom_button_viewport((buttons_count, style): &(usize, AllStyles)) -> grid::Viewport {
-    let size = style.navigator.button_size;
-    let bottom = -size * (*buttons_count as f32);
-    grid::Viewport { top: 0.0, bottom, left: 0.0, right: size }
-}
-
-fn get_bottom_button_y_pos((buttons_count, style): &(usize, AllStyles)) -> f32 {
-    let size = style.navigator.button_size;
-    let bottom_buttons_height = size * (*buttons_count as f32);
-    let height = style.grid.height + style.panel.menu_height;
-    let bottom = (-height / 2.0).floor();
-    let bottom_padding = style.navigator.bottom_padding;
-    let bottom_buttons_y = bottom + bottom_buttons_height + bottom_padding;
-    bottom_buttons_y
 }
 
 impl display::Object for Navigator {
