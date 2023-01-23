@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Array_Proxy.Array_Proxy
 import Standard.Base.Data.Ordering.Comparator
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
@@ -13,6 +14,7 @@ from project.Data.Table import print_table
 
 from project.Errors import No_Index_Set_Error
 
+polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
@@ -32,6 +34,11 @@ type Column
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Column
     from_vector name items = Column.Value (Java_Column.fromItems name items.to_array)
+
+    ## PRIVATE
+       Creates a new column given a name and an internal Java storage.
+    from_storage : Text -> Java_Storage -> Column
+    from_storage name storage = Column.Value (Java_Column.new name storage)
 
     ## Creates a new column given a name and a vector of elements repeated over and over.
 
@@ -124,6 +131,24 @@ type Column
     == : Column | Any -> Column
     == self other =
         run_vectorized_binary_op self "==" (==) other
+
+    ## Element-wise case-insensitive text equality comparison.
+
+       Arguments:
+       - other: The value to compare `self` against. If `other` is a column, the
+         comparison is performed pairwise between corresponding elements of
+         `self` and `other`.
+
+       Returns a column with results of comparing this column's elements against
+       `other`.
+    equals_ignore_case : Column | Any -> Locale -> Column
+    equals_ignore_case self other locale=Locale.default =
+        ## TODO currently this always runs the fallback which is slow due to the
+           cost of Java-to-Enso calls. We want to have a vectorized
+           implementation, but we need to extend the architecture to allow
+           passing the locale to it.
+           See: https://www.pivotaltracker.com/n/projects/2539304/stories/184093260
+        run_vectorized_binary_op self "equals_ignore_case" (x-> y-> x.equals_ignore_case y locale=locale) other
 
     ## Element-wise non-equality comparison.
 
@@ -531,7 +556,6 @@ type Column
     iif self when_true when_false = case self.storage_type of
         Storage.Boolean ->
             s = self.java_column.getStorage
-            ix = self.java_column.getIndex
 
             true_val = case when_true of
                 _ : Column -> when_true.java_column.getStorage
@@ -542,7 +566,7 @@ type Column
                 _ -> when_false
 
             rs = s.iif true_val false_val
-            Column.Value (Java_Column.new "Result" ix rs)
+            Column.Value (Java_Column.new "Result" rs)
         _ -> Error.throw (Illegal_Argument.Error "`iif` can only be used with boolean columns.")
 
     ## Returns a column of first non-`Nothing` value on each row of `self` and
@@ -675,7 +699,6 @@ type Column
     fill_missing : Column | Any -> Column
     fill_missing self default =
         storage = self.java_column.getStorage
-        index = self.java_column.getIndex
         name = self.java_column.getName
         new_st = case default of
             Column.Value java_col ->
@@ -683,7 +706,7 @@ type Column
                 storage.fillMissingFrom other_storage
             _ ->
                 storage.fillMissing default
-        col = Java_Column.new name index new_st
+        col = Java_Column.new name new_st
         Column.Value col
 
     ## Checks for each element of the column if it starts with `other`.
@@ -847,9 +870,8 @@ type Column
     map : (Any -> Any) -> Column
     map self function on_missing=Nothing =
         storage = self.java_column.getStorage
-        index = self.java_column.getIndex
         new_st = storage.map Nothing function on_missing
-        col = Java_Column.new "Result" index new_st
+        col = Java_Column.new "Result" new_st
         Column.Value col
 
     ## ALIAS Transform Columns
@@ -877,10 +899,9 @@ type Column
     zip : Column -> (Any -> Any -> Any) -> Boolean -> Column
     zip self that function skip_missing=True =
         s1 = self.java_column.getStorage
-        ix = self.java_column.getIndex
         s2 = that.java_column.getStorage
         rs = s1.zip Nothing function s2 skip_missing
-        Column.Value (Java_Column.new "Result" ix rs)
+        Column.Value (Java_Column.new "Result" rs)
 
     ## ALIAS Rename Column
 
@@ -943,36 +964,6 @@ type Column
     count : Integer
     count self = self.length - self.count_missing
 
-    ## Returns the index of this column, as a column (indexed by itself).
-
-       Throws `No_Index_Set_Error` if there is no index set.
-
-       > Example
-         Get the index from a column.
-
-             import Standard.Examples
-
-             example_index = Examples.decimal_column.index
-    index : Column ! No_Index_Set_Error
-    index self = case self.java_column.getIndex.toColumn of
-        Nothing -> Error.throw No_Index_Set_Error
-        i -> Column.Value i
-
-    ## Sets the index of this column, using the provided column.
-
-       Arguments:
-       - index: The column to use as the index to this column.
-
-       > Example
-         Index the decimal column by the integer column.
-
-             import Standard.Examples
-
-             example_set_index =
-                Examples.decimal_column.set_index Examples.integer_column
-    set_index : Column -> Column
-    set_index self index = Column.Value (self.java_column.setIndex index.java_column)
-
     ## Returns the value contained in this column at the given index.
 
        Arguments:
@@ -1028,45 +1019,29 @@ type Column
     storage_type : Storage
     storage_type self =
         tp = self.java_column.getStorage.getType
-        Storage.types.at tp . catch Index_Out_Of_Bounds.Error _->
-            Panic.throw (Illegal_State.Error "Unknown storage type: "+tp.to_text)
+        Storage.from_java tp
 
     ## UNSTABLE TODO this is a prototype that will be revisited later on
     value_type : Value_Type
-    value_type self = case self.storage_type of
-        Storage.Text -> Value_Type.Char
-        Storage.Integer -> Value_Type.Integer
-        Storage.Decimal -> Value_Type.Float
-        Storage.Boolean -> Value_Type.Boolean
-        Storage.Date -> Value_Type.Date
-        Storage.Time_Of_Day -> Value_Type.Time
-        Storage.Date_Time -> Value_Type.Date_Time
-        Storage.Any -> Value_Type.Mixed
+    value_type self = self.storage_type.to_approximate_value_type
 
     ## UNSTABLE
 
-       Converts this column to JSON.
+       Converts this column to JS_Object representation.
 
        > Example
-         Get a JSON representation of the column.
+         Get a JavaScript representation of the column.
 
              import Standard.Examples
 
-             example_to_json = Examples.integer_column.to_json
-    to_json : Json
-    to_json self =
-        col = self.java_column
-        name = col.getName
-        storage = col.getStorage
-        json_factory = case self.storage_type of
-            Storage.Text -> Json.String
-            Storage.Integer -> Json.Number
-            Storage.Decimal -> Json.Number
-            Storage.Boolean -> Json.Boolean
-            _ -> .to_json
-        storage_json = Json.Array (storage_to_json storage json_factory)
-        fields = Map.singleton "name" (Json.String name) . insert "data" storage_json
-        Json.Object fields
+             example_to_json = Examples.integer_column.to_js_object
+    to_js_object : JS_Object
+    to_js_object self =
+        name = self.java_column.getName
+        storage = self.java_column.getStorage
+        storage_proxy = Array_Proxy.new storage.size i-> storage.getItem i
+        storage_json = Vector.from_polyglot_array storage_proxy
+        JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
     ## Efficiently joins two tables based on either the index or the specified
        key column.
@@ -1109,19 +1084,6 @@ type Column
     to_table self = Table.Value self.java_column.toTable
 
     ## UNSTABLE
-       ADVANCED
-
-       Shows a JSON serialization of a truncated version of this column, for the
-       benefit of visualization in the IDE.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        size = ['length', self.length]
-        name = ['name', self.name]
-        max_data = 100
-        data = ['data', self.to_vector.take (First max_data)]
-        Json.from_pairs [size, name, data] . to_text
-
-    ## UNSTABLE
 
        Sorts the column according to the specified rules.
 
@@ -1131,8 +1093,8 @@ type Column
          compared to non-missing ones. Note that this argument is independent
          from `order`, i.e. missing values will always be sorted according to
          this rule, ignoring the ascending / descending setting.
-       - comparator: function taking two items in this column and returning
-         an ordering. If specified, it is used instead of the natural
+       - by: function taking two items in this column and returning an
+         ordering. If specified, it is used instead of the natural
          (`.compare_to`) ordering.
 
        > Example
@@ -1149,7 +1111,7 @@ type Column
              import Standard.Examples
 
              example_sort =
-                 Examples.integer_column.sort order=Sort_Direction.Descending missing_last=False
+                 Examples.integer_column.sort Sort_Direction.Descending missing_last=False
 
        > Example
          Sorting `column` in ascending order, using a custom comparator
@@ -1159,13 +1121,13 @@ type Column
 
              example_sort =
                  my_comparator a b = a.abs.compare_to b.abs
-                 Examples.decimal_column.sort comparator=my_comparator
+                 Examples.decimal_column.sort by=my_comparator
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort self order=Sort_Direction.Ascending missing_last=True comparator=Nothing =
+    sort self order=Sort_Direction.Ascending missing_last=True by=Nothing =
         order_bool = case order of
             Sort_Direction.Ascending -> True
             Sort_Direction.Descending -> False
-        java_cmp = Comparator.new comparator
+        java_cmp = Comparator.new by
         rule = OrderBuilder.OrderRule.new self.java_column java_cmp order_bool missing_last
         mask = OrderBuilder.buildOrderMask [rule].to_array
         new_col = self.java_column.applyMask mask
@@ -1203,7 +1165,7 @@ type Column
        Returns the first element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
+       containing an `Index_Out_Of_Bounds`.
 
        > Example
          Get the first element of a column.
@@ -1211,15 +1173,15 @@ type Column
              import Standard.Examples
 
              example_first = Examples.integer_column.first
-    first : Any ! Empty_Error
-    first self = self.at 0 . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
+    first : Any ! Index_Out_Of_Bounds
+    first self = self.at 0
 
     ## UNSTABLE
 
        Returns the last element in the column, if it exists.
 
        If the column is empty, this method will return a dataflow error
-       containing an `Empty_Error`.
+       containing an `Index_Out_Of_Bounds`.
 
        > Example
          Get the last element of a column.
@@ -1227,8 +1189,8 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last : Any ! Empty_Error
-    last self = self.at (self.length - 1) . catch Index_Out_Of_Bounds.Error (_ -> Error.throw Empty_Error)
+    last : Any ! Index_Out_Of_Bounds
+    last self = self.at (self.length - 1)
 
     ## UNSTABLE
 
@@ -1265,16 +1227,6 @@ type Column
     var_args_functions : Vector
     var_args_functions = ['is_in', 'coalesce', 'min', 'max']
 
-## UNSTABLE
-
-   An error for when the column contains no elements.
-type Empty_Error
-    ## PRIVATE
-
-       Pretty prints the empty column error.
-    to_display_text : Text
-    to_display_text self = "The column is empty."
-
 ## PRIVATE
 
    Folds the vectorized operation over the provided column and values. When more
@@ -1298,7 +1250,7 @@ run_vectorized_many_op column name fallback_fn operands skip_nulls=False new_nam
                 case operand of
                     _ : Column -> current.zip name fallback_fn operand.java_column.getStorage skip_nulls
                     _ -> current.bimap name fallback_fn operand skip_nulls
-            Column.Value (Java_Column.new new_name column.java_column.getIndex folded)
+            Column.Value (Java_Column.new new_name folded)
         _ : Array -> run_vectorized_many_op column name fallback_fn (Vector.from_polyglot_array operands) skip_nulls new_name
         _ -> run_vectorized_many_op column name fallback_fn [operands] skip_nulls new_name
 
@@ -1320,15 +1272,13 @@ run_vectorized_binary_op : Column -> Text -> (Any -> Any -> Any) -> Any -> Boole
 run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_name="Result" = case operand of
     Column.Value col2 ->
         s1 = column.java_column.getStorage
-        ix = column.java_column.getIndex
         s2 = col2.getStorage
         rs = s1.zip name fallback_fn s2 skip_nulls
-        Column.Value (Java_Column.new new_name ix rs)
+        Column.Value (Java_Column.new new_name rs)
     _ ->
         s1 = column.java_column.getStorage
-        ix = column.java_column.getIndex
         rs = s1.bimap name fallback_fn operand skip_nulls
-        Column.Value (Java_Column.new new_name ix rs)
+        Column.Value (Java_Column.new new_name rs)
 
 ## PRIVATE
 
@@ -1344,22 +1294,8 @@ run_vectorized_binary_op column name fallback_fn operand skip_nulls=True new_nam
 run_vectorized_unary_op : Column -> Text -> (Any -> Any) -> Any -> Column
 run_vectorized_unary_op column name fallback_fn on_missing=Nothing =
     s = column.java_column.getStorage
-    ix = column.java_column.getIndex
     rs = s.map name fallback_fn on_missing
-    Column.Value (Java_Column.new "Result" ix rs)
-
-## PRIVATE
-
-   A helper function for converting a column storage to JSON.
-
-   Arguments:
-   - storage: The storage to convert to JSON.
-   - factory: The factory function for converting the storage.
-storage_to_json : Storage -> (Any -> Json) -> Json
-storage_to_json storage factory =
-    Vector.new storage.size ix->
-        if storage.isNa ix then Json.Null else
-            factory (storage.getItem ix)
+    Column.Value (Java_Column.new "Result" rs)
 
 ## PRIVATE
 
@@ -1384,3 +1320,44 @@ get_item_string column ix =
 slice_ranges column ranges =
     normalized = Index_Sub_Range_Module.normalize_ranges ranges
     Column.Value (column.java_column.slice normalized.to_array)
+
+## PRIVATE
+   Creates a storage builder suitable for building a column for the provided
+   column type.
+
+   This relies on a rudimentary mapping between `Value_Type` and `Storage`. It
+   does not ensure validity checks for the particular type, like checking string
+   length or number size.
+
+   It may be tempting to return an `InferredBuilder` for the `Mixed` type - as
+   this will use a more compact storage if a mixed type column contains only
+   numbers. However, since currently `Column.value_type` is derived directly
+   from its storage type, that would result in a changed `value_type` in the
+   result. Whereas we want to ensure that if the requested type is `Mixed`, the
+   resulting column should also report `Mixed` value type. Once the types work
+   decouples `value_type` from `storage_type`, this logic could be adjusted.
+
+   Due to the coupling of value types and storage, `value_type` of the created
+   column may not be exactly the same as the one requested here, it will be the
+   closest one currently supported by our storage (i.e. any constraints like
+   integer size or constant text width will be dropped). This will need to be
+   revisited as part of the types work:
+   https://www.pivotaltracker.com/story/show/183854180
+make_storage_builder_for_type value_type initial_size=128 =
+    closest_storage_type = case value_type of
+        Value_Type.Boolean -> Storage.Boolean
+        Value_Type.Byte -> Storage.Integer
+        Value_Type.Integer _ -> Storage.Integer
+        Value_Type.Float _ -> Storage.Decimal
+        ## Arbitrary precision numbers are not currently representable by our
+           specialized in-memory storage, so falling back to object storage.
+        Value_Type.Decimal _ _ -> Storage.Any
+        Value_Type.Char _ _ -> Storage.Text
+        Value_Type.Date -> Storage.Date
+        Value_Type.Date_Time with_timezone ->
+            ## Our specialized storage is only capable of storing date time with timezone. If we want to store a different kind of date-time, we will
+            if with_timezone then Storage.Date_Time else Storage.Any
+        Value_Type.Time -> Storage.Time_Of_Day
+        Value_Type.Mixed -> Storage.Any
+        _ -> Storage.Any
+    Storage.make_builder closest_storage_type initial_size

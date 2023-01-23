@@ -75,6 +75,9 @@ impl Initializer {
             config::InitialView::Project => view.switch_view_to_project(),
         }
 
+        if enso_config::ARGS.emit_user_timing_measurements.unwrap_or_default() {
+            ensogl_app.display.connect_profiler_to_user_timing();
+        }
         let status_bar = view.status_bar().clone_ref();
         ensogl_app.display.add_child(&view);
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting
@@ -221,13 +224,6 @@ impl WithProjectManager {
 // === Utils ===
 // =============
 
-/// Creates a new running executor with its own event loop. Registers them as a global executor.
-pub fn setup_global_executor() -> executor::web::EventLoopExecutor {
-    let executor = executor::web::EventLoopExecutor::new_running();
-    executor::global::set_spawner(executor.spawner.clone());
-    executor
-}
-
 /// Register all the standard views for the IDE.
 pub fn register_views(app: &Application) {
     app.views.register::<ide_view::root::View>();
@@ -245,6 +241,7 @@ pub fn register_views(app: &Application) {
     app.views.register::<ensogl_component::text::Text>();
     app.views.register::<ensogl_component::selector::NumberPicker>();
     app.views.register::<ensogl_component::selector::NumberRangePicker>();
+    app.views.register::<ensogl_component::drop_down::Dropdown<ImString>>();
 
     // As long as .label() of a View is the same, shortcuts and commands are currently also
     // expected to be the same, so it should not be important which concrete type parameter of

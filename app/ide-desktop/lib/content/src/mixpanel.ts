@@ -12,6 +12,7 @@ export class MixpanelLogger extends Consumer {
     constructor(debug: boolean) {
         super()
         this.mixpanel = require('mixpanel-browser')
+        // FIXME: make it as it was in develop
         this.mixpanel.init(
             '5b541aeab5e08f313cdc1d1bbebc12ac',
             { debug, api_host: 'https://api-eu.mixpanel.com' },

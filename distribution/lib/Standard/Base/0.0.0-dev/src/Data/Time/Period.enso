@@ -129,20 +129,6 @@ type Period
                     DateTimeException -> Error.throw Time_Error.Error "Period subtraction failed"
                     ArithmeticException -> Error.throw Illegal_Argument.Error "Arithmetic error"
 
-    ## Check two periods for equality.
-
-       Note that two periods are equal if they have the exact same amount of
-       years, months, and days. So `(Period.new days=30)` and
-       `(Period.new months=1)` are not equal. Even `(Period.new years=1)` and
-       `(Period.new months=12)` are not equal.
-
-       Arguments:
-       - other_period: The period to compare against `self`.
-    == : Period -> Boolean
-    == self that =
-        ensure_period that <|
-            self.internal_period.equals that.internal_period
-
     ## Just throws `Incomparable_Values`, because periods cannot be
        compared without additional context.
 

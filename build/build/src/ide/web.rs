@@ -178,7 +178,7 @@ impl<Assets, Output> Drop for ContentEnvironment<Assets, Output> {
     }
 }
 
-pub fn target_flag(os: OS) -> Result<&'static str> {
+pub fn target_os_flag(os: OS) -> Result<&'static str> {
     match os {
         OS::Windows => Ok("--win"),
         OS::Linux => Ok("--linux"),
@@ -303,6 +303,7 @@ impl IdeDesktop {
         ?gui,
         ?project_manager,
         ?target_os,
+        ?target,
         err))]
     pub async fn dist(
         &self,
@@ -310,6 +311,7 @@ impl IdeDesktop {
         project_manager: &crate::project::backend::Artifact,
         output_path: impl AsRef<Path>,
         target_os: OS,
+        target: Option<String>,
     ) -> Result {
         if TARGET_OS == OS::MacOS && CSC_KEY_PASSWORD.is_set() {
             // This means that we will be doing code signing on MacOS. This requires JDK environment
@@ -362,6 +364,11 @@ impl IdeDesktop {
             None
         };
 
+        let target_args = match target {
+            Some(target) => vec!["--target".to_string(), target],
+            None => vec![],
+        };
+
         self.npm()?
             .try_applying(&icons)?
             // .env("DEBUG", "electron-builder")
@@ -373,7 +380,8 @@ impl IdeDesktop {
             // .args(["--loglevel", "verbose"])
             .run("dist", EMPTY_ARGS)
             .arg("--")
-            .arg(target_flag(target_os)?)
+            .arg(target_os_flag(target_os)?)
+            .args(target_args)
             .run_ok()
             .await?;
 

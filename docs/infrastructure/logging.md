@@ -296,13 +296,20 @@ logging-service.logger {
   akka.actor = info
   akka.event = error
   akka.io = error
-  slick = error
+  slick {
+    jdbc.JdbcBackend.statement = debug
+    "*" = error
+  }
 }
 ```
 
 For example, the config above limits all `akka.actor.*` loggers to the info
 level logging, and `akka.event.*` loggers can emit only the error level
 messages.
+
+Config supports globs (`*`). For example, the config above sets
+`jdbc.JdbcBackend.statement` SQL statements logging to debug level, and the rest
+of the slick loggers to error level.
 
 ### Logging in Tests
 

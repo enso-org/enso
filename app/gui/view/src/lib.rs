@@ -33,7 +33,6 @@
 pub mod code_editor;
 pub mod component_browser;
 pub mod debug_mode_popup;
-pub mod documentation;
 pub mod open_dialog;
 pub mod project;
 pub mod root;
@@ -41,6 +40,7 @@ pub mod searcher;
 pub mod status_bar;
 pub mod window_control_buttons;
 
+pub use ide_view_documentation as documentation;
 pub use ide_view_graph_editor as graph_editor;
 pub use welcome_screen;
 

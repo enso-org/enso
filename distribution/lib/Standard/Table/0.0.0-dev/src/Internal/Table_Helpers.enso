@@ -4,17 +4,19 @@ import Standard.Base.Data.Ordering.Vector_Lexicographic_Order
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Illegal_State.Illegal_State
 
+import project.Data.Column.Column
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
 import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
+import project.Data.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, No_Input_Columns_Selected
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch
 
 polyglot java import java.util.HashSet
 
@@ -84,7 +86,7 @@ type Table_Column_Helper
         selection = self.select_columns_helper selector reorder=False problem_builder
         selected_names = Map.from_vector (selection.map column-> [column.name, True])
         result = self.internal_columns.filter column->
-            should_be_removed = selected_names.get_or_else column.name False
+            should_be_removed = selected_names.get column.name False
             should_be_removed.not
         if result.is_empty then
             problem_builder.report_other_warning No_Output_Columns
@@ -115,7 +117,7 @@ type Table_Column_Helper
         problem_builder.attach_problems_before on_problems <|
             selected_names = Map.from_vector (selection.map column-> [column.name, True])
             other_columns = self.internal_columns.filter column->
-                is_selected = selected_names.get_or_else column.name False
+                is_selected = selected_names.get column.name False
                 is_selected.not
             result = case position of
                 Position.Before_Other_Columns -> selection + other_columns
@@ -169,7 +171,7 @@ type Table_Column_Helper
             modified_table = blanks.fold (self.table.select_columns [] on_problems=Problem_Behavior.Ignore) table-> blanks_col->
                 table.set blanks_col.name blanks_col
             # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
-            col_aggregate = if when_any then Maximum else Minimum
+            col_aggregate = if when_any then Maximum _ else Minimum _
             aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
             result = self.materialize <| Panic.rethrow <|
                 modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error
@@ -192,7 +194,7 @@ type Table_Column_Helper
        A helper function which selects a single column from the table. It is aligned
        with the `select_columns_helper`, apart from Blank_Columns selector which is
        only handled by the other method but not this one.
-    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> a | Nothing
+    resolve_column_helper : (Integer | Text | Column) -> Problem_Builder -> Any | Nothing
     resolve_column_helper self selector problem_builder = case selector of
         _ : Text ->
             matched_columns = self.internal_columns.filter column->(column.name==selector)
@@ -266,7 +268,7 @@ rename_columns internal_columns mapping on_problems =
             index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
 
             new_names = 0.up_to col_count . map i->
-                target = index_map.get_or_else i Nothing
+                target = index_map.get i Nothing
                 if target.is_nothing then Nothing else unique.make_unique target
 
             new_names
@@ -284,11 +286,7 @@ rename_columns internal_columns mapping on_problems =
     processed = mapped.map_with_index i->n->
         n.if_nothing (unique.make_unique (internal_columns.at i).name)
 
-    if unique.invalid_names.not_empty then
-        problem_builder.report_other_warning (Invalid_Output_Column_Names.Error unique.invalid_names)
-    if unique.renames.not_empty then
-        problem_builder.report_other_warning (Duplicate_Output_Column_Names.Error unique.renames)
-
+    problem_builder.report_unique_name_strategy unique
     problem_builder.attach_problems_before on_problems processed
 
 ## PRIVATE
@@ -302,10 +300,10 @@ rename_columns internal_columns mapping on_problems =
 
    Arguments:
    - internal_columns: A list of all columns in a table.
-   - direction: Whether sorting should be in ascending or descending order.
+   - order: Whether sorting should be in ascending or descending order.
    - text_ordering: The sort methodology to use.
 sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
-sort_columns internal_columns direction text_ordering =
+sort_columns internal_columns order text_ordering =
     case_sensitivity = text_ordering.case_sensitivity.if_nothing Case_Sensitivity.Sensitive
     mapper = case case_sensitivity of
         Case_Sensitivity.Sensitive -> _.name
@@ -314,7 +312,7 @@ sort_columns internal_columns direction text_ordering =
     comparator = case text_ordering.sort_digits_as_numbers of
         True -> Natural_Order.compare
         False -> .compare_to
-    internal_columns.sort on=mapper by=comparator order=direction
+    internal_columns.sort order=order on=mapper by=comparator
 
 ## PRIVATE
    Converts the generic `No_Matches_Found` error to a more specific
@@ -338,7 +336,7 @@ select_indices_reordering vector indices =
 select_indices_preserving_order vector indices =
     indices_to_keep = Map.from_vector (indices.map i-> [i, True])
     vector.filter_with_index ix-> _->
-        indices_to_keep.get_or_else ix False
+        indices_to_keep.get ix False
 
 ## PRIVATE
    Returns the actual position in the array that the index points to.
@@ -393,7 +391,7 @@ validate_unique vector problem_callback on=(x->x) =
     acc = vector.fold [Map.empty, Vector.new_builder, Vector.new_builder] acc-> item->
         existing = acc.at 0
         key = on item
-        already_present = existing.get_or_else key False
+        already_present = existing.get key False
         case already_present of
             True -> [existing, acc.at 1, acc.at 2 . append item]
             False -> [existing.insert key True, acc.at 1 . append item, acc.at 2]
@@ -499,7 +497,7 @@ transform_columns_by_index internal_columns index_selectors problem_builder inde
     good_indices = validate_indices internal_columns.length index_selectors problem_builder index_extractor
     selectors_map = Map.from_vector good_indices
     internal_columns.map_with_index i-> column->
-        associated_selector = selectors_map.get_or_else i Nothing
+        associated_selector = selectors_map.get i Nothing
         Column_Transform_Element.Value column associated_selector
 
 ## PRIVATE
@@ -634,3 +632,26 @@ filter_blank_rows table when_any treat_nans_as_blank =
 is_table obj =
     known_types = ["Standard.Table.Data.Table.Table", "Standard.Database.Data.Table.Table"]
     known_types.contains (Meta.get_qualified_type_name obj)
+
+## PRIVATE
+   A helper method that resolves what should be the result type of a particular
+   column set based on the union settings.
+unify_result_type_for_union column_set all_tables allow_type_widening problem_builder =
+    columns = column_set.resolve_columns all_tables
+    case allow_type_widening of
+        True ->
+            types = columns.filter Filter_Condition.Not_Nothing . map .value_type
+            common_type = Value_Type.find_common_type types strict=True
+            if common_type.is_nothing then
+                problem_builder.report_other_warning (No_Common_Type.Error column_set.name)
+            common_type
+        False ->
+            first_column = columns.find (c-> c.is_nothing.not)
+            first_type = first_column.value_type
+            if first_type == Value_Type.Mixed then Value_Type.Mixed else
+                first_wrong_column = columns.find if_missing=Nothing col->
+                    col.is_nothing.not && col.value_type != first_type
+                if first_wrong_column.is_nothing then first_type else
+                    got_type = first_wrong_column.value_type
+                    problem_builder.report_other_warning (Column_Type_Mismatch.Error column_set.name first_type got_type)
+                    Nothing

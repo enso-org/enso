@@ -22,7 +22,7 @@ import java.time.format.DateTimeParseException;
 
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-@Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date")
+@Builtin(pkg = "date", name = "Date", stdlibName = "Standard.Base.Data.Time.Date.Date")
 public final class EnsoDate implements TruffleObject {
   private final LocalDate date;
 
@@ -99,6 +99,16 @@ public final class EnsoDate implements TruffleObject {
   }
 
   @ExportMessage
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
+    return EnsoContext.get(thisLib).getBuiltins().date();
+  }
+
+  @ExportMessage
+  boolean hasMetaObject() {
+    return true;
+  }
+
+  @ExportMessage
   boolean hasType() {
     return true;
   }
@@ -110,7 +120,7 @@ public final class EnsoDate implements TruffleObject {
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
-  public final Object toDisplayString(boolean allowSideEffects) {
+  public Object toDisplayString(boolean allowSideEffects) {
     return DateTimeFormatter.ISO_LOCAL_DATE.format(date);
   }
 }

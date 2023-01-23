@@ -17,19 +17,13 @@ import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.data.text.Text
-import org.enso.interpreter.runtime.error.{
-  DataflowError,
-  PanicSentinel,
-  WithWarnings
-}
+import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
 import java.io.File
-import java.nio.charset.StandardCharsets
 import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
@@ -271,11 +265,14 @@ object ProgramExecutionSupport {
     val reason          = Option(error.getMessage).getOrElse(error.getClass.toString)
     val message = error match {
       case _: ThreadInterruptedException =>
-        s"Execution of function $itemName interrupted."
+        val message = s"Execution of function $itemName interrupted."
+        ctx.executionService.getLogger.log(Level.WARNING, message)
+        message
       case _ =>
-        s"Execution of function $itemName failed ($reason)."
+        val message = s"Execution of function $itemName failed ($reason)."
+        ctx.executionService.getLogger.log(Level.WARNING, message, error)
+        message
     }
-    ctx.executionService.getLogger.log(Level.WARNING, message)
     executionUpdate.getOrElse(Api.ExecutionResult.Failure(message, None))
   }
 
@@ -525,26 +522,15 @@ object ProgramExecutionSupport {
     * @return either a byte array representing the visualization result or an
     *         error
     */
-  @scala.annotation.tailrec
   private def visualizationResultToBytes(
     value: AnyRef
-  ): Either[VisualisationException, Array[Byte]] =
-    value match {
-      case text: String =>
-        Right(text.getBytes(StandardCharsets.UTF_8))
-      case text: Text =>
-        Right(text.toString.getBytes(StandardCharsets.UTF_8))
-      case bytes: Array[Byte] =>
-        Right(bytes)
-      case withWarnings: WithWarnings =>
-        visualizationResultToBytes(withWarnings.getValue)
-      case other =>
-        Left(
-          new VisualisationException(
-            s"Cannot encode ${other.getClass} to byte array."
-          )
-        )
-    }
+  ): Either[VisualisationException, Array[Byte]] = {
+    Option(VisualizationResult.visualizationResultToBytes(value)).toRight(
+      new VisualisationException(
+        s"Cannot encode ${value.getClass} to byte array."
+      )
+    )
+  }
 
   /** Extract method pointer information from the expression value.
     *
@@ -555,7 +541,7 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   ): Option[Api.MethodPointer] =
     for {
-      call       <- Option(value.getCallInfo)
+      call       <- Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       moduleName <- Option(call.getModuleName)
       typeName   <- Option(call.getTypeName)
     } yield Api.MethodPointer(

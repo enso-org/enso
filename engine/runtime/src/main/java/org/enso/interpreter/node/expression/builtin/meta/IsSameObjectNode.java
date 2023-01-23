@@ -8,6 +8,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.data.Type;
 
 @BuiltinMethod(
     type = "Meta",
@@ -21,6 +22,11 @@ public abstract class IsSameObjectNode extends Node {
   }
 
   public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
+
+  @Specialization
+  boolean isSameType(Type typeLeft, Type typeRight) {
+    return typeLeft == typeRight;
+  }
 
   /**
    * Shortcut specialization for meta objects.
@@ -46,6 +52,16 @@ public abstract class IsSameObjectNode extends Node {
   @Fallback
   boolean isIdenticalObjects(
       Object left, Object right, @CachedLibrary(limit = "2") InteropLibrary interop) {
-    return (left == right) || interop.isIdentical(left, right, interop);
+    if (left == right) {
+      return true;
+    }
+    if (interop.isString(left) && interop.isString(right)) {
+      try {
+        return interop.asString(left).equals(interop.asString(right));
+      } catch (UnsupportedMessageException ex) {
+        // go on
+      }
+    }
+    return interop.isIdentical(left, right, interop);
   }
 }

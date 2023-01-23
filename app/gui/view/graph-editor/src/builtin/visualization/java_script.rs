@@ -93,6 +93,18 @@ pub fn image_base64_visualization() -> visualization::java_script::FallibleDefin
     visualization::java_script::Definition::new_builtin(source)
 }
 
+
+/// Return a `JavaScript` Warnings visualization.
+pub fn warnings_visualization() -> visualization::java_script::FallibleDefinition {
+    let source = from_files!(
+        "java_script/helpers/loading.js",
+        "java_script/helpers/scrollable.js",
+        "java_script/warnings.js"
+    );
+
+    visualization::java_script::Definition::new_builtin(source)
+}
+
 /// Return an empty minimal `JavaScript` visualization. This should not be used except for testing.
 pub fn empty_visualization() -> visualization::java_script::FallibleDefinition {
     let source = r#"

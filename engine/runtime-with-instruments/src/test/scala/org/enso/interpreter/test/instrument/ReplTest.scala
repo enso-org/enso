@@ -99,10 +99,10 @@ class ReplTest
           result.toString shouldEqual "2"
         }
         inside(executor.evaluate("B.Bar 1")) { case Right(result) =>
-          result.toString shouldEqual "Bar 1"
+          result.toString shouldEqual "Error in method `to_text` of [Bar 1]: Expected Text but got 42"
         }
         inside(executor.evaluate("C.Baz 1")) { case Right(result) =>
-          result.toString shouldEqual "Baz 1"
+          result.toString shouldEqual "Error in method `to_text` of [Baz 1]: Expected Text but got C.to_text[Test:18-40]"
         }
         inside(executor.evaluate("Pattern.compile 'foo'")) {
           case Right(result) =>

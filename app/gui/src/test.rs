@@ -74,6 +74,7 @@ pub mod mock {
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
+                tag_values:    Vec::new(),
             }
         }
 
@@ -84,6 +85,7 @@ pub mod mock {
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
+                tag_values:    Vec::new(),
             }
         }
 
@@ -94,6 +96,7 @@ pub mod mock {
                 is_suspended:  false,
                 has_default:   false,
                 default_value: None,
+                tag_values:    Vec::new(),
             }
         }
 
@@ -292,10 +295,7 @@ pub mod mock {
             let mut executor = TestWithLocalPoolExecutor::set_up();
             let data = self.clone();
             let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
-            let searcher_mode = controller::searcher::Mode::NewNode {
-                node_id:     searcher_target,
-                source_node: None,
-            };
+            let searcher_mode = controller::searcher::Mode::EditNode { node_id: searcher_target };
             let searcher = controller::Searcher::new_from_graph_controller(
                 &logger,
                 ide.clone_ref(),

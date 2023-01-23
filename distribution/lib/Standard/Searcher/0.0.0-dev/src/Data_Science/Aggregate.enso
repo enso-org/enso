@@ -1,6 +1,6 @@
 ## With your data in the state that you want, the next step is to pull useful
    summaries from it to give you insight. This is the process of _aggregation_
-   or _summarisation_.
+   or _summarization_.
 
    Enso provides robust facilities for getting aggregate results from your data,
    all built on a flexible foundation of grouping.
@@ -23,13 +23,10 @@
      Compute the maximum value of a column, the minimum value, the sum of its
      values, and its mean, and return these in a vector.
 
+         from Standard.Table import all
          import Standard.Examples
 
          example_aggregate =
              column = Examples.integer_column
-             max = column.max
-             min = column.min
-             sum = column.sum
-             mean = column.mean
-             [max, min, sum, mean]
-
+             as_table = column.to_table
+             aggregate = as_table.aggregate [Aggregate_Column.Minimum, Aggregate_Column.Maximum, Aggregate_Column.Sum, Aggregate_Column.Average]

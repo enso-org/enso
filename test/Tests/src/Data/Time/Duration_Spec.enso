@@ -9,19 +9,6 @@ polyglot java import java.time.Duration as Java_Duration
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalDateTime as Java_DateTime
 
-
-java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
-    Panic.catch Any (Java_DateTime.of year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
-
-js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
-    Panic.catch Any (js_datetime_impl year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload))
-
-foreign js js_datetime_impl year month day hour minute second nanosecond = """
-    if (month > 12 || month < 1) {
-        throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
-    }
-    return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
-
 spec =
     Test.group "Duration" <|
 
@@ -54,8 +41,8 @@ spec =
         Test.specify "should convert to Json" <|
             interval = (Duration.new nanoseconds=120) + (Duration.new seconds=30) + (Duration.new hours=14)
             interval.to_json.should_equal <|
-                duration_pairs = [["nanoseconds", interval.nanoseconds], ["seconds", interval.seconds], ["hours", interval.hours]]
-                Json.from_pairs ([["type", "Duration"]] + duration_pairs)
+                duration_pairs = [["hours", interval.hours], ["seconds", interval.seconds], ["nanoseconds", interval.nanoseconds]]
+                JS_Object.from_pairs ([["type", "Duration"], ["constructor", "new"]] + duration_pairs) . to_text
 
         Test.specify "should be comparable" <|
             duration_1 = (Duration.new hours=5)
@@ -105,5 +92,16 @@ spec =
             (Duration.between (js_datetime 2022 09 08) (java_datetime 2022 09 09) timezone_aware=False).total_hours . should_equal 24
             (Duration.between (java_datetime 2022 09 09) (js_datetime 2022 09 08) timezone_aware=False).total_hours . should_equal (-24)
 
+java_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
+    Panic.catch Any (Java_DateTime.of year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error <| err.payload.getMessage))
+
+js_datetime year month=1 day=1 hour=0 minute=0 second=0 nanosecond=0 =
+    Panic.catch Any (js_datetime_impl year month day hour minute second nanosecond) (err -> Error.throw (Time_Error.Error err.payload))
+
+foreign js js_datetime_impl year month day hour minute second nanosecond = """
+    if (month > 12 || month < 1) {
+        throw `Invalid value for MonthOfYear (valid values 1 - 12): ${month}`;
+    }
+    return new Date(year, month - 1, day, hour, minute, second, nanosecond / 1000000);
 
 main = Test_Suite.run_main spec

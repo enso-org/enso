@@ -481,6 +481,32 @@ pub trait Manipulator {
     fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C);
 }
 
+impl Manipulator for String {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        command.arg(self);
+    }
+}
+
+impl Manipulator for &str {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        command.arg(self);
+    }
+}
+
+impl Manipulator for OsString {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        command.arg(self);
+    }
+}
+
+impl<T: Manipulator> Manipulator for Option<T> {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        if let Some(value) = self {
+            value.apply(command);
+        }
+    }
+}
+
 pub trait FallibleManipulator {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result;
 }

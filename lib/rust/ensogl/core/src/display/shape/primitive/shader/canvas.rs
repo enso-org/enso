@@ -37,27 +37,14 @@ impl Shape {
 /// reference to GLSL code which defines a vector shape there.
 #[derive(Clone, Debug)]
 pub struct ShapeData {
-    shape_num: usize,
-    ids:       Vec<usize>,
-    name:      String,
+    name: String,
 }
 
 impl ShapeData {
     /// Constructor.
-    pub fn new(shape_num: usize) -> Self {
-        let ids = default();
-        let name = format!("shape_{}", shape_num);
-        Self { shape_num, ids, name }
-    }
-
-    /// Adds new id enclosed in this shape.
-    pub fn add_id(&mut self, id: usize) {
-        self.ids.push(id);
-    }
-
-    /// Add multiple ids enclosed in this shape.
-    pub fn add_ids(&mut self, ids: &[usize]) {
-        self.ids.extend(ids)
+    pub fn new(shape_id: usize) -> Self {
+        let name = format!("shape_{}", shape_id);
+        Self { name }
     }
 
     /// Getter of the shape as GLSL expression.
@@ -151,20 +138,26 @@ impl Canvas {
     /// Defines a new shape with a new id and associated parameters, like color.
     pub fn define_shape(&mut self, num: usize, sdf: &str) -> Shape {
         self.if_not_defined(num, |this| {
-            let mut shape = ShapeData::new(num);
+            // NOTE: Generated GLSL determinism
+            // Use sequential IDs for shape names. This guarantees that the shape names are unique
+            // per shader and deterministic across multiple runs of the codegen for identical shape
+            // definition. This would not be true if we use `num`, which is derived from the address
+            // of shape pointer. This is important for shader caching based on generated GLSL code.
             let id = this.get_new_id();
+            let shape = ShapeData::new(id);
             this.define("BoundSdf", "sdf", iformat!("{sdf}"));
             this.define("Id", "id", iformat!("new_id_layer(sdf,{id})"));
             this.add_current_function_code_line("return shape(id, sdf);");
             this.submit_shape_constructor(&shape.name);
-            shape.add_id(id);
             shape
         })
     }
 
     /// Define a new shape from the provided GLSL expression.
-    pub fn new_shape_from_expr(&mut self, num: usize, expr: &str) -> ShapeData {
-        let shape = ShapeData::new(num);
+    pub fn new_shape_from_expr(&mut self, expr: &str) -> ShapeData {
+        // NOTE: Generated GLSL determinism - see above
+        let id = self.get_new_id();
+        let shape = ShapeData::new(id);
         self.add_current_function_code_line(expr);
         self.submit_shape_constructor(&shape.name);
         shape
@@ -179,10 +172,7 @@ impl Canvas {
     pub fn union(&mut self, num: usize, s1: Shape, s2: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return unify({s1.getter()},{s2.getter()});");
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s1.ids);
-            shape.add_ids(&s2.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -190,10 +180,7 @@ impl Canvas {
     pub fn difference(&mut self, num: usize, s1: Shape, s2: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return difference({s1.getter()},{s2.getter()});");
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s1.ids);
-            shape.add_ids(&s2.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -201,10 +188,7 @@ impl Canvas {
     pub fn intersection(&mut self, num: usize, s1: Shape, s2: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return intersection({s1.getter()},{s2.getter()});");
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s1.ids);
-            shape.add_ids(&s2.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -220,9 +204,7 @@ impl Canvas {
             let trans = iformat!("position = translate(position,{v});");
             let expr = iformat!("return {s1.getter()};");
             this.add_current_function_code_line(trans);
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s1.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -233,9 +215,7 @@ impl Canvas {
             let trans = iformat!("position = rotate(position,{angle});");
             let expr = iformat!("return {s1.getter()};");
             this.add_current_function_code_line(trans);
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s1.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -246,9 +226,7 @@ impl Canvas {
             let trans = iformat!("position = scale(position,{value});");
             let expr = iformat!("return resample({s1.getter()},{value});");
             this.add_current_function_code_line(trans);
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s1.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -264,9 +242,7 @@ impl Canvas {
             this.add_current_function_code_line(iformat!("Shape shape = {s.getter()};"));
             this.add_current_function_code_line(iformat!("Srgba color = srgba({color});"));
             let expr = iformat!("return set_color(shape,color);");
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -274,9 +250,7 @@ impl Canvas {
     pub fn pixel_snap(&mut self, num: usize, s: Shape) -> Shape {
         self.if_not_defined(num, |this| {
             let expr = iformat!("return pixel_snap({s.getter()});");
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -285,9 +259,7 @@ impl Canvas {
         self.if_not_defined(num, |this| {
             let value: Glsl = value.into().glsl();
             let expr = iformat!("return grow({s.getter()},{value});");
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 
@@ -309,9 +281,7 @@ impl Canvas {
             let repeat = iformat!("position = repeat(position,{value});");
             let expr = iformat!("return with_infinite_bounds({s.getter()});");
             this.add_current_function_code_line(repeat);
-            let mut shape = this.new_shape_from_expr(num, &expr);
-            shape.add_ids(&s.ids);
-            shape
+            this.new_shape_from_expr(&expr)
         })
     }
 }

@@ -19,9 +19,12 @@ enso-frp = { path = "../../lib/rust/frp" }
 enso-logger = { path = "../../lib/rust/logger" }
 enso-prelude = { path = "../../lib/rust/prelude" }
 enso-profiler = { path = "../../lib/rust/profiler" }
+enso-executor = { path = "../../lib/rust/executor" }
+enso-notification = { path = "../../lib/rust/notification" }
 enso-shapely = { path = "../../lib/rust/shapely" }
 enso-text = { path = "../../lib/rust/text" }
 enso-web = { path = "../../lib/rust/web" }
+enso-suggestion-database = { path = "suggestion-database" }
 ensogl = { path = "../../lib/rust/ensogl" }
 ensogl-examples = { path = "../../lib/rust/ensogl/example" }
 ensogl-component = { path = "../../lib/rust/ensogl/component" }

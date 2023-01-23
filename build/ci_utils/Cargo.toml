@@ -18,6 +18,7 @@ chrono = { version = "0.4.19", features = ["serde"] }
 clap = { version = "3.1.5", features = ["derive", "env"] }
 cron = "0.12.0"
 data-encoding = "2.3.2"
+dependency_runner = "1.0.0"
 derivative = "2.2.0"
 derive_more = "0.99"
 dirs = "4.0.0"

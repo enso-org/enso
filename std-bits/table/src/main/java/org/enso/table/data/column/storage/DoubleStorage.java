@@ -32,6 +32,12 @@ public final class DoubleStorage extends NumericStorage<Double> {
     this.size = size;
   }
 
+  public static DoubleStorage makeEmpty(int size) {
+    BitSet isMissing = new BitSet(size);
+    isMissing.set(0, size);
+    return new DoubleStorage(new long[0], size, new BitSet(size));
+  }
+
   /** @inheritDoc */
   @Override
   public int size() {
@@ -167,6 +173,10 @@ public final class DoubleStorage extends NumericStorage<Double> {
 
   public BitSet getIsMissing() {
     return isMissing;
+  }
+
+  public long[] getRawData() {
+    return data;
   }
 
   private static MapOpStorage<Double, DoubleStorage> buildOps() {

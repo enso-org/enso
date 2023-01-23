@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
 
-from project.Data.Table import Table
+import project.Data.Table.Table
 
 ## Represents a single row of some in-memory Table.
 type Row
@@ -20,17 +20,6 @@ type Row
     to_vector : Vector
     to_vector self = Vector.from_polyglot_array (Array_Proxy.from_proxy_object self)
 
-    ## Converts this row into a JSON structure.
-    to_json : Json
-    to_json self = self.to_vector.to_json
-
-    ## UNSTABLE
-       ADVANCED
-
-       Returns a Text used to display this table in the IDE by default.
-
-       Returns a JSON object containing useful metadata and previews of column
-       values.
-    to_default_visualization_data : Text
-    to_default_visualization_data self =
-        self.to_vector.to_default_visualization_data
+    ## Converts this row into a JS_Object.
+    to_js_object : Vector
+    to_js_object self = self.to_vector.to_js_object

@@ -68,6 +68,7 @@ pub struct CreationCtx<EntryParams> {
     pub entry_selected:        frp::Any<Option<(Row, Col)>>,
     pub entry_accepted:        frp::Any<(Row, Col)>,
     pub override_column_width: frp::Any<(Col, f32)>,
+    pub minimum_column_width:  frp::Any<(Col, f32)>,
 }
 
 impl<EntryParams> CreationCtx<EntryParams>
@@ -130,6 +131,10 @@ where EntryParams: frp::node::Data
                 self.entry_selected <+ location.sample(&selected).map(|l| Some(*l));
                 self.entry_accepted <+ location.sample(&accepted);
                 self.override_column_width <+ entry_frp.override_column_width.map2(
+                    &column,
+                    |width, col| (*col, *width)
+                );
+                self.minimum_column_width <+ entry_frp.minimum_column_width.map2(
                     &column,
                     |width, col| (*col, *width)
                 );

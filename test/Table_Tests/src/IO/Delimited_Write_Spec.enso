@@ -34,7 +34,7 @@ spec =
                 1,1.0,x,a
                 2,1.5,y,2
                 3,2.2,z,[[[My Type :: 10]]]
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -46,7 +46,7 @@ spec =
                 separator=setting.second
                 file = (enso_project.data / "transient" / "endings.csv")
                 table.write file (Delimited ',' line_endings=style) on_problems=Report_Error . should_succeed
-                text = Data.read_text_file file
+                text = Data.read_text file
                 text.should_equal (lines.join separator suffix=separator)
                 file.delete
 
@@ -55,7 +55,7 @@ spec =
             file = (enso_project.data / "transient" / "empty.csv")
             file.delete_if_exists
             table.write file on_problems=Report_Error . should_succeed
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal ''
             file.delete
 
@@ -71,7 +71,7 @@ spec =
                 'bar',"1000000,5"
                 """baz""","2,2"
                 "one, two, three","-1,5"
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -88,7 +88,7 @@ spec =
                 one, two, three;0.0
                 "a;b; c ";-1.2
                 "a\\b";
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -104,7 +104,7 @@ spec =
                 'The ''thing''.'\t'1''000.0'
                 one, "two", three\t
                 'a\tb'\t-1.2
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -118,7 +118,7 @@ spec =
                 1,
                 ,""
                 3,abc
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -128,7 +128,7 @@ spec =
             file.delete_if_exists
             table.write file on_problems=Report_Error . should_succeed
             expected_text = join_lines ['#,B','b,', 'x,#', '#,abc']
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -139,7 +139,7 @@ spec =
                 b,
                 x,"#"
                 "#",abc
-            text_2 = Data.read_text_file file
+            text_2 = Data.read_text file
             text_2.should_equal expected_text_2
             file.delete
 
@@ -155,7 +155,7 @@ spec =
                 'bar',1000000,5
                 "baz",2,2
                 one, two, three,-1,5
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -171,7 +171,7 @@ spec =
                 "'bar'","1\"000\"000.5","[[[My Type :: 44]]]",2,13:55:00
                 "\"baz\"",2.2,"Tue, 21 Jun 2022",3,
             expected_text = expected_text1 + '"one, two, three",-1.5,42,"4\\"000",\n'
-            text = Data.read_text_file file
+            text = Data.read_text file
             text.should_equal expected_text
             file.delete
 
@@ -183,7 +183,7 @@ spec =
             expected_text = normalize_lines <| """
                 ąęćś,ß
                 0,żółw 🐢
-            text = Data.read_text_file file encoding=Encoding.utf_16_be
+            text = Data.read_text file encoding=Encoding.utf_16_be
             text.should_equal expected_text
             file.delete
 
@@ -196,7 +196,7 @@ spec =
                 A,B
                 0,s??wka
                 1,?
-            text = Data.read_text_file file encoding=Encoding.ascii
+            text = Data.read_text file encoding=Encoding.ascii
             text.should_equal expected_text
             result . should_equal Nothing
             positions = [7, 8, 15]
@@ -215,7 +215,7 @@ spec =
                 A,B
                 x,z
                 y,w
-            text_1 = Data.read_text_file file_1
+            text_1 = Data.read_text file_1
             text_1.should_equal expected_text
             result_1 . should_equal Nothing
 
@@ -224,7 +224,7 @@ spec =
             file_2.delete_if_exists
             result_2 = table_2.write file_2 format
             result_2 . should_fail_with Illegal_Argument.Error
-            text_2 = Data.read_text_file file_2
+            text_2 = Data.read_text file_2
             text_2.should_equal ""
 
             file_1.delete
@@ -255,7 +255,7 @@ spec =
             file.delete_if_exists
             'A,B,C\r0,0,0'.write file
             table.write file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            text = Data.read_text_file file
+            text = Data.read_text file
             expected_lines = ["A,B,C", "0,0,0", "1,1.0,x", "2,1.5,y", "3,2.2,z"]
             text.should_equal (expected_lines.join '\r' suffix='\r')
             file.delete
@@ -376,7 +376,7 @@ spec =
                 file = (enso_project.data / "transient" / "endings.csv")
                 initial_table.write file (Delimited ',' line_endings=style) on_problems=Report_Error . should_succeed
                 table_to_append.write file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-                text = Data.read_text_file file
+                text = Data.read_text file
                 text.should_equal (expected_lines.join separator suffix=separator)
                 file.delete
 
@@ -392,8 +392,8 @@ spec =
 
             expected_lines = ["a,d", "x,z", "y,w"]
             expected_text = join_lines expected_lines
-            Data.read_text_file empty_file . should_equal expected_text
-            Data.read_text_file nonexistent_file . should_equal expected_text
+            Data.read_text empty_file . should_equal expected_text
+            Data.read_text nonexistent_file . should_equal expected_text
 
         Test.specify "should use the existing line ending style when appending to a file consisting of only comments" <|
             initial_lines = ["# comment 1", "# comment 2"]
@@ -406,7 +406,7 @@ spec =
                 (initial_lines.join separator suffix=separator).write file
                 format = Delimited ',' . with_comments
                 table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-                text = Data.read_text_file file
+                text = Data.read_text file
                 expected_text = expected_lines.join separator suffix=separator
                 text.should_equal expected_text
                 file.delete
@@ -422,7 +422,7 @@ spec =
                 (initial_lines.join separator).write file
                 format = Delimited ',' . with_comments
                 table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-                text = Data.read_text_file file
+                text = Data.read_text file
                 expected_text = expected_lines.join separator suffix=separator
                 text.should_equal expected_text
                 file.delete
@@ -442,25 +442,25 @@ spec =
                 separator=setting.second
                 (base_line+separator).write file
                 table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-                text = Data.read_text_file file
+                text = Data.read_text file
                 expected_text = expected_lines_1.join separator suffix=separator
                 text.should_equal expected_text
                 file.delete
 
             base_line.write file
             table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            Data.read_text_file file . should_equal <| normalize_lines base_line+'\n1\n2\n'
+            Data.read_text file . should_equal <| normalize_lines base_line+'\n1\n2\n'
             file.delete
 
             # 1 character without trailing newline
             "#".write file
             table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            Data.read_text_file file . should_equal <| normalize_lines '#\n1\n2\n'
+            Data.read_text file . should_equal <| normalize_lines '#\n1\n2\n'
             file.delete
 
             "#".write file
             table.write file format.with_comments on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-            Data.read_text_file file . should_equal <| normalize_lines '#\n1\n2\n'
+            Data.read_text file . should_equal <| normalize_lines '#\n1\n2\n'
             file.delete
 
             expected_lines_2 = ["#", "1", "2"]
@@ -470,7 +470,7 @@ spec =
                     separator=setting.second
                     ("#"+separator).write file
                     table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-                    text = Data.read_text_file file
+                    text = Data.read_text file
                     expected_text = expected_lines_2.join separator suffix=separator
                     text.should_equal expected_text
                     file.delete
@@ -483,7 +483,7 @@ spec =
                         separator=setting.second
                         ("A"+separator+middle_line).write file
                         table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-                        text = Data.read_text_file file
+                        text = Data.read_text file
                         expected_text = expected_lines_3.join separator suffix=separator
                         text.should_equal expected_text
                         file.delete
@@ -493,7 +493,7 @@ spec =
                         separator=setting.second
                         ("A"+separator+middle_line+separator).write file
                         table.write file format on_existing_file=Existing_File_Behavior.Append match_columns=Match_Columns.By_Position on_problems=Report_Error . should_succeed
-                        text = Data.read_text_file file
+                        text = Data.read_text file
                         expected_text = expected_lines_3.join separator suffix=separator
                         text.should_equal expected_text
                         file.delete
@@ -509,7 +509,7 @@ spec =
                 (initial_line+separator).write file
                 format = Delimited ',' . with_comments
                 table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-                text = Data.read_text_file file
+                text = Data.read_text file
                 expected_text = expected_lines.join separator suffix=separator
                 text.should_equal expected_text
                 file.delete
@@ -523,7 +523,7 @@ spec =
             (join_lines initial_lines trailing_newline=False).write file
             format = Delimited ',' . with_comments
             table_to_append.write file format on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed
-            text = Data.read_text_file file
+            text = Data.read_text file
             expected_text = join_lines expected_lines
             text.should_equal expected_text
             file.delete

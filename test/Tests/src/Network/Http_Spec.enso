@@ -55,7 +55,7 @@ spec =
                 }
             res = HTTP.new.get url_get
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should send Get request using module method" <|
             expected_response = Json.parse <| '''
                 {
@@ -69,7 +69,7 @@ spec =
                 }
             res = HTTP.new.get url_get
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
 
         Test.specify "should fetch the body of a Get request" <|
             expected_response = Json.parse <| '''
@@ -83,7 +83,7 @@ spec =
                   "args": {}
                 }
             res = HTTP.fetch url_get
-            res.to_json.should_equal expected_response
+            res.parse_json.should_equal expected_response
         Test.specify "should return error if the fetch method fails" <|
             HTTP.fetch "http://undefined_host" . should_fail_with Request_Error.Error
 
@@ -110,7 +110,7 @@ spec =
             body_empty = Request_Body.Empty
             res = HTTP.new.post url_post body_empty
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should Post empty body using module method" <|
             expected_response = Json.parse <| '''
                 {
@@ -129,7 +129,7 @@ spec =
             body_empty = Request_Body.Empty
             res = HTTP.new.post url_post body_empty
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should Post text body" <|
             expected_response = Json.parse <| '''
                 {
@@ -149,7 +149,7 @@ spec =
             body_text = Request_Body.Text "Hello World!"
             res = HTTP.new.post url_post body_text
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should Post form text" <|
             expected_response = Json.parse <| '''
                 {
@@ -169,7 +169,7 @@ spec =
             form_parts = [Form.text_field "key" "val"]
             res = HTTP.new.post_form url_post form_parts
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should Post form text using module method" <|
             expected_response = Json.parse <| '''
                 {
@@ -189,7 +189,7 @@ spec =
             form_parts = [Form.text_field "key" "val"]
             res = HTTP.new.post_form url_post form_parts
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should Post form file" <|
             test_file = enso_project.data / "sample.txt"
             form_parts = [Form.text_field "key" "val", Form.file_field "sample" test_file]
@@ -218,11 +218,10 @@ spec =
                     "key": "val"
                   }
                 }
-            json = Json.parse <| '''
-                {"key":"val"}
+            json = '{"key":"val"}'
             res = HTTP.new.post_json url_post json
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should Post Json using module method" <|
             expected_response = Json.parse <| '''
                 {
@@ -241,11 +240,10 @@ spec =
                     "key": "val"
                   }
                 }
-            json = Json.parse <| '''
-                {"key":"val"}
+            json = '{"key":"val"}'
             res = HTTP.new.post_json url_post json
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should Post binary" <|
             expected_response = Json.parse <| '''
                 {
@@ -265,7 +263,7 @@ spec =
             body_bytes = Request_Body.Bytes "Hello World!".utf_8
             res = HTTP.new.post url_post body_bytes
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
 
         Test.specify "should create and send Get request" <|
             expected_response = Json.parse <| '''
@@ -281,7 +279,7 @@ spec =
             req = Request.new HTTP_Method.Get url_get
             res = HTTP.new.request req
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should create and send Post request with json body" <|
             expected_response = Json.parse <| '''
                 {
@@ -300,13 +298,12 @@ spec =
                     "key": "val"
                   }
                 }
-            json_body = Json.parse <| '''
-                { "key": "val" }
+            json_body = '{"key":"val"}'
             req = Request.new HTTP_Method.Post url_post
             req_with_body = req.with_json json_body
             res = HTTP.new.request req_with_body
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
         Test.specify "should create and send Post request with json text" <|
             expected_response = Json.parse <| '''
                 {
@@ -331,6 +328,6 @@ spec =
             req_with_body = req.with_json json_text
             res = HTTP.new.request req_with_body
             res.code.should_equal HTTP_Status_Code.ok
-            res.body.to_json.should_equal expected_response
+            res.body.parse_json.should_equal expected_response
 
 main = Test_Suite.run_main spec

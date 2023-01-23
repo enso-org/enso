@@ -1,6 +1,9 @@
 import project.Data.Text.Text
 import project.Meta
 
+## An error indicating that no value was found.
+type Not_Found
+
 @Builtin_Type
 type Index_Out_Of_Bounds
     ## PRIVATE
@@ -27,7 +30,7 @@ type Syntax_Error
 
        Arguments:
        - message: A description of the erroneous syntax.
-   Error message
+    Error message
 
 @Builtin_Type
 type Type_Error

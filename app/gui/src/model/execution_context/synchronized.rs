@@ -300,7 +300,10 @@ impl model::execution_context::API for ExecutionContext {
 
     fn restart(&self) -> BoxFuture<FallibleResult> {
         async move {
-            self.language_server.client.recompute(&self.id).await?;
+            self.language_server
+                .client
+                .recompute(&self.id, &language_server::InvalidatedExpressions::All)
+                .await?;
             Ok(())
         }
         .boxed_local()

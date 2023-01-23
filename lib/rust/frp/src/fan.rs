@@ -43,8 +43,15 @@ impl Fan {
         crate::extend! { network
             source <- any_mut::<AnyData>();
             eval source([map] (event) {
-                if let Some(fan_output) = map.borrow_mut().get(&(*event.data).type_id()) {
-                    (fan_output.runner)(&fan_output.stream, event);
+                let map_borrow = map.borrow();
+                if let Some(fan_output) = map_borrow.get(&(*event.data).type_id()) {
+                    let stream = fan_output.stream.clone_ref();
+                    let runner = fan_output.runner.clone_ref();
+                    // The map borrow must be dropped before runner is called, because a new fan
+                    // output might be created during its execution. That acquires a mutable borrow
+                    // of the map and would panic.
+                    drop(map_borrow);
+                    (runner)(&stream, event);
                 }
             });
         }

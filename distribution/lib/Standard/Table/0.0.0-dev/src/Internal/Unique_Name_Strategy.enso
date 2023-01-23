@@ -1,4 +1,4 @@
-from Standard.Base import Any, Vector, Text, Nothing
+from Standard.Base import Any, Boolean, Vector, Text, Nothing
 
 polyglot java import org.enso.table.util.NameDeduplicator
 
@@ -14,7 +14,7 @@ type Unique_Name_Strategy
 
        This is a mutable data structure, that allows for creating a collection
        of columns names and making them unique. It will track any duplicates or
-       invalid names thet are passed to it.
+       invalid names that are passed to it.
 
        > Example
          Construct a set of unique names from two duplicate lists
@@ -25,6 +25,41 @@ type Unique_Name_Strategy
              invalid = unique_name_strategy.invalid_names
     new : Unique_Name_Strategy
     new = Unique_Name_Strategy.Value NameDeduplicator.new
+
+    ## Changes names from the second list so that they do not clash with names
+       from the first list and with each other.
+
+       It returns a new list where each new name corresponds to a name from the
+       second list.
+
+       It assumes that names on each list are unique within that list and that
+       all of the provided names are already valid. The behavior is unspecified
+       if they are not.
+
+       The names are renamed using the following strategy:
+       - if the name does not collide with any name from the first list, it will
+         always be kept as-is,
+       - if the name collides, we first append the provided prefix, if it is now
+         unique (looking at the first list and the non-renamed elements of the
+         second one), we return that,
+       - if the name with the prefix still collides, we append a numeric suffix
+         (starting with `_1`) to it, increasing the number as many times as
+         necessary to get a name that will not collide.
+
+       Note that non-renamed names from the second list have precedence over
+       elements being renamed, even if they show up on the list later.
+
+       > Example
+         Rename names from a second list to avoid clashing with the first one.
+
+             first = ["A", "B", "second_A"]
+             second = ["A", "B", "second_A_1", "C"]
+             unique_second = Unique_Name_Strategy.combine_with_prefix first second "second_"
+             unique_second == ["second_A_2", "second_B", "second_A_1", "C"]
+    combine_with_prefix : Vector Text -> Vector Text -> Text -> Unique_Name_Strategy
+    combine_with_prefix self first second second_prefix =
+        Vector.from_polyglot_array <|
+            self.deduplicator.combineWithPrefix first second second_prefix
 
     ## Vector of any duplicates renamed
     renames : Vector
@@ -65,3 +100,23 @@ type Unique_Name_Strategy
              strategy.make_unique "A" # returns "A_1"
     make_unique : Text -> Text
     make_unique self name = self.deduplicator.makeUnique name
+
+    ## PRIVATE
+       Tells if the given name has not yet been encountered.
+
+       It does not use up the name - it needs to be marked with `mark_used` if
+       needed.
+    is_unique : Text -> Boolean
+    is_unique self name = self.deduplicator.isUnique name
+
+    ## Takes a list of names and gets a list of unique versions.
+
+       Arguments:
+       - names: The column names to make unique.
+    make_all_unique : Vector Text -> Vector Text
+    make_all_unique self names = names.map self.make_unique
+
+    ## Takes a list of names and marks them as used, so that any further names
+       clashing with those will have a prefix added.
+    mark_used : Vector Text -> Nothing
+    mark_used self names = names.each (self.deduplicator.markUsed _)

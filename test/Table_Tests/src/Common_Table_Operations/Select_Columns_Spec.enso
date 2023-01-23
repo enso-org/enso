@@ -84,7 +84,10 @@ spec setup =
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo", "bar"]
             problems = [Input_Indices_Already_Matched.Error [-7, 1]]
-            Problems.test_problem_handling action problems tester
+            err_checker err =
+                err.catch.should_be_a Input_Indices_Already_Matched.Error
+                err.catch.indices.should_contain_the_same_elements_as [-7, 1]
+            Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
         Test.specify "should correctly handle problems: duplicate names" <|
             selector = By_Name ["foo", "foo"]
@@ -166,7 +169,7 @@ spec setup =
             expect_column_names ["foo", "bar", "foo_2", "ab.+123", "abcd123"] <| table.remove_columns (By_Column [column1, column2])
 
         Test.specify "should correctly handle regex matching" <|
-            last_ones = table.columns.tail.map .name
+            last_ones = table.columns.drop 1 . map .name
             expect_column_names last_ones <| table.remove_columns (By_Name ["foo"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive))
             first_ones = ["foo", "bar", "Baz", "foo_1", "foo_2"]
             expect_column_names first_ones <| table.remove_columns (By_Name ["a.*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive))
@@ -401,7 +404,7 @@ spec setup =
             expect_column_names ["Foo_2", "bar", "foo_001", "foo_1", "foo_3", "foo_21", "foo_100"] <| table.sort_columns text_ordering=(Text_Ordering.Default sort_digits_as_numbers=True)
 
         Test.specify "should correctly handle various combinations of options" <|
-            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns direction=Sort_Direction.Descending text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
+            expect_column_names ["foo_100", "foo_21", "foo_3", "Foo_2", "foo_1", "foo_001", "bar"] <| table.sort_columns Sort_Direction.Descending text_ordering=(Text_Ordering.Case_Insensitive sort_digits_as_numbers=True)
 
     Test.group prefix+"Table.rename_columns" <|
         table =
@@ -414,6 +417,9 @@ spec setup =
         Test.specify "should work as shown in the doc examples" <|
             expect_column_names ["FirstColumn", "beta", "gamma", "delta"] <|
                 table.rename_columns (Column_Name_Mapping.By_Position ["FirstColumn"])
+
+            expect_column_names ["prefix_alpha", "prefix_beta", "prefix_gamma", "prefix_delta"] <|
+                table.rename_columns (table.columns.map c-> "prefix_" + c.name)
 
         Test.specify "should work by index" <|
             map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
@@ -472,22 +478,28 @@ spec setup =
             map = Column_Name_Mapping.By_Name (Map.from_vector [["alpha", "FirstColumn"], ["omicron", "Another"], [weird_name, "Fixed"]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
-            problems = [Missing_Input_Columns.Error [weird_name, "omicron"]]
-            Problems.test_problem_handling action problems tester
+            err_checker err =
+                err.catch.should_be_a Missing_Input_Columns.Error
+                err.catch.criteria.should_contain_the_same_elements_as ["omicron", weird_name]
+            Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[0, "FirstColumn"], [-1, "Another"], [100, "Boo"], [-200, "Nothing"], [300, "Here"]])
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "Another"]
-            problems = [Column_Indexes_Out_Of_Range.Error [-200, 100, 300]]
-            Problems.test_problem_handling action problems tester
+            err_checker err =
+                err.catch.should_be_a Column_Indexes_Out_Of_Range.Error
+                err.catch.indexes.should_contain_the_same_elements_as [-200, 100, 300]
+            Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
         Test.specify "should correctly handle problems: aliased indices" <|
-            map = Column_Name_Mapping.By_Index (Map.from_vector [[1, "FirstColumn"], [-3, "Another"]])
+            map = Column_Name_Mapping.By_Index (Map.from_vector [[1, "FirstColumn"], [-3, "FirstColumn"]])
             action = table.rename_columns map on_problems=_
-            tester = expect_column_names ["alpha", "Another", "gamma", "delta"]
-            problems = [Input_Indices_Already_Matched.Error [1]]
-            Problems.test_problem_handling action problems tester
+            tester = expect_column_names ["alpha", "FirstColumn", "gamma", "delta"]
+            err_checker err =
+                err.catch.should_be_a Input_Indices_Already_Matched.Error
+                (err.catch.indices.contains 1 || err.catch.indices.contains -3) . should_be_true
+            Problems.test_advanced_problem_handling action err_checker (x-> x) tester
 
         Test.specify "should correctly handle problems: invalid names ''" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[1, ""]])
@@ -514,5 +526,7 @@ spec setup =
             map = Column_Name_Mapping.By_Position ["A", "B", "C", "D", "E", "F"]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["A", "B", "C", "D"]
-            problems = [Too_Many_Column_Names_Provided.Error ["E", "F"]]
-            Problems.test_problem_handling action problems tester
+            err_checker err =
+                err.catch.should_be_a Too_Many_Column_Names_Provided.Error
+                err.catch.column_names.should_contain_the_same_elements_as ["E", "F"]
+            Problems.test_advanced_problem_handling action err_checker (x-> x) tester

@@ -1,4 +1,4 @@
-# Enso Language Support for NetBeans & Ideal Graph Visualizer
+# Enso Language Support for NetBeans, Ideal Graph Visualizer & VSCode
 
 [![Enso Language Support for IGV](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml/badge.svg)](https://github.com/enso-org/enso/actions/workflows/enso4igv.yml)
 
@@ -101,7 +101,10 @@ and open it as _"project"_ in IGV:
 
 The project directories (not only `runtime`, but also other like
 `runtime-language-epb`, etc.) are recognized only if you have built the Enso
-engine sources with `sbt buildEngineDistribution`.
+engine sources with `sbt buildEngineDistribution`. Once the IGV opens the
+`runtime` & co. projects, it allows smooth navigation among the sources
+
+![IGV Projects view](https://user-images.githubusercontent.com/26887752/209615348-8911af4c-4680-4e61-ac87-19a19738e2ca.png)
 
 With such setup let's open graph for one of the top-most functions:
 `TruffleHotSpotCompilation*Primes*next*.bgv`. Choose compilation phase _"Before
@@ -142,8 +145,30 @@ environment. Switch to this directory and invoke:
 ```bash
 enso/tools/enso4igv$ mvn clean install
 enso/tools/enso4igv$ ls target/*.nbm
-target/enso4igv-1.0-SNAPSHOT.nbm
+target/enso4igv-*-SNAPSHOT.nbm
 ```
 
 an NBM file is generated which can be installed into IGV, NetBeans or any other
 NetBeans based application.
+
+## Building VSCode Extension
+
+One can package the same plugin into a VSCode extension and obtain _Enso_ syntax
+coloring as well as support for editing `engine/runtime` sources in **VSCode**.
+Just invoke:
+
+```
+enso/tools/enso4igv$ npm install
+enso/tools/enso4igv$ npm run vsix
+enso/tools/enso4igv$ ls *.vsix
+enso4vscode-*.vsix
+```
+
+one needs to have `npm`, Java and `mvn` available to successfully build the
+VSCode extension. Alternatively one can use Maven to built the VSIX extension
+via `mvn clean install -Pvsix`.
+
+![Install from VSIX...](https://user-images.githubusercontent.com/26887752/210131513-8c729f9b-5ddc-43aa-9ad5-420b7d87d81d.png)
+
+Once the `.vsix` file is created, it can be installed into VSCode. Select
+_Extension perspective_ and choose _Install from VSIX..._ menu item.

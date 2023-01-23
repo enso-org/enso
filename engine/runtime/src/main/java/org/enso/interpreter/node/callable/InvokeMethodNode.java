@@ -276,6 +276,28 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {
         "!types.hasType(self)",
         "!types.hasSpecialDispatch(self)",
+        "getPolyglotCallType(self, symbol, interop, methodResolverNode) == CONVERT_TO_HASH_MAP",
+      })
+  Object doConvertHashMap(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Object self,
+      Object[] arguments,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") TypesLibrary types,
+      @Cached MethodResolverNode methodResolverNode) {
+    var ctx = EnsoContext.get(this);
+    var hashMapType = ctx.getBuiltins().map();
+    var function = methodResolverNode.expectNonNull(self, hashMapType, symbol);
+    arguments[0] = self;
+    return invokeFunctionNode.execute(function, frame, state, arguments);
+  }
+
+  @Specialization(
+      guards = {
+        "!types.hasType(self)",
+        "!types.hasSpecialDispatch(self)",
         "getPolyglotCallType(self, symbol, interop) == CONVERT_TO_DATE"
       })
   Object doConvertDate(

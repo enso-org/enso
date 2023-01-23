@@ -207,7 +207,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub keyword: token::Ident<'s>,
             pub name:    token::Ident<'s>,
             pub params:  Vec<ArgumentDefinition<'s>>,
-            pub body:    Vec<TypeDefLine<'s>>,
+            pub body:    Vec<block::Line<'s>>,
         },
         /// A variable assignment, like `foo = bar 23`.
         Assignment {
@@ -316,8 +316,20 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub rest:  Vec<OperatorDelimitedTree<'s>>,
             pub right: token::CloseSymbol<'s>,
         },
-        /// An expression preceded by an annotation, e.g. `@Builtin_Method foo`.
+        /// An expression preceded by an annotation. For example:
+        /// ```enso
+        /// @on_problems Problem_Behavior.get_widget_attribute
+        /// Table.select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
+        /// ```
         Annotated {
+            pub token:      token::Operator<'s>,
+            pub annotation: token::Ident<'s>,
+            pub argument:   Option<Tree<'s>>,
+            pub newlines:   Vec<token::Newline<'s>>,
+            pub expression: Option<Tree<'s>>,
+        },
+        /// An expression preceded by a special built-in annotation, e.g. `@Tail_Call foo 4`.
+        AnnotatedBuiltin {
             pub token:      token::Operator<'s>,
             pub annotation: token::Ident<'s>,
             pub newlines:   Vec<token::Newline<'s>>,
@@ -329,6 +341,15 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub documentation: DocComment<'s>,
             /// The item being documented.
             pub expression: Option<Tree<'s>>,
+        },
+        /// Defines a type constructor.
+        ConstructorDefinition {
+            /// The identifier naming the type constructor.
+            pub constructor:   token::Ident<'s>,
+            /// The arguments the type constructor accepts, specified inline.
+            pub arguments:     Vec<ArgumentDefinition<'s>>,
+            /// The arguments the type constructor accepts, specified on their own lines.
+            pub block:         Vec<ArgumentDefinitionLine<'s>>,
         },
     }
 }};}
@@ -396,77 +417,6 @@ impl<'s> Tree<'s> {
 impl<'s> span::Builder<'s> for Error {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
         span
-    }
-}
-
-
-// === Type Definitions ===
-
-/// A line in a type definition's body block.
-#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub struct TypeDefLine<'s> {
-    /// Token ending the previous line.
-    pub newline:   token::Newline<'s>,
-    /// Type definition body statement, if any.
-    pub statement: Option<TypeDefStatement<'s>>,
-}
-
-impl<'s> span::Builder<'s> for TypeDefLine<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.newline).add(&mut self.statement)
-    }
-}
-
-impl<'s> From<token::Newline<'s>> for TypeDefLine<'s> {
-    fn from(newline: token::Newline<'s>) -> Self {
-        Self { newline, statement: None }
-    }
-}
-
-/// A statement in a type-definition body.
-#[derive(Debug, Clone, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub enum TypeDefStatement<'s> {
-    /// A binding in a type-definition body.
-    Binding {
-        /// The binding statement.
-        statement: Tree<'s>,
-    },
-    /// A constructor definition within a type-definition body.
-    #[reflect(inline)]
-    Constructor {
-        /// The constructor.
-        constructor: TypeConstructorDef<'s>,
-    },
-}
-
-impl<'s> span::Builder<'s> for TypeDefStatement<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        match self {
-            TypeDefStatement::Binding { statement } => span.add(statement),
-            TypeDefStatement::Constructor { constructor } => span.add(constructor),
-        }
-    }
-}
-
-/// A type constructor definition within a type definition.
-#[derive(Clone, Debug, Eq, PartialEq, Visitor, Serialize, Reflect, Deserialize)]
-pub struct TypeConstructorDef<'s> {
-    /// Documentation, if any.
-    pub documentation: Option<DocComment<'s>>,
-    /// The identifier naming the type constructor.
-    pub constructor:   token::Ident<'s>,
-    /// The arguments the type constructor accepts, specified inline.
-    pub arguments:     Vec<ArgumentDefinition<'s>>,
-    /// The arguments the type constructor accepts, specified on their own lines.
-    pub block:         Vec<ArgumentDefinitionLine<'s>>,
-}
-
-impl<'s> span::Builder<'s> for TypeConstructorDef<'s> {
-    fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
-        span.add(&mut self.documentation)
-            .add(&mut self.constructor)
-            .add(&mut self.arguments)
-            .add(&mut self.block)
     }
 }
 
@@ -796,12 +746,12 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             func_.fractional_digits = mem::take(fractional_digits);
             func
         }
-        (Variant::Annotated(func_ @ Annotated { expression: None, .. }), _) => {
-            func_.expression = arg.into();
+        (Variant::Annotated(func_ @ Annotated { argument: None, .. }), _) => {
+            func_.argument = maybe_apply(mem::take(&mut func_.argument), arg).into();
             func
         }
-        (Variant::Annotated(Annotated { expression: Some(expression), .. }), _) => {
-            *expression = apply(mem::take(expression), arg);
+        (Variant::AnnotatedBuiltin(func_), _) => {
+            func_.expression = maybe_apply(mem::take(&mut func_.expression), arg).into();
             func
         }
         (Variant::OprApp(OprApp { lhs: Some(_), opr: Ok(_), rhs }),
@@ -850,6 +800,13 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
             Tree::default_app(func, token)
         }
         _ => Tree::app(func, arg)
+    }
+}
+
+fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
+    match f {
+        Some(f) => apply(f, x),
+        None => x,
     }
 }
 
@@ -906,6 +863,11 @@ pub fn apply_operator<'s>(
             }
         };
     }
+    if let Ok(opr_) = &opr && !opr_.properties.can_form_section() && lhs.is_none() && rhs.is_none() {
+        let error = format!("Operator `{opr:?}` must be applied to two operands.");
+        let invalid = Tree::opr_app(lhs, opr, rhs);
+        return invalid.with_error(error);
+    }
     if nospace
         && let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
         && let Some(lhs) = lhs.as_mut()
@@ -941,10 +903,17 @@ pub fn apply_operator<'s>(
 pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
     if opr.properties.is_annotation()
             && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
-        Tree::annotated(opr, token, vec![], None)
-    } else {
-        Tree::unary_opr_app(opr, rhs)
+        return match token.is_type {
+            true => Tree::annotated_builtin(opr, token, vec![], None),
+            false => Tree::annotated(opr, token, None, vec![], None),
+        };
     }
+    if !opr.properties.can_form_section() && rhs.is_none() {
+        let error = format!("Operator `{opr:?}` must be applied to an operand.");
+        let invalid = Tree::unary_opr_app(opr, rhs);
+        return invalid.with_error(error);
+    }
+    Tree::unary_opr_app(opr, rhs)
 }
 
 /// Create an AST node for a token.

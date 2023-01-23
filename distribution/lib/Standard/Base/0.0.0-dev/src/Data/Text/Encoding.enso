@@ -15,13 +15,20 @@ type Encoding
        Used to provide auto completion in the UI.
     all_character_sets : Vector Text
     all_character_sets =
-        java_array = Charset.availableCharsets.keySet.toArray
-        Vector.from_polyglot_array java_array
+        Charset.availableCharsets.keys
 
     ## Get all available Encodings.
     all_encodings : Vector Encoding
     all_encodings =
         Encoding.all_character_sets.map Encoding.Value
+
+    ## Create an Encoding from a Text.
+    from_name : Text -> Encoding ! Illegal_Argument
+    from_name name =
+        handler = _-> Error.throw (Illegal_Argument.Error ("Unknown Character Set: " + name))
+        Panic.catch UnsupportedCharsetException handler=handler <|
+            charset = Charset.forName name
+            Encoding.Value charset.name
 
     ## Create a new Encoding object.
 

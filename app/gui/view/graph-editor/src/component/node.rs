@@ -325,7 +325,12 @@ ensogl::define_endpoints_2! {
         /// Press event. Emitted when user clicks on non-active part of the node, like its
         /// background. In edit mode, the whole node area is considered non-active.
         background_press         (),
+        /// Emitted when node expression is modified as a whole. Does not include partial changes on
+        /// individual spans, which are emitted via `expression_span` output.
         expression               (ImString),
+        /// Emitted when node expression is edited in context of specific span. Does not include
+        /// changes to the expression as a whole, which are emitted via `expression` output.
+        expression_span          (span_tree::Crumbs, ImString),
         comment                  (Comment),
         skip                     (bool),
         freeze                   (bool),
@@ -504,7 +509,7 @@ impl NodeModel {
 
         let error_visualization = error::Container::new(app);
         let (x, y) = ERROR_VISUALIZATION_SIZE;
-        error_visualization.set_size.emit(Vector2(x, y));
+        error_visualization.frp.set_size.emit(Vector2(x, y));
 
         let action_bar = action_bar::ActionBar::new(app);
         display_object.add_child(&action_bar);
@@ -629,7 +634,7 @@ impl NodeModel {
         self.background.set_size(padded_size);
         self.drag_area.set_size(padded_size);
         self.error_indicator.set_size(padded_size);
-        self.vcs_indicator.set_size(padded_size);
+        self.vcs_indicator.frp.set_size(padded_size);
         let x_offset_to_node_center = x_offset_to_node_center(width);
         self.backdrop.set_x(x_offset_to_node_center);
         self.background.set_x(x_offset_to_node_center);
@@ -740,6 +745,7 @@ impl Node {
             eval filtered_usage_type (((a,b)) model.set_expression_usage_type(a,b));
             eval input.set_expression  ((a)     model.set_expression(a));
             out.expression                  <+ model.input.frp.expression;
+            out.expression_span             <+ model.input.frp.on_port_code_update;
             model.input.set_connected              <+ input.set_input_connected;
             model.input.set_disabled               <+ input.set_disabled;
             model.output.set_expression_visibility <+ input.set_output_expression_visibility;

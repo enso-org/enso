@@ -1,10 +1,9 @@
 package org.enso.polyglot;
 
 import java.util.Arrays;
-import java.util.logging.Level;
-import org.graalvm.options.OptionDescriptor;
-import org.graalvm.options.OptionDescriptors;
-import org.graalvm.options.OptionKey;
+
+import org.graalvm.options.*;
+import com.oracle.truffle.api.Option;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
@@ -91,6 +90,16 @@ public class RuntimeOptions {
       OptionDescriptor.newBuilder(USE_GLOBAL_IR_CACHE_LOCATION_KEY, USE_GLOBAL_IR_CACHE_LOCATION)
           .build();
 
+  public static final String ENABLE_EXECUTION_TIMER = optionName("enableExecutionTimer");
+
+  @Option(
+      help = "Enables timer that counts down the execution time of expressions.",
+      category = OptionCategory.INTERNAL)
+  public static final OptionKey<Boolean> ENABLE_EXECUTION_TIMER_KEY = new OptionKey<>(true);
+
+  private static final OptionDescriptor ENABLE_EXECUTION_TIMER_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_EXECUTION_TIMER_KEY, ENABLE_EXECUTION_TIMER).build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
@@ -107,7 +116,8 @@ public class RuntimeOptions {
               INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR,
               DISABLE_IR_CACHES_DESCRIPTOR,
               WAIT_FOR_PENDING_SERIALIZATION_JOBS_DESCRIPTOR,
-              USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR));
+              USE_GLOBAL_IR_CACHE_LOCATION_DESCRIPTOR,
+              ENABLE_EXECUTION_TIMER_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

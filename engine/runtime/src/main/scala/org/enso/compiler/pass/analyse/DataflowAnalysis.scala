@@ -574,12 +574,12 @@ case object DataflowAnalysis extends IRPass {
     */
   def analyseCase(cse: IR.Case, info: DependencyInfo): IR.Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+      case expr: IR.Case.Expr =>
         val exprDep  = asStatic(expr)
-        val scrutDep = asStatic(scrutinee)
+        val scrutDep = asStatic(expr.scrutinee)
         info.dependents.updateAt(scrutDep, Set(exprDep))
         info.dependencies.updateAt(exprDep, Set(scrutDep))
-        branches.foreach(branch => {
+        expr.branches.foreach(branch => {
           val branchDep = asStatic(branch)
           info.dependents.updateAt(branchDep, Set(exprDep))
           info.dependencies.updateAt(exprDep, Set(branchDep))
@@ -587,8 +587,8 @@ case object DataflowAnalysis extends IRPass {
 
         expr
           .copy(
-            scrutinee = analyseExpression(scrutinee, info),
-            branches  = branches.map(analyseCaseBranch(_, info))
+            scrutinee = analyseExpression(expr.scrutinee, info),
+            branches  = expr.branches.map(analyseCaseBranch(_, info))
           )
           .updateMetadata(this -->> info)
       case _: IR.Case.Branch =>
@@ -823,7 +823,7 @@ case object DataflowAnalysis extends IRPass {
       * @return the set of all associations with `key`, if key exists
       */
     def get(key: DependencyInfo.Type): Option[Set[DependencyInfo.Type]] = {
-      val visited = mutable.Set[DependencyInfo.Type]()
+      val visited = mutable.LinkedHashSet[DependencyInfo.Type]()
 
       def go(key: DependencyInfo.Type): Set[DependencyInfo.Type] = {
         if (!visited.contains(key)) {
