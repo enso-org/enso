@@ -47,6 +47,7 @@ ensogl::define_endpoints_2! {
     Output {
         line_count(u32),
         longest_line(u32),
+        data_refresh(),
     }
 }
 
@@ -156,8 +157,9 @@ impl BackendTextProvider {
                 LazyGridDataUpdate::try_from(data.clone()).ok()
             });
             grid_data_update <- grid_data_update.map(|data| data.clone()).unwrap();
-            eval grid_data_update([text_cache,longest_observed_line,max_observed_lines](update) {
-                if update.update_type == UpdateType::FullUpdate {
+            needs_refresh <- grid_data_update.map(f!([text_cache,longest_observed_line,max_observed_lines](update) {
+                let needs_refresh = update.update_type == UpdateType::FullUpdate;
+                if needs_refresh {
                     text_cache.borrow_mut().clear();
                     longest_observed_line.set(1);
                     max_observed_lines.set(1);
@@ -170,7 +172,9 @@ impl BackendTextProvider {
                         text_cache.borrow_mut().add_item(*pos, "".to_string());
                     }
                 }
-            });
+                needs_refresh
+            }));
+            output.data_refresh <+ needs_refresh.on_true().constant(());
 
             line_count <- grid_data_update.map(|grid_data| grid_data.data.line_count);
             longest_line <- grid_data_update.map(|grid_data| grid_data.data.longest_line);

@@ -345,6 +345,7 @@ impl<T: TextProvider + 'static> TextGrid<T> {
 
             text_grid.resize_grid <+ content_size;
             text_grid.reset_entries <+ content_size;
+            text_grid.request_model_for_visible_entries <+ text_provider.data_refresh;
 
             text_grid_content_size_x <- text_grid.content_size.map(|size| size.x).on_change();
             text_grid_content_size_x_previous <- text_grid_content_size_x.previous();
