@@ -12,7 +12,6 @@ use crate::node::input::port;
 use crate::node::input::widget;
 use crate::node::profiling;
 use crate::view;
-use crate::MethodPointer;
 use crate::Type;
 use crate::WidgetUpdates;
 
@@ -286,7 +285,6 @@ impl Model {
     fn set_expression_widgets(&self, updates: &WidgetUpdates) {
         let expression = self.expression.borrow();
         let widgets_map = self.widgets_map.borrow();
-        let mut errored = false;
         let WidgetUpdates { target_id, updates } = updates;
         for update in updates.iter() {
             let argument_name = update.argument_name.to_string();
@@ -297,18 +295,12 @@ impl Model {
             let port = crumbs.and_then(|crumbs| root.get_descendant(crumbs).ok());
             let widget = port.and_then(|port| port.payload.widget.clone_ref());
 
+            // When a widget is found, update it. Failing to find a widget is not an error, as it
+            // might be a widget that was removed from the expression while the request was pending.
+            // If it comes back, the widget data will be requested again.
             if let Some(widget) = widget {
                 widget.set_metadata(update.meta.clone());
-            } else {
-                error!(
-                    "[WIDGETS] Widget update failed for argument: {:?}, crumbs: {crumbs:?}",
-                    update.argument_name
-                );
-                errored = true;
             }
-        }
-        if errored {
-            error!("[WIDGETS] span tree:\n{}", expression.span_tree.debug_print(&expression.code));
         }
     }
 
@@ -334,7 +326,6 @@ impl Model {
         let builder = PortLayerBuilder::empty(&self.ports);
         let code = &expression.viz_code;
 
-        warn!("BUILD EXPRESSION: \n{}", expression.span_tree.debug_print(&expression.viz_code));
 
         let mut last_args = HashMap::new();
         expression.span_tree.root_ref().dfs(|node| {
@@ -784,7 +775,6 @@ impl Model {
             node.frp.set_definition_type(node.tp().cloned().map(|t| t.into()));
             let widget_request = node.kind.call_id().zip(node.kind.target_id());
             if let Some(widget_request) = widget_request {
-                warn!("[WIDGETS] Widget request: {widget_request:?}");
                 area_frp.source.requested_widgets.emit(widget_request);
             }
         });
@@ -801,7 +791,7 @@ impl Model {
     ) -> Expression {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
-            debug!("\n\n=====================\nSET EXPR: {}", new_expression.code)
+            debug!("SET EXPRESSION: \n{}", new_expression.span_tree.debug_print(&new_expression.viz_code));
         }
         self.set_label_on_new_expression(&new_expression);
         self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);

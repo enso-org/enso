@@ -158,7 +158,6 @@ impl Model {
             Notification::ValueUpdate { target, data, .. } => {
                 let query_data = self.widget_queries.get_mut(&target)?;
                 let data: serde_json::Value = serde_json::from_slice(&data).ok()?;
-                warn!("[WIDGETS] Received value for {target}:\n{data:?}");
                 let args = data.as_array()?;
                 let updates = args
                     .iter()
@@ -184,20 +183,20 @@ impl Model {
 
 
                 let updates = WidgetUpdates { target_id: target, updates: Rc::new(updates) };
-                warn!("[WIDGETS] updates: {updates:?}");
+                trace!("Widget updates: {updates:?}");
                 query_data.last_update = Some(updates.clone());
                 Some((query_data.node_id, updates))
             }
             Notification::FailedToAttach { error, .. } => {
-                error!("[WIDGETS] failed to attach widget visualization: {error}");
+                error!("Failed to attach widget visualization: {error}");
                 None
             }
             Notification::FailedToDetach { error, .. } => {
-                error!("[WIDGETS] failed to detach widget visualization: {error}");
+                error!("Failed to detach widget visualization: {error}");
                 None
             }
             Notification::FailedToModify { error, .. } => {
-                error!("[WIDGETS] failed to modify widget visualization: {error}");
+                error!("Failed to modify widget visualization: {error}");
                 None
             }
         }
@@ -243,12 +242,13 @@ impl Model {
                     let vis_metadata = Self::visualization_metadata(query);
                     let manager = self.manager.clone_ref();
                     let target_expression = req.target_expression;
-                    warn!("[WIDGETS] Modifying visualization for {}", target_expression);
-                    spawn(async move {
-                        manager.request_visualization(target_expression, vis_metadata);
-                    });
-                    // The request is now pending. Do not respond with stale data. Once the request
-                    // completes, the widget update will happen in the response handler.
+
+                    // When visualization is modified, remove stale queried value to prevent updates
+                    // while language server request is pending.
+                    query.last_update.take();
+                    manager.request_visualization(target_expression, vis_metadata);
+                    // The request is now pending. Once the request completes, the widget update
+                    // will happen in the response handler.
                     None
                 } else {
                     // In the event that the visualization was not modified, we want to respond with
@@ -274,13 +274,10 @@ impl Model {
                 };
                 let query = vacant.insert(query_data);
                 let vis_metadata = Self::visualization_metadata(query);
-                warn!("[WIDGETS] Registering visualization for {}", req.target_expression);
 
                 let manager = self.manager.clone_ref();
-                let target_expr_id = req.target_expression;
-                spawn(async move {
-                    manager.request_visualization(target_expr_id, vis_metadata);
-                });
+                trace!("Registering widget visualization for {}", req.target_expression);
+                manager.request_visualization(req.target_expression, vis_metadata);
                 None
             }
         }
@@ -324,7 +321,6 @@ impl Model {
     fn escape_visualization_argument(arg: &str) -> String {
         let segment = ast::SegmentPlain { value: arg.into() };
         let text = ast::TextLineRaw { text: vec![segment.into()] };
-        warn!("[WIDGETS] Escaping arg: {arg:?} -> {:?}", text.repr());
         text.repr()
     }
 
