@@ -681,11 +681,8 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
-        warning_mapper error = case error of
-            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
-            _ -> Nothing
-        key_columns = Warning.map_warnings_and_errors warning_mapper <|
-            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
+        key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
+            Error.throw No_Input_Columns_Selected
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|

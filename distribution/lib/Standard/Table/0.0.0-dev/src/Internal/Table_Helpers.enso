@@ -61,8 +61,8 @@ type Table_Column_Helper
     select_columns self selector reorder on_problems =
         problem_builder = Problem_Builder.new
         result = self.select_columns_helper selector reorder problem_builder
-        if result.is_empty then Error.throw No_Output_Columns else
-            problem_builder.attach_problems_after on_problems result
+        problem_builder.attach_problems_before on_problems <|
+            if result.is_empty then Error.throw No_Output_Columns else result
 
     ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`

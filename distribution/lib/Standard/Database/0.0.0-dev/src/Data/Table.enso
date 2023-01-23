@@ -674,17 +674,14 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
-        problem_builder = Problem_Builder.new
-        warning_mapper error = case error of
-            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
-            _ -> Nothing
-        key_columns = Warning.map_warnings_and_errors warning_mapper <|
-            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
+        key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
+            Error.throw No_Input_Columns_Selected
         text_case_insensitive = case case_sensitivity of
             Case_Sensitivity.Sensitive -> False
             Case_Sensitivity.Insensitive locale ->
                 Helpers.assume_default_locale locale <|
                     True
+        problem_builder = Problem_Builder.new
         new_table = self.connection.dialect.prepare_distinct self key_columns text_case_insensitive problem_builder
         problem_builder.attach_problems_before on_problems new_table
 

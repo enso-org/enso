@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Column_Selector, Sort_Column, Sort_Column_Selector
-from Standard.Table.Errors import Floating_Point_Grouping
+from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -103,9 +103,9 @@ spec setup =
                 t3.should_fail_with Missing_Input_Columns
                 t3.catch . should_equal (Missing_Input_Columns.Error ["Y"])
 
-                t3 = t1.distinct (Column_Selector.By_Index [0, 42]) on_problems=pb
-                t3.should_fail_with Column_Indexes_Out_Of_Range
-                t3.catch . should_equal (Column_Indexes_Out_Of_Range.Error ["Y"])
+                t4 = t1.distinct (Column_Selector.By_Index [0, 42]) on_problems=pb
+                t4.should_fail_with Column_Indexes_Out_Of_Range
+                t4.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
 
                 t5 = t1.distinct [] on_problems=pb
                 t5.should_fail_with No_Input_Columns_Selected
