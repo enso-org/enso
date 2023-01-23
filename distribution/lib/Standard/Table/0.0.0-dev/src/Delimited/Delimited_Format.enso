@@ -14,7 +14,8 @@ type Delimited_Format
 
        If a row does not match the first row's column count, the function raises
        an `Invalid_Row`. If a quote is opened and never closed, a
-       `Mismatched_Quote` warning occurs.
+       `Mismatched_Quote` warning occurs. If an empty file is passed, an
+       `Empty_File_Error` is raised.
 
        Arguments:
        - delimiter: The delimiter character to split the file into columns. An
