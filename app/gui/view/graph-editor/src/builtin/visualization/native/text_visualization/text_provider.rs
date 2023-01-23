@@ -123,6 +123,9 @@ impl BackendTextProvider {
         let network = frp.network();
         let output = frp.private().output.clone_ref();
 
+        let longest_observed_line: Rc<Cell<u32>> = default();
+        let max_observed_lines: Rc<Cell<u32>> = default();
+
         frp::extend! { network
             grid_window <- any_mut::<GridWindow>();
         }
@@ -150,12 +153,17 @@ impl BackendTextProvider {
                 }
             }).unwrap();
             grid_data_update <- receive_data.map(|data| {
-                LazyGridData::try_from(data.clone()).ok()
+                LazyGridDataUpdate::try_from(data.clone()).ok()
             });
             grid_data_update <- grid_data_update.map(|data| data.clone()).unwrap();
-            chunks_update <- grid_data_update.map(|grid_data| grid_data.chunks.clone());
-            eval chunks_update([text_cache](chunks) {
-                for (pos, text) in chunks {
+            eval grid_data_update([text_cache,longest_observed_line,max_observed_lines](update) {
+                if update.update_type == UpdateType::FullUpdate {
+                    text_cache.borrow_mut().clear();
+                    longest_observed_line.set(1);
+                    max_observed_lines.set(1);
+                }
+
+                for (pos, text) in &update.data.chunks {
                     if let Some(text) = text {
                         text_cache.borrow_mut().add_item(*pos, text.clone());
                     } else {
@@ -163,8 +171,24 @@ impl BackendTextProvider {
                     }
                 }
             });
-            output.line_count <+ grid_data_update.map(|grid_data| grid_data.line_count);
-            output.longest_line <+ grid_data_update.map(|grid_data| grid_data.longest_line);
+
+            line_count <- grid_data_update.map(|grid_data| grid_data.data.line_count);
+            longest_line <- grid_data_update.map(|grid_data| grid_data.data.longest_line);
+
+            output.longest_line <+ longest_line.map(f!([longest_observed_line](longest_line) {
+                    let observed_value = longest_observed_line.get();
+                    let longest_line = observed_value.max(*longest_line);
+                    longest_observed_line.set(longest_line);
+                    longest_line
+            })).on_change();
+
+            output.line_count <+ line_count.map(f!([max_observed_lines](line_count) {
+                let observed_value = max_observed_lines.get();
+                let max_lines = observed_value.max(*line_count);
+                max_observed_lines.set(max_lines);
+                max_lines
+            })).on_change();
+
         }
 
         Self { frp, text_cache, register_access }
@@ -220,23 +244,48 @@ struct LazyGridData {
     pub longest_line: u32,
 }
 
-impl TryFrom<visualization::Data> for LazyGridData {
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum UpdateType {
+    FullUpdate,
+    PartialUpdate,
+}
+
+impl Default for UpdateType {
+    fn default() -> Self {
+        Self::FullUpdate
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct LazyGridDataUpdate {
+    pub data:    LazyGridData,
+    update_type: UpdateType,
+}
+
+impl TryFrom<visualization::Data> for LazyGridDataUpdate {
     type Error = visualization::DataError;
 
     fn try_from(data: visualization::Data) -> Result<Self, Self::Error> {
         if let visualization::Data::Json { content } = data {
-            Ok(serde_json::from_value(content.deref().clone()).unwrap_or_else(|_| {
-                let data_str = if content.is_string() {
-                    // We need to access the content `as_str` to preserve newlines. Just using
-                    // `content.to_string()` would turn them into the characters `\n` in the output.
-                    // The unwrap can never fail, as we just checked that the content is a string.
-                    Ok(content.as_str().map(|s| s.to_owned()).unwrap_or_default())
-                } else {
-                    serde_json::to_string_pretty(&*content)
-                };
-                let data_str = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}.>", e));
-                data_str.into()
-            }))
+            let grid_data = serde_json::from_value(content.deref().clone());
+            let (data, update_type) = match grid_data {
+                Ok(data) => (data, UpdateType::PartialUpdate),
+                Err(_) => {
+                    let data_str = if content.is_string() {
+                        // We need to access the content `as_str` to preserve newlines. Just using
+                        // `content.to_string()` would turn them into the characters `\n` in the
+                        // output. The unwrap can never fail, as we just
+                        // checked that the content is a string.
+                        Ok(content.as_str().map(|s| s.to_owned()).unwrap_or_default())
+                    } else {
+                        serde_json::to_string_pretty(&*content)
+                    };
+                    let data_str =
+                        data_str.unwrap_or_else(|e| format!("<Cannot render data: {}.>", e));
+                    (data_str.into(), UpdateType::FullUpdate)
+                }
+            };
+            Ok(LazyGridDataUpdate { data, update_type })
         } else {
             Err(visualization::DataError::BinaryNotSupported)
         }

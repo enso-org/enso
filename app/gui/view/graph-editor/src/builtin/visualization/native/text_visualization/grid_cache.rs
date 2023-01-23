@@ -178,6 +178,11 @@ impl<T: Clone> GridCache<T> {
             Some(GridVector::new(dx, dy))
         }
     }
+
+    /// Clear the cached data.
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
 }
 
 /// Get the distance of the given index from the segment defined by the start and size.

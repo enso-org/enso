@@ -42,7 +42,7 @@ use ensogl_component::grid_view::GridView;
 use ensogl_component::scrollbar;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
-use js_sys::Promise;
+use web::Promise;
 
 pub use entry::Entry;
 
@@ -326,9 +326,6 @@ impl<T: TextProvider + 'static> TextGrid<T> {
         let frp = &self.frp;
         let init = init.clone_ref();
 
-        let longest_observed_line: Rc<Cell<u32>> = default();
-        let max_observed_lines: Rc<Cell<u32>> = default();
-
         frp::extend! { network
 
             scroll_positition <- all(&scrollbar_h.thumb_position, &scrollbar_v.thumb_position);
@@ -336,21 +333,8 @@ impl<T: TextProvider + 'static> TextGrid<T> {
             longest_line_with_init <- all(&init, &text_provider.longest_line)._1();
             lines_with_init        <- all(&init, &text_provider.line_count)._1();
 
-            longest_line <- longest_line_with_init.map(
-                f!([longest_observed_line](longest_line) {
-                    let observed_value = longest_observed_line.get();
-                    let longest_line = observed_value.max(*longest_line);
-                    longest_observed_line.set(longest_line);
-                    longest_line
-                })
-            ).on_change();
-
-            line_count <- lines_with_init.map(f!([max_observed_lines](line_count) {
-                let observed_value = max_observed_lines.get();
-                let max_lines = observed_value.max(*line_count);
-                max_observed_lines.set(max_lines);
-                max_lines
-            })).on_change();
+            longest_line <- longest_line_with_init.on_change();
+            line_count <- lines_with_init.on_change();
 
             content_size <- all(on_data_update, longest_line, line_count).map(
                 |(_, width,height)| {
@@ -494,15 +478,13 @@ impl FontLoadedNotifier {
         let _closure = web::Closure::new(f_!([on_fonts_loaded, callback]{
             on_fonts_loaded.emit(());
             // Release the self-reference after being called, so the closure can be dropped.
-            if let Some(callback) = callback.borrow_mut().take() {
-                drop(callback);
-            }
+            *callback.borrow_mut() = None;
         }));
 
         callback.set(_closure);
 
         let _promise = match web::document.fonts().ready() {
-            Ok(promise) => callback.borrow().as_ref().map(|closure| promise.then(&closure)),
+            Ok(promise) => callback.borrow().as_ref().map(|closure| promise.then(closure)),
             Err(e) => {
                 warn!("Could not set up font loading event because of error: {:?}.", e);
                 None
