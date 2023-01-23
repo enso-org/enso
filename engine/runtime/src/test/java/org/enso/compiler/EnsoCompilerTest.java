@@ -582,12 +582,11 @@ public class EnsoCompilerTest {
   }
 
   @Test
-  public void testEmptyGroup2AndAtSymbol() throws Exception {
+  public void testEmptyGroup2() throws Exception {
     parseTest("""
     main =
         x = ()
         x = 5
-        y = @
     """);
   }
 
@@ -598,15 +597,6 @@ public class EnsoCompilerTest {
 
     type Test
         group2 : Text -> Any -> (Text | Nothing) -> Nothing
-    """);
-  }
-
-  @Test
-  public void testNotAnOperator() throws Exception {
-    parseTest("""
-    main =
-        x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
-        x.to_text
     """);
   }
 
@@ -1241,6 +1231,19 @@ public class EnsoCompilerTest {
     equivalenceTest("a = x", "a = SKIP FREEZE x.f y");
   }
 
+  @Test
+  public void ise_184219679() throws IOException {
+    parseTest("""
+    from Standard.Base import all
+
+    main =
+        x = 42
+        y = if x == 42 then 10 else
+        20
+        IO.println y
+    """);
+  }
+
   static String simplifyIR(IR i, boolean noIds, boolean noLocations, boolean lessDocs) {
     var txt = i.pretty();
     if (noIds) {
@@ -1334,8 +1337,12 @@ public class EnsoCompilerTest {
   }
 
   private static IR.Module compile(String code) {
+    return compile(ensoCompiler, code);
+  }
+
+  public static IR.Module compile(EnsoCompiler c, String code) {
     var src = Source.newBuilder("enso", code, "test-" + Integer.toHexString(code.hashCode()) + ".enso").build();
-    var ir = ensoCompiler.compile(src);
+    var ir = c.compile(src);
     assertNotNull("IR was generated", ir);
     return ir;
   }

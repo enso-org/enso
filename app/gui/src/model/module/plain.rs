@@ -6,6 +6,7 @@ use crate::model::module::Content;
 use crate::model::module::ImportMetadata;
 use crate::model::module::ImportMetadataNotFound;
 use crate::model::module::Metadata;
+use crate::model::module::NodeEditStatus;
 use crate::model::module::NodeMetadata;
 use crate::model::module::NodeMetadataNotFound;
 use crate::model::module::Notification;
@@ -15,11 +16,13 @@ use crate::model::module::ProjectMetadata;
 use crate::model::module::TextChange;
 
 use double_representation::definition::DefinitionInfo;
+use double_representation::definition::DefinitionProvider;
 use double_representation::import;
 use flo_stream::Subscriber;
 use parser_scala::api::ParsedSourceFile;
 use parser_scala::api::SourceFile;
 use parser_scala::Parser;
+use std::collections::hash_map::Entry;
 
 
 
@@ -259,6 +262,20 @@ impl model::module::API for Module {
     fn as_any(&self) -> &dyn Any {
         self
     }
+
+    fn restore_temporary_changes(&self) -> FallibleResult {
+        self.update_content(NotificationKind::Invalidate, |content| {
+            remove_temporary_imports(content);
+            for definition in content.ast.recursive_def_iter() {
+                let mut graph =
+                    double_representation::graph::GraphInfo::from_definition(definition.item);
+                restore_edited_nodes_in_graph(&mut graph, &mut content.metadata);
+                content.ast =
+                    content.ast.set_traversing(&definition.crumbs, graph.source.ast.into())?;
+            }
+            Ok(())
+        })?
+    }
 }
 
 impl model::undo_redo::Aware for Module {
@@ -267,6 +284,59 @@ impl model::undo_redo::Aware for Module {
     }
 }
 
+
+
+// ===========================
+// === Helpers for Content ===
+// ===========================
+
+fn remove_temporary_imports(content: &mut Content) {
+    let mut info = double_representation::module::Info::from(content.ast.clone_ref());
+    let imports_md = &mut content.metadata.ide.import;
+    let temp_imports = imports_md.drain_filter(|_, import| import.is_temporary);
+    for (id, _) in temp_imports {
+        debug!("Removing temporary import {id}.");
+        info.remove_import_by_id(id).log_err("Error while removing temporary import.");
+    }
+    content.ast = info.ast;
+}
+
+fn restore_edited_node_in_graph(
+    graph: &mut double_representation::graph::GraphInfo,
+    node_id: double_representation::node::Id,
+    metadata: &mut Metadata,
+) -> FallibleResult {
+    if let Entry::Occupied(mut md_entry) = metadata.ide.node.entry(node_id) {
+        match mem::take(&mut md_entry.get_mut().edit_status) {
+            Some(NodeEditStatus::Created) => {
+                debug!("Removing temporary node {node_id}.");
+                graph.remove_node(node_id)?;
+                md_entry.remove();
+            }
+            Some(NodeEditStatus::Edited { previous_expression, previous_intended_method }) => {
+                debug!(
+                    "Restoring edited node {node_id} to original expression \
+                                    \"{previous_expression}\"."
+                );
+                graph.edit_node(node_id, Parser::new()?.parse_line_ast(previous_expression)?)?;
+                md_entry.get_mut().intended_method = previous_intended_method;
+            }
+            None => {}
+        }
+    }
+    Ok(())
+}
+
+fn restore_edited_nodes_in_graph(
+    graph: &mut double_representation::graph::GraphInfo,
+    metadata: &mut Metadata,
+) {
+    for node in graph.nodes() {
+        let node_id = node.id();
+        restore_edited_node_in_graph(graph, node_id, metadata)
+            .log_err_fmt(format_args!("Error while restoring edited node {node_id}."));
+    }
+}
 
 
 // =============

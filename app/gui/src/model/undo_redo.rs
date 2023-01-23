@@ -121,7 +121,7 @@ impl Transaction {
     /// Ignored transaction when dropped is discarded, rather than being put on top of "Redo" stack.
     /// It does not affect the actions belonging to transaction in any way.
     pub fn ignore(&self) {
-        debug!("Marking transaction '{}' as ignored.", self.frame.borrow().name);
+        info!("Marking transaction '{}' as ignored.", self.frame.borrow().name);
         self.ignored.set(true)
     }
 }
@@ -130,7 +130,7 @@ impl Drop for Transaction {
     fn drop(&mut self) {
         if let Some(urm) = self.urm.upgrade() {
             if !self.ignored.get() {
-                info!("Transaction '{}' will create a new frame.", self.name());
+                info!("Transaction '{}' will create a new frame. {}", self.name(), backtrace());
                 urm.push_to(Stack::Undo, self.frame.borrow().clone());
                 urm.clear(Stack::Redo);
             } else {
@@ -459,6 +459,10 @@ impl Manager {
             // And it cannot fail, as it already underwent this procedure successfully in the past
             // (we are copying an old state, so it must ba a representable state).
             module.update_whole(content.clone())?;
+            // Temporary changes should not leave UR frames, but some frame could be created during
+            // editing, so the temporary changes are in the snapshot. We need to remove them after
+            // restoring that frame.
+            module.restore_temporary_changes()?
         }
         Ok(())
     }
@@ -472,30 +476,31 @@ mod tests {
     use crate::test::mock::Unified;
     use span_tree::SpanTree;
 
-    fn check_atomic_undo(fixture: &Fixture, action: impl FnOnce()) {
-        let Fixture { project, module, .. } = &fixture;
+    fn check_atomic_undo(fixture: Fixture, action: impl FnOnce()) {
+        let Fixture { project, module, searcher, .. } = fixture;
+        drop(searcher);
         let urm = project.urm();
 
-        assert_eq!(urm.repository.len(Stack::Undo), 1);
+        assert_eq!(urm.repository.len(Stack::Undo), 0);
         assert_eq!(urm.repository.len(Stack::Redo), 0);
 
         let before_action = module.serialized_content().unwrap();
         action();
         let after_action = module.serialized_content().unwrap();
 
-        assert_eq!(urm.repository.len(Stack::Undo), 2);
+        assert_eq!(urm.repository.len(Stack::Undo), 1);
         assert_eq!(urm.repository.len(Stack::Redo), 0);
 
         // After single undo everything should be as before.
         urm.undo().unwrap();
         assert_eq!(module.serialized_content().unwrap(), before_action);
-        assert_eq!(urm.repository.len(Stack::Undo), 1);
+        assert_eq!(urm.repository.len(Stack::Undo), 0);
         assert_eq!(urm.repository.len(Stack::Redo), 1);
 
         // After redo - as right after connecting.
         urm.redo().unwrap();
         assert_eq!(module.serialized_content().unwrap(), after_action);
-        assert_eq!(urm.repository.len(Stack::Undo), 2);
+        assert_eq!(urm.repository.len(Stack::Undo), 1);
         assert_eq!(urm.repository.len(Stack::Redo), 0);
     }
 
@@ -504,8 +509,8 @@ mod tests {
         data.set_code(code);
 
         let fixture = data.fixture();
-        let graph = &fixture.graph;
-        check_atomic_undo(&fixture, move || action(graph));
+        let graph = fixture.graph.clone_ref();
+        check_atomic_undo(fixture, move || action(&graph));
     }
 
     // Collapse two middle nodes.
@@ -560,8 +565,8 @@ main =
     fn move_node() {
         use model::module::Position;
 
-        let mut fixture = crate::test::mock::Unified::new().fixture();
-        let Fixture { executed_graph, graph, project, .. } = &mut fixture;
+        let fixture = crate::test::mock::Unified::new().fixture();
+        let Fixture { executed_graph, graph, project, .. } = fixture;
 
         let urm = project.urm();
         let nodes = executed_graph.graph().nodes().unwrap();
@@ -589,35 +594,34 @@ main =
     fn undo_redo() {
         use crate::test::mock::Fixture;
         // Setup the controller.
-        let mut fixture = crate::test::mock::Unified::new().fixture();
-        let Fixture { executed_graph, project, module, .. } = &mut fixture;
+        let fixture = Unified::new().fixture();
+        let Fixture { executed_graph, project, module, searcher, .. } = fixture;
+        // Searcher makes changes in node temporary, and it affects the Undo Redo.
+        drop(searcher);
 
         let urm = project.urm();
         let nodes = executed_graph.graph().nodes().unwrap();
         let node = &nodes[0];
 
-        // Check initial state. One transaction happens during setup of the searcher, which updates
-        // node metadata.
-        assert_eq!(urm.repository.len(Stack::Undo), 1, "Undo stack not empty: {:?}", urm);
+        // Check initial state.
+        assert_eq!(urm.repository.len(Stack::Undo), 0, "Undo stack not empty: {:?}", urm);
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // Perform an action.
         executed_graph.graph().set_expression(node.info.id(), "5 * 20").unwrap();
 
         // We can undo action.
-        assert_eq!(urm.repository.len(Stack::Undo), 2);
+        assert_eq!(urm.repository.len(Stack::Undo), 1);
         assert_eq!(module.ast().to_string(), "main = \n    5 * 20");
         urm.undo().unwrap();
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // We cannot undo more actions than we made.
-        assert_eq!(urm.repository.len(Stack::Undo), 1);
-        assert!(urm.undo().is_ok());
+        assert_eq!(urm.repository.len(Stack::Undo), 0);
         assert!(urm.undo().is_err());
         assert_eq!(module.ast().to_string(), "main = \n    2 + 2");
 
         // We can redo since we undid.
-        urm.redo().unwrap();
         urm.redo().unwrap();
         assert_eq!(module.ast().to_string(), "main = \n    5 * 20");
 

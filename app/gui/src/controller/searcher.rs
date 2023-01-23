@@ -821,6 +821,9 @@ impl Searcher {
 
     /// Use action at given index as a suggestion. The exact outcome depends on the action's type.
     pub fn preview_suggestion(&self, picked_suggestion: action::Suggestion) -> FallibleResult {
+        let transaction_name = "Previewing Component Browser suggestion.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
+
         debug!("Previewing suggestion: \"{picked_suggestion:?}\".");
         self.clear_temporary_imports();
 
@@ -943,9 +946,6 @@ impl Searcher {
     #[profile(Debug)]
     pub fn commit_node(&self) -> FallibleResult<ast::Id> {
         let _transaction_guard = self.graph.get_or_open_transaction("Commit node");
-        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
-            guard.prevent_revert()
-        }
         self.clear_temporary_imports();
         // We add the required imports before we edit its content. This way, we avoid an
         // intermediate state where imports would already be in use but not yet available.
@@ -968,6 +968,11 @@ impl Searcher {
         let graph = self.graph.graph();
         if let Some(this) = self.this_arg.deref().as_ref() {
             this.introduce_pattern(graph.clone_ref())?;
+        }
+        // Should go last, as we want to prevent a revert only when the committing process was
+        // successful.
+        if let Some(guard) = self.node_edit_guard.deref().as_ref() {
+            guard.prevent_revert()
         }
         Ok(node_id)
     }
@@ -1080,6 +1085,8 @@ impl Searcher {
     }
 
     fn clear_temporary_imports(&self) {
+        let transaction_name = "Clearing temporary imports after closing searcher.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let mut module = self.module();
         let import_metadata = self.graph.graph().module.all_import_metadata();
         let metadata_to_remove = import_metadata
@@ -1449,6 +1456,9 @@ fn add_virtual_entries_to_builder(
 /// On creation the `EditGuard` saves the current expression of the node to its metadata.
 /// When dropped the metadata is cleared again and, by default, the node content is reverted to the
 /// previous expression. The expression reversion can be prevented by calling `prevent_revert`.
+///
+/// This structure does not create any Undo Redo transactions, but may contribute to existing one
+/// if opened somewhere else.
 #[derive(Debug)]
 struct EditGuard {
     node_id:           ast::Id,
@@ -1474,6 +1484,8 @@ impl EditGuard {
     /// Mark the node as edited in its metadata and save the current expression, so it can later
     /// be restored.
     fn save_node_expression_to_metadata(&self, mode: &Mode) -> FallibleResult {
+        let transaction_name = "Storing edited node original expression.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let module = &self.graph.graph().module;
         match mode {
             Mode::NewNode { .. } => module.with_node_metadata(
@@ -1501,6 +1513,8 @@ impl EditGuard {
 
     /// Mark the node as no longer edited and discard the edit metadata.
     fn clear_node_edit_metadata(&self) -> FallibleResult {
+        let transaction_name = "Storing edited node original expression.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let module = &self.graph.graph().module;
         module.with_node_metadata(
             self.node_id,
@@ -1512,17 +1526,12 @@ impl EditGuard {
 
     fn get_saved_expression(&self) -> FallibleResult<Option<NodeEditStatus>> {
         let module = &self.graph.graph().module;
-        let mut edit_status = None;
-        module.with_node_metadata(
-            self.node_id,
-            Box::new(|metadata| {
-                edit_status = metadata.edit_status.clone();
-            }),
-        )?;
-        Ok(edit_status)
+        Ok(module.node_metadata(self.node_id)?.edit_status)
     }
 
     fn revert_node_expression_edit(&self) -> FallibleResult {
+        let transaction_name = "Reverting node expression to original.";
+        let _skip = self.graph.undo_redo_repository().open_ignored_transaction(transaction_name);
         let edit_status = self.get_saved_expression()?;
         match edit_status {
             None => {

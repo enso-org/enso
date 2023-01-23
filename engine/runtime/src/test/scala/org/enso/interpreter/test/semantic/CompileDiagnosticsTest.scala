@@ -31,10 +31,10 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |import Standard.Base.Panic.Panic
           |
           |main =
-          |    x = Panic.catch_primitive @ caught_panic-> caught_panic.payload
+          |    x = Panic.catch_primitive ` caught_panic-> caught_panic.payload
           |    x.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Syntax_Error.Error 'Unrecognized token.')"
+      eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected expression.')"
     }
 
     "surface redefinition errors in the language" in {

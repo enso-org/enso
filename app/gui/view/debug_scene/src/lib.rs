@@ -22,7 +22,6 @@
 // === Export ===
 // ==============
 
-pub use debug_scene_cloud_dashboard as cloud_dashboard;
 pub use debug_scene_component_list_panel_view as new_component_list_panel_view;
 pub use debug_scene_documentation as documentation;
 pub use debug_scene_icons as icons;

@@ -8,6 +8,7 @@ use ensogl::data::color;
 use ensogl::display;
 use ensogl::display::object::event;
 use ensogl_component::drop_down::Dropdown;
+use frp::stream::EventEmitter;
 
 
 
@@ -108,7 +109,7 @@ pub struct SingleChoice {
     display_object: display::object::Instance,
     frp:            Frp,
     #[allow(dead_code)]
-    dropdown:       Dropdown<ImString>,
+    dropdown:       Rc<RefCell<LazyDropdown>>,
     /// temporary click handling
     activation_dot: dot::View,
 }
@@ -118,11 +119,9 @@ impl SingleChoice {
         let display_object = display::object::Instance::new();
         let dropdown = app.new_view::<Dropdown<ImString>>();
         display_object.add_child(&dropdown);
-        app.display.default_scene.layers.above_nodes.add(&dropdown);
         let frp = Frp::new();
         let network = &frp.network;
         let input = &frp.input;
-        let output = &frp.private.output;
         dropdown.set_y(-node_height);
         dropdown.set_max_open_size(Vector2(300.0, 500.0));
 
@@ -134,21 +133,30 @@ impl SingleChoice {
         display_object.add_child(&activation_dot);
 
 
-        if !argument_info.tag_values.is_empty() {
+        let dropdown = if !argument_info.tag_values.is_empty() {
             let entries: Vec<ImString> = argument_info.tag_values.iter().map(Into::into).collect();
-            dropdown.set_all_entries(entries);
-            dropdown.allow_deselect_all(true);
+            let app = app.clone_ref();
+            let display_object = display_object.clone_ref();
+            let frp = frp.clone_ref();
+            // Register a watcher for current value, to allow its value to be retrieved at any time
+            // when dropdown is initialized.
+            let current_value_watch = input.set_current_value.register_watch();
+            let lazy = LazyDropdown::NotInitialized {
+                app,
+                display_object,
+                frp,
+                node_height,
+                entries,
+                _current_value: current_value_watch,
+            };
+            Rc::new(RefCell::new(lazy))
         } else {
             // TODO [PG]: Support dynamic entries.
             // https://www.pivotaltracker.com/story/show/184012743
             unimplemented!();
-        }
+        };
 
         frp::extend! { network
-            dropdown.set_selected_entries <+ input.set_current_value.map(|s| s.iter().cloned().collect());
-            first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
-            output.value_changed <+ first_selected_entry.on_change();
-
             let dot_clicked = activation_dot.events.mouse_down_primary.clone_ref();
             toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
             set_focused <- any(toggle_focus, input.set_focused);
@@ -158,12 +166,79 @@ impl SingleChoice {
             });
 
             let focus_in = display_object.on_event::<event::FocusIn>();
-            let focus_out = display_object.on_event::<event::FocusOut>();
-            is_focused <- bool(&focus_out, &focus_in);
-
-            dropdown.set_open <+ is_focused;
+            eval focus_in((_) dropdown.borrow_mut().initialize_on_open());
         }
 
         Self { display_object, frp, dropdown, activation_dot }
+    }
+}
+
+
+
+// ====================
+// === LazyDropdown ===
+// ====================
+
+/// A lazy dropdown that is only initialized when it is opened for the first time. This prevents
+/// very long initialization time, as dropdown view creation is currently a very slow process.
+///
+/// FIXME [PG]: Improve grid-view creation performance, so that this is no longer needed.
+/// https://www.pivotaltracker.com/story/show/184223891
+///
+/// Once grid-view creation is reasonably fast, this might be replaced by direct dropdown
+/// initialization on widget creation.
+#[derive(Debug)]
+enum LazyDropdown {
+    NotInitialized {
+        app:            Application,
+        display_object: display::object::Instance,
+        frp:            Frp,
+        node_height:    f32,
+        entries:        Vec<ImString>,
+        _current_value: frp::data::watch::Handle,
+    },
+    Initialized(Dropdown<ImString>),
+}
+
+
+impl LazyDropdown {
+    fn initialize_on_open(&mut self) {
+        match self {
+            LazyDropdown::Initialized(_) => {}
+            LazyDropdown::NotInitialized {
+                app, display_object, frp, node_height, entries, ..
+            } => {
+                let dropdown = app.new_view::<Dropdown<ImString>>();
+                display_object.add_child(&dropdown);
+                app.display.default_scene.layers.above_nodes.add(&dropdown);
+                dropdown.set_y(-*node_height);
+                dropdown.set_max_open_size(Vector2(300.0, 500.0));
+                dropdown.set_all_entries(std::mem::take(entries));
+                dropdown.allow_deselect_all(true);
+
+                let network = &frp.network;
+                let input = &frp.input;
+                let output = &frp.private.output;
+
+                frp::extend! { network
+                    init <- source_();
+                    current_value <- all(&input.set_current_value, &init)._0();
+                    dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
+                    first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
+                    output.value_changed <+ first_selected_entry.on_change();
+
+                    let focus_in = display_object.on_event::<event::FocusIn>();
+                    let focus_out = display_object.on_event::<event::FocusOut>();
+                    is_focused <- bool(&focus_out, &focus_in);
+
+                    dropdown.set_open <+ is_focused;
+                }
+
+                init.emit(());
+                dropdown.set_open(true);
+
+                *self = LazyDropdown::Initialized(dropdown);
+            }
+        }
     }
 }

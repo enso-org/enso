@@ -2109,6 +2109,92 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List()
   }
 
+  it should "support file modifications after reopening the file" in {
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    val moduleName = "Enso_Test.Test.Main"
+    val code =
+      """import Standard.Base.IO
+        |
+        |main = IO.println "I'm a file!"
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    // Create a new file
+    val mainFile = context.writeMain(code)
+
+    // Open the new file
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
+    context.receiveNone shouldEqual None
+    context.consumeOut shouldEqual List()
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("I'm a file!")
+
+    // Close the file
+    context.send(Api.Request(Api.CloseFileNotification(mainFile)))
+    context.consumeOut shouldEqual List()
+
+    val contextId2 = UUID.randomUUID()
+    val requestId2 = UUID.randomUUID()
+
+    context.send(Api.Request(requestId2, Api.CreateContextRequest(contextId2)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId2, Api.CreateContextResponse(contextId2))
+    )
+
+    // Re-open the the file and apply the same operation
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
+    context.receiveNone shouldEqual None
+    context.consumeOut shouldEqual List()
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(2, 25), model.Position(2, 29)),
+              "modified"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(1) shouldEqual Seq(
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("I'm a modified!")
+
+  }
+
   it should "support file modification operations with attached ids" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -3274,7 +3360,7 @@ class RuntimeServerTest
       """from Standard.Base import all
         |
         |main =
-        |    x = Panic.catch_primitive @ .convert_to_dataflow_error
+        |    x = Panic.catch_primitive ` .convert_to_dataflow_error
         |    IO.println x
         |    IO.println (x.catch Any .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
@@ -3316,7 +3402,7 @@ class RuntimeServerTest
           contextId,
           Seq(
             Api.ExecutionResult.Diagnostic.error(
-              "Unrecognized token.",
+              "Unexpected expression.",
               Some(mainFile),
               Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
             )
@@ -3326,8 +3412,8 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List(
-      "(Error: (Syntax_Error.Error 'Unrecognized token.'))",
-      "(Syntax_Error.Error 'Unrecognized token.')"
+      "(Error: (Syntax_Error.Error 'Unexpected expression.'))",
+      "(Syntax_Error.Error 'Unexpected expression.')"
     )
   }
 
