@@ -206,7 +206,7 @@ mod tests {
     use crate::definition::DefinitionProvider;
 
     use ast::macros::DocumentationCommentInfo;
-    use parser_scala::Parser;
+    use ast_parser::Parser;
 
 
     /// Expect `main` method, where first line is a documentation comment.
@@ -231,7 +231,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn parse_single_line_comment() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
 
         // Typical single line case.
         let code = r#"
@@ -268,7 +268,7 @@ main =
 
     #[wasm_bindgen_test]
     fn parse_multi_line_comment() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
         let code = r#"
 main =
     ## First line

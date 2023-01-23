@@ -10,6 +10,7 @@ use crate::model::module;
 use crate::model::SuggestionDatabase;
 use crate::transport::web::WebSocket;
 
+use ast_parser::Parser;
 use double_representation::name::project;
 use engine_protocol::binary;
 use engine_protocol::binary::message::VisualisationContext;
@@ -25,7 +26,6 @@ use engine_protocol::project_manager::MissingComponentAction;
 use engine_protocol::project_manager::ProjectName;
 use flo_stream::Subscriber;
 use json_rpc::error::RpcError;
-use parser_scala::Parser;
 
 
 

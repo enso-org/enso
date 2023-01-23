@@ -11,7 +11,7 @@ use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::known;
 use ast::opr;
-use parser_scala::Parser;
+use ast_parser::Parser;
 use std::iter::FusedIterator;
 
 
@@ -651,7 +651,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn definition_name_tests() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo.Bar.baz").unwrap();
         let name = DefinitionName::from_ast(&ast).unwrap();
 
@@ -666,14 +666,14 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn definition_name_rejecting_incomplete_names() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo. .baz").unwrap();
         assert!(DefinitionName::from_ast(&ast).is_none());
     }
 
     #[wasm_bindgen_test]
     fn definition_info_name() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("Foo.bar a b c = baz").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
 
@@ -683,7 +683,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn located_definition_args() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
         let ast = parser.parse_line_ast("foo bar baz = a + b + c").unwrap();
         let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
         let (arg0, arg1) = definition.args.expect_tuple();
@@ -725,7 +725,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn list_definition_test() {
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
 
         // TODO [mwu]
         //  Due to a parser bug, extension methods defining operators cannot be currently
@@ -780,7 +780,7 @@ mod tests {
             ("foo = bar\n\nmain = bar", 2),
         ];
 
-        let parser = parser_scala::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new_or_panic();
         let main_id = Id::new_plain_name("main");
         for (program, expected_line_index) in program_to_expected_main_pos {
             let module = parser.parse_module(program, default()).unwrap();
@@ -806,7 +806,7 @@ main =
 
     add foo bar";
 
-        let module = parser_scala::Parser::new_or_panic().parse_module(program, default()).unwrap();
+        let module = ast_parser::Parser::new_or_panic().parse_module(program, default()).unwrap();
         let check_def = |id, expected_body| {
             let definition = module::get_definition(&module, &id).unwrap();
             assert_eq!(definition.body().repr(), expected_body);

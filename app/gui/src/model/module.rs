@@ -6,6 +6,10 @@ use crate::controller::FilePath;
 
 use ast::constants::LANGUAGE_FILE_EXTENSION;
 use ast::constants::SOURCE_DIRECTORY;
+use ast_parser::api::ParsedSourceFile;
+use ast_parser::api::PruneUnusedIds;
+use ast_parser::api::SourceFile;
+use ast_parser::Parser;
 use double_representation::definition::DefinitionInfo;
 use double_representation::import;
 use double_representation::module::MethodId;
@@ -13,10 +17,6 @@ use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use engine_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
-use parser_scala::api::ParsedSourceFile;
-use parser_scala::api::PruneUnusedIds;
-use parser_scala::api::SourceFile;
-use parser_scala::Parser;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -340,7 +340,7 @@ impl PruneUnusedIds for Metadata {
     }
 }
 
-impl parser_scala::api::Metadata for Metadata {}
+impl ast_parser::api::Metadata for Metadata {}
 
 impl Default for Metadata {
     fn default() -> Self {
@@ -746,8 +746,7 @@ pub mod test {
 
     pub fn plain_from_code(code: impl Into<String>) -> Module {
         let urm = default();
-        MockData { code: code.into(), ..default() }
-            .plain(&parser_scala::Parser::new_or_panic(), urm)
+        MockData { code: code.into(), ..default() }.plain(&ast_parser::Parser::new_or_panic(), urm)
     }
 
     #[test]

@@ -24,7 +24,7 @@ fn id_map_round_tripping() {
         "main = \n    foo\n    baz \n    bar",
     ];
 
-    let parser = Parser::new().unwrap();
+    let parser = Parser::new_or_panic();
     for case in cases.iter().copied() {
         let id_map = default();
         let ast1 = parser.parse_module(case, id_map).unwrap();

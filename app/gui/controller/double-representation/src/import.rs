@@ -215,7 +215,7 @@ impl Display for Info {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use parser_scala::Parser;
+    use ast_parser::Parser;
 
     struct Fixture {
         parser: Parser,

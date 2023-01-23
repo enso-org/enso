@@ -12,6 +12,7 @@ use ast::crumbs::InfixCrumb;
 use ast::crumbs::Located;
 use ast::macros::skip_and_freeze::MacrosInfo;
 use ast::macros::DocumentationCommentInfo;
+use ast_parser::Parser;
 use double_representation::connection;
 use double_representation::definition;
 use double_representation::definition::DefinitionProvider;
@@ -23,7 +24,6 @@ use double_representation::node::MainLine;
 use double_representation::node::NodeInfo;
 use double_representation::node::NodeLocation;
 use engine_protocol::language_server;
-use parser_scala::Parser;
 use span_tree::action::Action;
 use span_tree::action::Actions;
 use span_tree::generate::context::CalledMethodInfo;
@@ -1037,10 +1037,10 @@ pub mod tests {
 
     use ast::crumbs;
     use ast::test_utils::expect_shape;
+    use ast_parser::Parser;
     use double_representation::name::project;
     use engine_protocol::language_server::MethodPointer;
     use enso_text::index::*;
-    use parser_scala::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
 
@@ -1096,7 +1096,7 @@ pub mod tests {
 
         /// Create a graph controller from the current mock data.
         pub fn graph(&self) -> Handle {
-            let parser = Parser::new().unwrap();
+            let parser = Parser::new_or_panic();
             let urm = Rc::new(model::undo_redo::Repository::new());
             let module = self.module_data().plain(&parser, urm);
             let id = self.graph_id.clone();

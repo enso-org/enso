@@ -239,7 +239,7 @@ mod test {
     use crate::SpanTree;
 
     use ast::HasRepr;
-    use parser_scala::Parser;
+    use ast_parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]

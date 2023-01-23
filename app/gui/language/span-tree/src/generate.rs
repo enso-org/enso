@@ -626,7 +626,7 @@ mod test {
     use ast::crumbs::SectionSidesCrumb;
     use ast::Crumbs;
     use ast::IdMap;
-    use parser_scala::Parser;
+    use ast_parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 

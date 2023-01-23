@@ -16,7 +16,7 @@ use crate::node::NodeInfo;
 
 use ast::crumbs::Located;
 use ast::BlockLine;
-use parser_scala::Parser;
+use ast_parser::Parser;
 use std::collections::BTreeSet;
 
 

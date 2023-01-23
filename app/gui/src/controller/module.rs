@@ -7,6 +7,7 @@ use crate::model::module::TextChange;
 
 use ast;
 use ast::HasIdMap;
+use ast_parser::Parser;
 use double_representation::import;
 use double_representation::module;
 use double_representation::name::project;
@@ -14,7 +15,6 @@ use double_representation::name::QualifiedName;
 use double_representation::text::apply_code_change_to_id_map;
 use engine_protocol::language_server;
 use engine_protocol::types::Sha3_224;
-use parser_scala::Parser;
 
 
 
@@ -199,8 +199,8 @@ mod test {
     use ast;
     use ast::Ast;
     use ast::BlockLine;
+    use ast_parser::Parser;
     use enso_text::index::*;
-    use parser_scala::Parser;
     use uuid::Uuid;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -208,7 +208,7 @@ mod test {
     fn update_ast_after_text_change() {
         TestWithLocalPoolExecutor::set_up().run_task(async {
             let ls = language_server::Connection::new_mock_rc(default());
-            let parser = Parser::new().unwrap();
+            let parser = Parser::new_or_panic();
             let location = Path::from_mock_module_name("Test");
             let code = "2+2";
             let uuid1 = Uuid::new_v4();

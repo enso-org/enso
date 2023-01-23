@@ -14,6 +14,8 @@ use crate::model::module::TextChange;
 use crate::model::module::API;
 
 use ast::IdMap;
+use ast_parser::api::SourceFile;
+use ast_parser::Parser;
 use double_representation::definition::DefinitionInfo;
 use double_representation::graph::Id;
 use double_representation::import;
@@ -24,8 +26,6 @@ use enso_text::text;
 use enso_text::Location;
 use enso_text::Range;
 use flo_stream::Subscriber;
-use parser_scala::api::SourceFile;
-use parser_scala::Parser;
 
 
 

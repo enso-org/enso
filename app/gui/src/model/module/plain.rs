@@ -15,13 +15,13 @@ use crate::model::module::Path;
 use crate::model::module::ProjectMetadata;
 use crate::model::module::TextChange;
 
+use ast_parser::api::ParsedSourceFile;
+use ast_parser::api::SourceFile;
+use ast_parser::Parser;
 use double_representation::definition::DefinitionInfo;
 use double_representation::definition::DefinitionProvider;
 use double_representation::import;
 use flo_stream::Subscriber;
-use parser_scala::api::ParsedSourceFile;
-use parser_scala::api::SourceFile;
-use parser_scala::Parser;
 use std::collections::hash_map::Entry;
 
 
