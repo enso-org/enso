@@ -358,3 +358,20 @@ type Unmatched_Columns
     to_display_text : Text
     to_display_text self =
         "The following columns were not present in some of the provided tables: " + (self.column_names.map (n -> "["+n+"]") . join ", ") + ". The missing values have been filled with `Nothing`."
+
+type Cross_Join_Row_Limit_Exceeded
+    ## Indicates that a `cross_join` has been attempted where the right table
+       has more rows than allowed by the limit.
+    Error (limit : Integer) (existing_rows : Integer)
+
+    to_display_text : Text
+    to_display_text self =
+        "The cross join operation exceeded the maximum number of rows allowed. The limit is "+self.limit.to_text+" and the number of rows in the right table was "+self.existing_rows.to_text+". The limit may be turned off by setting the `right_row_limit` option to `Nothing`."
+
+type Row_Count_Mismatch
+    ## Indicates that the row counts of zipped tables do not match.
+    Error (left_rows : Integer) (right_rows : Integer)
+
+    to_display_text : Text
+    to_display_text self =
+        "The number of rows in the left table ("+self.left_rows.to_text+") does not match the number of rows in the right table ("+self.right_rows.to_text+")."

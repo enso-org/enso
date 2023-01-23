@@ -7,12 +7,14 @@ import project.Common_Table_Operations.Distinct_Spec
 import project.Common_Table_Operations.Expression_Spec
 import project.Common_Table_Operations.Filter_Spec
 import project.Common_Table_Operations.Integration_Tests
-import project.Common_Table_Operations.Join_Spec
+import project.Common_Table_Operations.Join.Join_Spec
+import project.Common_Table_Operations.Join.Cross_Join_Spec
+import project.Common_Table_Operations.Join.Zip_Spec
+import project.Common_Table_Operations.Join.Union_Spec
 import project.Common_Table_Operations.Missing_Values_Spec
 import project.Common_Table_Operations.Order_By_Spec
 import project.Common_Table_Operations.Select_Columns_Spec
 import project.Common_Table_Operations.Take_Drop_Spec
-import project.Common_Table_Operations.Union_Spec
 
 from project.Common_Table_Operations.Util import run_default_backend
 
@@ -95,6 +97,8 @@ spec setup =
     Take_Drop_Spec.spec setup
     Expression_Spec.spec detailed=False setup
     Join_Spec.spec setup
+    Cross_Join_Spec.spec setup
+    Zip_Spec.spec setup
     Union_Spec.spec setup
     Distinct_Spec.spec setup
     Integration_Tests.spec setup

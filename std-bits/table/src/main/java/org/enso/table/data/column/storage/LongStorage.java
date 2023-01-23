@@ -2,6 +2,8 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
+
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.NumericBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.UnaryMapOperation;
@@ -354,6 +356,11 @@ public final class LongStorage extends NumericStorage<Long> {
     System.arraycopy(data, offset, newData, 0, newSize);
     BitSet newMask = isMissing.get(offset, offset + limit);
     return new LongStorage(newData, newSize, newMask);
+  }
+
+  @Override
+  public Builder createDefaultBuilderOfSameType(int capacity) {
+    return NumericBuilder.createLongBuilder(capacity);
   }
 
   @Override
