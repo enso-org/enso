@@ -6,16 +6,21 @@ import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
 
 /** A pass responsible for the discovery of [[IR.Name.GeneralAnnotation]]
   * annotations, and for associating them with the corresponding construct.
   *
-  * Annotations defined on a type constructor are resolved in the
-  * [[org.enso.compiler.pass.desugar.ComplexType]] pass.
+  * Compilation pipeline of annotations:
+  * - [[ModuleAnnotations]] pass ignores general annotations and leaves them in
+  * the tree so that the consequent passes are able to process the annotation
+  * expression.
+  * - [[org.enso.compiler.pass.desugar.ComplexType]] pass associates general
+  * annotations with the type constructor definitions.
+  * - [[GeneralAnnotations]] pass associates general annotations that are left
+  * in the tree with the appropriate definitions.
   */
 case object GeneralAnnotations extends IRPass {
-  override type Metadata = Annotations
+  override type Metadata = ModuleAnnotations.Annotations
   override type Config   = IRPass.Configuration.Default
   override val precursorPasses: Seq[IRPass]   = Seq()
   override val invalidatedPasses: Seq[IRPass] = Seq()
@@ -51,7 +56,9 @@ case object GeneralAnnotations extends IRPass {
         None
       case entity =>
         val res = Some(
-          entity.updateMetadata(this -->> Annotations(lastAnnotations))
+          entity.updateMetadata(
+            this -->> ModuleAnnotations.Annotations(lastAnnotations)
+          )
         )
         lastAnnotations = Seq()
         res

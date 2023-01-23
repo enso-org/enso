@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -50,7 +51,7 @@ public abstract class GetAnnotationNode extends BaseNode {
         return thunkExecutorNode.executeThunk(thunk, state, getTailStatus());
       }
     }
-    AtomConstructor constructor = targetType.getConstructors().get(methodName);
+    AtomConstructor constructor = getAtomConstructor(targetType, methodName);
     if (constructor != null) {
       Function constructorFunction = constructor.getConstructorFunction();
       String parameterName = expectStringNode.execute(parameter);
@@ -66,5 +67,10 @@ public abstract class GetAnnotationNode extends BaseNode {
 
   static GetAnnotationNode build() {
     return GetAnnotationNodeGen.create();
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private AtomConstructor getAtomConstructor(Type type, String name) {
+    return type.getConstructors().get(name);
   }
 }

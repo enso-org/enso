@@ -260,7 +260,7 @@ class IrToTruffle(
           }
 
           val (assignments, reads) = argumentExpressions.unzip
-          // annotations
+          // build annotations
           val annotations = atomDefn.annotations.map { annotation =>
             val scopeElements = Seq(
               tpDef.name.name,
