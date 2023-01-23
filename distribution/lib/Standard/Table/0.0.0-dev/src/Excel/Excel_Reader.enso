@@ -6,7 +6,7 @@ import project.Data.Table.Table
 import project.Excel.Excel_Range.Excel_Range
 import project.Excel.Excel_Section.Excel_Section
 
-from project.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from project.Errors import Invalid_Location, Duplicate_Output_Column_Names, Invalid_Output_Column_Names, Empty_Sheet_Error
 
 polyglot java import org.enso.table.excel.ExcelHeaders
 polyglot java import org.enso.table.read.ExcelReader
@@ -45,7 +45,7 @@ handle_reader file reader =
     bad_argument caught_panic = Error.throw (Invalid_Location.Error caught_panic.payload.getCause)
     handle_bad_argument = Panic.catch InvalidLocationException handler=bad_argument
 
-    File_Error.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <|
+    File_Error.handle_java_exceptions file <| handle_bad_argument <| handle_bad_format <| Empty_Sheet_Error.handle_java_exception <|
         file.with_input_stream [File_Access.Read] stream->
             stream.with_java_stream reader
 

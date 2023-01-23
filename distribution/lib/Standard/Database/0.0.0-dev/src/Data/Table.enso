@@ -1346,8 +1346,9 @@ type Table
 # make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Context -> Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
-    cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
-    Table.Value table_name connection cols ctx
+    if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
+        cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
+        Table.Value table_name connection cols ctx
 
 ## PRIVATE
 

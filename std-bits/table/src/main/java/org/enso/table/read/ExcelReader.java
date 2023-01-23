@@ -10,6 +10,7 @@ import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.error.EmptySheetException;
 import org.enso.table.error.InvalidLocationException;
 import org.enso.table.excel.ExcelHeaders;
 import org.enso.table.excel.ExcelRange;
@@ -311,6 +312,10 @@ public class ExcelReader {
         IntStream.range(0, builders.size())
             .mapToObj(idx -> new Column(excelHeaders.get(idx + startCol), builders.get(idx).seal()))
             .toArray(Column[]::new);
+
+    if (columns.length == 0) {
+      throw new EmptySheetException();
+    }
 
     return new WithProblems<>(new Table(columns), excelHeaders.getProblems());
   }
