@@ -114,7 +114,7 @@ case object OverloadsResolution extends IRPass {
         }
 
       case diagnostic: IR.Diagnostic      => diagnostic
-      case ann: IR.Name.GenericAnnotation => ann
+      case ann: IR.Name.GeneralAnnotation => ann
       case _: IR.Type.Ascription =>
         throw new CompilerError(
           "Type ascriptions should not be present during the overloads resolution."

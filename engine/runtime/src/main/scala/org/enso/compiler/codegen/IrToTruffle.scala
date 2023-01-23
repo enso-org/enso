@@ -23,7 +23,7 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
-  GenericAnnotations,
+  GeneralAnnotations,
   GlobalNames,
   MethodDefinitions,
   Patterns,
@@ -440,10 +440,10 @@ class IrToTruffle(
             val arguments  = bodyBuilder.args()
             // build annotations
             val annotations =
-              methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
+              methodDef.getMetadata(GeneralAnnotations).toVector.flatMap {
                 meta =>
                   meta.annotations
-                    .collect { case annotation: IR.Name.GenericAnnotation =>
+                    .collect { case annotation: IR.Name.GeneralAnnotation =>
                       val scopeElements = Seq(
                         cons.getName,
                         methodDef.methodName.name,

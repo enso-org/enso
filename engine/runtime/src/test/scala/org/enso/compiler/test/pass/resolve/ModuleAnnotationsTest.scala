@@ -126,8 +126,8 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings(0) shouldBe a[IR.Name.GenericAnnotation]
-      ir.bindings(1) shouldBe a[IR.Name.GenericAnnotation]
+      ir.bindings(0) shouldBe a[IR.Name.GeneralAnnotation]
+      ir.bindings(1) shouldBe a[IR.Name.GeneralAnnotation]
     }
 
   }
@@ -147,7 +147,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 2
-      typ.body(0) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(0) shouldBe an[IR.Name.GeneralAnnotation]
       typ.body(1) shouldBe a[Definition.Data]
     }
 
@@ -164,7 +164,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 3
-      typ.body(1) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(1) shouldBe an[IR.Name.GeneralAnnotation]
       typ.body(2) shouldBe an[IR.Function.Binding]
     }
 
@@ -181,7 +181,7 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
       typ.body.length shouldEqual 3
-      typ.body(0) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(0) shouldBe an[IR.Name.GeneralAnnotation]
       typ.body(1) shouldBe an[IR.Comment]
       typ.body(2) shouldBe a[Definition.Data]
     }

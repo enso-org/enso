@@ -112,11 +112,11 @@ case object ComplexType extends IRPass {
     typ: IR.Module.Scope.Definition.SugaredType
   ): List[IR.Module.Scope.Definition] = {
     val annotations     = typ.getMetadata(ModuleAnnotations)
-    var lastAnnotations = Seq.empty[IR.Name.GenericAnnotation]
-    var seenAnnotations = Set.empty[IR.Name.GenericAnnotation]
+    var lastAnnotations = Seq.empty[IR.Name.GeneralAnnotation]
+    var seenAnnotations = Set.empty[IR.Name.GeneralAnnotation]
     val atomDefs = typ.body
       .flatMap {
-        case ann: IR.Name.GenericAnnotation =>
+        case ann: IR.Name.GeneralAnnotation =>
           lastAnnotations :+= ann
           None
         case d: IR.Module.Scope.Definition.Data =>
@@ -144,7 +144,7 @@ case object ComplexType extends IRPass {
 
     val remainingEntities = typ.body.filterNot {
       case _: IR.Module.Scope.Definition.Data => true
-      case ann: IR.Name.GenericAnnotation     => seenAnnotations.contains(ann)
+      case ann: IR.Name.GeneralAnnotation     => seenAnnotations.contains(ann)
       case _                                  => false
     }
 
@@ -198,7 +198,7 @@ case object ComplexType extends IRPass {
       case funSugar @ IR.Function.Binding(name, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
       case err: IR.Error                  => Seq(err)
-      case ann: IR.Name.GenericAnnotation => Seq(ann)
+      case ann: IR.Name.GeneralAnnotation => Seq(ann)
       case _ =>
         throw new CompilerError("Unexpected IR node in complex type body.")
     }

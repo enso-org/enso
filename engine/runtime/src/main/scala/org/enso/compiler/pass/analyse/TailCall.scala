@@ -131,7 +131,7 @@ case object TailCall extends IRPass {
           "Annotations should already be associated by the point of " +
           "tail call analysis."
         )
-      case ann: IR.Name.GenericAnnotation =>
+      case ann: IR.Name.GeneralAnnotation =>
         ann
           .copy(expression =
             analyseExpression(ann.expression, isInTailPosition = true)

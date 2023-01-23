@@ -122,7 +122,7 @@ case object CachePreferenceAnalysis extends IRPass {
           "Annotations should already be associated by the point of " +
           "cache preference analysis."
         )
-      case ann: IR.Name.GenericAnnotation => ann
+      case ann: IR.Name.GeneralAnnotation => ann
       case err: IR.Error                  => err
     }
 

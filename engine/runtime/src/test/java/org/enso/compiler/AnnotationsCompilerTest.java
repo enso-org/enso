@@ -79,4 +79,19 @@ public class AnnotationsCompilerTest extends CompilerTest {
     assertEquals(annotation2.name(), "b");
     assertEquals(constructor.name().name(), "Cons");
   }
+
+  @Test
+  public void testInvalidComplexType() throws Exception {
+    var ir = parse("""
+    type Foo
+        bar a =
+    """);
+
+    var typeDefinition = (IR$Module$Scope$Definition$SugaredType) ir.bindings().apply(0);
+    var method = (IR$Function$Binding) typeDefinition.body().apply(0);
+
+    assertEquals(method.name().name(), "bar");
+    // FIXME method body is null. Should be `IR.Error.Syntax.UnexpectedDeclarationInType`
+    assertEquals(method.body(), null);
+  }
 }

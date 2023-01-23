@@ -32,7 +32,7 @@ case object ModuleAnnotations extends IRPass {
     * @param ir the Enso IR to process
     * @param moduleContext a context object that contains the information needed
     *                      to process a module
-    *  @return `ir`, possibly having made transformations or annotations to that
+    * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   override def runModule(
@@ -44,7 +44,7 @@ case object ModuleAnnotations extends IRPass {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
-      case ann: Name.GenericAnnotation =>
+      case ann: Name.GeneralAnnotation =>
         Some(ann)
       case comment: IR.Comment => Some(comment)
       case typ: Definition.SugaredType =>
@@ -78,7 +78,7 @@ case object ModuleAnnotations extends IRPass {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
-      case ann: Name.GenericAnnotation =>
+      case ann: Name.GeneralAnnotation =>
         Some(ann)
       case comment: IR.Comment => Some(comment)
       case entity =>
@@ -98,7 +98,7 @@ case object ModuleAnnotations extends IRPass {
     * @param ir the Enso IR to process
     * @param inlineContext a context object that contains the information needed
     *                      for inline evaluation
-    *  @return `ir`, possibly having made transformations or annotations to that
+    * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   override def runExpression(

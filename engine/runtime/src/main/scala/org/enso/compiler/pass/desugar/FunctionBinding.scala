@@ -322,7 +322,7 @@ case object FunctionBinding extends IRPass {
           "Annotations should already be associated by the point of " +
           "function binding desugaring."
         )
-      case a: IR.Name.GenericAnnotation => a
+      case a: IR.Name.GeneralAnnotation => a
       case a: IR.Type.Ascription        => a
       case e: IR.Error                  => e
     }

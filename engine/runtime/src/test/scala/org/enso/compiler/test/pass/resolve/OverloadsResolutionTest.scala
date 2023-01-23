@@ -121,7 +121,6 @@ class OverloadsResolutionTest extends CompilerTest {
          |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
-
       exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Type]
     }
 

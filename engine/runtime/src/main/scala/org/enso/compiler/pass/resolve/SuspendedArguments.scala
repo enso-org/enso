@@ -196,7 +196,7 @@ case object SuspendedArguments extends IRPass {
           "Annotations should already be associated by the point of " +
           "suspended arguments analysis."
         )
-      case ann: IR.Name.GenericAnnotation => ann
+      case ann: IR.Name.GeneralAnnotation => ann
     }
   }
 

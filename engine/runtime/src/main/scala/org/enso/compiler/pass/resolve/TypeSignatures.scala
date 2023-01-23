@@ -132,7 +132,7 @@ case object TypeSignatures extends IRPass {
       case ut: IR.Module.Scope.Definition.Type =>
         Some(ut.mapExpressions(resolveExpression))
       case err: IR.Error                  => Some(err)
-      case ann: IR.Name.GenericAnnotation => Some(ann)
+      case ann: IR.Name.GeneralAnnotation => Some(ann)
       case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during type " +

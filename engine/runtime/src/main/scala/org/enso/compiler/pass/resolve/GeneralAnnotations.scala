@@ -3,36 +3,38 @@ package org.enso.compiler.pass.resolve
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
-import org.enso.compiler.core.IR.Name
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
 
-/** A pass responsible for the discovery of module annotations, and for
-  * associating them with the corresponding construct.
+/** A pass responsible for the discovery of [[IR.Name.GeneralAnnotation]]
+  * annotations, and for associating them with the corresponding construct.
+  *
+  * Annotations defined on a type constructor are resolved in the
+  * [[org.enso.compiler.pass.desugar.ComplexType]] pass.
   */
-case object GenericAnnotations extends IRPass {
+case object GeneralAnnotations extends IRPass {
   override type Metadata = Annotations
   override type Config   = IRPass.Configuration.Default
   override val precursorPasses: Seq[IRPass]   = Seq()
   override val invalidatedPasses: Seq[IRPass] = Seq()
 
-  /** Resolves module-level annotations.
+  /** Resolves annotations.
     *
     * @param ir the Enso IR to process
     * @param moduleContext a context object that contains the information needed
-    *                      to process a module
-    *  @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
+    * to process a module
+    * @return `ir`, possibly having made transformations or annotations to that
+    * IR.
     */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    var lastAnnotations: Seq[IR.Name.GenericAnnotation] = Seq()
+    var lastAnnotations: Seq[IR.Name.GeneralAnnotation] = Seq()
     val newBindings = ir.bindings.map {
-      case _: Name.BuiltinAnnotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           s"Builtin annotations should not be present at generic annotations pass."
         )
@@ -44,7 +46,7 @@ case object GenericAnnotations extends IRPass {
         throw new CompilerError(
           "Comments should not be present at generic annotations pass."
         )
-      case ann: Name.GenericAnnotation =>
+      case ann: IR.Name.GeneralAnnotation =>
         lastAnnotations :+= ann
         None
       case entity =>

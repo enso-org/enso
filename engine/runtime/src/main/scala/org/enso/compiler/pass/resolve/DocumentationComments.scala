@@ -161,7 +161,7 @@ case object DocumentationComments extends IRPass {
       case doc: IR.Comment.Documentation  => doc
       case tySig: IR.Type.Ascription      => tySig
       case err: IR.Error                  => err
-      case ann: IR.Name.GenericAnnotation => ann
+      case ann: IR.Name.GeneralAnnotation => ann
       case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +

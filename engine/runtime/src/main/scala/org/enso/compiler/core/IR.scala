@@ -1077,7 +1077,7 @@ object IR {
         sealed case class Data(
           name: IR.Name,
           arguments: List[DefinitionArgument],
-          annotations: List[IR.Name.GenericAnnotation],
+          annotations: List[IR.Name.GeneralAnnotation],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1099,7 +1099,7 @@ object IR {
           def copy(
             name: IR.Name                                = name,
             arguments: List[DefinitionArgument]          = arguments,
-            annotations: List[IR.Name.GenericAnnotation] = annotations,
+            annotations: List[IR.Name.GeneralAnnotation] = annotations,
             location: Option[IdentifiedLocation]         = location,
             passData: MetadataStorage                    = passData,
             diagnostics: DiagnosticStorage               = diagnostics,
@@ -2870,7 +2870,7 @@ object IR {
       override def showCode(indent: Int): String = s"@$name"
     }
 
-    /** The representation of common annotations of form `@name expression`.
+    /** Common annotations of form `@name expression`.
       *
       * @param name the annotation text of the name
       * @param expression the annotation expression
@@ -2878,7 +2878,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
-    sealed case class GenericAnnotation(
+    sealed case class GeneralAnnotation(
       override val name: String,
       expression: Expression,
       override val location: Option[IdentifiedLocation],
@@ -2904,9 +2904,9 @@ object IR {
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
-      ): GenericAnnotation = {
+      ): GeneralAnnotation = {
         val res =
-          GenericAnnotation(name, expression, location, passData, diagnostics)
+          GeneralAnnotation(name, expression, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2917,7 +2917,7 @@ object IR {
         keepMetadata: Boolean    = true,
         keepDiagnostics: Boolean = true,
         keepIdentifiers: Boolean = false
-      ): GenericAnnotation =
+      ): GeneralAnnotation =
         copy(
           location = if (keepLocations) location else None,
           passData =
@@ -2930,19 +2930,19 @@ object IR {
       /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
-      ): GenericAnnotation =
+      ): GeneralAnnotation =
         copy(location = location)
 
       /** @inheritdoc */
       override def mapExpressions(
         fn: Expression => Expression
-      ): GenericAnnotation =
+      ): GeneralAnnotation =
         copy(expression = fn(expression))
 
       /** @inheritdoc */
       override def toString: String =
         s"""
-           |IR.Name.GenericAnnotation(
+           |IR.Name.GeneralAnnotation(
            |name = $name,
            |expression = $expression,
            |location = $location,
@@ -7628,7 +7628,7 @@ object IR {
 
     /** A representation of an Enso syntax error.
       *
-      * @param ast the erroneous AST
+      * @param at the erroneous AST
       * @param reason the cause of this error
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
