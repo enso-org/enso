@@ -2,6 +2,7 @@ import project.Meta
 import project.IO
 import project.Any.Any
 import project.Error.Error
+import project.Error.Incomparable_Values
 from project.Data.Ordering import all
 from project.Data.Numbers import all
 
@@ -52,6 +53,6 @@ assert_ordered_comparators this that ~action =
     comp_that = Comparable.from that
     case Meta.type_of comp_this == Meta.type_of comp_that of
         False ->
-            Error.throw (Type_Error.Error (Meta.type_of comp_this) "this" this)
+            Error.throw Incomparable_Values
         True ->
             if comp_this.is_a Incomparable || comp_this.is_ordered.not then False else action
