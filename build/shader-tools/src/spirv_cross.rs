@@ -1,3 +1,5 @@
+//! Building and packaging [`spirv_cross`](ide_ci::programs::spirv_cross::SpirvCross).
+
 use crate::prelude::*;
 
 use ide_ci::programs::cmake::SetVariable;
@@ -6,7 +8,8 @@ use ide_ci::programs::vs::Cl;
 use ide_ci::programs::CMake;
 use ide_ci::programs::Git;
 
-pub const SPIRV_TOOLS_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
+/// Address of the SPIRV-Cross GitHub repository.
+pub const REPOSITORY_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
 
 pub async fn compile_spirv_cross(output_dir: &Path) -> Result {
     if TARGET_OS == OS::Windows && Cl.lookup().is_err() {
@@ -19,7 +22,7 @@ pub async fn compile_spirv_cross(output_dir: &Path) -> Result {
     let install_dir = path.join("_install");
     ide_ci::fs::tokio::reset_dir(&path).await?;
 
-    let _git = Git.clone(&path, &(SPIRV_TOOLS_URL.try_into()?)).await?;
+    let _git = Git.clone(&path, &(REPOSITORY_URL.try_into()?)).await?;
 
     ide_ci::fs::tokio::reset_dir(&build_dir).await?;
     CMake
