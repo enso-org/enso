@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.function.IntFunction;
 
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.builder.object.BoolBuilder;
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
@@ -362,6 +364,11 @@ public final class BoolStorage extends Storage<Boolean> {
         isMissing.get(offset, offset + limit),
         newSize,
         negated);
+  }
+
+  @Override
+  public Builder createDefaultBuilderOfSameType(int capacity) {
+    return new BoolBuilder(capacity);
   }
 
   @Override

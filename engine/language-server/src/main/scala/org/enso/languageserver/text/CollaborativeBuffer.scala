@@ -261,7 +261,7 @@ class CollaborativeBuffer(
       // also gets a notification.
       val change = FileEdit(
         path,
-        List(TextEdit(buffer.fullRange, file.content)),
+        List(TextEdit(oldBuffer.fullRange, file.content)),
         oldBuffer.version.toHexString,
         buffer.version.toHexString
       )
