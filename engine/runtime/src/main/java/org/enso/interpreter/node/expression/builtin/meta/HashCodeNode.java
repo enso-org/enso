@@ -47,20 +47,20 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
  */
 @GenerateUncached
 @BuiltinMethod(
-    type = "Any",
+    type = "Meta",
     name = "hash_code",
     description = """
         Returns hash code of this atom. Use only for overriding default Comparator.
         """,
     autoRegister = false
 )
-public abstract class HashCodeAnyNode extends Node {
+public abstract class HashCodeNode extends Node {
 
-  public static HashCodeAnyNode build() {
-    return HashCodeAnyNodeGen.create();
+  public static HashCodeNode build() {
+    return HashCodeNodeGen.create();
   }
 
-  public abstract long execute(@AcceptsError Object self);
+  public abstract long execute(@AcceptsError Object object);
 
   /** Specializations for primitive values * */
   @Specialization
@@ -117,12 +117,12 @@ public abstract class HashCodeAnyNode extends Node {
     return System.identityHashCode(atomConstructor);
   }
 
-  /** How many {@link HashCodeAnyNode} nodes should be created for fields in atoms. */
+  /** How many {@link HashCodeNode} nodes should be created for fields in atoms. */
   static final int hashCodeNodeCountForFields = 10;
 
-  static HashCodeAnyNode[] createHashCodeNodes(int size) {
-    HashCodeAnyNode[] nodes = new HashCodeAnyNode[size];
-    Arrays.fill(nodes, HashCodeAnyNode.build());
+  static HashCodeNode[] createHashCodeNodes(int size) {
+    HashCodeNode[] nodes = new HashCodeNode[size];
+    Arrays.fill(nodes, HashCodeNode.build());
     return nodes;
   }
 
@@ -130,7 +130,7 @@ public abstract class HashCodeAnyNode extends Node {
   long hashCodeForAtom(
       Atom atom,
       @Cached(value = "createHashCodeNodes(hashCodeNodeCountForFields)", allowUncached = true)
-          HashCodeAnyNode[] fieldHashCodeNodes,
+          HashCodeNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
       @Cached ConditionProfile enoughHashCodeNodesForFields,
       @Cached LoopConditionProfile loopProfile) {
@@ -163,7 +163,7 @@ public abstract class HashCodeAnyNode extends Node {
   @TruffleBoundary
   private void hashCodeForAtomFieldsUncached(Object[] fields, int[] fieldHashes) {
     for (int i = 0; i < fields.length; i++) {
-      fieldHashes[i] = (int) HashCodeAnyNodeGen.getUncached().execute(fields[i]);
+      fieldHashes[i] = (int) HashCodeNodeGen.getUncached().execute(fields[i]);
     }
   }
 
@@ -173,7 +173,7 @@ public abstract class HashCodeAnyNode extends Node {
   long hashCodeForWarning(
       Object selfWithWarning,
       @CachedLibrary("selfWithWarning") WarningsLibrary warnLib,
-      @Cached HashCodeAnyNode hashCodeNode) {
+      @Cached HashCodeNode hashCodeNode) {
     try {
       return hashCodeNode.execute(warnLib.removeWarnings(selfWithWarning));
     } catch (UnsupportedMessageException e) {
@@ -327,7 +327,7 @@ public abstract class HashCodeAnyNode extends Node {
   long hashCodeForArray(
       Object selfArray,
       @CachedLibrary("selfArray") InteropLibrary interop,
-      @Cached HashCodeAnyNode hashCodeNode,
+      @Cached HashCodeNode hashCodeNode,
       @Cached("createCountingProfile()") LoopConditionProfile loopProfile) {
     try {
       long arraySize = interop.getArraySize(selfArray);
@@ -352,7 +352,7 @@ public abstract class HashCodeAnyNode extends Node {
   long hashCodeForMap(
       Object selfMap,
       @CachedLibrary(limit = "5") InteropLibrary interop,
-      @Cached HashCodeAnyNode hashCodeNode) {
+      @Cached HashCodeNode hashCodeNode) {
     int mapSize;
     long keysHashCode = 0;
     long valuesHashCode = 0;

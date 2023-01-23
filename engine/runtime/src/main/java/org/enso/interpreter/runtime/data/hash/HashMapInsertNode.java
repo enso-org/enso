@@ -11,7 +11,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
 @BuiltinMethod(
     type = "Map",
@@ -61,7 +61,7 @@ public abstract class HashMapInsertNode extends Node {
   EnsoHashMap doForeign(Object foreignMap, Object keyToInsert, Object valueToInsert,
       @CachedLibrary("foreignMap") InteropLibrary mapInterop,
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop,
-      @Cached HashCodeAnyNode hashCodeNode,
+      @Cached HashCodeNode hashCodeNode,
       @Cached EqualsAnyNode equalsNode) {
     var mapBuilder = EnsoHashMapBuilder.create(hashCodeNode, equalsNode);
     try {

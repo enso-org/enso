@@ -140,7 +140,7 @@ type Text
 type Text_Comparator
     is_ordered = True
     compare t1 t2 = t1.compare_to t2
-    hash text = text.hash_code
+    hash text = Meta.hash_code text
 
 Comparable.from (that:Text) =
     case that of

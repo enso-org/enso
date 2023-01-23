@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
-import org.enso.interpreter.node.expression.builtin.meta.HashCodeAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -24,7 +24,7 @@ public class HashCodeTest extends TestBase {
   private static Context context;
   private static final InteropLibrary interop = InteropLibrary.getUncached();
 
-  private HashCodeAnyNode hashCodeNode;
+  private HashCodeNode hashCodeNode;
   private EqualsAnyNode equalsNode;
 
   @BeforeClass
@@ -37,7 +37,7 @@ public class HashCodeTest extends TestBase {
   @Before
   public void initNodes() {
     executeInContext(context, () -> {
-      hashCodeNode = HashCodeAnyNode.build();
+      hashCodeNode = HashCodeNode.build();
       equalsNode = EqualsAnyNode.build();
       return null;
     });
