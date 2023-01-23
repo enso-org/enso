@@ -5,6 +5,7 @@ import project.Error.Common.Type_Error
 import project.Error.Error
 import project.Meta
 
+from project.Data.Ordering import all
 from project.Data.Boolean import Boolean, True, False
 
 polyglot java import org.enso.base.Text_Utils
@@ -49,9 +50,6 @@ type Text
             comparison_result = Text_Utils.compare self that is_normalized
             Ordering.from_sign comparison_result
         _ -> Error.throw (Type_Error.Error Text that "that")
-
-    comparator : Text_Comparator
-    comparator = Text_Comparator
 
     ## Checks whether `self` is equal to `that`, ignoring the case of the texts.
 
@@ -140,5 +138,12 @@ type Text
 
 ## PRIVATE
 type Text_Comparator
-    compare self t1 t2 = t1.compare_to t2
-    hash self _ = Error.throw "No hash for Text"
+    is_ordered = True
+    compare t1 t2 = t1.compare_to t2
+    hash text = text.hash_code
+
+Comparable.from (that:Text) =
+    case that of
+        _ : Text -> Text_Comparator
+        Text -> Text_Comparator
+

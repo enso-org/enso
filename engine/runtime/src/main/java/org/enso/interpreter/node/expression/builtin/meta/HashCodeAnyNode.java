@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import org.enso.interpreter.dsl.AcceptsError;
+import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -45,6 +46,14 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
  * </ul>
  */
 @GenerateUncached
+@BuiltinMethod(
+    type = "Any",
+    name = "hash_code",
+    description = """
+        Returns hash code of this atom. Use only for overriding default Comparator.
+        """,
+    autoRegister = false
+)
 public abstract class HashCodeAnyNode extends Node {
 
   public static HashCodeAnyNode build() {

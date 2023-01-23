@@ -133,7 +133,7 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `>` defined, a type must define `comparator`, returning an Ordering.
+       To have `>` defined, a type must define `compare_to`, returning an Ordering.
 
        ! Implementing Greater Than
          Many types can admit a definition of greater than that is more efficient
@@ -149,11 +149,7 @@ type Any
                  a = 7 * 28
                  a > 147
     > : Any -> Boolean
-    > self that = case self.comparator of
-        Nothing -> Error.throw (Type_Error_Data Text self "self")
-        c -> if that.comparator != c then Error.throw (Type_Error_Data Text that "that") else
-            ordering = c.compare self that
-            ordering == Ordering.Greater
+    > self that = self.compare_to that == Ordering.Greater
 
     ## ALIAS Greater Than or Equal
 
@@ -179,11 +175,9 @@ type Any
                  a = 6 * 21
                  a >= 147
     >= : Any -> Boolean
-    >= self that = case self.comparator of
-        Nothing -> Error.throw (Type_Error_Data Text self "self")
-        c -> if that.comparator != c then Error.throw (Type_Error_Data Text that "that") else
-            ordering = c.compare self that
-            (ordering == Ordering.Greater) || (ordering == Ordering.Equal)
+    >= self that =
+        ordering = self.compare_to that
+        (ordering == Ordering.Greater) || (ordering == Ordering.Equal)
 
     ## ALIAS Less Than
 
@@ -208,11 +202,7 @@ type Any
                  a = 7 * 21
                  a < 147
     < : Any -> Boolean
-    < self that = case self.comparator of
-        Nothing -> Error.throw (Type_Error_Data Text self "self")
-        c -> if that.comparator != c then Error.throw (Type_Error_Data Text that "that") else
-            ordering = c.compare self that
-            ordering == Ordering.Less
+    < self that = self.compare_to that == Ordering.Less
 
     ## ALIAS Less Than or Equal
 
@@ -238,11 +228,9 @@ type Any
                  a = 7 * 21
                  a < 147
     <= : Any -> Boolean
-    <= self that = case self.comparator of
-        Nothing -> Error.throw (Type_Error_Data Text self "self")
-        c -> if that.comparator != c then Error.throw (Type_Error_Data Text that "that") else
-            ordering = c.compare self that
-            (ordering == Ordering.Less) || (ordering == Ordering.Equal)
+    <= self that =
+        ordering = self.compare_to that
+        (ordering == Ordering.Less) || (ordering == Ordering.Equal)
 
     ## Checks if the type is an instance of `Nothing`.
 

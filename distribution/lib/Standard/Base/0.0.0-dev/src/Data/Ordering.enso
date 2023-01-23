@@ -1,7 +1,12 @@
 import project.Data.Numbers.Integer
+import project.Data.Numbers.Decimal
+import project.Data.Numbers.Number
 import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Unimplemented.Unimplemented
 import project.Nothing
+import project.Any.Any
+from project.Data.Boolean import all
 
 ## Provides custom ordering, equality check and hash code for types that need it.
 
@@ -12,14 +17,25 @@ import project.Nothing
     implementation of both functions.
 
     Should there be a need to redefine the default implementation, here is a way:
-    Define function `comparator` in your `type` and return pointer to
-    another `type` that satisfies following definition:
+    Define conversion function `Comparable.from` for your `type` and return pointer to
+    another `type` that satisfies either of the following two definitions:
 
     ```
-    type Comparator T
-        compare : T -> T -> (Ordering | Nothing)
-        hash : T -> (Integer | Nothing)
+    type Default_Ordered_Comparator T
+        is_ordered = True
+        compare : T -> T -> Ordering
+        hash : T -> Integer
+
+    type Default_Unordered_Comparator T
+        is_ordered = False
+        equals : T -> T -> Boolean
+        hash : T -> Integer
     ```
+
+    There is an implicit conversion from any type to `Comparable` with `Comparable.from`.
+    But due to technical limitations, we cannot specify its signature in code.
+    The return type of `Comparable.from (_ : MyType)` is
+    `(Default_Ordered_Comparator|Default_Unordered_Comparator|Incomparable)`.
 
     > Example
         Representation of _rational numbers_ as a pair of integers needs a
@@ -29,15 +45,16 @@ import project.Nothing
         type Rational
             Fraction (numerator:Integer) (denominator:Integer)
 
-            comparator self = Rational_Ordering
+        Comparable.from (_:Rational) = Rational_Ordering
         ```
 
         The `comparator` definition overrides the extension function on
-        `Any` defined by `Ordering` module and returns reference to following
+        `Any` defined by `Ordering` module and returns reference to the following
         type:
 
         ```
         type Rational_Ordering
+            is_ordered = True
             compare self r1 r2 =
                 v1 = r1.numerator * r2.denominator
                 v2 = r2.numerator * r1.denominator
@@ -48,24 +65,56 @@ import project.Nothing
         ```
 
         By defining the `Rational_Ordering` and making it available via
-        `Rational.comparator` method all parts of the Enso system will use
-        the custom `compare` and `hash` methods whenever equality or hash code
-        is needed.
+        `Comparable.from (_:Rational)` method, all parts of the Enso system will use
+        the custom comparator whenever equality or hash code is needed.
 
         The equality check of two objects:
-        - verifies both objects share the same `comparator`
-        - consults their `compare` method
+        - verifies both objects share the same type of `comparator`
+        - consults their `compare`, or `equals` method, based on whether the comparator is
+          ordered or unordered.
         - if the result is `Ordering.Equal` the system also checks that both instances have the same `hash`
         - the `hash` code check may be done only from time to time to speed things up
-
 type Comparable
-    compare : Any -> Any -> (Ordering | Nothing)
-    compare self x y = Nothing
 
-    hash : Any -> (Integer | Nothing)
-    hash self x = Nothing
+## Singleton denoting that values of certain type are not comparable.
+type Incomparable
+    Singleton
 
-Comparable.from (_:Any) = Nothing
+## Default implementation of unordered comparator. Uses the builtin equals and hash_code.
+type Default_Unordered_Comparator
+    is_ordered = False
+
+    equals : Any -> Any -> Boolean
+    equals x y = x === y
+
+    hash : Any -> Integer
+    hash object = object.hash_code
+
+## Default implementation of an ordered _comparator_ that forwards to `>`, `<` etc.
+   operators.
+type Default_Ordered_Comparator
+    is_ordered = True
+
+    compare : Any -> Any -> Ordering
+    compare x y =
+        if x < y then Ordering.Less else
+            if x === y then Ordering.Equal else
+                if x > y then Ordering.Greater
+
+    hash : Number -> Integer
+    hash x = x.hash_code
+
+
+# By default, there is no conversion from Any to Default_Ordered_Comparator
+# Note that we allow also conversion from types, e.g., `Comparable.from Integer`
+# for convenience.
+Comparable.from (that:Any) =
+    case that of
+        _ : Number -> Default_Ordered_Comparator
+        Integer -> Default_Ordered_Comparator
+        Decimal -> Default_Ordered_Comparator
+        Number -> Default_Ordered_Comparator
+        _ -> Default_Unordered_Comparator
 
 
 ## Types representing the ordering of values.
