@@ -527,7 +527,7 @@ object ProgramExecutionSupport {
   ): Either[VisualisationException, Array[Byte]] = {
     Option(VisualizationResult.visualizationResultToBytes(value)).toRight(
       new VisualisationException(
-        s"Cannot encode ${value.getClass} to byte array."
+        s"Cannot encode ${value.getClass} to byte array"
       )
     )
   }
