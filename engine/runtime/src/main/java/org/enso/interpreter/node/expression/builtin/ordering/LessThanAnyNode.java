@@ -30,6 +30,11 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 )
 @GenerateUncached
 public abstract class LessThanAnyNode extends Node {
+
+  public static LessThanAnyNode build() {
+    return LessThanAnyNodeGen.create();
+  }
+
   public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object other);
 
   @Specialization
