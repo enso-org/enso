@@ -12,6 +12,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
@@ -36,9 +37,10 @@ public abstract class ThrowPanicNode extends Node {
   Object doCaughtPanic(
       Atom payload,
       @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
+      @CachedLibrary(limit = "5") StructsLibrary structs,
       @Cached BranchProfile typeErrorProfile) {
     // Note [Original Exception Type]
-    Object originalException = payload.getFields()[1];
+    Object originalException = structs.getField(payload, 1);
     if (interopLibrary.isException(originalException)) {
       try {
         throw interopLibrary.throwException(originalException);

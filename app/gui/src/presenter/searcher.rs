@@ -221,15 +221,23 @@ impl Model {
         }
     }
 
-    fn set_section_name_crumb(&self, text: &str) {
+    fn set_section_name_crumb(&self, text: ImString) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
             let breadcrumbs = &browser.model().list.model().breadcrumbs;
-            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, ImString::new(text).into()));
+            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
         }
     }
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
-        self.set_section_name_crumb(section_id.as_str());
+        let components = self.controller.components();
+        let mut section_names = components.top_module_section_names();
+        let name = match section_id {
+            component_grid::SectionId::Namespace(n) =>
+                section_names.nth(n).map(|n| n.clone_ref()).unwrap_or_default(),
+            component_grid::SectionId::Popular => "Popular".to_im_string(),
+            component_grid::SectionId::LocalScope => "Local".to_im_string(),
+        };
+        self.set_section_name_crumb(name);
     }
 
     fn module_entered(&self, module: component_grid::ElementId) {
@@ -349,12 +357,15 @@ impl Searcher {
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
                 let grid = &browser.model().list.model().grid;
+                let navigator = &browser.model().list.model().section_navigator;
                 let breadcrumbs = &browser.model().list.model().breadcrumbs;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
-                    eval_ action_list_changed ([model, grid] {
+                    eval_ action_list_changed ([model, grid, navigator] {
                         model.provider.take();
                         let controller_provider = model.controller.provider();
+                        let namespace_section_count = controller_provider.namespace_section_count();
+                        navigator.set_namespace_section_count.emit(namespace_section_count);
                         let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });

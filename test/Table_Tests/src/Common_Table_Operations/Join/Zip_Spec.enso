@@ -1,0 +1,238 @@
+from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
+
+from Standard.Table import all hiding Table
+from Standard.Table.Errors import all
+import Standard.Table.Data.Value_Type.Value_Type
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    db_todo = if prefix.contains "In-Memory" then Nothing else "Table.zip is still WIP for the DB backend."
+    Test.group prefix+"Table.zip" pending=db_todo <|
+        if setup.is_database.not then
+            Test.specify "should allow to zip two tables, preserving memory layout order" <|
+                t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+                t2 = table_builder [["Z", ['a', 'b', 'c']], ["W", ['x', 'y', 'z']]]
+
+                t3 = t1.zip t2
+                expect_column_names ["X", "Y", "Z", "W"] t3
+                t3.row_count . should_equal 3
+                r = materialize t3 . rows . map .to_vector
+                r.length . should_equal 3
+                r0 = [1, 4, 'a', 'x']
+                r1 = [2, 5, 'b', 'y']
+                r2 = [3, 6, 'c', 'z']
+                expected_rows = [r0, r1, r2]
+                r.should_equal expected_rows
+
+        Test.specify "should allow to zip two tables, preserving the order defined by `order_by`" <|
+            t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]]
+            t2 = table_builder [["Z", ['a', 'b']], ["W", ['x', 'd']]]
+
+            t3 = t1.order_by "X"
+            t4 = t2.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Z" Sort_Direction.Descending])
+
+            t5 = t3.zip t4
+            expect_column_names ["X", "Y", "Z", "W"] t5
+            t5.row_count . should_equal 2
+            r = materialize t5 . rows . map .to_vector
+            r.length . should_equal 2
+
+            r0 = [2, 5, 'b', 'd']
+            r1 = [100, 4, 'a', 'x']
+            expected_rows = [r0, r1]
+            r.should_equal expected_rows
+
+        Test.specify "should report unmatched rows if the row counts do not match and pad them with nulls" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            t2 = table_builder [["Z", ['a', 'b']], ["W", ['x', 'd']]]
+
+            action_1 = t1.zip t2 on_problems=_
+            tester_1 table =
+                expect_column_names ["X", "Y", "Z", "W"] table
+                table.at "X" . to_vector . should_equal [1, 2, 3]
+                table.at "Y" . to_vector . should_equal [4, 5, 6]
+                table.at "Z" . to_vector . should_equal ['a', 'b', Nothing]
+                table.at "W" . to_vector . should_equal ['x', 'd', Nothing]
+            problems_1 = [Row_Count_Mismatch.Error 3 2]
+            Problems.test_problem_handling action_1 problems_1 tester_1
+
+            action_2 = t2.zip t1 on_problems=_
+            tester_2 table =
+                expect_column_names ["Z", "W", "X", "Y"] table
+                table.at "Z" . to_vector . should_equal ['a', 'b', Nothing]
+                table.at "W" . to_vector . should_equal ['x', 'd', Nothing]
+                table.at "X" . to_vector . should_equal [1, 2, 3]
+                table.at "Y" . to_vector . should_equal [4, 5, 6]
+            problems_2 = [Row_Count_Mismatch.Error 2 3]
+            Problems.test_problem_handling action_2 problems_2 tester_2
+
+        Test.specify "should allow to keep the unmatched rows padded with nulls without reporting problems" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            t2 = table_builder [["Z", ['a']], ["W", ['x']]]
+
+            t3 = t1.zip t2 keep_unmatched=True on_problems=Problem_Behavior.Report_Error
+            Problems.assume_no_problems t3
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.at "X" . to_vector . should_equal [1, 2, 3]
+            t3.at "Y" . to_vector . should_equal [4, 5, 6]
+            t3.at "Z" . to_vector . should_equal ['a', Nothing, Nothing]
+            t3.at "W" . to_vector . should_equal ['x', Nothing, Nothing]
+
+        Test.specify "should allow to drop the unmatched rows" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            t2 = table_builder [["Z", ['a']], ["W", ['x']]]
+
+            t3 = t1.zip t2 keep_unmatched=False on_problems=Problem_Behavior.Report_Error
+            Problems.assume_no_problems t3
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.at "X" . to_vector . should_equal [1]
+            t3.at "Y" . to_vector . should_equal [4]
+            t3.at "Z" . to_vector . should_equal ['a']
+            t3.at "W" . to_vector . should_equal ['x']
+
+        Test.specify "should work when zipping with an empty table" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t2 = table_builder [["Z", ['a']], ["W", ['c']]]
+            # Workaround to easily create empty table until table builder allows that directly.
+            empty = t2.filter "Z" Filter_Condition.Is_Nothing
+            empty.row_count . should_equal 0
+
+            t3 = t1.zip empty
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.row_count . should_equal 2
+            t3.at "X" . to_vector . should_equal [1, 2]
+            t3.at "Y" . to_vector . should_equal [4, 5]
+            t3.at "Z" . to_vector . should_equal [Nothing, Nothing]
+            t3.at "W" . to_vector . should_equal [Nothing, Nothing]
+
+            t4 = empty.zip t1
+            expect_column_names ["Z", "W", "X", "Y"] t4
+            t4.row_count . should_equal 2
+            t4.at "X" . to_vector . should_equal [1, 2]
+            t4.at "Y" . to_vector . should_equal [4, 5]
+            t4.at "Z" . to_vector . should_equal [Nothing, Nothing]
+            t4.at "W" . to_vector . should_equal [Nothing, Nothing]
+
+            t5 = t1.zip empty keep_unmatched=False
+            expect_column_names ["X", "Y", "Z", "W"] t5
+            t5.row_count . should_equal 0
+            t5.at "X" . to_vector . should_equal []
+
+            t6 = empty.zip t1 keep_unmatched=False
+            expect_column_names ["Z", "W", "X", "Y"] t6
+            t6.row_count . should_equal 0
+            t6.at "X" . to_vector . should_equal []
+
+        Test.specify "should not report unmatched rows for rows that simply are all null" <|
+            t1 = table_builder [["X", [1, 2, 3]], ["Y", [4, 5, 6]]]
+            t2 = table_builder [["Z", ['a', Nothing, Nothing]], ["W", ['b', Nothing, Nothing]]]
+            t3 = t1.zip t2 on_problems=Problem_Behavior.Report_Error
+            Problems.assume_no_problems t3
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.at "X" . to_vector . should_equal [1, 2, 3]
+            t3.at "Y" . to_vector . should_equal [4, 5, 6]
+            t3.at "Z" . to_vector . should_equal ['a', Nothing, Nothing]
+            t3.at "W" . to_vector . should_equal ['b', Nothing, Nothing]
+
+        Test.specify "should rename columns of the right table to avoid duplicates" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]]]
+            t2 = table_builder [["X", ['a']], ["Y", ['d']]]
+
+            t3 = t1.zip t2 keep_unmatched=True
+            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t3
+            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["X", "Y"]]
+            t3.row_count . should_equal 2
+            t3.at "X" . to_vector . should_equal [1, 2]
+            t3.at "Y" . to_vector . should_equal [5, 6]
+            t3.at "Right_X" . to_vector . should_equal ['a', Nothing]
+            t3.at "Right_Y" . to_vector . should_equal ['d', Nothing]
+
+            t1.zip t2 keep_unmatched=False on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
+
+            expect_column_names ["X", "Y", "X_1", "Y_1"] (t1.zip t2 right_prefix="")
+
+            t4 = table_builder [["X", [1]], ["Right_X", [5]]]
+            expect_column_names ["X", "Y", "Right_X_1", "Right_X"] (t1.zip t4)
+            expect_column_names ["X", "Right_X", "Right_X_1", "Y"] (t4.zip t1)
+
+        Test.specify "should report both row count mismatch and duplicate column warnings at the same time" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [5, 6]]]
+            t2 = table_builder [["X", ['a']], ["Z", ['d']]]
+
+            t3 = t1.zip t2
+            expected_problems = [Row_Count_Mismatch.Error 2 1, Duplicate_Output_Column_Names.Error ["X"]]
+            Problems.get_attached_warnings t3 . should_contain_the_same_elements_as expected_problems
+
+        Test.specify "should allow to zip the table with itself" <|
+            ## Even though this does not seem very useful, we should verify that
+               this edge case works correctly. It may especially be fragile in
+               the Database backend.
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t2 = t1.zip t1
+            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t2
+            t2.row_count . should_equal 2
+            t2.at "X" . to_vector . should_equal [1, 2]
+            t2.at "Y" . to_vector . should_equal [4, 5]
+            t2.at "Right_X" . to_vector . should_equal [1, 2]
+            t2.at "Right_Y" . to_vector . should_equal [4, 5]
+
+        if setup.is_database.not then
+            Test.specify "should correctly pad/truncate all kinds of column types" <|
+                primitives = [["ints", [1, 2, 3]], ["strs", ['a', 'b', 'c']], ["bools", [True, Nothing, False]]]
+                times = [["dates", [Date.new 1999 1 1, Date.new 2000 4 1, Date.new 2001 1 2]], ["times", [Time_Of_Day.new 23 59, Time_Of_Day.new 0 0, Time_Of_Day.new 12 34]], ["datetimes", [Date_Time.new 1999 1 1 23 59, Date_Time.new 2000 4 1 0 0, Date_Time.new 2001 1 2 12 34]]]
+                t = table_builder <|
+                    primitives + times + [["mixed", ['a', 2, True]]]
+
+                t1 = table_builder [["X", [1]]]
+                t5 = table_builder [["X", 0.up_to 5 . to_vector]]
+
+                truncated = t.zip t1 keep_unmatched=False
+                expect_column_names ["ints", "strs", "bools", "dates", "times", "datetimes", "mixed", "X"] truncated
+                truncated.row_count . should_equal 1
+                truncated.at "ints" . to_vector . should_equal [1]
+                truncated.at "strs" . to_vector . should_equal ['a']
+                truncated.at "bools" . to_vector . should_equal [True]
+                truncated.at "dates" . to_vector . should_equal [Date.new 1999 1 1]
+                truncated.at "times" . to_vector . should_equal [Time_Of_Day.new 23 59]
+                truncated.at "datetimes" . to_vector . should_equal [Date_Time.new 1999 1 1 23 59]
+                truncated.at "mixed" . to_vector . should_equal ['a']
+
+                truncated.at "ints" . value_type . should_equal Value_Type.Integer
+                truncated.at "strs" . value_type . should_equal Value_Type.Char
+                truncated.at "bools" . value_type . should_equal Value_Type.Boolean
+                truncated.at "dates" . value_type . should_equal Value_Type.Date
+                truncated.at "times" . value_type . should_equal Value_Type.Time
+                truncated.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+                truncated.at "mixed" . value_type . should_equal Value_Type.Mixed
+
+                padded = t.zip t5 keep_unmatched=True
+                expect_column_names ["ints", "strs", "bools", "dates", "times", "datetimes", "mixed", "X"] padded
+                padded.row_count . should_equal 5
+                padded.at "ints" . to_vector . should_equal [1, 2, 3, Nothing, Nothing]
+                padded.at "strs" . to_vector . should_equal ['a', 'b', 'c', Nothing, Nothing]
+                padded.at "bools" . to_vector . should_equal [True, Nothing, False, Nothing, Nothing]
+                padded.at "dates" . to_vector . should_equal [Date.new 1999 1 1, Date.new 2000 4 1, Date.new 2001 1 2, Nothing, Nothing]
+                padded.at "times" . to_vector . should_equal [Time_Of_Day.new 23 59, Time_Of_Day.new 0 0, Time_Of_Day.new 12 34, Nothing, Nothing]
+                padded.at "datetimes" . to_vector . should_equal [Date_Time.new 1999 1 1 23 59, Date_Time.new 2000 4 1 0 0, Date_Time.new 2001 1 2 12 34, Nothing, Nothing]
+                padded.at "mixed" . to_vector . should_equal ['a', 2, True, Nothing, Nothing]
+
+                padded.at "ints" . value_type . should_equal Value_Type.Integer
+                padded.at "strs" . value_type . should_equal Value_Type.Char
+                padded.at "bools" . value_type . should_equal Value_Type.Boolean
+                padded.at "dates" . value_type . should_equal Value_Type.Date
+                padded.at "times" . value_type . should_equal Value_Type.Time
+                padded.at "datetimes" . value_type . should_equal Value_Type.Date_Time
+                padded.at "mixed" . value_type . should_equal Value_Type.Mixed
