@@ -242,10 +242,6 @@ public final class AtomConstructor implements TruffleObject {
     return constructorFunction;
   }
 
-  public Lock getLayoutsLock() {
-    return layoutsLock;
-  }
-
   public Layout[] getUnboxingLayouts() {
     return unboxingLayouts;
   }
@@ -254,11 +250,27 @@ public final class AtomConstructor implements TruffleObject {
     return boxedLayout;
   }
 
-  public void addLayout(Layout layout) {
-    var newLayouts = new Layout[unboxingLayouts.length + 1];
-    System.arraycopy(unboxingLayouts, 0, newLayouts, 0, unboxingLayouts.length);
-    newLayouts[unboxingLayouts.length] = layout;
-    unboxingLayouts = newLayouts;
+  /**
+   * Adds a layout, if the caller knows the latest version of the layouts array. This is verified by
+   * checking the layout count they know about. This is enough, because the array is append-only.
+   *
+   * @param layout the layout to add
+   * @param knownLayoutCount the number of layouts the caller knows about
+   */
+  public void atomicallyAddLayout(Layout layout, int knownLayoutCount) {
+    layoutsLock.lock();
+    try {
+      if (unboxingLayouts.length != knownLayoutCount) {
+        // client has outdated information and should re-fetch.
+        return;
+      }
+      var newLayouts = new Layout[unboxingLayouts.length + 1];
+      System.arraycopy(unboxingLayouts, 0, newLayouts, 0, unboxingLayouts.length);
+      newLayouts[unboxingLayouts.length] = layout;
+      unboxingLayouts = newLayouts;
+    } finally {
+      layoutsLock.unlock();
+    }
   }
 
   /**

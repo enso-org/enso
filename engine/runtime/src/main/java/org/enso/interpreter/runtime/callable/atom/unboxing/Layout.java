@@ -228,24 +228,15 @@ public class Layout {
 
       if (!constructorAtCapacity) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        var lock = constructor.getLayoutsLock();
-        lock.lock();
-        try {
-          var layouts = constructor.getUnboxingLayouts();
-          if (layouts.length != this.unboxedLayouts.length) {
-            // Layouts changed since we last tried; Update & try again
-            updateFromConstructor();
-            return execute(arguments);
-          }
-
-          // Layouts didn't change; just create a new one and register it
+        var layouts = constructor.getUnboxingLayouts();
+        if (layouts.length == this.unboxedLayouts.length) {
+          // Layouts stored in this node are probably up-to-date; create a new one and try to
+          // register it.
           var newLayout = Layout.create(arity, flags);
-          constructor.addLayout(newLayout);
-          updateFromConstructor();
-          return unboxedLayouts[unboxedLayouts.length - 1].execute(arguments);
-        } finally {
-          lock.unlock();
+          constructor.atomicallyAddLayout(newLayout, this.unboxedLayouts.length);
         }
+        updateFromConstructor();
+        return execute(arguments);
       }
 
       return boxedLayout.execute(arguments);

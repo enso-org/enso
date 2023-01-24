@@ -50,7 +50,7 @@ public abstract class Atom implements TruffleObject {
    *
    * @param constructor the Atom's constructor
    */
-  public Atom(AtomConstructor constructor) {
+  protected Atom(AtomConstructor constructor) {
     this.constructor = constructor;
   }
 
