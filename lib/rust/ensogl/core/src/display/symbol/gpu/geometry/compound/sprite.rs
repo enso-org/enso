@@ -10,11 +10,11 @@ use crate::debug::Stats;
 use crate::display;
 use crate::display::attribute::EraseOnDrop;
 use crate::display::layout::alignment;
-use crate::display::scene;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::display::symbol::SymbolInstance;
+use crate::display::world;
 
 
 
@@ -289,7 +289,7 @@ impl SpriteSystem {
     /// Constructor.
     #[profile(Detail)]
     pub fn new() -> Self {
-        let (stats, symbol) = scene::with_symbol_registry(|t| (t.stats.clone_ref(), t.new()));
+        let (stats, symbol) = world::with_context(|t| (t.stats.clone_ref(), t.new()));
         let mesh = symbol.surface();
         let point_scope = mesh.point_scope();
         let instance_scope = mesh.instance_scope();

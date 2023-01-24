@@ -12,6 +12,7 @@ use crate::display::scene::Scene;
 use crate::display::shape::primitive::system::Shape;
 use crate::display::shape::primitive::system::ShapeInstance;
 use crate::display::symbol;
+use crate::display::world;
 use crate::frp;
 
 
@@ -139,7 +140,7 @@ impl<S: Shape> Drop for ShapeViewModel<S> {
 impl<S: Shape> ShapeViewModel<S> {
     /// Constructor.
     pub fn new_with_data(data: S::ShapeData) -> Self {
-        let (shape, _) = scene::with_symbol_registry(|t| t.layers.DETACHED.instantiate(&data));
+        let (shape, _) = world::with_context(|t| t.layers.DETACHED.instantiate(&data));
         let events = PointerTarget::new();
         let pointer_targets = default();
         let data = RefCell::new(data);

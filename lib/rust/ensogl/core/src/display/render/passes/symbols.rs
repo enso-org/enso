@@ -8,6 +8,7 @@ use crate::display::scene;
 use crate::display::scene::layer;
 use crate::display::scene::UpdateStatus;
 use crate::display::symbol::MaskComposer;
+use crate::display::world;
 
 
 
@@ -161,7 +162,7 @@ impl SymbolsRenderPass {
             instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &black_transparent);
         }
 
-        scene::with_symbol_registry(|t| {
+        world::with_context(|t| {
             t.set_camera(&layer.camera());
             t.render_symbols(&layer.symbols());
         });

@@ -11,6 +11,7 @@ import * as debug from 'runner/debug'
 
 import host from 'runner/host'
 import { logger } from 'runner/log'
+import { sortedWasmFunctions } from 'runner/wasm'
 
 // ===============
 // === Exports ===
@@ -143,11 +144,7 @@ class Scheduler {
     }
 
     add(task: () => void) {
-        if (host.node) {
-            task()
-        } else {
-            this.tasks.push(task)
-        }
+        this.tasks.push(task)
     }
 
     run(): Promise<void> {
@@ -169,7 +166,7 @@ class Scheduler {
             if (delta > 16) {
                 break
             }
-            const task = this.tasks.pop()
+            const task = this.tasks.shift()
             if (task != null) {
                 task()
             } else {
@@ -198,7 +195,7 @@ export class App {
     loader: wasm.Loader | null = null
     shaders: Shaders<string> | null = null
     wasmFunctions: string[] = []
-    beforeMainEntryPoints = new Map<string, wasm.EntryPoint>()
+    beforeMainEntryPoints = new Map<string, wasm.BeforeMainEntryPoint>()
     mainEntryPoints = new Map<string, wasm.EntryPoint>()
     initialized = false
 
@@ -331,9 +328,9 @@ export class App {
      * compiled and initialized. */
     async loadAndInitWasm() {
         await this.loadWasm()
-        this.wasmFunctions = wasm.wasmFunctions(this.wasm)
-        this.beforeMainEntryPoints = wasm.EntryPoint.beforeMainEntryPoints(this.wasmFunctions)
-        this.mainEntryPoints = wasm.EntryPoint.mainEntryPoints(this.wasmFunctions)
+        this.wasmFunctions = wasm.sortedWasmFunctions(this.wasm)
+        this.beforeMainEntryPoints = wasm.BeforeMainEntryPoint.fromNames(this.wasmFunctions)
+        this.mainEntryPoints = wasm.EntryPoint.fromNames(this.wasmFunctions)
         this.packageInfo.display()
     }
 
@@ -344,7 +341,7 @@ export class App {
         if (this.beforeMainEntryPoints.size) {
             for (const entryPoint of this.beforeMainEntryPoints.values()) {
                 scheduler.add(() => {
-                    log.Task.runTimed(`Running ${entryPoint.displayName()}.`, () => {
+                    log.Task.runTimed(`Running entry point '${entryPoint.displayName()}'.`, () => {
                         const fn = this.wasm[entryPoint.name()]
                         if (fn != null) {
                             fn()

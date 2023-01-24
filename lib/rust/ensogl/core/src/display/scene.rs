@@ -702,10 +702,7 @@ extern "C" {
     fn registerSetShadersRustFn(closure: &Closure<dyn FnMut(JsValue)>);
 }
 
-#[before_main(0)]
-pub fn init() {
-    init_global();
-}
+
 
 use wasm_bindgen::JsCast;
 
@@ -756,7 +753,7 @@ fn extractShadersFromJs(value: JsValue) -> Result<(), JsValue> {
 
 
 pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
-    with_symbol_registry(|t| t.run_mode.set(RunMode::ShaderExtraction));
+    world::with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
     display::world::STATIC_SHAPES.with(|shapes| {
         for shape_cons in shapes.borrow().iter() {
@@ -766,25 +763,8 @@ pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
             map.insert(path, code);
         }
     });
-    with_symbol_registry(|t| t.run_mode.set(RunMode::Normal));
+    world::with_context(|t| t.run_mode.set(RunMode::Normal));
     map
-}
-
-
-// ===============================
-// === SymbolRegistry Instance ===
-// ===============================
-
-thread_local! {
-    pub static SYMBOL_REGISTRY: RefCell<Option<SymbolRegistry>> = RefCell::new(None);
-}
-
-pub fn with_symbol_registry<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
-    let initialized = SYMBOL_REGISTRY.with_borrow(|t| t.is_some());
-    if !initialized {
-        SYMBOL_REGISTRY.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
-    }
-    SYMBOL_REGISTRY.with_borrow(|t| f(t.as_ref().unwrap()))
 }
 
 
@@ -832,15 +812,15 @@ impl SceneData {
         let display_mode = display_mode.clone_ref();
         let dom = Dom::new();
         let display_object = display::object::Root::new_named("Scene");
-        let variables = with_symbol_registry(|t| t.variables.clone_ref());
+        let variables = world::with_context(|t| t.variables.clone_ref());
         let dirty = Dirty::new(on_mut);
-        let layers = with_symbol_registry(|t| t.layers.clone_ref());
+        let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
         let background = PointerTarget::new();
         let pointer_target_registry = PointerTargetRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
-        let style_sheet = with_symbol_registry(|t| t.style_sheet.clone_ref());
+        let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
         let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, &display_mode);
@@ -904,7 +884,7 @@ impl SceneData {
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
-        with_symbol_registry(|t| t.set_context(context));
+        world::with_context(|t| t.set_context(context));
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
@@ -919,12 +899,8 @@ impl SceneData {
     }
 
     pub fn new_symbol(&self) -> Symbol {
-        with_symbol_registry(|t| t.new())
+        world::with_context(|t| t.new())
     }
-
-    // pub fn symbols(&self) -> &SymbolRegistry {
-    //     &self.symbols
-    // }
 
     fn update_shape(&self) -> bool {
         if self.dirty.shape.check_all() {
@@ -942,7 +918,7 @@ impl SceneData {
     }
 
     fn update_symbols(&self) -> bool {
-        with_symbol_registry(|t| {
+        world::with_context(|t| {
             if t.dirty.check_all() {
                 t.update();
                 true
@@ -964,7 +940,7 @@ impl SceneData {
         if changed {
             was_dirty = true;
             self.frp.camera_changed_source.emit(());
-            with_symbol_registry(|t| t.set_camera(&camera));
+            world::with_context(|t| t.set_camera(&camera));
             self.dom.layers.front.update_view_projection(&camera);
             self.dom.layers.back.update_view_projection(&camera);
         }

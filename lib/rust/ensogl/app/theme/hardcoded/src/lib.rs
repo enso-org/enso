@@ -742,7 +742,7 @@ define_themes! { [light:0, dark:1]
 /// themes not switchable at runtime, which we might want to fix somehow in the future.
 #[before_main]
 pub fn enable_default_theme() {
-    let themes = ensogl_core::display::scene::with_symbol_registry(|t| t.theme_manager.clone());
+    let themes = ensogl_core::display::world::with_context(|t| t.theme_manager.clone());
     builtin::light::register(&themes);
     builtin::light::enable(&themes);
     themes.update();

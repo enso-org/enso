@@ -65,7 +65,6 @@ use crate::system::gpu::types::*;
 
 use crate::display;
 use crate::display::object::instance::GenericLayoutApi;
-use crate::display::scene;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol;
 use crate::display::symbol::geometry::Sprite;
@@ -263,7 +262,7 @@ impl<S: Shape> ShapeSystem<S> {
     #[profile(Debug)]
     pub fn new(shape_data: &S::ShapeData) -> Self {
         let style_watch =
-            scene::with_symbol_registry(|t| display::shape::StyleWatch::new(&t.style_sheet));
+            display::world::with_context(|t| display::shape::StyleWatch::new(&t.style_sheet));
         let shape_def = S::shape_def(&style_watch);
         let events = S::pointer_events();
         let model = display::shape::ShapeSystemModel::new(shape_def, events, S::definition_path());
@@ -449,7 +448,7 @@ impl ShapeSystemModel {
             let code = crate::display::shader::builder::CodeTemplate::new("", shader.fragment, "");
             self.material.borrow_mut().set_code(code);
         } else {
-            if !scene::with_symbol_registry(|t| t.run_mode.get().is_shader_extraction()) {
+            if !display::world::with_context(|t| t.run_mode.get().is_shader_extraction()) {
                 let path = *self.definition_path;
                 warn!("No precompiled shader found for '{path}'. This will affect performance.");
             }

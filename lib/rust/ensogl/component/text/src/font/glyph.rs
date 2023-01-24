@@ -182,9 +182,9 @@ mod glyph_shape {
     }
 }
 
-impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
+impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
     fn new(
-        data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph_shape::Shape>,
+        data: &display::shape::ShapeSystemStandardData<glyph_shape::Shape>,
         shape_data: &ShapeData,
     ) -> Self {
         let font = &shape_data.font;
@@ -197,7 +197,7 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
         data.model.do_not_use_shape_definition.set(true);
 
         sprite_system.unsafe_set_alignment(alignment::Dim2::left_bottom());
-        scene::with_symbol_registry(|t| {
+        display::world::with_context(|t| {
             t.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
             t.variables.add("msdf_size", size);
         });

@@ -22,6 +22,7 @@ use crate::display::scene;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::glsl;
+use crate::display::symbol::registry::SymbolRegistry;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
@@ -201,6 +202,29 @@ pub struct Callbacks {
 
 
 
+// ===============================
+// === SymbolRegistry Instance ===
+// ===============================
+
+thread_local! {
+    pub static CONTEXT: RefCell<Option<SymbolRegistry>> = RefCell::new(None);
+}
+
+pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
+    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
+}
+
+#[before_main(0)]
+pub fn init() {
+    init_global();
+}
+
+#[before_main(1)]
+pub fn init_context() {
+    CONTEXT.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
+}
+
+
 // ======================
 // === Scene Instance ===
 // ======================
@@ -268,9 +292,6 @@ pub struct WorldData {
 impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
-        // FIXME: describe
-        scene::with_symbol_registry(|_| {});
-
         let frp = frp.clone_ref();
         let stats = Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
@@ -286,7 +307,7 @@ impl WorldData {
             stats_monitor.sample_and_draw(stats);
             log_render_stats(*stats)
         }));
-        let themes = scene::with_symbol_registry(|t| t.theme_manager.clone_ref());
+        let themes = with_context(|t| t.theme_manager.clone_ref());
         let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
         SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
