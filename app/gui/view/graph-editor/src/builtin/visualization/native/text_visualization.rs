@@ -42,7 +42,6 @@ use ensogl_component::grid_view::GridView;
 use ensogl_component::scrollbar;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
-use web::Promise;
 
 pub use entry::Entry;
 
@@ -464,8 +463,6 @@ fn measure_character_width(font_name: &str, font_size: f32) -> f32 {
 #[derive(Debug)]
 struct FontLoadedNotifier {
     pub on_fonts_loaded: enso_frp::Source,
-    // Needs to be kept alive for the lifetime of the FRP.
-    _promise:            Option<Promise>,
 }
 
 impl FontLoadedNotifier {
@@ -492,7 +489,7 @@ impl FontLoadedNotifier {
             }
         };
 
-        Self { on_fonts_loaded, _promise }
+        Self { on_fonts_loaded }
     }
 }
 
