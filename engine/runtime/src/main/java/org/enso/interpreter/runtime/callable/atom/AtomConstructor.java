@@ -19,6 +19,7 @@ import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -50,7 +51,7 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[],
+   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], Annotation[],
    * ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
@@ -62,7 +63,7 @@ public final class AtomConstructor implements TruffleObject {
 
   /**
    * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
-   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[],
+   * AtomConstructor#initializeFields(LocalScope, ExpressionNode[], ExpressionNode[], Annotation[],
    * ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
@@ -95,7 +96,8 @@ public final class AtomConstructor implements TruffleObject {
     for (int i = 0; i < args.length; i++) {
       reads[i] = ReadArgumentNode.build(i, null);
     }
-    return initializeFields(LocalScope.root(), new ExpressionNode[0], reads, args);
+    return initializeFields(
+        LocalScope.root(), new ExpressionNode[0], reads, new Annotation[0], args);
   }
 
   /**
@@ -111,6 +113,7 @@ public final class AtomConstructor implements TruffleObject {
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
+      Annotation[] annotations,
       ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
 
@@ -122,7 +125,8 @@ public final class AtomConstructor implements TruffleObject {
     if (Layout.isAritySupported(args.length)) {
       boxedLayout = Layout.create(args.length, 0);
     }
-    this.constructorFunction = buildConstructorFunction(localScope, assignments, varReads, args);
+    this.constructorFunction =
+        buildConstructorFunction(localScope, assignments, varReads, annotations, args);
     generateQualifiedAccessor();
     return this;
   }
@@ -144,6 +148,7 @@ public final class AtomConstructor implements TruffleObject {
       LocalScope localScope,
       ExpressionNode[] assignments,
       ExpressionNode[] varReads,
+      Annotation[] annotations,
       ArgumentDefinition[] args) {
 
     ExpressionNode instantiateNode = InstantiateNode.build(this, varReads);
@@ -159,7 +164,7 @@ public final class AtomConstructor implements TruffleObject {
             null,
             false);
     RootCallTarget callTarget = rootNode.getCallTarget();
-    return new Function(callTarget, null, new FunctionSchema(args));
+    return new Function(callTarget, null, new FunctionSchema(annotations, args));
   }
 
   private void generateQualifiedAccessor() {

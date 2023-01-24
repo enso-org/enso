@@ -12,6 +12,8 @@ class ModuleAnnotationsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
+  override val useRustParser = true
+
   val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup = passes.getPrecursors(ModuleAnnotations).get
@@ -115,60 +117,62 @@ class ModuleAnnotationsTest extends CompilerTest {
       anns.length shouldEqual 1
       anns.head.asInstanceOf[IR.Name].name shouldEqual "@My_Annotation"
     }
+
+    "not associate generic annotations with method definitions" in {
+      val ir =
+        """@a expr_1
+          |@b expr_2
+          |My_Type.add a b = this.frob(a + b)
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 3
+      ir.bindings(0) shouldBe a[IR.Name.GenericAnnotation]
+      ir.bindings(1) shouldBe a[IR.Name.GenericAnnotation]
+    }
+
   }
 
   "Annotation desugaring in complex types" should {
     implicit val moduleContext: ModuleContext = mkModuleContext
 
-    "associate annotations with atom definitions" in {
+    "not associate generic annotations with atom definitions" in {
       val ir =
         """@My_Annotation
           |type Foo
-          |    @My_Annotation
+          |    @my annotation
           |    Bar
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 1
-      typ.body.head shouldBe a[Definition.Data]
-      typ.body.head
-        .unsafeGetMetadata(ModuleAnnotations, "")
-        .annotations
-        .head
-        .asInstanceOf[IR.Name]
-        .name shouldEqual "@My_Annotation"
+      typ.body.length shouldEqual 2
+      typ.body(0) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(1) shouldBe a[Definition.Data]
     }
 
-    "associate annotations with method definitions" in {
+    "not associate generic annotations with method definitions" in {
       val ir =
         """type Foo
           |    Foo
           |
-          |    @My_Annotation
+          |    @a expr
           |    my_method a = a
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 2
-      typ.body(1) shouldBe an[IR.Function.Binding]
-      typ
-        .body(1)
-        .unsafeGetMetadata(ModuleAnnotations, "")
-        .annotations
-        .head
-        .asInstanceOf[IR.Name]
-        .name shouldEqual "@My_Annotation"
+      typ.body.length shouldEqual 3
+      typ.body(1) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(2) shouldBe an[IR.Function.Binding]
     }
 
     "not associate annotations with comments" in {
       val ir =
         """
           |type Foo
-          |    @My_Annotation
+          |    @my annotation
           |    ## Doc comment
           |    Foo
           |""".stripMargin.preprocessModule.resolve
@@ -176,16 +180,10 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 2
-      typ.body.head shouldBe an[IR.Comment]
-      typ.body(1) shouldBe a[Definition.Data]
-      typ
-        .body(1)
-        .unsafeGetMetadata(ModuleAnnotations, "")
-        .annotations
-        .head
-        .asInstanceOf[IR.Name]
-        .name shouldEqual "@My_Annotation"
+      typ.body.length shouldEqual 3
+      typ.body(0) shouldBe an[IR.Name.GenericAnnotation]
+      typ.body(1) shouldBe an[IR.Comment]
+      typ.body(2) shouldBe a[Definition.Data]
     }
   }
 }
