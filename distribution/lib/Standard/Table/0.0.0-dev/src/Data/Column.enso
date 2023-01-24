@@ -7,11 +7,14 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
-import project.Data.Table.Table
+import project.Data.Column_Type_Selection.Auto
+import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Storage.Storage
+import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
-from project.Data.Table import print_table
+import project.Internal.Parse_Values_Helper
 
+from project.Data.Table import print_table
 from project.Errors import No_Index_Set_Error
 
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
@@ -848,6 +851,35 @@ type Column
                     column : Column -> column.to_vector
                 new_vector = self.to_vector.map (Filter_Condition.Is_In true_vector).to_predicate
                 Column.from_vector result_name new_vector
+
+    ## Parses a text column into values
+    parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
+    parse self type=Auto format=Nothing on_problems=Report_Warning =
+        ensure_text ~fn = if self.value_type != Value_Type.Char then Error.throw (Illegal_Argument.Error "Can only parse Text columns.") else fn
+        ensure_type ~fn = if [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean].index_of type == Nothing then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else fn
+
+        ensure_text <| ensure_type <|
+            formatter = if format.is_nothing then Data_Formatter.Value else case type of
+                Auto -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
+                Integer -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Integer`.")
+                Decimal -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Decimal`.")
+                Date -> Data_Formatter.Value.with_datetime_formats date_formats=[format]
+                Date_Time -> Data_Formatter.Value.with_datetime_formats datetime_formats=[format]
+                Time_Of_Day -> Data_Formatter.Value.with_datetime_formats time_formats=[format]
+                Boolean ->
+                    formats = format.split "|"
+                    if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for a Boolean column must be a string with two values separated by `|`.") else
+                        Data_Formatter.Value.with_boolean_formats true_formats=[formats.at 0] false_formats=[formats.at 1]
+
+            parser = if format == Auto then formatter.make_auto_parser else formatter.make_datatype_parser type
+            storage = self.java_column.getStorage
+            new_storage_and_problems = parser.parseColumn self.name storage
+
+            new_storage = new_storage_and_problems.value
+            problems = Vector.from_polyglot_array new_storage_and_problems.problems . map (Parse_Values_Helper.translate_parsing_problem type)
+
+            output = Column.Value (Java_Column.new self.name new_storage)
+            on_problems.attach_problems_after output problems
 
     ## ALIAS Transform Column
 
