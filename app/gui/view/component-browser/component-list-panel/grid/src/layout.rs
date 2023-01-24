@@ -400,7 +400,7 @@ mod tests {
         let mut layout = Layout::new(9, 3, 0);
         let popular_group_ids = (0..6).map(|index| GroupId { section: SectionId::Popular, index });
         let submodule_group_ids =
-            (6..8).map(|index| GroupId { section: SectionId::SubModules, index });
+            (6..8).map(|index| GroupId { section: SectionId::Namespace(0), index });
         let group_ids = popular_group_ids.chain(submodule_group_ids);
         let group_sizes = [1, 2, 3].into_iter().cycle();
         let group_columns = [CENTER, LEFT, RIGHT].into_iter().cycle();
@@ -417,9 +417,9 @@ mod tests {
         assert_eq!(layout.section_rows_at_column(SectionId::Popular, LEFT), Some(3..9));
         assert_eq!(layout.section_rows_at_column(SectionId::Popular, CENTER), Some(5..9));
         assert_eq!(layout.section_rows_at_column(SectionId::Popular, RIGHT), Some(1..9));
-        assert_eq!(layout.section_rows_at_column(SectionId::SubModules, LEFT), Some(0..3));
-        assert_eq!(layout.section_rows_at_column(SectionId::SubModules, CENTER), Some(3..5));
-        assert_eq!(layout.section_rows_at_column(SectionId::SubModules, RIGHT), None);
+        assert_eq!(layout.section_rows_at_column(SectionId::Namespace(0), LEFT), Some(0..3));
+        assert_eq!(layout.section_rows_at_column(SectionId::Namespace(0), CENTER), Some(3..5));
+        assert_eq!(layout.section_rows_at_column(SectionId::Namespace(0), RIGHT), None);
     }
 
     #[test]

@@ -202,7 +202,7 @@ spec =
             positions = [7, 8, 15]
             msg = "Encoding issues at codepoints " +
                 positions.map .to_text . join separator=", " suffix="."
-            Warning.get_all result . map .value . should_equal [Encoding_Error.Error msg]
+            Problems.get_attached_warnings result . should_equal [Encoding_Error.Error msg]
             file.delete
 
         Test.specify "should allow only text columns if no formatter is specified" <|
