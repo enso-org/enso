@@ -809,58 +809,23 @@ spec =
             "Hello!".contains "lo" . should_be_true
             "Hello!".contains "Lo" . should_be_false
 
-        Test.specify "should allow for case-insensitive contains checks" <|
-            "Hello!".contains 'LO' Text_Matcher.Case_Insensitive . should_be_true
-            "FoObar" . contains "foo" Text_Matcher.Case_Insensitive . should_be_true
-            "aaaIAAA" . contains "i" Text_Matcher.Case_Insensitive . should_be_true
-            "Foo" . contains "bar" Text_Matcher.Case_Insensitive . should_be_false
-            "Ściana" . contains "ś" Text_Matcher.Case_Insensitive . should_be_true
-            "Ściana" . contains "s" Text_Matcher.Case_Insensitive . should_be_false
-
-            "Straße" . contains "ss" . should_be_false
-            "Strasse" . contains "ß" . should_be_false
-            "Straße" . contains "ss" Text_Matcher.Case_Insensitive . should_be_true
-            "Strasse" . contains "ß" Text_Matcher.Case_Insensitive . should_be_true
-
-        Test.specify "should allow for Regex contains checks" <|
-            "Hello!".contains "[a-z]" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "foobar" . contains "b.." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "foob" . contains "b.." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-
-            "123 meters and 4 centimeters" . contains "[0-9]+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "foo" . contains "[0-9]+" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-
             'ś' . contains 's' . should_be_false
             's\u{301}' . contains 's' . should_be_false
             's\u{301}' . contains 'ś' . should_be_true
             'ś' . contains 's\u{301}' . should_be_true
 
-            ## These first two cases are not really desirable, but we are
-               documenting here what is the current behaviour.
-            ## This shows what regex is doing by default and we cannot easily fix
-               that.
-            's\u{301}' . contains 's' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            'ś' . contains 's' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            's\u{301}' . contains 'ś' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            'ś' . contains 's\u{301}' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
+        Test.specify "should allow for case-insensitive contains checks" <|
+            "Hello!".contains 'LO' Case_Sensitivity.Insensitive . should_be_true
+            "FoObar" . contains "foo" Case_Sensitivity.Insensitive . should_be_true
+            "aaaIAAA" . contains "i" Case_Sensitivity.Insensitive . should_be_true
+            "Foo" . contains "bar" Case_Sensitivity.Insensitive . should_be_false
+            "Ściana" . contains "ś" Case_Sensitivity.Insensitive . should_be_true
+            "Ściana" . contains "s" Case_Sensitivity.Insensitive . should_be_false
 
-            "Cześć" . contains "ś" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            "Cześć" . contains 's\u{301}' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            'Czes\u{301}c\u{301}' . contains 's\u{301}' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            'Czes\u{301}c\u{301}' . contains 'ś' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_true
-            ## These two tests below are disabled due to how regex is handling
-               letters with accents. See the tests above for explanation.
-            #"Cześć" . contains "s" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-            #'Czes\u{301}c\u{301}' . contains 's' (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive) . should_be_false
-
-            "fooBar" . contains "b.." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_true
-            "foar" . contains "b.." (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Insensitive) . should_be_false
-
-            long_text = """
-                Hello from a long text. EOL
-                SOL Hmm...
-            long_text . contains "EOL.SOL" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=True) . should_be_true
-            long_text . contains "EOL.SOL" (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive dot_matches_newline=False) . should_be_false
+            "Straße" . contains "ss" . should_be_false
+            "Strasse" . contains "ß" . should_be_false
+            "Straße" . contains "ss" Case_Sensitivity.Insensitive . should_be_true
+            "Strasse" . contains "ß" Case_Sensitivity.Insensitive . should_be_true
 
         Test.specify "should check for starts_with using Unicode normalization" <|
             "Hello".starts_with "He" . should_be_true

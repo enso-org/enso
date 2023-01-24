@@ -773,15 +773,12 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
 ## ALIAS Contains
 
    Checks whether `self` contains `sequence` as its substring.
+   Returns: `True` if term is found within `self`. `False` otherwise.
 
    Arguments:
    - term: The term to find.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher.
-     If a `Regex_Matcher`, the term is used as a regular expression and matched
-     using the associated options.
-
-   Returns: `True` if term is found within `self`. `False` otherwise.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -789,18 +786,10 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
      ensures that different ways of expressing the same character in the
      underlying binary representation are considered equal.
 
-     This however is not always well handled by the regex engine. The behaviour
-     is as follows:
-
          'ś' . contains 's' == False
          's\u{301}' . contains 's' == False
          's\u{301}' . contains 'ś' == True
          'ś' . contains 's\u{301}' == True
-
-         'ś' . contains 's' Regex_Matcher == True
-         's\u{301}' . contains 's' Regex_Matcher == True
-         's\u{301}' . contains 'ś' Regex_Matcher == True
-         'ś' . contains 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello" contains the text "ell".
@@ -815,21 +804,12 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
    > Example
      See if the text "Hello!" contains the text 'LO', ignoring case.
 
-         "Hello!".contains "LO" (Text_Matcher Case_Insensitive)
-
-   > Example
-     See if the text "Hello!" contains any lowercase letters, using a regex.
-
-         "Hello!".contains "[a-z]" Regex_Matcher
-Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
-Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
-    Text_Matcher.Case_Sensitive -> Text_Utils.contains self term
-    Text_Matcher.Case_Insensitive locale ->
+         "Hello!".contains "LO" Case_Sensitivity.Insensitive
+Text.contains : Text -> Case_Sensitivity -> Boolean
+Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Sensitive -> Text_Utils.contains self term
+    Case_Sensitivity.Insensitive locale ->
             Text_Utils.contains_case_insensitive self term locale.java_locale
-    _ : Regex_Matcher ->
-        compiled_pattern = matcher.compile term
-        match = compiled_pattern.match self Matching_Mode.First
-        match.is_nothing.not
 
 ## Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.

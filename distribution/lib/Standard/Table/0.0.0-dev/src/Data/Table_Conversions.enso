@@ -89,18 +89,3 @@ Table.from_objects value fields=Nothing =
             Table.new (used_fields.zip used_values)
         _ : Array -> Table.from_objects (Vector.from_polyglot_array value) fields
         _ -> Error.throw (Illegal_Argument.Error "Invalid value for Table.from_objects. Currently must be one of JS_Object, Vector, Array, Number, Boolean, Text and Nothing are supported (got "+(Meta.get_simple_type_name value)+").")
-
-## Converts a Text into a Table using a regular expression pattern
-Text.parse_to_table : Text -> Text -> Boolean -> Table
-Text.parse_to_table self pattern row_delimiter='\n' parse_value=False =
-    lines = self.split row_delimiter
-
-    regex = Regex.compile pattern
-    first_match = regex.match lines.first . first
-
-    no_groups = first_match.groups.length == 1
-    filter = if no_groups then (v-> v.first) else (v-> v.drop 1)
-    rows = lines.map l-> filter (regex.match l . first . groups)
-    header = if no_groups then ["Value"] else 0.up_to no_groups.length i-> "Column "+(i+1).to_text
-
-    Table.from_rows header rows
