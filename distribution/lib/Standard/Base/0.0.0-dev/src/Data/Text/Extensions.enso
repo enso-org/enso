@@ -748,10 +748,8 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
 
    Arguments:
    - suffix: The suffix to see if `self` ends with.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher.
-     If a `Regex_Matcher`, the term is used as a regular expression and matched
-     using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -764,18 +762,12 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
 
          "Hello World".ends_with "World" == True
          "Hello World".ends_with "world" == False
-         "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
-         "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
-Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
-Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
-    Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
-    Text_Matcher.Case_Insensitive locale ->
+         "Hello World".ends_with "world" Case_Sensitivity.Insensitive == True
+Text.ends_with : Text -> Case_Sensitivity -> Boolean
+Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Sensitive -> Text_Utils.ends_with self suffix
+    Case_Sensitivity.Insensitive locale ->
             self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
-    _ : Regex_Matcher ->
-        preprocessed_pattern = "(?:" + suffix + ")\z"
-        compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match self Matching_Mode.First
-        match.is_nothing.not
 
 ## ALIAS Contains
 
