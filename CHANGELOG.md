@@ -73,6 +73,9 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
+- [The default text visualisation now loads its content lazily from the
+  backend][3910]. This means that the visualisation cannot be overwhelmed by
+  large amounts of data.
 - [Added project snapshot saving on shortcut][3923]
 - [The color of the displayed project name indicates whether the project's
   current state is saved in a snapshot.][3950] The project name is darker when
@@ -271,6 +274,8 @@
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
+- [There is a new API to lazily feed visualisation information to the
+  IDE.][3910]
 - [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 - [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
@@ -427,6 +432,7 @@
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
 [3885]: https://github.com/enso-org/enso/pull/3885
+[3910]: https://github.com/enso-org/enso/pull/3910
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
 [3950]: https://github.com/enso-org/enso/pull/3950

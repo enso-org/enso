@@ -9,6 +9,13 @@ default_preprocessor x =
         True -> x.to_display_text . to_json
         False -> result
 
+
+## PRIVATE
+
+   Lazy visualization preprocessor.
+lazy_preprocessor x = x.to_lazy_visualization_data
+
+
 ## PRIVATE
    Error visualization preprocessor.
 error_preprocessor x =
