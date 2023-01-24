@@ -5,6 +5,13 @@ import project.Helpers
    Default visualization preprocessor.
 default_preprocessor x = x.to_default_visualization_data
 
+
+## PRIVATE
+
+   Lazy visualization preprocessor.
+lazy_preprocessor x = x.to_lazy_visualization_data
+
+
 ## PRIVATE
    Error visualization preprocessor.
 error_preprocessor x =
