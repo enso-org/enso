@@ -4,8 +4,8 @@ polyglot java import org.enso.base.text.TextFoldingStrategy
 
 type Case_Sensitivity
     ## Use the default case-sensitivity for the environment.
-       For in-memory operations, will be case sensitive.
-       For database operations, will follow the collation default.
+       For in-memory operations, it will be case sensitive.
+       For database operations, it will follow the collation default.
     Default
 
     ## Represents a case-sensitive comparison mode.

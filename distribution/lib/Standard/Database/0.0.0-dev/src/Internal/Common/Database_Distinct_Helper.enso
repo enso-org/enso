@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Table.Errors import Floating_Point_Grouping
 
+import project.Internal.Helpers
 import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
@@ -12,6 +13,8 @@ make_distinct_expression text_case_sensitivity problem_builder key_column =
     expr = key_column.expression
 
     if key_column.sql_type.is_definitely_text.not then expr else case text_case_sensitivity of
-        Case_Sensitivity.Insensitive _ -> SQL_Expression.Operation "FOLD_CASE" [expr]
+        Case_Sensitivity.Insensitive locale ->
+            Helpers.assume_default_locale locale <|
+                SQL_Expression.Operation "FOLD_CASE" [expr]
         Case_Sensitivity.Sensitive -> SQL_Expression.Operation "MAKE_CASE_SENSITIVE" [expr]
         Case_Sensitivity.Default -> expr

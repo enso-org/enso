@@ -677,13 +677,7 @@ type Table
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
             self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
 
-        text_case_sensitivity = case case_sensitivity of
-            Case_Sensitivity.Insensitive locale ->
-                Helpers.assume_default_locale locale <|
-                    case_sensitivity
-            _ -> case_sensitivity
-
-        new_table = self.connection.dialect.prepare_distinct self key_columns text_case_sensitivity problem_builder
+        new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
         problem_builder.attach_problems_before on_problems new_table
 
     ## Joins two tables according to the specified join conditions.
