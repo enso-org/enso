@@ -6,6 +6,7 @@ use crate::data::dirty::traits::*;
 use crate::display::render::*;
 use crate::prelude::*;
 use crate::system::web::traits::*;
+use wasm_bindgen::prelude::*;
 
 use crate::animation;
 use crate::application::command::FrpNetworkProvider;
@@ -18,12 +19,14 @@ use crate::display;
 use crate::display::garbage;
 use crate::display::render;
 use crate::display::render::passes::SymbolsRenderPass;
-use crate::display::scene;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::glsl;
+use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
+use crate::system::gpu::shader;
 use crate::system::web;
+use wasm_bindgen::JsCast as JsCast2;
 
 use enso_types::unit2::Duration;
 use web::prelude::Closure;
@@ -36,6 +39,146 @@ use web::JsValue;
 // ==============
 
 pub use crate::display::symbol::types::*;
+
+
+
+// ===============
+// === Context ===
+// ===============
+
+thread_local! {
+    /// A global object containing registry of all symbols. In the future, it will be extended to
+    /// contain buffers and other elements that are now kept in `Rc<RefCell<...>>` in different
+    /// places.
+    pub static CONTEXT: RefCell<Option<SymbolRegistry>> = RefCell::new(None);
+}
+
+/// Perform an action with a reference to the global context.
+pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
+    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
+}
+
+/// Initialize global state (set stack trace size, logger output, etc).
+#[before_main(0)]
+pub fn init() {
+    init_global();
+}
+
+/// Initialize global context.
+#[before_main(1)]
+pub fn init_context() {
+    CONTEXT.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
+}
+
+
+
+// =====================
+// === Static Shapes ===
+// =====================
+
+type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+
+thread_local! {
+    /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
+    /// program execution, before the `main` function is called.
+    pub static STATIC_SHAPES: RefCell<Vec<ShapeCons>> = default();
+}
+
+
+
+// ===========================
+// === Precompiled Shaders ===
+// ===========================
+
+/// A precompiled shader definition. It contains the main function body for the vertex and fragment
+/// shaders.
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub struct PrecompiledShader {
+    pub vertex:   String,
+    pub fragment: String,
+}
+
+thread_local! {
+    /// List of all precompiled shaders. They are registered here before main entry point is run by
+    /// the EnsoGL runner in JavaScript.
+    pub static PRECOMPILED_SHADERS: RefCell<HashMap<String, PrecompiledShader>> = default();
+}
+
+
+#[wasm_bindgen]
+extern "C" {
+    #[allow(unsafe_code)]
+    fn registerGetShadersRustFn(
+        closure: &wasm_bindgen::prelude::Closure<dyn FnMut() -> wasm_bindgen::prelude::JsValue>,
+    );
+    #[allow(unsafe_code)]
+    fn registerSetShadersRustFn(
+        closure: &wasm_bindgen::prelude::Closure<dyn FnMut(wasm_bindgen::prelude::JsValue)>,
+    );
+}
+
+#[before_main]
+pub fn register_get_shaders() {
+    let closure = wasm_bindgen::prelude::Closure::new(|| {
+        let map = gather_shaders();
+        let js_map = js_sys::Map::new();
+        for (key, code) in map {
+            let value = js_sys::Object::new();
+            js_sys::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
+            js_sys::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
+            js_map.set(&key.into(), &value);
+        }
+        js_map.into()
+    });
+    registerGetShadersRustFn(&closure);
+    mem::forget(closure);
+
+
+    let closure = wasm_bindgen::prelude::Closure::new(|value: wasm_bindgen::prelude::JsValue| {
+        if extractShadersFromJs(value).err().is_some() {
+            warn!("Internal error. Downloaded shaders are provided in a wrong format.")
+        }
+    });
+    registerSetShadersRustFn(&closure);
+    mem::forget(closure);
+}
+
+fn extractShadersFromJs(
+    value: wasm_bindgen::prelude::JsValue,
+) -> Result<(), wasm_bindgen::prelude::JsValue> {
+    let map = value.dyn_into::<js_sys::Map>()?;
+    for opt_entry in map.entries() {
+        let entry = opt_entry?.dyn_into::<js_sys::Array>()?;
+        let key: String = entry.get(0).dyn_into::<js_sys::JsString>()?.into();
+        let value = entry.get(1).dyn_into::<js_sys::Object>()?;
+        let vertex_field = js_sys::Reflect::get(&value, &"vertex".into())?;
+        let fragment_field = js_sys::Reflect::get(&value, &"fragment".into())?;
+        let vertex: String = vertex_field.dyn_into::<js_sys::JsString>()?.into();
+        let fragment: String = fragment_field.dyn_into::<js_sys::JsString>()?.into();
+        let precompiled_shader = PrecompiledShader { vertex, fragment };
+        warn!("Registering precompiled shaders for '{key}'.");
+        PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
+            map.insert(key, precompiled_shader);
+        });
+    }
+    Ok(())
+}
+
+fn gather_shaders() -> HashMap<&'static str, shader::Code> {
+    with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
+    let mut map = HashMap::new();
+    display::world::STATIC_SHAPES.with(|shapes| {
+        for shape_cons in shapes.borrow().iter() {
+            let shape = shape_cons();
+            let path = shape.definition_path();
+            let code = shape.abstract_shader_code_in_glsl_310();
+            map.insert(path, code);
+        }
+    });
+    with_context(|t| t.run_mode.set(RunMode::Normal));
+    map
+}
 
 
 
@@ -202,29 +345,6 @@ pub struct Callbacks {
 
 
 
-// ===============================
-// === SymbolRegistry Instance ===
-// ===============================
-
-thread_local! {
-    pub static CONTEXT: RefCell<Option<SymbolRegistry>> = RefCell::new(None);
-}
-
-pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
-    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
-}
-
-#[before_main(0)]
-pub fn init() {
-    init_global();
-}
-
-#[before_main(1)]
-pub fn init_context() {
-    CONTEXT.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
-}
-
-
 // ======================
 // === Scene Instance ===
 // ======================
@@ -238,29 +358,6 @@ thread_local! {
 /// and should be instantiated before any callback is run.
 pub fn scene() -> Scene {
     SCENE.with_borrow(|t| t.clone().unwrap())
-}
-
-
-// ============================
-// === Static Shape Systems ===
-// ============================
-
-type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
-
-thread_local! {
-    /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
-    /// program execution, before the `main` function is called.
-    pub static STATIC_SHAPES: RefCell<Vec<ShapeCons>> = default();
-}
-
-#[derive(Clone, Debug)]
-pub struct PrecompiledShader {
-    pub vertex:   String,
-    pub fragment: String,
-}
-
-thread_local! {
-    pub static PRECOMPILED_SHADERS: RefCell<HashMap<String, PrecompiledShader>> = default();
 }
 
 
@@ -456,7 +553,8 @@ impl WorldData {
 }
 
 mod js {
-    #[wasm_bindgen::prelude::wasm_bindgen(inline_js = r#"
+    use super::*;
+    #[wasm_bindgen(inline_js = r#"
 export function log_measurement(label, start, end) {
     window.performance.measure(label, { "start": start, "end": end })
 }

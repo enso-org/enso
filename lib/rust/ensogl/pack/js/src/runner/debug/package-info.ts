@@ -6,7 +6,7 @@ import { logger } from 'runner/log'
 // === PackageInfo ===
 // ===================
 
-/** Package info. It can also contain info provided by the user of this library. */
+/** Package info. It contains info provided by the user of EnsoGL. */
 export class PackageInfo {
     /** Constructor. */
     constructor(userProvidedInfo?: Record<string, string>) {

@@ -9,7 +9,8 @@ export const DEFAULT_ENTRY_POINT = 'ide'
 // =============
 
 /** Parses the provided value as boolean. If it was a boolean value, it is left intact. If it was
- * a string 'true' or 'false', it is converted to a boolean value. Otherwise, null is returned. */
+ * a string 'true', 'false', '1', or '0', it is converted to a boolean value. Otherwise, null is
+ * returned. */
 // prettier-ignore
 function parseBoolean(value: any): boolean | null {
     switch(value) {
@@ -17,6 +18,8 @@ function parseBoolean(value: any): boolean | null {
         case false: return false
         case 'true': return true
         case 'false': return false
+        case '1': return true
+        case '0': return false
         default: return null
     }
 }

@@ -18,8 +18,6 @@ use crate::display::scene::dom::DomScene;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
-use crate::display::symbol::registry::RunMode;
-use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
 use crate::display::world;
 use crate::system;
@@ -688,83 +686,6 @@ impl Extensions {
 pub struct UpdateStatus {
     pub scene_was_dirty:          bool,
     pub pointer_position_changed: bool,
-}
-
-
-
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-extern "C" {
-    #[allow(unsafe_code)]
-    fn registerGetShadersRustFn(closure: &Closure<dyn FnMut() -> JsValue>);
-    #[allow(unsafe_code)]
-    fn registerSetShadersRustFn(closure: &Closure<dyn FnMut(JsValue)>);
-}
-
-
-
-use wasm_bindgen::JsCast;
-
-#[before_main]
-pub fn register_get_shaders() {
-    let closure = Closure::new(|| {
-        let map = gather_shaders();
-        let js_map = js_sys::Map::new();
-        for (key, code) in map {
-            let value = js_sys::Object::new();
-            js_sys::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
-            js_sys::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
-            js_map.set(&key.into(), &value);
-        }
-        js_map.into()
-    });
-    registerGetShadersRustFn(&closure);
-    mem::forget(closure);
-
-
-    let closure = Closure::new(|value: JsValue| {
-        if extractShadersFromJs(value).err().is_some() {
-            warn!("Internal error. Downloaded shaders are provided in a wrong format.")
-        }
-    });
-    registerSetShadersRustFn(&closure);
-    mem::forget(closure);
-}
-
-fn extractShadersFromJs(value: JsValue) -> Result<(), JsValue> {
-    let map = value.dyn_into::<js_sys::Map>()?;
-    for opt_entry in map.entries() {
-        let entry = opt_entry?.dyn_into::<js_sys::Array>()?;
-        let key: String = entry.get(0).dyn_into::<js_sys::JsString>()?.into();
-        let value = entry.get(1).dyn_into::<js_sys::Object>()?;
-        let vertex_field = js_sys::Reflect::get(&value, &"vertex".into())?;
-        let fragment_field = js_sys::Reflect::get(&value, &"fragment".into())?;
-        let vertex: String = vertex_field.dyn_into::<js_sys::JsString>()?.into();
-        let fragment: String = fragment_field.dyn_into::<js_sys::JsString>()?.into();
-        let precompiled_shader = world::PrecompiledShader { vertex, fragment };
-        warn!("Registering precompiled shaders for '{key}'.");
-        world::PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
-            map.insert(key, precompiled_shader);
-        });
-    }
-    Ok(())
-}
-
-
-pub fn gather_shaders() -> HashMap<&'static str, shader::Code> {
-    world::with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
-    let mut map = HashMap::new();
-    display::world::STATIC_SHAPES.with(|shapes| {
-        for shape_cons in shapes.borrow().iter() {
-            let shape = shape_cons();
-            let path = shape.definition_path();
-            let code = shape.abstract_shader_code_in_glsl_310();
-            map.insert(path, code);
-        }
-    });
-    world::with_context(|t| t.run_mode.set(RunMode::Normal));
-    map
 }
 
 

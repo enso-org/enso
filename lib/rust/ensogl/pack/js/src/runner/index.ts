@@ -129,8 +129,11 @@ class Shader<T> {
 // === App ===
 // ===========
 
-/// A task scheduler used to run tasks in the next animation frame if the current animation frame is
-/// running too long.
+/** Preferred frame time for the `Scheduler`. */
+const FRAME_TIME_MS = 16
+
+/** A task scheduler used to run tasks in the next animation frame if the current animation frame is
+ * running too long. */
 class Scheduler {
     done: Promise<void>
     doneResolve: () => void = () => {}
@@ -163,7 +166,7 @@ class Scheduler {
         for (;;) {
             const time = window.performance.now()
             const delta = time - this.time
-            if (delta > 16) {
+            if (delta > FRAME_TIME_MS) {
                 break
             }
             const task = this.tasks.shift()
