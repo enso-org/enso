@@ -22,7 +22,7 @@ jobs:
           clean: false
           submodules: recursive
       - id: step_0
-        run: cargo run --package enso-shader-tools --bin create
+        run: cargo run --package enso-build-shader-tools --bin create
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360
@@ -49,7 +49,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-shader-tools --bin package
+      - run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360
@@ -76,7 +76,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-shader-tools --bin package
+      - run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360
@@ -103,7 +103,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-shader-tools --bin package
+      - run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360
@@ -133,7 +133,7 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-shader-tools --bin publish
+      - run: cargo run --package enso-build-shader-tools --bin publish
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360

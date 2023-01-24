@@ -33,7 +33,8 @@ impl Display for Binary {
 
 /// Generate a step definition that runs given binary from this crate.
 pub fn run_bin(binary: Binary) -> Step {
-    let command = format!("cargo run --package enso-shader-tools --bin {binary}");
+    let pkg_name = env!("CARGO_PKG_NAME");
+    let command = format!("cargo run --package {pkg_name} --bin {binary}");
     ide_ci::actions::workflow::definition::shell(command)
 }
 
