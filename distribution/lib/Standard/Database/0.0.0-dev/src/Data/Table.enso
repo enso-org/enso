@@ -676,7 +676,9 @@ type Table
             _ -> Nothing
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
             self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
+        ## ToDo: This should be DB default
         text_case_insensitive = case case_sensitivity of
+            Case_Sensitivity.Default -> False
             Case_Sensitivity.Sensitive -> False
             Case_Sensitivity.Insensitive locale ->
                 Helpers.assume_default_locale locale <|

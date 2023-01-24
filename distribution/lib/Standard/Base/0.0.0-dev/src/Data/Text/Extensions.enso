@@ -739,6 +739,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
          "Hello!".starts_with "hello" Case_Sensitivity.Insensitive == True
 Text.starts_with : Text -> Case_Sensitivity -> Boolean
 Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Default -> self.starts_with prefix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.starts_with self prefix
     Case_Sensitivity.Insensitive locale ->
             self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
@@ -766,6 +767,7 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
          "Hello World".ends_with "world" Case_Sensitivity.Insensitive == True
 Text.ends_with : Text -> Case_Sensitivity -> Boolean
 Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Default -> self.ends_with suffix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.ends_with self suffix
     Case_Sensitivity.Insensitive locale ->
             self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
@@ -807,6 +809,7 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
          "Hello!".contains "LO" Case_Sensitivity.Insensitive
 Text.contains : Text -> Case_Sensitivity -> Boolean
 Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Default -> self.contains term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.contains self term
     Case_Sensitivity.Insensitive locale ->
             Text_Utils.contains_case_insensitive self term locale.java_locale
