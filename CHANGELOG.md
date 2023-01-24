@@ -526,6 +526,7 @@
 - [Report failures in name resolution in type signatures][4030]
 - [Attach visualizations to sub-expressions][4048]
 - [Resolve Fully Qualified Names][4056]
+- [Optimize Atom storage layouts][3862]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -593,6 +594,7 @@
 [3810]: https://github.com/enso-org/enso/pull/3810
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
+[3862]: https://github.com/enso-org/enso/pull/3862
 [3897]: https://github.com/enso-org/enso/pull/3897
 [3906]: https://github.com/enso-org/enso/pull/3906
 [3941]: https://github.com/enso-org/enso/pull/3941

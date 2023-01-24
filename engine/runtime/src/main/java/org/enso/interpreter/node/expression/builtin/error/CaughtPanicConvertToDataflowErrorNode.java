@@ -9,6 +9,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.State;
@@ -26,10 +27,14 @@ public abstract class CaughtPanicConvertToDataflowErrorNode extends Node {
 
   @Specialization
   Object doExecute(
-      State state, Atom self, @CachedLibrary(limit = "5") InteropLibrary interopLibrary) {
+      State state,
+      Atom self,
+      @CachedLibrary(limit = "5") InteropLibrary interopLibrary,
+      @CachedLibrary(limit = "5") StructsLibrary structs) {
     Builtins builtins = EnsoContext.get(this).getBuiltins();
-    Object payload = self.getFields()[0];
-    Object originalException = self.getFields()[1];
+    var fields = structs.getFields(self);
+    Object payload = fields[0];
+    Object originalException = fields[1];
     if (interopLibrary.isException(originalException)) {
       return DataflowError.withTrace(payload, (AbstractTruffleException) originalException);
     } else {
