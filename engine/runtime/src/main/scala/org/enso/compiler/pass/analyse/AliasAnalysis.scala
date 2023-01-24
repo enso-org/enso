@@ -14,7 +14,6 @@ import org.enso.syntax.text.Debug
 
 import java.io.Serializable
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 /** This pass performs scope identification and analysis, as well as symbol
@@ -257,12 +256,23 @@ case object AliasAnalysis extends IRPass {
           ),
           members = t.members.map(d => {
             val graph = new Graph
-            d.copy(arguments =
-              analyseArgumentDefs(
+            d.copy(
+              arguments = analyseArgumentDefs(
                 d.arguments,
                 graph,
                 graph.rootScope
-              )
+              ),
+              annotations = d.annotations.map { ann =>
+                ann
+                  .copy(
+                    expression = analyseExpression(
+                      ann.expression,
+                      topLevelGraph,
+                      topLevelGraph.rootScope
+                    )
+                  )
+                  .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+              }
             ).updateMetadata(this -->> Info.Scope.Root(graph))
           })
         ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
@@ -280,11 +290,21 @@ case object AliasAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "alias analysis."
         )
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of alias " +
           "analysis."
         )
+      case ann: IR.Name.GenericAnnotation =>
+        ann
+          .copy(expression =
+            analyseExpression(
+              ann.expression,
+              topLevelGraph,
+              topLevelGraph.rootScope
+            )
+          )
+          .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
       case err: IR.Error => err
     }
   }
@@ -561,7 +581,7 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope the scope in which the arguments are defined
     * @return `args`, with aliasing information attached to each argument
     */
-  def analyseCallArguments(
+  private def analyseCallArguments(
     args: List[IR.CallArgument],
     graph: AliasAnalysis.Graph,
     parentScope: AliasAnalysis.Graph.Scope
@@ -1207,7 +1227,8 @@ case object AliasAnalysis extends IRPass {
         mapping.get(this) match {
           case Some(newCorrespondingScope) => newCorrespondingScope
           case None =>
-            val childScopeCopies: mutable.ListBuffer[Scope] = ListBuffer()
+            val childScopeCopies: mutable.ListBuffer[Scope] =
+              mutable.ListBuffer()
             this.childScopes.foreach(scope =>
               childScopeCopies += scope.deepCopy(mapping)
             )

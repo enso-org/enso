@@ -28,7 +28,7 @@ class PassManager(
     * @throws CompilerError if a valid pass ordering cannot be computed
     * @return a valid pass ordering for the compiler, based on `passes`
     */
-  def verifyPassOrdering(passes: List[IRPass]): List[IRPass] = {
+  private def verifyPassOrdering(passes: List[IRPass]): List[IRPass] = {
     var validPasses: Set[IRPass] = Set()
 
     passes.foreach(pass => {
@@ -161,7 +161,7 @@ class PassManager(
     * @param passGroup the pass group being run
     * @return `true` if the condition holds, otherwise `false`
     */
-  def isLastRunOf(
+  private def isLastRunOf(
     indexOfPassInGroup: Int,
     pass: IRPass,
     passGroup: PassGroup
