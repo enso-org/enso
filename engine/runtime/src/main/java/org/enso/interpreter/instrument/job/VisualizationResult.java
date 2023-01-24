@@ -4,6 +4,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.nio.charset.StandardCharsets;
 import org.enso.interpreter.runtime.data.text.Text;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.WithWarnings;
 
 public final class VisualizationResult {
@@ -22,6 +23,9 @@ public final class VisualizationResult {
     }
     if (value instanceof WithWarnings warn) {
       return visualizationResultToBytes(warn.getValue());
+    }
+    if (value instanceof DataflowError err) {
+      return visualizationResultToBytes(err.toString());
     }
     var iop = InteropLibrary.getUncached();
     if (iop.isString(value)) {
