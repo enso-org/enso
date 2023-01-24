@@ -46,4 +46,18 @@ public class OrderMask {
     }
     return new OrderMask(result);
   }
+
+  public static OrderMask concat(List<OrderMask> masks) {
+    int size = 0;
+    for (OrderMask mask : masks) {
+      size += mask.positions.length;
+    }
+    int[] result = new int[size];
+    int offset = 0;
+    for (OrderMask mask : masks) {
+      System.arraycopy(mask.positions, 0, result, offset, mask.positions.length);
+      offset += mask.positions.length;
+    }
+    return new OrderMask(result);
+  }
 }

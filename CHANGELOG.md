@@ -81,6 +81,8 @@
 - [Added shortcut to interrupt the program][3967]
 - [Added suggestion dropdown for function arguments][4013]. The dropdown is
   present only when the argument is of type that has a predefined set of values.
+- [Separate component browser navigator sections for modules imported from
+  different namespaces][4044]
 
 #### EnsoGL (rendering engine)
 
@@ -278,6 +280,8 @@
   to the types.][4026]
 - [Implemented `Table.distinct` for Database backends.][4027]
 - [Implemented `Table.union` for the in-memory backend.][4052]
+- [Implemented `Table.cross_join` and `Table.zip` for the in-memory
+  backend.][4063]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -434,7 +438,9 @@
 [4013]: https://github.com/enso-org/enso/pull/4013
 [4026]: https://github.com/enso-org/enso/pull/4026
 [4027]: https://github.com/enso-org/enso/pull/4027
+[4044]: https://github.com/enso-org/enso/pull/4044
 [4052]: https://github.com/enso-org/enso/pull/4052
+[4063]: https://github.com/enso-org/enso/pull/4063
 
 #### Enso Compiler
 

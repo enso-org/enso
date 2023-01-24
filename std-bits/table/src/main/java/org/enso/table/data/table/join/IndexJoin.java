@@ -56,13 +56,13 @@ public class IndexJoin implements JoinStrategy {
     MatcherFactory factory = new MatcherFactory(objectComparator, equalityFallback);
     Matcher remainingMatcher = factory.create(remainingConditions);
 
-    List<Pair<Integer, Integer>> matches = new ArrayList<>();
+    JoinResult.Builder resultBuilder = new JoinResult.Builder();
     for (var leftKey : leftIndex.keys()) {
       if (rightIndex.contains(leftKey)) {
         for (var leftRow : leftIndex.get(leftKey)) {
           for (var rightRow : rightIndex.get(leftKey)) {
             if (remainingMatcher.matches(leftRow, rightRow)) {
-              matches.add(Pair.create(leftRow, rightRow));
+              resultBuilder.addRow(leftRow, rightRow);
             }
           }
         }
@@ -70,11 +70,8 @@ public class IndexJoin implements JoinStrategy {
     }
 
     AggregatedProblems problems =
-        AggregatedProblems.merge(
-            new AggregatedProblems[] {
-              leftIndex.getProblems(), rightIndex.getProblems(), remainingMatcher.getProblems()
-            });
-    return new JoinResult(matches, problems);
+        AggregatedProblems.merge(leftIndex.getProblems(), rightIndex.getProblems(), remainingMatcher.getProblems());
+    return resultBuilder.build(problems);
   }
 
   private static boolean isSupported(JoinCondition condition) {
