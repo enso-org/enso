@@ -268,6 +268,7 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   }
 
   private void writeGetterFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
+    out.println("  @SuppressWarnings(\"unchecked\")");
     out.println(
         "  public static NodeFactory<UnboxingAtom.FieldGetterNode>[] getFieldGetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
     out.println("    var arity = numDoubles + numLongs + numBoxed;");
@@ -311,6 +312,7 @@ public class LayoutSpecProcessor extends AbstractProcessor {
   }
 
   private void writeSetterFactory(PrintWriter out, String layoutName, LayoutSpec spec) {
+    out.println("  @SuppressWarnings(\"unchecked\")");
     out.println(
         "  public static NodeFactory<UnboxingAtom.FieldSetterNode>[] getFieldSetterNodeFactories(int numDoubles, int numLongs, int numBoxed) {");
     out.println("    var arity = numDoubles + numLongs + numBoxed;");
