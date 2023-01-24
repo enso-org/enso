@@ -124,7 +124,10 @@ macro_rules! wasm_lazy_global {
 /// Get the global window object.
 ///
 /// # Safety
-/// We are using an unsafe cast here in order to make it working in node.
+/// We are using an unsafe cast here in order to make it working in node. Please note that node does
+/// NOT expose a `window` global object. We are creating it there manually. This created object
+/// exposes some `window` functions, such as `.performance.now()`. It is enough for us to run the
+/// generated WASM there.
 pub fn get_window() -> Window {
     js_sys::global().unchecked_into::<Window>()
 }

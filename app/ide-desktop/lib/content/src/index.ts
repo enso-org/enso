@@ -5,7 +5,6 @@
 // @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
 import buildCfg from '../../../build.json'
-import * as mixpanel from './mixpanel'
 import * as app from 'ensogl_app'
 import * as semver from 'semver'
 
@@ -170,8 +169,7 @@ class Config {
         'Controls whether the application should be run in the debug mode. In this mode all logs ' +
             'are printed to the console. Otherwise, the logs are hidden unless explicitly shown ' +
             'by calling `showLogs`. Moreover, additional logs from libraries are printed in ' +
-            'this mode, including Mixpanel logs. The debug mode is set to `true` by default in ' +
-            'local builds.'
+            'this mode. The debug mode is set to `true` by default in local builds.'
     )
     preferredEngineVersion: config.Param<semver.SemVer> = new config.Param(
         Version.ide,
@@ -207,13 +205,8 @@ class Main {
         })
 
         if (appInstance.initialized) {
-            let mixpanelLogger = null
             if (appInstance.config.params.dataGathering.value) {
-                logger.log('Data gathering enabled. Initializing Mixpanel.')
-                mixpanelLogger = new mixpanel.MixpanelLogger(appInstance.config.params.debug.value)
-                // FIXME: mixpanel disabled because of performance reasons. It should log only
-                //   big tasks.
-                // logger.addConsumer(mixpanelLogger)
+                // TODO: Add remote-logging here.
             }
             if (!(await checkMinSupportedVersion(appInstance.config.params))) {
                 displayDeprecatedVersionDialog()
@@ -228,9 +221,8 @@ class Main {
                 } else {
                     appInstance.run()
                 }
-                if (appInstance.config.params.email.value && mixpanelLogger) {
+                if (appInstance.config.params.email.value) {
                     logger.log(`User identified as '${appInstance.config.params.email.value}'.`)
-                    mixpanelLogger.identify(appInstance.config.params.email.value)
                 }
             }
         }

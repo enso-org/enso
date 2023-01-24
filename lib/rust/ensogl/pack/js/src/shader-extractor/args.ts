@@ -52,9 +52,8 @@ interface ParseArgsOptionConfig {
 export class Args {
     [key: string]: Option<string | boolean>
     help = new Option('Print help message.', false)
-    extractShaders = new Option<string>(
-        'Extract non-optimized shaders code for static EnsoGL shape definitions. The argument is ' +
-            'the directory the shaders will be written to.'
+    outDir = new Option<string>(
+        'The directory the extracted non-optimized shaders will be written to.'
     )
 }
 

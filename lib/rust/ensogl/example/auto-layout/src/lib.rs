@@ -5,8 +5,6 @@
 #![warn(unsafe_code)]
 #![allow(clippy::bool_to_int_with_if)]
 #![allow(clippy::let_and_return)]
-// FIXME: remove
-#![feature(local_key_cell_methods)]
 
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;

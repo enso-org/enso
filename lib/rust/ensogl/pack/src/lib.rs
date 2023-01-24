@@ -3,6 +3,7 @@
 
 #![feature(async_closure)]
 
+use enso_prelude::calculate_hash;
 pub use ide_ci::prelude;
 use ide_ci::prelude::*;
 
@@ -21,6 +22,7 @@ use std::path::PathBuf;
 use walkdir::WalkDir;
 
 
+
 // =================
 // === Hot Fixes ===
 // =================
@@ -34,15 +36,6 @@ pub fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -
     }
 }
 
-// =====================
-// === Hashing Utils ===
-// =====================
-
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
 
 
 // =============
@@ -365,8 +358,7 @@ async fn extract_shaders(paths: &Paths) -> Result<()> {
     ide_ci::programs::Node
         .cmd()?
         .arg(&paths.target.ensogl_pack.dist.shader_extractor)
-        // FIXME: fix the arg name
-        .arg("--extract-shaders")
+        .arg("--out-dir")
         .arg(&paths.target.ensogl_pack.shaders)
         .run_ok()
         .await

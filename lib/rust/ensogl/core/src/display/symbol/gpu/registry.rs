@@ -108,7 +108,6 @@ impl SymbolRegistry {
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
         let z_zoom_1 = variables.add_or_panic("z_zoom_1", 1.0);
         let context = default();
-        // FIXME
         let stats = debug::stats::Stats::new(web::window.performance_or_panic());
         let global_id_provider = default();
         let next_id = default();

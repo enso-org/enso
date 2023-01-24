@@ -129,7 +129,7 @@ impl {
         self.gen_gpu_code(glsl::Version::V310, &bindings)
     }
 
-    /// Check dirty flags and update the state accordingly.
+    /// Generate the final GLSL code based on the provided bindings.
     pub fn gen_gpu_code(
             &self,
             glsl_version: glsl::Version,

@@ -3010,6 +3010,7 @@ dependencies = [
 name = "ensogl-pack"
 version = "0.1.0"
 dependencies = [
+ "enso-prelude",
  "fs_extra",
  "ide-ci",
  "manifest-dir-macros",

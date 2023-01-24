@@ -351,7 +351,7 @@ impl DomLayers {
         let canvas = web::document.create_canvas_or_panic();
         canvas.set_style_or_warn("display", "block");
         canvas.set_style_or_warn("z-index", "3");
-        // These properties are set by `DomScene::new` constuctor for other layers.
+        // These properties are set by `DomScene::new` constructor for other layers.
         // See its documentation for more info.
         canvas.set_style_or_warn("position", "absolute");
         canvas.set_style_or_warn("height", "100vh");

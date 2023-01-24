@@ -162,7 +162,6 @@ impl<Assets: AsRef<Path>, Output: AsRef<Path>> command::FallibleManipulator
     for ContentEnvironment<Assets, Output>
 {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
-        // HERE
         command
             .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
             .set_env(env::ENSO_BUILD_GUI_WASM, &self.wasm.wasm())?

@@ -23,25 +23,23 @@ class App extends runner.App {
         this.wasm = await this.compileAndRunWasm(mainJs, mainWasm)
     }
 
-    async extractShaders(target: string) {
+    async extractShaders(outDir: string) {
         await log.Task.asyncRun('Extracting shaders code.', async () => {
             const shadersMap = this.getShaders()
             if (shadersMap) {
-                await log.Task.asyncRun(`Writing shaders to '${target}'.`, async () => {
-                    await fs.rm(target, { recursive: true, force: true })
-                    await fs.mkdir(target)
+                await log.Task.asyncRun(`Writing shaders to '${outDir}'.`, async () => {
+                    await fs.rm(outDir, { recursive: true, force: true })
+                    await fs.mkdir(outDir)
                     const fileNames = []
                     for (const [codePath, code] of shadersMap) {
                         const fileName = name.mangle(codePath)
-                        const filePath = path.join(target, fileName)
+                        const filePath = path.join(outDir, fileName)
                         await fs.writeFile(`${filePath}.vertex.glsl`, code.vertex)
                         await fs.writeFile(`${filePath}.fragment.glsl`, code.fragment)
                         fileNames.push(fileName)
                     }
-                    const fileListPath = path.join(target, 'list.txt')
-                    console.log('writing list.txt')
+                    const fileListPath = path.join(outDir, 'list.txt')
                     await fs.writeFile(fileListPath, fileNames.join('\n'))
-                    console.log('writing list.txt done')
                 })
             }
         })
@@ -49,13 +47,13 @@ class App extends runner.App {
 
     override async run(): Promise<void> {
         const parser = args.parse()
-        const extractShadersPath = parser.args.extractShaders.value
-        if (extractShadersPath) {
+        const outDir = parser.args.outDir.value
+        if (outDir) {
             await log.Task.asyncRun('Running the program.', async () => {
                 app.config.print()
                 await app.loadAndInitWasm()
                 const r = app.runBeforeMainEntryPoints().then(() => {
-                    return app.extractShaders(extractShadersPath)
+                    return app.extractShaders(outDir)
                 })
                 await r
             })

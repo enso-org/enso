@@ -340,7 +340,7 @@ pub struct ShapeSystemModel {
     /// code. For example, the text system uses this field, as its material fully describes how to
     /// render glyphs.
     pub do_not_use_shape_definition: Rc<Cell<bool>>,
-    pub definition_path: Rc<&'static str>,
+    pub definition_path: Immutable<&'static str>,
 }
 
 impl ShapeSystemModel {
@@ -353,7 +353,7 @@ impl ShapeSystemModel {
         let pointer_events = Immutable(pointer_events);
         let shape = Rc::new(RefCell::new(shape));
         let do_not_use_shape_definition = default();
-        let definition_path = Rc::new(definition_path);
+        let definition_path = Immutable(definition_path);
         Self {
             sprite_system,
             shape,
@@ -566,7 +566,8 @@ macro_rules! shape {
 }
 
 // FIXME[WD]: This macro was left in the code because glyphs are not able to use the shader
-//    precompilation pipeline. It will be removed in the next PR.
+//    precompilation pipeline. It will be removed in the next PR:
+//    https://www.pivotaltracker.com/story/show/184304289
 /// Defines a new shape system. This is the macro that you want to use to define new shapes. The
 /// shapes will be automatically managed in a highly efficient manner by the [`ShapeSystem`].
 #[macro_export]
