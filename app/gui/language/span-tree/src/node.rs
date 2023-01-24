@@ -165,9 +165,6 @@ impl<T> Node<T> {
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
         self.kind.argument_info()
     }
-    pub fn argument_name(&self) -> Option<&str> {
-        self.kind.argument_name()
-    }
     pub fn set_argument_info(&mut self, i: ArgumentInfo) {
         self.kind.set_argument_info(i);
     }

@@ -153,8 +153,10 @@ struct ApplicationBase<'a> {
     function_name: Option<&'a str>,
     /// True when Ast uses method notation to pass this as an invocation target.
     has_target:    bool,
-    /// The id of the target operand, if present.
+    /// The ast id of the call expression. It is `None` when the ast node has no assigned ID.
     call_id:       Option<Id>,
+    /// The id of the call target operand. The target can still be present with not assigned ID.
+    /// In that case the `target_id` is `None` an `has_target` is `true`.
     target_id:     Option<Id>,
 }
 
@@ -215,9 +217,7 @@ fn generate_node_for_ast<T: Payload>(
     if let Some(infix) = GeneralizedInfix::try_new(ast) {
         let chain = infix.flatten();
         let app_base = ApplicationBase::new(ast, ast.id);
-        let invocation = || -> Option<CalledMethodInfo> {
-            context.call_info(ast.id?, Some(app_base.function_name?))
-        }();
+        let invocation = (|| context.call_info(app_base.call_id?, Some(app_base.function_name?)))();
 
         // All prefix params are missing arguments, since there is no prefix application.
         let missing_args = app_base.prefix_params(invocation);
@@ -243,7 +243,7 @@ fn generate_node_for_ast<T: Payload>(
                 let children = default();
                 let name = ast::identifier::name(ast);
                 let payload = default();
-                if let Some(info) = ast.id.and_then(|id| context.call_info(id, name)) {
+                if let Some(info) = ast_id.and_then(|id| context.call_info(id, name)) {
                     let node = {
                         let kind = node::Kind::Operation;
                         Node { kind, size, children, ast_id, payload }
@@ -366,7 +366,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
     let base = ApplicationBase::new(&this.func, this.id());
-    let invocation_info = this.id().and_then(|id| context.call_info(id, base.function_name));
+    let invocation_info = base.call_id.and_then(|id| context.call_info(id, base.function_name));
     let known_args = invocation_info.is_some();
     let mut known_params = base.prefix_params(invocation_info);
     let prefix_arity = this.args.len().max(known_params.len());

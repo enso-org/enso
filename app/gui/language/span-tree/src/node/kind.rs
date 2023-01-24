@@ -146,16 +146,6 @@ impl Kind {
         })
     }
 
-    /// Returns the name of the argument. Does not copy or allocate.
-    pub fn argument_name(&self) -> Option<&str> {
-        match self {
-            Self::This(_) => Some(This::NAME),
-            Self::Argument(t) => t.name.as_deref(),
-            Self::InsertionPoint(t) => t.name.as_deref(),
-            _ => None,
-        }
-    }
-
     /// Returns the argument's whole call node ast id.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {

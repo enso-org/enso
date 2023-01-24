@@ -157,27 +157,21 @@ impl Model {
         match notification {
             Notification::ValueUpdate { target, data, .. } => {
                 let query_data = self.widget_queries.get_mut(&target)?;
-                let data: serde_json::Value = serde_json::from_slice(&data).ok()?;
-                let args = data.as_array()?;
+                let args: Vec<(String, serde_json::Value)> = serde_json::from_slice(&data).ok()?;
                 let updates = args
-                    .iter()
-                    .filter_map(|arg_value| {
-                        let meta_value = arg_value.get(1)?;
-
-                        let kind: widget::Kind =
-                            serde_json::from_value(meta_value.get("constructor")?.clone()).ok()?;
-                        let display: widget::Display = serde_json::from_value(
-                            meta_value.get("display")?.get("constructor")?.clone(),
-                        )
-                        .unwrap_or_default();
-                        let dynamic_entries: Vec<String> =
-                            serde_json::from_value(meta_value.get("values")?.clone())
-                                .unwrap_or_default();
-                        let dynamic_entries = dynamic_entries.into_iter().map(Into::into).collect();
-                        let meta = widget::Metadata { kind, display, dynamic_entries };
-
-                        let argument_name = arg_value.get(0)?.as_str()?.to_owned().into();
-                        Some(WidgetUpdate { argument_name, meta: Some(meta) })
+                    .into_iter()
+                    .filter_map(|(argument_name, meta_json)| {
+                        let deserialized = serde_json::from_value(meta_json);
+                        // Treat failed deserialization as non-widget data. The returned annotation
+                        // can be an arbitrary structure, so there will be cases when we fail to
+                        // deserialize it, as it may not contain the widget data in the first place.
+                        let meta = deserialized.ok().map(|data: WidgetVisualizationData| {
+                            let kind = data.constructor;
+                            let display = data.display.constructor;
+                            let dynamic_entries = data.values.iter().map(From::from).collect();
+                            widget::Metadata { kind, display, dynamic_entries }
+                        });
+                        Some(WidgetUpdate { argument_name, meta })
                     })
                     .collect();
 
@@ -335,4 +329,21 @@ impl Model {
         buffer.push_str("]");
         buffer
     }
+}
+
+/// ===============================
+/// === WidgetVisualizationData ===
+/// ===============================
+
+/// type representing the data received from the widget visualization for single widget.
+#[derive(Debug, serde::Deserialize)]
+struct WidgetVisualizationData {
+    constructor: widget::Kind,
+    display:     WidgetVisualizationDataDisplay,
+    values:      Vec<String>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct WidgetVisualizationDataDisplay {
+    constructor: widget::Display,
 }

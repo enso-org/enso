@@ -104,6 +104,29 @@ impl Debug for Expression {
     }
 }
 
+// === Pretty printing display adapter ===
+
+/// Display adapter used for pretty-printing the `Expression` span tree.
+#[derive(Debug)]
+pub struct ExpressionTreePrettyPrint<'a> {
+    expression: &'a Expression,
+}
+
+impl<'a> Display for ExpressionTreePrettyPrint<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        let printed = self.expression.span_tree.debug_print(&self.expression.code);
+        f.write_str(&printed)
+    }
+}
+
+impl Expression {
+    /// Wrap the expression into a pretty-printing adapter that implements `Display` and prints
+    /// detailed span-tree information.
+    pub fn tree_pretty_printer(&self) -> ExpressionTreePrettyPrint<'_> {
+        ExpressionTreePrettyPrint { expression: self }
+    }
+}
+
 
 // === Conversions ===
 
@@ -780,7 +803,7 @@ impl Model {
     ) -> Expression {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
-            debug!("SET EXPRESSION: \n{}", new_expression.span_tree.debug_print(&new_expression.viz_code));
+            debug!("SET EXPRESSION: \n{}", new_expression.tree_pretty_printer());
         }
         self.set_label_on_new_expression(&new_expression);
         self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);

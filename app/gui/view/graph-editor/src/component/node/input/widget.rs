@@ -206,31 +206,23 @@ impl ModelInner {
         meta: &Option<Metadata>,
         node_data: &NodeData,
     ) -> Self {
-        match kind {
-            Kind::SingleChoice => {
-                let entries =
-                    meta.as_ref().map(|meta| meta.dynamic_entries.clone()).unwrap_or_else(|| {
-                        node_data.argument_info.tag_values.iter().map(Into::into).collect()
-                    });
-                Self::SingleChoice(SingleChoiceModel::new(
-                    common,
-                    frp,
-                    node_data.node_height,
-                    entries,
-                ))
-            }
+        let this = match kind {
+            Kind::SingleChoice => Self::SingleChoice(SingleChoiceModel::new(common, frp)),
             _ => Self::Unset,
-        }
+        };
+
+        this.update(common, meta, node_data);
+        this
     }
+
     fn update(&self, _common: &ModelCommon, meta: &Option<Metadata>, node_data: &NodeData) {
         match self {
             ModelInner::Unset => {}
             ModelInner::SingleChoice(inner) => {
-                let entries =
-                    meta.as_ref().map(|meta| meta.dynamic_entries.clone()).unwrap_or_else(|| {
-                        node_data.argument_info.tag_values.iter().map(Into::into).collect()
-                    });
-                warn!("New entries: {entries:?}");
+                let dynamic_entries = meta.as_ref().map(|meta| meta.dynamic_entries.clone());
+                let tag_values = node_data.argument_info.tag_values.iter().map(Into::into);
+                let entries = dynamic_entries.unwrap_or_else(|| tag_values.collect());
+
                 inner.set_node_height(node_data.node_height);
                 inner.set_entries(entries);
             }
@@ -285,7 +277,7 @@ pub struct SingleChoiceModel {
 }
 
 impl SingleChoiceModel {
-    fn new(common: &ModelCommon, frp: &WeakFrp, node_height: f32, entries: Vec<ImString>) -> Self {
+    fn new(common: &ModelCommon, frp: &WeakFrp) -> Self {
         let display_object = &common.display_object;
         let input = &frp.input;
         let output = &frp.private.output;
@@ -294,7 +286,6 @@ impl SingleChoiceModel {
         let color: color::Rgba = color::Lcha::new(0.56708, 0.23249, 0.71372, 1.0).into();
         activation_dot.color.set(color.into());
         activation_dot.set_size((15.0, 15.0));
-        activation_dot.set_y(-node_height / 2.0 - 1.0);
         display_object.add_child(&activation_dot);
 
         frp::new_network! { network
@@ -304,8 +295,8 @@ impl SingleChoiceModel {
         let dropdown = LazyDropdown::NotInitialized {
             app: common.app.clone_ref(),
             display_object: display_object.clone_ref(),
-            node_height,
-            entries,
+            node_height: default(),
+            entries: default(),
             network: network.clone_ref(),
             set_current_value,
             output_value_changed: output.value_changed.clone_ref(),
