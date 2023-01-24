@@ -6,6 +6,7 @@ import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Array;
@@ -36,7 +37,7 @@ public abstract class AtomWithAHoleNode extends Node {
     return AtomWithAHoleNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, Object factory);
+  abstract Object execute(VirtualFrame frame, Object factory, State state);
 
   static InvokeCallableNode callWithHole() {
     return InvokeCallableNode.build(
@@ -49,12 +50,13 @@ public abstract class AtomWithAHoleNode extends Node {
   Object doExecute(
     VirtualFrame frame,
     Object factory,
+    State state,
     @Cached("callWithHole()") InvokeCallableNode iop,
     @Cached SwapAtomFieldNode swapNode
   ) {
     var ctx = EnsoContext.get(this);
     var lazy = new HoleInAtom();
-    var result = iop.execute(factory, frame, State.create(ctx), new Object[] { lazy });
+    var result = iop.execute(factory, frame, state, new Object[] { lazy });
     if (result instanceof Atom atom) {
       var index = swapNode.findHoleIndex(atom, lazy);
       if (index >= 0) {
@@ -116,6 +118,7 @@ public abstract class AtomWithAHoleNode extends Node {
     private final FunctionSchema schema;
     @CompilerDirectives.CompilationFinal
     private int lastIndex = -1;
+    @Child private StructsLibrary structs = StructsLibrary.getFactory().createDispatched(10);
 
     private SwapAtomFieldNode() {
       super(null);
@@ -132,7 +135,7 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     int findHoleIndex(Atom atom, HoleInAtom lazy) {
-      var arr = atom.getFields();
+      var arr = structs.getFields(atom);
       if (lastIndex >= 0 && lastIndex < arr.length) {
         if (arr[lastIndex] == lazy) {
           return lastIndex;
@@ -180,10 +183,10 @@ public abstract class AtomWithAHoleNode extends Node {
     public Object execute(VirtualFrame frame) {
       var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
       if (args[0] instanceof HoleInAtom lazy) {
-        var fields = lazy.result.getFields();
+        var field = structs.getField(lazy.result, lazy.index);
         var newValue = args[1];
-        if (fields[lazy.index] == lazy) {
-          fields[lazy.index] = newValue;
+        if (field == lazy) {
+          structs.setField(lazy.result, lazy.index, newValue);
         }
         return newValue;
       }
