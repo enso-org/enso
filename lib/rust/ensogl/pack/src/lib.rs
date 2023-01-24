@@ -6,6 +6,7 @@
 pub use ide_ci::prelude;
 use ide_ci::prelude::*;
 
+use ide_ci::io::web;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::shaderc::Glslc;
 use ide_ci::programs::shaderc::SpirvOpt;
@@ -19,6 +20,19 @@ use std::path::Path;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
+
+// =================
+// === Hot Fixes ===
+// =================
+
+pub fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -> Result {
+    if env::consts::OS == "macos" {
+        Command::new("cp").arg(&source_file.as_ref()).arg(&destination_file.as_ref()).spawn()?;
+        Ok(())
+    } else {
+        ide_ci::fs::copy(source_file, destination_file)
+    }
+}
 
 // =====================
 // === Hashing Utils ===
@@ -49,6 +63,8 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 ///       ├─ wasm-pack                   | Wasm-pack artifacts, re-created on every run.
 ///       │  ├─ pkg.js                   | Wasm-pack JS file to load WASM and glue it with snippets.
 ///       │  ├─ pkg_bg.wasm              | Wasm-pack WASM bundle.
+///       │  ├─ index.ts
+///       │  ├─ runtime-libs.js
 ///       │  ╰─ snippets                 | Rust-extracted JS snippets.
 ///       │     ╰─ <name>.js             | A single Rust-extracted JS snippet.
 ///       ├─ shaders                     | Not optimized shaders sources extracted from WASM bundle.
@@ -58,6 +74,8 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 ///       ├─ shaders-hash                | Not optimized shader hashes. Used to detect changes.
 ///       │  ├─ <name>.<stage>.hash      | A single not optimized shader hash.
 ///       │  ╰─ ...                    
+///       ├─ runtime-libs
+///       │  ╰─ runtime-libs.js
 ///       ╰─ dist                        | Final build artifacts of ensogl-pack.
 ///        * ├─ index.cjs                | The main JS bundle to load WASM and JS wasm-pack bundles.
 ///          ├─ index.cjs.map            | The sourcemap mapping to sources in TypeScript.
@@ -119,11 +137,15 @@ pub mod paths {
     use super::*;
     define_paths! {
         ThisCrate {
-            js: ThisCrateJS,
+            js: ThisCrateJs,
         }
 
-        ThisCrateJS {
-            wasm_pack_bundle: PathBuf,
+        ThisCrateJs {
+            wasm_pack_bundle: ThisCrateJsWasmPackBundle,
+        }
+
+        ThisCrateJsWasmPackBundle {
+            index: PathBuf
         }
 
         Target {
@@ -134,6 +156,7 @@ pub mod paths {
             wasm_pack:    TargetEnsoglPackWasmPack,
             shaders:      TargetEnsoglPackShaders,
             shaders_hash: PathBuf,
+            runtime_libs: TargetEnsoglPackRuntimeLibs,
             dist:         TargetEnsoglPackDist,
         }
 
@@ -141,9 +164,15 @@ pub mod paths {
             list: PathBuf,
         }
 
+        TargetEnsoglPackRuntimeLibs {
+            runtime_libs: PathBuf,
+        }
+
         TargetEnsoglPackWasmPack {
+            index: PathBuf,
             pkg_bg: PathBuf,
             pkg_js: PathBuf,
+            runtime_libs: PathBuf,
         }
 
         TargetEnsoglPackDist {
@@ -168,19 +197,26 @@ impl Paths {
         let current_cargo_path = Path::new(path!("Cargo.toml"));
         p.this_crate.root = current_cargo_path.try_parent()?.into();
         p.this_crate.js.root = p.this_crate.join("js");
-        p.this_crate.js.wasm_pack_bundle =
+        p.this_crate.js.wasm_pack_bundle.root =
             p.this_crate.js.root.join("src").join("wasm-pack-bundle");
+        p.this_crate.js.wasm_pack_bundle.index = p.this_crate.js.wasm_pack_bundle.join("index.ts");
         p.workspace = workspace_dir().await?;
         p.target.root = p.workspace.join("target");
         p.target.ensogl_pack.root = p.target.join("ensogl-pack");
         p.target.ensogl_pack.wasm_pack.root = p.target.ensogl_pack.join("wasm-pack");
         let pkg_wasm = format!("{WASM_PACK_OUT_NAME}_bg.wasm");
         let pkg_js = format!("{WASM_PACK_OUT_NAME}.js");
+        p.target.ensogl_pack.wasm_pack.index = p.target.ensogl_pack.wasm_pack.join("index.ts");
         p.target.ensogl_pack.wasm_pack.pkg_bg = p.target.ensogl_pack.wasm_pack.join(pkg_wasm);
         p.target.ensogl_pack.wasm_pack.pkg_js = p.target.ensogl_pack.wasm_pack.join(pkg_js);
+        p.target.ensogl_pack.wasm_pack.runtime_libs =
+            p.target.ensogl_pack.wasm_pack.join("runtime-libs.js");
         p.target.ensogl_pack.shaders.root = p.target.ensogl_pack.join("shaders");
         p.target.ensogl_pack.shaders.list = p.target.ensogl_pack.shaders.join("list.txt");
         p.target.ensogl_pack.shaders_hash = p.target.ensogl_pack.join("shaders-hash");
+        p.target.ensogl_pack.runtime_libs.root = p.target.ensogl_pack.join("runtime-libs");
+        p.target.ensogl_pack.runtime_libs.runtime_libs =
+            p.target.ensogl_pack.runtime_libs.join("runtime-libs.js");
         p.target.ensogl_pack.dist.root = p.target.ensogl_pack.join("dist");
         p.target.ensogl_pack.dist.app = p.target.ensogl_pack.dist.join("index.cjs");
         p.target.ensogl_pack.dist.shader_extractor =
@@ -242,6 +278,7 @@ fn check_if_ts_needs_rebuild(paths: &Paths) -> Result<bool> {
 
 /// Compile TypeScript sources of this crate in case they were not compiled yet.
 async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
+    println!("compile_this_crate_ts_sources");
     if check_if_ts_needs_rebuild(paths)? {
         info!("EnsoGL Pack TypeScript sources changed, recompiling.");
         ide_ci::programs::Npm.cmd()?.install().current_dir(&paths.this_crate.js).run_ok().await?;
@@ -254,14 +291,19 @@ async fn compile_this_crate_ts_sources(paths: &Paths) -> Result<()> {
                 .await
         };
 
+        info!("Linting TypeScript sources.");
+        run_script("lint", &EMPTY_ARGS).await?;
+
         info!("Building TypeScript sources.");
         let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
         run_script("build", &args).await?;
         let args = ["--", &format!("--out-dir={}", paths.target.ensogl_pack.dist.display())];
         run_script("build-shader-extractor", &args).await?;
-
-        info!("Linting TypeScript sources.");
-        run_script("lint", &EMPTY_ARGS).await?;
+        println!("BUILD build-runtime-libs");
+        let args = ["--", &format!("--outdir={}", paths.target.ensogl_pack.runtime_libs.display())];
+        run_script("build-runtime-libs", &args).await?;
+    } else {
+        println!("NO BUILD");
     }
     Ok(())
 }
@@ -278,14 +320,16 @@ pub async fn run_wasm_pack(
     };
     let mut command = provider(replaced_args).context("Failed to obtain wasm-pack command.")?;
     command.run_ok().await?;
-    // println!(">>>>>>>>>>>>");
-    // std::fs::copy(
-    //     &paths.this_crate.js.wasm_pack_bundle.join("wasm-pack-bundle.ts"),
-    //     &paths.target.ensogl_pack.wasm_pack.join("wasm-pack-bundle.ts"),
-    // )?;
+
+    copy(&paths.this_crate.js.wasm_pack_bundle.index, &paths.target.ensogl_pack.wasm_pack.index)?;
+    copy(
+        &paths.target.ensogl_pack.runtime_libs.runtime_libs,
+        &paths.target.ensogl_pack.wasm_pack.runtime_libs,
+    )?;
+
     compile_wasm_pack_artifacts(
         &paths.target.ensogl_pack.wasm_pack,
-        &paths.target.ensogl_pack.wasm_pack.pkg_js,
+        &paths.target.ensogl_pack.wasm_pack.index,
         &paths.target.ensogl_pack.dist.pkg_js,
     )
     .await?;
@@ -304,6 +348,7 @@ async fn compile_wasm_pack_artifacts(pwd: &Path, pkg_js: &Path, out: &Path) -> R
             "--yes",
             "esbuild",
             pkg_js.display().to_string().as_str(),
+            "--format=cjs",
             "--bundle",
             "--sourcemap",
             "--platform=node",
