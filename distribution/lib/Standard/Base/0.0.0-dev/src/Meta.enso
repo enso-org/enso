@@ -10,6 +10,7 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Time_Of_Day.Time_Of_Day
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
+import project.Nothing.Nothing
 import project.Polyglot.Java
 
 import project.Error.Error as Base_Error
@@ -333,9 +334,21 @@ java_instance_check value typ =
    Returns the type of the given value.
 
    Arguments:
-   - value: the value to get the type of.
+   - value: The value to get the type of.
 type_of : Any -> Any
 type_of value = @Builtin_Method "Meta.type_of"
+
+## UNSTABLE
+   ADVANCED
+
+   Given a type object, method name and a parameter name, return the associated annotation if it exists.
+
+   Arguments:
+   - target: The value or type to get the attribute from.
+   - method_name: The name of the method or constructor to get the attribute for.
+   - parameter_name: The name of the parameter to get the attribute for.
+get_annotation : Any -> Text -> Text -> Any | Nothing
+get_annotation target method_name parameter_name = @Builtin_Method "Meta.get_annotation"
 
 ## Represents a polyglot language.
 type Language

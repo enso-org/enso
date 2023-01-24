@@ -21,7 +21,6 @@ class FreshNameSupply {
 
   /** Generates a name guaranteed not to exist in this program.
     *
-    * @param isReferent whether or not the name should be marked as referent.
     * @param isMethod whether or not the name should represent a method name.
     * @return a new name
     */

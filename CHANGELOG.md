@@ -525,6 +525,7 @@
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
 - [Attach visualizations to sub-expressions][4048]
+- [Add Meta.get_annotation method][4049]
 - [Resolve Fully Qualified Names][4056]
 - [Optimize Atom storage layouts][3862]
 
@@ -613,6 +614,7 @@
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 [4048]: https://github.com/enso-org/enso/pull/4048
+[4056]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
