@@ -70,7 +70,7 @@ type SQLite_Dialect
         True ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
-                    Nothing ->
+                    Case_Sensitivity.Default ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
                     Case_Sensitivity.Sensitive ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation="BINARY"
