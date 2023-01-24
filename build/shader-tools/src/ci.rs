@@ -9,10 +9,14 @@ use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Workflow;
 use ide_ci::github::GITHUB_TOKEN;
 
+/// Binaries provided by this crate that CI wants to invoke.
 #[derive(Clone, Copy, Debug)]
 pub enum Binary {
+    /// Create a new draft release and exposes its ID to next steps.
     Create,
+    /// Upload a package with shader tools to the release. Needs to be run on each platform.
     Package,
+    /// Publish the release.
     Publish,
 }
 
@@ -33,13 +37,17 @@ pub fn run_bin(binary: Binary) -> Step {
     ide_ci::actions::workflow::definition::shell(command)
 }
 
-pub fn job_that_runs(binary: Binary, runs_on: RunnerLabel, output: Option<&str>) -> Job {
+/// Job that invokes the given binary from this crate.
+///
+/// The job will have access to the `CI_PRIVATE_TOKEN` secret, so it can manage releases on other
+/// repositories.
+pub fn job_that_runs(binary: Binary, runs_on: RunnerLabel, expose_output: Option<&str>) -> Job {
     let checkout_steps = checkout_repo_step();
 
     let mut job = Job::new(format!("Run {binary} ({runs_on:?})"), [runs_on]);
     job.steps.extend(checkout_steps);
     let main_step = run_bin(binary).with_secret_exposed_as("CI_PRIVATE_TOKEN", GITHUB_TOKEN);
-    if let Some(output) = output {
+    if let Some(output) = expose_output {
         job.add_step_with_output(main_step, output);
     } else {
         job.steps.push(main_step);
@@ -47,7 +55,8 @@ pub fn job_that_runs(binary: Binary, runs_on: RunnerLabel, output: Option<&str>)
     job
 }
 
-pub async fn ci_gen() -> Result {
+/// Generate a workflow that builds shaderc packages for all platforms and releases them.
+pub fn generate_workflow() -> Workflow {
     // TODO? [mwu] Once CMake is added, we might want to switch to self-hosted runners.
     let linux = RunnerLabel::LinuxLatest;
     let windows = RunnerLabel::WindowsLatest;
@@ -74,23 +83,5 @@ pub async fn ci_gen() -> Result {
         publish_job.needs(package_job_id);
     }
     workflow.add_job(publish_job);
-
-
-    let yaml = serde_yaml::to_string(&workflow)?;
-    println!("{}", yaml);
-    ide_ci::fs::tokio::write("../../.github/workflows/shader-tools.yml", yaml).await?;
-
-
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    #[ignore]
-    async fn ci_gen() -> Result {
-        super::ci_gen().await
-    }
+    workflow
 }

@@ -8,6 +8,7 @@ members = [
   "app/gui/enso-profiler-enso-data",
   "build/cli",
   "build/macros",
+  "build/ci-gen",
   "build/cli",
   "build/intellij-run-config-gen",
   "build/deprecated/rust-scripts",

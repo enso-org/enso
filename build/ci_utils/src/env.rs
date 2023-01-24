@@ -30,6 +30,11 @@ pub fn set_current_dir(path: impl AsRef<Path>) -> Result {
         .with_context(|| format!("Failed to set current directory to {}.", path.as_ref().display()))
 }
 
+/// Like [`std::env::current_exe`], but with nicer error message.
+pub fn current_exe() -> Result<PathBuf> {
+    std::env::current_exe().context("Failed to get current executable path.")
+}
+
 /// Like [`std::env::set_var`], but with log.
 pub fn set_var<K: AsRef<OsStr>, V: AsRef<OsStr>>(key: K, value: V) {
     debug!(

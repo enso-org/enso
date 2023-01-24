@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use enso_build::paths;
+use crate::paths;
 use ide_ci::actions::workflow::definition::env_expression;
 use ide_ci::actions::workflow::definition::Step;
 

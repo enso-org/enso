@@ -11,6 +11,7 @@
       promote.yml:
       release.yml:
       scala-new.yml:
+      shader-tools.yml:
   app/:
     gui/:
     ide-desktop/:

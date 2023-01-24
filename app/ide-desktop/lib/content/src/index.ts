@@ -106,24 +106,24 @@ class Config {
     languageServerRpc: config.Param<string | null> = new config.Param(
         null,
         'An address of the Language Server RPC endpoint. This argument should be provided ' +
-        'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
-        'Enso connect directly to the already spawned Language Server of some project.'
+            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
+            'Enso connect directly to the already spawned Language Server of some project.'
     )
     languageServerData: config.Param<string | null> = new config.Param(
         null,
         'An address of the Language Server Data endpoint. This argument should be provided ' +
-        'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
-        'Enso connect directly to the already spawned Language Server of some project.'
+            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
+            'Enso connect directly to the already spawned Language Server of some project.'
     )
     namespace: config.Param<string | null> = new config.Param(
         null,
         'Informs Enso about namespace of the opened project. May be used when connecting to ' +
-        'existing Language Server process. Defaults to "local".'
+            'existing Language Server process. Defaults to "local".'
     )
     platform: config.Param<string | null> = new config.Param(
         null,
         'The host platform the app is running on. This is used to adjust some UI elements. For ' +
-        'example, on macOS, the window close buttons are integrated to the top app panel.'
+            'example, on macOS, the window close buttons are integrated to the top app panel.'
     )
     frame: config.Param<boolean> = new config.Param(
         false,
@@ -132,7 +132,7 @@ class Config {
     darkTheme: config.Param<boolean> = new config.Param(
         false,
         'Controls whether the dark theme should be used. Please note that the dark theme is not ' +
-        'fully implemented yet.'
+            'fully implemented yet.'
     )
     nodeLabels: config.Param<boolean> = new config.Param(
         true,
@@ -158,20 +158,20 @@ class Config {
     testWorkflow: config.Param<string | null> = new config.Param(
         null,
         'When profiling the application (e.g. with the `./run profile` command), this argument ' +
-        'chooses what is profiled.'
+            'chooses what is profiled.'
     )
     skipMinVersionCheck: config.Param<boolean> = new config.Param(
         Version.isDev(),
         'Controls whether the minimum engine version check should be performed. It is set to ' +
-        '`true` in local builds.'
+            '`true` in local builds.'
     )
     debug: config.Param<boolean> = new config.Param(
         Version.isDev(),
         'Controls whether the application should be run in the debug mode. In this mode all logs ' +
-        'are printed to the console. Otherwise, the logs are hidden unless explicitly shown ' +
-        'by calling `showLogs`. Moreover, additional logs from libraries are printed in ' +
-        'this mode, including Mixpanel logs. The debug mode is set to `true` by default in ' +
-        'local builds.'
+            'are printed to the console. Otherwise, the logs are hidden unless explicitly shown ' +
+            'by calling `showLogs`. Moreover, additional logs from libraries are printed in ' +
+            'this mode, including Mixpanel logs. The debug mode is set to `true` by default in ' +
+            'local builds.'
     )
     preferredEngineVersion: config.Param<semver.SemVer> = new config.Param(
         Version.ide,

@@ -4,16 +4,22 @@ use crate::cache::goodie;
 use crate::cache::Cache;
 use crate::cache::Goodie;
 use crate::env::known::PATH;
+use crate::github::RepoRef;
 use crate::programs::shaderc::Glslc;
 use crate::programs::shaderc::SpirvOpt;
 use crate::programs::spirv_cross::SpirvCross;
+
+/// Repository where we store releases of the shader tools.
+pub const SHADER_TOOLS_REPO: RepoRef = RepoRef { owner: "enso-org", name: "shader-tools" };
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ShaderTools;
 
 impl Goodie for ShaderTools {
     fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
-        let url = format!("https://github.com/enso-org/shader-tools/releases/download/0.1.0/shader-tools-{TARGET_OS}-x86_64.tar.gz");
+        let url = format!(
+            "{SHADER_TOOLS_REPO}/releases/download/0.1.0/shader-tools-{TARGET_OS}-x86_64.tar.gz"
+        );
         let url = Url::from_str(&url);
         goodie::download_try_url(url, cache)
     }
@@ -58,16 +64,4 @@ mod tests {
 
         Ok(())
     }
-
-    // #[tokio::test]
-    // #[ignore]
-    // async fn download() -> Result {
-    //     let temp_dir = tempfile::tempdir()?;
-    //
-    //     setup_logging()?;
-    //     let url = download_urls()?;
-    //     crate::io::download_to_dir(url, &temp_dir).await?;
-    //
-    //     Ok(())
-    // }
 }
