@@ -1,20 +1,19 @@
 use crate::prelude::*;
 
+use crate::define_env_var;
 use octocrab::models::repos::Asset;
 use octocrab::models::repos::Release;
-
-
-
-const MAX_PER_PAGE: u8 = 100;
 
 pub mod model;
 pub mod release;
 pub mod repo;
 pub mod workflow;
 
-use crate::define_env_var;
 pub use repo::Repo;
 pub use repo::RepoRef;
+
+/// Maximum number of items per page in the GitHub API.
+const MAX_PER_PAGE: u8 = 100;
 
 define_env_var! {
     /// GitHub Personal Access Token, used for authentication in GutHub API.
@@ -40,6 +39,8 @@ pub fn retrieve_github_access_token() -> Result<String> {
         .or_else(|_| get_token_from_file())
 }
 
+
+/// Prepare the octocrab (GitHub API client) using the authentication token from the environment.
 #[context("Failed to setup GitHub API client.")]
 pub async fn setup_octocrab() -> Result<Octocrab> {
     let builder = octocrab::OctocrabBuilder::new();
@@ -66,15 +67,19 @@ pub async fn setup_octocrab() -> Result<Octocrab> {
         builder.build()?
     };
 
-    match octocrab.ratelimit().get().await {
-        Ok(rate) => info!(
-            "GitHub API rate limit: {}/{}.",
-            rate.resources.core.used, rate.resources.core.limit
-        ),
-        Err(e) => bail!(
-            "Failed to get rate limit info: {e}. GitHub Personal Access Token might be invalid."
-        ),
-    }
+    // LPrint rate limit. This both helps debugging related issues and allows to validate the
+    // GitHub access token.
+    octocrab
+        .ratelimit()
+        .get()
+        .await
+        .inspect(|rate| {
+            info!(
+                "GitHub API rate limit: {}/{}.",
+                rate.resources.core.used, rate.resources.core.limit
+            )
+        })
+        .context("Failed to get rate limit info. GitHub Personal Access Token might be invalid")?;
     Ok(octocrab)
 }
 
@@ -91,6 +96,7 @@ pub async fn get_all<T: DeserializeOwned>(
     client.all_pages(first_page).await
 }
 
+/// Utility functions for dealing with organization-specific GitHub API.
 #[async_trait]
 pub trait IsOrganization {
     /// Organization name.
@@ -101,15 +107,18 @@ pub trait IsOrganization {
         &self,
         octocrab: &Octocrab,
     ) -> anyhow::Result<model::RegistrationToken> {
-        let path = iformat!("/orgs/{self.name()}/actions/runners/registration-token");
+        let name = self.name();
+        let path = format!("/orgs/{name}/actions/runners/registration-token");
         let url = octocrab.absolute_url(path)?;
-        octocrab.post(url, EMPTY_REQUEST_BODY).await.map_err(Into::into)
+        octocrab.post(url, EMPTY_REQUEST_BODY).await.with_context(|| {
+            format!("Failed to generate runner registration token for organization {name}.")
+        })
     }
 
     /// The organization's URL.
     fn url(&self) -> Result<Url> {
         let url_text = iformat!("https://github.com/{self.name()}");
-        Url::parse(&url_text).map_err(Into::into)
+        Url::from_str(&url_text)
     }
 }
 
@@ -159,6 +168,7 @@ pub async fn latest_runner_url(octocrab: &Octocrab, os: OS) -> Result<Url> {
     find_asset_url_by_text(&latest_release, &platform_name).cloned()
 }
 
+/// Download and extract latest GitHub Actions runner package for a given system.
 pub async fn fetch_runner(octocrab: &Octocrab, os: OS, output_dir: impl AsRef<Path>) -> Result {
     let url = latest_runner_url(octocrab, os).await?;
     crate::io::download_and_extract(url, output_dir).await
