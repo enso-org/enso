@@ -283,22 +283,6 @@ impl IsTarget for Wasm {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct EnsoglPack;
-impl Program for EnsoglPack {
-    type Command = ide_ci::programs::wasm_pack::WasmPackCommand;
-
-    fn executable_name(&self) -> &str {
-        "ensogl-pack"
-    }
-
-    fn default_locations(&self) -> Vec<PathBuf> {
-        vec![PathBuf::from(r"H:\NBO\enso5\dist\terminal\debug")]
-    }
-}
-
-impl MyCommand<EnsoglPack> for ide_ci::programs::wasm_pack::WasmPackCommand {}
-
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct WatchInput {
