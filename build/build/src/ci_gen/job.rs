@@ -155,13 +155,13 @@ impl JobArchetype for DeployRuntime {
         plain_job_customized(&os, "Upload Runtime to ECR", "release deploy-runtime", |step| {
             let step = step
                 .with_secret_exposed_as("CI_PRIVATE_TOKEN", "GITHUB_TOKEN")
-                .with_env("ENSO_BUILD_ECR_REPOSITORY", enso_build::aws::ecr::runtime::NAME)
+                .with_env("crate_ECR_REPOSITORY", crate::aws::ecr::runtime::NAME)
                 .with_secret_exposed_as(secret::ECR_PUSH_RUNTIME_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID")
                 .with_secret_exposed_as(
                     secret::ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY,
                     "AWS_SECRET_ACCESS_KEY",
                 )
-                .with_env("AWS_DEFAULT_REGION", enso_build::aws::ecr::runtime::REGION);
+                .with_env("AWS_DEFAULT_REGION", crate::aws::ecr::runtime::REGION);
             vec![step]
         })
     }
@@ -187,32 +187,29 @@ impl JobArchetype for DeployGui {
 pub fn expose_os_specific_signing_secret(os: OS, step: Step) -> Step {
     match os {
         OS::Windows => step
-            .with_secret_exposed_as(
-                secret::WINDOWS_CERT_PATH,
-                &enso_build::ide::web::env::WIN_CSC_LINK,
-            )
+            .with_secret_exposed_as(secret::WINDOWS_CERT_PATH, &crate::ide::web::env::WIN_CSC_LINK)
             .with_secret_exposed_as(
                 secret::WINDOWS_CERT_PASSWORD,
-                &enso_build::ide::web::env::WIN_CSC_KEY_PASSWORD,
+                &crate::ide::web::env::WIN_CSC_KEY_PASSWORD,
             ),
         OS::MacOS => step
             .with_secret_exposed_as(
                 secret::APPLE_CODE_SIGNING_CERT,
-                &enso_build::ide::web::env::CSC_LINK,
+                &crate::ide::web::env::CSC_LINK,
             )
             .with_secret_exposed_as(
                 secret::APPLE_CODE_SIGNING_CERT_PASSWORD,
-                &enso_build::ide::web::env::CSC_KEY_PASSWORD,
+                &crate::ide::web::env::CSC_KEY_PASSWORD,
             )
             .with_secret_exposed_as(
                 secret::APPLE_NOTARIZATION_USERNAME,
-                &enso_build::ide::web::env::APPLEID,
+                &crate::ide::web::env::APPLEID,
             )
             .with_secret_exposed_as(
                 secret::APPLE_NOTARIZATION_PASSWORD,
-                &enso_build::ide::web::env::APPLEIDPASS,
+                &crate::ide::web::env::APPLEIDPASS,
             )
-            .with_env(&enso_build::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true"),
+            .with_env(&crate::ide::web::env::CSC_IDENTITY_AUTO_DISCOVERY, "true"),
         _ => step,
     }
 }

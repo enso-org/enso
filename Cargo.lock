@@ -1933,6 +1933,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-build-ci-gen"
+version = "0.1.0"
+dependencies = [
+ "enso-build",
+ "enso-build-shader-tools",
+ "ide-ci",
+ "tokio",
+]
+
+[[package]]
 name = "enso-build-cli"
 version = "0.1.0"
 dependencies = [
@@ -1974,6 +1984,19 @@ dependencies = [
  "serde_yaml",
  "shrinkwraprs 0.3.0",
  "syn",
+]
+
+[[package]]
+name = "enso-build-shader-tools"
+version = "0.1.0"
+dependencies = [
+ "html_parser",
+ "ide-ci",
+ "octocrab",
+ "regex",
+ "serde_yaml",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -2414,19 +2437,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "enso-shader-tools"
-version = "0.1.0"
-dependencies = [
- "html_parser",
- "ide-ci",
- "octocrab",
- "regex",
- "serde_yaml",
- "tempfile",
- "tokio",
 ]
 
 [[package]]

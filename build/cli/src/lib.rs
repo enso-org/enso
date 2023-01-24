@@ -21,7 +21,6 @@
 // ==============
 
 pub mod arg;
-pub mod ci_gen;
 
 
 
@@ -876,9 +875,6 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
                 enso_build::release::promote_release(&ctx, designation).await?;
             }
         },
-        Target::CiGen => ci_gen::generate(
-            &enso_build::paths::generated::RepoRootGithubWorkflows::new(cli.repo_path),
-        )?,
         Target::JavaGen(command) => {
             let repo_root = ctx.repo_root.clone();
             async move {

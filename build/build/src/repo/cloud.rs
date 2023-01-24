@@ -1,11 +1,14 @@
+//! Code for dealing with the [Enso Cloud repository](https://github.com/enso-org/cloud-v2).
+
 use crate::prelude::*;
 
 use ide_ci::github::RepoRef;
 
 
-
+/// The cloud repository.
 pub const CLOUD_REPO: RepoRef = RepoRef { owner: "enso-org", name: "cloud-v2" };
 
+/// The workflow we need to invoke to build the backend image.
 pub const BUILD_IMAGE_WORKFLOW: &str = "build-image.yaml";
 
 /// Build Image workflow input. Follows schema defined by

@@ -1,3 +1,5 @@
+//! Downloading Google Fonts.
+
 use crate::prelude::*;
 
 use ide_ci::cache::Cache;
@@ -6,12 +8,29 @@ use ide_ci::github;
 use ide_ci::github::RepoRef;
 use octocrab::models::repos;
 
+
+// =================
+// === Constants ===
+// =================
+
+/// Google Fonts repository.
 pub const GOOGLE_FONTS_REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
 
+/// Path to the directory on the Google Fonts repository where we get the fonts from.
+///
+/// The directory name denotes the license of the fonts. In our case this is SIL OPEN FONT LICENSE
+/// Version 1.1, commonly known as OFL.
 pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
 
 /// We keep dependency to a fixed commit, so we can safely cache it.
+///
+/// There are no known reasons not to bump this.
 pub const GOOGLE_FONT_SHA1: &str = "ea893a43af7c5ab5ccee189fc2720788d99887ed";
+
+
+// ==============
+// === Family ===
+// ==============
 
 /// Identifies uniquely a source of font family download.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,10 +39,30 @@ pub struct Family {
     pub repo:  github::Repo,
     /// Which commit we want to be downloaded.
     pub r#ref: String,
-    /// Font family.
+    /// Font family. It corresponds to the subdirectories names (under the top-level
+    /// license-denoting directories).
     pub name:  String,
 }
 
+impl Family {
+    /// List content items in the repository that contain TTF files for the given font family.
+    pub async fn list_ttf(
+        &self,
+        handle: github::repo::Handle<impl IsRepo>,
+    ) -> Result<Vec<repos::Content>> {
+        let Self { repo, r#ref, name } = &self;
+        let path = format!("{GOOGLE_FONT_DIRECTORY}/{name}");
+        let files = handle.repos().get_content().r#ref(r#ref).path(path).send().await?;
+        Ok(files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect())
+    }
+}
+
+
+// ====================
+// === DownloadFont ===
+// ====================
+
+/// Description of the job to download the fonts.
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
 pub struct DownloadFont {
@@ -39,20 +78,10 @@ impl DownloadFont {
         self.family.repo.handle(&self.octocrab)
     }
 
-    /// List content items in the repository that contain TTF files for the given font family.
-    pub async fn list_ttf(&self) -> Result<Vec<repos::Content>> {
-        let family = &self.family.name;
-        let r#ref = &self.family.r#ref;
-        let path = format!("{GOOGLE_FONT_DIRECTORY}/{family}");
-        let files = self.handle().repos().get_content().r#ref(r#ref).path(path).send().await?;
-        Ok(files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect())
-    }
-
     /// Download the font family to the given directory. They will be placed in the output
     /// directory. The function returns relative paths to the downloaded files.
     pub async fn download(&self, output_path: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
-        let files = self.list_ttf().await?;
-
+        let files = self.family.list_ttf(self.handle()).await?;
         let mut ret = Vec::new();
         for file in &files {
             let destination_file = output_path.as_ref().join(&file.name);
@@ -63,11 +92,6 @@ impl DownloadFont {
         }
         Ok(ret)
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FontPaths {
-    pub fonts: Vec<PathBuf>,
 }
 
 impl Storable for DownloadFont {
@@ -109,6 +133,10 @@ impl Storable for DownloadFont {
     }
 }
 
+// ===================
+// === Entry Point ===
+// ===================
+
 pub async fn download_google_font(
     cache: &Cache,
     octocrab: &Octocrab,
@@ -127,6 +155,10 @@ pub async fn download_google_font(
     let result = futures::future::join_all(copy_futures).await.into_iter().try_collect()?;
     Ok(result)
 }
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {

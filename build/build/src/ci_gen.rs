@@ -5,10 +5,10 @@ use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
 use crate::ci_gen::job::RunsOn;
 
-use enso_build::version::promote::Designation;
-use enso_build::version::ENSO_EDITION;
-use enso_build::version::ENSO_RELEASE_MODE;
-use enso_build::version::ENSO_VERSION;
+use crate::version::promote::Designation;
+use crate::version::ENSO_EDITION;
+use crate::version::ENSO_RELEASE_MODE;
+use crate::version::ENSO_VERSION;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;
@@ -171,7 +171,7 @@ pub fn setup_customized_script_steps(
     command_line: impl AsRef<str>,
     customize: impl FnOnce(Step) -> Vec<Step>,
 ) -> Vec<Step> {
-    use enso_build::ci::labels::CLEAN_BUILD_REQUIRED;
+    use crate::ci::labels::CLEAN_BUILD_REQUIRED;
     // Check if the pull request has a "Clean required" label.
     let pre_clean_condition =
         format!("contains(github.event.pull_request.labels.*.name, '{CLEAN_BUILD_REQUIRED}')",);
@@ -496,7 +496,7 @@ pub fn benchmark() -> Result<Workflow> {
 }
 
 
-pub fn generate(repo_root: &enso_build::paths::generated::RepoRootGithubWorkflows) -> Result {
+pub fn generate(repo_root: &crate::paths::generated::RepoRootGithubWorkflows) -> Result {
     repo_root.changelog_yml.write_as_yaml(&changelog()?)?;
     repo_root.nightly_yml.write_as_yaml(&nightly()?)?;
     repo_root.scala_new_yml.write_as_yaml(&backend()?)?;

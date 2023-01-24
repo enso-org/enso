@@ -27,6 +27,7 @@ use reqwest::Response;
 pub struct Repo {
     /// Owner - an organization's or user's name.
     pub owner: String,
+    /// Repository name.
     pub name:  String,
 }
 
@@ -109,14 +110,26 @@ impl<'a> TryFrom<&'a str> for RepoRef<'a> {
 /// Any entity that uniquely identifies a GitHub-hosted repository.
 #[async_trait]
 pub trait IsRepo: Display {
+    /// Owner - an organization's or user's name.
     fn owner(&self) -> &str;
+
+    /// Repository name.
     fn name(&self) -> &str;
 
     /// The repository's URL.
+    ///
+    /// ```
+    /// # use ide_ci::github::Repo;
+    /// # use ide_ci::prelude::IsRepo;
+    /// let repo = Repo::new("enso-org", "enso");
+    /// assert_eq!(repo.url().unwrap().to_string(), "https://github.com/enso-org/enso/");
+    /// ```
     fn url(&self) -> Result<Url> {
-        let url_text = iformat!("https://github.com/{self.owner()}/{self.name()}");
+        // Note the trailing `/`. It allows us to join further paths to the URL using Url::join.
+        let url_text = iformat!("https://github.com/{self.owner()}/{self.name()}/");
         Url::parse(&url_text)
-            .context(format!("Failed to generate an URL for the {self} repository."))
+            .with_context(|| format!("Failed to parse URL from string '{url_text}'."))
+            .with_context(|| format!("Failed to generate URL for the repository {self}."))
     }
 
     fn into_handle(self, octocrab: &Octocrab) -> Handle<Self>

@@ -4,17 +4,34 @@ use crate::cache::goodie;
 use crate::cache::Cache;
 use crate::cache::Goodie;
 use crate::env::known::PATH;
+use crate::github::RepoRef;
 use crate::programs::shaderc::Glslc;
 use crate::programs::shaderc::SpirvOpt;
 use crate::programs::spirv_cross::SpirvCross;
+
+/// Repository where we store releases of the shader tools.
+pub const SHADER_TOOLS_REPO: RepoRef = RepoRef { owner: "enso-org", name: "shader-tools" };
+
+pub const VERSION: Version = Version::new(0, 1, 0);
+
+pub fn asset_name(os: OS) -> String {
+    // At the moment we don't have non-x64 binaries, so we can hardcode the architecture.
+    let arch = Arch::X86_64;
+    format!("shader-tools-{os}-{arch}.tar.gz")
+}
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ShaderTools;
 
 impl Goodie for ShaderTools {
     fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
-        let url = format!("https://github.com/enso-org/shader-tools/releases/download/0.1.0/shader-tools-{TARGET_OS}-x86_64.tar.gz");
-        let url = Url::from_str(&url);
+        let url = SHADER_TOOLS_REPO.url().and_then(|url_base| {
+            let asset = asset_name(TARGET_OS);
+            let suffix = format!("releases/download/{VERSION}/{asset}");
+            url_base
+                .join(&suffix)
+                .with_context(|| "Failed to append suffix {suffix} to URL {url_base}")
+        });
         goodie::download_try_url(url, cache)
     }
 
@@ -58,16 +75,4 @@ mod tests {
 
         Ok(())
     }
-
-    // #[tokio::test]
-    // #[ignore]
-    // async fn download() -> Result {
-    //     let temp_dir = tempfile::tempdir()?;
-    //
-    //     setup_logging()?;
-    //     let url = download_urls()?;
-    //     crate::io::download_to_dir(url, &temp_dir).await?;
-    //
-    //     Ok(())
-    // }
 }

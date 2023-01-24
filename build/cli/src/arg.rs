@@ -133,8 +133,6 @@ pub enum Target {
     Fmt,
     /// Release-related subcommand.
     Release(release::Target),
-    /// Regenerate GitHub Actions workflows.
-    CiGen,
     /// Regenerate `syntax2` library (new parser).
     JavaGen(java_gen::Target),
     /// Check if the changelog has been updated. Requires CI environment.

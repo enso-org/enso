@@ -1,56 +1,70 @@
+//! Building and packaging [`SPIRV-Cross`](SpirvCross).
+
 use crate::prelude::*;
 
+use ide_ci::programs::cmake;
 use ide_ci::programs::cmake::SetVariable;
+use ide_ci::programs::spirv_cross::SpirvCross;
 use ide_ci::programs::vs::apply_dev_environment;
 use ide_ci::programs::vs::Cl;
-use ide_ci::programs::CMake;
 use ide_ci::programs::Git;
 
-pub const SPIRV_TOOLS_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
+/// Address of the SPIRV-Cross GitHub repository.
+pub const REPOSITORY_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
 
-pub async fn compile_spirv_cross(output_dir: &Path) -> Result {
+/// Binaries that we want to package.
+pub fn binaries_to_package() -> [&'static str; 1] {
+    [SpirvCross.executable_name()]
+}
+
+/// Build and install the SPIRV-Cross to the given directory.
+pub async fn build_and_install(
+    source_dir: impl AsRef<Path>,
+    install_dir: impl AsRef<Path>,
+) -> Result {
+    let build_dir = tempfile::tempdir()?;
+    cmake::generate(&source_dir, &build_dir)?
+        // We only want the tool binary, we don't want to bother with building tests.
+        .apply(&SetVariable::option("SPIRV_CROSS_ENABLE_TESTS", false))
+        // Note [Configuration]
+        .apply(&cmake::build_type(cmake::Configuration::Release))
+        .run_ok()
+        .await?;
+
+    cmake::build(&build_dir)?
+        // Note [Configuration]
+        .apply(&cmake::BuildOption::Configuration(cmake::Configuration::Release))
+        .run_ok()
+        .await?;
+
+    // Note [Configuration]
+    // ~~~~~~~~~~~~~~~~~~~~
+    // We pass the Release configuration twice, but it will be used only once. It will be used in
+    // the generation phase, if the generator is a single-config one. Otherwise, it will be used in
+    // the build phase. We do not want to assume any particular kind of generator, so we support
+    // both cases.
+
+    ide_ci::fs::tokio::reset_dir(&install_dir).await?;
+    cmake::install(&build_dir, &install_dir)?.run_ok().await?;
+    Ok(())
+}
+
+/// Download sources of the SPIRV-Cross, build them and package the binary we need.
+pub async fn generate_spirv_cross_package(output_dir: &Path) -> Result {
     if TARGET_OS == OS::Windows && Cl.lookup().is_err() {
         apply_dev_environment().await?;
     }
 
     let path = tempfile::tempdir()?;
     let path = path.as_ref();
-    let build_dir = path.join("_build");
     let install_dir = path.join("_install");
     ide_ci::fs::tokio::reset_dir(&path).await?;
+    let _git = Git.clone(&path, &(REPOSITORY_URL.try_into()?)).await?;
 
-    let _git = Git.clone(&path, &(SPIRV_TOOLS_URL.try_into()?)).await?;
-
-    ide_ci::fs::tokio::reset_dir(&build_dir).await?;
-    CMake
-        .cmd()?
-        .arg(&path)
-        .apply(&SetVariable::option("SPIRV_CROSS_ENABLE_TESTS", false))
-        .current_dir(&build_dir)
-        .run_ok()
-        .await?;
-    CMake
-        .cmd()?
-        .arg("--build")
-        .arg(".")
-        .arg("-j")
-        .args(["--config", "Release"])
-        .current_dir(&build_dir)
-        .run_ok()
-        .await?;
-
-    ide_ci::fs::tokio::reset_dir(&install_dir).await?;
-    CMake
-        .cmd()?
-        .arg("--install")
-        .arg(".")
-        .args(["--prefix", install_dir.as_str()])
-        .current_dir(&build_dir)
-        .run_ok()
-        .await?;
-
-    let relative_binary_path =
-        PathBuf::from_iter(["bin", "spirv-cross"]).with_executable_extension();
-    ide_ci::fs::tokio::copy_between(&install_dir, &output_dir, relative_binary_path).await?;
+    build_and_install(&path, &install_dir).await?;
+    for binary in binaries_to_package() {
+        let relative_binary_path = PathBuf::from_iter(["bin", binary]).with_executable_extension();
+        ide_ci::fs::tokio::copy_between(&install_dir, &output_dir, relative_binary_path).await?;
+    }
     Ok(())
 }

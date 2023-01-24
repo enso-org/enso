@@ -1,3 +1,5 @@
+//! Asynchronous filesystem operations using tokio.
+
 use crate::prelude::*;
 
 use tokio::fs::File;
@@ -126,6 +128,30 @@ pub async fn append(path: impl AsRef<Path>, contents: impl AsRef<[u8]>) -> Resul
 }
 
 /// Copy a file between directory subtrees, preserving the relative path.
+///
+/// Source file must be within the source directory subtree. Path can be either relative or
+/// absolute.
+///
+/// Example:
+/// ```
+/// use ide_ci::prelude::*;
+///
+/// use ide_ci::fs::tokio::copy_between;
+/// #[tokio::main]
+/// async fn main() -> Result {
+///     let tmp1 = tempfile::tempdir()?;
+///     let relative_path = PathBuf::from_iter(["bin", "program"]);
+///     let contents = "Hello, world!";
+///     ide_ci::fs::tokio::write(tmp1.path().join_iter(&relative_path), contents).await?;
+///     let tmp2 = tempfile::tempdir()?;
+///     copy_between(tmp1.path(), tmp2.path(), &relative_path).await?;
+///
+///     let copied =
+///         ide_ci::fs::tokio::read_to_string(tmp2.path().join_iter(&relative_path)).await?;
+///     assert_eq!(contents, copied);
+///     Ok(())
+/// }
+/// ```
 pub async fn copy_between(
     source_dir: impl AsRef<Path>,
     destination_dir: impl AsRef<Path>,
@@ -151,6 +177,7 @@ pub async fn copy_between(
     Ok(destination_path)
 }
 
+/// Asynchronous version of [`crate::fs::copy`].
 pub async fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -> Result {
     let source_file = source_file.as_ref().to_path_buf();
     let destination_file = destination_file.as_ref().to_path_buf();
@@ -180,6 +207,9 @@ pub async fn require_exist(path: impl AsRef<Path>) -> Result {
     }
 }
 
+/// Copy source item (file or a directory) to a destination directory.
+///
+/// Asynchronous version of [`crate::fs::copy_to`].
 pub async fn copy_to(source_file: impl AsRef<Path>, dest_dir: impl AsRef<Path>) -> Result<PathBuf> {
     let source_file = source_file.as_ref().to_path_buf();
     let dest_dir = dest_dir.as_ref().to_path_buf();

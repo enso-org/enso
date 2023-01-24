@@ -18,7 +18,7 @@ on:
         required: true
         type: string
 jobs:
-  enso-build-cli-ci-gen-promote-release-job-linux:
+  enso-build-ci-gen-promote-release-job-linux:
     name: Promote release (linux)
     runs-on:
       - self-hosted
@@ -88,10 +88,10 @@ jobs:
   release:
     name: Release
     needs:
-      - enso-build-cli-ci-gen-promote-release-job-linux
+      - enso-build-ci-gen-promote-release-job-linux
     uses: ./.github/workflows/release.yml
     with:
-      version: ${{ needs.enso-build-cli-ci-gen-promote-release-job-linux.outputs.ENSO_VERSION }}
+      version: ${{ needs.enso-build-ci-gen-promote-release-job-linux.outputs.ENSO_VERSION }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
