@@ -1,9 +1,10 @@
-//! Building and packaging [`spirv_cross`](ide_ci::programs::spirv_cross::SpirvCross).
+//! Building and packaging [`SPIRV-Cross`](SpirvCross).
 
 use crate::prelude::*;
 
 use ide_ci::programs::cmake;
 use ide_ci::programs::cmake::SetVariable;
+use ide_ci::programs::spirv_cross::SpirvCross;
 use ide_ci::programs::vs::apply_dev_environment;
 use ide_ci::programs::vs::Cl;
 use ide_ci::programs::Git;
@@ -12,9 +13,11 @@ use ide_ci::programs::Git;
 pub const REPOSITORY_URL: &str = "https://github.com/KhronosGroup/SPIRV-Cross";
 
 /// Binaries that we want to package.
-pub const BINARIES_TO_PACKAGE: [&str; 1] = ["spirv-cross"];
+pub fn binaries_to_package() -> [&'static str; 1] {
+    [SpirvCross.executable_name()]
+}
 
-/// Build and install the SPIRV-Cross.
+/// Build and install the SPIRV-Cross to the given directory.
 pub async fn build_and_install(
     source_dir: impl AsRef<Path>,
     install_dir: impl AsRef<Path>,
@@ -46,7 +49,8 @@ pub async fn build_and_install(
     Ok(())
 }
 
-pub async fn compile_spirv_cross(output_dir: &Path) -> Result {
+/// Download sources of the SPIRV-Cross, build them and package the binary we need.
+pub async fn generate_spirv_cross_package(output_dir: &Path) -> Result {
     if TARGET_OS == OS::Windows && Cl.lookup().is_err() {
         apply_dev_environment().await?;
     }
@@ -58,7 +62,7 @@ pub async fn compile_spirv_cross(output_dir: &Path) -> Result {
     let _git = Git.clone(&path, &(REPOSITORY_URL.try_into()?)).await?;
 
     build_and_install(&path, &install_dir).await?;
-    for binary in BINARIES_TO_PACKAGE {
+    for binary in binaries_to_package() {
         let relative_binary_path = PathBuf::from_iter(["bin", binary]).with_executable_extension();
         ide_ci::fs::tokio::copy_between(&install_dir, &output_dir, relative_binary_path).await?;
     }

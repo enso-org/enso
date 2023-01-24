@@ -125,9 +125,11 @@ pub trait IsRepo: Display {
     /// assert_eq!(repo.url().unwrap().to_string(), "https://github.com/enso-org/enso/");
     /// ```
     fn url(&self) -> Result<Url> {
+        // Note the trailing `/`. It allows us to join further paths to the URL using Url::join.
         let url_text = iformat!("https://github.com/{self.owner()}/{self.name()}/");
         Url::parse(&url_text)
-            .context(format!("Failed to generate an URL for the {self} repository."))
+            .with_context(|| format!("Failed to parse URL from string '{url_text}'."))
+            .with_context(|| format!("Failed to generate URL for the repository {self}."))
     }
 
     fn into_handle(self, octocrab: &Octocrab) -> Handle<Self>

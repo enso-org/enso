@@ -51,7 +51,7 @@ define_env_var! {
 pub async fn create_package(output_archive: &Path) -> Result {
     let package = tempfile::tempdir()?;
     shaderc::generate_stripped_package(package.path()).await?;
-    spirv_cross::compile_spirv_cross(package.path()).await?;
+    spirv_cross::generate_spirv_cross_package(package.path()).await?;
     ide_ci::archive::compress_directory_contents(&output_archive, package.path()).await?;
     Ok(())
 }

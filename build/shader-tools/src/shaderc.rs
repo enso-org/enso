@@ -1,14 +1,18 @@
 //! Downloading and repackaging the `shaderc` collection of tools.
 
 use crate::prelude::*;
+use ide_ci::programs::shaderc::Glslc;
+use ide_ci::programs::shaderc::SpirvOpt;
 use ide_ci::programs::Strip;
 
 /// The binaries from the `shaderc` collection that we actually use.
-const BINARIES_TO_PACKAGE: [&str; 2] = ["glslc", "spirv-opt"];
+pub fn binaries_to_package() -> [&'static str; 2] {
+    [Glslc.executable_name(), SpirvOpt.executable_name()]
+}
 
 /// Regex that matches URLs.
 /// ```
-/// # use enso_shader_tools::shaderc::url_regex;
+/// # use enso_build_shader_tools::shaderc::url_regex;
 /// let url_text =
 ///     "https://storage.googleapis.com/shaderc/badges/build_link_windows_vs2017_release.html";
 /// assert!(url_regex().is_match(url_text));
@@ -39,7 +43,7 @@ pub fn download_url() -> Result<Url> {
 /// Get the URL that is the target of the redirection used by `shaderc` download page.
 ///
 /// ```
-/// # use enso_shader_tools::shaderc::get_redirection_target;
+/// # use enso_build_shader_tools::shaderc::get_redirection_target;
 /// let html = r#"<meta http-equiv="refresh" content="0; url=https://storage.googleapis.com/shaderc/artifacts/prod/graphics_shader_compiler/shaderc/windows/continuous_release_2017/406/20230118-144628/install.zip" />"#;
 /// let url = get_redirection_target(html).unwrap();
 /// assert_eq!(url.as_str(),"https://storage.googleapis.com/shaderc/artifacts/prod/graphics_shader_compiler/shaderc/windows/continuous_release_2017/406/20230118-144628/install.zip");
@@ -80,11 +84,8 @@ pub async fn download_package(output_dir: &Path) -> Result {
 #[context("Failed to strip down the shaderc package.")]
 pub async fn strip_package(package_path: &Path, output_package: &Path) -> Result {
     let extracted_content_dir = package_path.join("install");
-    let files_to_package = BINARIES_TO_PACKAGE
-        .into_iter()
-        .map(|binary| Path::new("bin").join(binary).with_executable_extension());
-
-    for file in files_to_package {
+    for binary in binaries_to_package() {
+        let file = Path::new("bin").join(binary).with_executable_extension();
         let path =
             ide_ci::fs::tokio::copy_between(&extracted_content_dir, &output_package, &file).await?;
         // Only linux packages contain the debug symbols, which make them really heavy.
