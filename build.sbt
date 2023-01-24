@@ -710,11 +710,7 @@ val generateRustParserLib =
       (if (BuildInfo.isReleaseMode)
          Seq("--release")
        else Seq())
-    val macBuild = releaseMode ++
-      (if (os.contains("Mac"))
-         Seq("--target", "x86_64-apple-darwin")
-       else Seq())
-    macBuild !
+    releaseMode !
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
