@@ -1,11 +1,13 @@
 package org.enso.interpreter.node.expression.builtin.error.displaytext;
 
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -18,10 +20,10 @@ public abstract class ModuleDoesNotExistToDisplayTextNode extends Node {
   abstract Text execute(Object self);
 
   @Specialization
-  Text doAtom(Atom self) {
+  Text doAtom(Atom self, @CachedLibrary(limit = "3") StructsLibrary structs) {
     try {
       return Text.create("Module ")
-          .add(TypesGen.expectText(self.getFields()[0]))
+          .add(TypesGen.expectText(structs.getField(self, 0)))
           .add(" does not exist.");
     } catch (UnexpectedResultException e) {
       return Text.create("Module does not exist.");

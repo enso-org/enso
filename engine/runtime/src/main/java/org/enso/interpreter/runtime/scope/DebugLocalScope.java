@@ -11,15 +11,18 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.SourceSection;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -53,7 +56,7 @@ public class DebugLocalScope implements TruffleObject {
    *     inner_func
    * </pre>
    *
-   * the value of this field (for `inner_func` scope) would be {@code [['x'], ['y']]}
+   * <p>the value of this field (for `inner_func` scope) would be {@code [['x'], ['y']]}
    */
   private final List<List<String>> bindingsByLevels;
 
@@ -180,13 +183,16 @@ public class DebugLocalScope implements TruffleObject {
   }
 
   @ExportMessage
-  Object readMember(String member, @CachedLibrary("this") InteropLibrary interop) {
+  Object readMember(
+      String member,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "10") StructsLibrary structs) {
     FramePointer framePtr = allBindings.get(member);
     if (framePtr == null) {
       return null;
     } else {
       Object value = getValue(frame, framePtr);
-      return HostObjectDebugWrapper.wrapHostValues(value, interop);
+      return HostObjectDebugWrapper.wrapHostValues(value, interop, structs);
     }
   }
 

@@ -16,15 +16,18 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import com.oracle.truffle.api.profiles.LoopConditionProfile;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -124,14 +127,16 @@ public abstract class HashCodeAnyNode extends Node {
           HashCodeAnyNode[] fieldHashCodeNodes,
       @Cached ConditionProfile isHashCodeCached,
       @Cached ConditionProfile enoughHashCodeNodesForFields,
-      @Cached LoopConditionProfile loopProfile) {
+      @Cached LoopConditionProfile loopProfile,
+      @CachedLibrary(limit = "10") StructsLibrary structs) {
     if (isHashCodeCached.profile(atom.getHashCode() != null)) {
       return atom.getHashCode();
     }
     // TODO[PM]: If atom overrides hash_code, call that method (Will be done in a follow-up PR for
     // https://www.pivotaltracker.com/story/show/183945328)
-    int fieldsCount = atom.getFields().length;
-    Object[] fields = atom.getFields();
+    Object[] fields = structs.getFields(atom);
+    int fieldsCount = fields.length;
+
     // hashes stores hash codes for all fields, and for constructor.
     int[] hashes = new int[fieldsCount + 1];
     if (enoughHashCodeNodesForFields.profile(fieldsCount <= hashCodeNodeCountForFields)) {
