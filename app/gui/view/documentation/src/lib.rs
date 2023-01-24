@@ -53,12 +53,15 @@ use enso_frp as frp;
 use enso_frp::io::timer::DelayedInterval;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use ensogl::animation::delayed::DelayedAnimation;
+use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
+use ensogl::system::web::HtmlDivElement;
+use ensogl::Animation;
 use ensogl_component::shadow;
 use web::Closure;
 use web::HtmlElement;
@@ -84,6 +87,13 @@ pub use visualization::container::overlay;
 pub const VIEW_WIDTH: f32 = 300.0;
 /// Height of Documentation panel.
 pub const VIEW_HEIGHT: f32 = 300.0;
+
+/// "Hovered item preview" caption height in pixels.
+const CAPTION_HEIGHT: f32 = 30.0;
+/// Caption animation is faster than standard animation.
+const CAPTION_ANIMATION_SPRING_MULTIPLIER: f32 = 1.5;
+/// The caption is hidden if its height is less than this value.
+const MIN_CAPTION_HEIGHT: f32 = 1.0;
 
 /// Content in the documentation view when there is no data available.
 const CORNER_RADIUS: f32 = graph_editor::component::node::CORNER_RADIUS;
@@ -116,6 +126,7 @@ pub struct Model {
     code_copy_closures: Rc<CloneCell<Vec<CodeCopyClosure>>>,
 }
 
+
 impl Model {
     /// Constructor.
     fn new(scene: &Scene) -> Self {
@@ -129,7 +140,7 @@ impl Model {
         let overlay = overlay::View::new();
         let caption_div = web::document.create_div_or_panic();
         let caption_dom = DomSymbol::new(&caption_div);
-        caption_dom.set_inner_html("Hovered item preview");
+        caption_dom.set_inner_html(&html::caption_html());
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
         // system (#795)
@@ -223,8 +234,20 @@ impl Model {
     fn reload_style(&self) {
         let size = self.size.get();
         self.outer_dom.set_dom_size(Vector2(size.x, size.y));
-        self.inner_dom.set_dom_size(Vector2(size.x, size.y));
-        self.caption_dom.set_dom_size(Vector2(size.x, size.y));
+        self.set_caption_height(0.0);
+    }
+
+    fn set_caption_height(&self, height: f32) {
+        let size = self.size.get();
+        self.inner_dom.set_dom_size(Vector2(size.x, size.y - height));
+        self.inner_dom.set_xy(Vector2(0.0, -height / 2.0));
+        self.caption_dom.set_dom_size(Vector2(size.x, height));
+        self.caption_dom.set_xy(Vector2(0.0, size.y / 2.0 - height / 2.0));
+        if height < MIN_CAPTION_HEIGHT {
+            self.outer_dom.remove_child(&self.caption_dom);
+        } else {
+            self.outer_dom.add_child(&self.caption_dom);
+        }
     }
 }
 
@@ -238,6 +261,7 @@ ensogl::define_endpoints! {
     Input {
         /// Display documentation of the specific entry from the suggestion database.
         display_documentation (EntryDocumentation),
+        show_hovered_item_preview_caption(bool),
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -297,7 +321,10 @@ impl View {
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
         let display_delay = frp::io::timer::Timeout::new(&network);
+        let caption_anim = Animation::<f32>::new(&network);
+        caption_anim.set_spring.emit(Spring::default() * CAPTION_ANIMATION_SPRING_MULTIPLIER);
         frp::extend! { network
+            init <- source_();
 
             // === Displaying documentation ===
 
@@ -306,6 +333,17 @@ impl View {
             display_delay.restart <+ frp.display_documentation.constant(DISPLAY_DELAY_MS);
             display_docs <- display_delay.on_expired.map2(&docs,|_,docs| docs.clone_ref());
             eval display_docs((docs) model.display_doc(docs.clone_ref()));
+
+
+            // === Hovered item preview caption ===
+
+            show_caption <- frp.show_hovered_item_preview_caption.on_true();
+            hide_caption <- frp.show_hovered_item_preview_caption.on_false();
+            caption_anim.target <+ show_caption.constant(1.0);
+            caption_anim.target <+ hide_caption.constant(0.0);
+            eval caption_anim.value((value) model.set_caption_height(*value * CAPTION_HEIGHT));
+            eval_ init(model.set_caption_height(0.0));
+
 
             // === Size and position ===
 
@@ -348,6 +386,7 @@ impl View {
             pass_to_dom <- caught_mouse.gate(&frp.source.is_hovered);
             eval_ pass_to_dom(scene.current_js_event.pass_to_dom.emit(()));
         }
+        init.emit(());
         visualization.pass_events_to_dom_if_active(scene, network);
         self
     }

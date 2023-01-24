@@ -1,5 +1,5 @@
 //! Example scene showing a documentation panel of the component browser.
-
+#![recursion_limit = "256"]
 // === Standard Linter Configuration ===
 #![deny(non_ascii_idents)]
 #![warn(unsafe_code)]
@@ -149,9 +149,9 @@ fn database() -> SuggestionDatabase {
 
 
 
-// ==============
-// === Button ===
-// ==============
+// ===============
+// === Buttons ===
+// ===============
 
 const BUTTON_SIZE: f32 = 40.0;
 const BUTTON_BACKGROUND_COLOR: color::Rgba = color::Rgba(0.87, 0.87, 0.87, 1.0);
@@ -166,6 +166,21 @@ mod button {
             let icon = Triangle(10.0, 10.0);
             let icon = icon.rotate((PI/2.0).radians());
             let icon = icon.fill(color::Rgba::red());
+            let shape = background + icon;
+            shape.into()
+        }
+    }
+}
+
+mod button_toggle_caption {
+    use super::*;
+    shape! {
+        (style: Style) {
+            let background = Rect((BUTTON_SIZE.px(), BUTTON_SIZE.px()));
+            let background = background.corners_radius(10.0.px());
+            let background = background.fill(BUTTON_BACKGROUND_COLOR);
+            let icon = Circle(5.0.px());
+            let icon = icon.fill(color::Rgba::blue());
             let shape = background + icon;
             shape.into()
         }
@@ -212,6 +227,11 @@ pub fn main() {
         buttons.add_child(&next);
         next.set_x(BUTTON_SIZE);
 
+        let toggle_caption = button_toggle_caption::View::new();
+        toggle_caption.set_size(Vector2(BUTTON_SIZE, BUTTON_SIZE));
+        buttons.add_child(&toggle_caption);
+        toggle_caption.set_y(-BUTTON_SIZE * 2.0);
+
         let network = frp::Network::new("documentation");
         let style = StyleWatchFrp::new(&scene.style_sheet);
         let width = style.get_number(theme::documentation::width);
@@ -246,6 +266,14 @@ pub fn main() {
             panel.frp.display_documentation <+ update_docs.map(f_!(wrapper.documentation()));
 
 
+            // === Toggle caption ===
+
+            caption_visible <- any(...);
+            caption_visible <+ init.constant(false);
+            current_state <- caption_visible.sample(&toggle_caption.events.mouse_down);
+            caption_visible <+ current_state.not();
+            panel.frp.show_hovered_item_preview_caption <+ caption_visible.on_change();
+
             // === Disable navigator on hover ===
 
             navigator.frp.set_enabled <+ panel.frp.is_hovered.not();
@@ -260,6 +288,7 @@ pub fn main() {
         mem::forget(navigator);
         mem::forget(network);
         mem::forget(previous);
+        mem::forget(toggle_caption);
         mem::forget(next);
         mem::forget(buttons);
     })
