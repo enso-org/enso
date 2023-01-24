@@ -1077,7 +1077,7 @@ object IR {
         sealed case class Data(
           name: IR.Name,
           arguments: List[DefinitionArgument],
-          annotations: List[IR.Name.GeneralAnnotation],
+          annotations: List[IR.Name.GenericAnnotation],
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1099,7 +1099,7 @@ object IR {
           def copy(
             name: IR.Name                                = name,
             arguments: List[DefinitionArgument]          = arguments,
-            annotations: List[IR.Name.GeneralAnnotation] = annotations,
+            annotations: List[IR.Name.GenericAnnotation] = annotations,
             location: Option[IdentifiedLocation]         = location,
             passData: MetadataStorage                    = passData,
             diagnostics: DiagnosticStorage               = diagnostics,
@@ -2878,7 +2878,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
-    sealed case class GeneralAnnotation(
+    sealed case class GenericAnnotation(
       override val name: String,
       expression: Expression,
       override val location: Option[IdentifiedLocation],
@@ -2904,9 +2904,9 @@ object IR {
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
-      ): GeneralAnnotation = {
+      ): GenericAnnotation = {
         val res =
-          GeneralAnnotation(name, expression, location, passData, diagnostics)
+          GenericAnnotation(name, expression, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2917,7 +2917,7 @@ object IR {
         keepMetadata: Boolean    = true,
         keepDiagnostics: Boolean = true,
         keepIdentifiers: Boolean = false
-      ): GeneralAnnotation =
+      ): GenericAnnotation =
         copy(
           location = if (keepLocations) location else None,
           passData =
@@ -2930,19 +2930,19 @@ object IR {
       /** @inheritdoc */
       override def setLocation(
         location: Option[IdentifiedLocation]
-      ): GeneralAnnotation =
+      ): GenericAnnotation =
         copy(location = location)
 
       /** @inheritdoc */
       override def mapExpressions(
         fn: Expression => Expression
-      ): GeneralAnnotation =
+      ): GenericAnnotation =
         copy(expression = fn(expression))
 
       /** @inheritdoc */
       override def toString: String =
         s"""
-           |IR.Name.GeneralAnnotation(
+           |IR.Name.GenericAnnotation(
            |name = $name,
            |expression = $expression,
            |location = $location,

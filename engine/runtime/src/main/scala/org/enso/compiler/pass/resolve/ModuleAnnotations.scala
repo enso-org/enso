@@ -44,7 +44,7 @@ case object ModuleAnnotations extends IRPass {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
-      case ann: Name.GeneralAnnotation =>
+      case ann: Name.GenericAnnotation =>
         Some(ann)
       case comment: IR.Comment => Some(comment)
       case typ: Definition.SugaredType =>
@@ -78,7 +78,7 @@ case object ModuleAnnotations extends IRPass {
       case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
-      case ann: Name.GeneralAnnotation =>
+      case ann: Name.GenericAnnotation =>
         Some(ann)
       case comment: IR.Comment => Some(comment)
       case entity =>

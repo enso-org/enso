@@ -86,7 +86,7 @@ class Passes(
       DataflowAnalysis,
       CachePreferenceAnalysis,
       UnusedBindings,
-      GeneralAnnotations
+      GenericAnnotations
     )
   )
 

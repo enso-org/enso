@@ -7,19 +7,19 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
-/** A pass responsible for the discovery of [[IR.Name.GeneralAnnotation]]
+/** A pass responsible for the discovery of [[IR.Name.GenericAnnotation]]
   * annotations, and for associating them with the corresponding construct.
   *
-  * Compilation pipeline of annotations:
-  * - [[ModuleAnnotations]] pass ignores general annotations and leaves them in
+  * Compilation pipeline of generic annotations:
+  * - [[ModuleAnnotations]] pass ignores generic annotations and leaves them in
   * the tree so that the consequent passes are able to process the annotation
   * expression.
-  * - [[org.enso.compiler.pass.desugar.ComplexType]] pass associates general
+  * - [[org.enso.compiler.pass.desugar.ComplexType]] pass associates generic
   * annotations with the type constructor definitions.
-  * - [[GeneralAnnotations]] pass associates general annotations that are left
+  * - [[GenericAnnotations]] pass associates generic annotations that are left
   * in the tree with the appropriate definitions.
   */
-case object GeneralAnnotations extends IRPass {
+case object GenericAnnotations extends IRPass {
   override type Metadata = ModuleAnnotations.Annotations
   override type Config   = IRPass.Configuration.Default
   override val precursorPasses: Seq[IRPass]   = Seq()
@@ -37,7 +37,7 @@ case object GeneralAnnotations extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    var lastAnnotations: Seq[IR.Name.GeneralAnnotation] = Seq()
+    var lastAnnotations: Seq[IR.Name.GenericAnnotation] = Seq()
     val newBindings = ir.bindings.map {
       case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
@@ -51,7 +51,7 @@ case object GeneralAnnotations extends IRPass {
         throw new CompilerError(
           "Comments should not be present at generic annotations pass."
         )
-      case ann: IR.Name.GeneralAnnotation =>
+      case ann: IR.Name.GenericAnnotation =>
         lastAnnotations :+= ann
         None
       case entity =>
