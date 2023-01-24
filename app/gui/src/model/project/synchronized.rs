@@ -19,6 +19,7 @@ use engine_protocol::language_server::response;
 use engine_protocol::language_server::CapabilityRegistration;
 use engine_protocol::language_server::ContentRoot;
 use engine_protocol::language_server::ExpressionUpdates;
+use engine_protocol::language_server::FileEditList;
 use engine_protocol::language_server::MethodPointer;
 use engine_protocol::project_manager;
 use engine_protocol::project_manager::MissingComponentAction;
@@ -170,9 +171,9 @@ impl ContentRoots {
 
 
 
-// ========================
-// === VCS status check ===
-// ========================
+// =============================
+// === VCS status and reload ===
+// =============================
 
 /// Check whether the current state of the project differs from the most recent snapshot in the VCS,
 /// and emit a notification.
@@ -191,6 +192,24 @@ async fn check_vcs_status_and_notify(
     };
     publisher.notify(model::project::Notification::VcsStatusChanged(notify_status));
     status
+}
+
+/// Apply file changes to module files based on a `FileEditList` structure, e.g. from a
+/// `text/didChange` notification when files are reloaded from the VCS.
+#[profile(Detail)]
+async fn update_modules_on_file_change(
+    changes: FileEditList,
+    parser: Parser,
+    module_registry: Rc<model::registry::Registry<module::Path, module::Synchronized>>,
+) -> FallibleResult {
+    for edit in changes.edits {
+        let file_path = edit.path.clone();
+        let module_path = module::Path::from_file_path(file_path).unwrap();
+        if let Some(module) = module_registry.get(&module_path).await? {
+            module.apply_file_edit(edit, &parser).await?;
+        }
+    }
+    Ok(())
 }
 
 
@@ -514,18 +533,15 @@ impl Project {
                 }
                 Event::Notification(Notification::TextDidChange(changes)) => {
                     let parser = parser.clone();
-                    let weak_module_registry = weak_module_registry.clone();
-                    executor::global::spawn(async move {
-                        if let Some(module_registry) = weak_module_registry.upgrade() {
-                            for edit in changes.edits {
-                                let file_path = edit.path.clone();
-                                let module_path = module::Path::from_file_path(file_path).unwrap();
-                                let module =
-                                    module_registry.get(&module_path).await.unwrap().unwrap();
-                                module.apply_file_edit(edit, &parser).await.unwrap();
+                    if let Some(module_registry) = weak_module_registry.upgrade() {
+                        executor::global::spawn(async move {
+                            let status =
+                                update_modules_on_file_change(changes, parser, module_registry);
+                            if let Err(err) = status.await {
+                                error!("Error while applying file changes to modules: {err}");
                             }
-                        }
-                    });
+                        });
+                    }
                 }
                 Event::Notification(Notification::ExpressionUpdates(updates)) => {
                     let ExpressionUpdates { context_id, updates } = updates;
