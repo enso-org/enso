@@ -1,11 +1,10 @@
-import project.Data.Ordering.Ordering
-# TODO: Will this import also the conversion methods Comparable.from (_:Any) = Default_Comparator ... ?
-import project.Data.Ordering.Comparable
-import project.Data.Ordering.Incomparable
+# We have to import also conversion methods from Ordering, therefore, we import all
+from project.Data.Ordering import all
 import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
+import project.Error.Incomparable_Values.Incomparable_Values
 import project.Nothing.Nothing
 import project.Meta
 
@@ -108,13 +107,13 @@ type Any
         eq_self = Comparable.from self
         eq_that = Comparable.from that
         if eq_self.is_a Incomparable then False else
-            similar_type = eq_self == eq_that
+            similar_type = eq_self.equals_builtin eq_that
             if similar_type.not then False else
                 hash_self = eq_self.hash self
                 hash_that = eq_that.hash that
-                if hash_self != hash_that then False else
+                if hash_self.equals_builtin hash_that . not then False else
                     case eq_self.is_ordered of
-                        True -> eq_self.compare self that == Ordering.Equal
+                        True -> eq_self.compare self that . equals_builtin Ordering.Equal
                         False -> eq_self.equals self that
 
     ## ALIAS Inequality
@@ -421,16 +420,18 @@ type Any
     >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
     >> self ~that = x -> that (self x)
 
-    ## PRIVATE
-       Checks if both comparators of the given objects are both of same type and ordered.
-       If they are not of same type, a `Type_Error` is thrown.
-       If the comparators are either `Incomparable`, or unordered, `False` is returned.
-    assert_ordered_comparators : Any -> Any -> (Any -> Any) -> Any
-    assert_ordered_comparators this that ~action =
-        comp_this = Comparable.from this
-        comp_that = Comparable.from that
-        case Meta.type_of comp_this == Meta.type_of comp_that of
-            False ->
-                Error.throw Incomparable_Values
-            True ->
-                if comp_this.is_a Incomparable || comp_this.is_ordered.not then False else action
+
+## PRIVATE
+   Checks if both comparators of the given objects are both of same type and ordered.
+   If they are not of same type, a `Type_Error` is thrown.
+   If the comparators are either `Incomparable`, or unordered, `False` is returned.
+assert_ordered_comparators : Any -> (Any -> Any) -> Any
+assert_ordered_comparators this that ~action =
+    comp_this = Comparable.from this
+    comp_that = Comparable.from that
+    case Meta.type_of comp_this == Meta.type_of comp_that of
+        False ->
+            Error.throw Incomparable_Values
+        True ->
+            if comp_this.is_a Incomparable || comp_this.is_ordered.not then False else action
+
