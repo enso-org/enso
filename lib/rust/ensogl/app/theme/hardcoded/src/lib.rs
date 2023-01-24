@@ -578,7 +578,7 @@ define_themes! { [light:0, dark:1]
                 offset = 0.0 , 0.0;
             }
             text_grid {
-                font = "DejaVuSansMonoBook" , "DejaVuSansMonoBook";
+                font = "DejaVu Sans Mono" , "DejaVu Sans Mono";
                 font_size = 12.0 , 12.0;
 
             }
