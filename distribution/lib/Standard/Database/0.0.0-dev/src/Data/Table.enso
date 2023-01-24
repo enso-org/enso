@@ -669,21 +669,21 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
-    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
+    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default on_problems=Report_Warning =
         problem_builder = Problem_Builder.new
         warning_mapper error = case error of
             No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
             _ -> Nothing
         key_columns = Warning.map_warnings_and_errors warning_mapper <|
             self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
-        ## ToDo: This should be DB default
-        text_case_insensitive = case case_sensitivity of
-            Case_Sensitivity.Default -> False
-            Case_Sensitivity.Sensitive -> False
+
+        text_case_sensitivity = case case_sensitivity of
             Case_Sensitivity.Insensitive locale ->
                 Helpers.assume_default_locale locale <|
-                    True
-        new_table = self.connection.dialect.prepare_distinct self key_columns text_case_insensitive problem_builder
+                    case_sensitivity
+            _ -> case_sensitivity
+
+        new_table = self.connection.dialect.prepare_distinct self key_columns text_case_sensitivity problem_builder
         problem_builder.attach_problems_before on_problems new_table
 
     ## Joins two tables according to the specified join conditions.
