@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Common.Type_Error
 import Standard.Base.Error.Time_Error.Time_Error
 
-from Standard.Test import Test, Test_Suite
+from Standard.Test import Problems, Test, Test_Suite
 import Standard.Test.Extensions
 
 import project.Data.Time.Date_Part_Spec
@@ -146,7 +146,7 @@ spec_with name create_new_date parse_date =
             is_time_error v = case v of
                 _ : Time_Error -> True
                 _ -> False
-            expect_warning value = (Warning.get_all value . map .value . any is_time_error) . should_be_true
+            expect_warning value = (Problems.get_attached_warnings value . any is_time_error) . should_be_true
             dates_before_epoch = [(create_new_date 100), (create_new_date 500 6 3)]
             dates_before_epoch.each date->
                 expect_warning date.week_of_year

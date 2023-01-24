@@ -29,11 +29,7 @@ prepare_visualization x = Helpers.recover_errors <|
         expected_enso_type = find_expected_enso_type_for_sql e.second
         JS_Object.from_pairs [["value", value], ["actual_type", actual_type], ["expected_sql_type", expected_sql_type], ["expected_enso_type", expected_enso_type]]
     dialect = x.connection.dialect.name
-    json = JS_Object.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text
-
-    ## Workaround so that the JS String is converted to a Text
-       https://www.pivotaltracker.com/story/show/184061302
-    "" + json
+    JS_Object.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text
 
 ## PRIVATE
 

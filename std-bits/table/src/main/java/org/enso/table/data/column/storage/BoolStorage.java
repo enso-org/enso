@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.function.IntFunction;
 
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.builder.object.BoolBuilder;
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.InferredBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
@@ -30,6 +32,12 @@ public final class BoolStorage extends Storage<Boolean> {
     this.isMissing = isMissing;
     this.size = size;
     this.negated = negated;
+  }
+
+  public static BoolStorage makeEmpty(int size) {
+    BitSet isMissing = new BitSet(size);
+    isMissing.set(0, size);
+    return new BoolStorage(new BitSet(), isMissing, size, false);
   }
 
   @Override
@@ -207,7 +215,9 @@ public final class BoolStorage extends Storage<Boolean> {
             new MapOperation<>(Maps.EQ) {
               @Override
               public BoolStorage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean v) {
+                if (arg == null) {
+                  return BoolStorage.makeEmpty(storage.size);
+                } else if (arg instanceof Boolean v) {
                   if (v) {
                     return storage;
                   } else {
@@ -239,7 +249,9 @@ public final class BoolStorage extends Storage<Boolean> {
             new MapOperation<>(Maps.AND) {
               @Override
               public BoolStorage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean v) {
+                if (arg == null) {
+                  return BoolStorage.makeEmpty(storage.size);
+                } else if (arg instanceof Boolean v) {
                   if (v) {
                     return storage;
                   } else {
@@ -281,7 +293,9 @@ public final class BoolStorage extends Storage<Boolean> {
             new MapOperation<>(Maps.OR) {
               @Override
               public BoolStorage runMap(BoolStorage storage, Object arg) {
-                if (arg instanceof Boolean v) {
+                if (arg == null) {
+                  return BoolStorage.makeEmpty(storage.size);
+                } else if (arg instanceof Boolean v) {
                   if (v) {
                     return new BoolStorage(new BitSet(), storage.isMissing, storage.size, true);
                   } else {
@@ -350,6 +364,11 @@ public final class BoolStorage extends Storage<Boolean> {
         isMissing.get(offset, offset + limit),
         newSize,
         negated);
+  }
+
+  @Override
+  public Builder createDefaultBuilderOfSameType(int capacity) {
+    return new BoolBuilder(capacity);
   }
 
   @Override

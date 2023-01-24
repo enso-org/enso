@@ -85,13 +85,13 @@ pub struct Shader<T> {
     #[as_ref]
     #[deref]
     pub native: WebGlShader,
-    pub code:   String,
+    pub code:   ImString,
     tp:         PhantomData<T>,
 }
 
 impl<T> Shader<T> {
     /// Constructor.
-    pub fn new(code: String, native: WebGlShader) -> Self {
+    pub fn new(code: ImString, native: WebGlShader) -> Self {
         let tp = default();
         Self { native, code, tp }
     }

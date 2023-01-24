@@ -101,7 +101,7 @@ impl Model {
     #[profile(Debug)]
     fn input_changed(&self, new_input: &str) {
         if let Err(err) = self.controller.set_input(new_input.to_owned()) {
-            tracing::error!("Error while setting new searcher input: {err}.");
+            error!("Error while setting new searcher input: {err}.");
         }
     }
 
@@ -116,7 +116,7 @@ impl Model {
                 Some((self.input_view, new_code_and_trees))
             }
             Err(err) => {
-                tracing::error!("Error while applying suggestion: {err}.");
+                error!("Error while applying suggestion: {err}.");
                 None
             }
         }
@@ -126,7 +126,7 @@ impl Model {
     /// API.
     fn entry_selected_as_suggestion(&self, entry_id: view::searcher::entry::Id) {
         if let Err(error) = self.controller.preview_entry_as_suggestion(entry_id) {
-            tracing::warn!("Failed to preview entry {entry_id:?} because of error: {error:?}.");
+            warn!("Failed to preview entry {entry_id:?} because of error: {error:?}.");
         }
     }
 
@@ -136,7 +136,7 @@ impl Model {
             None => self.controller.commit_node().map(Some),
         };
         result.unwrap_or_else(|err| {
-            tracing::error!("Error while executing action: {err}.");
+            error!("Error while executing action: {err}.");
             None
         })
     }
@@ -166,11 +166,9 @@ impl Model {
         match self.suggestion_for_entry_id(entry_id) {
             Ok(suggestion) =>
                 if let Err(error) = self.controller.preview_suggestion(suggestion) {
-                    tracing::warn!(
-                        "Failed to preview suggestion {entry_id:?} because of error: {error:?}."
-                    );
+                    warn!("Failed to preview suggestion {entry_id:?} because of error: {error:?}.");
                 },
-            Err(err) => tracing::warn!("Error while previewing suggestion: {err}."),
+            Err(err) => warn!("Error while previewing suggestion: {err}."),
         }
     }
 
@@ -196,7 +194,7 @@ impl Model {
                 Some((self.input_view, new_code_and_trees))
             }
             Err(err) => {
-                tracing::error!("Error while applying suggestion: {err}.");
+                error!("Error while applying suggestion: {err}.");
                 None
             }
         }
@@ -223,15 +221,23 @@ impl Model {
         }
     }
 
-    fn set_section_name_crumb(&self, text: &str) {
+    fn set_section_name_crumb(&self, text: ImString) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
             let breadcrumbs = &browser.model().list.model().breadcrumbs;
-            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, ImString::new(text).into()));
+            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
         }
     }
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
-        self.set_section_name_crumb(section_id.as_str());
+        let components = self.controller.components();
+        let mut section_names = components.top_module_section_names();
+        let name = match section_id {
+            component_grid::SectionId::Namespace(n) =>
+                section_names.nth(n).map(|n| n.clone_ref()).unwrap_or_default(),
+            component_grid::SectionId::Popular => "Popular".to_im_string(),
+            component_grid::SectionId::LocalScope => "Local".to_im_string(),
+        };
+        self.set_section_name_crumb(name);
     }
 
     fn module_entered(&self, module: component_grid::ElementId) {
@@ -262,7 +268,7 @@ impl Model {
             self.suggestion_accepted(entry_id);
         }
         self.controller.commit_node().map(Some).unwrap_or_else(|err| {
-            tracing::error!("Error while committing node expression: {err}.");
+            error!("Error while committing node expression: {err}.");
             None
         })
     }
@@ -351,12 +357,15 @@ impl Searcher {
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
                 let grid = &browser.model().list.model().grid;
+                let navigator = &browser.model().list.model().section_navigator;
                 let breadcrumbs = &browser.model().list.model().breadcrumbs;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
-                    eval_ action_list_changed ([model, grid] {
+                    eval_ action_list_changed ([model, grid, navigator] {
                         model.provider.take();
                         let controller_provider = model.controller.provider();
+                        let namespace_section_count = controller_provider.namespace_section_count();
+                        navigator.set_namespace_section_count.emit(namespace_section_count);
                         let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });
@@ -448,6 +457,9 @@ impl Searcher {
         let mut new_node = NewNodeInfo::new_pushed_back(DEFAULT_INPUT_EXPRESSION);
         new_node.metadata = Some(metadata);
         new_node.introduce_pattern = false;
+        let transaction_name = "Add code for created node's visualization preview.";
+        let _transaction =
+            graph_controller.undo_redo_repository().open_ignored_transaction(transaction_name);
         let created_node = graph_controller.add_node(new_node)?;
 
         graph.assign_node_view_explicitly(input, created_node);
@@ -518,9 +530,7 @@ impl Searcher {
         if let Mode::NewNode { source_node, .. } = mode {
             if source_node.is_none() {
                 if let Err(e) = searcher_controller.set_input("".to_string()) {
-                    tracing::error!(
-                        "Failed to clear input when creating searcher for a new node: {e:?}."
-                    );
+                    error!("Failed to clear input when creating searcher for a new node: {e:?}.");
                 }
             }
         }

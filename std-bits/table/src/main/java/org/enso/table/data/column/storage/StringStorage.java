@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.HashSet;
 import org.enso.base.Text_Utils;
+import org.enso.table.data.column.builder.object.Builder;
 import org.enso.table.data.column.builder.object.StringBuilder;
 import org.enso.table.data.column.operation.map.MapOpStorage;
 import org.enso.table.data.column.operation.map.MapOperation;
@@ -58,6 +59,11 @@ public final class StringStorage extends SpecializedStorage<String> {
     } else {
       return super.fillMissing(arg);
     }
+  }
+
+  @Override
+  public Builder createDefaultBuilderOfSameType(int capacity) {
+    return new StringBuilder(capacity);
   }
 
   private static MapOpStorage<String, SpecializedStorage<String>> buildOps() {

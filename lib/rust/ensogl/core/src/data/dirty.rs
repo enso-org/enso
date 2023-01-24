@@ -240,7 +240,7 @@ impl<T: FlagOps1, OnMut: FnMut0> HasSet1 for Flag<T, OnMut> {
         let is_set = self.data.check(&arg);
         if !is_set {
             self.data.set(arg);
-            debug_span!("Setting to {self.data:?}.").in_scope(|| {
+            debug_span!("Setting to {:?}.", self.data).in_scope(|| {
                 if first_set {
                     self.on_set.call();
                 }

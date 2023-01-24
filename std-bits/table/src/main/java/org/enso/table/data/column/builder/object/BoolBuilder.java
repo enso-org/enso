@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder.object;
 
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.util.BitSets;
 
 import java.util.BitSet;
 
@@ -59,6 +60,21 @@ public class BoolBuilder extends TypedBuilder {
   public void appendNulls(int count) {
     isNa.set(size, size + count);
     size += count;
+  }
+
+  @Override
+  public void appendBulkStorage(Storage<?> storage) {
+    if (storage.getType() == getType()) {
+      if (storage instanceof BoolStorage boolStorage) {
+        BitSets.copy(boolStorage.getValues(), vals, size, boolStorage.size());
+        BitSets.copy(boolStorage.getIsMissing(), isNa, size, boolStorage.size());
+        size += boolStorage.size();
+      } else {
+        throw new IllegalStateException("Unexpected storage implementation for type BOOLEAN: " + storage + ". This is a bug in the Table library.");
+      }
+    } else {
+      throw new StorageTypeMismatch(getType(), storage.getType());
+    }
   }
 
   @Override

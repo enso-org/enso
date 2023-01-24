@@ -208,6 +208,17 @@ pub struct ModuleGroups {
 }
 
 
+// === Submodule section
+
+/// Component groups that belong together in a section of the component browser.
+#[derive(Clone, CloneRef, Debug)]
+struct Section {
+    modules:           group::AlphabeticalList,
+    modules_flattened: group::AlphabeticalList,
+    name:              ImString,
+}
+
+
 // === List ===
 
 /// The Component List.
@@ -222,34 +233,36 @@ pub struct ModuleGroups {
 /// [`builder::List`].
 #[derive(Clone, CloneRef, Debug, Default)]
 pub struct List {
-    all_components:        Rc<Vec<Component>>,
-    top_modules:           group::AlphabeticalList,
-    top_modules_flattened: group::AlphabeticalList,
-    module_groups:         Rc<HashMap<Id, ModuleGroups>>,
-    filtered:              Rc<Cell<bool>>,
+    all_components:             Rc<Vec<Component>>,
+    top_module_sections:        Rc<Vec<Section>>,
+    top_module_section_indices: Rc<HashMap<ImString, usize>>,
+    module_groups:              Rc<HashMap<Id, ModuleGroups>>,
+    filtered:                   Rc<Cell<bool>>,
     /// Components to display in the "Local Scope" section of the [Component
     /// Browser](crate::controller::Searcher).
-    pub local_scope:       Group,
+    pub local_scope:            Group,
     /// Groups of components to display in the "Favorites Data Science Tools" section of the
     /// [Component Browser](crate::controller::Searcher).
-    pub favorites:         group::List,
+    pub favorites:              group::List,
 }
 
 impl List {
     /// Return the list of top modules, which should be displayed in Component Browser.
     ///
     /// If the list is filtered, all top modules will be flattened.
-    pub fn top_modules(&self) -> &group::AlphabeticalList {
-        if self.filtered.get() {
-            &self.top_modules_flattened
-        } else {
-            &self.top_modules
-        }
+    pub fn top_modules(&self) -> impl Iterator<Item = group::AlphabeticalList> + '_ {
+        self.top_module_sections.iter().map(|section| {
+            if self.filtered.get() {
+                section.modules_flattened.clone_ref()
+            } else {
+                section.modules.clone_ref()
+            }
+        })
     }
 
     /// Return the list of filtered top modules and their contents.
-    pub fn top_modules_flattened(&self) -> &group::AlphabeticalList {
-        &self.top_modules_flattened
+    pub fn top_modules_flattened(&self) -> impl Iterator<Item = group::AlphabeticalList> + '_ {
+        self.top_module_sections.iter().map(|s| s.modules_flattened.clone_ref())
     }
 
     /// Get the list of given component submodules. Returns [`None`] if given component is not
@@ -291,8 +304,23 @@ impl List {
     /// All groups from [`List`] without the groups found in [`List::favorites`].
     fn all_groups_not_in_favorites(&self) -> impl Iterator<Item = &Group> {
         let normal = self.module_groups.values().map(|mg| &mg.content);
-        let flattened = self.top_modules_flattened.iter();
+        let flattened = self.top_module_sections.iter().flat_map(|s| s.modules_flattened.iter());
         normal.chain(flattened).chain(std::iter::once(&self.local_scope))
+    }
+
+    /// Get a vector of section names for the sections of the top modules.
+    pub fn top_module_section_names(&self) -> impl Iterator<Item = &ImString> {
+        self.top_module_sections.iter().map(|s| &s.name)
+    }
+
+    /// Get a map of section names to section indices for the sections of the top modules.
+    pub fn top_module_section_indices(&self) -> &HashMap<ImString, usize> {
+        &self.top_module_section_indices
+    }
+
+    /// Get the number of namespace sections.
+    pub fn top_module_section_count(&self) -> usize {
+        self.top_module_sections.len()
     }
 }
 
@@ -385,34 +413,34 @@ pub(crate) mod tests {
         let list = builder.build();
 
         list.update_filtering("fu");
-        let match_infos = list.top_modules()[0]
+        let match_infos = list.top_modules().next().unwrap()[0]
             .entries
             .borrow()
             .iter()
             .map(|c| c.match_info.borrow().clone())
             .collect_vec();
         DEBUG!("{match_infos:?}");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 4]);
+        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
 
         list.update_filtering("x");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[4]);
+        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("Sub");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[3]);
+        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("y");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[]);
+        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[]);
         assert_ids_of_matches_entries(&list.favorites[0], &[]);
         assert_ids_of_matches_entries(&list.local_scope, &[]);
 
         list.update_filtering("");
-        assert_ids_of_matches_entries(&list.top_modules()[0], &[2, 3]);
+        assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 3]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);
     }
@@ -430,7 +458,12 @@ pub(crate) mod tests {
 
         // Verify that we can read all top-level modules from the component list.
         let expected_top_modules_ids = vec![Some(1), Some(10)];
-        let top_modules_ids = list.top_modules().iter().map(|m| m.component_id).collect_vec();
+        let top_modules = list.top_modules().collect::<Vec<_>>();
+        let top_modules_ids = top_modules
+            .iter()
+            .flat_map(|section| section.iter())
+            .map(|m| m.component_id)
+            .collect_vec();
         assert_eq!(top_modules_ids, expected_top_modules_ids);
 
         // Verify that we can read content and direct submodules of a second-level submodule

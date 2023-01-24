@@ -27,7 +27,7 @@ type Text_Ordering
          this to `True` results in a "Natural" ordering.
     Case_Sensitive (sort_digits_as_numbers:Boolean=False)
 
-    ## Case sensitive ordering of values.
+    ## Case insensitive ordering of values.
 
        It will ensure case-insensitive ordering regardless of backend defaults.
        This may make database queries more complicated and may result in being

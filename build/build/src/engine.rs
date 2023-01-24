@@ -7,11 +7,12 @@ use crate::prelude::*;
 use crate::get_graal_version;
 use crate::get_java_major_version;
 use crate::paths::generated;
-use crate::paths::ComponentPaths;
-use crate::paths::Paths;
 
+use artifact::IsArtifact;
+use bundle::IsBundle;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::github::Repo;
+use package::IsPackage;
 use std::collections::BTreeSet;
 
 
@@ -19,9 +20,11 @@ use std::collections::BTreeSet;
 // === Export ===
 // ==============
 
+pub mod artifact;
 pub mod bundle;
 pub mod context;
 pub mod env;
+pub mod package;
 pub mod sbt;
 
 pub use context::RunContext;
@@ -246,99 +249,50 @@ pub enum Operation {
 
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct BuiltArtifacts {
-    pub packages: BuiltPackageArtifacts,
-    pub bundles:  BuiltBundleArtifacts,
+    pub engine_package:          Option<generated::EnginePackage>,
+    pub launcher_package:        Option<generated::LauncherPackage>,
+    pub project_manager_package: Option<generated::ProjectManagerPackage>,
+    pub launcher_bundle:         Option<generated::LauncherBundle>,
+    pub project_manager_bundle:  Option<generated::ProjectManagerBundle>,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub struct BuiltPackageArtifacts {
-    pub engine:          Option<ComponentPaths>,
-    pub launcher:        Option<ComponentPaths>,
-    pub project_manager: Option<ComponentPaths>,
-}
-
-impl BuiltPackageArtifacts {
-    pub fn iter(&self) -> impl IntoIterator<Item = &ComponentPaths> {
-        [&self.engine, &self.launcher, &self.project_manager].into_iter().flat_map(|b| b.iter())
-    }
-}
-
-impl IntoIterator for BuiltPackageArtifacts {
-    type Item = ComponentPaths;
-    type IntoIter = std::iter::Flatten<std::array::IntoIter<Option<ComponentPaths>, 3_usize>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        [self.engine, self.launcher, self.project_manager].into_iter().flatten()
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub struct BuiltBundleArtifacts {
-    pub launcher:        Option<ComponentPaths>,
-    pub project_manager: Option<ComponentPaths>,
-}
-
-impl BuiltBundleArtifacts {
-    pub fn iter(&self) -> impl IntoIterator<Item = &ComponentPaths> {
-        [&self.project_manager, &self.launcher].into_iter().flat_map(|b| b.iter())
-    }
-}
-
-impl IntoIterator for BuiltBundleArtifacts {
-    type Item = ComponentPaths;
-    type IntoIter = std::iter::Flatten<std::array::IntoIter<Option<ComponentPaths>, 2_usize>>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        [self.launcher, self.project_manager].into_iter().flatten()
-    }
-}
-
-pub async fn create_packages(paths: &Paths) -> Result<Vec<PathBuf>> {
-    let mut ret = Vec::new();
-    if paths.launcher.root.exists() {
-        debug!("Packaging launcher.");
-        ret.push(package_component(&paths.launcher).await?);
-    }
-    Ok(ret)
-}
-
-#[async_trait]
-trait ComponentPathExt {
-    async fn pack(&self) -> Result;
-    fn clear(&self) -> Result;
-}
-
-#[async_trait]
-impl ComponentPathExt for ComponentPaths {
-    async fn pack(&self) -> Result {
-        ide_ci::archive::create(&self.artifact_archive, [&self.dir]).await
-    }
-    fn clear(&self) -> Result {
-        ide_ci::fs::remove_dir_if_exists(&self.root)?;
-        ide_ci::fs::remove_file_if_exists(&self.artifact_archive)
-    }
-}
-
-pub async fn package_component(paths: &ComponentPaths) -> Result<PathBuf> {
-    #[cfg(not(target_os = "windows"))]
-    {
-        let pattern = paths
-            .dir
-            .join_iter(["bin", "*"])
-            .with_extension(std::env::consts::EXE_EXTENSION)
-            .display()
-            .to_string();
-        for binary in glob::glob(&pattern)? {
-            ide_ci::fs::allow_owner_execute(binary?)?;
+impl BuiltArtifacts {
+    pub fn packages(&self) -> Vec<&dyn IsPackage> {
+        let mut packages = Vec::<&dyn IsPackage>::new();
+        if let Some(engine) = &self.engine_package {
+            packages.push(engine);
         }
+        if let Some(launcher) = &self.launcher_package {
+            packages.push(launcher);
+        }
+        if let Some(project_manager) = &self.project_manager_package {
+            packages.push(project_manager);
+        }
+        packages
     }
 
-    ide_ci::archive::create(&paths.artifact_archive, [&paths.root]).await?;
-    Ok(paths.artifact_archive.clone())
+    pub fn bundles(&self) -> Vec<&dyn IsBundle> {
+        let mut bundles = Vec::<&dyn IsBundle>::new();
+        if let Some(launcher) = &self.launcher_bundle {
+            bundles.push(launcher);
+        }
+        if let Some(project_manager) = &self.project_manager_bundle {
+            bundles.push(project_manager);
+        }
+        bundles
+    }
+
+    pub fn artifacts(&self) -> Vec<&dyn IsArtifact> {
+        let mut artifacts = Vec::<&dyn IsArtifact>::new();
+        for package in self.packages() {
+            artifacts.push(package);
+        }
+        for bundle in self.bundles() {
+            artifacts.push(bundle);
+        }
+        artifacts
+    }
 }
-
-//////////////////////////////////
-
 
 pub async fn deduce_graal(
     client: Octocrab,

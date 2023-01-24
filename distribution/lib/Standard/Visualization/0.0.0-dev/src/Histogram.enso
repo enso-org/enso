@@ -68,6 +68,4 @@ from_value value =
    - value: the value to be visualized.
 process_to_json_text : Any -> Text
 process_to_json_text value =
-    ## Workaround so that the JS String is converted to a Text
-       https://www.pivotaltracker.com/story/show/184061302
-    "" + (from_value value . to_json)
+    from_value value . to_json
