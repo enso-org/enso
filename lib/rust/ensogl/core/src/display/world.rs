@@ -272,7 +272,7 @@ impl WorldData {
         scene::with_symbol_registry(|_| {});
 
         let frp = frp.clone_ref();
-        let stats = debug::stats::Stats::new(web::window.performance_or_panic());
+        let stats = Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());

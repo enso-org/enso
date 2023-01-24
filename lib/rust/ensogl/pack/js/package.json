@@ -16,8 +16,9 @@
   },
   "scripts": {
     "typecheck": "npx tsc --noEmit",
-    "build": "npx --yes tsup src/runner/index.ts --dts --sourcemap",
-    "build-shader-extractor": "npx --yes tsup src/shader-extractor/shader-extractor.ts --dts --sourcemap",
+    "build": "npx --yes tsup src/runner/index.ts --format=cjs --dts --sourcemap",
+    "build-shader-extractor": "npx --yes tsup --format=cjs --target=esnext src/shader-extractor/shader-extractor.ts --dts --sourcemap",
+    "build-runtime-libs": "npx --yes esbuild --bundle --platform=node --format=cjs src/runtime-libs/runtime-libs.ts",
     "lint": "npx --yes eslint src"
   },
   "bugs": {
@@ -32,5 +33,8 @@
     "ts-node": "^10.9.1",
     "tsup": "^6.5.0",
     "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "spectorjs": "^0.9.27"
   }
 }

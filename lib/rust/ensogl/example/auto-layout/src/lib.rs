@@ -13,7 +13,6 @@ use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
 
 use ensogl_core::data::color;
-use ensogl_core::display;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_core::display::style::theme;

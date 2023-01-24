@@ -217,6 +217,7 @@ export class App {
             this.initBrowser()
             this.initialized = true
         }
+        host.exportGlobal({ ensoglApp: this })
     }
 
     /** Initialize the browser. Set the background color, print user-facing warnings, etc. */
@@ -260,15 +261,26 @@ export class App {
             /* eslint @typescript-eslint/no-implied-eval: "off" */
             /* eslint @typescript-eslint/no-unsafe-assignment: "off" */
             const snippetsFn: any = Function(
-                `const __dirname = 'undefined_dirname'
+                // A hack to make Emscripten output load correctly (e.g. 'msdf-gen'). Emscripten
+                // generates a code which overrides `module.exports` after checking if the code
+                // is run in node. The check is performed by checking the values of `process`.
+                // Setting it to something else prevents the code from running.
+                `const process = "Overridden to prevent Emscripten from redefining module.exports."
                  const module = {}
                  ${pkgJs}
-                 module.exports.init = pkg_default
                  return module.exports`
             )()
+            const out: unknown = await snippetsFn.init(wasm)
             /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
             /* eslint @typescript-eslint/no-unsafe-call: "off" */
-            const out: unknown = await snippetsFn.init(wasm)
+            if (host.browser) {
+                const spectorModule: unknown = snippetsFn.spector()
+                console.log(spectorModule)
+                // @ts-ignore
+                const spector = new spectorModule.Spector()
+                // @ts-ignore
+                spector.displayUI()
+            }
             return out
         })
     }
