@@ -72,47 +72,25 @@ spec setup =
             problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: duplicate indices" <|
+        Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = By_Index [0, 0, 0]
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors.Error [0, 0]]
-            Problems.test_problem_handling action problems tester
+            t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["foo"] t
 
-        Test.specify "should correctly handle problems: aliased indices" <|
+        Test.specify "should correctly handle edge-cases: aliased indices" <|
             selector = By_Index [0, -7, -6, 1]
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names ["foo", "bar"]
-            problem_checker problem =
-                problem.should_be_a Input_Indices_Already_Matched.Error
-                problem.indices.should_contain_the_same_elements_as [-7, 1]
-                True
-            err_checker err =
-                problem_checker err.catch
-            warn_checker warnings =
-                warnings.all problem_checker
-            Problems.test_advanced_problem_handling action err_checker warn_checker tester
+            t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["foo", "bar"] t
 
-        Test.specify "should correctly handle problems: duplicate names" <|
+        Test.specify "should correctly handle edge-cases: duplicate names" <|
             selector = By_Name ["foo", "foo"]
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
-            Problems.test_problem_handling action problems tester
+            t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["foo"] t
 
-        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
+        Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name.new ["FOO", "foo"] Text_Matcher.Case_Insensitive
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
-            Problems.test_problem_handling action problems tester
+            t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["foo"] t
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
@@ -120,14 +98,6 @@ spec setup =
             action = table.select_columns selector on_problems=_
             tester = expect_column_names ["foo"]
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle problems: duplicate columns" <|
-            foo = table.at "foo"
-            selector = By_Column [foo, foo]
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names ["foo"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -147,13 +117,7 @@ spec setup =
                 t = table.select_columns (By_Index []) on_problems=pb
                 t.should_fail_with No_Output_Columns
 
-        Test.specify "should correctly handle multiple problems" <|
             table.select_columns (By_Name ["hmmm"]) . should_fail_with No_Output_Columns
-
-            action = table.select_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
-            tester = expect_column_names ["foo"]
-            Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.remove_columns" <|
         Test.specify "should work as shown in the doc examples" <|
@@ -197,40 +161,25 @@ spec setup =
             problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: duplicate indices" <|
+        Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = By_Index [0, 0, 0]
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors.Error [0, 0]]
-            Problems.test_problem_handling action problems tester
+            t = table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] t
 
-        Test.specify "should correctly handle problems: aliased indices" <|
+        Test.specify "should correctly handle edge-cases: aliased indices" <|
             selector = By_Index [0, -7, -6, 1]
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Input_Indices_Already_Matched.Error [-7, 1]]
-            Problems.test_problem_handling action problems tester
+            t = table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]  t
 
-        Test.specify "should correctly handle problems: duplicate names" <|
+        Test.specify "should correctly handle edge-cases: duplicate names" <|
             selector = By_Name ["foo", "foo"]
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
-            Problems.test_problem_handling action problems tester
+            t = table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] t
 
-        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
+        Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" pending="TODO needs fixing" <|
-            selector = By_Name.new ["FOO", "foo"] Text_Matcher.Case_Insensitive
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
-            Problems.test_problem_handling action problems tester
+            t = table.remove_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"] t
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
@@ -238,14 +187,6 @@ spec setup =
             action = table.remove_columns selector on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle problems: duplicate columns" <|
-            foo = table.at "foo"
-            selector = By_Column [foo, foo]
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -266,15 +207,9 @@ spec setup =
                 t = table.remove_columns selector on_problems=pb
                 t.should_fail_with No_Output_Columns
 
-        Test.specify "should correctly handle multiple problems" <|
-            selector = By_Name [".*", "hmmm"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive)
-            t1 = table.remove_columns selector
+            selector_2 = By_Name [".*", "hmmm"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive)
+            t1 = table.remove_columns selector_2
             t1.should_fail_with No_Output_Columns
-
-            action_2 = table.remove_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
-            tester_2 = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            Problems.test_problem_handling action_2 problems_2 tester_2
 
     Test.group prefix+"Table.reorder_columns" <|
         Test.specify "should work as shown in the doc examples" <|
@@ -318,26 +253,20 @@ spec setup =
             problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
             Problems.test_problem_handling action problems tester
 
-        Test.specify "should correctly handle problems: duplicate indices" <|
+        Test.specify "should correctly handle edge-cases: duplicate indices" <|
             selector = By_Index [0, 0, 0]
-            action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors.Error [0, 0]]
-            Problems.test_problem_handling action problems tester
+            t = table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] t
 
-        Test.specify "should correctly handle problems: aliased indices" <|
+        Test.specify "should correctly handle edge-cases: aliased indices" <|
             selector = By_Index [0, -7, -6, 1]
-            action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
-            tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo", "bar"]
-            problems = [Input_Indices_Already_Matched.Error [-7, 1]]
-            Problems.test_problem_handling action problems tester
+            t = table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo", "bar"] t
 
-        Test.specify "should correctly handle problems: duplicate names" <|
+        Test.specify "should correctly handle edge-cases: duplicate names" <|
             selector = By_Name ["foo", "foo"]
-            action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
-            Problems.test_problem_handling action problems tester
+            t = table.reorder_columns selector Position.After_Other_Columns on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"] t
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
@@ -345,14 +274,6 @@ spec setup =
             action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
             tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
             problems = [Missing_Input_Columns.Error ["hmm", weird_name]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle problems: duplicate columns" <|
-            foo = table.at "foo"
-            selector = By_Column [foo, foo]
-            action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
-            problems = [Duplicate_Column_Selectors.Error ["foo"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched columns" <|
@@ -365,12 +286,6 @@ spec setup =
             action = table.reorder_columns selector Position.After_Other_Columns on_problems=_
             tester = expect_column_names ["Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar", "foo"]
             problems = [Missing_Input_Columns.Error ["weird_column"]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle multiple problems" <|
-            action = table.reorder_columns (By_Index [0, -7, 0, 100]) Position.After_Other_Columns on_problems=_
-            problems = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
-            tester = expect_column_names ["bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "foo"]
             Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.sort_columns" <|
@@ -465,8 +380,9 @@ spec setup =
             map = Column_Name_Mapping.By_Column [[table.at "alpha", "FirstColumn"], [table.at "alpha", "Another"]]
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["FirstColumn", "beta", "gamma", "delta"]
-            problems = [Duplicate_Column_Selectors.Error ["alpha"]]
-            Problems.test_problem_handling action problems tester
+            Error.throw "TODO what to do with this one?"
+            # problems = [Duplicate_Column_Selectors.Error ["alpha"]]
+            # Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'

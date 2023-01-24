@@ -254,8 +254,6 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
            `Input_Indices_Already_Matched`, with the column included the first
@@ -308,8 +306,6 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
            `Input_Indices_Already_Matched`, with the column included the first
@@ -361,8 +357,6 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
            `Input_Indices_Already_Matched`, with the column included the first
@@ -442,11 +436,7 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
          - If in `By_Position` mode and more names than columns are provided,
            a `Too_Many_Column_Names_Provided`.
          - If any of the new names are invalid, an
@@ -564,11 +554,7 @@ type Table
          warning by default. The following problems can occur:
          - If a column in `columns` is not present in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
          - If two name matchers match the same column, a
            `Column_Matched_By_Multiple_Selectors`.
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
@@ -676,11 +662,7 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`.
          - If no valid columns are selected, a `No_Input_Columns_Selected`.
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
@@ -789,8 +771,6 @@ type Table
 
          The following problems can occur:
          - If a column in columns is not in the input table, a `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
            `Input_Indices_Already_Matched`, with the column included the first
@@ -1400,8 +1380,6 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
-         - If duplicate columns, names or indices are provided, a
-           `Duplicate_Column_Selectors`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If two distinct indices refer to the same column, an
            `Input_Indices_Already_Matched`, with the column included the first
@@ -1447,11 +1425,6 @@ type Table
          - If a column in the input is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - In `grouping`, if duplicate column names or indices are provided, a
-           `Duplicate_Column_Selectors`.
-         - In `grouping`, If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If grouping on, using as the column name, or computing the `Mode` on
            a floating point number, a `Floating_Point_Grouping`.
          - If an aggregation fails, an `Invalid_Aggregation`.

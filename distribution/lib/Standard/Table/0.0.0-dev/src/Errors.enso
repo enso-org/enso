@@ -79,14 +79,6 @@ type No_Output_Columns
     to_display_text self =
         "The result contains no columns."
 
-## Indicates that the provided Column_Selector has duplicate entries.
-type Duplicate_Column_Selectors
-    Error (duplicate_selectors : [(Text | Integer)])
-
-    to_display_text : Text
-    to_display_text self =
-        "The provided Column_Selector has duplicate entries: "+self.duplicate_selectors.short_display_text+"."
-
 ## Indicates that one column has been matched by multiple selectors.
 
    In case the selectors have differing metadata and the error does not prevent
@@ -100,19 +92,6 @@ type Column_Matched_By_Multiple_Selectors
     to_display_text : Text
     to_display_text self =
         'The column "' + self.column_name + '" is matched by multiple selectors: ' + self.selectors.short_display_text + "."
-
-## Indicates that the provided indices matched columns already matched by
-   others, so they do not introduce any new columns to the input.
-
-  For example, if the table has only one column, then selecting
-  `By_Index [0, -1]` will only yield this single column and
-  `Input_Indices_Already_Matched [-1]` will be raised.
-type Input_Indices_Already_Matched
-    Error (indices : [Integer])
-
-    to_display_text : Text
-    to_display_text self =
-        "The indices "+self.indices.short_display_text+" matched columns which have been matched earlier by other indices, so they did not introduce any new columns into the result."
 
 ## Indicates that no input columns were selected for the operation, so the
    operation will cause no effect.
