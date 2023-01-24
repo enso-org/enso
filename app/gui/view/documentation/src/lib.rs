@@ -50,9 +50,7 @@ use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
-use enso_frp::io::timer::DelayedInterval;
 use enso_suggestion_database::documentation_ir::EntryDocumentation;
-use ensogl::animation::delayed::DelayedAnimation;
 use ensogl::animation::physics::inertia::Spring;
 use ensogl::application::Application;
 use ensogl::display;
@@ -60,7 +58,6 @@ use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::HtmlDivElement;
 use ensogl::Animation;
 use ensogl_component::shadow;
 use web::Closure;
@@ -320,8 +317,8 @@ impl View {
         let overlay = &model.overlay;
         let visualization = &self.visualization_frp;
         let frp = &self.frp;
-        let display_delay = frp::io::timer::Timeout::new(&network);
-        let caption_anim = Animation::<f32>::new(&network);
+        let display_delay = frp::io::timer::Timeout::new(network);
+        let caption_anim = Animation::<f32>::new(network);
         caption_anim.set_spring.emit(Spring::default() * CAPTION_ANIMATION_SPRING_MULTIPLIER);
         frp::extend! { network
             init <- source_();

@@ -621,6 +621,7 @@ pub fn anchor_name(name: &QualifiedName) -> String {
 // === Caption ===
 // ===============
 
+/// "Hovered item preview" caption on top of the documentation panel.
 pub fn caption_html() -> String {
     owned_html! {
         div(class="bg-captionBackground rounded-t-[14px] w-full h-full flex items-center justify-center") {
