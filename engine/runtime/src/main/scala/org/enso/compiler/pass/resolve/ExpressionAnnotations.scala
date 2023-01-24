@@ -8,8 +8,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.ModuleAnnotations.Annotations
 
-import scala.annotation.unused
-
 case object ExpressionAnnotations extends IRPass {
   val tailCallName      = "@Tail_Call"
   val builtinMethodName = "@Builtin_Method"
@@ -62,7 +60,7 @@ case object ExpressionAnnotations extends IRPass {
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 
@@ -71,7 +69,7 @@ case object ExpressionAnnotations extends IRPass {
   ): IR.Expression =
     ir.transformExpressions {
       case app @ IR.Application.Prefix(
-            ann: IR.Name.Annotation,
+            ann: IR.Name.BuiltinAnnotation,
             arguments,
             _,
             _,
@@ -104,7 +102,7 @@ case object ExpressionAnnotations extends IRPass {
             IR.Error.Resolution(ann, IR.Error.Resolution.UnknownAnnotation)
           app.copy(function = err)
         }
-      case ann: IR.Name.Annotation =>
+      case ann: IR.Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {
           IR.Error.Resolution(
             ann,
@@ -120,7 +118,7 @@ case object ExpressionAnnotations extends IRPass {
     * @param name the annotation name to check
     * @return `true` if `name` is a known annotation, otherwise `false`
     */
-  def isKnownAnnotation(name: String): Boolean = {
+  private def isKnownAnnotation(name: String): Boolean = {
     knownAnnotations.contains(name)
   }
 }
