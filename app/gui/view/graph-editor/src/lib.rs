@@ -2943,7 +2943,7 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
         input_start_creation_way <- inputs.start_node_creation.map(f_!([scene]
-            // Only start node creation if nothing else has focus. This is to prevent
+            // Only start node creation if nothing is focused. This is to prevent
             // creating nodes when we are editing texts and press enter.
             scene.focused_instance().is_none().then_some(WayOfCreatingNode::StartCreationEvent)
         )).unwrap();
