@@ -27,8 +27,6 @@ import org.enso.compiler.pass.resolve.{
 }
 import org.enso.compiler.core.ir.MetadataStorage._
 
-import scala.annotation.unused
-
 /** Desugars complex type definitions to simple type definitions in the module
   * scope.
   *
@@ -75,7 +73,7 @@ case object ComplexType extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    @unused moduleContext: ModuleContext
+    moduleContext: ModuleContext
   ): IR.Module =
     ir.copy(
       bindings = ir.bindings.flatMap {
@@ -94,12 +92,12 @@ case object ComplexType extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = ir
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 
@@ -110,12 +108,25 @@ case object ComplexType extends IRPass {
     * @param typ the type definition to desugar
     * @return the top-level definitions corresponding to the desugaring of `typ`
     */
-  def desugarComplexType(
+  private def desugarComplexType(
     typ: IR.Module.Scope.Definition.SugaredType
   ): List[IR.Module.Scope.Definition] = {
-    val annotations = typ.getMetadata(ModuleAnnotations)
+    val annotations     = typ.getMetadata(ModuleAnnotations)
+    var lastAnnotations = Seq.empty[IR.Name.GenericAnnotation]
+    var seenAnnotations = Set.empty[IR.Name.GenericAnnotation]
     val atomDefs = typ.body
-      .collect { case d: IR.Module.Scope.Definition.Data => d }
+      .flatMap {
+        case ann: IR.Name.GenericAnnotation =>
+          lastAnnotations :+= ann
+          None
+        case d: IR.Module.Scope.Definition.Data =>
+          val res = Some(d.copy(annotations = d.annotations ++ lastAnnotations))
+          seenAnnotations ++= lastAnnotations
+          lastAnnotations = Seq()
+          res
+        case _ =>
+          None
+      }
       // TODO[MK] this is probably removable
       .map(atom =>
         annotations
@@ -133,6 +144,7 @@ case object ComplexType extends IRPass {
 
     val remainingEntities = typ.body.filterNot {
       case _: IR.Module.Scope.Definition.Data => true
+      case ann: IR.Name.GenericAnnotation     => seenAnnotations.contains(ann)
       case _                                  => false
     }
 
@@ -185,7 +197,8 @@ case object ComplexType extends IRPass {
         matchSignaturesAndGenerate(name, binding)
       case funSugar @ IR.Function.Binding(name, _, _, _, _, _, _) =>
         matchSignaturesAndGenerate(name, funSugar)
-      case err: IR.Error => Seq(err)
+      case err: IR.Error                  => Seq(err)
+      case ann: IR.Name.GenericAnnotation => Seq(ann)
       case _ =>
         throw new CompilerError("Unexpected IR node in complex type body.")
     }
@@ -217,11 +230,11 @@ case object ComplexType extends IRPass {
     * The signature _must_ correctly match the method definition.
     *
     * @param ir the definition to generate a method from
-    * @param names the names on which the method is being defined
+    * @param typeName the type name on which the method is being defined
     * @param signature the type signature for the method, if it exists
     * @return `ir` as a method
     */
-  def genMethodDef(
+  private def genMethodDef(
     ir: IR,
     typeName: IR.Name,
     signature: Option[IR.Type.Ascription]
@@ -280,7 +293,7 @@ case object ComplexType extends IRPass {
     * @param signature the method's type signature, if it exists
     * @return a top-level method definition
     */
-  def genForName(
+  private def genForName(
     typeName: IR.Name,
     name: IR.Name,
     args: List[IR.DefinitionArgument],

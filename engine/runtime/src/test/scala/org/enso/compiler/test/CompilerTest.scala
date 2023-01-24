@@ -1,5 +1,6 @@
 package org.enso.compiler.test
 
+import org.enso.compiler.EnsoCompiler
 import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
@@ -17,6 +18,8 @@ import org.enso.pkg.QualifiedName
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
+
+  def useRustParser: Boolean = false
 
   // === IR Utilities =========================================================
 
@@ -61,7 +64,13 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]]
       */
     def toIrModule: IR.Module = {
-      AstToIr.translate(source.toAst)
+      if (useRustParser) {
+        val compiler = new EnsoCompiler()
+        try compiler.compile(source)
+        finally compiler.close()
+      } else {
+        AstToIr.translate(source.toAst)
+      }
     }
   }
 
@@ -208,6 +217,7 @@ trait CompilerRunner {
               None
             )
         ),
+        List(),
         None
       )
     }

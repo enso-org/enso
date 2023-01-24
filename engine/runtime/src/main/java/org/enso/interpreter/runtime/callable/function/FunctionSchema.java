@@ -3,8 +3,11 @@ package org.enso.interpreter.runtime.callable.function;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+
+import java.util.Arrays;
 
 /**
  * Holds the definition site argument information together with information on the partially applied
@@ -34,32 +37,35 @@ public final class FunctionSchema {
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
+  private final @CompilationFinal(dimensions = 1) Annotation[] annotations;
   private final boolean hasAnyPreApplied;
   private final boolean hasOversaturatedArguments;
   private final CallerFrameAccess callerFrameAccess;
-
   private final boolean isFullyApplied;
 
   /**
    * Creates an {@link FunctionSchema} instance.
    *
    * @param callerFrameAccess the declaration of whether access to caller frame is required for this
-   *     function
-   * @param argumentInfos Definition site arguments information
+   *     function.
+   * @param argumentInfos Definition site arguments information.
    * @param hasPreApplied A flags collection such that {@code hasPreApplied[i]} is true iff a
-   *     function has a partially applied argument at position {@code i}
+   *     function has a partially applied argument at position {@code i}.
    * @param oversaturatedArguments information about any unused, oversaturated arguments passed to
-   *     this function so far
+   *     this function so far.
+   * @param annotations the list of annotations defined on this function.
    */
   public FunctionSchema(
       CallerFrameAccess callerFrameAccess,
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
-      CallArgumentInfo[] oversaturatedArguments) {
+      CallArgumentInfo[] oversaturatedArguments,
+      Annotation[] annotations) {
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
     this.callerFrameAccess = callerFrameAccess;
+    this.annotations = annotations;
     boolean hasAnyPreApplied = false;
     for (boolean b : hasPreApplied) {
       if (b) {
@@ -77,15 +83,20 @@ public final class FunctionSchema {
    * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
    * arguments.
    *
-   * @param callerFrameAccess the declaration of need to access the caller frame from the function
-   * @param argumentInfos Definition site arguments information
+   * @param callerFrameAccess the declaration of need to access the caller frame from the function.
+   * @param argumentInfos Definition site arguments information.
+   * @param annotations the list of annotations defined on this function.
    */
-  public FunctionSchema(CallerFrameAccess callerFrameAccess, ArgumentDefinition... argumentInfos) {
+  public FunctionSchema(
+      CallerFrameAccess callerFrameAccess,
+      Annotation[] annotations,
+      ArgumentDefinition... argumentInfos) {
     this(
         callerFrameAccess,
         argumentInfos,
         new boolean[argumentInfos.length],
-        new CallArgumentInfo[0]);
+        new CallArgumentInfo[0],
+        annotations);
   }
 
   /**
@@ -94,10 +105,23 @@ public final class FunctionSchema {
    *
    * <p>Caller frame access is assumed to be {@link CallerFrameAccess#NONE}.
    *
+   * @param annotations the list of annotations defined on this function.
+   * @param argumentInfos Definition site arguments information.
+   */
+  public FunctionSchema(Annotation[] annotations, ArgumentDefinition... argumentInfos) {
+    this(CallerFrameAccess.NONE, annotations, argumentInfos);
+  }
+
+  /**
+   * Creates an {@link FunctionSchema} instance assuming the function has no annotations or
+   * partially applied arguments.
+   *
+   * <p>Caller frame access is assumed to be {@link CallerFrameAccess#NONE}.
+   *
    * @param argumentInfos Definition site arguments information
    */
   public FunctionSchema(ArgumentDefinition... argumentInfos) {
-    this(CallerFrameAccess.NONE, argumentInfos);
+    this(CallerFrameAccess.NONE, new Annotation[0], argumentInfos);
   }
 
   /**
@@ -194,6 +218,25 @@ public final class FunctionSchema {
    */
   public CallerFrameAccess getCallerFrameAccess() {
     return callerFrameAccess;
+  }
+
+  /** @return annotations defined on this function. */
+  public Annotation[] getAnnotations() {
+    return annotations;
+  }
+
+  /**
+   * Finds annotation by name.
+   *
+   * @param name the annotation name.
+   * @return the matching annotation expression.
+   */
+  @CompilerDirectives.TruffleBoundary
+  public Annotation getAnnotation(String name) {
+    return Arrays.stream(annotations)
+        .filter(annotation -> annotation.getName().equals(name))
+        .findFirst()
+        .orElse(null);
   }
 
   /**
