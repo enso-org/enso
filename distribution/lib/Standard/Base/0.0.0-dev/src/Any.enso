@@ -1,4 +1,7 @@
 import project.Data.Ordering.Ordering
+# TODO: Will this import also the conversion methods Comparable.from (_:Any) = Default_Comparator ... ?
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Incomparable
 import project.Data.Pair.Pair
 import project.Data.Range.Extensions
 import project.Data.Text.Text
@@ -101,7 +104,18 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that = @Builtin_Method "Any.=="
+    == self that =
+        eq_self = Comparable.from self
+        eq_that = Comparable.from that
+        if eq_self.is_a Incomparable then False else
+            similar_type = eq_self == eq_that
+            if similar_type.not then False else
+                hash_self = eq_self.hash self
+                hash_that = eq_that.hash that
+                if hash_self != hash_that then False else
+                    case eq_self.is_ordered of
+                        True -> eq_self.compare self that == Ordering.Equal
+                        False -> eq_self.equals self that
 
     ## ALIAS Inequality
 
@@ -149,7 +163,9 @@ type Any
                  a = 7 * 28
                  a > 147
     > : Any -> Boolean
-    > self that = self.compare_to that == Ordering.Greater
+    > self that =
+        assert_ordered_comparators self that <|
+            (Comparable.from self).compare self that == Ordering.Greater
 
     ## ALIAS Greater Than or Equal
 
@@ -176,8 +192,11 @@ type Any
                  a >= 147
     >= : Any -> Boolean
     >= self that =
-        ordering = self.compare_to that
-        (ordering == Ordering.Greater) || (ordering == Ordering.Equal)
+        assert_ordered_comparators self that <|
+            case (Comparable.from self).compare self that of
+                Ordering.Less -> False
+                Ordering.Equal -> True
+                Ordering.Greater -> True
 
     ## ALIAS Less Than
 
@@ -202,7 +221,9 @@ type Any
                  a = 7 * 21
                  a < 147
     < : Any -> Boolean
-    < self that = self.compare_to that == Ordering.Less
+    < self that =
+        assert_ordered_comparators self that <|
+            (Comparable.from self).compare self that == Ordering.Less
 
     ## ALIAS Less Than or Equal
 
@@ -229,8 +250,11 @@ type Any
                  a < 147
     <= : Any -> Boolean
     <= self that =
-        ordering = self.compare_to that
-        (ordering == Ordering.Less) || (ordering == Ordering.Equal)
+        assert_ordered_comparators self that <|
+            case (Comparable.from self).compare self that of
+                Ordering.Less -> True
+                Ordering.Equal -> True
+                Ordering.Greater -> False
 
     ## Checks if the type is an instance of `Nothing`.
 
@@ -396,3 +420,17 @@ type Any
              (+1 >> *2) 2
     >> : (Any -> Any) -> (Any -> Any) -> Any -> Any
     >> self ~that = x -> that (self x)
+
+    ## PRIVATE
+       Checks if both comparators of the given objects are both of same type and ordered.
+       If they are not of same type, a `Type_Error` is thrown.
+       If the comparators are either `Incomparable`, or unordered, `False` is returned.
+    assert_ordered_comparators : Any -> Any -> (Any -> Any) -> Any
+    assert_ordered_comparators this that ~action =
+        comp_this = Comparable.from this
+        comp_that = Comparable.from that
+        case Meta.type_of comp_this == Meta.type_of comp_that of
+            False ->
+                Error.throw Incomparable_Values
+            True ->
+                if comp_this.is_a Incomparable || comp_this.is_ordered.not then False else action

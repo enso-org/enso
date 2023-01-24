@@ -42,8 +42,17 @@ import org.enso.polyglot.MethodNames;
 
 @BuiltinMethod(
     type = "Any",
-    name = "==",
-    description = "Implementation of Any.=="
+    name = "equals_builtin",
+    description = """
+      Compares self with other object and returns True iff `self` is exactly the same as
+      the other object, including all its transitively accessible properties or fields.
+      Can handle arbitrary objects, including all foreign objects.
+      
+      Does not throw exceptions.
+      
+      Note that this is different than `Meta.is_same_object`, which checks whether two
+      references point to the same object on the heap.
+      """
 )
 @GenerateUncached
 public abstract class EqualsAnyNode extends Node {
