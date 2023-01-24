@@ -787,6 +787,9 @@ spec =
 
         Test.specify "should check for contains using Unicode normalization" <|
             "Hello".contains "ell" . should_be_true
+            "Hello".contains "eLl" . should_be_false
+            "Hello".contains "ell" Case_Sensitivity.Default . should_be_true
+            "Hello".contains "eLl" Case_Sensitivity.Default . should_be_false
 
             "Cześć".contains 's\u{301}' . should_be_true
             "Cześć".contains 'c\u{301}' . should_be_true
@@ -805,6 +808,12 @@ spec =
             "abc" . contains "" . should_be_true
             "" . contains "" . should_be_true
             "foo foo foo" . contains "foo" . should_be_true
+
+            "ABC" . contains "a" Case_Sensitivity.Default . should_be_false
+            "" . contains "foo" Case_Sensitivity.Default . should_be_false
+            "abc" . contains "" Case_Sensitivity.Default . should_be_true
+            "" . contains "" Case_Sensitivity.Default . should_be_true
+            "foo foo foo" . contains "foo" Case_Sensitivity.Default . should_be_true
 
             "Hello!".contains "lo" . should_be_true
             "Hello!".contains "Lo" . should_be_false
@@ -829,6 +838,9 @@ spec =
 
         Test.specify "should check for starts_with using Unicode normalization" <|
             "Hello".starts_with "He" . should_be_true
+            "Hello".starts_with "he" . should_be_false
+            "Hello".starts_with "He" Case_Sensitivity.Default . should_be_true
+            "Hello".starts_with "he" Case_Sensitivity.Default . should_be_false
 
             "Ściana".starts_with 'S\u{301}' . should_be_true
             "Ściana".starts_with 'Ś' . should_be_true
@@ -839,6 +851,8 @@ spec =
 
             "ABC" . starts_with "A" . should_be_true
             "ABC" . starts_with "a" . should_be_false
+            "ABC" . starts_with "A" Case_Sensitivity.Default . should_be_true
+            "ABC" . starts_with "a" Case_Sensitivity.Default . should_be_false
             "" . starts_with "foo" . should_be_false
             "abc" . starts_with "" . should_be_true
             "" . starts_with "" . should_be_true
@@ -873,6 +887,8 @@ spec =
         Test.specify "should check for ends_with using Unicode normalization" <|
             "Hello".ends_with "lo" . should_be_true
             "Hello".ends_with "LO" . should_be_false
+            "Hello".ends_with "lo" Case_Sensitivity.Default . should_be_true
+            "Hello".ends_with "LO" Case_Sensitivity.Default . should_be_false
 
             "rzeczywistość".ends_with 'c\u{301}' . should_be_true
             "rzeczywistość".ends_with 'ć' . should_be_true
