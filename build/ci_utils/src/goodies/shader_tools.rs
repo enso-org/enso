@@ -12,15 +12,26 @@ use crate::programs::spirv_cross::SpirvCross;
 /// Repository where we store releases of the shader tools.
 pub const SHADER_TOOLS_REPO: RepoRef = RepoRef { owner: "enso-org", name: "shader-tools" };
 
+pub const VERSION: Version = Version::new(0, 1, 0);
+
+pub fn asset_name(os: OS) -> String {
+    // At the moment we don't have non-x64 binaries, so we can hardcode the architecture.
+    let arch = Arch::X86_64;
+    format!("shader-tools-{os}-{arch}.tar.gz")
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ShaderTools;
 
 impl Goodie for ShaderTools {
     fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
-        let url = format!(
-            "{SHADER_TOOLS_REPO}/releases/download/0.1.0/shader-tools-{TARGET_OS}-x86_64.tar.gz"
-        );
-        let url = Url::from_str(&url);
+        let url = SHADER_TOOLS_REPO.url().and_then(|url_base| {
+            let asset = asset_name(TARGET_OS);
+            let suffix = format!("releases/download/{VERSION}/{asset}");
+            url_base
+                .join(&suffix)
+                .with_context(|| "Failed to append suffix {suffix} to URL {url_base}")
+        });
         goodie::download_try_url(url, cache)
     }
 
