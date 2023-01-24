@@ -121,7 +121,7 @@ case object ComplexType extends IRPass {
           None
         case d: IR.Module.Scope.Definition.Data =>
           val res = Some(d.copy(annotations = d.annotations ++ lastAnnotations))
-          lastAnnotations.foreach(seenAnnotations += _)
+          seenAnnotations ++= lastAnnotations
           lastAnnotations = Seq()
           res
         case _ =>
