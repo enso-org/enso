@@ -377,6 +377,9 @@ public final class Module implements TruffleObject {
     if (start + length == src.getLength() + 1) {
       length--;
     }
+    if (start + length > src.getLength()) {
+      return null;
+    }
     return src.createSection(start, length);
   }
 
