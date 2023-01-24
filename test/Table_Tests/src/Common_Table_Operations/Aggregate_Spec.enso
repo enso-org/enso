@@ -1324,7 +1324,7 @@ spec setup =
 
         Test.specify "should merge Invalid Aggregation warnings" <|
             new_table = table.aggregate [Group_By "Key", Concatenate "Value"]
-            problems = Warning.get_all new_table . map .value
+            problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
             problems.at 0 . is_a Invalid_Aggregation.Error . should_be_true
             problems.at 0 . column . should_equal "Concatenate Value"
@@ -1332,7 +1332,7 @@ spec setup =
 
         Test.specify "should merge Floating Point Grouping warnings" <|
             new_table = table.aggregate [Group_By "Float", Count]
-            problems = Warning.get_all new_table . map .value
+            problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
             problems.at 0 . is_a Floating_Point_Grouping.Error . should_be_true
             problems.at 0 . column . should_equal "Float"
@@ -1343,7 +1343,7 @@ spec setup =
                 result.column_count . should_equal 1
                 result.row_count . should_equal 1
                 result.columns.first.to_vector . should_equal [6]
-                warnings = Warning.get_all result . map .value
+                warnings = Problems.get_attached_warnings result
                 warnings.length . should_equal error_count
                 warnings.each warning->
                     warning.should_be_an Unsupported_Database_Operation.Error

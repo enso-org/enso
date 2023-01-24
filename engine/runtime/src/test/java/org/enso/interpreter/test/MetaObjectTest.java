@@ -21,25 +21,22 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MetaObjectTest {
+public class MetaObjectTest extends TestBase {
   private Context ctx;
 
   @Before
-  public void prepareCtx() throws Exception {
-    Engine eng =
-        Engine.newBuilder()
-            .allowExperimentalOptions(true)
-            .logHandler(new ByteArrayOutputStream())
-            .option(
-                RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-                Paths.get("../../distribution/component").toFile().getAbsolutePath())
-            .build();
-    this.ctx = Context.newBuilder().engine(eng).allowIO(true).allowAllAccess(true).build();
-    final Map<String, Language> langs = ctx.getEngine().getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
+  public void prepareCtx() {
+    ctx = createDefaultContext();
+  }
+
+  @After
+  public void disposeCtx() {
+    ctx.close();
   }
 
   @Test

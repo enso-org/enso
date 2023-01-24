@@ -788,6 +788,94 @@ type Table
             problem_builder.attach_problems_before on_problems <|
                 self.connection.dialect.prepare_join self.connection sql_join_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
 
+    ## ALIAS Cartesian Join
+       Joins tables by pairing every row of the left table with every row of the
+       right table.
+
+       Arguments:
+       - right: The table to join with.
+       - right_row_limit: If the number of rows in the right table exceeds this,
+         then a `Cross_Join_Row_Limit_Exceeded` problem is raised. The check
+         exists to avoid exploding the size of the table by accident. This check
+         can be disabled by setting this parameter to `Nothing`.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If the `right` table has more rows than the `right_row_limit` allows,
+           a `Cross_Join_Row_Limit_Exceeded` is reported. In warning/ignore
+           mode, the join is still executed.
+
+       ? Column Renaming
+
+         If columns from the two tables have colliding names, a prefix (by
+         default `Right_`) is added to the name of the column from the right
+         table. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent `_1`, `_2` etc.
+
+       ? Result Ordering
+
+         Rows in the result are first ordered by the order of the corresponding
+         rows from the left table and then the order of rows from the right
+         table. This applies only if the order of the rows was specified (for
+         example, by sorting the table; in-memory tables will keep the memory
+         layout order while for database tables the order may be unspecified).
+    cross_join : Table -> Integer | Nothing -> Table
+    cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
+        _ = [right, right_row_limit, right_prefix, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.cross_join is not implemented yet for the Database backends.")
+
+    ## ALIAS Join By Row Position
+       Joins two tables by zipping rows from both tables table together - the
+       first row of the left table is correlated with the first one of the right
+       one etc.
+
+       Arguments:
+       - right: The table to join with.
+       - keep_unmatched: If set to `True`, the result will include as many rows
+         as the larger of the two tables - the last rows of the larger table
+         will have nulls for columns of the smaller one. If set to `False`, the
+         result will have as many rows as the smaller of the two tables - the
+         additional rows of the larger table will be discarded. The default
+         value is `Report_Unmatched` which means that the user expects that two
+         tables should have the same amount of rows; if they do not, the
+         behaviour is the same as if it was set to `True` - i.e. the unmatched
+         rows are kept with `Nothing` values for the other table, but a
+         `Row_Count_Mismatch` problem is also reported.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If the tables have different number of rows and `keep_unmatched` is
+           set to `Report_Unmatched`, the join will report `Row_Count_Mismatch`.
+
+       ? Column Renaming
+
+         If columns from the two tables have colliding names, a prefix (by
+         default `Right_`) is added to the name of the column from the right
+         table. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent `_1`, `_2` etc.
+
+       ? Row Ordering
+
+         This operation requires a well-defined order of rows in the input
+         tables. In-memory tables rely on the ordering stemming directly from
+         their layout in memory. Database tables may not impose a deterministic
+         ordering. If the table defines a primary key, it is used to by default
+         to ensure deterministic ordering. That can be overridden by specifying
+         a different ordering using `Table.order_by`. If no primary key was
+         defined nor any ordering was specified explicitly by the user, the
+         order of columns is undefined and the operation will fail, reporting a
+         `Undefined_Column_Order` problem and returning an empty table.
+    zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
+    zip self right keep_unmatched=Report_Unmatched right_prefix="Right_" on_problems=Report_Warning =
+        _ = [right, keep_unmatched, right_prefix, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.zip is not implemented yet for the Database backends.")
+
     ## ALIAS append, concat
        Appends records from other table(s) to this table.
 

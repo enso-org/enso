@@ -22,20 +22,10 @@ pub enum SectionId {
     Popular,
     /// The "Local Scope" section.
     LocalScope,
-    /// The "Sub-Modules" section.
-    SubModules,
+    /// A namespace section defined by its position in the list of namespaces.
+    Namespace(usize),
 }
 
-impl SectionId {
-    /// Return a displayed name of the section.
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Popular => "Popular",
-            Self::LocalScope => "Local",
-            Self::SubModules => "Modules",
-        }
-    }
-}
 
 
 // === GroupId ===
@@ -162,4 +152,6 @@ pub struct Info {
     pub groups:                  Vec<Group>,
     /// A number of entries in Local Scope section.
     pub local_scope_entry_count: usize,
+    /// The number of namespace sections that are available.
+    pub namespace_section_count: usize,
 }

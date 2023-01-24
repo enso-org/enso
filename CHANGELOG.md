@@ -81,6 +81,8 @@
 - [Added shortcut to interrupt the program][3967]
 - [Added suggestion dropdown for function arguments][4013]. The dropdown is
   present only when the argument is of type that has a predefined set of values.
+- [Separate component browser navigator sections for modules imported from
+  different namespaces][4044]
 
 #### EnsoGL (rendering engine)
 
@@ -278,6 +280,8 @@
   to the types.][4026]
 - [Implemented `Table.distinct` for Database backends.][4027]
 - [Implemented `Table.union` for the in-memory backend.][4052]
+- [Implemented `Table.cross_join` and `Table.zip` for the in-memory
+  backend.][4063]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -429,11 +433,14 @@
 [3964]: https://github.com/enso-org/enso/pull/3964
 [3967]: https://github.com/enso-org/enso/pull/3967
 [3987]: https://github.com/enso-org/enso/pull/3987
+[3878]: https://github.com/enso-org/enso/pull/3878
 [3997]: https://github.com/enso-org/enso/pull/3997
 [4013]: https://github.com/enso-org/enso/pull/4013
 [4026]: https://github.com/enso-org/enso/pull/4026
 [4027]: https://github.com/enso-org/enso/pull/4027
+[4044]: https://github.com/enso-org/enso/pull/4044
 [4052]: https://github.com/enso-org/enso/pull/4052
+[4063]: https://github.com/enso-org/enso/pull/4063
 
 #### Enso Compiler
 
@@ -514,6 +521,7 @@
 - [Sync language server with file system after VCS restore][4020]
 - [`ArrayOverBuffer` behaves like an `Array` and `Array.sort` no longer sorts in
   place][4022]
+- [Implement hashing functionality for all objects][3878]
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
 - [Attach visualizations to sub-expressions][4048]

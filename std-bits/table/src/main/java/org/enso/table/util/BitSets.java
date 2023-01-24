@@ -10,6 +10,12 @@ public class BitSets {
    * something on our own that would operate on whole longs instead of bit by bit.
    */
   public static void copy(BitSet source, BitSet destination, int destinationOffset, int length) {
+    if (destinationOffset == 0) {
+      destination.clear(0, length);
+      destination.or(source.get(0, length));
+      return;
+    }
+
     for (int i = 0; i < length; i++) {
       if (source.get(i)) {
         destination.set(destinationOffset + i);

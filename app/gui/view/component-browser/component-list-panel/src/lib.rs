@@ -86,7 +86,7 @@ pub use ide_view_component_list_panel_grid::entry::icon;
 
 /// The selection animation is faster than the default one because of the increased spring force.
 const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
-const INITIAL_SECTION_NAME: &str = grid::SectionId::Popular.as_str();
+const INITIAL_SECTION_NAME: &str = "Popular";
 
 
 
@@ -370,6 +370,7 @@ impl component::Frp<Model> for Frp {
             let grid_style = grid::Style::from_theme(network, style);
             let navigator_style = navigator::Style::from_theme(network, style);
             style <- all_with3(&panel_style.update, &grid_style.update, &navigator_style.update, |&panel, &grid, &navigator| AllStyles {panel, grid, navigator});
+            model.section_navigator.style <+ style;
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
         }
