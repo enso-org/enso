@@ -298,7 +298,7 @@ fold_case = lift_unary_op "FOLD_CASE" arg->
     code "LOWER(UPPER(" ++ arg ++ "))"
 
 ## PRIVATE
-make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" arg->
+make_case_sensitive = lift_unary_op "MAKE_CASE_SENSITIVE" _->
     Error.throw <| Unsupported_Database_Operation.Error ("Case sensitive operations are not currently supported by this connection.")
 
 ## PRIVATE
