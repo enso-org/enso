@@ -166,7 +166,7 @@ impl Model {
     }
 
     fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
-        warn!("Setting widget data: {:?} {:?}", meta, node_data);
+        trace!("Setting widget data: {:?} {:?}", meta, node_data);
         let kind_fallback = || {
             if !node_data.argument_info.tag_values.is_empty() {
                 Kind::SingleChoice
@@ -330,7 +330,6 @@ impl SingleChoiceModel {
 
         frp::new_network! { network
             init <- source_();
-            set_current_value <- frp.set_current_value.sampler();
             let focus_in = display_object.on_event::<event::FocusIn>();
             let focus_out = display_object.on_event::<event::FocusOut>();
             is_focused <- bool(&focus_out, &focus_in);
@@ -338,23 +337,21 @@ impl SingleChoiceModel {
             is_open <- is_open.sampler();
         };
 
-        let dropdown = LazyDropdown::NotInitialized {
-            app: common.app.clone_ref(),
-            display_object: display_object.clone_ref(),
-            node_height: default(),
-            entries: default(),
-            network: network.downgrade(),
+        let set_current_value = frp.set_current_value.clone_ref();
+        let dropdown_output = frp.out_value_changed.clone_ref();
+        let dropdown = LazyDropdown::new(
+            &common.app,
+            &display_object,
             set_current_value,
             is_open,
-            output_value_changed: frp.out_value_changed.clone_ref(),
-        };
+            dropdown_output,
+        );
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
             let dot_clicked = activation_dot.events.mouse_down_primary.clone_ref();
             toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
             set_focused <- any(toggle_focus, frp.set_focused);
-            trace set_focused;
             eval set_focused([display_object](focus) match focus {
                 true => display_object.focus(),
                 false => display_object.blur(),
@@ -402,23 +399,44 @@ impl SingleChoiceModel {
 #[derive(Debug)]
 enum LazyDropdown {
     NotInitialized {
-        app:                  Application,
-        display_object:       display::object::Instance,
-        node_height:          f32,
-        entries:              Vec<ImString>,
-        network:              frp::WeakNetwork,
-        set_current_value:    frp::Sampler<Option<ImString>>,
-        is_open:              frp::Sampler<bool>,
-        output_value_changed: frp::Any<Option<ImString>>,
+        app:               Application,
+        display_object:    display::object::Instance,
+        node_height:       f32,
+        entries:           Vec<ImString>,
+        set_current_value: frp::Sampler<Option<ImString>>,
+        is_open:           frp::Sampler<bool>,
+        output_value:      frp::Any<Option<ImString>>,
     },
-    Initialized(Dropdown<ImString>),
+    Initialized(Dropdown<ImString>, frp::Network),
 }
 
 
 impl LazyDropdown {
+    fn new(
+        app: &Application,
+        display_object: &display::object::Instance,
+        set_current_value: frp::Sampler<Option<ImString>>,
+        is_open: frp::Sampler<bool>,
+        output_value: frp::Any<Option<ImString>>,
+    ) -> Self {
+        let app = app.clone_ref();
+        let display_object = display_object.clone_ref();
+        let node_height = default();
+        let entries = default();
+        LazyDropdown::NotInitialized {
+            app,
+            display_object,
+            node_height,
+            entries,
+            set_current_value,
+            is_open,
+            output_value,
+        }
+    }
+
     fn set_node_height(&mut self, new_node_height: f32) {
         match self {
-            LazyDropdown::Initialized(dropdown) => {
+            LazyDropdown::Initialized(dropdown, ..) => {
                 dropdown.set_y(-new_node_height);
             }
             LazyDropdown::NotInitialized { node_height, .. } => {
@@ -429,7 +447,7 @@ impl LazyDropdown {
 
     fn set_entries(&mut self, new_entries: Vec<ImString>) {
         match self {
-            LazyDropdown::Initialized(dropdown) => {
+            LazyDropdown::Initialized(dropdown, ..) => {
                 dropdown.set_all_entries(new_entries);
             }
             LazyDropdown::NotInitialized { entries, .. } => {
@@ -446,13 +464,10 @@ impl LazyDropdown {
                 display_object,
                 node_height,
                 entries,
-                network,
                 is_open,
                 set_current_value,
-                output_value_changed,
+                output_value,
             } => {
-                let network = network.upgrade().expect("Dropdown initialized after network drop");
-
                 let dropdown = app.new_view::<Dropdown<ImString>>();
                 display_object.add_child(&dropdown);
                 app.display.default_scene.layers.above_nodes.add(&dropdown);
@@ -461,19 +476,19 @@ impl LazyDropdown {
                 dropdown.set_all_entries(std::mem::take(entries));
                 dropdown.allow_deselect_all(true);
 
-                frp::extend! { network
+                frp::new_network! { network
                     init <- source_();
                     current_value <- all(set_current_value, &init)._0();
                     dropdown.set_selected_entries <+ current_value.map(|s| s.iter().cloned().collect());
                     first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
-                    output_value_changed <+ first_selected_entry.on_change();
+                    output_value <+ first_selected_entry.on_change();
 
                     is_open <- all(is_open, &init)._0();
                     dropdown.set_open <+ is_open.on_change();
                 }
 
                 init.emit(());
-                *self = LazyDropdown::Initialized(dropdown);
+                *self = LazyDropdown::Initialized(dropdown, network);
             }
         }
     }

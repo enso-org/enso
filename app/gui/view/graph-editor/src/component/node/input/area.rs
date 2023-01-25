@@ -336,9 +336,8 @@ impl Model {
             let widget = port.and_then(|port| port.payload.widget.clone_ref());
             if let Some(widget) = widget {
                 widget.set_visible(visible);
-                warn!("[set_widgets_visibility] Set visible {visible}: {id:?}");
             } else {
-                error!("[set_widgets_visibility] Widget {id:?} not found for crumbs {crumbs:?}.");
+                error!("Widget {id:?} not found for crumbs {crumbs:?}.");
             }
         }
     }
