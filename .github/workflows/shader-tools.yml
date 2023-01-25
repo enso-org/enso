@@ -3,7 +3,6 @@
 
 name: Package Tools
 on:
-  push: {}
   workflow_dispatch: {}
 jobs:
   run-create-linux-latest:

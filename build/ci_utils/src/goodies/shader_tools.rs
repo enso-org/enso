@@ -78,26 +78,3 @@ impl Goodie for ShaderTools {
         Ok(vec![path])
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::programs::shaderc::Glslc;
-
-    #[tokio::test]
-    #[ignore]
-    async fn setup_shaderc() -> Result {
-        setup_logging()?;
-
-        assert!(Glslc.lookup().is_err());
-
-        let cache = crate::cache::Cache::new_default().await?;
-
-        ShaderTools.install_if_missing(&cache).await?;
-
-        Glslc.lookup()?;
-
-
-        Ok(())
-    }
-}

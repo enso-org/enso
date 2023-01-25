@@ -68,7 +68,6 @@ pub fn generate_workflow(path: impl Into<PathBuf>) -> WorkflowToWrite {
 
     let mut workflow = Workflow::new("Package Tools");
     workflow.on.workflow_dispatch(default());
-    workflow.on.push(default());
     let create_release_job = job_that_runs(Binary::Create, linux, Some(ENSO_RELEASE_ID.as_ref()));
     let create_job_id = workflow.add_job(create_release_job);
 
