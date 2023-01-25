@@ -9,8 +9,6 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
 
-import scala.annotation.unused
-
 /** Associates doc comments with the commented entities as metadata.
   *
   * If the first module definition is a documentation comment, it is treated as
@@ -61,7 +59,7 @@ case object DocumentationComments extends IRPass {
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 
@@ -94,6 +92,8 @@ case object DocumentationComments extends IRPass {
   private def resolveList[T <: IR](items: List[T]): List[T] = {
     var lastDoc: Option[IR.Comment.Documentation] = None
     items.flatMap {
+      case annotation: IR.Name.Annotation =>
+        Some(annotation.asInstanceOf[T])
       case doc: IR.Comment.Documentation =>
         lastDoc = Some(doc)
         None
@@ -158,10 +158,11 @@ case object DocumentationComments extends IRPass {
         method.copy(body = resolveExpression(method.body))
       case tpe: IR.Module.Scope.Definition.SugaredType =>
         tpe.copy(body = resolveList(tpe.body).map(resolveIr))
-      case doc: IR.Comment.Documentation => doc
-      case tySig: IR.Type.Ascription     => tySig
-      case err: IR.Error                 => err
-      case _: IR.Name.Annotation =>
+      case doc: IR.Comment.Documentation  => doc
+      case tySig: IR.Type.Ascription      => tySig
+      case err: IR.Error                  => err
+      case ann: IR.Name.GenericAnnotation => ann
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "documentation comment resolution."

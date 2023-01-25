@@ -58,7 +58,7 @@ type Warning
          attached warnings are unaffected.
 
              mapper warning = case warning of
-                 Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+                 Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns.Error criteria)
                  _ -> Nothing
              Warning.map_attached_warnings mapper value
     map_attached_warnings : (Any -> Maybe Any) -> Any -> Any
@@ -80,7 +80,7 @@ type Warning
          other attached warnings or errors are unaffected.
 
              mapper error = case error of
-                 Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns criteria)
+                 Matching.No_Matches_Found criteria -> Maybe.Some (Missing_Input_Columns.Error criteria)
                  _ -> Nothing
              Warning.map_warnings_and_errors mapper value
     map_warnings_and_errors : (Any -> Maybe Any) -> Any -> Any

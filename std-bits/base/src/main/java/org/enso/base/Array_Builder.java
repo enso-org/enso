@@ -5,13 +5,13 @@ import java.util.List;
 
 public class Array_Builder<T> {
   private static final Object[] EMPTY_ARRAY = new Object[0];
-  private final int capacity;
+  private final int initialCapacity;
   private int size;
   private Object primitiveArray;
   private Object[] objectArray;
 
-  private Array_Builder(int capacity) {
-    this.capacity = Math.max(1, capacity);
+  private Array_Builder(int initialCapacity) {
+    this.initialCapacity = Math.max(1, initialCapacity);
   }
 
   /**
@@ -79,15 +79,15 @@ public class Array_Builder<T> {
         assert primitiveArray == null;
         assert size == 0;
         if (e instanceof Long l) {
-          var arr = new long[capacity];
+          var arr = new long[initialCapacity];
           arr[0] = l;
           primitiveArray = arr;
         } else if (e instanceof Double d) {
-          var arr = new double[capacity];
+          var arr = new double[initialCapacity];
           arr[0] = d;
           primitiveArray = arr;
         } else {
-          var arr = new Object[capacity];
+          var arr = new Object[initialCapacity];
           arr[0] = e;
           objectArray = arr;
         }

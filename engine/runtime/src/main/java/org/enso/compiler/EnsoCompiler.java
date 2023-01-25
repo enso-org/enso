@@ -26,6 +26,11 @@ public final class EnsoCompiler implements AutoCloseable {
     }
   }
 
+  public IR.Module compile(CharSequence src) {
+    var tree = parser.parse(src);
+    return generateIR(tree);
+  }
+
   boolean isReady() {
     return parser != null;
   }

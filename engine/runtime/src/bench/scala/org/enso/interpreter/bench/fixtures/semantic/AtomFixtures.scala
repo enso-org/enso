@@ -6,13 +6,13 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val million: Long = 1000000
 
   val millionElementList = eval(
-    s"""|import Standard.Base.Data.List.List
-        |
-        |main =
-        |    generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
-        |    res = generator (acc -> x -> List.Cons x acc) List.Nil 1 $million
-        |    res
-        """.stripMargin)
+    s"""import Standard.Base.Data.List.List
+       |
+       |main =
+       |    generator fn acc i end = if i == end then acc else @Tail_Call generator fn (fn acc i) i+1 end
+       |    res = generator (acc -> x -> List.Cons x acc) List.Nil 1 $million
+       |    res
+       |""".stripMargin)
 
   val generateListCode =
     """import Standard.Base.Data.List.List
@@ -22,7 +22,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |    res = generator List.Nil length
       |    res
-    """.stripMargin
+      |""".stripMargin
   val generateList = getMain(generateListCode)
 
   val generateListQualifiedCode =
@@ -33,20 +33,20 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |
       |    res = generator List.Nil length
       |    res
-    """.stripMargin
+      |""".stripMargin
   val generateListQualified = getMain(generateListQualifiedCode)
 
   val reverseListCode =
     """import Standard.Base.Data.List.List
       |
-      |main = self -> list ->
+      |main = list ->
       |    reverser = acc -> list -> case list of
       |        List.Cons h t -> @Tail_Call reverser (List.Cons h acc) t
       |        List.Nil -> acc
       |
       |    res = reverser List.Nil list
       |    res
-    """.stripMargin
+      |""".stripMargin
   val reverseList = getMain(reverseListCode)
 
   val reverseListMethodsCode =
@@ -56,49 +56,49 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    List.Cons h t -> @Tail_Call t.rev (List.Cons h acc)
       |    _ -> acc
       |
-      |main = self -> list ->
+      |main = list ->
       |    res = list.rev List.Nil
       |    res
-    """.stripMargin
+      |""".stripMargin
   val reverseListMethods = getMain(reverseListMethodsCode)
 
   val sumListCode =
     """import Standard.Base.Data.List.List
       |
-      |main = self -> list ->
+      |main = list ->
       |    summator = acc -> list -> case list of
       |        List.Cons h t -> @Tail_Call summator acc+h t
       |        List.Nil -> acc
       |
       |    res = summator 0 list
       |    res
-    """.stripMargin
+      |""".stripMargin
   val sumList = getMain(sumListCode)
 
   val sumListLeftFoldCode =
     """import Standard.Base.Data.List.List
       |
-      |main = self -> list ->
+      |main = list ->
       |    fold = f -> acc -> list -> case list of
       |        List.Cons h t -> @Tail_Call fold f (f acc h) t
       |        _ -> acc
       |
       |    res = fold (x -> y -> x + y) 0 list
       |    res
-    """.stripMargin
+      |""".stripMargin
   val sumListLeftFold = getMain(sumListLeftFoldCode)
 
   val sumListFallbackCode =
     """import Standard.Base.Data.List.List
       |
-      |main = self -> list ->
+      |main = list ->
       |    summator = acc -> list -> case list of
       |        List.Cons h t -> @Tail_Call summator acc+h t
       |        _ -> acc
       |
       |    res = summator 0 list
       |    res
-    """.stripMargin
+      |""".stripMargin
   val sumListFallback = getMain(sumListFallbackCode)
 
   val sumListMethodsCode =
@@ -108,10 +108,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    List.Cons h t -> @Tail_Call t.sum h+acc
       |    _ -> acc
       |
-      |main = self -> list ->
+      |main = list ->
       |    res = list.sum 0
       |    res
-    """.stripMargin
+      |""".stripMargin
   val sumListMethods = getMain(sumListMethodsCode)
 
   val mapReverseListCode =
@@ -121,10 +121,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
       |    _ -> acc
       |
-      |main = self -> list ->
+      |main = list ->
       |    res = list.mapReverse (x -> x + 1) List.Nil
       |    res
-    """.stripMargin
+      |""".stripMargin
   val mapReverseList = getMain(mapReverseListCode)
 
   val mapReverseListCurryCode =
@@ -134,10 +134,10 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    List.Cons h t -> @Tail_Call t.mapReverse f (List.Cons (f h) acc)
       |    _ -> acc
       |
-      |main = self -> list ->
+      |main = list ->
       |    adder = x -> y -> x + y
       |    res = list.mapReverse (adder 1) List.Nil
       |    res
-    """.stripMargin
+      |""".stripMargin
   val mapReverseListCurry = getMain(mapReverseListCurryCode)
 }

@@ -10,6 +10,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(type = "Invalid_Conversion_Target", name = "to_display_text")
@@ -24,9 +25,10 @@ public abstract class InvalidConversionTargetToDisplayTextNode extends Node {
   Text doAtom(
       Atom self,
       @CachedLibrary(limit = "10") InteropLibrary interopLibrary,
+      @CachedLibrary(limit = "3") StructsLibrary structs,
       @Cached TypeToDisplayTextNode fallback) {
     String fieldRep;
-    Object target = self.getFields()[0];
+    Object target = structs.getField(self, 0);
     try {
       fieldRep = interopLibrary.asString(interopLibrary.toDisplayString(target));
     } catch (UnsupportedMessageException e) {

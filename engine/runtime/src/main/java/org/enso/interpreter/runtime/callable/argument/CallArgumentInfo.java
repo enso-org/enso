@@ -70,15 +70,15 @@ public final class CallArgumentInfo {
    * Represents a mapping between the defined arguments of a function and the call site arguments.
    */
   public static class ArgumentMappingBuilder {
-    private int[] appliedMapping;
-    private int[] oversaturatedArgumentMapping;
-    private boolean[] argumentShouldExecute;
-    private ArgumentDefinition[] definitions;
-    private CallArgumentInfo[] callArgs;
-    private CallArgumentInfo[] existingOversaturatedArgs;
-    private boolean[] argumentUsed;
-    private boolean[] callSiteArgApplied;
-    private FunctionSchema originalSchema;
+    private final int[] appliedMapping;
+    private final int[] oversaturatedArgumentMapping;
+    private final boolean[] argumentShouldExecute;
+    private final ArgumentDefinition[] definitions;
+    private final CallArgumentInfo[] callArgs;
+    private final CallArgumentInfo[] existingOversaturatedArgs;
+    private final boolean[] argumentUsed;
+    private final boolean[] callSiteArgApplied;
+    private final FunctionSchema originalSchema;
     private int oversaturatedWritePosition = 0;
 
     /**
@@ -220,7 +220,11 @@ public final class CallArgumentInfo {
           newOversaturatedArgInfo.length);
 
       return new FunctionSchema(
-          originalSchema.getCallerFrameAccess(), definitions, argumentUsed, oversaturatedArgInfo);
+          originalSchema.getCallerFrameAccess(),
+          definitions,
+          argumentUsed,
+          oversaturatedArgInfo,
+          originalSchema.getAnnotations());
     }
   }
 
