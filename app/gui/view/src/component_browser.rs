@@ -123,12 +123,11 @@ impl component::Frp<Model> for Frp {
 
         let gap = style.get_number(theme::panels_gap);
         let doc_width = style.get_number(theme::documentation::width);
+        let doc_height = style.get_number(theme::documentation::height);
         frp::extend! { network
             init <- source_();
 
-            doc_height <- all_with(&init, &list_panel.size, |(), size| size.y);
-            doc_size <- all_with(&doc_width, &doc_height, |w, h| Vector2(*w, *h));
-            eval doc_size ((size) documentation.visualization_frp.inputs.set_size.emit(*size));
+            doc_size <- all_with3(&init, &doc_width, &doc_height, |_, w, h| Vector2(*w, *h));
             size <- all_with4(&init, &list_panel.size, &doc_size, &gap, |(), list_size, doc_size, gap| {
                 let width = list_size.x + gap + doc_size.x;
                 let height = max(list_size.y, doc_size.y);

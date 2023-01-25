@@ -4172,6 +4172,7 @@ dependencies = [
  "enso-suggestion-database",
  "ensogl",
  "ensogl-component",
+ "ensogl-derive-theme",
  "ensogl-hardcoded-theme",
  "horrorshow",
  "ide-ci",

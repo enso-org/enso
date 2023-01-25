@@ -26,11 +26,9 @@ use ensogl::data::text::Location;
 use ensogl::data::text::Utf16CodeUnit;
 use ensogl::display;
 use ensogl::display::navigation::navigator::Navigator;
-use ensogl::display::shape::StyleWatchFrp;
 use ensogl::frp;
 use ensogl::shape;
 use ensogl::system::web;
-use ensogl_hardcoded_theme::application::component_browser as theme;
 use ide_view_documentation as documentation;
 use ide_view_graph_editor::component::visualization::Registry;
 use std::f32::consts::PI;
@@ -243,19 +241,8 @@ pub fn main() {
         toggle_caption.set_y(-BUTTON_SIZE * 2.0);
 
         let network = frp::Network::new("documentation");
-        let style = StyleWatchFrp::new(&scene.style_sheet);
-        let width = style.get_number(theme::documentation::width);
-        let grid_height = style.get_number(theme::component_list_panel::grid::height);
-        let menu_height = style.get_number(theme::component_list_panel::menu_height);
         frp::extend! { network
             init <- source_();
-
-            height <- all_with3(&init, &grid_height, &menu_height, |_, grid_height, menu_height| {
-                grid_height + menu_height
-            });
-            size <- all_with(&width, &height, |w, h| Vector2(*w, *h));
-            eval size((size) panel.visualization_frp.inputs.set_size.emit(*size));
-
 
             // === Next/Previous buttons ===
 
