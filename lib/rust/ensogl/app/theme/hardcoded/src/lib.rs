@@ -539,6 +539,7 @@ define_themes! { [light:0, dark:1]
             error {
                 dataflow     = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 panic        = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                pending      = Rgba(0.341,0.341,0.341,1.0), Rgba(0.341,0.341,0.341,1.0);
                 width        = 4.0  , 4.0;
                 repeat_x     = 20.0 , 20.0;
                 repeat_y     = 20.0 , 20.0;

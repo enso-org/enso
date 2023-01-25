@@ -1009,6 +1009,7 @@ impl Node {
             let path = match *error.kind {
                 error::Kind::Panic => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
+                error::Kind::Pending => error_theme::pending
             };
             style.get_color(path).into()
         } else {
