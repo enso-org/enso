@@ -84,11 +84,16 @@ fn database() -> SuggestionDatabase {
     let db = mock_suggestion_database! {
         #[with_doc_section(doc_section!("This is a test documentation."))]
         #[with_doc_section(doc_section!("It contains muliple paragraphs of text."))]
-        #[with_doc_section(doc_section!("And describes the purpose of the module with a great attention to detail."))]
-        #[with_doc_section(doc_section!("It also contains the autobiography of the author of this code."))]
+        #[with_doc_section(doc_section!("And describes the purpose of the module with a great \
+                                         attention to detail."))]
+        #[with_doc_section(doc_section!("It also contains the autobiography of the author of \
+                                         this code."))]
         #[with_doc_section(doc_section!("And a long list of his cats."))]
-        #[with_doc_section(doc_section!("Here it is" => "<ul><li>Tom</li><li>Garfield</li><li>Mr. Bigglesworth</li></ul>"))]
-        #[with_doc_section(doc_section!(! "Important", "Important sections are used to warn the reader about the dangers of using the module."))]
+        #[with_doc_section(doc_section!(
+            "Here it is" => "<ul><li>Tom</li><li>Garfield</li><li>Mr. Bigglesworth</li></ul>"
+        ))]
+        #[with_doc_section(doc_section!(! "Important", "Important sections are used to warn the \
+                                                   reader about the dangers of using the module."))]
         #[with_doc_section(doc_section!(? "Info", "Info sections provide some insights."))]
         Standard.Base {
             #[with_doc_section(doc_section!("Maybe type."))]
@@ -113,7 +118,11 @@ fn database() -> SuggestionDatabase {
             #[with_doc_section(doc_section!("Documentation for the foo method."))]
             fn foo(a: Standard.Base.Maybe) -> Standard.Base.Boolean;
 
-            #[with_doc_section(doc_section!(> "Example", "Get the names of all of the items from the shop inventory. <pre><code>import Standard.Examples</code><br /><code>example_at = Examples.inventory_table.at &quot;item_name&quot;</code><br /></pre>"))]
+            #[with_doc_section(doc_section!(> "Example", "Get the names of all of the items from \
+                                              the shop inventory. \
+                                              <pre><code>import Standard.Examples</code><br />\
+                                              <code>example_at = Examples.inventory_table.at \
+                                              &quot;item_name&quot;</code><br /></pre>"))]
             fn at(self, key) -> Standard.Base.Maybe;
         }
     };
