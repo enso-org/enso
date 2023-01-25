@@ -70,11 +70,11 @@ prepare_aggregate_columns aggregates table =
         Pair.new new_name agg
 
     # Build Problems Output
-    if renamed_columns.is_empty then
-        problem_builder.report_other_warning No_Output_Columns
-    problem_builder.report_unique_name_strategy unique
-
-    Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
+    case renamed_columns.is_empty of
+        True -> Error.throw No_Output_Columns
+        False ->
+            problem_builder.report_unique_name_strategy unique
+            Validated_Aggregate_Columns.Value unique_key_columns renamed_columns problem_builder.build_problemset
 
 ## PRIVATE
    Defines the default name of an `Aggregate_Column`.
