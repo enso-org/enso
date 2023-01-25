@@ -9,8 +9,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
 
-import scala.annotation.unused
-
 /** This pass is responsible for resolving type signatures and associating
   * them as metadata with the typed object.
   *
@@ -49,7 +47,7 @@ case object TypeSignatures extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    @unused moduleContext: ModuleContext
+    moduleContext: ModuleContext
   ): IR.Module = resolveModule(ir)
 
   /** Resolves type signatures in an expression.
@@ -62,12 +60,12 @@ case object TypeSignatures extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = resolveExpression(ir)
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 
@@ -78,7 +76,7 @@ case object TypeSignatures extends IRPass {
     * @param mod the module to resolve signatures in
     * @return `mod`, with type signatures resolved
     */
-  def resolveModule(mod: IR.Module): IR.Module = {
+  private def resolveModule(mod: IR.Module): IR.Module = {
     var lastSignature: Option[IR.Type.Ascription] = None
 
     val newBindings: List[IR.Module.Scope.Definition] = mod.bindings.flatMap {
@@ -133,13 +131,14 @@ case object TypeSignatures extends IRPass {
         res
       case ut: IR.Module.Scope.Definition.Type =>
         Some(ut.mapExpressions(resolveExpression))
-      case err: IR.Error => Some(err)
+      case err: IR.Error                  => Some(err)
+      case ann: IR.Name.GenericAnnotation => Some(ann)
       case _: IR.Module.Scope.Definition.SugaredType =>
         throw new CompilerError(
           "Complex type definitions should not be present during type " +
           "signature resolution."
         )
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "type signature resolution."
@@ -163,7 +162,7 @@ case object TypeSignatures extends IRPass {
     * @param expr the expression to resolve signatures in
     * @return `expr`, with any type signatures resolved
     */
-  def resolveExpression(expr: IR.Expression): IR.Expression = {
+  private def resolveExpression(expr: IR.Expression): IR.Expression = {
     expr.transformExpressions {
       case block: IR.Expression.Block => resolveBlock(block)
       case sig: IR.Type.Ascription    => resolveAscription(sig)
@@ -175,7 +174,7 @@ case object TypeSignatures extends IRPass {
     * @param sig the signature to convert
     * @return the typed expression in `sig`, with `signature` attached
     */
-  def resolveAscription(sig: IR.Type.Ascription): IR.Expression = {
+  private def resolveAscription(sig: IR.Type.Ascription): IR.Expression = {
     val newTyped = sig.typed.mapExpressions(resolveExpression)
     val newSig   = sig.signature.mapExpressions(resolveExpression)
     newTyped.updateMetadata(this -->> Signature(newSig))
@@ -186,7 +185,7 @@ case object TypeSignatures extends IRPass {
     * @param block the block to resolve signatures in
     * @return `block`, with any type signatures resolved
     */
-  def resolveBlock(block: IR.Expression.Block): IR.Expression.Block = {
+  private def resolveBlock(block: IR.Expression.Block): IR.Expression.Block = {
     var lastSignature: Option[IR.Type.Ascription] = None
     val allBlockExpressions =
       block.expressions :+ block.returnValue

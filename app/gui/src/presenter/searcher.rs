@@ -18,6 +18,8 @@ use crate::presenter::graph::ViewNodeId;
 use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 
 use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::Placeholder;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
@@ -221,15 +223,23 @@ impl Model {
         }
     }
 
-    fn set_section_name_crumb(&self, text: &str) {
+    fn set_section_name_crumb(&self, text: ImString) {
         if let SearcherVariant::ComponentBrowser(browser) = self.view.searcher() {
             let breadcrumbs = &browser.model().list.model().breadcrumbs;
-            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, ImString::new(text).into()));
+            breadcrumbs.set_entry((SECTION_NAME_CRUMB_INDEX, text.into()));
         }
     }
 
     fn on_active_section_change(&self, section_id: component_grid::SectionId) {
-        self.set_section_name_crumb(section_id.as_str());
+        let components = self.controller.components();
+        let mut section_names = components.top_module_section_names();
+        let name = match section_id {
+            component_grid::SectionId::Namespace(n) =>
+                section_names.nth(n).map(|n| n.clone_ref()).unwrap_or_default(),
+            component_grid::SectionId::Popular => "Popular".to_im_string(),
+            component_grid::SectionId::LocalScope => "Local".to_im_string(),
+        };
+        self.set_section_name_crumb(name);
     }
 
     fn module_entered(&self, module: component_grid::ElementId) {
@@ -268,23 +278,15 @@ impl Model {
     fn documentation_of_component(
         &self,
         id: view::component_browser::component_list_panel::grid::GroupEntryId,
-    ) -> String {
+    ) -> EntryDocumentation {
         let component = self.controller.provider().component_by_view_id(id);
         if let Some(component) = component {
             match component.data {
-                component::Data::FromDatabase { entry, .. } => {
-                    if let Some(documentation) = &entry.documentation_html {
-                        let title = title_for_docs(&entry);
-                        format!(
-                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
-                        )
-                    } else {
-                        doc_placeholder_for(&entry)
-                    }
-                }
+                component::Data::FromDatabase { id, .. } =>
+                    self.controller.documentation_for_entry(*id),
                 component::Data::Virtual { snippet } => {
                     if let Some(documentation) = &snippet.documentation_html {
-                        documentation.to_string()
+                        EntryDocumentation::Builtin(documentation.into())
                     } else {
                         default()
                     }
@@ -295,10 +297,14 @@ impl Model {
         }
     }
 
-    fn documentation_of_group(&self, id: component_grid::GroupId) -> String {
+    fn documentation_of_group(&self, id: component_grid::GroupId) -> EntryDocumentation {
         let group = self.controller.provider().group_by_view_id(id);
         if let Some(group) = group {
-            iformat!("<div class=\"enso docs summary\"><p />{group.name}</div>")
+            if let Some(id) = group.component_id {
+                self.controller.documentation_for_entry(id)
+            } else {
+                Placeholder::VirtualComponentGroup { name: group.name.clone() }.into()
+            }
         } else {
             default()
         }
@@ -349,12 +355,15 @@ impl Searcher {
         match model.view.searcher() {
             SearcherVariant::ComponentBrowser(browser) => {
                 let grid = &browser.model().list.model().grid;
+                let navigator = &browser.model().list.model().section_navigator;
                 let breadcrumbs = &browser.model().list.model().breadcrumbs;
                 let documentation = &browser.model().documentation;
                 frp::extend! { network
-                    eval_ action_list_changed ([model, grid] {
+                    eval_ action_list_changed ([model, grid, navigator] {
                         model.provider.take();
                         let controller_provider = model.controller.provider();
+                        let namespace_section_count = controller_provider.namespace_section_count();
+                        navigator.set_namespace_section_count.emit(namespace_section_count);
                         let provider = provider::Component::provide_new_list(controller_provider, &grid);
                         *model.provider.borrow_mut() = Some(provider);
                     });

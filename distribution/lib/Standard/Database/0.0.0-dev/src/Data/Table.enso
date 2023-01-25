@@ -8,6 +8,9 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
+from Standard.Base.Metadata.Widget import Single_Choice
+import Standard.Base.Metadata.Display
+
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Column_Type_Selection.Column_Type_Selection
 import Standard.Table.Data.Expression.Expression
@@ -98,6 +101,7 @@ type Table
 
        Arguments:
        - selector: The name or index of the column to get.
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
@@ -108,6 +112,7 @@ type Table
        Arguments:
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     get : Text | Integer -> Any -> Column | Any
     get self selector=0 ~if_missing=Nothing =
         internal_column = case selector of
@@ -141,7 +146,9 @@ type Table
          - If two distinct indices would refer to the same column, a
            `Input_Indices_Already_Matched`, indicating that the additional
            indices will not introduce additional columns.
-         - If there are no columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
 
        > Example
          Select columns by name.
@@ -193,7 +200,9 @@ type Table
          - If two distinct indices would refer to the same column, a
            `Input_Indices_Already_Matched`, indicating that the additional
            indices will not introduce additional columns.
-         - If there are no columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
 
        > Example
          Remove columns with given names.
@@ -414,6 +423,7 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter "age" (age -> (age%10 == 0))
+    @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=Filter_Condition.Is_True on_problems=Report_Warning = case column of
        _ : Column ->
@@ -669,19 +679,11 @@ type Table
          - If floating points values are present in the distinct columns, a
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
-    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
+    distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Default on_problems=Report_Warning =
+        key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
+            Error.throw No_Input_Columns_Selected
         problem_builder = Problem_Builder.new
-        warning_mapper error = case error of
-            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
-            _ -> Nothing
-        key_columns = Warning.map_warnings_and_errors warning_mapper <|
-            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
-        text_case_insensitive = case case_sensitivity of
-            Case_Sensitivity.Sensitive -> False
-            Case_Sensitivity.Insensitive locale ->
-                Helpers.assume_default_locale locale <|
-                    True
-        new_table = self.connection.dialect.prepare_distinct self key_columns text_case_insensitive problem_builder
+        new_table = self.connection.dialect.prepare_distinct self key_columns case_sensitivity problem_builder
         problem_builder.attach_problems_before on_problems new_table
 
     ## Joins two tables according to the specified join conditions.
@@ -787,6 +789,94 @@ type Table
 
             problem_builder.attach_problems_before on_problems <|
                 self.connection.dialect.prepare_join self.connection sql_join_kind new_table_name left_setup.subquery right_setup.subquery on_expressions where_expressions columns_to_select=result_columns
+
+    ## ALIAS Cartesian Join
+       Joins tables by pairing every row of the left table with every row of the
+       right table.
+
+       Arguments:
+       - right: The table to join with.
+       - right_row_limit: If the number of rows in the right table exceeds this,
+         then a `Cross_Join_Row_Limit_Exceeded` problem is raised. The check
+         exists to avoid exploding the size of the table by accident. This check
+         can be disabled by setting this parameter to `Nothing`.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If the `right` table has more rows than the `right_row_limit` allows,
+           a `Cross_Join_Row_Limit_Exceeded` is reported. In warning/ignore
+           mode, the join is still executed.
+
+       ? Column Renaming
+
+         If columns from the two tables have colliding names, a prefix (by
+         default `Right_`) is added to the name of the column from the right
+         table. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent `_1`, `_2` etc.
+
+       ? Result Ordering
+
+         Rows in the result are first ordered by the order of the corresponding
+         rows from the left table and then the order of rows from the right
+         table. This applies only if the order of the rows was specified (for
+         example, by sorting the table; in-memory tables will keep the memory
+         layout order while for database tables the order may be unspecified).
+    cross_join : Table -> Integer | Nothing -> Table
+    cross_join self right right_row_limit=100 right_prefix="Right_" on_problems=Report_Warning =
+        _ = [right, right_row_limit, right_prefix, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.cross_join is not implemented yet for the Database backends.")
+
+    ## ALIAS Join By Row Position
+       Joins two tables by zipping rows from both tables table together - the
+       first row of the left table is correlated with the first one of the right
+       one etc.
+
+       Arguments:
+       - right: The table to join with.
+       - keep_unmatched: If set to `True`, the result will include as many rows
+         as the larger of the two tables - the last rows of the larger table
+         will have nulls for columns of the smaller one. If set to `False`, the
+         result will have as many rows as the smaller of the two tables - the
+         additional rows of the larger table will be discarded. The default
+         value is `Report_Unmatched` which means that the user expects that two
+         tables should have the same amount of rows; if they do not, the
+         behaviour is the same as if it was set to `True` - i.e. the unmatched
+         rows are kept with `Nothing` values for the other table, but a
+         `Row_Count_Mismatch` problem is also reported.
+       - right_prefix: The prefix added to right table column names in case of
+         name conflict. See "Column Renaming" below for more information.
+       - on_problems: Specifies how to handle problems if they occur, reporting
+         them as warnings by default.
+
+         - If the tables have different number of rows and `keep_unmatched` is
+           set to `Report_Unmatched`, the join will report `Row_Count_Mismatch`.
+
+       ? Column Renaming
+
+         If columns from the two tables have colliding names, a prefix (by
+         default `Right_`) is added to the name of the column from the right
+         table. The left column remains unchanged. It is possible that the new
+         name will be in use, in this case it will be resolved using the normal
+         renaming strategy - adding subsequent `_1`, `_2` etc.
+
+       ? Row Ordering
+
+         This operation requires a well-defined order of rows in the input
+         tables. In-memory tables rely on the ordering stemming directly from
+         their layout in memory. Database tables may not impose a deterministic
+         ordering. If the table defines a primary key, it is used to by default
+         to ensure deterministic ordering. That can be overridden by specifying
+         a different ordering using `Table.order_by`. If no primary key was
+         defined nor any ordering was specified explicitly by the user, the
+         order of columns is undefined and the operation will fail, reporting a
+         `Undefined_Column_Order` problem and returning an empty table.
+    zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
+    zip self right keep_unmatched=Report_Unmatched right_prefix="Right_" on_problems=Report_Warning =
+        _ = [right, keep_unmatched, right_prefix, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "Table.zip is not implemented yet for the Database backends.")
 
     ## ALIAS append, concat
        Appends records from other table(s) to this table.
@@ -894,7 +984,9 @@ type Table
          The following problems can occur:
          - If a column name is not in the input table, a `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If there are no valid columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
          - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
          - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
          - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
@@ -1255,8 +1347,9 @@ type Table
 # make_table : Connection -> Text -> Vector [Text, SQL_Type] -> Context -> Table
 make_table : Connection -> Text -> Vector -> Context -> Table
 make_table connection table_name columns ctx =
-    cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
-    Table.Value table_name connection cols ctx
+    if columns.is_empty then Error.throw (Illegal_State.Error "Unexpectedly attempting to create a Database Table with no columns. This is a bug in the Database library.") else
+        cols = columns.map (p -> Internal_Column.Value p.first p.second (SQL_Expression.Column table_name p.first))
+        Table.Value table_name connection cols ctx
 
 ## PRIVATE
 

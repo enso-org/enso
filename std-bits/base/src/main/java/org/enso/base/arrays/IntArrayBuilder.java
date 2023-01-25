@@ -1,4 +1,4 @@
-package org.enso.base.text;
+package org.enso.base.arrays;
 
 /** A helper to efficiently build an array of unboxed integers of arbitrary length. */
 public class IntArrayBuilder {
@@ -61,5 +61,11 @@ public class IntArrayBuilder {
     int[] tmp = storage;
     this.storage = null;
     return tmp;
+  }
+
+  public int[] build() {
+    int[] result = new int[length];
+    System.arraycopy(storage, 0, result, 0, length);
+    return result;
   }
 }

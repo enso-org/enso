@@ -1,6 +1,5 @@
 //! Implementation of [`wrap_async_fn`], a helper for macros that operate on async functions.
 
-
 use quote::ToTokens;
 use syn::visit_mut;
 use syn::visit_mut::VisitMut;

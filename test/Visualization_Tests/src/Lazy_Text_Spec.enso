@@ -1,0 +1,29 @@
+from Standard.Base import all
+from Standard.Visualization import all
+
+import Standard.Examples
+import Standard.Visualization.Text as TextVis
+import Standard.Visualization.Preprocessor as Preprocessor
+
+from Standard.Test import Test
+import Standard.Test.Extensions
+
+sample_text_single_line = "ABCDEFGHIJKLMNOPQRS"
+sample_text_multi_line = """
+    ABCDEFGHIJKLMNOPQRS
+    1234567890
+
+spec = Test.group "Lazy Text Visualization" <|
+    Test.specify "Should provide the correct chunk data" <|
+        (Preprocessor.lazy_preprocessor sample_text_multi_line [0,0] [1,1] 5).should_equal '{"chunks":[[[0,0],"ABCDE"]],"line_count":2,"longest_line":19}'
+        (Preprocessor.lazy_preprocessor sample_text_multi_line [1,1] [1,1] 5).should_equal '{"chunks":[[[1,1],"67890"]],"line_count":2,"longest_line":10}'
+        (Preprocessor.lazy_preprocessor sample_text_multi_line [0,0] [2,1] 5).should_equal '{"chunks":[[[0,0],"ABCDE"],[[1,0],"FGHIJ"]],"line_count":2,"longest_line":19}'
+        (Preprocessor.lazy_preprocessor sample_text_multi_line [0,0] [1,2] 5).should_equal '{"chunks":[[[0,0],"ABCDE"],[[0,1],"12345"]],"line_count":2,"longest_line":19}'
+
+    Test.specify "Should provide a simple string for small data" <|
+        (Preprocessor.lazy_preprocessor 10 [0,0] [1,1] 5).should_equal '10'
+        (Preprocessor.lazy_preprocessor 'Just A Simple String' [0,0] [5,1] 15).should_equal '"Just A Simple String"'
+
+    Test.specify "Should provide null for out of bounds data" <|
+        (Preprocessor.lazy_preprocessor sample_text_multi_line [100,0] [1,1] 5).should_equal '{"chunks":[[[100,0],null]],"line_count":2,"longest_line":19}'
+

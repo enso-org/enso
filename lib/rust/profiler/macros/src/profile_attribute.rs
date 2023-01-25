@@ -1,6 +1,5 @@
 //! Implementation of the [`#[profile]`] proc-macro.
 
-
 use crate::wrap_async;
 
 use quote::ToTokens;

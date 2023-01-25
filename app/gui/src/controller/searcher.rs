@@ -20,6 +20,8 @@ use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use double_representation::node::NodeInfo;
 use engine_protocol::language_server;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::entry::Id as EntryId;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
@@ -494,16 +496,33 @@ pub struct ComponentsProvider {
     has_this_arg: Immutable<bool>,
 }
 
+/// Enum of top modules and their content to display.
+#[derive(Debug)]
+pub enum TopModules {
+    /// The selected `Groups` list and the section number the groups belong to.
+    Subset(group::AlphabeticalList, usize),
+    /// Vector of all `Group` lists in the same order as the sections they belong to.
+    All(Vec<group::AlphabeticalList>),
+}
+
 impl ComponentsProvider {
     /// The list of modules and their content displayed in `Submodules` section of the browser.
-    pub fn top_modules(&self) -> group::AlphabeticalList {
+    pub fn top_modules(&self) -> TopModules {
         let components = self.components();
         if let Some(selected) = self.breadcrumbs.selected() {
-            components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default()
+            let section = components
+                .module_qualified_name(selected)
+                .and_then(|name| {
+                    components.top_module_section_indices().get(&name.project().namespace).copied()
+                })
+                .unwrap_or_default();
+            let submodules =
+                components.submodules_of(selected).map(CloneRef::clone_ref).unwrap_or_default();
+            TopModules::Subset(submodules, section)
         } else if *self.has_this_arg {
-            components.top_modules_flattened().clone_ref()
+            TopModules::All(components.top_modules_flattened().collect())
         } else {
-            components.top_modules().clone_ref()
+            TopModules::All(components.top_modules().collect())
         }
     }
 
@@ -535,6 +554,11 @@ impl ComponentsProvider {
 
     fn components(&self) -> &component::List {
         &self.list
+    }
+
+    /// Returns the number of namespace sections.
+    pub fn namespace_section_count(&self) -> usize {
+        self.list.top_module_section_count()
     }
 }
 
@@ -655,6 +679,11 @@ impl Searcher {
     /// Get the current component list.
     pub fn components(&self) -> component::List {
         self.data.borrow().components.clone_ref()
+    }
+
+    /// Get the documentation for the entry.
+    pub fn documentation_for_entry(&self, id: EntryId) -> EntryDocumentation {
+        self.database.documentation_for_entry(id)
     }
 
     /// Build a provider for this searcher.
@@ -2075,7 +2104,7 @@ pub mod test {
         test.run_until_stalled();
         // Verify the contents of the components list loaded by the Searcher.
         let components = searcher.components();
-        if let [module_group] = &components.top_modules()[..] {
+        if let [module_group] = &components.top_modules().next().unwrap()[..] {
             let expected_group_name =
                 format!("{}.{}", entry3.defined_in.project().project, entry3.defined_in.name());
             assert_eq!(module_group.name, expected_group_name);
@@ -2083,7 +2112,7 @@ pub mod test {
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name()
     == entry9.name);
         } else {
-            ipanic!("Wrong top modules in Component List: {components.top_modules():?}");
+            ipanic!("Wrong top modules in Component List: {components.top_modules().collect::<Vec<_>>():?}");
         }
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);

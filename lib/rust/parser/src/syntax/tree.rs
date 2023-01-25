@@ -863,6 +863,11 @@ pub fn apply_operator<'s>(
             }
         };
     }
+    if let Ok(opr_) = &opr && !opr_.properties.can_form_section() && lhs.is_none() && rhs.is_none() {
+        let error = format!("Operator `{opr:?}` must be applied to two operands.");
+        let invalid = Tree::opr_app(lhs, opr, rhs);
+        return invalid.with_error(error);
+    }
     if nospace
         && let Ok(opr) = &opr && opr.properties.can_be_decimal_operator()
         && let Some(lhs) = lhs.as_mut()
@@ -898,13 +903,17 @@ pub fn apply_operator<'s>(
 pub fn apply_unary_operator<'s>(opr: token::Operator<'s>, rhs: Option<Tree<'s>>) -> Tree<'s> {
     if opr.properties.is_annotation()
             && let Some(Tree { variant: box Variant::Ident(Ident { token }), .. }) = rhs {
-        match token.is_type {
+        return match token.is_type {
             true => Tree::annotated_builtin(opr, token, vec![], None),
             false => Tree::annotated(opr, token, None, vec![], None),
-        }
-    } else {
-        Tree::unary_opr_app(opr, rhs)
+        };
     }
+    if !opr.properties.can_form_section() && rhs.is_none() {
+        let error = format!("Operator `{opr:?}` must be applied to an operand.");
+        let invalid = Tree::unary_opr_app(opr, rhs);
+        return invalid.with_error(error);
+    }
+    Tree::unary_opr_app(opr, rhs)
 }
 
 /// Create an AST node for a token.

@@ -12,9 +12,12 @@ import project.Delimited.Quote_Style.Quote_Style
 type Delimited_Format
     ## Read delimited files such as CSVs into a Table.
 
-       If a row does not match the first row's column count, the function raises
-       an `Invalid_Row`. If a quote is opened and never closed, a
-       `Mismatched_Quote` warning occurs.
+       When reading this format, the following problems may occur:
+       - If a row does not match the first row's column count, the function
+         raises an `Invalid_Row`.
+       - If a quote is opened and never closed, a `Mismatched_Quote` problem is
+         reported.
+       - If an empty file is passed, an `Empty_File_Error` is thrown.
 
        Arguments:
        - delimiter: The delimiter character to split the file into columns. An

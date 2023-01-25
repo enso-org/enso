@@ -42,7 +42,8 @@ const MARKETPLACE_TOOLTIP_HIDE_DELAY_MS: f32 = 3000.0;
 const MARKETPLACE_TOOLTIP_PLACEMENT: tooltip::Placement = tooltip::Placement::Bottom;
 const TOP_BUTTONS: [icon::Id; 2] = [icon::Id::Libraries, icon::Id::Marketplace];
 const TOP_BUTTONS_COUNT: usize = TOP_BUTTONS.len();
-const BOTTOM_BUTTONS_COUNT: usize = 3;
+/// This is the minmum number of bottom buttons available, when no namespace sections are present.
+const MIN_BOTTOM_BUTTONS_COUNT: usize = 2;
 
 
 // =============
@@ -98,7 +99,7 @@ impl Colors {
         match section {
             SectionId::Popular => self.popular,
             SectionId::LocalScope => self.local_scope,
-            SectionId::SubModules => self.submodules,
+            SectionId::Namespace(_) => self.submodules,
         }
     }
 }
@@ -108,7 +109,7 @@ fn section_id_to_icon_id(section: SectionId) -> icon::Id {
     match section {
         SectionId::Popular => icon::Id::Star,
         SectionId::LocalScope => icon::Id::LocalScope,
-        SectionId::SubModules => icon::Id::SubModules,
+        SectionId::Namespace(_) => icon::Id::SubModules,
     }
 }
 
@@ -119,28 +120,65 @@ fn section_id_to_icon_id(section: SectionId) -> icon::Id {
 // ============================================================
 
 /// Convert [`SectionId`] to location on [`Navigator::bottom_buttons`].
-fn section_id_to_grid_loc(id: SectionId) -> (Row, Col) {
+fn section_id_to_grid_loc(id: SectionId, sections_count: usize) -> (Row, Col) {
     const COLUMN: Col = 0;
+    let namespace_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
     match id {
-        SectionId::Popular => (1, COLUMN),
-        SectionId::LocalScope => (2, COLUMN),
-        SectionId::SubModules => (0, COLUMN),
+        SectionId::Popular => (namespace_section_offset, COLUMN),
+        SectionId::LocalScope => (namespace_section_offset + 1, COLUMN),
+        SectionId::Namespace(n) if n < namespace_section_offset =>
+            (namespace_section_offset - n - 1, COLUMN),
+        SectionId::Namespace(_) => (namespace_section_offset, COLUMN),
     }
 }
 
 /// Convert the location on [`Navigator::bottom_buttons`] to [`SectionId`]. Prints error on invalid
 /// index and returns the id of topmost section.
-fn loc_to_section_id(&(row, _): &(Row, Col)) -> SectionId {
-    let highest = SectionId::SubModules;
+fn loc_to_section_id(&(row, _): &(Row, Col), sections_count: usize) -> SectionId {
+    let namespace_section_offset = sections_count - MIN_BOTTOM_BUTTONS_COUNT;
     match row {
-        0 => highest,
-        1 => SectionId::Popular,
-        2 => SectionId::LocalScope,
+        n if n == namespace_section_offset => SectionId::Popular,
+        n if n == namespace_section_offset + 1 => SectionId::LocalScope,
+        n if n < namespace_section_offset => SectionId::Namespace(namespace_section_offset - n - 1),
         _ => {
             error!("Tried to create SectionId from too high Navigator List row ({}).", row);
-            highest
+            SectionId::Popular
         }
     }
+}
+
+
+
+// =============================
+// === Bottom Buttons Layout ===
+// =============================
+
+fn get_bottom_buttons_entries_size(style: &AllStyles) -> Vector2<f32> {
+    let size = style.navigator.button_size;
+    Vector2(size, size)
+}
+
+fn get_bottom_buttons_entries_params(style: &AllStyles) -> entry::Params {
+    entry::Params::from(style.navigator)
+}
+
+fn get_bottom_buttons_viewport((buttons_count, style): &(usize, AllStyles)) -> grid::Viewport {
+    let size = style.navigator.button_size;
+    let bottom = -size * (*buttons_count as f32);
+    grid::Viewport { top: 0.0, bottom, left: 0.0, right: size }
+}
+
+fn get_bottom_buttons_pos((buttons_count, style): &(usize, AllStyles)) -> Vector2<f32> {
+    let size = style.navigator.button_size;
+    let width = style.navigator.width;
+    let height = style.grid.height + style.panel.menu_height;
+    let padding = style.navigator.bottom_padding;
+    let buttons_height = size * (*buttons_count as f32);
+    let bottom = (-height / 2.0).floor();
+    let left = -style.grid.width / 2.0 - width / 2.0;
+    let x_pos = left + (width / 2.0).floor() - size / 2.0;
+    let y_pos = bottom + buttons_height + padding;
+    Vector2(x_pos, y_pos)
 }
 
 
@@ -157,11 +195,13 @@ fn loc_to_section_id(&(row, _): &(Row, Col)) -> SectionId {
 /// section.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Navigator {
-    display_object:     display::object::Instance,
-    network:            frp::Network,
-    bottom_buttons:     Grid,
-    top_buttons:        Grid,
-    tooltip:            Tooltip,
+    display_object: display::object::Instance,
+    network: frp::Network,
+    bottom_buttons: Grid,
+    top_buttons: Grid,
+    tooltip: Tooltip,
+    pub set_namespace_section_count: frp::Any<usize>,
+    pub style: frp::Any<AllStyles>,
     pub select_section: frp::Any<Option<SectionId>>,
     pub chosen_section: frp::Stream<Option<SectionId>>,
 }
@@ -183,16 +223,37 @@ impl Navigator {
         tooltip_hide_timer.set_delay(MARKETPLACE_TOOLTIP_HIDE_DELAY_MS);
         tooltip_hide_timer.set_duration(0.0);
         frp::extend! { network
+            style <- any(...);
+            set_namespace_section_count <- any(...);
+            section_count <- set_namespace_section_count.map(
+                |&n: &usize| n + MIN_BOTTOM_BUTTONS_COUNT
+            );
+            bottom_buttons_shape <- section_count.map(|n| (*n, 1));
+            bottom_buttons_params <- all2(&section_count, &style);
+            bottom_buttons_viewport <- bottom_buttons_params.map(get_bottom_buttons_viewport);
+            bottom_buttons_pos <- bottom_buttons_params.map(get_bottom_buttons_pos);
+            bottom_buttons.set_entries_params <+ style.map(get_bottom_buttons_entries_params);
+            bottom_buttons.set_entries_size <+ style.map(get_bottom_buttons_entries_size);
+            bottom_buttons.reset_entries <+ bottom_buttons_shape;
+            bottom_buttons.set_viewport <+ bottom_buttons_viewport;
+            eval bottom_buttons_pos ((pos) bottom_buttons.set_xy(*pos));
+
             select_section <- any(...);
-            user_selected_section <- select_section.map(|&s:&Option<SectionId>| s.map(section_id_to_grid_loc));
+            user_selected_section <- all2(&select_section, &section_count);
+            user_selected_section <- user_selected_section.map(
+                |(s, max): &(Option<SectionId>, _)| s.map(|s| section_id_to_grid_loc(s, *max))
+            );
             bottom_buttons.select_entry <+ user_selected_section;
             selected_button_and_section <- all(&bottom_buttons.entry_selected, &user_selected_section);
-            different_section_chosen <- selected_button_and_section.filter(|(e, u)| *e != *u);
-            chosen_section <- different_section_chosen._0().map(|loc| loc.as_ref().map(loc_to_section_id));
+            different_section_chosen <- selected_button_and_section.filter(|(e, u)| *e != *u)._0();
+            chosen_section <- all2(&different_section_chosen, &section_count);
+            chosen_section <- chosen_section.map(
+                |(loc, max)| loc.as_ref().map(|loc| loc_to_section_id(loc, *max))
+            );
 
-            model <- bottom_buttons.model_for_entry_needed.map2(&colors.update, f!([]
-                ((row, col), colors) {
-                    let section_id = loc_to_section_id(&(*row, *col));
+            model <- bottom_buttons.model_for_entry_needed.map3(&colors.update, &section_count, f!([]
+                ((row, col), colors, section_count) {
+                    let section_id = loc_to_section_id(&(*row, *col), *section_count);
                     let icon_id = section_id_to_icon_id(section_id);
                     let active_colors = colors.get(section_id).into();
                     let inactive_colors = colors.inactive.into();
@@ -230,7 +291,6 @@ impl Navigator {
         }
         colors.init.emit(());
         tooltip_hide_timer.reset();
-        bottom_buttons.reset_entries(BOTTOM_BUTTONS_COUNT, 1);
         top_buttons.reset_entries(TOP_BUTTONS_COUNT, 1);
 
         Self {
@@ -239,6 +299,8 @@ impl Navigator {
             bottom_buttons,
             tooltip,
             network,
+            set_namespace_section_count,
+            style,
             select_section,
             chosen_section,
         }
@@ -247,17 +309,10 @@ impl Navigator {
     pub(crate) fn update_layout(&self, style: &AllStyles) {
         let size = style.navigator.button_size;
         let top_buttons_height = size * TOP_BUTTONS_COUNT as f32;
-        let bottom_buttons_height = size * BOTTOM_BUTTONS_COUNT as f32;
-        self.bottom_buttons.set_entries_size(Vector2(size, size));
         self.top_buttons.set_entries_size(Vector2(size, size));
         let (top, left, right) = (0.0, 0.0, size);
-        let viewport = grid::Viewport { top, bottom: 0.0, left, right };
-        let top_buttons_viewport = grid::Viewport { bottom: -top_buttons_height, ..viewport };
-        let bottom_buttons_viewport = grid::Viewport { bottom: -bottom_buttons_height, ..viewport };
-        self.top_buttons.set_viewport(top_buttons_viewport);
-        self.bottom_buttons.set_viewport(bottom_buttons_viewport);
-        let buttons_params = entry::Params::from(style.navigator);
-        self.bottom_buttons.set_entries_params(buttons_params);
+        let viewport = grid::Viewport { top, bottom: -top_buttons_height, left, right };
+        self.top_buttons.set_viewport(viewport);
         let disabled_params = entry::Params {
             hover_color:              color::Lcha::transparent(),
             selection_color:          color::Lcha::transparent(),
@@ -269,15 +324,11 @@ impl Navigator {
         let width = style.navigator.width;
         let height = style.grid.height + style.panel.menu_height;
         let top = height / 2.0;
-        let bottom = (-height / 2.0).floor();
         let left = -style.grid.width / 2.0 - width / 2.0;
         let top_padding = style.navigator.top_padding;
-        let bottom_padding = style.navigator.bottom_padding;
         let x_pos = left + (width / 2.0).floor() - size / 2.0;
         let top_buttons_y = top - top_padding;
-        let bottom_buttons_y = bottom + bottom_buttons_height + bottom_padding;
         self.top_buttons.set_xy(Vector2(x_pos, top_buttons_y));
-        self.bottom_buttons.set_xy(Vector2(x_pos, bottom_buttons_y));
     }
 }
 
