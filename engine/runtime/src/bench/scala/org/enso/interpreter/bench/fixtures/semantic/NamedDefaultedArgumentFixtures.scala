@@ -13,7 +13,7 @@ class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
       |
       |    res = summator current=sumTo acc=0
       |    res
-    """.stripMargin
+      |""".stripMargin
   val sumTCOWithNamedArguments = getMain(sumTCOWithNamedArgumentsCode)
 
   val sumTCOWithDefaultedArgumentsCode =
@@ -24,7 +24,7 @@ class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
       |
       |    res = summator (current = sumTo)
       |    res
-    """.stripMargin
+      |""".stripMargin
   val sumTCOWithDefaultedArguments = getMain(sumTCOWithDefaultedArgumentsCode)
 
 }

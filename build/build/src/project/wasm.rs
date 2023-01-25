@@ -49,7 +49,17 @@ pub const WASM_ARTIFACT_NAME: &str = "gui_wasm";
 
 pub const DEFAULT_TARGET_CRATE: &str = "app/gui";
 
-#[derive(Clone, Copy, Debug, Default, strum::Display, strum::EnumString, PartialEq, Eq)]
+#[derive(
+    clap::ArgEnum,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    strum::Display,
+    strum::EnumString,
+    PartialEq,
+    Eq
+)]
 #[strum(serialize_all = "kebab-case")]
 pub enum ProfilingLevel {
     #[default]
@@ -59,7 +69,17 @@ pub enum ProfilingLevel {
     Debug,
 }
 
-#[derive(Clone, Copy, Debug, Default, strum::Display, strum::EnumString, PartialEq, Eq)]
+#[derive(
+    clap::ArgEnum,
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    strum::Display,
+    strum::EnumString,
+    PartialEq,
+    Eq
+)]
 #[strum(serialize_all = "kebab-case")]
 pub enum LogLevel {
     Error,
@@ -129,8 +149,8 @@ pub struct BuildInput {
     pub extra_cargo_options:   Vec<String>,
     pub profile:               Profile,
     pub profiling_level:       Option<ProfilingLevel>,
-    pub log_level:             Option<LogLevel>,
-    pub uncollapsed_log_level: Option<LogLevel>,
+    pub log_level:             LogLevel,
+    pub uncollapsed_log_level: LogLevel,
     pub wasm_size_limit:       Option<byte_unit::Byte>,
 }
 
@@ -234,11 +254,8 @@ impl IsTarget for Wasm {
             if let Some(profiling_level) = profiling_level {
                 command.set_env(env::ENSO_MAX_PROFILING_LEVEL, &profiling_level)?;
             }
-            command.set_env(env::ENSO_MAX_LOG_LEVEL, &log_level.unwrap_or_default())?;
-            command.set_env(
-                env::ENSO_MAX_UNCOLLAPSED_LOG_LEVEL,
-                &uncollapsed_log_level.unwrap_or_default(),
-            )?;
+            command.set_env(env::ENSO_MAX_LOG_LEVEL, &log_level)?;
+            command.set_env(env::ENSO_MAX_UNCOLLAPSED_LOG_LEVEL, &uncollapsed_log_level)?;
             command.run_ok().await?;
 
             Self::finalize_wasm(wasm_opt_options, *skip_wasm_opt, *profile, &temp_dist).await?;
@@ -343,11 +360,9 @@ impl IsWatchable for Wasm {
             if let Some(profiling_level) = profiling_level {
                 watch_cmd.args(["--profiling-level", profiling_level.to_string().as_str()]);
             }
-            watch_cmd.args(["--log-level", log_level.unwrap_or_default().to_string().as_str()]);
-            watch_cmd.args([
-                "--uncollapsed-log-level",
-                uncollapsed_log_level.unwrap_or_default().to_string().as_str(),
-            ]);
+            watch_cmd.args(["--wasm-log-level", log_level.to_string().as_str()]);
+            watch_cmd
+                .args(["--wasm-uncollapsed-log-level", uncollapsed_log_level.to_string().as_str()]);
             for wasm_opt_option in wasm_opt_options {
                 watch_cmd.args(["--wasm-opt-option", &wasm_opt_option]);
             }

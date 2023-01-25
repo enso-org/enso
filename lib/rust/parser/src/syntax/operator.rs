@@ -209,10 +209,16 @@ impl<'s> ExpressionBuilder<'s> {
         &mut self,
         prec: token::Precedence,
         assoc: token::Associativity,
-        arity: Unary<'s>,
+        mut arity: Unary<'s>,
     ) {
         if self.prev_type == Some(ItemType::Ast) {
             self.application();
+            if self.nospace {
+                if let Unary::Simple(token) = arity {
+                    let error = "Space required between term and unary-operator expression.".into();
+                    arity = Unary::Invalid { token, error };
+                }
+            }
         }
         self.push_operator(prec, assoc, Arity::Unary(arity));
     }
@@ -277,6 +283,8 @@ impl<'s> ExpressionBuilder<'s> {
             let ast = match opr.opr {
                 Arity::Unary(Unary::Simple(opr)) =>
                     Operand::from(rhs_).map(|item| syntax::tree::apply_unary_operator(opr, item)),
+                Arity::Unary(Unary::Invalid { token, error }) => Operand::from(rhs_)
+                    .map(|item| syntax::tree::apply_unary_operator(token, item).with_error(error)),
                 Arity::Unary(Unary::Fragment { mut fragment }) => {
                     if let Some(rhs_) = rhs_ {
                         fragment.operand(rhs_);
@@ -331,6 +339,7 @@ impl<'s> ExpressionBuilder<'s> {
         if child.output.is_empty() && let Some(op) = child.operator_stack.pop() {
             match op.opr {
                 Arity::Unary(Unary::Simple(un)) => self.operator(un),
+                Arity::Unary(Unary::Invalid{ .. }) => unreachable!(),
                 Arity::Unary(Unary::Fragment{ .. }) => unreachable!(),
                 Arity::Binary { tokens, .. } => tokens.into_iter().for_each(|op| self.operator(op)),
             };
@@ -401,6 +410,7 @@ impl<'s> Arity<'s> {
 #[derive(Debug, PartialEq, Eq)]
 enum Unary<'s> {
     Simple(token::Operator<'s>),
+    Invalid { token: token::Operator<'s>, error: Cow<'static, str> },
     Fragment { fragment: ExpressionBuilder<'s> },
 }
 

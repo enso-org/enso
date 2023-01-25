@@ -504,4 +504,8 @@ public class EnsoContext {
   public State emptyState() {
     return State.create(this);
   }
+
+  public int getMaxUnboxingLayouts() {
+    return 10;
+  }
 }

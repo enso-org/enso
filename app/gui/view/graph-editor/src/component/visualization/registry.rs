@@ -100,7 +100,7 @@ impl Registry {
 
     /// Add default visualizations to the registry.
     pub fn add_default_visualizations(&self) {
-        self.add(builtin::visualization::native::RawText::definition());
+        self.add(builtin::visualization::native::text_visualization::text_visualisation());
         self.try_add_java_script(builtin::visualization::java_script::scatter_plot_visualization());
         self.try_add_java_script(builtin::visualization::java_script::histogram_visualization());
         self.try_add_java_script(builtin::visualization::java_script::heatmap_visualization());
@@ -113,7 +113,7 @@ impl Registry {
 
     /// Return a default visualisation definition.
     pub fn default_visualisation() -> visualization::Definition {
-        builtin::visualization::native::RawText::definition()
+        builtin::visualization::native::text_visualization::text_visualisation()
     }
 }
 

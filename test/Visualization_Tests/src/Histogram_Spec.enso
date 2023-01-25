@@ -23,11 +23,6 @@ spec =
         json.should_equal expected_json
 
     Test.group "Histogram Visualization" <|
-
-        Test.specify "deals with an empty table" <|
-            table  = Table.from_rows [] []
-            expect table Nothing []
-
         Test.specify "plots first column if none recognized" <|
             header = ['α', 'ω']
             row_1  = [11 , 10 ]

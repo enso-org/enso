@@ -1,0 +1,152 @@
+from Standard.Base import all
+import Standard.Base.Error.Illegal_State.Illegal_State
+
+from Standard.Table import all hiding Table
+from Standard.Table.Errors import all
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+
+from Standard.Test import Test, Problems
+import Standard.Test.Extensions
+
+from project.Common_Table_Operations.Util import expect_column_names, run_default_backend
+
+
+main = run_default_backend spec
+
+spec setup =
+    prefix = setup.prefix
+    table_builder = setup.table_builder
+    materialize = setup.materialize
+    db_todo = if prefix.contains "In-Memory" then Nothing else "Table.cross_join is still WIP for the DB backend."
+    Test.group prefix+"Table.cross_join" pending=db_todo <|
+        Test.specify "should allow to create a cross product of two tables in the right order" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t2 = table_builder [["Z", ['a', 'b']], ["W", ['c', 'd']]]
+
+            t3 = t1.cross_join t2
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.row_count . should_equal 4
+            r = materialize t3 . rows . map .to_vector
+            r.length . should_equal 4
+
+            r0 = [1, 4, 'a', 'c']
+            r1 = [1, 4, 'b', 'd']
+            r2 = [2, 5, 'a', 'c']
+            r3 = [2, 5, 'b', 'd']
+            expected_rows = [r0, r1, r2, r3]
+
+            case setup.is_database of
+                True -> r.should_contain_the_same_elements_as expected_rows
+                False -> r.should_equal expected_rows
+
+        Test.specify "should work correctly with empty tables" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t2 = table_builder [["Z", ['a']], ["W", ['c']]]
+            # Workaround to easily create empty table until table builder allows that directly.
+            empty = t2.filter "Z" Filter_Condition.Is_Nothing
+            empty.row_count . should_equal 0
+
+            t3 = t1.cross_join empty
+            expect_column_names ["X", "Y", "Z", "W"] t3
+            t3.row_count.should_equal 0
+            t3.at "X" . to_vector . should_equal []
+
+            t4 = empty.cross_join t1
+            expect_column_names ["Z", "W", "X", "Y"] t4
+            t4.row_count.should_equal 0
+            t4.at "X" . to_vector . should_equal []
+
+        Test.specify "should respect the right row limit" <|
+            t2 = table_builder [["X", [1, 2]]]
+            t3 = table_builder [["X", [1, 2, 3]]]
+            t100 = table_builder [["Y", 0.up_to 100 . to_vector]]
+            t101 = table_builder [["Y", 0.up_to 101 . to_vector]]
+
+            t2.cross_join t100 . row_count . should_equal 200
+            t101.cross_join t2 . row_count . should_equal 202
+            action = t2.cross_join t101 on_problems=_
+            tester table =
+                table.row_count . should_equal 202
+            problems = [Cross_Join_Row_Limit_Exceeded.Error 100 101]
+            Problems.test_problem_handling action problems tester
+
+            t2.cross_join t101 right_row_limit=Nothing . row_count . should_equal 202
+            t2.cross_join t3 right_row_limit=2 on_problems=Problem_Behavior.Report_Error . should_fail_with Cross_Join_Row_Limit_Exceeded
+
+        Test.specify "should ensure 1-1 mapping even with duplicate rows" <|
+            t1 = table_builder [["X", [2, 1, 2, 2]], ["Y", [5, 4, 5, 5]]]
+            t2 = table_builder [["Z", ['a', 'a']]]
+
+            t3 = t1.cross_join t2
+            expect_column_names ["X", "Y", "Z"] t3
+            t3.row_count . should_equal 8
+            r = materialize t3 . rows . map .to_vector
+            r.length . should_equal 8
+            r1 = [2, 5, 'a']
+            r2 = [1, 4, 'a']
+            expected_rows = [r1, r1, r2, r2, r1, r1, r1, r1]
+            case setup.is_database of
+                True -> r.should_contain_the_same_elements_as expected_rows
+                False -> r.should_equal expected_rows
+
+        Test.specify "should allow self-joins" <|
+            t1 = table_builder [["X", [1, 2]], ["Y", [4, 5]]]
+            t2 = t1.cross_join t1
+
+            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t2
+            t2.row_count . should_equal 4
+            r = materialize t2 . rows . map .to_vector
+            r.length . should_equal 4
+            r0 = [1, 4, 1, 4]
+            r1 = [1, 4, 2, 5]
+            r2 = [2, 5, 1, 4]
+            r3 = [2, 5, 2, 5]
+            expected_rows = [r0, r1, r2, r3]
+            case setup.is_database of
+                True -> r.should_contain_the_same_elements_as expected_rows
+                False -> r.should_equal expected_rows
+
+        Test.specify "should rename columns of the right table to avoid duplicates" <|
+            t1 = table_builder [["X", [1]], ["Y", [5]]]
+            t2 = table_builder [["X", ['a']], ["Y", ['d']]]
+
+            t3 = t1.cross_join t2
+            expect_column_names ["X", "Y", "Right_X", "Right_Y"] t3
+            Problems.get_attached_warnings t3 . should_equal [Duplicate_Output_Column_Names.Error ["X", "Y"]]
+            t3.row_count . should_equal 1
+            t3.at "X" . to_vector . should_equal [1]
+            t3.at "Y" . to_vector . should_equal [5]
+            t3.at "Right_X" . to_vector . should_equal ['a']
+            t3.at "Right_Y" . to_vector . should_equal ['d']
+
+            t1.cross_join t2 on_problems=Problem_Behavior.Report_Error . should_fail_with Duplicate_Output_Column_Names
+
+            expect_column_names ["X", "Y", "X_1", "Y_1"] (t1.cross_join t2 right_prefix="")
+
+            t4 = table_builder [["X", [1]], ["Right_X", [5]]]
+            expect_column_names ["X", "Y", "Right_X_1", "Right_X"] (t1.cross_join t4)
+            expect_column_names ["X", "Right_X", "Right_X_1", "Y"] (t4.cross_join t1)
+
+        Test.specify "should respect the column ordering" <|
+            t1 = table_builder [["X", [100, 2]], ["Y", [4, 5]]]
+            t2 = table_builder [["Z", ['a', 'b', 'c']], ["W", ['x', 'd', 'd']]]
+
+            t3 = t1.order_by "X"
+            t4 = t2.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Z" Sort_Direction.Descending])
+
+            t5 = t3.cross_join t4
+            expect_column_names ["X", "Y", "Z", "W"] t5
+            t5.row_count . should_equal 6
+            r = materialize t5 . rows . map .to_vector
+            r.length . should_equal 6
+
+            r0 = [2, 5, 'c', 'd']
+            r1 = [2, 5, 'b', 'd']
+            r2 = [2, 5, 'a', 'x']
+            r3 = [100, 4, 'c', 'd']
+            r4 = [100, 4, 'b', 'd']
+            r5 = [100, 4, 'a', 'x']
+            expected_rows = [r0, r1, r2, r3, r4, r5]
+            r.should_equal expected_rows
+

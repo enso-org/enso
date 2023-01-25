@@ -158,4 +158,20 @@ public class Column {
   public Column duplicateCount() {
     return new Column(name + "_duplicate_count", storage.duplicateCount());
   }
+
+  /** Resizes the given column to the provided new size.
+   * <p>
+   * If the new size is smaller than the current size, the column is truncated.
+   * If the new size is larger than the current size, the column is padded with nulls.
+   */
+  public Column resize(int newSize) {
+    if (newSize == getSize()) {
+      return this;
+    } else if (newSize < getSize()) {
+      return slice(0, newSize);
+    } else {
+      int nullsToAdd = newSize - getSize();
+      return new Column(name, storage.appendNulls(nullsToAdd));
+    }
+  }
 }

@@ -35,15 +35,15 @@ spec = Test.group "Table.parse_values" <|
         t1_zeros = ["+00", "-00", "+01", "-01", "01", "000", "0010"]
         t3 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Integer]
         t3.at "ints" . to_vector . should_equal t1_parsed
-        Warning.get_all t3 . map .value . should_equal [Leading_Zeros.Error "ints" Integer t1_zeros]
+        Problems.get_attached_warnings t3 . should_equal [Leading_Zeros.Error "ints" Integer t1_zeros]
 
         t4 = t1.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
         t4.at "ints" . to_vector . should_equal t1_parsed
-        Warning.get_all t4 . map .value . should_equal [Leading_Zeros.Error "ints" Decimal t1_zeros]
+        Problems.get_attached_warnings t4 . should_equal [Leading_Zeros.Error "ints" Decimal t1_zeros]
 
         t5 = t2.parse_values column_types=[Column_Type_Selection.Value 0 Decimal]
         t5.at "floats" . to_vector . should_equal [0.0, 0.0, Nothing, Nothing, Nothing, 1.0]
-        Warning.get_all t5 . map .value . should_equal [Leading_Zeros.Error "floats" Decimal ["00.", "01.0", '-0010.0000']]
+        Problems.get_attached_warnings t5 . should_equal [Leading_Zeros.Error "floats" Decimal ["00.", "01.0", '-0010.0000']]
 
         opts = Data_Formatter.Value allow_leading_zeros=True
         t1_parsed_zeros = [0, 0, 0, 1, -1, 1, 0, 10, 12345, Nothing]
@@ -203,10 +203,10 @@ spec = Test.group "Table.parse_values" <|
         t3 = Table.new [["xs", ["1,2", "1.2", "_0", "0_", "1_0_0"]]]
         t4 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Decimal]
         t4.at "xs" . to_vector . should_equal [1.2, Nothing, Nothing, Nothing, 100.0]
-        Warning.get_all t4 . map .value . should_equal [Invalid_Format.Error "xs" Decimal ["1.2", "_0", "0_"]]
+        Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "xs" Decimal ["1.2", "_0", "0_"]]
         t5 = t3.parse_values opts column_types=[Column_Type_Selection.Value 0 Integer]
         t5.at "xs" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, 100.0]
-        Warning.get_all t5 . map .value . should_equal [Invalid_Format.Error "xs" Integer ["1,2", "1.2", "_0", "0_"]]
+        Problems.get_attached_warnings t5 . should_equal [Invalid_Format.Error "xs" Integer ["1,2", "1.2", "_0", "0_"]]
 
     Test.specify "should allow to specify custom values for booleans" <|
         opts_1 = Data_Formatter.Value true_values=["1", "YES"] false_values=["0"]
@@ -217,7 +217,7 @@ spec = Test.group "Table.parse_values" <|
         t3 = Table.new [["bools", ["1", "NO", "False", "True", "YES", "no", "oui", "0"]]]
         t4 = t3.parse_values opts_1 column_types=[Column_Type_Selection.Value 0 Boolean]
         t4.at "bools" . to_vector . should_equal [True, Nothing, Nothing, Nothing, True, Nothing, Nothing, False]
-        Warning.get_all t4 . map .value . should_equal [Invalid_Format.Error "bools" Boolean ["NO", "False", "True", "no", "oui"]]
+        Problems.get_attached_warnings t4 . should_equal [Invalid_Format.Error "bools" Boolean ["NO", "False", "True", "no", "oui"]]
 
     whitespace_table =
         ints = ["ints", ["0", "1 ", "0 1", "     2"]]
@@ -236,7 +236,7 @@ spec = Test.group "Table.parse_values" <|
         t1.at "dates" . to_vector . should_equal [Date.new 2022 1 1, Date.new 2022 7 17, Nothing, Nothing]
         t1.at "datetimes" . to_vector . should_equal [Date_Time.new 2022 1 1 11 59, Nothing, Nothing, Nothing]
         t1.at "times" . to_vector . should_equal [Time_Of_Day.new 11 0 0, Time_Of_Day.new, Nothing, Nothing]
-        warnings = Warning.get_all t1 . map .value
+        warnings = Problems.get_attached_warnings t1
         expected_warnings = Vector.new_builder
         expected_warnings.append (Invalid_Format.Error "ints" Integer ["0 1"])
         expected_warnings.append (Invalid_Format.Error "floats" Decimal ["- 1"])
@@ -256,7 +256,7 @@ spec = Test.group "Table.parse_values" <|
         t1.at "dates" . to_vector . should_equal nulls
         t1.at "datetimes" . to_vector . should_equal nulls
         t1.at "times" . to_vector . should_equal nulls
-        warnings = Warning.get_all t1 . map .value
+        warnings = Problems.get_attached_warnings t1
         expected_warnings = Vector.new_builder
         expected_warnings.append (Invalid_Format.Error "ints" Integer ["1 ", "0 1", "     2"])
         expected_warnings.append (Invalid_Format.Error "floats" Decimal ["0    ", " 2.0", "- 1"])

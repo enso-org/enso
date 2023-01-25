@@ -13,8 +13,6 @@ import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies
 }
 
-import scala.annotation.unused
-
 /** A pass responsible for the discovery of module annotations, and for
   * associating them with the corresponding construct.
   */
@@ -34,7 +32,7 @@ case object ModuleAnnotations extends IRPass {
     * @param ir the Enso IR to process
     * @param moduleContext a context object that contains the information needed
     *                      to process a module
-    *  @return `ir`, possibly having made transformations or annotations to that
+    * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   override def runModule(
@@ -42,27 +40,27 @@ case object ModuleAnnotations extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
-    val newBindings = for (binding <- ir.bindings) yield {
-      binding match {
-        case ann: Name.Annotation =>
-          lastAnnotations :+= ann
-          None
-        case comment: IR.Comment => Some(comment)
-        case typ: Definition.SugaredType =>
-          val res = Some(
-            resolveComplexType(typ).updateMetadata(
-              this -->> Annotations(lastAnnotations)
-            )
+    val newBindings = ir.bindings.map {
+      case ann: Name.BuiltinAnnotation =>
+        lastAnnotations :+= ann
+        None
+      case ann: Name.GenericAnnotation =>
+        Some(ann)
+      case comment: IR.Comment => Some(comment)
+      case typ: Definition.SugaredType =>
+        val res = Some(
+          resolveComplexType(typ).updateMetadata(
+            this -->> Annotations(lastAnnotations)
           )
-          lastAnnotations = Seq()
-          res
-        case entity =>
-          val res = Some(
-            entity.updateMetadata(this -->> Annotations(lastAnnotations))
-          )
-          lastAnnotations = Seq()
-          res
-      }
+        )
+        lastAnnotations = Seq()
+        res
+      case entity =>
+        val res = Some(
+          entity.updateMetadata(this -->> Annotations(lastAnnotations))
+        )
+        lastAnnotations = Seq()
+        res
     }
     ir.copy(bindings = newBindings.flatten)
   }
@@ -72,14 +70,16 @@ case object ModuleAnnotations extends IRPass {
     * @param typ the type in which to resolve annotations
     * @return `typ` with all top-level annotations resolved
     */
-  def resolveComplexType(
+  private def resolveComplexType(
     typ: Definition.SugaredType
   ): Definition.SugaredType = {
     var lastAnnotations: Seq[IR.Name.Annotation] = Seq()
     val newBodyElems = typ.body.flatMap {
-      case ann: Name.Annotation =>
+      case ann: Name.BuiltinAnnotation =>
         lastAnnotations :+= ann
         None
+      case ann: Name.GenericAnnotation =>
+        Some(ann)
       case comment: IR.Comment => Some(comment)
       case entity =>
         val res = Some(
@@ -98,17 +98,17 @@ case object ModuleAnnotations extends IRPass {
     * @param ir the Enso IR to process
     * @param inlineContext a context object that contains the information needed
     *                      for inline evaluation
-    *  @return `ir`, possibly having made transformations or annotations to that
+    * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = ir
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 

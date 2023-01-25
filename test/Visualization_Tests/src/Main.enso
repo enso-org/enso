@@ -6,6 +6,7 @@ import project.Geo_Map_Spec
 import project.Helpers_Spec
 import project.Histogram_Spec
 import project.Id_Spec
+import project.Lazy_Text_Spec
 import project.Scatter_Plot_Spec
 import project.SQL_Spec
 import project.Table_Spec
@@ -16,6 +17,7 @@ main = Test_Suite.run_main <|
     Helpers_Spec.spec
     Histogram_Spec.spec
     Id_Spec.spec
+    Lazy_Text_Spec.spec
     Scatter_Plot_Spec.spec
     SQL_Spec.spec
     Table_Spec.spec

@@ -93,7 +93,7 @@ spec =
             expected_problems = [Encoding_Error.Error "Encoding issues at bytes 14, 15, 16."]
             contents_1 = read_file_one_by_one windows_file encoding expected_contents.length on_problems=Problem_Behavior.Report_Warning
             contents_1.should_equal expected_contents
-            Warning.get_all contents_1 . map .value . should_equal expected_problems
+            Problems.get_attached_warnings contents_1 . should_equal expected_problems
 
             contents_2 = windows_file.with_input_stream [File_Access.Read] stream->
                 stream.with_stream_decoder encoding Problem_Behavior.Report_Warning reporting_stream_decoder->
@@ -104,7 +104,7 @@ spec =
                     reporting_stream_decoder.read.should_equal -1
                     Text.from_codepoints <| [codepoint_1]+codepoints_1+codepoints_2+codepoints_3
             contents_2.should_equal expected_contents
-            Warning.get_all contents_2 . map .value . should_equal expected_problems
+            Problems.get_attached_warnings contents_2 . should_equal expected_problems
 
         Test.specify "should work correctly if no data is read from it" <|
             result = windows_file.with_input_stream [File_Access.Read] stream->

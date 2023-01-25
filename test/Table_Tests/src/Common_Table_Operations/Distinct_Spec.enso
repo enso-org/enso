@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Column_Selector, Sort_Column, Sort_Column_Selector
-from Standard.Table.Errors import Floating_Point_Grouping
+from Standard.Table.Errors import all
 
 from Standard.Test import Test, Problems
 import Standard.Test.Extensions
@@ -91,3 +91,21 @@ spec setup =
 
             va.at 2 . should_equal "b"
             [3, 5, 8].contains (vb.at 2) . should_be_true
+
+        Test.specify "should report missing input columns as errors regardless of on_problems" <|
+            t1 = table_builder [["X", [1, 2, 3]]]
+            [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
+                t2 = t1.distinct ["Y", "Z"] on_problems=pb
+                t2.should_fail_with Missing_Input_Columns
+                t2.catch . should_equal (Missing_Input_Columns.Error ["Y", "Z"])
+
+                t3 = t1.distinct (Column_Selector.By_Name ["X", "Y"]) on_problems=pb
+                t3.should_fail_with Missing_Input_Columns
+                t3.catch . should_equal (Missing_Input_Columns.Error ["Y"])
+
+                t4 = t1.distinct (Column_Selector.By_Index [0, 42]) on_problems=pb
+                t4.should_fail_with Column_Indexes_Out_Of_Range
+                t4.catch . should_equal (Column_Indexes_Out_Of_Range.Error [42])
+
+                t5 = t1.distinct [] on_problems=pb
+                t5.should_fail_with No_Input_Columns_Selected

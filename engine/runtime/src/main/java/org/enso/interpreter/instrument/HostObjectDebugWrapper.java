@@ -8,10 +8,13 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+
 import java.util.Arrays;
+
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 /**
  * Wrapper for host objects. Is a workaround for a bug in chromeinspector
@@ -51,20 +54,18 @@ public final class HostObjectDebugWrapper implements TruffleObject {
    * wrapper is a string from the Truffle perspective.
    * <p>
    * Serves as a workaround for https://github.com/oracle/graal/issues/5513.
+   *
    * @param object Object to potentialy wrap in {@link HostObjectDebugWrapper}.
    */
   @TruffleBoundary
-  public static Object wrapHostValues(Object object, InteropLibrary interop) {
+  public static Object wrapHostValues(Object object, InteropLibrary interop, StructsLibrary structs) {
     if (object instanceof Atom atom) {
-      Object[] fields = atom.getFields();
+      Object[] fields = structs.getFields(atom);
       Object[] wrappedFields = new Object[fields.length];
       for (int i = 0; i < fields.length; i++) {
-        wrappedFields[i] = wrapHostValues(fields[i], interop);
+        wrappedFields[i] = wrapHostValues(fields[i], interop, structs);
       }
-      return new Atom(
-          atom.getConstructor(),
-          wrappedFields
-      );
+      return atom.getConstructor().newInstance(wrappedFields);
     } else if (isHostValue(object, interop)) {
       return new HostObjectDebugWrapper(object);
     } else {
