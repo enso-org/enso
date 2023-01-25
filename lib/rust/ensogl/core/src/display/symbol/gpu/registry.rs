@@ -3,6 +3,7 @@
 
 use crate::data::dirty::traits::*;
 use crate::prelude::*;
+use crate::system::web::traits::*;
 
 use crate::data::dirty;
 use crate::debug;
@@ -20,7 +21,7 @@ use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::Context;
 use crate::system::web;
-use crate::system::web::traits::*;
+
 
 
 // =============

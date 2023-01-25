@@ -1,7 +1,7 @@
-use crate::cache::goodie;
-use crate::cache::Cache;
 use crate::prelude::*;
 
+use crate::cache::goodie;
+use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::program::version::IsVersionPredicate;
 use crate::programs::wasm_opt;

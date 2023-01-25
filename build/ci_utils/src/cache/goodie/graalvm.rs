@@ -1,8 +1,8 @@
-use crate::cache::goodie;
-use crate::cache::Cache;
 use crate::prelude::*;
 
+use crate::cache::goodie;
 use crate::cache::goodie::Goodie;
+use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
 use crate::programs::java;

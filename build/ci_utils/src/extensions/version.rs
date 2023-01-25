@@ -3,6 +3,7 @@ use crate::prelude::*;
 use semver::Prerelease;
 
 
+
 /// Extension methods for [`Version`].
 pub trait VersionExt {
     /// Get the version numbers, excluding the prerelease or build metadata.

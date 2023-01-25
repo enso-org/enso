@@ -1,7 +1,9 @@
 //! A macro allowing running functions after WASM initialization, before the main function.
 
 use crate::prelude::*;
+
 use crate::root_call_path::root_call_path;
+
 
 
 // ========================

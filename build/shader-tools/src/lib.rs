@@ -4,9 +4,9 @@
 //! through https://github.com/enso-org/shader-tools/, so build script can download binaries from
 //! there, rather than requiring the user to install them manually.
 
-#![feature(default_free_fn)]
 #![recursion_limit = "1024"]
 // === Features ===
+#![feature(default_free_fn)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![feature(hash_drain_filter)]
@@ -33,11 +33,18 @@ use ide_ci::github::setup_octocrab;
 use ide_ci::github::RepoRef;
 use ide_ci::goodies::shader_tools::SHADER_TOOLS_REPO;
 
-pub use ide_ci::prelude;
+
+// ==============
+// === Export ===
+// ==============
 
 pub mod ci;
 pub mod shaderc;
 pub mod spirv_cross;
+
+pub use ide_ci::prelude;
+
+
 
 define_env_var! {
     /// ID of the release that we are deploying built assets to.

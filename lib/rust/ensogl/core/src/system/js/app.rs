@@ -1,6 +1,7 @@
 //! Binding to the EnsoGL TypeScript App class. This module does not provide docs for the app
 //! methods. You can find them in the TypeScript source code.
 
+// === Non-Standard Linter Configuration ===
 #![allow(missing_docs)]
 
 use crate::prelude::*;

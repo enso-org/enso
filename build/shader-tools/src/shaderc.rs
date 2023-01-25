@@ -1,9 +1,12 @@
 //! Downloading and repackaging the `shaderc` collection of tools.
 
 use crate::prelude::*;
+
 use ide_ci::programs::shaderc::Glslc;
 use ide_ci::programs::shaderc::SpirvOpt;
 use ide_ci::programs::Strip;
+
+
 
 /// The binaries from the `shaderc` collection that we actually use.
 pub fn binaries_to_package() -> [&'static str; 2] {

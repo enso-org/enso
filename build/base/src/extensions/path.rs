@@ -1,11 +1,11 @@
 //! Extension methods for `Path` and `Path`-like types.1
 
 use crate::prelude::*;
-use std::env::consts::EXE_EXTENSION;
 
 use crate::extensions::os_str::OsStrExt;
 
 use serde::de::DeserializeOwned;
+use std::env::consts::EXE_EXTENSION;
 
 
 

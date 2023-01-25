@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use crate::program::command::Manipulator;
 
+
+
 pub fn build_type(config: Configuration) -> SetVariable {
     SetVariable::string("CMAKE_BUILD_TYPE", config.to_string())
 }

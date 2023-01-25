@@ -4,11 +4,11 @@ use crate::ci_gen::job::expose_os_specific_signing_secret;
 use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::plain_job_customized;
 use crate::ci_gen::job::RunsOn;
-
 use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
 use crate::version::ENSO_RELEASE_MODE;
 use crate::version::ENSO_VERSION;
+
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::is_non_windows_runner;
 use ide_ci::actions::workflow::definition::is_windows_runner;

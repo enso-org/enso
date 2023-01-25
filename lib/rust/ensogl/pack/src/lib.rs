@@ -1,12 +1,17 @@
 //! Wrapper over `wasm-pack` tool which generates a rich JS WASM loader and is capable of optimizing
 //! EnsoGL shapes during compilation.
 
+// === Features ===
 #![feature(async_closure)]
+// === Standard Linter Configuration ===
+#![deny(non_ascii_idents)]
+#![warn(unsafe_code)]
+#![allow(clippy::bool_to_int_with_if)]
+#![allow(clippy::let_and_return)]
 
-use enso_prelude::calculate_hash;
-pub use ide_ci::prelude;
 use ide_ci::prelude::*;
 
+use enso_prelude::calculate_hash;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::shaderc::Glslc;
 use ide_ci::programs::shaderc::SpirvOpt;
@@ -17,6 +22,13 @@ use std::env;
 use std::path::Path;
 use std::path::PathBuf;
 use walkdir::WalkDir;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub use ide_ci::prelude;
 
 
 
