@@ -79,10 +79,8 @@ type No_Output_Columns
     to_display_text self =
         "The result contains no columns."
 
-## Indicates that one column has been matched by multiple selectors.
-
-   In case the selectors have differing metadata and the error does not prevent
-   the operation from continuing, the first selector on the list is used.
+## Indicates that one column has been matched by multiple selectors with
+   differing settings.
 type Column_Matched_By_Multiple_Selectors
     Error (column_name : Text) (selectors : [Any])
 

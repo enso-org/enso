@@ -77,8 +77,11 @@ spec setup =
             t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             expect_column_names ["foo"] t
 
+            expect_column_names ["foo", "bar"] <|
+                table.select_columns (By_Index [0, 1, 0])
+
         Test.specify "should correctly handle edge-cases: aliased indices" <|
-            selector = By_Index [0, -7, -6, 1]
+            selector = By_Index [0, -6, 1, -7]
             t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             expect_column_names ["foo", "bar"] t
 
@@ -87,10 +90,24 @@ spec setup =
             t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             expect_column_names ["foo"] t
 
+            expect_column_names ["foo", "bar"] <|
+                table.select_columns (By_Name ["foo", "bar", "foo", "foo", "bar"]) reorder=True
+
+            expect_column_names ["bar", "foo"] <|
+                table.select_columns (By_Name ["bar", "foo", "bar", "foo", "foo", "bar"]) reorder=True
+
+            expect_column_names ["foo", "bar"] <|
+                table.select_columns (By_Name ["bar", "foo", "foo", "bar"]) reorder=False
+
         Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
             t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             expect_column_names ["foo"] t
+
+            selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
+            t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
+            expect_column_names ["bar", "foo"] <|
+                table.select_columns (By_Name ["BAR", "foo" "bar"] Text_Matcher.Case_Insensitive) reorder=True
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
@@ -403,12 +420,12 @@ spec setup =
         Test.specify "should correctly handle edge-cases: aliased selectors" <|
             t = table_builder [["alpha", [1,2,3]], ["bet", [4,5,6]]]
             map1 = Column_Name_Mapping.By_Name (Map.from_vector [["a.*", "AA"], [".*a", "AA"]]) Regex_Matcher.Value
-            t1 = table.rename_columns map1 on_problems=Problem_Behavior.Report_Error
+            t1 = t.rename_columns map1 on_problems=Problem_Behavior.Report_Error
             Problems.assume_no_problems t1
             expect_column_names ["AA", "bet"] t1
 
             map2 = Column_Name_Mapping.By_Name (Map.from_vector [["a.*", "StartsWithA"], [".*a", "EndsWithA"]]) Regex_Matcher.Value
-            t2 = table.rename_columns map2 on_problems=Problem_Behavior.Report_Error
+            t2 = t.rename_columns map2 on_problems=Problem_Behavior.Report_Error
             t2.should_fail_with Column_Matched_By_Multiple_Selectors
 
         Test.specify "should correctly handle problems: invalid names ''" <|

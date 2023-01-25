@@ -145,7 +145,7 @@ type Table_Column_Helper
         _ : Vector ->
             self.select_columns_helper (Column_Selector.By_Name selector) reorder problem_builder
         Column_Selector.By_Name names matcher ->
-            valid_names = validate_unique names problem_builder.report_duplicate_column_selectors
+            valid_names = validate_unique names (_->Nothing)
             Matching.match_criteria_callback matcher self.internal_columns valid_names reorder=reorder name_mapper=(_.name) problem_callback=problem_builder.report_missing_input_columns
         Column_Selector.By_Index indices ->
             good_indices = validate_indices self.internal_columns.length indices problem_builder . map .first
@@ -251,7 +251,7 @@ rename_columns internal_columns mapping on_problems =
     problem_builder = Problem_Builder.new
 
     name_mapper vec ms =
-        good_names = validate_unique vec (problem_callback = v-> problem_builder.report_duplicate_column_selectors (v.map c->(c.at 0))) (on = x-> (x.at 0))
+        good_names = validate_unique vec (problem_callback = _-> Nothing)
         matched = HashSet.new
 
         mapper = name->
@@ -390,10 +390,10 @@ validate_indices length indices problem_builder on=(x->x) =
     oob_indices = partitioned_indices.second
     problem_builder.report_oob_indices (oob_indices.map on)
 
-    uniques = validate_unique inbound_indices problem_builder.report_duplicate_column_selectors on=on
+    uniques = validate_unique inbound_indices (_->Nothing) on=on
 
     resolver = ix->(resolve_index length (on ix))
-    alias_uniques = validate_unique uniques problem_builder.report_input_indices_already_matched on=resolver
+    alias_uniques = validate_unique uniques (_->Nothing) on=resolver
     good_indices = alias_uniques.map i->[resolver i, i]
     good_indices
 
