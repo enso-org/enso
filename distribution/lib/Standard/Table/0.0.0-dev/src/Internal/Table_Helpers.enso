@@ -547,8 +547,9 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
    matched them. A single selector may match multiple columns - in such case
    these columns are all placed in the place belonging to that selector and they
    keep their relative order from the table. If a column is matched by multiple
-   selectors a warning is raised and it only appears once in the result - in the
-   place associated with the first selector that matched it.
+   selectors, it only appears once in the result - in the place associated with
+   the first selector that matched it. Currently, the function does not warn
+   about such duplicated matches.
 
    Arguments:
    - internal_columns: A list of all columns in a table.
@@ -557,7 +558,7 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
    - matcher: Specifies the strategy of matching names.
    - problem_builder: Encapsulates the aggregation of encountered problems.
    - name_extractor: A function which extracts the column name from the selector.
-select_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Vector
+select_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Boolean -> Vector
 select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor =
     match_matrix = Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor
     problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
@@ -565,9 +566,6 @@ select_columns_by_name internal_columns name_selectors matcher problem_builder n
     internal_columns.each_with_index i-> column->
         matching_selector_indices = match_matrix.criteria_indices_matching_object i
         if matching_selector_indices.not_empty then
-            if matching_selector_indices.length > 1 then
-                matching_selectors = matching_selector_indices.map name_selectors.at
-                problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
             associated_selector_index = matching_selector_indices.first
             associated_selector = name_selectors.at associated_selector_index
             element = Column_Transform_Element.Value column associated_selector
