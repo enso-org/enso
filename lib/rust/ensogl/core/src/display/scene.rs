@@ -839,14 +839,7 @@ impl SceneData {
     }
 
     fn update_symbols(&self) -> bool {
-        world::with_context(|t| {
-            if t.dirty.check_all() {
-                t.update();
-                true
-            } else {
-                false
-            }
-        })
+        world::with_context(|context| context.update())
     }
 
     fn update_camera(&self, scene: &Scene) -> bool {

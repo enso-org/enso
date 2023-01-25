@@ -157,16 +157,21 @@ impl SymbolRegistry {
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&self) {
-        debug_span!("Updating.").in_scope(|| {
-            let symbols = self.symbols.borrow();
-            for id in self.dirty.take().iter() {
-                if let Some(symbol) = symbols.get(id) {
-                    symbol.update(&self.variables);
+    pub fn update(&self) -> bool {
+        if self.dirty.check_all() {
+            debug_span!("Updating.").in_scope(|| {
+                let symbols = self.symbols.borrow();
+                for id in self.dirty.take().iter() {
+                    if let Some(symbol) = symbols.get(id) {
+                        symbol.update(&self.variables);
+                    }
                 }
-            }
-            self.dirty.unset_all();
-        })
+                self.dirty.unset_all();
+            });
+            true
+        } else {
+            false
+        }
     }
 
     /// Updates the view-projection matrix after camera movement.

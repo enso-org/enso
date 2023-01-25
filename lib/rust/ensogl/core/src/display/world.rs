@@ -80,7 +80,7 @@ type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
 thread_local! {
     /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
     /// program execution, before the `main` function is called.
-    pub static STATIC_SHAPES: RefCell<Vec<ShapeCons>> = default();
+    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
 }
 
 
@@ -176,7 +176,7 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
 fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
-    STATIC_SHAPES.with(|shapes| {
+    SHAPES_DEFINITIONS.with(|shapes| {
         for shape_cons in shapes.borrow().iter() {
             let shape = shape_cons();
             let path = shape.definition_path();

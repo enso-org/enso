@@ -872,7 +872,7 @@ macro_rules! _shape {
             /// compilation during build.
             #[before_main]
             pub fn register_shape() {
-                $crate::display::world::STATIC_SHAPES.with(|shapes| {
+                $crate::display::world::SHAPES_DEFINITIONS.with(|shapes| {
                     shapes.borrow_mut().push(Box::new(|| Box::new(View::new())));
                 });
             }
