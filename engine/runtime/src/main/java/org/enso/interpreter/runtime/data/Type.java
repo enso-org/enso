@@ -5,6 +5,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
@@ -192,9 +193,12 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
-  Object getMetaParents() {
-    assert supertype != null;
-    return new Array(supertype);
+  Object getMetaParents() throws UnsupportedMessageException {
+    if (hasMetaParents()) {
+      return new Array(supertype);
+    } else {
+      throw UnsupportedMessageException.create();
+    }
   }
 
   @ExportMessage
