@@ -764,19 +764,25 @@ pub mod test {
             reexport:               None,
         };
         let entry4 = SuggestionEntry::Local {
-            module:      "local.Unnamed_6.Main".to_string(),
-            name:        "operator1".to_string(),
-            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
-            external_id: None,
-            scope:       (default()..=default()).into(),
+            module:                 "local.Unnamed_6.Main".to_string(),
+            name:                   "operator1".to_string(),
+            return_type:            "Standard.Base.Data.Vector.Vector".to_string(),
+            external_id:            None,
+            scope:                  (default()..=default()).into(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
         };
         let entry5 = SuggestionEntry::Function {
-            module:      "NewProject.NewModule".to_string(),
-            name:        "testFunction1".to_string(),
-            arguments:   vec![],
-            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
-            scope:       (default()..=default()).into(),
-            external_id: None,
+            module:                 "NewProject.NewModule".to_string(),
+            name:                   "testFunction1".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.Data.Vector.Vector".to_string(),
+            scope:                  (default()..=default()).into(),
+            external_id:            None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
         };
         let ls_response = language_server::response::GetSuggestionDatabase {
             entries:         vec![
@@ -834,11 +840,14 @@ pub mod test {
             external_id:            None,
         };
         let empty_entry = SuggestionEntry::Local {
-            module:      "".to_string(),
-            name:        "".to_string(),
-            return_type: "".to_string(),
-            external_id: None,
-            scope:       (default()..=default()).into(),
+            module:                 "".to_string(),
+            name:                   "".to_string(),
+            return_type:            "".to_string(),
+            external_id:            None,
+            scope:                  (default()..=default()).into(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
         };
         let gibberish_entry = SuggestionEntry::Module {
             module:                 GIBBERISH_MODULE_NAME.to_string(),
@@ -878,26 +887,26 @@ pub mod test {
         let entry_added_id = 123;
         // Modify the database contents by applying an update event.
         let entry_doc_change = Box::new(SuggestionsDatabaseModification {
-            arguments:          vec![],
-            module:             None,
-            self_type:          None,
-            return_type:        None,
-            documentation:      Some(FieldUpdate::set("New doc".to_string())),
-            documentation_html: None,
-            scope:              None,
-            reexport:           None,
+            arguments:              vec![],
+            module:                 None,
+            self_type:              None,
+            return_type:            None,
+            documentation:          Some(FieldUpdate::set("New doc".to_string())),
+            documentation_sections: None,
+            scope:                  None,
+            reexport:               None,
         });
         let entry_mod_change = Box::new(SuggestionsDatabaseModification {
-            arguments:          vec![],
-            module:             Some(FieldUpdate::set(
+            arguments:              vec![],
+            module:                 Some(FieldUpdate::set(
                 "new_project.NewProject.NewModule".to_string(),
             )),
-            self_type:          None,
-            return_type:        None,
-            documentation:      None,
-            documentation_html: None,
-            scope:              None,
-            reexport:           None,
+            self_type:              None,
+            return_type:            None,
+            documentation:          None,
+            documentation_sections: None,
+            scope:                  None,
+            reexport:               None,
         });
         let new_entry = SuggestionEntry::Module {
             module:                 "local.Unnamed_6.Main".to_string(),
@@ -1113,19 +1122,25 @@ pub mod test {
             reexport:               None,
         };
         let entry4 = SuggestionEntry::Local {
-            module:      "test.TestProject.TestModule".to_string(),
-            name:        "operator1".to_string(),
-            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
-            external_id: None,
-            scope:       (default()..=default()).into(),
+            module:                 "test.TestProject.TestModule".to_string(),
+            name:                   "operator1".to_string(),
+            return_type:            "Standard.Base.Data.Vector.Vector".to_string(),
+            external_id:            None,
+            scope:                  (default()..=default()).into(),
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
         };
         let entry5 = SuggestionEntry::Function {
-            module:      "test.TestProject.TestModule".to_string(),
-            name:        "testFunction1".to_string(),
-            arguments:   vec![],
-            return_type: "Standard.Base.Data.Vector.Vector".to_string(),
-            scope:       (default()..=default()).into(),
-            external_id: None,
+            module:                 "test.TestProject.TestModule".to_string(),
+            name:                   "testFunction1".to_string(),
+            arguments:              vec![],
+            return_type:            "Standard.Base.Data.Vector.Vector".to_string(),
+            scope:                  (default()..=default()).into(),
+            external_id:            None,
+            documentation:          None,
+            documentation_html:     None,
+            documentation_sections: default(),
         };
         let ls_response = language_server::response::GetSuggestionDatabase {
             entries:         vec![
@@ -1222,14 +1237,16 @@ pub mod test {
                 id:           added_id,
                 external_id:  None,
                 modification: Box::new(SuggestionsDatabaseModification {
-                    arguments:          vec![],
-                    module:             None,
-                    self_type:          Some(FieldUpdate::set("Standard.Base.Maybe".to_string())),
-                    return_type:        None,
-                    documentation:      None,
-                    documentation_html: None,
-                    scope:              None,
-                    reexport:           None,
+                    arguments:              vec![],
+                    module:                 None,
+                    self_type:              Some(FieldUpdate::set(
+                        "Standard.Base.Maybe".to_string(),
+                    )),
+                    return_type:            None,
+                    documentation:          None,
+                    documentation_sections: None,
+                    scope:                  None,
+                    reexport:               None,
                 }),
             }],
             current_version: 2,
@@ -1288,32 +1305,32 @@ pub mod test {
                     id:           modify_id_1,
                     external_id:  None,
                     modification: Box::new(SuggestionsDatabaseModification {
-                        arguments:          vec![],
-                        module:             Some(FieldUpdate::set(
+                        arguments:              vec![],
+                        module:                 Some(FieldUpdate::set(
                             "Standard.NewModule".to_string(),
                         )),
-                        self_type:          None,
-                        return_type:        None,
-                        documentation:      None,
-                        documentation_html: None,
-                        scope:              None,
-                        reexport:           None,
+                        self_type:              None,
+                        return_type:            None,
+                        documentation:          None,
+                        documentation_sections: None,
+                        scope:                  None,
+                        reexport:               None,
                     }),
                 },
                 entry::Update::Modify {
                     id:           modify_id_2,
                     external_id:  None,
                     modification: Box::new(SuggestionsDatabaseModification {
-                        arguments:          vec![],
-                        module:             Some(FieldUpdate::set(
+                        arguments:              vec![],
+                        module:                 Some(FieldUpdate::set(
                             "Standard.NewModule".to_string(),
                         )),
-                        self_type:          None,
-                        return_type:        None,
-                        documentation:      None,
-                        documentation_html: None,
-                        scope:              None,
-                        reexport:           None,
+                        self_type:              None,
+                        return_type:            None,
+                        documentation:          None,
+                        documentation_sections: None,
+                        scope:                  None,
+                        reexport:               None,
                     }),
                 },
                 // Modify the definition of Maybe. It should not affect the hierarchy index.
@@ -1321,14 +1338,14 @@ pub mod test {
                     id:           maybe_id,
                     external_id:  None,
                     modification: Box::new(SuggestionsDatabaseModification {
-                        arguments:          vec![], // remove arguments
-                        module:             None,
-                        self_type:          None,
-                        return_type:        None,
-                        documentation:      None,
-                        documentation_html: None,
-                        scope:              None,
-                        reexport:           None,
+                        arguments:              vec![], // remove arguments
+                        module:                 None,
+                        self_type:              None,
+                        return_type:            None,
+                        documentation:          None,
+                        documentation_sections: None,
+                        scope:                  None,
+                        reexport:               None,
                     }),
                 },
             ],

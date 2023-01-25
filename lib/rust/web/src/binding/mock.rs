@@ -572,6 +572,7 @@ mock_data! { Element => Node
     fn set_class_name(&self, value: &str);
     fn set_id(&self, value: &str);
     fn set_attribute(&self, name: &str, value: &str) -> Result<(), JsValue>;
+    fn set_scroll_top(&self, value: i32);
     fn prepend_with_node_0(&self) -> Result<(), JsValue>;
     fn prepend_with_node_1(&self, n1: &Node) -> Result<(), JsValue>;
     fn prepend_with_node_2(&self, n1: &Node, n2:&Node) -> Result<(), JsValue>;
@@ -585,6 +586,7 @@ mock_data! { HtmlElement => Element
     fn inner_text(&self) -> String;
     fn get_elements_by_class_name(&self, class_names: &str) -> HtmlCollection;
     fn style(&self) -> CssStyleDeclaration;
+    fn offset_top(&self) -> i32;
 }
 impl From<HtmlElement> for EventTarget {
     fn from(_: HtmlElement) -> Self {
