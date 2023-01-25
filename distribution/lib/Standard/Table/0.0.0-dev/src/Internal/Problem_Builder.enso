@@ -6,7 +6,7 @@ import project.Internal.Vector_Builder.Vector_Builder
 from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Column_Matched_By_Multiple_Selectors, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 type Problem_Builder
-    Value types_to_always_throw types_to_ignore oob_indices missing_input_columns other
+    Value types_to_always_throw oob_indices missing_input_columns other
 
     report_oob_indices self indices =
         append_to_ref self.oob_indices indices
@@ -39,9 +39,7 @@ type Problem_Builder
         build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range.Error
         self.other.to_vector.each problems.append
 
-        problems.to_vector.filter p->
-            should_ignore = self.types_to_ignore.any tpe-> p.is_a tpe
-            should_ignore.not
+        problems.to_vector
 
     ## Attaches gathered warnings to the result.
        Any errors from the `result` take precedence over the ones owned by this
@@ -78,16 +76,12 @@ type Problem_Builder
     ## PRIVATE
        Creates a new helper object for aggregating problems to report.
 
-        Arguments:
-        - types_to_always_throw: A list of types. Problems matching these types
-         will be raised as an error by the `attach_` methods regardless of the
-         `Problem_Behavior` used. Empty by default.
-        - types_to_ignore: A list of types. Problems matching these types
-         will be raised as an error by the `attach_` methods regardless of the
-         `Problem_Behavior` used. Empty by default.
+       An optional list of types of can be provided. Problems matching these
+       types will be raised as an error by the `attach_` methods regardless of
+       the `Problem_Behavior` used.
     new : Vector -> Problem_Builder
-    new types_to_always_throw=[] types_to_ignore=[] =
-        Problem_Builder.Value types_to_always_throw types_to_ignore (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
+    new types_to_always_throw=[] =
+        Problem_Builder.Value types_to_always_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
