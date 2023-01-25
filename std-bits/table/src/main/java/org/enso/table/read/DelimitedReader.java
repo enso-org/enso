@@ -7,6 +7,7 @@ import org.enso.table.data.column.builder.string.StringStorageBuilder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
+import org.enso.table.error.EmptyFileException;
 import org.enso.table.parsing.DatatypeParser;
 import org.enso.table.parsing.TypeInferringParser;
 import org.enso.table.parsing.problems.AdditionalInvalidRows;
@@ -438,7 +439,12 @@ public class DelimitedReader {
   /** Reads the input stream and returns a Table. */
   public WithProblems<Table> read() {
     ensureHeadersDetected();
-    initBuilders(getColumnCount());
+    int columnCount = getColumnCount();
+    if  (columnCount == 0) {
+      throw new EmptyFileException();
+    }
+
+    initBuilders(columnCount);
     while (canFitMoreRows()) {
       var currentRow = readNextRow();
       if (currentRow == null) break;
