@@ -104,10 +104,8 @@ spec setup =
             t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             expect_column_names ["foo"] t
 
-            selector = By_Name ["FOO", "foo"] Text_Matcher.Case_Insensitive
-            t = table.select_columns selector on_problems=Problem_Behavior.Report_Error
             expect_column_names ["bar", "foo"] <|
-                table.select_columns (By_Name ["BAR", "foo" "bar"] Text_Matcher.Case_Insensitive) reorder=True
+                table.select_columns (By_Name ["BAR", "foo", "bar"] Text_Matcher.Case_Insensitive) reorder=True
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'

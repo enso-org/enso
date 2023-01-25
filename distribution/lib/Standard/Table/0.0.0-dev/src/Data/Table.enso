@@ -247,7 +247,9 @@ type Table
        - columns: Column selection criteria or vector of column names.
        - reorder: By default, or if set to `False`, columns in the output will
          be in the same order as in the input table. If `True`, the order in the
-         output table will match the order in the columns list.
+         output table will match the order in the columns list. If a column is
+         matched by multiple selectors in reorder mode, it will be placed at
+         the position of the first one matched.
        - on_problems: Specifies how to handle problems if they occur, reporting
          them as warnings by default.
 
@@ -255,9 +257,6 @@ type Table
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
@@ -307,9 +306,6 @@ type Table
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
@@ -358,9 +354,6 @@ type Table
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
 
        > Example
          Move a column with a specified name to back.
@@ -437,6 +430,8 @@ type Table
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+         - If a column is matched by two selectors resulting in a different name
+           mapping, a `Column_Matched_By_Multiple_Selectors`.
          - If in `By_Position` mode and more names than columns are provided,
            a `Too_Many_Column_Names_Provided`.
          - If any of the new names are invalid, an
@@ -732,9 +727,6 @@ type Table
          The following problems can occur:
          - If a column in columns is not in the input table, a `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If a column in columns does not have a storage type of `Text`, or `Any`,
            thus it is guaranteed that it can't contain any text values, a
            `Invalid_Value_Type`.
@@ -1341,9 +1333,6 @@ type Table
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If two distinct indices refer to the same column, an
-           `Input_Indices_Already_Matched`, with the column included the first
-           time it is matched.
          - If there are no columns to transpose, a `No_Input_Columns`.
     transpose : Text | Vector Text | Column_Selector -> Text -> Text -> Problem_Behavior -> Table
     transpose self (id_fields = Column_Selector.By_Name []) (name_field="Name") (value_field="Value") (on_problems = Report_Warning) =

@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Errors import all
@@ -7,6 +8,9 @@ from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
+
+type My_Type
+    Foo x
 
 main = run_default_backend spec
 
@@ -227,3 +231,8 @@ spec setup =
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"]) text_ordering=ordering
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+        if setup.is_database.not then
+            Test.specify "should raise Incomparable_Values if ordering by incomparable values" <|
+                t = table_builder [["X", [My_Type.Foo 42, My_Type.Foo "a"]]]
+                t.order_by "X" . should_fail_with Incomparable_Values
