@@ -101,7 +101,7 @@ type Table
 
        Arguments:
        - selector: The name or index of the column to get.
-    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .to_json))
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
@@ -112,7 +112,7 @@ type Table
        Arguments:
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
-    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .to_json))
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     get : Text | Integer -> Any -> Column | Any
     get self selector=0 ~if_missing=Nothing =
         internal_column = case selector of
@@ -423,7 +423,7 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter "age" (age -> (age%10 == 0))
-    @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .to_json))
+    @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=Filter_Condition.Is_True on_problems=Report_Warning = case column of
        _ : Column ->
