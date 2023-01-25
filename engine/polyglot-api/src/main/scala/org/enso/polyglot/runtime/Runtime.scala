@@ -102,6 +102,10 @@ object Runtime {
         name  = "editFileNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ReloadFileNotification],
+        name  = "reloadFileNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.SetExpressionValueNotification],
         name  = "setExpressionValueNotification"
       ),
@@ -1329,6 +1333,20 @@ object Runtime {
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)},edits=" +
         (if (shouldMask) edits.map(_ => STUB) else edits) +
         ",execute=" + execute + ")"
+    }
+
+    /** A notification sent to the server about in-memory file contents required
+      * to be reloaded from FS.
+      *
+      * @param path the file being reloaded
+      */
+    final case class ReloadFileNotification(path: File)
+        extends ApiRequest
+        with ToLogString {
+
+      /** @inheritdoc */
+      override def toLogString(shouldMask: Boolean): String =
+        s"EditFileNotification(path=${MaskedPath(path.toPath).toLogString(shouldMask)}"
     }
 
     /** A notification sent to the server about in-memory file contents being

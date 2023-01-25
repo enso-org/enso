@@ -33,9 +33,12 @@ import scala.jdk.OptionConverters._
 /** A job that ensures that specified files are compiled.
   *
   * @param files a files to compile
+  * @param forceCompilation a flag indicating whether a compilation should be triggered irrespective of the module's stage
   */
-final class EnsureCompiledJob(protected val files: Iterable[File])
-    extends Job[EnsureCompiledJob.CompilationStatus](List.empty, true, false) {
+final class EnsureCompiledJob(
+  protected val files: Iterable[File],
+  forceCompilation: Boolean = false
+) extends Job[EnsureCompiledJob.CompilationStatus](List.empty, true, false) {
 
   import EnsureCompiledJob.CompilationStatus
 
@@ -76,26 +79,45 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     * suggestion updates.
     *
     * @param module the module to compile.
+    * @param file the file associated with the module
     * @param ctx the runtime context
     */
   private def ensureCompiledModule(
     module: Module
   )(implicit ctx: RuntimeContext): Option[CompilationStatus] = {
     compile(module)
-    applyEdits(new File(module.getPath)).map { changeset =>
-      compile(module)
-        .map { compilerResult =>
-          invalidateCaches(module, changeset)
-          ctx.jobProcessor.runBackground(
-            AnalyzeModuleInScopeJob(
-              module.getName,
-              compilerResult.compiledModules
+    if (forceCompilation) {
+      module.unsetLiteralSource()
+      Some(
+        compile(module)
+          .map { compilerResult =>
+            invalidateCaches(module)
+            ctx.jobProcessor.runBackground(
+              AnalyzeModuleInScopeJob(
+                module.getName,
+                compilerResult.compiledModules
+              )
             )
-          )
-          ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
-          runCompilationDiagnostics(module)
-        }
-        .getOrElse(CompilationStatus.Failure)
+            runCompilationDiagnostics(module)
+          }
+          .getOrElse(CompilationStatus.Failure)
+      )
+    } else {
+      applyEdits(new File(module.getPath)).map { changeset =>
+        compile(module)
+          .map { compilerResult =>
+            invalidateCaches(module, changeset)
+            ctx.jobProcessor.runBackground(
+              AnalyzeModuleInScopeJob(
+                module.getName,
+                compilerResult.compiledModules
+              )
+            )
+            ctx.jobProcessor.runBackground(AnalyzeModuleJob(module, changeset))
+            runCompilationDiagnostics(module)
+          }
+          .getOrElse(CompilationStatus.Failure)
+      }
     }
   }
 
@@ -208,7 +230,11 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
     Either.catchNonFatal {
       val compilationStage = module.getCompilationStage
-      if (!compilationStage.isAtLeast(Module.CompilationStage.AFTER_CODEGEN)) {
+      if (
+        forceCompilation || !compilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_CODEGEN
+        )
+      ) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
         val result = ctx.executionService.getContext.getCompiler.run(module)
@@ -290,6 +316,30 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
     )
   }
 
+  private def buildCacheInvalidationCommands(
+    source: CharSequence
+  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
+    val invalidateExpressionsCommand =
+      CacheInvalidation.Command.InvalidateAll
+    val scopeIds = ctx.executionService.getContext.getCompiler
+      .parseMeta(source)
+      .map(_._2)
+    val invalidateStaleCommand =
+      CacheInvalidation.Command.InvalidateStale(scopeIds)
+    Seq(
+      CacheInvalidation(
+        CacheInvalidation.StackSelector.All,
+        invalidateExpressionsCommand,
+        Set(CacheInvalidation.IndexSelector.Weights)
+      ),
+      CacheInvalidation(
+        CacheInvalidation.StackSelector.All,
+        invalidateStaleCommand,
+        Set(CacheInvalidation.IndexSelector.All)
+      )
+    )
+  }
+
   /** Run the invalidation commands.
     *
     * @param module the compiled module
@@ -321,6 +371,37 @@ final class EnsureCompiledJob(protected val files: Iterable[File])
         module.getName,
         changeset.invalidated
       )
+    invalidatedVisualisations.foreach { visualisation =>
+      UpsertVisualisationJob.upsertVisualisation(visualisation)
+    }
+    if (invalidatedVisualisations.nonEmpty) {
+      ctx.executionService.getLogger.log(
+        Level.FINE,
+        s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
+      )
+    }
+  }
+
+  private def invalidateCaches(
+    module: Module
+  )(implicit ctx: RuntimeContext): Unit = {
+    val invalidationCommands =
+      buildCacheInvalidationCommands(
+        module.getSource.getCharacters
+      )
+    ctx.contextManager.getAllContexts.values
+      .foreach { stack =>
+        if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
+          CacheInvalidation.runAll(stack, invalidationCommands)
+        }
+      }
+    CacheInvalidation.runAllVisualisations(
+      ctx.contextManager.getVisualisations(module.getName),
+      invalidationCommands
+    )
+
+    val invalidatedVisualisations =
+      ctx.contextManager.getVisualisations(module.getName)
     invalidatedVisualisations.foreach { visualisation =>
       UpsertVisualisationJob.upsertVisualisation(visualisation)
     }

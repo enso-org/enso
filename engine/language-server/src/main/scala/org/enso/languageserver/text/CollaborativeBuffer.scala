@@ -254,6 +254,7 @@ class CollaborativeBuffer(
     inMemoryBuffer: Boolean
   ): Receive = {
     case ReadTextualFileResult(Right(file)) =>
+      timeoutCancellable.cancel()
       val buffer = Buffer(file.path, file.content, inMemoryBuffer)
 
       // Notify *all* clients about the new buffer
@@ -265,8 +266,8 @@ class CollaborativeBuffer(
         oldBuffer.version.toHexString,
         buffer.version.toHexString
       )
+      runtimeConnector ! Api.Request(Api.ReloadFileNotification(buffer.file))
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
-      timeoutCancellable.cancel()
       unstashAll()
       replyTo ! ReloadedBuffer(path)
       context.become(
