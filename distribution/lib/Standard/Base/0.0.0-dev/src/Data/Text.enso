@@ -136,14 +136,4 @@ type Text
     to_text : Text
     to_text self = self
 
-## PRIVATE
-type Text_Comparator
-    is_ordered = True
-    compare t1 t2 = t1.compare_to t2
-    hash text = Meta.hash_code text
-
-Comparable.from (that:Text) =
-    case that of
-        _ : Text -> Text_Comparator
-        Text -> Text_Comparator
-
+Comparable.from (that:Text) = Default_Ordered_Comparator
