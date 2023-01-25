@@ -287,7 +287,7 @@
 - [Implemented `Table.union` for the in-memory backend.][4052]
 - [Implemented `Table.cross_join` and `Table.zip` for the in-memory
   backend.][4063]
-- [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new 
+- [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
   simpler API.][4078]
 
 [debug-shortcuts]:
