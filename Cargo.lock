@@ -2305,18 +2305,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enso-parser-bridge-tests"
-version = "0.1.0"
-dependencies = [
- "ast",
- "enso-parser",
- "enso-parser-bridge",
- "parser-scala",
- "wasm-bindgen",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "enso-parser-debug"
 version = "0.1.0"
 dependencies = [
