@@ -272,15 +272,17 @@ export class App {
                  return module.exports`
             )()
             const out: unknown = await snippetsFn.init(wasm)
-            /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
-            /* eslint @typescript-eslint/no-unsafe-call: "off" */
-            if (host.browser) {
-                const spectorModule: unknown = snippetsFn.spector()
-                console.log(spectorModule)
-                // @ts-ignore
-                const spector = new spectorModule.Spector()
-                // @ts-ignore
-                spector.displayUI()
+            if (this.config.params.enableSpector.value) {
+                /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
+                /* eslint @typescript-eslint/no-unsafe-call: "off" */
+                if (host.browser) {
+                    const spectorModule: unknown = snippetsFn.spector()
+                    console.log(spectorModule)
+                    // @ts-ignore
+                    const spector = new spectorModule.Spector()
+                    // @ts-ignore
+                    spector.displayUI()
+                }
             }
             return out
         })

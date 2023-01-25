@@ -18,6 +18,10 @@ function parseBoolean(value: any): boolean | null {
         case false: return false
         case 'true': return true
         case 'false': return false
+        case 'enabled': return true
+        case 'disabled': return false
+        case 'yes': return true
+        case 'no': return false
         case '1': return true
         case '0': return false
         default: return null
@@ -90,6 +94,12 @@ export class Params {
         300,
         'The maximum time in milliseconds a before main entry point is allowed to run. After ' +
             'this time, an error will be printed, but the execution will continue.'
+    )
+    enableSpector = new Param<boolean>(
+        false,
+        'Enables SpectorJS. This is a temporary flag to test Spector. It will be removed after ' +
+            'all Spector integration issues are resolved. See: ' +
+            'https://github.com/BabylonJS/Spector.js/issues/252.'
     )
 }
 

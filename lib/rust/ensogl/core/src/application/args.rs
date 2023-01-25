@@ -26,6 +26,40 @@ pub fn snake_case_to_camel_case(name: &str) -> String {
 
 
 
+// ====================
+// === OptArgReader ===
+// ====================
+
+auto trait NotOption {}
+impl<T> !NotOption for Option<T> {}
+
+/// Argument parser that checks if the desired parameter is of an [`Option`] type. If it is not,
+/// the call is redirected to [`ArgReader`].
+#[allow(missing_docs)]
+pub trait OptArgReader: Sized {
+    fn read_arg(input: &Option<String>) -> Result<Self, anyhow::Error>;
+}
+
+impl<T: ArgReader> OptArgReader for Option<T> {
+    fn read_arg(input: &Option<String>) -> Result<Self, anyhow::Error> {
+        match input.as_ref() {
+            None => Ok(None),
+            Some(str) => ArgReader::read_arg(str.as_ref()).map(Some),
+        }
+    }
+}
+
+impl<T: ArgReader + NotOption> OptArgReader for T {
+    fn read_arg(input: &Option<String>) -> Result<Self, anyhow::Error> {
+        match input.as_ref() {
+            None => Err(anyhow!("Missing required argument.")),
+            Some(str) => ArgReader::read_arg(str.as_ref()),
+        }
+    }
+}
+
+
+
 // =================
 // === ArgReader ===
 // =================
@@ -37,32 +71,28 @@ pub trait ArgMarker {}
 /// Trait used to convert provided string arguments to the desired type.
 #[allow(missing_docs)]
 pub trait ArgReader: Sized {
-    fn read_arg(str: &Option<String>) -> Option<Self>;
+    fn read_arg(str: &str) -> Result<Self, anyhow::Error>;
 }
-
-// pub trait OptArgReader: Sized {
-//     fn read_opt_arg(str: &Option<String>) -> Self;
-// }
 
 // === Default ===
 
 /// Helper trait used to disambiguate overlapping impls of [`ArgReader`].
 #[allow(missing_docs)]
 pub trait ArgReaderFromString: Sized {
-    fn read_arg_from_string(str: &Option<String>) -> Option<Self>;
+    fn read_arg_from_string(str: &str) -> Result<Self, anyhow::Error>;
 }
 
 impl<T> ArgReaderFromString for T
 where for<'t> &'t str: TryInto<T>
 {
-    fn read_arg_from_string(str: &Option<String>) -> Option<Self> {
-        str.as_ref().map(|s| s.as_str().try_into().ok()).flatten()
+    fn read_arg_from_string(input: &str) -> Result<Self, anyhow::Error> {
+        input.try_into().map_err(|_| anyhow!("Cannot convert '{input}' to argument value."))
     }
 }
 
 impl<T> ArgReaderFromString for T {
-    default fn read_arg_from_string(_: &Option<String>) -> Option<Self> {
-        unreachable!()
+    default fn read_arg_from_string(input: &str) -> Result<Self, anyhow::Error> {
+        Err(anyhow!("Cannot convert '{input}' to argument value."))
     }
 }
 
@@ -70,7 +100,7 @@ impl<T> ArgMarker for T where T: for<'t> TryFrom<&'t str> {}
 impl<T> ArgReader for T
 where T: ArgMarker
 {
-    default fn read_arg(str: &Option<String>) -> Option<Self> {
+    default fn read_arg(str: &str) -> Result<Self, anyhow::Error> {
         ArgReaderFromString::read_arg_from_string(str)
     }
 }
@@ -80,46 +110,31 @@ where T: ArgMarker
 
 impl ArgMarker for bool {}
 impl ArgReader for bool {
-    fn read_arg(str: &Option<String>) -> Option<Self> {
-        str.as_ref()
-            .map(|s| match s.as_ref() {
-                "true" => Some(true),
-                "false" => Some(false),
-                "ok" => Some(true),
-                "fail" => Some(false),
-                "enabled" => Some(true),
-                "disabled" => Some(false),
-                "yes" => Some(true),
-                "no" => Some(false),
-                "1" => Some(true),
-                "0" => Some(false),
-                _ => None,
-            })
-            .flatten()
+    fn read_arg(input: &str) -> Result<Self, anyhow::Error> {
+        let true_values = ["true", "enabled", "yes", "1"];
+        let false_values = ["false", "disabled", "no", "0"];
+        if true_values.contains(&input) {
+            Ok(true)
+        } else if false_values.contains(&input) {
+            Ok(false)
+        } else {
+            let allowed_values = true_values.iter().chain(false_values.iter()).join(", ");
+            Err(anyhow!("Cannot parse '{input}' as bool. Allowed values: {allowed_values}."))
+        }
     }
 }
 
 impl ArgMarker for f32 {}
 impl ArgReader for f32 {
-    fn read_arg(str: &Option<String>) -> Option<Self> {
-        str.as_ref().map(|s| s.parse().ok()).flatten()
+    fn read_arg(input: &str) -> Result<Self, anyhow::Error> {
+        input.parse().map_err(|_| anyhow!("Cannot parse '{input}' as f32."))
     }
 }
 
 impl ArgMarker for semver::Version {}
 impl ArgReader for semver::Version {
-    fn read_arg(str: &Option<String>) -> Option<Self> {
-        str.as_ref().map(|s| semver::Version::parse(s).ok()).flatten()
-    }
-}
-
-impl<T: ArgReader> ArgMarker for Option<T> {}
-impl<T: ArgReader> ArgReader for Option<T> {
-    fn read_arg(str: &Option<String>) -> Option<Self> {
-        match str.as_ref() {
-            None => Some(None),
-            Some(s) => Some(ArgReader::read_arg(&Some(s.clone()))),
-        }
+    fn read_arg(input: &str) -> Result<Self, anyhow::Error> {
+        semver::Version::parse(input).map_err(|_| anyhow!("Cannot parse '{input}' as semver."))
     }
 }
 
@@ -136,11 +151,9 @@ impl<T: ArgReader> ArgReader for Option<T> {
 /// For example, given the following definition:
 /// ```text
 /// read_args! {
-///     js::global.config {
-///         entry      : String,
-///         project    : String,
-///         dark_theme : bool,
-///     }
+///     entry: String,
+///     project: String,
+///     dark_theme: bool,
 /// }
 /// ```
 ///
@@ -149,8 +162,8 @@ impl<T: ArgReader> ArgReader for Option<T> {
 /// ```text
 /// #[derive(Clone, Debug, Default)]
 /// pub struct Args {
-///     pub entry:      Option<String>,
-///     pub project:    Option<String>,
+///     pub entry: Option<String>,
+///     pub project: Option<String>,
 ///     pub dark_theme: Option<bool>,
 /// }
 ///
@@ -167,7 +180,7 @@ impl<T: ArgReader> ArgReader for Option<T> {
 /// the conversion will fail, a warning will be raised.
 #[macro_export]
 macro_rules! read_args {
-    ([$($($path:tt)*).*] { $($(#[$($attr:tt)+])* $field:ident : $field_type:ty),* $(,)? }) => {
+    ($($(#[$($attr:tt)+])* $field:ident : $field_type:ty),* $(,)?) => {
         mod _READ_ARGS {
             use super::*;
             use $crate::prelude::*;
@@ -203,18 +216,17 @@ macro_rules! read_args {
                     $(
                         let js_name = $crate::application::args::snake_case_to_camel_case
                             (stringify!{$field});
-                        warn!("processing {js_name}");
                         let $field = if let Some(param) = params.remove(&js_name) {
                             let str_value = param.value();
-                            let value = $crate::application::args::ArgReader::read_arg(&str_value);
+                            let value = $crate::application::args::OptArgReader::read_arg(&str_value);
                             match value {
-                                None => {
+                                Err(err) => {
                                     let tp = stringify!{$field_type};
                                     error!("Config error. Invalid value '{str_value:?}' for parameter \
-                                        '{js_name}' of type '${tp}'.");
+                                        '{js_name}' of type '${tp}'. {err}");
                                     default()
                                 }
-                                Some(value) => value,
+                                Ok(value) => value,
                             }
                         } else {
                             warn!("Config error. Rust config parameter '{js_name}' not found in \
