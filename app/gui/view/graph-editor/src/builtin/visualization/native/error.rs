@@ -235,7 +235,7 @@ impl Model {
     fn display_kind(&self, new: Kind) {
         let color_style = match new {
             Kind::Panic => ensogl_hardcoded_theme::graph_editor::visualization::error::panic::text,
-            Kind::Pending => ensogl_hardcoded_theme::graph_editor::visualization::error::panic::text,
+            Kind::Pending => ensogl_hardcoded_theme::graph_editor::visualization::error::pending::text,
             Kind::Dataflow =>
                 ensogl_hardcoded_theme::graph_editor::visualization::error::dataflow::text,
         };

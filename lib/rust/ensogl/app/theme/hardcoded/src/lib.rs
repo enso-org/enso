@@ -563,6 +563,7 @@ define_themes! { [light:0, dark:1]
             error {
                 dataflow.text = Rgba(1.0,0.655,0.141,1.0), Rgba(1.0,0.655,0.141,1.0);
                 panic.text    = Rgba(1.0,0.341,0.125,1.0), Rgba(1.0,0.341,0.125,1.0);
+                pending.text  = Rgba(1.0,0.141,0.325,1.0), Rgba(1.0,0.141,0.325,1.0);
             }
             action_bar {
                 // Original RGB values (for reference after fixing color-conversion issues)
