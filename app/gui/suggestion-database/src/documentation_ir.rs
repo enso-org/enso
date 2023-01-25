@@ -28,12 +28,14 @@ use std::cmp::Ordering;
 // === EntryDocumentation ===
 
 /// The documentation of the specific entry.
-#[derive(Debug, PartialEq, From)]
+#[derive(Debug, PartialEq, From, Clone, CloneRef)]
 pub enum EntryDocumentation {
     /// No documentation available.
     Placeholder(Placeholder),
-    /// Documentation of the entry.
+    /// Documentation of the entry provided by the Engine.
     Docs(Documentation),
+    /// Documentation of builtin components that are not included in the suggestion database.
+    Builtin(ImString),
 }
 
 impl Default for EntryDocumentation {
@@ -58,8 +60,14 @@ impl EntryDocumentation {
                 }
                 Kind::Constructor => Self::constructor_docs(db, &entry)?,
                 Kind::Method => Self::method_docs(db, &entry)?,
-                Kind::Function => Placeholder::Function { name: ImString::new(&entry.name) }.into(),
-                Kind::Local => Placeholder::Local { name: ImString::new(&entry.name) }.into(),
+                Kind::Function => {
+                    let function_docs = FunctionDocumentation::from_entry(&entry).into();
+                    Documentation::Function(function_docs).into()
+                }
+                Kind::Local => {
+                    let local_docs = LocalDocumentation::from_entry(&entry).into();
+                    Documentation::Local(local_docs).into()
+                }
             },
             Err(_) => {
                 error!("No entry found for id: {id:?}");
@@ -67,6 +75,14 @@ impl EntryDocumentation {
             }
         };
         Ok(result)
+    }
+
+    /// Qualified name of the function-like entry. See [`Documentation::function_name`].
+    pub fn function_name(&self) -> Option<&QualifiedName> {
+        match self {
+            EntryDocumentation::Docs(docs) => docs.function_name(),
+            _ => None,
+        }
     }
 
     fn method_docs(
@@ -131,17 +147,13 @@ impl EntryDocumentation {
 // === Placeholder ===
 
 /// No documentation is available for the entry.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, CloneRef, PartialEq)]
 #[allow(missing_docs)]
 pub enum Placeholder {
     /// Documentation is empty.
     NoDocumentation,
-    /// We temporarily do not support documentation of the `Local` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Local { name: ImString },
-    /// We temporarily do not support documentation of the `Function` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Function { name: ImString },
+    /// Documentation for the Virtual Component group.
+    VirtualComponentGroup { name: ImString },
 }
 
 // === Documentation ===
@@ -152,24 +164,26 @@ pub enum Placeholder {
 pub enum Documentation {
     Module(Rc<ModuleDocumentation>),
     Type(Rc<TypeDocumentation>),
-    Constructor {
-        name:      Rc<QualifiedName>,
-        type_docs: Rc<TypeDocumentation>,
-    },
-    Method {
-        name:      Rc<QualifiedName>,
-        type_docs: Rc<TypeDocumentation>,
-    },
-    ModuleMethod {
-        name:        Rc<QualifiedName>,
-        module_docs: Rc<ModuleDocumentation>,
-    },
-    /// We temporarily do not support documentation of the `Local` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Function {},
-    /// We temporarily do not support documentation of the `Local` entries because the language
-    /// server does not provide us with any. See https://www.pivotaltracker.com/story/show/183970215.
-    Local {},
+    Constructor { name: Rc<QualifiedName>, type_docs: Rc<TypeDocumentation> },
+    Method { name: Rc<QualifiedName>, type_docs: Rc<TypeDocumentation> },
+    ModuleMethod { name: Rc<QualifiedName>, module_docs: Rc<ModuleDocumentation> },
+    Function(Rc<FunctionDocumentation>),
+    Local(Rc<LocalDocumentation>),
+}
+
+impl Documentation {
+    /// Qualified name of the documented function. Functions are part of the documentation for
+    /// the larger entity, e.g., constructor documentation is embedded into the type
+    /// documentation. The returned qualified name is used to scroll to the corresponding section in
+    /// a larger documentation page.
+    pub fn function_name(&self) -> Option<&QualifiedName> {
+        match self {
+            Documentation::Constructor { name, .. } => Some(name),
+            Documentation::Method { name, .. } => Some(name),
+            Documentation::ModuleMethod { name, .. } => Some(name),
+            _ => None,
+        }
+    }
 }
 
 // =========================
@@ -249,6 +263,71 @@ impl ModuleDocumentation {
         })
     }
 }
+
+
+
+// =============================
+// === FunctionDocumentation ===
+// =============================
+
+/// Documentation of the [`EntryKind::Function`] entries.
+#[derive(Debug, Clone, CloneRef, PartialEq)]
+#[allow(missing_docs)]
+pub struct FunctionDocumentation {
+    pub name:      Rc<QualifiedName>,
+    pub arguments: Rc<Vec<Argument>>,
+    pub tags:      Tags,
+    pub synopsis:  Synopsis,
+    pub examples:  Examples,
+}
+
+impl FunctionDocumentation {
+    /// Constructor.
+    pub fn from_entry(entry: &Entry) -> Self {
+        let FilteredDocSections { tags, synopsis, examples } =
+            FilteredDocSections::new(entry.documentation.iter());
+        Self {
+            name: entry.qualified_name().into(),
+            arguments: entry.arguments.clone().into(),
+            tags,
+            synopsis,
+            examples,
+        }
+    }
+}
+
+
+
+// ==========================
+// === LocalDocumentation ===
+// ==========================
+
+/// Documentation of the [`EntryKind::Local`] entries.
+#[derive(Debug, Clone, CloneRef, PartialEq)]
+#[allow(missing_docs)]
+pub struct LocalDocumentation {
+    pub name:        Rc<QualifiedName>,
+    pub tags:        Tags,
+    pub return_type: Rc<QualifiedName>,
+    pub synopsis:    Synopsis,
+    pub examples:    Examples,
+}
+
+impl LocalDocumentation {
+    /// Constructor.
+    pub fn from_entry(entry: &Entry) -> Self {
+        let FilteredDocSections { tags, synopsis, examples } =
+            FilteredDocSections::new(entry.documentation.iter());
+        Self {
+            name: entry.qualified_name().into(),
+            return_type: entry.return_type.clone().into(),
+            tags,
+            synopsis,
+            examples,
+        }
+    }
+}
+
 
 // ============
 // === Tags ===

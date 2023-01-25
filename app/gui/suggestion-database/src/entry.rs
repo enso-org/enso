@@ -608,13 +608,14 @@ impl Entry {
             Type { documentation, documentation_html, documentation_sections, .. }
             | Constructor { documentation, documentation_html, documentation_sections, .. }
             | Method { documentation, documentation_html, documentation_sections, .. }
-            | Module { documentation, documentation_html, documentation_sections, .. } => {
+            | Module { documentation, documentation_html, documentation_sections, .. }
+            | Function { documentation, documentation_html, documentation_sections, .. }
+            | Local { documentation, documentation_html, documentation_sections, .. } => {
                 let documentation =
                     Self::make_html_docs(mem::take(documentation), mem::take(documentation_html));
                 let icon_name = find_icon_name_in_doc_sections(&*documentation_sections);
                 (documentation, icon_name, mem::take(documentation_sections))
             }
-            _ => (None, None, default()),
         };
         let reexported_in: Option<QualifiedName> = match &mut entry {
             Type { reexport: Some(reexport), .. }
@@ -697,9 +698,14 @@ impl Entry {
             return_type
                 .and_then(|m| Entry::apply_field_update("return_type", &mut self.return_type, m)),
             Entry::apply_opt_field_update(
-                "documentation_html",
+                "documentation",
                 &mut self.documentation_html,
-                m.documentation_html,
+                m.documentation,
+            ),
+            Entry::apply_field_update(
+                "documentation_sections",
+                &mut self.documentation,
+                m.documentation_sections,
             ),
             module.and_then(|m| Entry::apply_field_update("module", &mut self.defined_in, m)),
             self_type
@@ -1185,18 +1191,18 @@ mod test {
     fn applying_simple_fields_modification() {
         let mut test = ApplyModificationTest::new();
         let modification = SuggestionsDatabaseModification {
-            arguments:          vec![],
-            module:             Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
-            self_type:          Some(FieldUpdate::set(
+            arguments:              vec![],
+            module:                 Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
+            self_type:              Some(FieldUpdate::set(
                 "local.Project.NewModule.NewType".to_owned(),
             )),
-            return_type:        Some(FieldUpdate::set(
+            return_type:            Some(FieldUpdate::set(
                 "local.Project.NewModule.NewReturnType".to_owned(),
             )),
-            documentation:      None,
-            documentation_html: Some(FieldUpdate::set("NewDocumentation".to_owned())),
-            scope:              None,
-            reexport:           Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
+            documentation:          Some(FieldUpdate::set("NewDocumentation".to_owned())),
+            documentation_sections: None,
+            scope:                  None,
+            reexport:               Some(FieldUpdate::set("local.Project.NewReexport".to_owned())),
         };
         test.expected_entry.defined_in = "local.Project.NewModule".try_into().unwrap();
         test.expected_entry.self_type = Some("local.Project.NewModule.NewType".try_into().unwrap());
@@ -1212,7 +1218,7 @@ mod test {
     fn removing_field_values() {
         let mut test = ApplyModificationTest::new();
         let modification = SuggestionsDatabaseModification {
-            documentation_html: Some(FieldUpdate::remove()),
+            documentation: Some(FieldUpdate::remove()),
             ..default()
         };
         test.expected_entry.documentation_html = None;
@@ -1229,7 +1235,7 @@ mod test {
         };
         let modification = SuggestionsDatabaseModification {
             module: Some(FieldUpdate::set("local.Project.NewModule".to_owned())),
-            documentation_html: Some(FieldUpdate::remove()),
+            documentation: Some(FieldUpdate::remove()),
             scope: Some(FieldUpdate::set(new_scope.into())),
             ..default()
         };
