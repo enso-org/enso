@@ -1,5 +1,6 @@
 //! Top-level module for [goodie](`crate::Goodie`) implementations.
 
+
 // ==============
 // === Export ===
 // ==============

@@ -72,7 +72,7 @@ const always_copied_files = [
     path.resolve(thisPath, 'src', 'run.js'),
     path.resolve(thisPath, 'src', 'style.css'),
     path.resolve(thisPath, 'src', 'docsStyle.css'),
-    ...wasm_artifacts.split(path.delimiter)
+    ...wasm_artifacts.split(path.delimiter),
 ]
 
 /**

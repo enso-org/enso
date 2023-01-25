@@ -13,6 +13,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 
 
+
 /// Default timeout for a job.
 ///
 /// We use a very long timeout because we want to avoid cancelling jobs that are just slow.
@@ -1019,4 +1020,15 @@ pub trait JobArchetype {
             }
         }
     }
+}
+
+/// Describes the workflow to be stored on the disk.
+#[derive(Clone, Debug)]
+pub struct WorkflowToWrite {
+    /// The workflow to be stored.
+    pub workflow: Workflow,
+    /// The path where the workflow should be stored.
+    pub path:     PathBuf,
+    /// Who generated this workflow.
+    pub source:   String,
 }

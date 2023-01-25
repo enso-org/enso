@@ -34,6 +34,7 @@ use ide_ci::actions::workflow::definition::WorkflowCall;
 use ide_ci::actions::workflow::definition::WorkflowDispatch;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
+use ide_ci::actions::workflow::definition::WorkflowToWrite;
 use strum::IntoEnumIterator;
 
 
@@ -495,14 +496,22 @@ pub fn benchmark() -> Result<Workflow> {
     Ok(workflow)
 }
 
-
-pub fn generate(repo_root: &crate::paths::generated::RepoRootGithubWorkflows) -> Result {
-    repo_root.changelog_yml.write_as_yaml(&changelog()?)?;
-    repo_root.nightly_yml.write_as_yaml(&nightly()?)?;
-    repo_root.scala_new_yml.write_as_yaml(&backend()?)?;
-    repo_root.gui_yml.write_as_yaml(&gui()?)?;
-    repo_root.benchmark_yml.write_as_yaml(&benchmark()?)?;
-    repo_root.release_yml.write_as_yaml(&release()?)?;
-    repo_root.promote_yml.write_as_yaml(&promote()?)?;
-    Ok(())
+/// Generate workflows for the CI.
+pub fn generate(
+    repo_root: &crate::paths::generated::RepoRootGithubWorkflows,
+) -> Result<Vec<WorkflowToWrite>> {
+    let workflows = [
+        (repo_root.changelog_yml.to_path_buf(), changelog()?),
+        (repo_root.nightly_yml.to_path_buf(), nightly()?),
+        (repo_root.scala_new_yml.to_path_buf(), backend()?),
+        (repo_root.gui_yml.to_path_buf(), gui()?),
+        (repo_root.benchmark_yml.to_path_buf(), benchmark()?),
+        (repo_root.release_yml.to_path_buf(), release()?),
+        (repo_root.promote_yml.to_path_buf(), promote()?),
+    ];
+    let workflows = workflows
+        .into_iter()
+        .map(|(path, workflow)| WorkflowToWrite { workflow, path, source: module_path!().into() })
+        .collect();
+    Ok(workflows)
 }

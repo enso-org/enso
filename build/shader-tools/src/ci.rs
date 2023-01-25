@@ -9,6 +9,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Workflow;
+use ide_ci::actions::workflow::definition::WorkflowToWrite;
 use ide_ci::github::GITHUB_TOKEN;
 
 
@@ -57,7 +58,7 @@ pub fn job_that_runs(binary: Binary, runs_on: RunnerLabel, expose_output: Option
 }
 
 /// Generate a workflow that builds shaderc packages for all platforms and releases them.
-pub fn generate_workflow() -> Workflow {
+pub fn generate_workflow(path: impl Into<PathBuf>) -> WorkflowToWrite {
     // Once CMake is added, we might want to switch to self-hosted runners.
     // On the other hand, there is little incentive to do so, as the build is fast enough and not
     // part of our "usual" CI pipeline..
@@ -86,5 +87,5 @@ pub fn generate_workflow() -> Workflow {
         publish_job.needs(package_job_id);
     }
     workflow.add_job(publish_job);
-    workflow
+    WorkflowToWrite { workflow, path: path.into(), source: file!().into() }
 }

@@ -8,8 +8,6 @@
 //! This module only deals with downloading and activating the tools. The code for building and
 //! uploading the tools package is in the `enso-build-shader-tools` crate.
 
-
-
 use crate::prelude::*;
 
 use crate::cache::goodie;
@@ -20,6 +18,8 @@ use crate::github::RepoRef;
 use crate::programs::shaderc::Glslc;
 use crate::programs::shaderc::SpirvOpt;
 use crate::programs::spirv_cross::SpirvCross;
+
+
 
 // =================
 // === Constants ===
@@ -64,12 +64,10 @@ impl Goodie for ShaderTools {
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         async move {
-            try {
-                let _ = Glslc.lookup()?;
-                let _ = SpirvCross.lookup()?;
-                let _ = SpirvOpt.lookup()?;
-                true
-            }
+            let glslc = Glslc.lookup();
+            let spirv_cross = SpirvCross.lookup();
+            let spirv_opt = SpirvOpt.lookup();
+            Ok(glslc.is_ok() && spirv_cross.is_ok() && spirv_opt.is_ok())
         }
         .boxed()
     }
