@@ -78,9 +78,9 @@ public abstract class TestBase {
   }
 
   /**
-   * An artificial RootNode. Used for tests of nodes that need to be adopted.
-   * Just create this root node inside a context, all the other nodes, and insert
-   * them via {@link #insertChildren(Node...)}.
+   * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root
+   * node inside a context, all the other nodes, and insert them via {@link
+   * #insertChildren(Node...)}.
    */
   static class TestRootNode extends RootNode {
     TestRootNode() {
@@ -93,9 +93,7 @@ public abstract class TestBase {
       }
     }
 
-    /**
-     * In the tests, do not execute this root node, but execute directly the child nodes.
-     */
+    /** In the tests, do not execute this root node, but execute directly the child nodes. */
     @Override
     public Object execute(VirtualFrame frame) {
       throw new AssertionError("should not reach here");
