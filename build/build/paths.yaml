@@ -53,14 +53,12 @@
 
     # Final WASM artifacts in `dist` directory.
     wasm/:
-      ? path: pkg-opt.wasm
-        var: wasm_main
-      ? path: pkg.wasm
-        var: wasm_main_raw
-      ? path: pkg.js
-        var: wasm_glue
-      ? path: app.cjs
-        var: app
+      shaders/:     # Optimized shaders that contain main function code only.
+      index.cjs:    # The main JS bundle to load WASM and JS wasm-pack bundles.
+      index.d.ts:   # TypeScript types interface file.
+      pkg.js:       # The `pks.js` artifact of wasm-pack WITH bundled snippets.
+      pkg.wasm:     # The `pks_bg.wasm` artifact of wasm-pack.
+      pkg-opt.wasm: # The optimized `pks_bg.wasm`.
   distribution/:
     editions/:
       <edition>.yaml:

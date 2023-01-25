@@ -33,12 +33,17 @@ export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
 // === Environment variables ===
 // =============================
 
-export const wasm_path = require_env('ENSO_BUILD_GUI_WASM')
-export const js_glue_path = require_env('ENSO_BUILD_GUI_JS_GLUE')
+/** List of files to be copied from WASM artifacts. */
+export const wasm_artifacts = require_env('ENSO_BUILD_GUI_WASM_ARTIFACTS')
+
+/** Directory with assets. Its contents are to be copied. */
 export const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
 
 /** Path where bundled files are output. */
 export const output_path = path.resolve(require_env('ENSO_BUILD_GUI'), 'assets')
+
+/** The main JS bundle to load WASM and JS wasm-pack bundles. */
+export const ensogl_app_path = require_env('ENSO_BUILD_GUI_ENSOGL_APP')
 
 // ===================
 // === Git process ===
@@ -59,9 +64,6 @@ function git(command: string): string {
 // === Files to manually copy ===
 // ==============================
 
-// FIXME:
-const ensogl_app_path = path.resolve(js_glue_path, '..', 'index.cjs')
-const shaders_path = path.resolve(js_glue_path, '..', 'shaders')
 /**
  * Static set of files that are always copied to the output directory.
  */
@@ -70,9 +72,7 @@ const always_copied_files = [
     path.resolve(thisPath, 'src', 'run.js'),
     path.resolve(thisPath, 'src', 'style.css'),
     path.resolve(thisPath, 'src', 'docsStyle.css'),
-    wasm_path,
-    js_glue_path,
-    shaders_path,
+    ...wasm_artifacts.split(path.delimiter)
 ]
 
 /**

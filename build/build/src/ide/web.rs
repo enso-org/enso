@@ -50,9 +50,10 @@ pub mod env {
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
         ENSO_BUILD_ICONS, PathBuf;
-        ENSO_BUILD_GUI_WASM, PathBuf;
-        ENSO_BUILD_GUI_JS_GLUE, PathBuf;
-        ENSO_BUILD_GUI_JS_APP, PathBuf;
+        /// List of files that should be copied to the Gui.
+        ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
+        /// The main JS bundle to load WASM and JS wasm-pack bundles.
+        ENSO_BUILD_GUI_ENSOGL_APP, PathBuf;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
@@ -168,10 +169,13 @@ impl<Assets: AsRef<Path>, Output: AsRef<Path>> command::FallibleManipulator
     for ContentEnvironment<Assets, Output>
 {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
+        let artifacts_for_gui =
+            self.wasm.files_to_ship().into_iter().map(|file| file.to_path_buf()).collect_vec();
+
         command
             .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
-            .set_env(env::ENSO_BUILD_GUI_WASM, &self.wasm.wasm())?
-            .set_env(env::ENSO_BUILD_GUI_JS_GLUE, &self.wasm.js_glue())?
+            .set_env(env::ENSO_BUILD_GUI_WASM_ARTIFACTS, &artifacts_for_gui)?
+            .set_env(env::ENSO_BUILD_GUI_ENSOGL_APP, &self.wasm.ensogl_app())?
             .set_env(env::ENSO_BUILD_GUI_ASSETS, self.asset_dir.as_ref())?;
         Ok(())
     }

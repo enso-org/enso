@@ -68,6 +68,13 @@ pub fn remove_var<K: AsRef<OsStr>>(key: K) {
 #[macro_export]
 macro_rules! define_env_var {
     () => {};
+    ($(#[$attr:meta])* $name: ident, Vec<PathBuf>; $($tail:tt)*) => {
+        #[allow(non_upper_case_globals)]
+        $(#[$attr])*
+        pub const $name: $crate::env::accessor::PathLike =
+            $crate::env::accessor::PathLike(stringify!($name));
+        $crate::define_env_var!($($tail)*);
+    };
     ($(#[$attr:meta])* $name: ident, PathBuf; $($tail:tt)*) => {
         #[allow(non_upper_case_globals)]
         $(#[$attr])*

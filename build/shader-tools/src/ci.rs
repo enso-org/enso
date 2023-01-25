@@ -52,11 +52,7 @@ pub fn job_that_runs(binary: Binary, runs_on: RunnerLabel, expose_output: Option
     let mut job = Job::new(format!("Run {binary} ({runs_on:?})"), [runs_on]);
     job.steps.extend(checkout_steps);
     let main_step = run_bin(binary).with_secret_exposed_as("CI_PRIVATE_TOKEN", GITHUB_TOKEN);
-    if let Some(output) = expose_output {
-        job.add_step_with_output(main_step, output);
-    } else {
-        job.steps.push(main_step);
-    }
+    job.add_step_with_output(main_step, expose_output);
     job
 }
 

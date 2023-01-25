@@ -275,7 +275,7 @@ impl IsTarget for Wasm {
             ide_ci::fs::create_dir_if_missing(&destination)?;
             let ret = RepoRootDistWasm::new_root(&destination);
             ide_ci::fs::copy(&temp_dist, &ret)?;
-            inner.perhaps_check_size(&ret.wasm_main).await?;
+            inner.perhaps_check_size(&ret.pkg_opt_wasm).await?;
             Ok(Artifact(ret))
         }
         .instrument(span)
@@ -413,14 +413,26 @@ impl Artifact {
     pub fn new(path: impl Into<PathBuf>) -> Self {
         Self(RepoRootDistWasm::new_root(path))
     }
-    pub fn wasm(&self) -> &Path {
-        &self.0.wasm_main
+
+    /// The main JS bundle to load WASM and JS wasm-pack bundles.
+    pub fn ensogl_app(&self) -> &Path {
+        &self.0.index_cjs
     }
-    pub fn js_glue(&self) -> &Path {
-        &self.0.wasm_glue
-    }
-    pub fn dir(&self) -> &Path {
-        &self.0.path
+
+    /// Files that should be shipped in the Gui bundle.
+    pub fn files_to_ship(&self) -> Vec<&Path> {
+        // We explicitly deconstruct object, so when new fields are added, we will be forced to
+        // consider whether they should be shipped or not.
+        let RepoRootDistWasm {
+            path: _,
+            shaders,
+            index_cjs: _,
+            index_d_ts: _,
+            pkg_js,
+            pkg_wasm: _,
+            pkg_opt_wasm,
+        } = &self.0;
+        vec![shaders.as_path(), pkg_js.as_path(), pkg_opt_wasm.as_path()]
     }
 }
 
@@ -535,12 +547,12 @@ impl Wasm {
             }
             wasm_opt_command
                 .args(wasm_opt_options)
-                .arg(&temp_dist.wasm_main_raw)
-                .apply(&wasm_opt::Output(&temp_dist.wasm_main))
+                .arg(&temp_dist.pkg_wasm)
+                .apply(&wasm_opt::Output(&temp_dist.pkg_opt_wasm))
                 .run_ok()
                 .await?;
         } else {
-            copy_file_if_different(&temp_dist.wasm_main_raw, &temp_dist.wasm_main)?;
+            copy_file_if_different(&temp_dist.pkg_wasm, &temp_dist.pkg_opt_wasm)?;
         }
         Ok(())
     }

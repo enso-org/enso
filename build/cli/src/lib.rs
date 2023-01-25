@@ -810,9 +810,8 @@ pub async fn main_internal(config: Option<enso_build::config::Config>) -> Result
 
             let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
             let clean_cache = async {
-                if cache {
-                    ide_ci::fs::tokio::perhaps_remove_dir_if_exists(dry_run, ctx.cache.path())
-                        .await?;
+                if cache && !dry_run {
+                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.cache.path()).await?;
                 }
                 Result::Ok(())
             };
