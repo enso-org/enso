@@ -79,11 +79,10 @@ type Table
             case c of
                 _ : Vector -> Column.from_vector (c.at 0) (c.at 1) . java_column
                 Column.Value java_col -> java_col
-        # TODO enable this once we stop returning tables without columns
-        # if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
-        if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
-            if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
-                Table.Value (Java_Table.new cols.to_array)
+        if cols.is_empty then Error.throw (Illegal_Argument.Error "Cannot create a table with no columns.") else
+            if (cols.all c-> c.getSize == cols.first.getSize).not then Error.throw (Illegal_Argument.Error "All columns must have the same row count.") else
+                if cols.distinct .getName . length != cols.length then Error.throw (Illegal_Argument.Error "Column names must be distinct.") else
+                    Table.Value (Java_Table.new cols.to_array)
 
     ## Creates a new table from a vector of column names and a vector of vectors
        specifying row contents.
@@ -256,7 +255,9 @@ type Table
          - If two distinct indices refer to the same column, an
            `Input_Indices_Already_Matched`, with the column included the first
            time it is matched.
-         - If there are no columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
 
        > Example
          Select columns by name.
@@ -308,7 +309,9 @@ type Table
          - If two distinct indices refer to the same column, an
            `Input_Indices_Already_Matched`, with the column included the first
            time it is matched.
-         - If there are no columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
 
        > Example
          Remove columns with given names.
@@ -515,7 +518,9 @@ type Table
          The following problems can occur:
          - If a column name is not in the input table, a `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
-         - If there are no valid columns in the output table, a `No_Output_Columns`.
+         - If there are no columns in the output table, a `No_Output_Columns` is
+           raised as an error regardless of the problem behavior, because it is
+           not possible to create a table without any columns.
          - If there are invalid column names in the output table, a `Invalid_Output_Column_Names`.
          - If there are duplicate column names in the output table, a `Duplicate_Output_Column_Names`.
          - If grouping on or computing the `Mode` on a floating point number, a `Floating_Point_Grouping`.
@@ -676,11 +681,8 @@ type Table
            `Floating_Point_Grouping` warning.
     distinct : Vector Text | Column_Selector -> Case_Sensitivity -> Problem_Behavior -> Table
     distinct self (columns = Column_Selector.By_Name (self.columns.map .name)) case_sensitivity=Case_Sensitivity.Sensitive on_problems=Report_Warning =
-        warning_mapper error = case error of
-            No_Output_Columns -> Maybe.Some No_Input_Columns_Selected
-            _ -> Nothing
-        key_columns = Warning.map_warnings_and_errors warning_mapper <|
-            self.columns_helper.select_columns selector=columns reorder=True on_problems=on_problems
+        key_columns = self.columns_helper.select_columns selector=columns reorder=True on_problems=Problem_Behavior.Report_Error . catch No_Output_Columns _->
+            Error.throw No_Input_Columns_Selected
         java_columns = key_columns.map .java_column
         text_folding_strategy = Case_Sensitivity.folding_strategy case_sensitivity
         java_table = Illegal_Argument.handle_java_exception <|

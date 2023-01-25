@@ -61,13 +61,6 @@ spec =
             t2 = t1.limit 5
             t2.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" LIMIT 5', []]
 
-        Test.specify "should work correctly when there are no columns" <|
-            empty = t1.select_columns (Column_Selector.By_Name [])
-            json = JS_Object.from_pairs [["query", Nothing], ["message", "The table has no columns so a query cannot be generated."]] . to_text
-            empty.to_json . should_equal json
-            empty.column_count . should_equal 0
-            empty.to_sql . should_fail_with Unsupported_Database_Operation.Error
-
     Test.group "[Codegen] Building Expressions" <|
         Test.specify "should allow building expressions from columns and constants" <|
             a = t1.at "A"

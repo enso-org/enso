@@ -12,9 +12,17 @@ use wasm_bindgen::prelude::*;
 
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::engine_protocol::language_server::DocSection;
+use enso_suggestion_database::engine_protocol::language_server::Mark;
+use enso_suggestion_database::entry::Argument;
+use enso_suggestion_database::mock;
 use enso_suggestion_database::mock_suggestion_database;
 use ensogl::application::Application;
 use ensogl::data::color;
+use ensogl::data::text::Line;
+use ensogl::data::text::Location;
+use ensogl::data::text::Utf16CodeUnit;
 use ensogl::display;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::shape::StyleWatchFrp;
@@ -63,17 +71,16 @@ impl DatabaseWrapper {
     }
 
     /// Documentation for the currently selected entry.
-    fn documentation(&self) -> String {
+    fn documentation(&self) -> EntryDocumentation {
         let index = self.current_entry.get();
         let ids = self.database.keys();
         let id = ids[index];
-        let docs = self.database.documentation_for_entry(id);
-        ide_view_documentation::html::render(docs)
+        self.database.documentation_for_entry(id)
     }
 }
 
 fn database() -> SuggestionDatabase {
-    mock_suggestion_database! {
+    let db = mock_suggestion_database! {
         #[with_doc_section(doc_section!("This is a test documentation."))]
         #[with_doc_section(doc_section!("It contains muliple paragraphs of text."))]
         #[with_doc_section(doc_section!("And describes the purpose of the module with a great attention to detail."))]
@@ -94,11 +101,50 @@ fn database() -> SuggestionDatabase {
                 None;
 
                 #[with_doc_section(doc_section!("Documentation for the is_some() method."))]
+                #[with_doc_section(doc_section!("Arguments" => "<ul><li>self</li></ul>"))]
                 #[with_doc_section(doc_section!(! "Important", "This method is important."))]
-                fn is_some() -> Standard.Base.Boolean;
+                fn is_some(self) -> Standard.Base.Boolean;
+
+                #[with_doc_section(doc_section!("Documentation for the Maybe.map() method."))]
+                fn map (f) -> Standard.Base.Maybe;
             }
+
+            #[with_doc_section(doc_section!("Documentation for the foo method."))]
+            fn foo(a: Standard.Base.Maybe) -> Standard.Base.Boolean;
+
+            #[with_doc_section(doc_section!(> "Example", "Get the names of all of the items from the shop inventory. <pre><code>import Standard.Examples</code><br /><code>example_at = Examples.inventory_table.at &quot;item_name&quot;</code><br /></pre>"))]
+            fn at(self, key) -> Standard.Base.Maybe;
         }
-    }
+    };
+    let scope = Location { line: Line(3), offset: Utf16CodeUnit(0) }..=Location {
+        line:   Line(10),
+        offset: Utf16CodeUnit(0),
+    };
+    let mut builder = mock::Builder::from_existing_db(db);
+
+    builder.enter_module("Standard.Base");
+
+    let args = vec![Argument::new("a", "Standard.Base.Boolean")];
+    builder.add_function("bar", args, "Standard.Base.Boolean", scope.clone(), |e| {
+        e.with_doc_sections(vec![
+            DocSection::Paragraph { body: "Documentation for the bar function.".into() },
+            DocSection::Tag { name: "DEPRECATED".into(), body: default() },
+            DocSection::Marked {
+                mark:   Mark::Example,
+                header: None,
+                body:   "How to use:<br/><pre>bar True</pre>".into(),
+            },
+        ])
+    });
+
+    builder.add_local("local1", "Standard.Base.Boolean", scope, |e| {
+        e.with_doc_sections(vec![
+            DocSection::Paragraph { body: "Documentation for the local1 variable.".into() },
+            DocSection::Tag { name: "SOMETAG".into(), body: default() },
+        ])
+    });
+
+    builder.result
 }
 
 

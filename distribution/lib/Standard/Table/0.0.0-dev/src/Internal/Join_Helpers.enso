@@ -2,12 +2,10 @@ from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_State.Illegal_State
 
-from project.Errors import Invalid_Value_Type
+from project.Errors import Invalid_Value_Type, No_Such_Column, Missing_Input_Columns, Column_Indexes_Out_Of_Range
 import project.Data.Join_Condition.Join_Condition
 import project.Data.Value_Type.Value_Type
 import project.Internal.Problem_Builder.Problem_Builder
-
-import project.Errors.No_Such_Column
 
 type Join_Condition_Resolver
     ## PRIVATE
@@ -25,7 +23,7 @@ type Join_Condition_Resolver
     resolve : Join_Condition | Text | Vector (Join_Condition | Text) -> Problem_Behavior -> Join_Condition_Resolution
     resolve self conditions on_problems =
         redundant_names = Vector.new_builder
-        problem_builder = Problem_Builder.new
+        problem_builder = Problem_Builder.new types_to_always_throw=[Missing_Input_Columns, Column_Indexes_Out_Of_Range]
 
         resolve_selector resolver selector =
             r_1 = resolver selector
@@ -66,10 +64,9 @@ type Join_Condition_Resolver
                 right_upper = resolve_right right_upper_selector
                 if left.is_nothing || right_lower.is_nothing || right_upper.is_nothing then Nothing else
                     self.make_between problem_builder left right_lower right_upper
-        problem_builder.throw_unmatched_columns_as_error <|
+        problem_builder.attach_problems_before on_problems <|
             if converted.contains Nothing then Panic.throw (Illegal_State.Error "Impossible: unresolved columns remaining in the join resolution. This should have raised a dataflow error. This is a bug in the Table library.") else
-                problem_builder.attach_problems_after on_problems <|
-                    Join_Condition_Resolution.Result converted redundant_names.to_vector
+                Join_Condition_Resolution.Result converted redundant_names.to_vector
 
 type Join_Condition_Resolution
     Result (conditions : Vector Any) (redundant_column_names : Vector Text)

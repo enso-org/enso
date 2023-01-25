@@ -2,13 +2,14 @@ package org.enso.interpreter.node.expression.builtin.meta;
 
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Array;
-import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.PanicException;
 
 import com.oracle.truffle.api.CompilerDirectives;
@@ -18,12 +19,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.profiles.ValueProfile;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.state.State;
 
@@ -38,7 +37,7 @@ public abstract class AtomWithAHoleNode extends Node {
     return AtomWithAHoleNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, Object factory);
+  abstract Object execute(VirtualFrame frame, Object factory, State state);
 
   static InvokeCallableNode callWithHole() {
     return InvokeCallableNode.build(
@@ -51,12 +50,13 @@ public abstract class AtomWithAHoleNode extends Node {
   Object doExecute(
     VirtualFrame frame,
     Object factory,
+    State state,
     @Cached("callWithHole()") InvokeCallableNode iop,
     @Cached SwapAtomFieldNode swapNode
   ) {
     var ctx = EnsoContext.get(this);
     var lazy = new HoleInAtom();
-    var result = iop.execute(factory, frame, State.create(ctx), new Object[] { lazy });
+    var result = iop.execute(factory, frame, state, new Object[] { lazy });
     if (result instanceof Atom atom) {
       var index = swapNode.findHoleIndex(atom, lazy);
       if (index >= 0) {
@@ -94,7 +94,7 @@ public abstract class AtomWithAHoleNode extends Node {
         };
     }
 
-    @ExportMessage Object getMembers(boolean includeInternal) throws UnsupportedMessageException {
+    @ExportMessage Object getMembers(boolean includeInternal) {
         return new Array("value", "fill");
     }
 
@@ -116,9 +116,9 @@ public abstract class AtomWithAHoleNode extends Node {
   }
   static final class SwapAtomFieldNode extends RootNode {
     private final FunctionSchema schema;
-    private final ValueProfile sameAtom = ValueProfile.createClassProfile();
     @CompilerDirectives.CompilationFinal
     private int lastIndex = -1;
+    @Child private StructsLibrary structs = StructsLibrary.getFactory().createDispatched(10);
 
     private SwapAtomFieldNode() {
       super(null);
@@ -127,7 +127,7 @@ public abstract class AtomWithAHoleNode extends Node {
         new ArgumentDefinition(1, "value", ArgumentDefinition.ExecutionMode.EXECUTE)
       }, new boolean[]{
         true, false
-      }, new CallArgumentInfo[0]);
+      }, new CallArgumentInfo[0], new Annotation[0]);
     }
 
     static SwapAtomFieldNode create() {
@@ -135,7 +135,7 @@ public abstract class AtomWithAHoleNode extends Node {
     }
 
     int findHoleIndex(Atom atom, HoleInAtom lazy) {
-      var arr = atom.getFields();
+      var arr = structs.getFields(atom);
       if (lastIndex >= 0 && lastIndex < arr.length) {
         if (arr[lastIndex] == lazy) {
           return lastIndex;
@@ -183,10 +183,10 @@ public abstract class AtomWithAHoleNode extends Node {
     public Object execute(VirtualFrame frame) {
       var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
       if (args[0] instanceof HoleInAtom lazy) {
-        var fields = lazy.result.getFields();
+        var field = structs.getField(lazy.result, lazy.index);
         var newValue = args[1];
-        if (fields[lazy.index] == lazy) {
-          fields[lazy.index] = newValue;
+        if (field == lazy) {
+          structs.setField(lazy.result, lazy.index, newValue);
         }
         return newValue;
       }

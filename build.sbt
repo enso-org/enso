@@ -710,11 +710,7 @@ val generateRustParserLib =
       (if (BuildInfo.isReleaseMode)
          Seq("--release")
        else Seq())
-    val macBuild = releaseMode ++
-      (if (os.contains("Mac"))
-         Seq("--target", "x86_64-apple-darwin")
-       else Seq())
-    macBuild !
+    releaseMode !
   }
   FileTreeView.default.list(Seq(libGlob)).map(_._1.toFile)
 }
@@ -1153,9 +1149,6 @@ lazy val `polyglot-api` = project
       "org.scalacheck"        %% "scalacheck"       % scalacheckVersion % Test
     ),
     libraryDependencies ++= jackson,
-    addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
-    ),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     Compile / sourceGenerators += GenerateFlatbuffers.task
   )
@@ -1450,9 +1443,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath,
       "-Xlint:unchecked"
-    ),
-    addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     )
   )
   .settings(

@@ -46,6 +46,18 @@ impl component::Model for Model {
         app.display.default_scene.layers.node_searcher.add(&display_object);
         display_object.add_child(&list);
         display_object.add_child(&documentation);
+
+        // We need to set the shapes order for the documentation panel overlay to be on top of the
+        // CB background; otherwise, the background would block some mouse events. The CB background
+        // is big because of the surrounding shadow and partially overlaps the left side of the
+        // documentation panel.
+        let scene = &app.display.default_scene;
+        shapes_order_dependencies! {
+            scene => {
+                component_list_panel::background -> documentation::overlay;
+            }
+        }
+
         Self { display_object, list, documentation }
     }
 }
