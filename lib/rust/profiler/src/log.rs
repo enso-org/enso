@@ -16,6 +16,8 @@
 use std::cell;
 use std::mem;
 
+
+
 /// Allocation unit of events within a [`Log`].
 const BLOCK: usize = 1024;
 

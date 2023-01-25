@@ -84,8 +84,6 @@ pub use ide_view_component_list_panel_grid::entry::icon;
 // === Constants ===
 // =================
 
-/// The selection animation is faster than the default one because of the increased spring force.
-const SELECTION_ANIMATION_SPRING_FORCE_MULTIPLIER: f32 = 1.5;
 const INITIAL_SECTION_NAME: &str = "Popular";
 
 
@@ -173,7 +171,8 @@ impl AllStyles {
 
 // === Background ===
 
-mod background {
+#[allow(missing_docs)]
+pub mod background {
     use super::*;
 
     ensogl_core::shape! {
@@ -276,14 +275,13 @@ impl Model {
         self.grid.set_xy(style.grid_pos());
     }
 
-    // Note that this is a workaround for lack of hierarchical mouse over events.
     // We need to know if the mouse is over the panel, but cannot do it via a shape, as
     // sub-components still need to receive all of the mouse events, too.
     //
     // The `pos` is mouse position in Component List Panel space (the origin is in the middle of
     // the panel).
-    fn is_hovered(&self, pos: Vector2) -> bool {
-        let size = self.background.computed_size();
+    fn is_hovered(&self, pos: Vector2, style: &AllStyles) -> bool {
+        let size = style.size();
         let viewport = BoundingBox::from_center_and_size(default(), size);
         viewport.contains(pos)
     }
@@ -337,22 +335,6 @@ impl component::Frp<Model> for Frp {
         let output = &frp_api.output;
 
         frp::extend! { network
-
-            is_visible <- bool(&input.hide, &input.show);
-            is_hovered <- app.cursor.frp.screen_position.map(f!([model,scene](pos) {
-                let pos = scene.screen_to_object_space(&model, pos.xy());
-                model.is_hovered(pos)
-            })).gate(&is_visible).on_change();
-            output.is_hovered <+ is_hovered;
-            // TODO[ib] Temporary solution for focus, we grab keyboard events if the
-            //   component browser is visible. The proper implementation is tracked in
-            //   https://www.pivotaltracker.com/story/show/180872763
-            model.grid.deprecated_set_focus <+ is_visible;
-
-            on_hover_end <- is_hovered.on_false();
-            model.grid.unhover_element <+ on_hover_end;
-
-
             // === Section navigator ===
 
             model.grid.switch_section <+ model.section_navigator.chosen_section.filter_map(|s| *s);
@@ -373,6 +355,23 @@ impl component::Frp<Model> for Frp {
             model.section_navigator.style <+ style;
             eval style ((style) model.update_style(style));
             output.size <+ style.map(|style| style.size());
+
+
+            // === Hover & Focus ===
+
+            is_visible <- bool(&input.hide, &input.show);
+            is_hovered <- app.cursor.frp.screen_position.map2(&style, f!([model,scene](pos, style) {
+                let pos = scene.screen_to_object_space(&model, pos.xy());
+                model.is_hovered(pos, style)
+            })).gate(&is_visible).on_change();
+            output.is_hovered <+ is_hovered;
+            // TODO[ib] Temporary solution for focus, we grab keyboard events if the
+            //   component browser is visible. The proper implementation is tracked in
+            //   https://www.pivotaltracker.com/story/show/180872763
+            model.grid.deprecated_set_focus <+ is_visible;
+
+            on_hover_end <- is_hovered.on_false();
+            model.grid.unhover_element <+ on_hover_end;
         }
         panel_style.init.emit(());
         grid_style.init.emit(());
