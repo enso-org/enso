@@ -3,7 +3,7 @@ import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
 
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Column_Matched_By_Multiple_Selectors, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 type Problem_Builder
     Value types_to_always_throw oob_indices missing_input_columns other

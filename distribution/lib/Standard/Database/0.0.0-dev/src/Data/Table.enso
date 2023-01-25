@@ -316,7 +316,7 @@ type Table
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
          - If a column is matched by two selectors resulting in a different name
-           mapping, a `Column_Matched_By_Multiple_Selectors`.
+           mapping, a `Ambiguous_Column_Rename`.
          - If any of the new names are invalid, an
            `Invalid_Output_Column_Names`.
          - If any of the new names clash either with existing names or each

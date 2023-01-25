@@ -79,17 +79,17 @@ type No_Output_Columns
     to_display_text self =
         "The result contains no columns."
 
-## Indicates that one column has been matched by multiple selectors with
-   differing settings.
-type Column_Matched_By_Multiple_Selectors
-    Error (column_name : Text) (selectors : [Any])
+## Indicates that one column has been matched by multiple selectors, resulting
+   in ambiguous new names.
+type Ambiguous_Column_Rename
+    Error (column_name : Text) (new_names : Vector Text)
 
     ## PRIVATE
 
        Pretty prints the error.
     to_display_text : Text
     to_display_text self =
-        'The column "' + self.column_name + '" is matched by multiple selectors: ' + self.selectors.short_display_text + "."
+        'The column "' + self.column_name + '" is matched by multiple selectors, and it is ambiguous which of the following names it should be assigned: ' + self.new_names.short_display_text + "."
 
 ## Indicates that no input columns were selected for the operation, so the
    operation will cause no effect.

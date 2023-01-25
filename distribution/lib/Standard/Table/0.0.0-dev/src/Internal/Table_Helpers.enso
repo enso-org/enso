@@ -515,30 +515,6 @@ transform_columns_by_index internal_columns index_selectors problem_builder inde
         Column_Transform_Element.Value column associated_selector
 
 ## PRIVATE
-   A helper function which can be used by methods that transform a subset of
-   columns based on some selection criteria while keeping the unselected columns
-   unaffected and not changing the ordering of the columns.
-
-   It returns `internal_columns` transformed in the following way: each entry
-   becomes a `Column_Transform_Element` which contains the original internal
-   column and the chosen associated selector (which may contain some additional
-   metadata needed to perform the transformation) or `Nothing` if the column was
-   not selected for transformation.
-
-   Arguments:
-   - internal_columns: A list of all columns in a table.
-   - column_selectors: A vector of column selectors which contain a column whose
-     name should be used as a reference to select the corresponding column in
-     the given table. The selectors may also optionally contain some metadata.
-   - problem_builder: Encapsulates the aggregation of encountered problems.
-transform_columns_by_column_reference : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
-transform_columns_by_column_reference internal_columns column_selectors problem_builder column_extractor =
-    name_extractor = selector->
-        column = column_extractor selector
-        column.name
-    transform_columns_by_name internal_columns column_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor
-
-## PRIVATE
    A helper function which can be used by methods that select a subset of
    columns and need to keep some metadata coming from the selector associated
    with each column.
