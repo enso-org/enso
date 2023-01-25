@@ -519,8 +519,7 @@ let origin = null
 async function main(args) {
     // Note [Main error handling]
     try {
-        // FIXME [NP]: uncomment this once ready for review since it's annoying during development
-        //runBackend()
+        runBackend()
 
         if (process.defaultApp) {
             if (process.argv.length >= 2) {

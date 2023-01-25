@@ -79,10 +79,7 @@ const config: Configuration = {
     ],
     mac: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, for
-        //   faster development. Revert this once the PR is undrafted.
-        //target: (args.target as MacOsTargetName) ?? 'dmg',
-        target: 'dir',
+        target: (args.target as MacOsTargetName) ?? 'dmg',
         icon: `${args.iconsDist}/icon.icns`,
         category: 'public.app-category.developer-tools',
         darkModeSupport: true,
@@ -105,10 +102,7 @@ const config: Configuration = {
     },
     linux: {
         // We do not use compression as the build time is huge and file size saving is almost zero.
-        // FIXME [NP]: This is a temporary workaround to avoid repackaging during rebuilds, for
-        //   faster development. Revert this once the PR is undrafted.
-        //target: args.target ?? 'AppImage',
-        target: 'dir',
+        target: args.target ?? 'AppImage',
         icon: `${args.iconsDist}/png`,
         category: 'Development',
     },
