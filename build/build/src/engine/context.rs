@@ -402,26 +402,6 @@ impl RunContext {
         }
 
         let enso = BuiltEnso { paths: self.paths.clone() };
-        if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
-            enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
-        } else if self.config.check_enso_benchmarks {
-            enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
-        }
-
-
-        // If we were running any benchmarks, they are complete by now. Upload the report.
-        if is_in_env() {
-            let path = &self.paths.repo_root.engine.runtime.bench_report_xml;
-            if path.exists() {
-                ide_ci::actions::artifacts::upload_single_file(
-                    &self.paths.repo_root.engine.runtime.bench_report_xml,
-                    "Runtime Benchmark Report",
-                )
-                .await?;
-            } else {
-                info!("No benchmark file found at {}, nothing to upload.", path.display());
-            }
-        }
 
         if self.config.test_scala {
             // Test Enso
@@ -539,6 +519,27 @@ impl RunContext {
 
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root).await?;
+        }
+
+        if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
+            enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
+        } else if self.config.check_enso_benchmarks {
+            enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
+        }
+
+
+        // If we were running any benchmarks, they are complete by now. Upload the report.
+        if is_in_env() {
+            let path = &self.paths.repo_root.engine.runtime.bench_report_xml;
+            if path.exists() {
+                ide_ci::actions::artifacts::upload_single_file(
+                    &self.paths.repo_root.engine.runtime.bench_report_xml,
+                    "Runtime Benchmark Report",
+                )
+                .await?;
+            } else {
+                info!("No benchmark file found at {}, nothing to upload.", path.display());
+            }
         }
 
         Ok(ret)
