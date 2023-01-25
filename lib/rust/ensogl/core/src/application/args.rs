@@ -4,6 +4,27 @@
 use crate::prelude::*;
 
 
+// =============================
+// === Ident Case Conversion ===
+// =============================
+
+pub fn snake_case_to_camel_case(name: &str) -> String {
+    let mut output = String::new();
+    let mut capitalize_next = false;
+    for c in name.chars() {
+        if c == '_' {
+            capitalize_next = true;
+        } else if capitalize_next {
+            output.push(c.to_ascii_uppercase());
+            capitalize_next = false;
+        } else {
+            output.push(c);
+        }
+    }
+    output
+}
+
+
 
 // =================
 // === ArgReader ===
@@ -16,37 +37,40 @@ pub trait ArgMarker {}
 /// Trait used to convert provided string arguments to the desired type.
 #[allow(missing_docs)]
 pub trait ArgReader: Sized {
-    fn read_arg(str: String) -> Option<Self>;
+    fn read_arg(str: &Option<String>) -> Option<Self>;
 }
 
+// pub trait OptArgReader: Sized {
+//     fn read_opt_arg(str: &Option<String>) -> Self;
+// }
 
 // === Default ===
 
 /// Helper trait used to disambiguate overlapping impls of [`ArgReader`].
 #[allow(missing_docs)]
 pub trait ArgReaderFromString: Sized {
-    fn read_arg_from_string(str: String) -> Option<Self>;
+    fn read_arg_from_string(str: &Option<String>) -> Option<Self>;
 }
 
 impl<T> ArgReaderFromString for T
-where String: TryInto<T>
+where for<'t> &'t str: TryInto<T>
 {
-    fn read_arg_from_string(str: String) -> Option<Self> {
-        str.try_into().ok()
+    fn read_arg_from_string(str: &Option<String>) -> Option<Self> {
+        str.as_ref().map(|s| s.as_str().try_into().ok()).flatten()
     }
 }
 
 impl<T> ArgReaderFromString for T {
-    default fn read_arg_from_string(_: String) -> Option<Self> {
+    default fn read_arg_from_string(_: &Option<String>) -> Option<Self> {
         unreachable!()
     }
 }
 
-impl<T> ArgMarker for T where T: TryFrom<String> {}
+impl<T> ArgMarker for T where T: for<'t> TryFrom<&'t str> {}
 impl<T> ArgReader for T
 where T: ArgMarker
 {
-    default fn read_arg(str: String) -> Option<Self> {
+    default fn read_arg(str: &Option<String>) -> Option<Self> {
         ArgReaderFromString::read_arg_from_string(str)
     }
 }
@@ -56,25 +80,46 @@ where T: ArgMarker
 
 impl ArgMarker for bool {}
 impl ArgReader for bool {
-    fn read_arg(str: String) -> Option<Self> {
-        match &str[..] {
-            "true" => Some(true),
-            "false" => Some(false),
-            "ok" => Some(true),
-            "fail" => Some(false),
-            "enabled" => Some(true),
-            "disabled" => Some(false),
-            "yes" => Some(true),
-            "no" => Some(false),
-            _ => None,
-        }
+    fn read_arg(str: &Option<String>) -> Option<Self> {
+        str.as_ref()
+            .map(|s| match s.as_ref() {
+                "true" => Some(true),
+                "false" => Some(false),
+                "ok" => Some(true),
+                "fail" => Some(false),
+                "enabled" => Some(true),
+                "disabled" => Some(false),
+                "yes" => Some(true),
+                "no" => Some(false),
+                "1" => Some(true),
+                "0" => Some(false),
+                _ => None,
+            })
+            .flatten()
+    }
+}
+
+impl ArgMarker for f32 {}
+impl ArgReader for f32 {
+    fn read_arg(str: &Option<String>) -> Option<Self> {
+        str.as_ref().map(|s| s.parse().ok()).flatten()
     }
 }
 
 impl ArgMarker for semver::Version {}
 impl ArgReader for semver::Version {
-    fn read_arg(str: String) -> Option<Self> {
-        semver::Version::parse(&str).ok()
+    fn read_arg(str: &Option<String>) -> Option<Self> {
+        str.as_ref().map(|s| semver::Version::parse(s).ok()).flatten()
+    }
+}
+
+impl<T: ArgReader> ArgMarker for Option<T> {}
+impl<T: ArgReader> ArgReader for Option<T> {
+    fn read_arg(str: &Option<String>) -> Option<Self> {
+        match str.as_ref() {
+            None => Some(None),
+            Some(s) => Some(ArgReader::read_arg(&Some(s.clone()))),
+        }
     }
 }
 
@@ -134,8 +179,8 @@ macro_rules! read_args {
             impl ArgNames {
                 $(
                     /// Name of the field.
-                    pub fn $field(&self) -> &'static str {
-                        stringify!{$field}
+                    pub fn $field(&self) -> String {
+                        $crate::application::args::snake_case_to_camel_case(stringify!{$field})
                     }
                 )*
             }
@@ -146,52 +191,43 @@ macro_rules! read_args {
             pub struct Args {
                 $(
                     $(#[$($attr)*])*
-                    pub $field : Option<$field_type>
+                    pub $field : $field_type
                 ),*
             }
 
             impl Args {
                 /// Constructor.
                 fn new() -> Self {
-                    let logger = Logger::new(stringify!{Args});
-                    let path   = vec![$($($path)*),*];
-                    match ensogl::system::web::Reflect::get_nested_object
-                    (&ensogl::system::web::window,&path).ok() {
-                        None => {
-                            let path = path.join(".");
-                            error!("The config path '{path}' is invalid.");
-                            default()
-                        }
-                        Some(cfg) => {
-                            let keys      = ensogl::system::web::Object::keys_vec(&cfg);
-                            let mut keys  = keys.into_iter().collect::<HashSet<String>>();
-                            $(
-                                let name   = stringify!{$field};
-                                let tp     = stringify!{$field_type};
-                                let $field = ensogl::system::web::Reflect::
-                                    get_nested_object_printed_as_string(&cfg,&[name]).ok();
-                                let $field = $field.map
-                                    ($crate::application::args::ArgReader::read_arg);
-                                if $field == Some(None) {
-                                    warning!(&logger,"Failed to convert the argument '{name}' \
-                                                      value to the '{tp}' type.");
+                    let js_app = ensogl::system::js::app::app();
+                    let mut params = js_app.config().params().to_hash_map();
+                    $(
+                        let js_name = $crate::application::args::snake_case_to_camel_case
+                            (stringify!{$field});
+                        warn!("processing {js_name}");
+                        let $field = if let Some(param) = params.remove(&js_name) {
+                            let str_value = param.value();
+                            let value = $crate::application::args::ArgReader::read_arg(&str_value);
+                            match value {
+                                None => {
+                                    let tp = stringify!{$field_type};
+                                    error!("Config error. Invalid value '{str_value:?}' for parameter \
+                                        '{js_name}' of type '${tp}'.");
+                                    default()
                                 }
-                                let $field = $field.flatten();
-                                keys.remove(name);
-                            )*
-                            for key in keys {
-                                warning!(&logger,"Unknown config option provided '{key}'.");
+                                Some(value) => value,
                             }
-                            Self {$($field),*}
-                        }
+                        } else {
+                            warn!("Config error. Rust config parameter '{js_name}' not found in \
+                                JavaScript.");
+                            default()
+                        };
+                    )*
+                    for js_name in params.keys() {
+                        warn!("Config error. JavaScript config parameter '{js_name}' not found in \
+                            Rust.");
                     }
+                    Self {$($field),*}
                 }
-
-                /// This is a dummy function which initializes the arg reading process. This
-                /// function does nothing, however, in order to call it, the user would need to
-                /// access a field in the lazy static variable `ARGS`, which would trigger argument
-                /// parsing process.
-                pub fn init(&self) {}
 
                 /// Reflection mechanism to get string representation of argument names.
                 pub fn names(&self) -> ArgNames { ArgNames }

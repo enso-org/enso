@@ -217,6 +217,7 @@ export class App {
             this.initBrowser()
             this.initialized = true
         }
+        // Export the app to a global variable, so Rust can access it.
         host.exportGlobal({ ensoglApp: this })
     }
 

@@ -15,9 +15,9 @@ use enso_config::ARGS;
 // ==============
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Fail)]
+#[derive(Clone, Debug, Fail)]
 #[fail(display = "Missing program option: {}.", 0)]
-pub struct MissingOption(&'static str);
+pub struct MissingOption(String);
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Fail)]

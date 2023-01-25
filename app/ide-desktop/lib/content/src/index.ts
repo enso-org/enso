@@ -179,6 +179,9 @@ class Config {
         true,
         'Controls whether the new component browser should be enabled.'
     )
+    emitUserTimingMeasurements: config.Param<boolean> = new config.Param(
+        false, 'TODO'
+    )
 }
 
 // ========================

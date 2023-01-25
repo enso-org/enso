@@ -75,7 +75,7 @@ impl Initializer {
             config::InitialView::Project => view.switch_view_to_project(),
         }
 
-        if enso_config::ARGS.emit_user_timing_measurements.unwrap_or_default() {
+        if enso_config::ARGS.emit_user_timing_measurements {
             ensogl_app.display.connect_profiler_to_user_timing();
         }
         let status_bar = view.status_bar().clone_ref();
@@ -249,7 +249,7 @@ pub fn register_views(app: &Application) {
     type PlaceholderEntryType = ensogl_component::list_view::entry::Label;
     app.views.register::<ensogl_component::list_view::ListView<PlaceholderEntryType>>();
 
-    if enso_config::ARGS.is_in_cloud.unwrap_or(false) {
+    if enso_config::ARGS.is_in_cloud {
         app.views.register::<ide_view::window_control_buttons::View>();
     }
 }
