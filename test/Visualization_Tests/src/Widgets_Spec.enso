@@ -1,0 +1,12 @@
+from Standard.Base import all
+
+from Standard.Test import Test_Suite
+
+import project.Widgets.Database_Widgets_Spec
+import project.Widgets.Table_Widgets_Spec
+
+spec =
+    Table_Widgets_Spec.spec
+    Database_Widgets_Spec.spec
+
+main = Test_Suite.run_main spec

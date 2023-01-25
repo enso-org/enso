@@ -40,11 +40,9 @@ type Text_Ordering
     Case_Insensitive (locale:Locale=Locale.default) (sort_digits_as_numbers:Boolean=False)
 
     ## PRIVATE
-       Returns this ordering's case sensitivity setting. It will return
-       `Nothing` for the `Default` ordering, meaning that the case sensitivity
-       is to be determined by the backend.
+       Returns this ordering's case sensitivity setting.
     case_sensitivity : Case_Sensitivity
     case_sensitivity self = case self of
-        Text_Ordering.Default _ -> Nothing
+        Text_Ordering.Default _ -> Case_Sensitivity.Default
         Text_Ordering.Case_Sensitive _ -> Case_Sensitivity.Sensitive
         Text_Ordering.Case_Insensitive locale _ -> Case_Sensitivity.Insensitive locale

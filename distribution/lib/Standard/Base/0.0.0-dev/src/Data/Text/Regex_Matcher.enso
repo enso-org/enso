@@ -44,6 +44,7 @@ type Regex_Matcher
     compile : Text -> Pattern
     compile self pattern =
         case_insensitive = case self.case_sensitivity of
+            Case_Sensitivity.Default -> False
             Case_Sensitivity.Sensitive -> False
             ## TODO [RW] Currently locale is not supported in case-insensitive
                Regex matching. There are plans to revisit it:
