@@ -8,7 +8,6 @@
 
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;

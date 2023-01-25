@@ -8,6 +8,7 @@ use crate::prelude::*;
 // === Ident Case Conversion ===
 // =============================
 
+/// Convert snake to camel case name.
 pub fn snake_case_to_camel_case(name: &str) -> String {
     let mut output = String::new();
     let mut capitalize_next = false;

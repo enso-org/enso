@@ -1,11 +1,21 @@
+//! Binding to the EnsoGL TypeScript App class. This module does not provide docs for the app
+//! methods. You can find them in the TypeScript source code.
+
+#![allow(missing_docs)]
+
 use crate::prelude::*;
 use crate::system::web::traits::*;
 use crate::system::web::*;
 
+
+
+// ===================
+// === JS Bindings ===
+// ===================
+
 #[cfg(target_arch = "wasm32")]
 pub mod js_bindings {
     use wasm_bindgen::prelude::*;
-    use wasm_bindgen::JsCast;
 
     #[wasm_bindgen]
     extern "C" {
@@ -30,6 +40,10 @@ pub mod js_bindings {
 use js_bindings::*;
 
 
+
+// ===========
+// === App ===
+// ===========
 
 impl App {
     pub fn config(&self) -> Config {
@@ -64,14 +78,13 @@ impl Params {
 impl Param {
     pub fn value(&self) -> Option<String> {
         let val = Reflect::get(self, &"value".into()).unwrap();
-        if (val.is_null() || val.is_undefined()) {
+        if val.is_null() || val.is_undefined() {
             None
         } else {
             Some(val.print_to_string())
         }
     }
 }
-
 
 pub fn app() -> App {
     Reflect::get_nested_object(&window, &["ensoglApp"]).unwrap().unchecked_into()

@@ -134,6 +134,7 @@ macro_rules! mock_struct {
     };
 }
 
+/// Helper of [`mock_struct`].
 #[macro_export]
 macro_rules! mock_struct_as_ref {
     ([NO_AS_REF] $($ts:tt)*) => {};
@@ -152,6 +153,7 @@ macro_rules! mock_struct_as_ref {
     };
 }
 
+/// Helper of [`mock_struct`].
 #[macro_export]
 macro_rules! mock_struct_into_js_ref {
     (JsValue $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?) => {};
@@ -166,6 +168,7 @@ macro_rules! mock_struct_into_js_ref {
     };
 }
 
+/// Helper of [`mock_struct`].
 #[macro_export]
 macro_rules! mock_struct_deref {
     ([] $($ts:tt)*) => {};
@@ -425,6 +428,12 @@ impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
     }
 }
 
+/// This impl is provided to mimic the behavior of the [`wasm_bindgen::Closure`] type. It silences
+/// clippy warnings.
+impl<T: ?Sized> Drop for Closure<T> {
+    fn drop(&mut self) {}
+}
+
 
 
 // ================
@@ -452,6 +461,7 @@ impl From<&JsString> for String {
 // === Array ===
 mock_data! { Array => Object
     fn length(&self) -> u32;
+    fn get(&self, index: u32) -> JsValue;
     fn of2(a: &JsValue, b: &JsValue) -> Array;
     fn of3(a: &JsValue, b: &JsValue, c: &JsValue) -> Array;
     fn of4(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue) -> Array;
@@ -459,8 +469,16 @@ mock_data! { Array => Object
 }
 
 
-// === Error ===
+// === Map ===
+mock_data! { Map => Object
+    fn new() -> Self;
+    fn get(&self, key: &JsValue) -> JsValue;
+    fn set(&self, key: &JsValue, value: &JsValue) -> Map;
+    fn entries(&self) -> Iterator;
+}
 
+
+// === Error ===
 mock_data! { Error => Object
     fn new(message: &str) -> Self;
 }
@@ -782,3 +800,42 @@ pub static window: Window = Window {};
 #[allow(non_upper_case_globals)]
 #[allow(missing_docs)]
 pub static document: Document = Document::const_new();
+
+
+
+// ================
+// === Iterator ===
+// ================
+
+#[derive(Default, Clone, Copy, Debug)]
+#[allow(missing_docs)]
+pub struct Iterator;
+impl MockDefault for Iterator {
+    fn mock_default() -> Self {
+        default()
+    }
+}
+
+#[derive(Default, Clone, Copy, Debug)]
+#[allow(missing_docs)]
+pub struct IntoIter;
+impl MockDefault for IntoIter {
+    fn mock_default() -> Self {
+        default()
+    }
+}
+
+impl IntoIterator for Iterator {
+    type Item = Result<JsValue, JsValue>;
+    type IntoIter = IntoIter;
+    fn into_iter(self) -> IntoIter {
+        default()
+    }
+}
+
+impl std::iter::Iterator for IntoIter {
+    type Item = Result<JsValue, JsValue>;
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}

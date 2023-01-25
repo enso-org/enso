@@ -7,16 +7,13 @@ use enso_prelude::calculate_hash;
 pub use ide_ci::prelude;
 use ide_ci::prelude::*;
 
-use ide_ci::io::web;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::shaderc::Glslc;
 use ide_ci::programs::shaderc::SpirvOpt;
 use ide_ci::programs::spirv_cross::SpirvCross;
 use ide_ci::programs::wasm_pack::WasmPackCommand;
 use manifest_dir_macros::path;
-use std::collections::hash_map::DefaultHasher;
 use std::env;
-use std::hash::Hasher;
 use std::path::Path;
 use std::path::PathBuf;
 use walkdir::WalkDir;
@@ -27,9 +24,11 @@ use walkdir::WalkDir;
 // === Hot Fixes ===
 // =================
 
+/// A hot-fix for a bug on macOS, where `std::fs::copy` causes cargo-watch to loop infinitely.
+/// See: https://github.com/watchexec/cargo-watch/issues/242
 pub fn copy(source_file: impl AsRef<Path>, destination_file: impl AsRef<Path>) -> Result {
     if env::consts::OS == "macos" {
-        Command::new("cp").arg(&source_file.as_ref()).arg(&destination_file.as_ref()).spawn()?;
+        Command::new("cp").arg(source_file.as_ref()).arg(destination_file.as_ref()).spawn()?;
         Ok(())
     } else {
         ide_ci::fs::copy(source_file, destination_file)

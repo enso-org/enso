@@ -17,7 +17,6 @@ use ensogl_core::data::color;
 use ensogl_core::data::color::Rgba;
 use ensogl_core::display;
 use ensogl_core::display::layout::alignment;
-use ensogl_core::display::scene;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::symbol::geometry::SpriteSystem;
 use ensogl_core::display::symbol::material::Material;

@@ -26,7 +26,6 @@ use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::system::gpu::shader;
 use crate::system::web;
-use wasm_bindgen::JsCast as JsCast2;
 
 use enso_types::unit2::Duration;
 use web::prelude::Closure;
@@ -105,28 +104,39 @@ thread_local! {
     pub static PRECOMPILED_SHADERS: RefCell<HashMap<String, PrecompiledShader>> = default();
 }
 
-
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
+    /// Register in JS a closure to get non-precompiled shaders from Rust.
     #[allow(unsafe_code)]
-    fn registerGetShadersRustFn(
-        closure: &wasm_bindgen::prelude::Closure<dyn FnMut() -> wasm_bindgen::prelude::JsValue>,
-    );
+    fn registerGetShadersRustFn(closure: &Closure<dyn FnMut() -> JsValue>);
+
+    /// Register in JS a closure to set precompiled shaders in Rust.
     #[allow(unsafe_code)]
-    fn registerSetShadersRustFn(
-        closure: &wasm_bindgen::prelude::Closure<dyn FnMut(wasm_bindgen::prelude::JsValue)>,
-    );
+    fn registerSetShadersRustFn(closure: &Closure<dyn FnMut(JsValue)>);
 }
 
+/// Register in JS a closure to get non-precompiled shaders from Rust.
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(non_snake_case)]
+fn registerGetShadersRustFn(_closure: &Closure<dyn FnMut() -> JsValue>) {}
+
+/// Register in JS a closure to set precompiled shaders in Rust.
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(non_snake_case)]
+fn registerSetShadersRustFn(_closure: &Closure<dyn FnMut(JsValue)>) {}
+
+/// Registers in JS a closure to acquire non-optimized shaders code and to set back optimized
+/// shaders code.
 #[before_main]
-pub fn register_get_shaders() {
-    let closure = wasm_bindgen::prelude::Closure::new(|| {
+pub fn register_get_and_set_shaders_fns() {
+    let closure = Closure::new(|| {
         let map = gather_shaders();
-        let js_map = js_sys::Map::new();
+        let js_map = web::Map::new();
         for (key, code) in map {
-            let value = js_sys::Object::new();
-            js_sys::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
-            js_sys::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
+            let value = web::Object::new();
+            web::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
+            web::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
             js_map.set(&key.into(), &value);
         }
         js_map.into()
@@ -134,9 +144,8 @@ pub fn register_get_shaders() {
     registerGetShadersRustFn(&closure);
     mem::forget(closure);
 
-
-    let closure = wasm_bindgen::prelude::Closure::new(|value: wasm_bindgen::prelude::JsValue| {
-        if extractShadersFromJs(value).err().is_some() {
+    let closure = Closure::new(|value: JsValue| {
+        if extract_shaders_from_js(value).err().is_some() {
             warn!("Internal error. Downloaded shaders are provided in a wrong format.")
         }
     });
@@ -144,18 +153,17 @@ pub fn register_get_shaders() {
     mem::forget(closure);
 }
 
-fn extractShadersFromJs(
-    value: wasm_bindgen::prelude::JsValue,
-) -> Result<(), wasm_bindgen::prelude::JsValue> {
-    let map = value.dyn_into::<js_sys::Map>()?;
+/// Extract optimized shaders code from the JS value.
+fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
+    let map = value.dyn_into::<web::Map>()?;
     for opt_entry in map.entries() {
-        let entry = opt_entry?.dyn_into::<js_sys::Array>()?;
-        let key: String = entry.get(0).dyn_into::<js_sys::JsString>()?.into();
-        let value = entry.get(1).dyn_into::<js_sys::Object>()?;
-        let vertex_field = js_sys::Reflect::get(&value, &"vertex".into())?;
-        let fragment_field = js_sys::Reflect::get(&value, &"fragment".into())?;
-        let vertex: String = vertex_field.dyn_into::<js_sys::JsString>()?.into();
-        let fragment: String = fragment_field.dyn_into::<js_sys::JsString>()?.into();
+        let entry = opt_entry?.dyn_into::<web::Array>()?;
+        let key: String = entry.get(0).dyn_into::<web::JsString>()?.into();
+        let value = entry.get(1).dyn_into::<web::Object>()?;
+        let vertex_field = web::Reflect::get(&value, &"vertex".into())?;
+        let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
+        let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
+        let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
         let precompiled_shader = PrecompiledShader { vertex, fragment };
         warn!("Registering precompiled shaders for '{key}'.");
         PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
@@ -168,7 +176,7 @@ fn extractShadersFromJs(
 fn gather_shaders() -> HashMap<&'static str, shader::Code> {
     with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
     let mut map = HashMap::new();
-    display::world::STATIC_SHAPES.with(|shapes| {
+    STATIC_SHAPES.with(|shapes| {
         for shape_cons in shapes.borrow().iter() {
             let shape = shape_cons();
             let path = shape.definition_path();

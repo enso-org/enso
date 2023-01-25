@@ -50,9 +50,8 @@ impl Family {
         &self,
         handle: github::repo::Handle<impl IsRepo>,
     ) -> Result<Vec<repos::Content>> {
-        let Self { repo, r#ref, name } = &self;
-        let path = format!("{GOOGLE_FONT_DIRECTORY}/{name}");
-        let files = handle.repos().get_content().r#ref(r#ref).path(path).send().await?;
+        let path = format!("{GOOGLE_FONT_DIRECTORY}/{}", self.name);
+        let files = handle.repos().get_content().r#ref(&self.r#ref).path(path).send().await?;
         Ok(files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect())
     }
 }

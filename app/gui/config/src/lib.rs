@@ -13,11 +13,8 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-use enso_logger::*;
 use enso_prelude::*;
 
-use enso_logger::DefaultWarningLogger as Logger;
-use ensogl::system::js::app;
 use ensogl::system::web;
 
 
@@ -59,7 +56,7 @@ ensogl::read_args! {
     max_before_main_entry_points_time_ms: f32,
     namespace: Option<String>,
     node_labels: bool,
-    pkgJsUrl: String,
+    pkg_js_url: String,
     pkg_wasm_url: String,
     platform: Option<web::platform::Platform>,
     preferred_engine_version: Option<semver::Version>,

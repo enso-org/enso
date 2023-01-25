@@ -23,7 +23,6 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::DEPRECATED_Animation;

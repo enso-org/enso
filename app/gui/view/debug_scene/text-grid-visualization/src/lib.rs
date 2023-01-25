@@ -119,6 +119,5 @@ fn init(app: &Application) {
     let _result = web::document.fonts().ready().unwrap().then(&closure);
     // This extends the lifetime of the closure which is what we want here. Otherwise, the closure
     // would be destroyed and the callback cannot be called.
-    #[allow(clippy::forget_non_drop)]
     mem::forget(closure);
 }
