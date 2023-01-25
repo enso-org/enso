@@ -405,7 +405,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_alias_analysis() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let test_cases = [
             "»foo«",
             "«five» = 5",

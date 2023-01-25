@@ -302,7 +302,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn applying_code_changes_to_id_map() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
 
         // All the cases describe edit to a middle line in three line main definition.
         let cases = [

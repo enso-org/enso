@@ -182,7 +182,7 @@ mod tests {
         }
 
         fn from_main_def(code: impl Str) -> TestRun {
-            let parser = Parser::new_or_panic();
+            let parser = Parser::new();
             let module = parser.parse_module(code, default()).unwrap();
             let definition = DefinitionInfo::from_root_line(&module.lines[0]).unwrap();
             Self::from_definition(definition)

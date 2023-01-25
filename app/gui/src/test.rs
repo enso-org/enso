@@ -171,7 +171,12 @@ pub mod mock {
                 metadata: default(),
                 context_id: CONTEXT_ID,
                 root_definition: definition_name(),
+<<<<<<< HEAD
                 parser: ast_parser::Parser::new_or_panic(),
+=======
+                parser: ast_parser::Parser::new(),
+                logger,
+>>>>>>> 9a56303f0 (replace scala parser in frontend)
             }
         }
 

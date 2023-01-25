@@ -315,7 +315,7 @@ fn init(app: &Application) {
 pub fn expression_mock_string(label: &str) -> Expression {
     let pattern = Some(label.to_string());
     let code = format!("\"{}\"", label);
-    let parser = Parser::new_or_panic();
+    let parser = Parser::new();
     let parameters = vec![];
     let ast = parser.parse_line_ast(&code).unwrap();
     let invocation_info = span_tree::generate::context::CalledMethodInfo { parameters };
@@ -330,7 +330,7 @@ pub fn expression_mock_string(label: &str) -> Expression {
 pub fn expression_mock() -> Expression {
     let pattern = Some("var1".to_string());
     let code = "[1,2,3]".to_string();
-    let parser = Parser::new_or_panic();
+    let parser = Parser::new();
     let this_param = span_tree::ArgumentInfo {
         name: Some("self".to_owned()),
         tp: Some("Text".to_owned()),
@@ -392,7 +392,7 @@ pub fn expression_mock3() -> Expression {
     let pattern = Some("Vector x y z".to_string());
     // let code       = "image.blur ((foo   bar) baz)".to_string();
     let code = "Vector x y z".to_string();
-    let parser = Parser::new_or_panic();
+    let parser = Parser::new();
     let this_param = span_tree::ArgumentInfo {
         name: Some("self".to_owned()),
         tp: Some("Image".to_owned()),
@@ -432,7 +432,7 @@ pub fn expression_mock3() -> Expression {
 pub fn expression_mock_trim() -> Expression {
     let pattern = Some("trim_node".to_string());
     let code = "\"  hello  \".trim".to_string();
-    let parser = Parser::new_or_panic();
+    let parser = Parser::new();
     let this_param = span_tree::ArgumentInfo {
         name: Some("self".to_owned()),
         tp: Some("Text".to_owned()),

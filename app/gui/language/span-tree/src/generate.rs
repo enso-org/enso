@@ -658,7 +658,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generating_span_tree() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let mut id_map = IdMap::default();
         id_map.generate(0..15);
         id_map.generate(0..11);
@@ -704,7 +704,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generate_span_tree_with_chains() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast("2 + 3 + foo bar baz 13 + 5").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -746,7 +746,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generating_span_tree_from_right_assoc_operator() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast("1,2,3").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -770,7 +770,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generating_span_tree_from_section() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         // The star makes `SectionSides` ast being one of the parameters of + chain. First + makes
         // SectionRight, and last + makes SectionLeft.
         let ast = parser.parse_line_ast("+ * + + 2 +").unwrap();
@@ -806,7 +806,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generating_span_tree_from_right_assoc_section() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast(",2,").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -829,7 +829,7 @@ mod test {
     fn generating_span_tree_from_matched_macros() {
         use PatternMatchCrumb::*;
 
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let mut id_map = IdMap::default();
         id_map.generate(0..29);
         let expression = "if foo then (a + b) x else ()";
@@ -881,7 +881,7 @@ mod test {
     fn generating_span_tree_from_matched_list_macro() {
         use PatternMatchCrumb::*;
 
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let expression = "[a,b]";
         let ast = parser.parse_line_ast(expression).unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
@@ -908,7 +908,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generating_span_tree_from_ambiguous_macros() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let mut id_map = IdMap::default();
         id_map.generate(0..2);
         let ast = parser.parse_line_ast_with_id_map("(4", id_map.clone()).unwrap();
@@ -932,7 +932,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generating_span_tree_for_lambda() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast("foo a-> b + c").unwrap();
         let mut tree: SpanTree = ast.generate_tree(&context::Empty).unwrap();
         clear_expression_ids(&mut tree.root);
@@ -949,7 +949,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn generating_span_tree_for_unfinished_call() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let this_param =
             ArgumentInfo { name: Some("self".to_owned()), tp: Some("Any".to_owned()), ..default() };
         let param1 = ArgumentInfo {

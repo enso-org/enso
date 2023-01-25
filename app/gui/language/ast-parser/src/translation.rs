@@ -148,10 +148,8 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             let arg = to_legacy_ast(expression.as_ref().unwrap());
             Ast::from(ast::Prefix { func, off, arg })
         }
-        tree::Variant::Import(_) => return Err(Todo), /* tree::Variant::Import(import) =>
-                                                        * translate_import(import), */
-        tree::Variant::Export(_) => return Err(Todo), /* tree::Variant::Export(export) =>
-                                                        * translate_export(export), */
+        tree::Variant::Import(_) => return Err(Todo),
+        tree::Variant::Export(_) => return Err(Todo),
         tree::Variant::Invalid(_) => return Err(Todo),
         tree::Variant::AutoScope(_) => return Err(Todo),
         tree::Variant::TextLiteral(_) => return Err(Todo),
@@ -175,39 +173,6 @@ fn opr_app(lhs: &Tree, opr: &syntax::token::Operator, rhs: &Tree) -> Ast {
     let roff = rhs.span.left_offset.visible.width_in_spaces;
     let rarg = to_legacy_ast(rhs);
     Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
-}
-
-fn translate_import(
-    tree::Import { polyglot, from, import, all, as_, hiding }: &tree::Import,
-) -> Ast {
-    if let Some(polyglot) = polyglot {
-        todo!();
-    }
-    // TODO
-    let path = Default::default();
-    let rename = Default::default();
-    let onlyNames = Default::default();
-    Ast::from_ast_id_len(
-        Shape::from(ast::Import {
-            path,
-            rename,
-            isAll: all.is_some(),
-            onlyNames,
-            hidingNames: hiding.as_ref().map(|names| {
-                let mut names: Vec<_> =
-                    names.body.as_ref().unwrap().left_assoc_rev(",").map(to_legacy_ast).collect();
-                names.reverse();
-                names
-            }),
-        }),
-        None,
-        0,
-    ) // TODO
-    //iter().map(|name| translate_name(name)).collect()),
-}
-
-fn translate_export(tree::Export { from, export, all, as_, hiding }: &tree::Export) -> Ast {
-    todo!()
 }
 
 fn translate_opr(opr: &tree::OperatorOrError) -> Ast {

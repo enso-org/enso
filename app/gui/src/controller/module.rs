@@ -208,7 +208,7 @@ mod test {
     fn update_ast_after_text_change() {
         TestWithLocalPoolExecutor::set_up().run_task(async {
             let ls = language_server::Connection::new_mock_rc(default());
-            let parser = Parser::new_or_panic();
+            let parser = Parser::new();
             let location = Path::from_mock_module_name("Test");
             let code = "2+2";
             let uuid1 = Uuid::new_v4();

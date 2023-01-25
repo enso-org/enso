@@ -247,7 +247,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn detect_a_node() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         // Each of these programs should have a `main` definition with a single `2+2` node.
         let programs = vec![
             "main = 2+2",
@@ -290,7 +290,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn add_node_to_graph_with_single_line() {
         let program = "main = print \"hello\"";
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let mut graph = main_graph(&parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 1);
@@ -317,7 +317,7 @@ mod tests {
     foo = node
     foo a = not_node
     print "hello""#;
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let mut graph = main_graph(&parser, program);
 
         let node_to_add0 = new_expression_node(&parser, "4 + 4");
@@ -376,7 +376,7 @@ mod tests {
     node2
 
 foo = 5";
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let mut graph = main_graph(&parser, program);
 
         let id2 = graph.nodes()[0].id();
@@ -404,7 +404,7 @@ foo = 5";
 
     #[wasm_bindgen_test]
     fn multiple_node_graph() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let program = r"
 main =
     ## Faux docstring
@@ -435,7 +435,7 @@ main =
 
     #[wasm_bindgen_test]
     fn removing_node_from_graph() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2
@@ -461,7 +461,7 @@ main =
 
     #[wasm_bindgen_test]
     fn removing_last_node_from_graph() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2";
@@ -492,7 +492,7 @@ main =
 
     #[wasm_bindgen_test]
     fn editing_nodes_expression_in_graph() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let program = r"
 main =
     foo = 2 + 2

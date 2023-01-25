@@ -731,7 +731,7 @@ pub mod test {
             module.update_ast(new_ast).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
             let change = TextChange { range: (20..24).into(), text: "Test 2".to_string() };
-            module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
+            module.apply_code_change(change, &Parser::new(), default()).unwrap();
             runner.perhaps_run_until_stalled(&mut fixture);
         };
 

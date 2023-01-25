@@ -1096,7 +1096,7 @@ pub mod tests {
 
         /// Create a graph controller from the current mock data.
         pub fn graph(&self) -> Handle {
-            let parser = Parser::new_or_panic();
+            let parser = Parser::new();
             let urm = Rc::new(model::undo_redo::Repository::new());
             let module = self.module_data().plain(&parser, urm);
             let id = self.graph_id.clone();
@@ -1698,7 +1698,7 @@ main =
 
     #[wasm_bindgen_test]
     fn suggested_names() {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let cases = [
             ("a+b", "sum"),
             ("a-b", "difference"),

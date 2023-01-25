@@ -318,7 +318,7 @@ fn restore_edited_node_in_graph(
                     "Restoring edited node {node_id} to original expression \
                                     \"{previous_expression}\"."
                 );
-                graph.edit_node(node_id, Parser::new()?.parse_line_ast(previous_expression)?)?;
+                graph.edit_node(node_id, Parser::new().parse_line_ast(previous_expression)?)?;
                 md_entry.get_mut().intended_method = previous_intended_method;
             }
             None => {}
@@ -360,7 +360,7 @@ mod test {
             range: enso_text::Range::new(2.byte(), 5.byte()),
             text:  "- abc".to_string(),
         };
-        module.apply_code_change(change, &Parser::new_or_panic(), default()).unwrap();
+        module.apply_code_change(change, &Parser::new(), default()).unwrap();
         assert_eq!("2 - abc", module.ast().repr());
     }
 
@@ -391,7 +391,7 @@ mod test {
             range: enso_text::Range::new(0.byte(), 1.byte()),
             text:  "foo".to_string(),
         };
-        module.apply_code_change(change.clone(), &Parser::new_or_panic(), default()).unwrap();
+        module.apply_code_change(change.clone(), &Parser::new(), default()).unwrap();
         let replaced_location = enso_text::Range {
             start: enso_text::Location { line: 0.into(), offset: 0.byte() },
             end:   enso_text::Location { line: 0.into(), offset: 1.byte() },

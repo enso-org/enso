@@ -47,6 +47,14 @@ impl From<MetadataFormat> for Metadata {
     }
 }
 
+/// Split input source file into the code and the metadata section, if any was found.
+pub fn extract(input: &str) -> (&str, Option<&str>) {
+    match input.rsplit_once(MARKER) {
+        Some((code, metadata)) => (code, Some(metadata)),
+        None => (input, None),
+    }
+}
+
 /// Given source code, if a metadata section is found: Attempt to parse it; return the result, and
 /// the non-metadata portion of the input.
 pub fn parse(input: &str) -> Option<(Result, &str)> {

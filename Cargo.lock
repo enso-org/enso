@@ -160,6 +160,7 @@ dependencies = [
  "enso-parser",
  "enso-prelude",
  "enso-text",
+ "failure",
  "parser-scala",
  "serde",
  "serde_json",

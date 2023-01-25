@@ -515,7 +515,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_listing() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let expect_imports = |code: &str, expected: &[&[&str]]| {
             let ast = parser.parse_module(code, default()).unwrap();
             let info = Info { ast };
@@ -538,7 +538,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn import_adding_and_removing() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let code = "import Foo.Bar.Baz";
         let ast = parser.parse_module(code, default()).unwrap();
         let mut info = Info { ast };
@@ -567,7 +567,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn implicit_method_resolution() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let module_name =
             QualifiedName::from_all_segments(["local", "ProjectName", "Main"]).unwrap();
         let expect_find = |method: &MethodPointer, code, expected: &definition::Id| {
@@ -639,7 +639,7 @@ other def =
 
 last def = inline expression";
 
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let module = parser.parse_module(code, default()).unwrap();
         let module = Info { ast: module };
 
@@ -658,7 +658,7 @@ last def = inline expression";
 
     #[wasm_bindgen_test]
     fn add_method() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let module = r#"Main.method1 arg = body
 
 main = Main.method1 10"#;

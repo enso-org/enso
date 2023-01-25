@@ -223,7 +223,7 @@ mod tests {
 
     impl Fixture {
         fn new() -> Self {
-            Self { parser: Parser::new_or_panic() }
+            Self { parser: Parser::new() }
         }
 
         fn run_case(&self, code: &str, expected: Info) {

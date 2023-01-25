@@ -378,8 +378,7 @@ pub mod tests {
 
     impl MockData {
         pub fn controller(&self) -> Handle {
-            let parser = parser_scala::Parser::new_or_panic();
-            let parser = ast_parser::Parser::new_or_panic();
+            let parser = ast_parser::Parser::new();
             let repository = Rc::new(model::undo_redo::Repository::new());
             let module = self.module.plain(&parser, repository);
             let method = self.graph.method();

@@ -812,7 +812,7 @@ mod tests {
     use engine_protocol::language_server::MethodPointer;
 
     fn create_test_node(expression: &str) -> controller::graph::Node {
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let ast = parser.parse_line_ast(expression).unwrap();
         controller::graph::Node {
             info:     double_representation::node::NodeInfo {
@@ -951,7 +951,7 @@ mod tests {
     fn refreshing_node_expression() {
         let Fixture { state, nodes } = Fixture::setup_nodes(&["foo bar"]);
         let node_id = nodes[0].node.id();
-        let new_ast = Parser::new_or_panic().parse_line_ast("foo baz").unwrap().with_id(node_id);
+        let new_ast = Parser::new().parse_line_ast("foo baz").unwrap().with_id(node_id);
         let new_node = controller::graph::Node {
             info:     double_representation::node::NodeInfo {
                 documentation: None,

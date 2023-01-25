@@ -69,7 +69,7 @@ impl Handle {
     ) -> Self {
         let current_project = Rc::new(CloneCell::new(project));
         let status_notifications = default();
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         let notifications = default();
         Self { current_project, project_manager, status_notifications, parser, notifications }
     }

@@ -231,7 +231,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn parse_single_line_comment() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
 
         // Typical single line case.
         let code = r#"
@@ -268,7 +268,7 @@ main =
 
     #[wasm_bindgen_test]
     fn parse_multi_line_comment() {
-        let parser = ast_parser::Parser::new_or_panic();
+        let parser = ast_parser::Parser::new();
         let code = r#"
 main =
     ## First line

@@ -322,7 +322,7 @@ mod test {
             , Case{expr:"(a + b + c)", span:5..6  , action:Erase, expected: "(a + c)"       }
             , Case{expr:"(a + b + c" , span:5..6  , action:Erase, expected: "(a + c"        }
             ];
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         for case in cases {
             case.run(&parser);
         }
@@ -390,7 +390,7 @@ mod test {
             Case { expr: "(a", span: 0..1, expected: &[] },
             Case { expr: "(a + b + c", span: 5..6, expected: &[Set, Erase] },
         ];
-        let parser = Parser::new_or_panic();
+        let parser = Parser::new();
         for case in cases {
             case.run(&parser);
         }
