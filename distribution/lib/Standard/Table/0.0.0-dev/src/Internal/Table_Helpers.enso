@@ -560,19 +560,24 @@ transform_columns_by_column_reference internal_columns column_selectors problem_
    - name_extractor: A function which extracts the column name from the selector.
 select_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Boolean -> Vector
 select_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor =
-    match_matrix = Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor
-    problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
-    results = Vector.new_builder
-    internal_columns.each_with_index i-> column->
-        matching_selector_indices = match_matrix.criteria_indices_matching_object i
-        if matching_selector_indices.not_empty then
-            associated_selector_index = matching_selector_indices.first
-            associated_selector = name_selectors.at associated_selector_index
-            element = Column_Transform_Element.Value column associated_selector
-            results.append (Pair.new element [associated_selector_index, i])
-    # We sort the results by the associated selector index, breaking ties by the column index.
-    sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
-    sorted.map .first
+    case Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor of
+        ## We do the pattern match to ensure that any dataflow errors in
+           `match_matrix` are correctly propagated. Without it, due to the
+           imperative Vector Builder and `each` method, the dataflow errors
+           would get swallowed.
+        match_matrix ->
+            problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
+            results = Vector.new_builder
+            internal_columns.each_with_index i-> column->
+                matching_selector_indices = match_matrix.criteria_indices_matching_object i
+                if matching_selector_indices.not_empty then
+                    associated_selector_index = matching_selector_indices.first
+                    associated_selector = name_selectors.at associated_selector_index
+                    element = Column_Transform_Element.Value column associated_selector
+                    results.append (Pair.new element [associated_selector_index, i])
+            # We sort the results by the associated selector index, breaking ties by the column index.
+            sorted = results.to_vector.sort on=(_.second) by=Vector_Lexicographic_Order.compare
+            sorted.map .first
 
 ## PRIVATE
    A helper function which can be used by methods that select a subset of
