@@ -12,7 +12,6 @@ crate-type = ["cdylib", "rlib"]
 ast = { path = "../ast/impl" }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
 enso-parser = { path = "../../../../lib/rust/parser" }
-enso-parser-bridge = { path = "../parser2" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 enso-profiler = { path = "../../../../lib/rust/profiler" }
 enso-text = { path = "../../../../lib/rust/text" }

@@ -1,6 +1,3 @@
-#![feature(box_patterns)]
-#![feature(let_chains)]
-
 use ast::Ast;
 use ast::Shape;
 use enso_parser::syntax;
@@ -141,11 +138,11 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
         tree::Variant::TypeAnnotated(tree::TypeAnnotated { expression, operator, type_ }) =>
             opr_app(expression, operator, type_),
         tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
-            token,
-            annotation,
-            newlines,
-            expression,
-        }) => {
+                                            token,
+                                            annotation,
+                                            newlines,
+                                            expression,
+                                        }) => {
             let func = Ast::from(ast::Annotation { name: format!("@{}", &annotation.code) });
             let off = expression.as_ref().unwrap().span.left_offset.visible.width_in_spaces;
             let arg = to_legacy_ast(expression.as_ref().unwrap());
@@ -206,7 +203,7 @@ fn translate_import(
         None,
         0,
     ) // TODO
-      //iter().map(|name| translate_name(name)).collect()),
+    //iter().map(|name| translate_name(name)).collect()),
 }
 
 fn translate_export(tree::Export { from, export, all, as_, hiding }: &tree::Export) -> Ast {

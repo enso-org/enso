@@ -157,6 +157,7 @@ name = "ast-parser"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "enso-parser",
  "enso-prelude",
  "enso-text",
  "parser-scala",
@@ -2291,17 +2292,6 @@ dependencies = [
  "serde",
  "serde_json",
  "uuid 1.2.2",
-]
-
-[[package]]
-name = "enso-parser-bridge"
-version = "0.1.0"
-dependencies = [
- "ast",
- "enso-parser",
- "enso-prelude",
- "enso-profiler",
- "uuid 0.8.2",
 ]
 
 [[package]]
@@ -5316,7 +5306,6 @@ dependencies = [
  "console_error_panic_hook",
  "enso-data-structures",
  "enso-parser",
- "enso-parser-bridge",
  "enso-prelude",
  "enso-profiler",
  "enso-text",

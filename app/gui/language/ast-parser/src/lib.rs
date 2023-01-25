@@ -8,6 +8,8 @@ use enso_prelude::*;
 
 use ast::prelude::FallibleResult;
 
+mod translation;
+
 
 // ==============
 // === Export ===

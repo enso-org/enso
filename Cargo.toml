@@ -6,7 +6,6 @@ resolver = "2"
 members = [
   "app/gui",
   "app/gui/language/ast-parser",
-  "app/gui/language/parser2",
   "app/gui/enso-profiler-enso-data",
   "build/cli",
   "build/macros",

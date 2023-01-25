@@ -10,12 +10,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ast = { path = "../ast/impl" }
 parser-scala = { path = "../parser-scala" }
+enso-parser = { path = "../../../../lib/rust/parser" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["unbounded_depth"] }
 enso-text = { path = "../../../../lib/rust/text" }
-# enso-data-structures = { path = "../../../../lib/rust/data-structures" }
-# enso-profiler = { path = "../../../../lib/rust/profiler" }
 # failure = { version = "0.1" }
-# matches = { version = "0.1" }
 # uuid = { version = "0.8", features = ["serde", "v5", "wasm-bindgen"] }
