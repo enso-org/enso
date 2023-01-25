@@ -1,3 +1,15 @@
+//! Shader Tools is our collection of tools for working with shaders.
+//!
+//! The included programs are:
+//! * [glslc](Glslc);
+//! * [spirv-opt](SpirvOpt);
+//! * [spirv-cross](SpirvCross).
+//!
+//! This module only deals with downloading and activating the tools. The code for building and
+//! uploading the tools package is in the `enso-build-shader-tools` crate.
+
+
+
 use crate::prelude::*;
 
 use crate::cache::goodie;
@@ -9,18 +21,31 @@ use crate::programs::shaderc::Glslc;
 use crate::programs::shaderc::SpirvOpt;
 use crate::programs::spirv_cross::SpirvCross;
 
-
+// =================
+// === Constants ===
+// =================
 
 /// Repository where we store releases of the shader tools.
 pub const SHADER_TOOLS_REPO: RepoRef = RepoRef { owner: "enso-org", name: "shader-tools" };
 
+/// Version of the shader tools package that we download.
 pub const VERSION: Version = Version::new(0, 1, 0);
+
+
+// =========================
+// === Asset description ===
+// =========================
 
 pub fn asset_name(os: OS) -> String {
     // At the moment we don't have non-x64 binaries, so we can hardcode the architecture.
     let arch = Arch::X86_64;
     format!("shader-tools-{os}-{arch}.tar.gz")
 }
+
+
+// =========================
+// === Goodie definition ===
+// =========================
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ShaderTools;

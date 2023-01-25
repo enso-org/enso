@@ -5,13 +5,9 @@ use crate::prelude::*;
 use crate::program::command::Manipulator;
 
 
-
-/// Define build type for a single configuration generator.
-///
-/// See <https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html>.
-pub fn build_type(config: Configuration) -> SetVariable {
-    SetVariable::string("CMAKE_BUILD_TYPE", config.to_string())
-}
+// =====================
+// === Configuration ===
+// =====================
 
 /// Standard build configurations defined by CMake.
 ///
@@ -29,6 +25,18 @@ pub enum Configuration {
     /// Add compiler flags for generating more compact binaries (the -Os flag for GCC / clang),
     /// possibly on the expense of program speed.
     MinSizeRel,
+}
+
+
+// ===================
+// === CLI Options ===
+// ===================
+
+/// Define build type for a single configuration generator.
+///
+/// See <https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html>.
+pub fn build_type(config: Configuration) -> SetVariable {
+    SetVariable::string("CMAKE_BUILD_TYPE", config.to_string())
 }
 
 /// Option that can be passed to `cmake --build` command.
@@ -86,18 +94,6 @@ impl Manipulator for InstallOption {
     }
 }
 
-/// The [CMake program](https://cmake.org/).
-///
-/// See [the official CLI documentation](https://cmake.org/cmake/help/latest/manual/cmake.1.html).
-#[derive(Clone, Debug, Copy)]
-pub struct CMake;
-
-impl Program for CMake {
-    fn executable_name(&self) -> &str {
-        "cmake"
-    }
-}
-
 /// Defines the given variable in the CMake cache.
 #[derive(Clone, Debug)]
 pub struct SetVariable {
@@ -140,6 +136,26 @@ impl Manipulator for SetVariable {
         command.arg("-D").arg(format!("{}={}", self.variable, self.value));
     }
 }
+
+// ===============
+// === Program ===
+// ===============
+
+/// The [CMake program](https://cmake.org/).
+///
+/// See [the official CLI documentation](https://cmake.org/cmake/help/latest/manual/cmake.1.html).
+#[derive(Clone, Debug, Copy)]
+pub struct CMake;
+
+impl Program for CMake {
+    fn executable_name(&self) -> &str {
+        "cmake"
+    }
+}
+
+// ===========================
+// === Helper Entry Points ===
+// ===========================
 
 /// Generate build files for the given project.
 #[context("Failed to generate build files for {}.", source_dir.as_ref().display())]

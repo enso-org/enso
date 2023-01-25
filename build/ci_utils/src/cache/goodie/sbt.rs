@@ -21,10 +21,6 @@ impl Goodie for Sbt {
         goodie::download_try_url(Url::from_str(DOWNLOAD_URL_TEXT), cache)
     }
 
-    // fn url(&self) -> BoxFuture<'static, Result<Url>> {
-    //     ready(Url::parse(DOWNLOAD_URL_TEXT).anyhow_err()).boxed()
-    // }
-
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {
         ready(Ok(programs::Sbt.lookup().is_ok())).boxed()
     }

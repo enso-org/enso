@@ -58,7 +58,9 @@ pub fn job_that_runs(binary: Binary, runs_on: RunnerLabel, expose_output: Option
 
 /// Generate a workflow that builds shaderc packages for all platforms and releases them.
 pub fn generate_workflow() -> Workflow {
-    // TODO? [mwu] Once CMake is added, we might want to switch to self-hosted runners.
+    // Once CMake is added, we might want to switch to self-hosted runners.
+    // On the other hand, there is little incentive to do so, as the build is fast enough and not
+    // part of our "usual" CI pipeline..
     let linux = RunnerLabel::LinuxLatest;
     let windows = RunnerLabel::WindowsLatest;
     let macos = RunnerLabel::MacOSLatest;

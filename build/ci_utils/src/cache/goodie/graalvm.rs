@@ -49,13 +49,6 @@ pub struct GraalVM {
 impl Goodie for GraalVM {
     fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
         goodie::download_try_future_url(self.url(), cache)
-        // let url = self.url();
-        // let cache = cache.clone();
-        // async move {
-        //     let url = url.await?;
-        //     goodie::download_url(url, &cache).await
-        // }
-        // .boxed()
     }
 
 
