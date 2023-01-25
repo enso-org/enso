@@ -8,6 +8,9 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
+from Standard.Base.Metadata.Widget import Single_Choice
+import Standard.Base.Metadata.Display
+
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Column_Type_Selection.Column_Type_Selection
 import Standard.Table.Data.Expression.Expression
@@ -98,6 +101,7 @@ type Table
 
        Arguments:
        - selector: The name or index of the column to get.
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer -> self.make_column (self.internal_columns.at selector)
@@ -108,6 +112,7 @@ type Table
        Arguments:
        - selector: The name or index of the column being looked up.
        - if_missing: The value to use if the selector isn't present.
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     get : Text | Integer -> Any -> Column | Any
     get self selector=0 ~if_missing=Nothing =
         internal_column = case selector of
@@ -418,6 +423,7 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter "age" (age -> (age%10 == 0))
+    @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=Filter_Condition.Is_True on_problems=Report_Warning = case column of
        _ : Column ->
