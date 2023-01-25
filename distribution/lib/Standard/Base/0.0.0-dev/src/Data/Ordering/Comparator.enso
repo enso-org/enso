@@ -32,13 +32,12 @@ new custom_comparator=Nothing =
    - text_ordering:
      Specifies how to compare Text values within the Comparator.
 for_text_ordering : Text_Ordering -> ObjectComparator
-for_text_ordering text_ordering =
-    case_sensitivity = text_ordering.case_sensitivity.if_nothing Case_Sensitivity.Sensitive
-    case text_ordering.sort_digits_as_numbers of
-        True ->
-            txt_cmp a b = Natural_Order.compare a b case_sensitivity . to_sign
-            new.withCustomTextComparator txt_cmp
-        False -> case case_sensitivity of
-            Case_Sensitivity.Sensitive -> new
-            Case_Sensitivity.Insensitive locale ->
-                new.withCaseInsensitivity locale.java_locale
+for_text_ordering text_ordering = case text_ordering.sort_digits_as_numbers of
+    True ->
+        txt_cmp a b = Natural_Order.compare a b text_ordering.case_sensitivity . to_sign
+        new.withCustomTextComparator txt_cmp
+    False -> case text_ordering.case_sensitivity of
+        Case_Sensitivity.Default -> new
+        Case_Sensitivity.Sensitive -> new
+        Case_Sensitivity.Insensitive locale ->
+            new.withCaseInsensitivity locale.java_locale

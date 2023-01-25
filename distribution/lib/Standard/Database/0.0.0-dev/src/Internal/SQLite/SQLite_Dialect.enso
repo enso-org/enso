@@ -70,7 +70,7 @@ type SQLite_Dialect
         True ->
             if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "Natural ordering is not supported by the SQLite backend. You may need to materialize the Table to perform this operation.") else
                 case text_ordering.case_sensitivity of
-                    Nothing ->
+                    Case_Sensitivity.Default ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation=Nothing
                     Case_Sensitivity.Sensitive ->
                         Order_Descriptor.Value internal_column.expression sort_direction collation="BINARY"
@@ -100,19 +100,19 @@ type SQLite_Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : Table -> Vector -> Boolean -> Problem_Builder -> Table
-    prepare_distinct self table key_columns text_case_insensitive problem_builder =
+    prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
+    prepare_distinct self table key_columns case_sensitivity problem_builder =
         setup = table.context.as_subquery table.name+"_inner" [table.internal_columns]
         new_columns = setup.new_columns.first
         column_mapping = Map.from_vector <| new_columns.map c-> [c.name, c]
         new_key_columns = key_columns.map c-> column_mapping.at c.name
-        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression text_case_insensitive problem_builder)
+        distinct_expressions = new_key_columns.map (Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder)
         new_context = Context.for_subquery setup.subquery . set_groups distinct_expressions
         table.updated_context_and_columns new_context new_columns subquery=True
 
 ## PRIVATE
 make_internal_generator_dialect =
-    text = [starts_with, contains, ends_with]+concat_ops
+    text = [starts_with, contains, ends_with, fold_case, make_case_sensitive]+concat_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [decimal_div]
@@ -234,6 +234,14 @@ starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
 ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
     res = str ++ " LIKE ('%' || " ++ sub ++ ")"
     res.paren
+
+## PRIVATE
+fold_case = Base_Generator.lift_unary_op "FOLD_CASE" arg->
+    code "((" ++ arg ++ ") COLLATE NOCASE)"
+
+## PRIVATE
+make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
+    code "((" ++ arg ++ ") COLLATE BINARY)"
 
 ## PRIVATE
 make_contains_expr expr substring =

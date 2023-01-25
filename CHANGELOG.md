@@ -287,6 +287,8 @@
 - [Implemented `Table.union` for the in-memory backend.][4052]
 - [Implemented `Table.cross_join` and `Table.zip` for the in-memory
   backend.][4063]
+- [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
+  simpler API.][4078]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -447,6 +449,7 @@
 [4044]: https://github.com/enso-org/enso/pull/4044
 [4052]: https://github.com/enso-org/enso/pull/4052
 [4063]: https://github.com/enso-org/enso/pull/4063
+[4078]: https://github.com/enso-org/enso/pull/4078
 
 #### Enso Compiler
 

@@ -8,6 +8,7 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Data.Range.Range
 import project.Data.Text.Case.Case
+import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Location
 import project.Data.Text.Matching_Mode
@@ -716,10 +717,8 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
 
    Arguments:
    - prefix: The prefix to see if `self` starts with.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher.
-     If a `Regex_Matcher`, the term is used as a regular expression and matched
-     using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -727,37 +726,23 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints.to_array
      ensures that different ways of expressing the same character in the
      underlying binary representation are considered equal.
 
-     This however is not always well handled by the regex engine. The behaviour
-     is as follows:
-
          'ś' . starts_with 's' == False
          's\u{301}' . starts_with 's' == False
          's\u{301}' . starts_with 'ś' == True
          'ś' . starts_with 's\u{301}' == True
-
-         'ś' . starts_with 's' Regex_Matcher == True
-         's\u{301}' . starts_with 's' Regex_Matcher == True
-         's\u{301}' . starts_with 'ś' Regex_Matcher == True
-         'ś' . starts_with 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello!" starts with the specified prefix.
 
          "Hello!".starts_with "Hello" == True
          "Hello!".starts_with "hello" == False
-         "Hello!".starts_with "hello" (Text_Matcher Case_Insensitive) == True
-         "Hello!".starts_with "[a-z]" Regex_Matcher == False
-         "Hello!".starts_with "[A-Z]" Regex_Matcher == True
-Text.starts_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
-Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher of
-    Text_Matcher.Case_Sensitive -> Text_Utils.starts_with self prefix
-    Text_Matcher.Case_Insensitive locale ->
+         "Hello!".starts_with "hello" Case_Sensitivity.Insensitive == True
+Text.starts_with : Text -> Case_Sensitivity -> Boolean
+Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Default -> self.starts_with prefix Case_Sensitivity.Sensitive
+    Case_Sensitivity.Sensitive -> Text_Utils.starts_with self prefix
+    Case_Sensitivity.Insensitive locale ->
             self.take (Index_Sub_Range.First prefix.length) . equals_ignore_case prefix locale=locale
-    _ : Regex_Matcher ->
-        preprocessed_pattern = "\A(?:" + prefix + ")"
-        compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match self Matching_Mode.First
-        match.is_nothing.not
 
 ## ALIAS Check Suffix
 
@@ -765,10 +750,8 @@ Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher 
 
    Arguments:
    - suffix: The suffix to see if `self` ends with.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher.
-     If a `Regex_Matcher`, the term is used as a regular expression and matched
-     using the associated options.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -781,31 +764,23 @@ Text.starts_with self prefix matcher=Text_Matcher.Case_Sensitive = case matcher 
 
          "Hello World".ends_with "World" == True
          "Hello World".ends_with "world" == False
-         "Hello World".ends_with "world" (Text_Matcher Case_Insensitive) == True
-         "Hello World".ends_with "[A-Z][a-z]{4}" Regex_Matcher == True
-Text.ends_with : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
-Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
-    Text_Matcher.Case_Sensitive -> Text_Utils.ends_with self suffix
-    Text_Matcher.Case_Insensitive locale ->
+         "Hello World".ends_with "world" Case_Sensitivity.Insensitive == True
+Text.ends_with : Text -> Case_Sensitivity -> Boolean
+Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Default -> self.ends_with suffix Case_Sensitivity.Sensitive
+    Case_Sensitivity.Sensitive -> Text_Utils.ends_with self suffix
+    Case_Sensitivity.Insensitive locale ->
             self.take (Index_Sub_Range.Last suffix.length) . equals_ignore_case suffix locale=locale
-    _ : Regex_Matcher ->
-        preprocessed_pattern = "(?:" + suffix + ")\z"
-        compiled_pattern = matcher.compile preprocessed_pattern
-        match = compiled_pattern.match self Matching_Mode.First
-        match.is_nothing.not
 
 ## ALIAS Contains
 
    Checks whether `self` contains `sequence` as its substring.
+   Returns: `True` if term is found within `self`. `False` otherwise.
 
    Arguments:
    - term: The term to find.
-   - matcher: If a `Text_Matcher`, the text is compared using case-sensitivity
-     rules specified in the matcher.
-     If a `Regex_Matcher`, the term is used as a regular expression and matched
-     using the associated options.
-
-   Returns: `True` if term is found within `self`. `False` otherwise.
+   - case_sensitivity: Specifies if the text values should be compared case
+     sensitively.
 
    ! Unicode Equality
      The definition of equality includes Unicode canonicalization. I.e. two
@@ -813,18 +788,10 @@ Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
      ensures that different ways of expressing the same character in the
      underlying binary representation are considered equal.
 
-     This however is not always well handled by the regex engine. The behaviour
-     is as follows:
-
          'ś' . contains 's' == False
          's\u{301}' . contains 's' == False
          's\u{301}' . contains 'ś' == True
          'ś' . contains 's\u{301}' == True
-
-         'ś' . contains 's' Regex_Matcher == True
-         's\u{301}' . contains 's' Regex_Matcher == True
-         's\u{301}' . contains 'ś' Regex_Matcher == True
-         'ś' . contains 's\u{301}' Regex_Matcher == True
 
    > Example
      See if the text "Hello" contains the text "ell".
@@ -839,21 +806,13 @@ Text.ends_with self suffix matcher=Text_Matcher.Case_Sensitive = case matcher of
    > Example
      See if the text "Hello!" contains the text 'LO', ignoring case.
 
-         "Hello!".contains "LO" (Text_Matcher Case_Insensitive)
-
-   > Example
-     See if the text "Hello!" contains any lowercase letters, using a regex.
-
-         "Hello!".contains "[a-z]" Regex_Matcher
-Text.contains : Text -> (Text_Matcher | Regex_Matcher) -> Boolean
-Text.contains self term="" matcher=Text_Matcher.Case_Sensitive = case matcher of
-    Text_Matcher.Case_Sensitive -> Text_Utils.contains self term
-    Text_Matcher.Case_Insensitive locale ->
+         "Hello!".contains "LO" Case_Sensitivity.Insensitive
+Text.contains : Text -> Case_Sensitivity -> Boolean
+Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+    Case_Sensitivity.Default -> self.contains term Case_Sensitivity.Sensitive
+    Case_Sensitivity.Sensitive -> Text_Utils.contains self term
+    Case_Sensitivity.Insensitive locale ->
             Text_Utils.contains_case_insensitive self term locale.java_locale
-    _ : Regex_Matcher ->
-        compiled_pattern = matcher.compile term
-        match = compiled_pattern.match self Matching_Mode.First
-        match.is_nothing.not
 
 ## Takes an integer and returns a new text, consisting of `count` concatenated
    copies of `self`.
