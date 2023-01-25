@@ -1,14 +1,17 @@
 package org.enso.interpreter.node.expression.atom;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.unboxing.Layout;
 import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.error.Warning;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
@@ -20,8 +23,8 @@ import org.enso.interpreter.runtime.type.TypesGen;
  * children nodes.
  */
 @NodeInfo(shortName = "Instantiate", description = "Instantiates a constant Atom constructor")
-public class InstantiateNode extends ExpressionNode {
-  private final AtomConstructor constructor;
+public abstract class InstantiateNode extends ExpressionNode {
+  final AtomConstructor constructor;
   private @Children ExpressionNode[] arguments;
   private @Child WarningsLibrary warnings = WarningsLibrary.getFactory().createDispatched(3);
   private @CompilationFinal(dimensions = 1) ConditionProfile[] profiles;
@@ -50,7 +53,7 @@ public class InstantiateNode extends ExpressionNode {
    * @return a node that instantiates {@code constructor}
    */
   public static InstantiateNode build(AtomConstructor constructor, ExpressionNode[] arguments) {
-    return new InstantiateNode(constructor, arguments);
+    return InstantiateNodeGen.create(constructor, arguments);
   }
 
   /**
@@ -60,9 +63,11 @@ public class InstantiateNode extends ExpressionNode {
    * @param frame the stack frame for execution
    * @return the newly created {@link AtomConstructor} instance.
    */
-  @Override
+  @Specialization
   @ExplodeLoop
-  public Object executeGeneric(VirtualFrame frame) {
+  Object doExecute(
+      VirtualFrame frame,
+      @Cached(parameters = {"constructor"}) CreateInstanceNode createInstanceNode) {
     Object[] argumentValues = new Object[arguments.length];
     boolean anyWarnings = false;
     ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
@@ -89,9 +94,39 @@ public class InstantiateNode extends ExpressionNode {
       }
     }
     if (anyWarningsProfile.profile(anyWarnings)) {
-      return WithWarnings.appendTo(constructor.newInstance(argumentValues), accumulatedWarnings);
+      return WithWarnings.appendTo(createInstanceNode.execute(argumentValues), accumulatedWarnings);
     } else {
-      return constructor.newInstance(argumentValues);
+      return createInstanceNode.execute(argumentValues);
+    }
+  }
+
+  @ReportPolymorphism
+  public abstract static class CreateInstanceNode extends Node {
+    static CreateInstanceNode create(AtomConstructor constructor) {
+      if (Layout.isAritySupported(constructor.getArity())) {
+        return Layout.CreateUnboxedInstanceNode.create(constructor);
+      } else {
+        return FallbackCreateInstanceNode.create(constructor);
+      }
+    }
+
+    public abstract Object execute(Object[] arguments);
+  }
+
+  static class FallbackCreateInstanceNode extends CreateInstanceNode {
+    private final AtomConstructor constructor;
+
+    public static CreateInstanceNode create(AtomConstructor constructor) {
+      return new FallbackCreateInstanceNode(constructor);
+    }
+
+    FallbackCreateInstanceNode(AtomConstructor constructor) {
+      this.constructor = constructor;
+    }
+
+    @Override
+    public Object execute(Object[] arguments) {
+      return constructor.newInstance(arguments);
     }
   }
 }

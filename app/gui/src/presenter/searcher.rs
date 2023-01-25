@@ -18,6 +18,8 @@ use crate::presenter::graph::ViewNodeId;
 use crate::presenter::searcher::provider::ControllerComponentsProviderExt;
 
 use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::documentation_ir::Placeholder;
 use ide_view as view;
 use ide_view::component_browser::component_list_panel::grid as component_grid;
 use ide_view::component_browser::component_list_panel::BreadcrumbId;
@@ -276,23 +278,15 @@ impl Model {
     fn documentation_of_component(
         &self,
         id: view::component_browser::component_list_panel::grid::GroupEntryId,
-    ) -> String {
+    ) -> EntryDocumentation {
         let component = self.controller.provider().component_by_view_id(id);
         if let Some(component) = component {
             match component.data {
-                component::Data::FromDatabase { entry, .. } => {
-                    if let Some(documentation) = &entry.documentation_html {
-                        let title = title_for_docs(&entry);
-                        format!(
-                            "<div class=\"enso docs summary\"><p />{title}</div>{documentation}"
-                        )
-                    } else {
-                        doc_placeholder_for(&entry)
-                    }
-                }
+                component::Data::FromDatabase { id, .. } =>
+                    self.controller.documentation_for_entry(*id),
                 component::Data::Virtual { snippet } => {
                     if let Some(documentation) = &snippet.documentation_html {
-                        documentation.to_string()
+                        EntryDocumentation::Builtin(documentation.into())
                     } else {
                         default()
                     }
@@ -303,10 +297,14 @@ impl Model {
         }
     }
 
-    fn documentation_of_group(&self, id: component_grid::GroupId) -> String {
+    fn documentation_of_group(&self, id: component_grid::GroupId) -> EntryDocumentation {
         let group = self.controller.provider().group_by_view_id(id);
         if let Some(group) = group {
-            iformat!("<div class=\"enso docs summary\"><p />{group.name}</div>")
+            if let Some(id) = group.component_id {
+                self.controller.documentation_for_entry(id)
+            } else {
+                Placeholder::VirtualComponentGroup { name: group.name.clone() }.into()
+            }
         } else {
             default()
         }

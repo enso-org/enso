@@ -149,22 +149,21 @@ case object DataflowAnalysis extends IRPass {
           info.dependencies.updateAt(tpDep, Set(paramDep))
           analyseDefinitionArgument(param, info)
         }
-        val newMembers = members.map {
-          case data @ IR.Module.Scope.Definition.Data(_, arguments, _, _, _) =>
-            val dataDep = asStatic(data)
-            info.dependents.updateAt(dataDep, Set(tpDep))
-            info.dependencies.updateAt(tpDep, Set(dataDep))
-            arguments.foreach(arg => {
-              val argDep = asStatic(arg)
-              info.dependents.updateAt(argDep, Set(dataDep))
-              info.dependencies.updateAt(dataDep, Set(argDep))
-            })
+        val newMembers = members.map { data =>
+          val dataDep = asStatic(data)
+          info.dependents.updateAt(dataDep, Set(tpDep))
+          info.dependencies.updateAt(tpDep, Set(dataDep))
+          data.arguments.foreach(arg => {
+            val argDep = asStatic(arg)
+            info.dependents.updateAt(argDep, Set(dataDep))
+            info.dependencies.updateAt(dataDep, Set(argDep))
+          })
 
-            data
-              .copy(
-                arguments = arguments.map(analyseDefinitionArgument(_, info))
-              )
-              .updateMetadata(this -->> info)
+          data
+            .copy(
+              arguments = data.arguments.map(analyseDefinitionArgument(_, info))
+            )
+            .updateMetadata(this -->> info)
         }
         tp.copy(params = newParams, members = newMembers)
           .updateMetadata(this -->> info)
@@ -187,11 +186,15 @@ case object DataflowAnalysis extends IRPass {
           "Type signatures should not exist at the top level during " +
           "dataflow analysis."
         )
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "dataflow analysis."
         )
+      case ann: IR.Name.GenericAnnotation =>
+        ann
+          .copy(expression = analyseExpression(ann.expression, info))
+          .updateMetadata(this -->> info)
       case err: IR.Error => err
     }
   }

@@ -87,10 +87,9 @@ spec =
             t2.row_count .  should_equal 0
             t2.at "x" . to_vector . should_equal []
 
-        Test.specify "should be able to load even an empty file" <|
-            table = Data.read (enso_project.data / "empty.txt") (Delimited "," headers=True value_formatter=Nothing)
-            table.columns.map .name . should_equal []
-            table.row_count . should_equal 0
+        Test.specify "should raise an informative error when loading an empty file" <|
+            t = Data.read (enso_project.data / "empty.txt") (Delimited "," headers=True value_formatter=Nothing)
+            t.should_fail_with Empty_File_Error
 
         Test.specify "should correctly handle file opening issues" <|
             nonexistent_file = enso_project.data / "a_filename_that_does_not_exist.foobar"

@@ -2,6 +2,9 @@ from Standard.Base import all
 
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
+polyglot java import org.enso.table.error.EmptyFileException
+polyglot java import org.enso.table.error.EmptySheetException
+
 
 type Missing_Input_Columns
     ## PRIVATE
@@ -214,6 +217,26 @@ type Leading_Zeros
 
     to_display_text : Text
     to_display_text self = "Leading zeros in column "+self.column+" with datatype "+self.datatype.to_text+"."
+
+## Indicates that an empty file was encountered, so no data could be loaded.
+type Empty_File_Error
+
+    to_display_text : Text
+    to_display_text = "It is not allowed to create a Table with no columns, so an empty file could not have been loaded."
+
+    ## PRIVATE
+    handle_java_exception =
+        Panic.catch EmptyFileException handler=(_ -> Error.throw Empty_File_Error)
+
+## Indicates that an empty sheet was encountered, so no data could be loaded.
+type Empty_Sheet_Error
+
+    to_display_text : Text
+    to_display_text = "It is not allowed to create a Table with no columns, so an empty sheet could not have been loaded."
+
+    ## PRIVATE
+    handle_java_exception =
+        Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet_Error)
 
 ## Indicates that multiple `Column_Type_Selector` match the same column.
 

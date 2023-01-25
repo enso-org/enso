@@ -50,13 +50,13 @@ use graph_editor::component::visualization;
 use ide_view_graph_editor as graph_editor;
 
 use enso_frp as frp;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
 use ensogl::application::Application;
 use ensogl::display;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::primitive::StyleWatch;
 use ensogl::display::DomSymbol;
 use ensogl::system::web;
-use ensogl::system::web::clipboard;
 use ensogl_component::shadow;
 use web::Closure;
 use web::HtmlElement;
@@ -85,8 +85,6 @@ pub const VIEW_HEIGHT: f32 = 300.0;
 
 /// Content in the documentation view when there is no data available.
 const CORNER_RADIUS: f32 = graph_editor::component::node::CORNER_RADIUS;
-const CODE_BLOCK_CLASS: &str = "doc-code-container";
-const COPY_BUTTON_CLASS: &str = "doc-copy-btn";
 
 
 
@@ -180,86 +178,26 @@ impl Model {
         self.reload_style();
     }
 
-    /// Create a container for generated content and embed it with stylesheet.
-    fn push_to_dom(&self, content: String) {
-        let no_doc_txt = "<p style=\"color: #a3a6a9;\">No documentation available</p>";
-        // FIXME [MM] : Temporary solution until engine update with changed class name in docs
-        // parser.
-        let content = content
-            .replace("<p>No documentation available</p>", no_doc_txt)
-            .replace("class=\"doc\"", "class=\"enso docs\"")
-            .replace("\"font-size: 13px;\"", "\"font-size: 15px;\"")
-            .replace("ALIAS", "alias");
-        self.inner_dom.dom().set_inner_html(&content);
-    }
-
-    /// Append listeners to copy buttons in doc to enable copying examples.
-    /// It is possible to do it with implemented method, because get_elements_by_class_name
-    /// returns top-to-bottom sorted list of elements, as found in:
-    /// https://stackoverflow.com/questions/35525811/order-of-elements-in-document-getelementsbyclassname-array
-    fn attach_listeners_to_copy_buttons(&self) {
-        let code_blocks = self.inner_dom.dom().get_elements_by_class_name(CODE_BLOCK_CLASS);
-        let copy_buttons = self.inner_dom.dom().get_elements_by_class_name(COPY_BUTTON_CLASS);
-        let closures = (0..copy_buttons.length()).map(|i| -> Result<CodeCopyClosure, u32> {
-            let create_closures = || -> Option<CodeCopyClosure> {
-                let copy_button = copy_buttons.get_with_index(i)?.dyn_into::<HtmlElement>().ok()?;
-                let code_block = code_blocks.get_with_index(i)?.dyn_into::<HtmlElement>().ok()?;
-                let closure: Closure<dyn FnMut(MouseEvent)> = Closure::new(move |_: MouseEvent| {
-                    let inner_code = code_block.inner_text();
-                    clipboard::write_text(inner_code);
-                });
-                let callback = closure.as_js_function();
-                match copy_button.add_event_listener_with_callback("click", callback) {
-                    Ok(_) => Some(closure),
-                    Err(e) => {
-                        error!("Unable to add event listener to copy button: {e:?}");
-                        None
-                    }
-                }
-            };
-            create_closures().ok_or(i)
-        });
-        let (closures, errors): (Vec<_>, Vec<_>) = closures.partition(Result::is_ok);
-        let ok_closures = closures.into_iter().filter_map(|t| t.ok()).collect_vec();
-        let err_indices = errors.into_iter().filter_map(|t| t.err()).collect_vec();
-        if !err_indices.is_empty() {
-            error!("Failed to attach listeners to copy buttons with indices: {err_indices:?}.")
+    /// Display the documentation and scroll to the qualified name if needed.
+    fn display_doc(&self, docs: EntryDocumentation) {
+        let anchor = docs.function_name().map(html::anchor_name);
+        let html = html::render(docs);
+        self.inner_dom.dom().set_inner_html(&html);
+        if let Some(anchor) = anchor {
+            if let Some(element) = web::document.get_element_by_id(&anchor) {
+                let offset = element.dyn_ref::<HtmlElement>().map(|e| e.offset_top()).unwrap_or(0);
+                self.inner_dom.dom().set_scroll_top(offset);
+            }
+        } else {
+            self.inner_dom.dom().set_scroll_top(0);
         }
-        self.code_copy_closures.set(ok_closures)
-    }
-
-    /// Receive data, process and present it in the documentation view.
-    fn receive_data(&self, data: &visualization::Data) -> Result<(), visualization::DataError> {
-        let string = match data {
-            visualization::Data::Json { content } => match serde_json::to_string_pretty(&**content)
-            {
-                Ok(string) => string,
-                Err(err) => {
-                    error!(
-                        "Error during documentation vis-data serialization: \
-                        {err:?}"
-                    );
-                    return Err(visualization::DataError::InternalComputationError);
-                }
-            },
-            visualization::Data::Binary =>
-                return Err(visualization::DataError::BinaryNotSupported),
-        };
-        self.display_doc(&string);
-        Ok(())
-    }
-
-    /// Displays the received data in the panel.
-    fn display_doc(&self, content: &str) {
-        self.push_to_dom(String::from(content));
-        self.attach_listeners_to_copy_buttons();
     }
 
     /// Load an HTML file into the documentation view when user is waiting for data to be received.
     /// TODO [MM] : This should be replaced with a EnsoGL spinner in the next PR.
     fn load_waiting_screen(&self) {
         let spinner = include_str!("../assets/spinner.html");
-        self.push_to_dom(String::from(spinner))
+        self.inner_dom.dom().set_inner_html(spinner)
     }
 
     fn reload_style(&self) {
@@ -277,8 +215,8 @@ impl Model {
 
 ensogl::define_endpoints! {
     Input {
-        /// Display documentation of the entity represented by given code.
-        display_documentation (String)
+        /// Display documentation of the specific entry from the suggestion database.
+        display_documentation (EntryDocumentation),
     }
     Output {
         /// Indicates whether the documentation panel has been selected through clicking into
@@ -341,12 +279,7 @@ impl View {
 
             // === Displaying documentation ===
 
-            eval frp.display_documentation ((cont) model.display_doc(cont));
-            eval visualization.send_data([visualization,model](data) {
-                if let Err(error) = model.receive_data(data) {
-                    visualization.data_receive_error.emit(error)
-                }
-            });
+            eval frp.display_documentation ((docs) model.display_doc(docs.clone_ref()));
 
 
             // === Size and position ===

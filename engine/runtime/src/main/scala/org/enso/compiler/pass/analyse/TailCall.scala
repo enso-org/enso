@@ -88,7 +88,7 @@ case object TailCall extends IRPass {
     * @param definition the top-level definition to analyse
     * @return `definition`, annotated with tail call information
     */
-  def analyseModuleBinding(
+  private def analyseModuleBinding(
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
@@ -126,11 +126,17 @@ case object TailCall extends IRPass {
           "Type signatures should not exist at the top level during " +
           "tail call analysis."
         )
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "tail call analysis."
         )
+      case ann: IR.Name.GenericAnnotation =>
+        ann
+          .copy(expression =
+            analyseExpression(ann.expression, isInTailPosition = true)
+          )
+          .updateMetadata(this -->> TailPosition.Tail)
       case err: IR.Error => err
     }
   }

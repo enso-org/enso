@@ -6,7 +6,7 @@ import project.Internal.Vector_Builder.Vector_Builder
 from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Column_Matched_By_Multiple_Selectors, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 type Problem_Builder
-    Value oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
+    Value types_to_always_throw oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
 
     report_oob_indices self indices =
         append_to_ref self.oob_indices indices
@@ -41,48 +41,55 @@ type Problem_Builder
             if vec.not_empty then
                 problems.append (problem_creator vec)
 
+        build_vector_and_append self.missing_input_columns Missing_Input_Columns.Error
         build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range.Error
         build_vector_and_append self.duplicate_column_selectors Duplicate_Column_Selectors.Error
         build_vector_and_append self.input_indices_already_matched Input_Indices_Already_Matched.Error
-        build_vector_and_append self.missing_input_columns Missing_Input_Columns.Error
         self.other.to_vector.each problems.append
 
         problems.to_vector
-
-    ## If there are any missing columns or out of bound indices, the
-       corresponding error is raised, otherwise, the provided action is executed
-       and its result is returned.
-    throw_unmatched_columns_as_error : Any -> Any
-    throw_unmatched_columns_as_error self ~action =
-         case self.missing_input_columns.get.not_empty of
-            True ->
-                err = Missing_Input_Columns.Error self.missing_input_columns.get.build
-                Error.throw err
-            False -> case self.oob_indices.get.not_empty of
-                True ->
-                    err = Column_Indexes_Out_Of_Range.Error self.oob_indices.get.build
-                    Error.throw err
-                False -> action
 
     ## Attaches gathered warnings to the result.
        Any errors from the `result` take precedence over the ones owned by this
        builder.
     attach_problems_after : Problem_Behavior -> Any -> Any
     attach_problems_after self problem_behavior result =
-        problem_behavior.attach_problems_after result self.build_problemset
+        case result of
+            _ -> case self.get_problemset_throwing_distinguished_errors of
+                problems ->
+                    problem_behavior.attach_problems_after result problems
 
     ## Attaches gathered warnings to the result of the provided computation.
        If in `Report_Error` mode and there are any problems gathered, the first
        one will be returned as error without even running the computation.
     attach_problems_before : Problem_Behavior -> Any -> Any
     attach_problems_before self problem_behavior ~computation =
-        problem_behavior.attach_problems_before self.build_problemset computation
+        case self.get_problemset_throwing_distinguished_errors of
+            problems ->
+                problem_behavior.attach_problems_before problems computation
+
+    ## PRIVATE
+       Returns the generated problem set if no errors force throwing or throws
+       the first error that is meant to be thrown regardless of problem behavior.
+    get_problemset_throwing_distinguished_errors : Vector
+    get_problemset_throwing_distinguished_errors self =
+        problems = self.build_problemset
+        distinguished_problem = problems.find if_missing=Nothing problem->
+            self.types_to_always_throw.any tpe->
+                problem.is_a tpe
+        case distinguished_problem of
+            Nothing -> problems
+            problem -> Error.throw problem
 
     ## PRIVATE
        Creates a new helper object for aggregating problems to report.
-    new : Problem_Builder
-    new =
-        Problem_Builder.Value (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
+
+       An optional list of types of can be provided. Problems matching these
+       types will be raised as an error by the `attach_` methods regardless of
+       the `Problem_Behavior` used.
+    new : Vector -> Problem_Builder
+    new types_to_always_throw=[] =
+        Problem_Builder.Value types_to_always_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.

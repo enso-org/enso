@@ -77,7 +77,7 @@ class MetadataStorage(
   @throws[CompilerError]
   def getUnsafe[K <: IRPass](
     pass: K
-  )(msg: String = s"Missing metadata for pass $pass"): pass.Metadata = {
+  )(msg: => String = s"Missing metadata for pass $pass"): pass.Metadata = {
     get(pass).getOrElse(throw new CompilerError(msg))
   }
 

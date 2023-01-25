@@ -42,7 +42,8 @@ import org.enso.compiler.core.IR$Module$Scope$Import;
 import org.enso.compiler.core.IR$Module$Scope$Import$Module;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot;
 import org.enso.compiler.core.IR$Module$Scope$Import$Polyglot$Java;
-import org.enso.compiler.core.IR$Name$Annotation;
+import org.enso.compiler.core.IR$Name$BuiltinAnnotation;
+import org.enso.compiler.core.IR$Name$GenericAnnotation;
 import org.enso.compiler.core.IR$Name$Blank;
 import org.enso.compiler.core.IR$Name$Literal;
 import org.enso.compiler.core.IR$Name$Self;
@@ -222,6 +223,7 @@ final class TreeToIr {
   private List<IR$Module$Scope$Definition> translateModuleSymbolImpl(Tree inputAst, List<IR$Module$Scope$Definition> appendTo) throws SyntaxException {
     return switch (inputAst) {
       case null -> appendTo;
+
       case Tree.TypeDef def -> {
         var typeName = buildName(def.getName(), true);
         List<IR> irBody = nil();
@@ -238,6 +240,7 @@ final class TreeToIr {
         );
         yield cons(type, appendTo);
       }
+
       case Tree.Function fn -> {
         var methodRef = translateMethodReference(fn.getName(), false);
         var args = translateArgumentsDefinition(fn.getArgs());
@@ -256,6 +259,7 @@ final class TreeToIr {
         );
         yield cons(binding, appendTo);
       }
+
       case Tree.ForeignFunction fn when fn.getBody() instanceof Tree.TextLiteral body -> {
         var name = fn.getName();
         var nameLoc = getIdentifiedLocation(name);
@@ -277,13 +281,21 @@ final class TreeToIr {
       }
 
       case Tree.AnnotatedBuiltin anno -> {
-        var annotation = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+        var annotation = new IR$Name$BuiltinAnnotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
       }
+
+      case Tree.Annotated anno -> {
+        var annotationArgument = translateExpression(anno.getArgument());
+        var annotation = new IR$Name$GenericAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
+        yield translateModuleSymbol(anno.getExpression(), cons(annotation, appendTo));
+      }
+
       case Tree.Documented doc -> {
         var comment = translateComment(doc, doc.getDocumentation());
         yield translateModuleSymbol(doc.getExpression(), cons(comment, appendTo));
       }
+
       case Tree.Assignment a -> {
         var reference = translateMethodReference(a.getPattern(), false);
         var body = translateExpression(a.getExpr());
@@ -307,6 +319,7 @@ final class TreeToIr {
         var ascription = new IR$Type$Ascription(methodReference, signature, getIdentifiedLocation(sig), meta(), diag());
         yield cons(ascription, appendTo);
       }
+
       default -> {
         var error = translateSyntaxError(inputAst, IR$Error$Syntax$UnexpectedExpression$.MODULE$);
         yield cons(error, appendTo);
@@ -328,7 +341,7 @@ final class TreeToIr {
       var constructorName = buildName(inputAst, cons.getConstructor());
       List<IR.DefinitionArgument> args = translateArgumentsDefinition(cons.getArguments());
       var cAt = getIdentifiedLocation(inputAst);
-      return new IR$Module$Scope$Definition$Data(constructorName, args, cAt, meta(), diag());
+      return new IR$Module$Scope$Definition$Data(constructorName, args, nil(), cAt, meta(), diag());
     } catch (SyntaxException ex) {
       return ex.toError();
     }
@@ -353,12 +366,16 @@ final class TreeToIr {
     var inputAst = maybeManyParensed(exp);
     return switch (inputAst) {
       case null -> appendTo;
+
       case Tree.ConstructorDefinition cons -> cons(translateConstructorDefinition(cons, inputAst), appendTo);
+
       case Tree.TypeDef def -> {
         var ir = translateSyntaxError(def, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
         yield cons(ir, appendTo);
       }
+
       case Tree.ArgumentBlockApplication app -> appendTo;
+
       case Tree.TypeSignature sig -> {
         var isMethod = false;
         if (sig.getVariable() instanceof Tree.Ident ident) {
@@ -368,6 +385,7 @@ final class TreeToIr {
         var ir = translateTypeSignature(sig, sig.getType(), typeName);
         yield cons(ir, appendTo);
       }
+
       case Tree.Function fun -> {
         IR.Name name;
         if (fun.getName() instanceof Tree.Ident ident) {
@@ -379,6 +397,7 @@ final class TreeToIr {
         var ir = translateFunction(fun, name, fun.getArgs(), fun.getBody());
         yield cons(ir, appendTo);
       }
+
       // In some cases this is a `Function` in IR, but an `Assignment` in Tree.
       // See: https://discord.com/channels/401396655599124480/1001476608957349917
       case Tree.Assignment assignment -> {
@@ -387,6 +406,7 @@ final class TreeToIr {
         var ir = translateFunction(assignment, name, args, assignment.getExpr());
         yield cons(ir, appendTo);
       }
+
       case Tree.ForeignFunction fn when fn.getBody() instanceof Tree.TextLiteral body -> {
         var name = buildName(fn.getName());
         var args = translateArgumentsDefinition(fn.getArgs());
@@ -406,11 +426,19 @@ final class TreeToIr {
         var irDoc = translateComment(doc, doc.getDocumentation());
         yield translateTypeBodyExpression(doc.getExpression(), cons(irDoc, appendTo));
       }
+
       case Tree.AnnotatedBuiltin anno -> {
-        var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+        var ir = new IR$Name$BuiltinAnnotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         var annotation = translateAnnotation(ir, anno.getExpression(), nil());
         yield cons(annotation, appendTo);
       }
+
+      case Tree.Annotated anno -> {
+        var annotationArgument = translateExpression(anno.getArgument());
+        var annotation = new IR$Name$GenericAnnotation(anno.getAnnotation().codeRepr(), annotationArgument, getIdentifiedLocation(anno), meta(), diag());
+        yield translateTypeBodyExpression(anno.getExpression(), cons(annotation, appendTo));
+      }
+
       default -> {
         var ir = translateSyntaxError(inputAst, IR$Error$Syntax$UnexpectedDeclarationInType$.MODULE$);
         yield cons(ir, appendTo);
@@ -937,7 +965,7 @@ final class TreeToIr {
       case Tree.TemplateFunction templ -> translateExpression(templ.getAst(), false);
       case Tree.Wildcard wild -> new IR$Name$Blank(getIdentifiedLocation(wild), meta(), diag());
       case Tree.AnnotatedBuiltin anno -> {
-        var ir = new IR$Name$Annotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
+        var ir = new IR$Name$BuiltinAnnotation("@" + anno.getAnnotation().codeRepr(), getIdentifiedLocation(anno), meta(), diag());
         yield translateAnnotation(ir, anno.getExpression(), nil());
       }
       // Documentation can be attached to an expression in a few cases, like if someone documents a line of an
@@ -1133,7 +1161,7 @@ final class TreeToIr {
     return new IR$Application$Prefix(pref.function(), withBlockArgs, pref.hasDefaultsSuspended(), pref.location(), meta(), diag());
   }
 
-  private IR$Application$Prefix translateAnnotation(IR$Name$Annotation ir, Tree expr, List<IR.CallArgument> callArgs) {
+  private IR$Application$Prefix translateAnnotation(IR$Name$BuiltinAnnotation ir, Tree expr, List<IR.CallArgument> callArgs) {
     return switch (expr) {
       case Tree.App fn -> {
         var fnAsArg = translateCallArgument(fn.getArg());

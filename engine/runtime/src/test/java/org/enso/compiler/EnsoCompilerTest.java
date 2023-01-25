@@ -1229,7 +1229,6 @@ public class EnsoCompilerTest {
     equivalenceTest("a = x", "a = SKIP FREEZE x + y");
     equivalenceTest("a = x", "a = SKIP FREEZE x.f");
     equivalenceTest("a = x", "a = SKIP FREEZE x.f y");
-
   }
 
   @Test

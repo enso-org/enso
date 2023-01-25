@@ -14,9 +14,26 @@ import Standard.Test.Extensions
 from Standard.Base.Error.Common import Uninitialized_State
 
 type My_Type
+    @foo (test_method)
+    @baz (My_Type.Value 1 2 3)
     Value foo bar baz
 
+    @param (test_method 5 6)
+    first_method self param = param
+
+    second_method self param = param
+
+    @a (test_method 5)
+    @b (self -> self.foo)
+    other_method self a = a
+
+@self ("se" + "lf")
 My_Type.my_method self = self.foo + self.bar + self.baz
+
+@a (test_method 3 4)
+@b (Test_Type.Value 49)
+@c (Error.throw "Error Value")
+test_method a b = a + b
 
 type Test_Type
     Value x
@@ -171,6 +188,26 @@ spec =
             (Test_Type.Value a)==(Test_Type.Value a) . should_be_true
             (Test_Type.Value a)==(Test_Type.Value b) . should_be_true
             (Test_Type.Value a)==(Test_Type.Value c) . should_be_false
+
+        Test.specify "get annotations" <|
+            Meta.get_annotation Meta_Spec "test_method" "a" . should_equal 7
+            Meta.get_annotation Meta_Spec "test_method" "b" . should_equal (Test_Type.Value 49)
+            Meta.get_annotation Meta_Spec "test_method" "c" . should_fail_with "Error Value"
+            Meta.get_annotation Meta_Spec "test_method" "x" . should_equal Nothing
+
+            value = My_Type.Value 99 "bar" True
+            Meta.get_annotation value "first_method" "param" . should_equal 11
+            Meta.get_annotation value "second_method" "param" . should_equal Nothing
+            Meta.get_annotation value "third_method" "param" . should_equal Nothing
+            Meta.get_annotation value "other_method" "a" 7 . should_equal 12
+            Meta.get_annotation value "other_method" "b" value . should_equal 99
+            Meta.get_annotation value "other_method" "c" . should_equal Nothing
+
+            Meta.get_annotation value "my_method" "self" . should_equal "self"
+
+            Meta.get_annotation value "Value" "foo" 7 8 . should_equal 15
+            Meta.get_annotation value "Value" "bar" . should_equal Nothing
+            Meta.get_annotation value "Value" "baz" . should_equal (My_Type.Value 1 2 3)
 
     Test.group "Atom with holes" <|
         Test.specify "construct and fill" <|

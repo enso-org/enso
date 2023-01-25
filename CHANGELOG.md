@@ -73,6 +73,9 @@
   scrollbar.][3824]
 - [Added scroll bounce animation][3836] which activates when scrolling past the
   end of scrollable content.
+- [The default text visualisation now loads its content lazily from the
+  backend][3910]. This means that the visualisation cannot be overwhelmed by
+  large amounts of data.
 - [Added project snapshot saving on shortcut][3923]
 - [The color of the displayed project name indicates whether the project's
   current state is saved in a snapshot.][3950] The project name is darker when
@@ -271,6 +274,8 @@
 - [Added support for milli and micro seconds, new short form for rename_columns
   and fixed issue with compare_to versus Nothing][3874]
 - [Aligned `Text.match`/`Text.locate` API][3841]
+- [There is a new API to lazily feed visualisation information to the
+  IDE.][3910]
 - [Added `transpose` and `cross_tab` to the In-Memory Table.][3919]
 - [Improvements to JSON, Pair, Statistics and other minor tweaks.][3964]
 - [Overhauled the JSON support (now based of JavaScript), `Data.fetch` and other
@@ -282,6 +287,8 @@
 - [Implemented `Table.union` for the in-memory backend.][4052]
 - [Implemented `Table.cross_join` and `Table.zip` for the in-memory
   backend.][4063]
+- [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
+  simpler API.][4078]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug
@@ -427,6 +434,7 @@
 [3852]: https://github.com/enso-org/enso/pull/3852
 [3841]: https://github.com/enso-org/enso/pull/3841
 [3885]: https://github.com/enso-org/enso/pull/3885
+[3910]: https://github.com/enso-org/enso/pull/3910
 [3919]: https://github.com/enso-org/enso/pull/3919
 [3923]: https://github.com/enso-org/enso/pull/3923
 [3950]: https://github.com/enso-org/enso/pull/3950
@@ -441,6 +449,7 @@
 [4044]: https://github.com/enso-org/enso/pull/4044
 [4052]: https://github.com/enso-org/enso/pull/4052
 [4063]: https://github.com/enso-org/enso/pull/4063
+[4078]: https://github.com/enso-org/enso/pull/4078
 
 #### Enso Compiler
 
@@ -525,7 +534,9 @@
 - [Introducing Meta.atom_with_hole][4023]
 - [Report failures in name resolution in type signatures][4030]
 - [Attach visualizations to sub-expressions][4048]
+- [Add Meta.get_annotation method][4049]
 - [Resolve Fully Qualified Names][4056]
+- [Optimize Atom storage layouts][3862]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -593,6 +604,7 @@
 [3810]: https://github.com/enso-org/enso/pull/3810
 [3844]: https://github.com/enso-org/enso/pull/3844
 [3851]: https://github.com/enso-org/enso/pull/3851
+[3862]: https://github.com/enso-org/enso/pull/3862
 [3897]: https://github.com/enso-org/enso/pull/3897
 [3906]: https://github.com/enso-org/enso/pull/3906
 [3941]: https://github.com/enso-org/enso/pull/3941
@@ -611,6 +623,7 @@
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 [4048]: https://github.com/enso-org/enso/pull/4048
+[4056]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
 
 # Enso 2.0.0-alpha.18 (2021-10-12)

@@ -23,6 +23,7 @@ import org.enso.compiler.pass.analyse.{
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.resolve.{
   ExpressionAnnotations,
+  GenericAnnotations,
   GlobalNames,
   MethodDefinitions,
   Patterns,
@@ -67,6 +68,7 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.callable.{
+  Annotation => RuntimeAnnotation,
   UnresolvedConversion,
   UnresolvedSymbol
 }
@@ -80,6 +82,7 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.interpreter.{Constants, EnsoLanguage}
 
 import java.math.BigInteger
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -87,8 +90,7 @@ import scala.jdk.OptionConverters._
 import scala.jdk.CollectionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
-  * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
-  * are actually executed.
+  * [[IR]] into the truffle structures that are actually executed.
   *
   * It should be noted that, as is, there is no support for cross-module links,
   * with each lowering pass operating solely on a single module.
@@ -258,11 +260,42 @@ class IrToTruffle(
           }
 
           val (assignments, reads) = argumentExpressions.unzip
+          // build annotations
+          val annotations = atomDefn.annotations.map { annotation =>
+            val scopeElements = Seq(
+              tpDef.name.name,
+              atomDefn.name.name,
+              annotation.name
+            )
+            val scopeName =
+              scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+            val expressionProcessor = new ExpressionProcessor(
+              scopeName,
+              scopeInfo.graph,
+              scopeInfo.graph.rootScope,
+              dataflowInfo
+            )
+            val expressionNode =
+              expressionProcessor.run(annotation.expression)
+            val closureName = s"<default::$scopeName>"
+            val closureRootNode = ClosureRootNode.build(
+              language,
+              expressionProcessor.scope,
+              moduleScope,
+              expressionNode,
+              makeSection(moduleScope, annotation.location),
+              closureName,
+              true,
+              false
+            )
+            new RuntimeAnnotation(annotation.name, closureRootNode)
+          }
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
               localScope,
               assignments.toArray,
               reads.toArray,
+              annotations.toArray,
               argDefs: _*
             )
           }
@@ -384,7 +417,7 @@ class IrToTruffle(
               .map(fOpt =>
                 // Register builtin iff it has not been automatically registered at an early stage
                 // of builtins initialization.
-                fOpt.filter(m => !m.isAutoRegister()).map(m => m.getFunction)
+                fOpt.filter(m => !m.isAutoRegister).map(m => m.getFunction)
               )
           case fn: IR.Function =>
             val bodyBuilder =
@@ -405,12 +438,63 @@ class IrToTruffle(
             )
             val callTarget = rootNode.getCallTarget
             val arguments  = bodyBuilder.args()
+            // build annotations
+            val annotations =
+              methodDef.getMetadata(GenericAnnotations).toVector.flatMap {
+                meta =>
+                  meta.annotations
+                    .collect { case annotation: IR.Name.GenericAnnotation =>
+                      val scopeElements = Seq(
+                        cons.getName,
+                        methodDef.methodName.name,
+                        annotation.name
+                      )
+                      val scopeName =
+                        scopeElements.mkString(Constants.SCOPE_SEPARATOR)
+                      val scopeInfo = annotation
+                        .unsafeGetMetadata(
+                          AliasAnalysis,
+                          s"Missing scope information for annotation " +
+                          s"${annotation.name} of method " +
+                          scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
+                        )
+                        .unsafeAs[AliasAnalysis.Info.Scope.Root]
+                      val dataflowInfo = annotation.unsafeGetMetadata(
+                        DataflowAnalysis,
+                        "Missing dataflow information for annotation " +
+                        s"${annotation.name} of method " +
+                        scopeElements.init.mkString(Constants.SCOPE_SEPARATOR)
+                      )
+                      val expressionProcessor = new ExpressionProcessor(
+                        scopeName,
+                        scopeInfo.graph,
+                        scopeInfo.graph.rootScope,
+                        dataflowInfo
+                      )
+                      val expressionNode =
+                        expressionProcessor.run(annotation.expression)
+                      val closureName =
+                        s"<default::${expressionProcessor.scopeName}>"
+                      val closureRootNode = ClosureRootNode.build(
+                        language,
+                        expressionProcessor.scope,
+                        moduleScope,
+                        expressionNode,
+                        makeSection(moduleScope, annotation.location),
+                        closureName,
+                        true,
+                        false
+                      )
+                      new RuntimeAnnotation(annotation.name, closureRootNode)
+                    }
+              }
+
             Right(
               Some(
                 new RuntimeFunction(
                   callTarget,
                   null,
-                  new FunctionSchema(arguments: _*)
+                  new FunctionSchema(annotations.toArray, arguments: _*)
                 )
               )
             )
@@ -1655,7 +1739,7 @@ class IrToTruffle(
       * @param application the function application to generate code for
       * @return the truffle nodes corresponding to `application`
       */
-    def processApplication(
+    private def processApplication(
       application: IR.Application,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =

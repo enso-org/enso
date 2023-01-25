@@ -143,23 +143,17 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: no columns in the output" <|
-            selector = By_Name []
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names []
-            problems = [No_Output_Columns]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
+                t = table.select_columns (By_Index []) on_problems=pb
+                t.should_fail_with No_Output_Columns
 
         Test.specify "should correctly handle multiple problems" <|
-            selector = By_Name ["hmmm"]
-            action = table.select_columns selector on_problems=_
-            tester = expect_column_names []
-            problems = [Missing_Input_Columns.Error ["hmmm"], No_Output_Columns]
-            Problems.test_problem_handling action problems tester
+            table.select_columns (By_Name ["hmmm"]) . should_fail_with No_Output_Columns
 
-            action_2 = table.select_columns (By_Index [0, -7, 0, 100]) on_problems=_
-            problems_2 = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
-            tester_2 = expect_column_names ["foo"]
-            Problems.test_problem_handling action_2 problems_2 tester_2
+            action = table.select_columns (By_Index [0, -7, 0, 100]) on_problems=_
+            problems = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]
+            tester = expect_column_names ["foo"]
+            Problems.test_problem_handling action problems tester
 
     Test.group prefix+"Table.remove_columns" <|
         Test.specify "should work as shown in the doc examples" <|
@@ -267,18 +261,15 @@ spec setup =
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: no columns in the output" <|
-            selector = By_Name [".*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive)
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names []
-            problems = [No_Output_Columns]
-            Problems.test_problem_handling action problems tester
+            [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb->
+                selector = By_Name [".*"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive)
+                t = table.remove_columns selector on_problems=pb
+                t.should_fail_with No_Output_Columns
 
         Test.specify "should correctly handle multiple problems" <|
             selector = By_Name [".*", "hmmm"] (Regex_Matcher.Value case_sensitivity=Case_Sensitivity.Sensitive)
-            action = table.remove_columns selector on_problems=_
-            tester = expect_column_names []
-            problems = [Missing_Input_Columns.Error ["hmmm"], No_Output_Columns]
-            Problems.test_problem_handling action problems tester
+            t1 = table.remove_columns selector
+            t1.should_fail_with No_Output_Columns
 
             action_2 = table.remove_columns (By_Index [0, -7, 0, 100]) on_problems=_
             problems_2 = [Column_Indexes_Out_Of_Range.Error [100], Duplicate_Column_Selectors.Error [0], Input_Indices_Already_Matched.Error [-7]]

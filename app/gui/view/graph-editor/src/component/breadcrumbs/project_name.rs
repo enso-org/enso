@@ -57,7 +57,7 @@ pub mod background {
 // === FRP ===
 // ===========
 
-ensogl::define_endpoints! {
+ensogl::define_endpoints_2! {
     Input {
        /// Set the project name.
        set_name (String),
@@ -261,19 +261,21 @@ impl ProjectName {
         let unsaved_selected_color = styles.get_color(breadcrumbs_theme::unsaved::selected);
         let animations = Animations::new(network);
 
+        let input = &frp.private.input;
+        let output = &frp.private.output;
         frp::extend! { network
 
             // === Mouse IO ===
 
             let mouse_down = model.view.events.mouse_down_primary.clone_ref();
-            frp.source.is_hovered <+ bool(&model.view.events.mouse_out,
+            output.is_hovered <+ bool(&model.view.events.mouse_out,
                                           &model.view.events.mouse_over);
-            frp.source.mouse_down <+ model.view.events.mouse_down_primary;
+            output.mouse_down <+ model.view.events.mouse_down_primary;
 
             text_color <- all3(
                 &frp.output.selected,
-                &frp.source.is_hovered,
-                &frp.input.set_project_changed,
+                &output.is_hovered,
+                &input.set_project_changed,
             ).map(move |(selected, hovered, changed)| match (*selected, *hovered, *changed) {
                 (true, _, true) => unsaved_selected_color,
                 (true, _, false) => saved_selected_color,
@@ -286,11 +288,12 @@ impl ProjectName {
 
             edit_click    <- mouse_down.gate(&frp.ide_text_edit_mode);
             start_editing <- any(edit_click,frp.input.start_editing);
-            eval_ start_editing ({
+            eval_ start_editing ([model, text]{
+                model.text_field.focus();
                 text.deprecated_set_focus(true);
                 text.set_cursor_at_mouse_position()
             });
-            frp.source.edit_mode <+ start_editing.to_true();
+            output.edit_mode <+ start_editing.to_true();
 
 
             // === Text Area ===
@@ -298,38 +301,39 @@ impl ProjectName {
             text_content <- text.content.map(|txt| txt.to_string());
             eval text_content((content) model.update_alignment(content));
             text_width <- text_content.map(f!((content) model.width(content)));
-            frp.source.width <+ text_width;
+            output.width <+ text_width;
 
 
             // === Input Commands ===
 
             eval_ frp.input.cancel_editing  (model.reset_name());
             eval  frp.input.set_name((name) {model.rename(name)});
-            frp.output.source.name <+ frp.input.set_name;
+            output.name <+ frp.input.set_name;
 
 
             // === Commit ===
 
             do_commit <- any(&frp.commit,&frp.outside_press).gate(&frp.output.edit_mode);
             commit_text <- text_content.sample(&do_commit);
-            frp.output.source.name <+ commit_text;
+            output.name <+ commit_text;
             eval commit_text((text) model.commit(text));
             on_commit <- commit_text.constant(());
 
             not_selected <- frp.output.selected.map(|selected| !selected);
             on_deselect <- not_selected.gate(&not_selected).constant(());
-            frp.output.source.edit_mode <+ on_deselect.to_false();
+            output.edit_mode <+ on_deselect.to_false();
 
 
             // === Selection ===
 
-            frp.output.source.selected <+ frp.select.to_true();
+            output.selected <+ frp.select.to_true();
             set_inactive <- any(&frp.deselect,&on_commit);
-            eval_ set_inactive ([text] {
+            eval_ set_inactive ([text,model] {
                 text.deprecated_set_focus(false);
                 text.remove_all_cursors();
+                model.text_field.blur();
             });
-            frp.output.source.selected <+ set_inactive.to_false();
+            output.selected <+ set_inactive.to_false();
 
 
             // === Animations ===
@@ -343,14 +347,14 @@ impl ProjectName {
              editable <- all(&frp.output.edit_mode,&frp.ide_text_edit_mode).map(|(a,b)| *a || *b);
              on_mouse_over_and_editable <- all(frp.output.is_hovered,editable).map(|(a,b)| *a && *b);
              mouse_over_while_editing <- on_mouse_over_and_editable.gate(&on_mouse_over_and_editable);
-             frp.output.source.pointer_style <+ mouse_over_while_editing.map(|_|
+             output.pointer_style <+ mouse_over_while_editing.map(|_|
                 cursor::Style::cursor()
              );
              no_mouse_or_edit <- on_mouse_over_and_editable.gate_not(&on_mouse_over_and_editable);
-             frp.output.source.pointer_style <+ no_mouse_or_edit.map(|_|
+             output.pointer_style <+ no_mouse_or_edit.map(|_|
                 cursor::Style::default()
              );
-             frp.output.source.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
+             output.pointer_style <+ frp.input.start_editing.gate(&frp.output.is_hovered).map(|_|
                 cursor::Style::cursor()
              );
         }

@@ -20,6 +20,8 @@ use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use double_representation::node::NodeInfo;
 use engine_protocol::language_server;
+use enso_suggestion_database::documentation_ir::EntryDocumentation;
+use enso_suggestion_database::entry::Id as EntryId;
 use enso_text::Byte;
 use enso_text::Location;
 use enso_text::Rope;
@@ -677,6 +679,11 @@ impl Searcher {
     /// Get the current component list.
     pub fn components(&self) -> component::List {
         self.data.borrow().components.clone_ref()
+    }
+
+    /// Get the documentation for the entry.
+    pub fn documentation_for_entry(&self, id: EntryId) -> EntryDocumentation {
+        self.database.documentation_for_entry(id)
     }
 
     /// Build a provider for this searcher.

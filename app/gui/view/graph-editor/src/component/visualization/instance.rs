@@ -154,7 +154,7 @@ pub struct Frp {
     /// a function called on the Engine side before sending data to IDE, allowing us to do some
     /// compression or filtering for the best performance. See also _Lazy Visualization_ section
     /// [here](http://dev.enso.org/docs/ide/product/visualizations.html).
-    pub preprocessor_change: frp::Source<PreprocessorConfiguration>,
+    pub preprocessor_change: frp::Any<PreprocessorConfiguration>,
 }
 
 impl FrpInputs {
@@ -176,7 +176,7 @@ impl Frp {
     pub fn new(network: &frp::Network) -> Self {
         let inputs = FrpInputs::new(network);
         frp::extend! { network
-            def preprocessor_change = source();
+            def preprocessor_change = any_mut();
             on_preprocessor_change  <- preprocessor_change.sampler();
             def data_receive_error  = source();
             is_active               <- bool(&inputs.deactivate,&inputs.activate);

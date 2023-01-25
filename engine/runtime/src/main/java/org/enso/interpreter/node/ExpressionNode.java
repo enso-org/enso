@@ -18,12 +18,14 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.source.SourceSection;
+
 import java.util.UUID;
+
 import org.enso.interpreter.instrument.HostObjectDebugWrapper;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.Builtins;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.DebugLocalScope;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
@@ -58,7 +60,9 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     return ((ExpressionNodeWrapper) wrapperNode).getDelegateNode();
   }
 
-  /** Creates a new instance of this node. */
+  /**
+   * Creates a new instance of this node.
+   */
   public ExpressionNode() {
     sourceLength = EnsoRootNode.NO_SOURCE;
     sourceStartIndex = EnsoRootNode.NO_SOURCE;
@@ -68,7 +72,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * Sets the source location of this node.
    *
    * @param sourceStartIndex the source index this node begins at
-   * @param sourceLength the length of this node's source
+   * @param sourceLength     the length of this node's source
    */
   public void setSourceLocation(int sourceStartIndex, int sourceLength) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -115,7 +119,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @param frame the stack frame for execution
    * @return the {@code long} value obtained by executing the node
    * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
+   *                                   type
    */
   public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectLong(executeGeneric(frame));
@@ -127,23 +131,11 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @param frame the stack frame for execution
    * @return the Atom constructor obtained by executing the node
    * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
+   *                                   type
    */
   public AtomConstructor executeAtomConstructor(VirtualFrame frame)
       throws UnexpectedResultException {
     return TypesGen.expectAtomConstructor(executeGeneric(frame));
-  }
-
-  /**
-   * Executes the current node, returning the result as an {@link Atom}.
-   *
-   * @param frame the stack frame for execution
-   * @return the Atom obtained by executing the node
-   * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
-   */
-  public Atom executeAtom(VirtualFrame frame) throws UnexpectedResultException {
-    return TypesGen.expectAtom(executeGeneric(frame));
   }
 
   /**
@@ -152,7 +144,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * @param frame the stack frame for execution
    * @return the function obtained by executing the node
    * @throws UnexpectedResultException if the result cannot be represented as a value of the return
-   *     type
+   *                                   type
    */
   public Function executeFunction(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectFunction(executeGeneric(frame));
@@ -219,6 +211,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    * - there is a bug in chromeinspector which reinterprets host objects in host original
    * language, which causes NullPointerException. Therefore, we have to wrap all the
    * host objects.
+   *
    * @param retValue Value returned from this expression node
    * @return Value with all the host objects wrapped.
    */
@@ -228,7 +221,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
     if (EnsoContext.get(this).getChromeInspectorNotAttached().isValid()) {
       return retValue;
     } else {
-      return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached());
+      return HostObjectDebugWrapper.wrapHostValues(retValue, InteropLibrary.getUncached(), StructsLibrary.getUncached());
     }
   }
 

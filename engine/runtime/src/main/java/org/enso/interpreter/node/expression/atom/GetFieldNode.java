@@ -4,15 +4,19 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 
 @NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
 public class GetFieldNode extends RootNode {
   private final int index;
   private final String name;
   private final Type type;
+
+  private @Child StructsLibrary structs = StructsLibrary.getFactory().createDispatched(10);
 
   /**
    * Creates a new instance of this node.
@@ -37,7 +41,7 @@ public class GetFieldNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     // this is safe, as only Atoms will ever get here through method dispatch.
     Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-    return atom.getFields()[index];
+    return structs.getField(atom, index);
   }
 
   @Override
@@ -48,5 +52,20 @@ public class GetFieldNode extends RootNode {
   @Override
   public String getName() {
     return type.getName() + "." + name;
+  }
+
+  @Override
+  public boolean isCloningAllowed() {
+    return true;
+  }
+
+  @Override
+  protected boolean isCloneUninitializedSupported() {
+    return true;
+  }
+
+  @Override
+  protected GetFieldNode cloneUninitialized() {
+    return new GetFieldNode(getLanguage(EnsoLanguage.class), index, type, name);
   }
 }

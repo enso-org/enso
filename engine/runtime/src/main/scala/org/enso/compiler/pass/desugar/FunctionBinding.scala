@@ -18,8 +18,6 @@ import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.interpreter.Constants
 
-import scala.annotation.unused
-
 /** This pass handles the desugaring of long-form function and method
   * definitions into standard bindings using lambdas.
   *
@@ -64,7 +62,7 @@ case object FunctionBinding extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    @unused moduleContext: ModuleContext
+    moduleContext: ModuleContext
   ): IR.Module = ir.copy(bindings = ir.bindings.map(desugarModuleSymbol))
 
   /** Runs desugaring of function bindings on an arbitrary expression.
@@ -77,12 +75,12 @@ case object FunctionBinding extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = desugarExpression(ir)
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 
@@ -319,13 +317,14 @@ case object FunctionBinding extends IRPass {
           "Documentation should not be present during function binding" +
           "desugaring."
         )
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "function binding desugaring."
         )
-      case a: IR.Type.Ascription => a
-      case e: IR.Error           => e
+      case a: IR.Name.GenericAnnotation => a
+      case a: IR.Type.Ascription        => a
+      case e: IR.Error                  => e
     }
   }
 }

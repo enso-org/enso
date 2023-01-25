@@ -1,5 +1,6 @@
 //! Proc macros supporting the implementation of the `enso_logging` library.
 
+// === Features ===
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(proc_macro_span)]
 #![feature(let_chains)]
@@ -19,6 +20,8 @@
 
 use inflector::Inflector;
 use quote::quote;
+
+
 
 /// The log levels defined in the Console Web API.
 /// See: https://console.spec.whatwg.org/#loglevel-severity

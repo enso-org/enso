@@ -13,8 +13,6 @@ import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.TypeSignatures.Signature
 
-import scala.annotation.unused
-
 /** This pass is responsible for analysing type signatures to determine which
   * arguments in a function definition are suspended.
   *
@@ -69,7 +67,7 @@ case object SuspendedArguments extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    @unused moduleContext: ModuleContext
+    moduleContext: ModuleContext
   ): IR.Module =
     ir.copy(
       bindings = ir.bindings.map(resolveModuleBinding)
@@ -85,12 +83,12 @@ case object SuspendedArguments extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = resolveExpression(ir)
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 
@@ -104,7 +102,7 @@ case object SuspendedArguments extends IRPass {
     * @param binding the top-level binding to resolve suspensions in
     * @return `binding`, with any suspended arguments resolved
     */
-  def resolveModuleBinding(
+  private def resolveModuleBinding(
     binding: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     binding match {
@@ -193,11 +191,12 @@ case object SuspendedArguments extends IRPass {
         throw new CompilerError("Type ascriptions should not be present.")
       case _: IR.Comment =>
         throw new CompilerError("Comments should not be present.")
-      case _: IR.Name.Annotation =>
+      case _: IR.Name.BuiltinAnnotation =>
         throw new CompilerError(
           "Annotations should already be associated by the point of " +
           "suspended arguments analysis."
         )
+      case ann: IR.Name.GenericAnnotation => ann
     }
   }
 
@@ -206,7 +205,7 @@ case object SuspendedArguments extends IRPass {
     * @param expression the expression to perform resolution in
     * @return `expression`, with any suspended arguments resolved
     */
-  def resolveExpression(expression: IR.Expression): IR.Expression = {
+  private def resolveExpression(expression: IR.Expression): IR.Expression = {
     expression.transformExpressions {
       case bind @ IR.Expression.Binding(_, expr, _, _, _) =>
         val newExpr = bind.getMetadata(TypeSignatures) match {
@@ -244,7 +243,7 @@ case object SuspendedArguments extends IRPass {
     * @param signature the type signature to split
     * @return the segments of `signature`
     */
-  def toSegments(signature: IR.Expression): List[IR.Expression] = {
+  private def toSegments(signature: IR.Expression): List[IR.Expression] = {
     signature match {
       case IR.Type.Function(args, ret, _, _, _) => args :+ ret
       case _                                    => List(signature)
@@ -270,7 +269,7 @@ case object SuspendedArguments extends IRPass {
     * @param pair an argument and its corresponding type signature segment
     * @return the argument from `pair`, with its suspension marked appropriately
     */
-  def markSuspended(
+  private def markSuspended(
     pair: (IR.DefinitionArgument, IR.Expression)
   ): IR.DefinitionArgument =
     pair match {
@@ -289,7 +288,7 @@ case object SuspendedArguments extends IRPass {
     * @param signature the signature of the function
     * @return `args`, appropriately marked as suspended or not
     */
-  def computeSuspensions(
+  private def computeSuspensions(
     args: List[IR.DefinitionArgument],
     signature: IR.Expression
   ): List[IR.DefinitionArgument] = {
