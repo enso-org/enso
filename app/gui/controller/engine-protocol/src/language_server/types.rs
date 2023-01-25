@@ -999,20 +999,28 @@ pub enum SuggestionEntry {
     },
     #[serde(rename_all = "camelCase")]
     Function {
-        external_id: Option<Uuid>,
-        name:        String,
-        module:      String,
-        arguments:   Vec<SuggestionEntryArgument>,
-        return_type: String,
-        scope:       SuggestionEntryScope,
+        external_id:            Option<Uuid>,
+        name:                   String,
+        module:                 String,
+        arguments:              Vec<SuggestionEntryArgument>,
+        return_type:            String,
+        scope:                  SuggestionEntryScope,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Local {
-        external_id: Option<Uuid>,
-        name:        String,
-        module:      String,
-        return_type: String,
-        scope:       SuggestionEntryScope,
+        external_id:            Option<Uuid>,
+        name:                   String,
+        module:                 String,
+        return_type:            String,
+        scope:                  SuggestionEntryScope,
+        documentation:          Option<String>,
+        documentation_html:     Option<String>,
+        #[serde(default, deserialize_with = "enso_prelude::deserialize_null_as_default")]
+        documentation_sections: Vec<DocSection>,
     },
     #[serde(rename_all = "camelCase")]
     Module {
@@ -1141,17 +1149,17 @@ pub enum SuggestionsDatabaseUpdate {
 /// The modification of suggestion database entry.
 #[derive(Hash, Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[allow(missing_docs)]
-#[serde(tag = "type")]
+#[serde(rename_all = "camelCase")]
 pub struct SuggestionsDatabaseModification {
     #[serde(default)]
-    pub arguments:          Vec<SuggestionArgumentUpdate>,
-    pub module:             Option<FieldUpdate<String>>,
-    pub self_type:          Option<FieldUpdate<String>>,
-    pub return_type:        Option<FieldUpdate<String>>,
-    pub documentation:      Option<FieldUpdate<String>>,
-    pub documentation_html: Option<FieldUpdate<String>>,
-    pub scope:              Option<FieldUpdate<SuggestionEntryScope>>,
-    pub reexport:           Option<FieldUpdate<String>>,
+    pub arguments:              Vec<SuggestionArgumentUpdate>,
+    pub module:                 Option<FieldUpdate<String>>,
+    pub self_type:              Option<FieldUpdate<String>>,
+    pub return_type:            Option<FieldUpdate<String>>,
+    pub documentation:          Option<FieldUpdate<String>>,
+    pub documentation_sections: Option<FieldUpdate<Vec<DocSection>>>,
+    pub scope:                  Option<FieldUpdate<SuggestionEntryScope>>,
+    pub reexport:               Option<FieldUpdate<String>>,
 }
 
 /// Notification about change in the suggestions database.

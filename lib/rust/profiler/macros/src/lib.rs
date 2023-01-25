@@ -7,6 +7,7 @@
 //!   implementing this without proc macros would be complex and repetitious.
 //! - To implement the [`#[profile]`](macro@profile) attribute macro.
 
+// === Features ===
 #![feature(proc_macro_span)]
 #![feature(let_chains)]
 // === Standard Linter Configuration ===
@@ -22,6 +23,8 @@
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unused_import_braces)]
+
+
 
 #[macro_use]
 mod wrap_async;

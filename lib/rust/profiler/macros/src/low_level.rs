@@ -1,6 +1,5 @@
 //! Generation of the Profiling Low-level API and its implementation.
 
-
 use crate::level;
 
 
