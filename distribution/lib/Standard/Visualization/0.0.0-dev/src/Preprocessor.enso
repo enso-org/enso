@@ -3,7 +3,11 @@ import project.Helpers
 
 ## PRIVATE
    Default visualization preprocessor.
-default_preprocessor x = x.to_default_visualization_data
+default_preprocessor x =
+    result = x.to_default_visualization_data
+    case result.is_error of
+        True -> x.to_display_text . to_json
+        False -> result
 
 
 ## PRIVATE
