@@ -1106,20 +1106,24 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
 // === Sub-Projects ===========================================================
 // ============================================================================
 
-val truffleRunOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
+val truffleRunOptionsNoAssert = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
   Seq(
-    "-ea",
     "-Dpolyglot.engine.IterativePartialEscape=true",
     "-Dpolyglot.engine.BackgroundCompilation=false",
     "-Dbench.compileOnly=true"
   )
 } else {
   Seq(
-    "-ea",
     "-Dpolyglot.engine.IterativePartialEscape=true",
     "-Dpolyglot.engine.BackgroundCompilation=false"
   )
 }
+val truffleRunOptions = "-ea" +: truffleRunOptionsNoAssert
+
+val truffleRunOptionsNoAssertSettings = Seq(
+  fork := true,
+  javaOptions ++= truffleRunOptionsNoAssert
+)
 
 val truffleRunOptionsSettings = Seq(
   fork := true,
@@ -1578,7 +1582,7 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Compile)(truffleRunOptionsNoAssertSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
       Benchmark / javacOptions --= Seq(
