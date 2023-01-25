@@ -4,7 +4,7 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Match_Columns, Column_Name_Mapping, Excel, Excel_Range, Data_Formatter, Sheet_Names, Range_Names, Worksheet, Cell_Range, Delimited, Column_Selector
 
-from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch
+from Standard.Table.Errors import Invalid_Output_Column_Names, Duplicate_Output_Column_Names, Invalid_Location, Range_Exceeded, Existing_Data, Column_Count_Mismatch, Column_Name_Mismatch, Empty_Sheet_Error
 
 from Standard.Test import Test, Test_Suite, Problems
 import Standard.Test.Extensions
@@ -36,9 +36,9 @@ spec_fmt header file read_method =
             t.columns.map .name . should_equal ['Student Name', 'Enrolment Date']
             t.at 'Enrolment Date' . map .day . to_vector . should_equal [2, 26, 4, 24, 31, 7]
 
-        Test.specify "should read an empty table" <|
+        Test.specify "should give an informative error when reading an empty table" <|
             t = read_method file (Excel (Worksheet "Empty"))
-            t.column_count.should_equal 0
+            t.should_fail_with Empty_Sheet_Error
 
         Test.specify "should gracefully handle duplicate column names and formulas" <|
             t = read_method file (Excel (Worksheet "Duplicate Columns"))

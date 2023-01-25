@@ -61,9 +61,8 @@ type Table_Column_Helper
     select_columns self selector reorder on_problems =
         problem_builder = Problem_Builder.new
         result = self.select_columns_helper selector reorder problem_builder
-        if result.is_empty then
-            problem_builder.report_other_warning No_Output_Columns
-        problem_builder.attach_problems_after on_problems result
+        problem_builder.attach_problems_before on_problems <|
+            if result.is_empty then Error.throw No_Output_Columns else result
 
     ## PRIVATE
        A helper function encapsulating shared code for `remove_columns`
@@ -88,9 +87,8 @@ type Table_Column_Helper
         result = self.internal_columns.filter column->
             should_be_removed = selected_names.get column.name False
             should_be_removed.not
-        if result.is_empty then
-            problem_builder.report_other_warning No_Output_Columns
-        problem_builder.attach_problems_after on_problems result
+        if result.is_empty then Error.throw No_Output_Columns else
+            problem_builder.attach_problems_after on_problems result
 
     ## PRIVATE
        A helper function encapsulating shared code for `reorder_columns`
@@ -168,14 +166,29 @@ type Table_Column_Helper
             ## We cannot just use a custom_column in the aggregate because of
                how the column selector works. We may need to revisit this. For
                now we need to use tricks like that:
-            modified_table = blanks.fold (self.table.select_columns [] on_problems=Problem_Behavior.Ignore) table-> blanks_col->
+
+               To be backend agnostic, we cannot create a new table with the
+               columns above just out of thin air (actually we may want to allow
+               this in the future if all columns come from the same context, but
+               currently it's not possible). Instead, we add our blank columns
+               to the current table and then remove any other columns we are not
+               interested in. Note that we do not have to care about potential
+               name conflicts, as we are dropping any other columns anyway, and
+               adding a new column with a clashing name will not affect any
+               other columns computed from the old column with that name.
+            table_with_blank_indicators = blanks.fold self.table table-> blanks_col->
                 table.set blanks_col.name blanks_col
+            just_indicators = table_with_blank_indicators.select_columns (blanks.map .name) on_problems=Problem_Behavior.Report_Error
             # Maximum is equivalent to Exists and Minimum is equivalent to Forall.
             col_aggregate = if when_any then Maximum _ else Minimum _
             aggregates = blanks.map blanks_col-> col_aggregate blanks_col.name
-            result = self.materialize <| Panic.rethrow <|
-                modified_table.aggregate aggregates on_problems=Problem_Behavior.Report_Error
-            counts = result.rows.first
+
+            aggregate_result = just_indicators.aggregate aggregates on_problems=Problem_Behavior.Report_Error
+            materialized_result = self.materialize <| aggregate_result.catch Any error->
+                msg = "Unexpected dataflow error has been thrown in an `select_columns_helper`. This is a bug in the Table library. The unexpected error was: "+error.to_display_text
+                Panic.throw (Illegal_State.Error message=msg cause=error)
+
+            counts = materialized_result.rows.first
 
             ## The `reorder` argument has no meaning for Blank_Columns selector
                - either way all blank columns are selected in the order that
