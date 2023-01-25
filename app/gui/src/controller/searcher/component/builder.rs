@@ -29,6 +29,7 @@ use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use double_representation::name::QualifiedNameTemplate;
+use engine_protocol::language_server::DocSection;
 
 
 
@@ -287,6 +288,28 @@ impl List {
         }
         self.local_scope.update_sorting(components_order);
         let favorites = self.build_favorites_and_add_to_all_components();
+
+        let is_private = |component: &Component| {
+            let private = if let component::Data::FromDatabase { entry, .. } = &component.data {
+                entry.documentation.iter().any(|doc| match doc {
+                    DocSection::Tag{ name, ..} => name == "PRIVATE",
+                    _ => false,
+                })
+            } else {
+                false
+            };
+            !private
+        };
+        for (_, group) in self.module_groups.iter_mut() {
+            group.content.retain_entries(is_private);
+            for group in group.submodules.groups.iter_mut() {
+                group.retain_entries(is_private);
+            }
+            if let Some(flattened) = &mut group.flattened_content {
+                flattened.retain_entries(is_private);
+            }
+        }
+
         let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
         let section_list_builder = Sections::new(top_module_groups);
 
