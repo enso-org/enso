@@ -13,7 +13,6 @@ use crate::presenter::graph::ViewNodeId;
 use controller::ExecutedGraph;
 use engine_protocol::language_server::SuggestionId;
 use ensogl::define_endpoints_2;
-use executor::global::spawn;
 use ide_view::graph_editor::component::node::input::widget;
 use ide_view::graph_editor::component::visualization;
 use ide_view::graph_editor::component::visualization::Metadata;
@@ -161,16 +160,11 @@ impl Model {
                 let updates = args
                     .into_iter()
                     .filter_map(|(argument_name, meta_json)| {
-                        let deserialized = serde_json::from_value(meta_json);
                         // Treat failed deserialization as non-widget data. The returned annotation
                         // can be an arbitrary structure, so there will be cases when we fail to
                         // deserialize it, as it may not contain the widget data in the first place.
-                        let meta = deserialized.ok().map(|data: WidgetVisualizationData| {
-                            let kind = data.constructor;
-                            let display = data.display.constructor;
-                            let dynamic_entries = data.values.iter().map(From::from).collect();
-                            widget::Metadata { kind, display, dynamic_entries }
-                        });
+                        let deserialized = serde_json::from_value(meta_json).ok();
+                        let meta = deserialized.map(WidgetVisualizationData::into_metadata);
                         Some(WidgetUpdate { argument_name, meta })
                     })
                     .collect();
@@ -346,4 +340,13 @@ struct WidgetVisualizationData {
 #[derive(Debug, serde::Deserialize)]
 struct WidgetVisualizationDataDisplay {
     constructor: widget::Display,
+}
+
+impl WidgetVisualizationData {
+    fn into_metadata(self) -> widget::Metadata {
+        let kind = self.constructor;
+        let display = self.display.constructor;
+        let dynamic_entries = self.values.iter().map(Into::into).collect();
+        widget::Metadata { kind, display, dynamic_entries }
+    }
 }

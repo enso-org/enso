@@ -327,6 +327,22 @@ impl Model {
         }
     }
 
+    fn set_widgets_visibility(&self, visible: bool) {
+        let expression = self.expression.borrow();
+        let widgets_map = self.widgets_map.borrow();
+        for (id, crumbs) in widgets_map.iter() {
+            let root = expression.span_tree.root_ref();
+            let port = root.get_descendant(crumbs).ok();
+            let widget = port.and_then(|port| port.payload.widget.clone_ref());
+            if let Some(widget) = widget {
+                widget.set_visible(visible);
+                warn!("[set_widgets_visibility] Set visible {visible}: {id:?}");
+            } else {
+                error!("[set_widgets_visibility] Widget {id:?} not found for crumbs {crumbs:?}.");
+            }
+        }
+    }
+
     #[profile(Debug)]
     fn set_label_on_new_expression(&self, expression: &Expression) {
         self.label.set_content(expression.viz_code.clone());
@@ -437,19 +453,13 @@ impl Model {
                         let prev_root = prev_expression.span_tree.root_ref();
                         let prev_node = prev_root.get_descendant(crumbs).ok()?;
                         let prev_widget = prev_node.payload.widget.as_ref()?.clone_ref();
-                        port.payload.widget = Some(prev_widget.clone_ref());
                         Some(prev_widget)
                     });
 
                     widgets_map.insert(widget_id, crumbs.clone_ref());
                     let widget = match prev_widget {
-                        Some(prev_widget) => {
-                            warn!("Reusing widget for port: {:?}", port.ast_id);
-                            port.payload.use_existing_widget(prev_widget)
-                        },
-                        None => {
-                            warn!("New widget for port: {:?}", port.ast_id);
-                            port.payload.init_widget(&self.app)},
+                        Some(prev_widget) => port.payload.use_existing_widget(prev_widget),
+                        None => port.payload.init_widget(&self.app),
                     };
                     widget.set_x(position_x);
                     builder.parent.add_child(&widget);
@@ -575,7 +585,6 @@ impl Model {
                                 }))
                             })
                         );
-                        trace code_update;
                         area_frp.source.on_port_code_update <+ code_update;
                     }
                 }
@@ -812,6 +821,7 @@ impl Model {
         if is_editing {
             self.label.set_cursor_at_text_end();
         }
+        self.set_widgets_visibility(!is_editing);
         new_expression
     }
 }
@@ -935,6 +945,7 @@ impl Area {
 
             eval frp.input.set_editing ([model](edit_mode) {
                 model.label.deprecated_set_focus(edit_mode);
+                model.set_widgets_visibility(!edit_mode);
                 if *edit_mode {
                     // Reset the code to hide non-connected port names.
                     model.label.set_content(model.expression.borrow().code.clone());

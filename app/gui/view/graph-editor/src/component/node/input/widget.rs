@@ -11,9 +11,17 @@ use ensogl_component::drop_down::Dropdown;
 
 
 
-// ==================
-// === NodeWidget ===
-// ==================
+/// =================
+/// === Constants ===
+/// =================
+
+const DOT_COLOR: color::Lch = color::Lch::new(0.56708, 0.23249, 0.71372);
+
+
+
+// ===========
+// === FRP ===
+// ===========
 
 ensogl::define_endpoints_2! {
     Input {
@@ -21,6 +29,7 @@ ensogl::define_endpoints_2! {
         set_node_data  (NodeData),
         set_current_value (Option<ImString>),
         set_focused       (bool),
+        set_visible       (bool),
     }
     Output {
         value_changed(Option<ImString>),
@@ -68,13 +77,35 @@ pub struct NodeData {
     pub node_height:   f32,
 }
 
+
+
+/// ==================
+/// === SampledFrp ===
+/// ==================
+
+/// Sampled version of widget FRP endpoints that can be used by lazily initialized widgets.
+/// Without sampling, the widget that is initialized after the endpoints are set would not receive
+/// the correct initial value.
+#[derive(Debug, Clone, CloneRef)]
+struct SampledFrp {
+    set_current_value: frp::Sampler<Option<ImString>>,
+    set_visible:       frp::Sampler<bool>,
+    set_focused:       frp::Sampler<bool>,
+    out_value_changed: frp::Any<Option<ImString>>,
+}
+
+
+
+// ==============
+// === Widget ===
+// ==============
+
 /// The node widget UI widget.
 #[derive(Debug, Clone, CloneRef)]
 pub struct Widget {
     frp:   Frp,
     model: Rc<Model>,
 }
-
 
 impl Widget {
     /// Create a new node widget. The widget is initialized into the `Unset` state, waiting for
@@ -96,11 +127,17 @@ impl Widget {
         let network = &frp.network;
         let input = &frp.input;
 
-        let weak_frp = frp.downgrade();
         frp::extend! { network
             widget_data <- all(&input.set_metadata, &input.set_node_data);
-            eval widget_data([model, weak_frp]((meta, node_data)) {
-                model.set_widget_data(&weak_frp, meta, node_data);
+
+            set_current_value <- input.set_current_value.sampler();
+            set_visible <- input.set_visible.sampler();
+            set_focused <- input.set_focused.sampler();
+            let out_value_changed = frp.private.output.value_changed.clone_ref();
+            let sampled_frp = SampledFrp { set_current_value, set_visible, set_focused, out_value_changed };
+
+            eval widget_data([model, sampled_frp]((meta, node_data)) {
+                model.set_widget_data(&sampled_frp, meta, node_data);
             });
         }
 
@@ -108,11 +145,17 @@ impl Widget {
     }
 }
 
+
+/// =============
+/// === Model ===
+/// =============
+
 #[derive(Debug)]
 struct Model {
     common: ModelCommon,
     inner:  RefCell<ModelInner>,
 }
+
 impl Model {
     /// Create a new node widget, selecting the appropriate widget type based on the provided
     /// argument info.
@@ -122,7 +165,8 @@ impl Model {
         Self { common, inner }
     }
 
-    fn set_widget_data(&self, frp: &WeakFrp, meta: &Option<Metadata>, node_data: &NodeData) {
+    fn set_widget_data(&self, frp: &SampledFrp, meta: &Option<Metadata>, node_data: &NodeData) {
+        warn!("Setting widget data: {:?} {:?}", meta, node_data);
         let kind_fallback = || {
             if !node_data.argument_info.tag_values.is_empty() {
                 Kind::SingleChoice
@@ -202,7 +246,7 @@ impl ModelInner {
     fn new(
         kind: Kind,
         common: &ModelCommon,
-        frp: &WeakFrp,
+        frp: &SampledFrp,
         meta: &Option<Metadata>,
         node_data: &NodeData,
     ) -> Self {
@@ -277,19 +321,21 @@ pub struct SingleChoiceModel {
 }
 
 impl SingleChoiceModel {
-    fn new(common: &ModelCommon, frp: &WeakFrp) -> Self {
+    fn new(common: &ModelCommon, frp: &SampledFrp) -> Self {
         let display_object = &common.display_object;
-        let input = &frp.input;
-        let output = &frp.private.output;
 
         let activation_dot = dot::View::new();
-        let color: color::Rgba = color::Lcha::new(0.56708, 0.23249, 0.71372, 1.0).into();
-        activation_dot.color.set(color.into());
         activation_dot.set_size((15.0, 15.0));
         display_object.add_child(&activation_dot);
 
         frp::new_network! { network
-            set_current_value <- input.set_current_value.sampler();
+            init <- source_();
+            set_current_value <- frp.set_current_value.sampler();
+            let focus_in = display_object.on_event::<event::FocusIn>();
+            let focus_out = display_object.on_event::<event::FocusOut>();
+            is_focused <- bool(&focus_out, &focus_in);
+            is_open <- frp.set_visible && is_focused;
+            is_open <- is_open.sampler();
         };
 
         let dropdown = LazyDropdown::NotInitialized {
@@ -297,24 +343,34 @@ impl SingleChoiceModel {
             display_object: display_object.clone_ref(),
             node_height: default(),
             entries: default(),
-            network: network.clone_ref(),
+            network: network.downgrade(),
             set_current_value,
-            output_value_changed: output.value_changed.clone_ref(),
+            is_open,
+            output_value_changed: frp.out_value_changed.clone_ref(),
         };
         let dropdown = Rc::new(RefCell::new(dropdown));
 
         frp::extend! { network
             let dot_clicked = activation_dot.events.mouse_down_primary.clone_ref();
             toggle_focus <- dot_clicked.map(f!([display_object](()) !display_object.is_focused()));
-            set_focused <- any(toggle_focus, input.set_focused);
+            set_focused <- any(toggle_focus, frp.set_focused);
+            trace set_focused;
             eval set_focused([display_object](focus) match focus {
                 true => display_object.focus(),
                 false => display_object.blur(),
             });
 
-            let focus_in = display_object.on_event::<event::FocusIn>();
+            set_visible <- all(&frp.set_visible, &init)._0();
+            dot_alpha <- set_visible.map(|visible| if *visible { 1.0 } else { 0.0 });
+            dot_color <- dot_alpha.map(|alpha| DOT_COLOR.with_alpha(*alpha));
+            eval dot_color([activation_dot] (color) {
+                activation_dot.color.set(color::Rgba::from(color).into());
+            });
+
             eval focus_in((_) dropdown.borrow_mut().initialize_on_open());
         }
+
+        init.emit(());
 
         Self { network, dropdown, activation_dot }
     }
@@ -350,8 +406,9 @@ enum LazyDropdown {
         display_object:       display::object::Instance,
         node_height:          f32,
         entries:              Vec<ImString>,
-        network:              frp::Network,
+        network:              frp::WeakNetwork,
         set_current_value:    frp::Sampler<Option<ImString>>,
+        is_open:              frp::Sampler<bool>,
         output_value_changed: frp::Any<Option<ImString>>,
     },
     Initialized(Dropdown<ImString>),
@@ -383,16 +440,19 @@ impl LazyDropdown {
 
     fn initialize_on_open(&mut self) {
         match self {
-            LazyDropdown::Initialized(_) => {}
+            LazyDropdown::Initialized(..) => {}
             LazyDropdown::NotInitialized {
                 app,
                 display_object,
                 node_height,
                 entries,
                 network,
+                is_open,
                 set_current_value,
                 output_value_changed,
             } => {
+                let network = network.upgrade().expect("Dropdown initialized after network drop");
+
                 let dropdown = app.new_view::<Dropdown<ImString>>();
                 display_object.add_child(&dropdown);
                 app.display.default_scene.layers.above_nodes.add(&dropdown);
@@ -401,7 +461,6 @@ impl LazyDropdown {
                 dropdown.set_all_entries(std::mem::take(entries));
                 dropdown.allow_deselect_all(true);
 
-
                 frp::extend! { network
                     init <- source_();
                     current_value <- all(set_current_value, &init)._0();
@@ -409,16 +468,11 @@ impl LazyDropdown {
                     first_selected_entry <- dropdown.selected_entries.map(|e| e.iter().next().cloned());
                     output_value_changed <+ first_selected_entry.on_change();
 
-                    let focus_in = display_object.on_event::<event::FocusIn>();
-                    let focus_out = display_object.on_event::<event::FocusOut>();
-                    is_focused <- bool(&focus_out, &focus_in);
-
-                    dropdown.set_open <+ is_focused;
+                    is_open <- all(is_open, &init)._0();
+                    dropdown.set_open <+ is_open.on_change();
                 }
 
                 init.emit(());
-                dropdown.set_open(true);
-
                 *self = LazyDropdown::Initialized(dropdown);
             }
         }
