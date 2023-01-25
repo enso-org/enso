@@ -85,7 +85,7 @@ impl TargetTriple {
             Arch::X86_64
         } else {
             self.arch
-        }
+        };
         ret
     }
 

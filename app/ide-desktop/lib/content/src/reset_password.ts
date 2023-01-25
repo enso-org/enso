@@ -9,6 +9,11 @@ if (emailInput === null) { throw new Error('emailInput is null') }
 if (codeInput === null) { throw new Error('codeInput is null') }
 if (newPasswordInput === null) { throw new Error('newPasswordInput is null') }
 if (submitButton === null) { throw new Error('submitButton is null') }
+// FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092216658
+//   1. Top level code - it sohuld go to a function, like main or whatever
+//   2. Use == null instead of === null
+//   3. You generate the HTML in typescript so you are sure the references are always created and after refactoring the code doesnt break at runtime.
+// DO THIS FOR ALL
 
 function setUrlOpener(config: any) {
     config.oauth.options.urlOpener = async (url: string, redirectSignIn: string) => {
@@ -24,6 +29,9 @@ function getAuthConfig() {
     setUrlOpener(config)
     return config
 }
+// FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092218880
+//   - also, run `npx tsc --noEmit` to check for type errors.
+//  DO THIS FOR ALL
 
 async function getAccessToken() {
     let jwt
@@ -35,6 +43,9 @@ async function getAccessToken() {
     return jwt
 }
 
+// FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092219434
+//   - var names `e` -> `event`, in other places as well pls
+// DO THIS FOR ALL
 async function resetPassword(e: MouseEvent, email: string, code: string, newPassword: string) {
     e.preventDefault()
 

@@ -1,3 +1,8 @@
+// FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091509997
+//   - no docs here and in other places
+//   - no sections
+//   DO THIS FOR ALL
+
 import { Auth } from "aws-amplify"
 import { amplifyConfig } from "./amplify"
 

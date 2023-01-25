@@ -907,5 +907,8 @@ API.main = async function(inputConfig: any) {
     config.updateFromObject(inputConfig)
     config.updateFromObject(urlConfig)
 
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092213493
+    //   - add auth stuff here
+    // FIXME [NP]: make sure to re-add the config.authentication_enabled
     runEntryPoint(config)
 }

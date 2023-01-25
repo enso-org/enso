@@ -65,6 +65,9 @@ window.onload = async () => {
 
     let authConfig = getAuthConfig()
     Auth.configure(authConfig)
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092215283
+    //   - debug logs
+    //   DO THIS FOR ALL
     console.log('REGISTRATION Auth configured')
 
     let accessToken = await getAccessToken();

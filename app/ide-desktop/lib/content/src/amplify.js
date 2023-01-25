@@ -1,3 +1,8 @@
+// FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091509001
+//   1. Use typescript
+//   2. Use eslint-compatible docs for typescript in all files
+// DO THIS FOR ALL
+
 // =====================
 // === amplifyConfig ===
 // =====================
@@ -12,6 +17,9 @@ const REGION = process.env.REGION || 'us-east-1'
 const USER_POOL_ID = process.env.NEXT_PUBLIC_AUTH_USER_POOL_ID || 'us-east-1_VcFZzGyhv'
 // (optional) - Amazon Cognito Web Client ID (26-char alphanumeric string, App client secret needs
 // to be disabled).
+// FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092210494
+//   - 7vic1uoogbq4aq2rve897j0ep0 - magic
+//   DO THIS FOR ALL
 const USER_POOL_WEB_CLIENT_ID = process.env.NEXT_PUBLIC_AUTH_USER_POOL_WEB_CLIENT_ID || '7vic1uoogbq4aq2rve897j0ep0'
 // (required) - Domain that hosts the OAuth endpoints for login, logout, and token refresh.
 const DOMAIN = process.env.NEXT_PUBLIC_AUTH_DOMAIN || 'test-enso-pool.auth.us-east-1.amazoncognito.com/'

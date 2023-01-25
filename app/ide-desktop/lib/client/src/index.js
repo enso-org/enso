@@ -1,3 +1,6 @@
+// FIXME [NP]: use the enso autoformatter and fix the spaces added
+// FIXME [NP]: is the autoformatter config in lib/rust/ensogl/pack/js/.eslintrc.cjs?
+// FIXME [NP]: replace the console.log with the logger
 'use strict'
 
 import { defaultLogServerHost } from '../../../config.js'
@@ -485,16 +488,28 @@ async function backendVersion() {
 function handleOpenCustomUrlEvent(event, url) {
     // TODO [NP]: https://www.pivotaltracker.com/story/show/184314879
     //   Add a success notification to inform the user that login is being completed.
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092184447
+    //   If this is a log, it sohuld not tell to the user "Welcome" etc - these are logs
+    //   DO THIS FOR ALL console.log
     console.log('Welcome Back', `You arrived from: ${url}`)
     let target;
     try {
         let parsedUrl = new URL(url)
         target = new URL(origin)
         target.search = parsedUrl.search
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092186532
+    //   emty catch
+    //   DO THIS FOR ALL
     } catch {}
 
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092176213
+    //   debug log
+    //   DO THIS FOR ALL
     console.log(`${event} target`, target.href)
 
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092187599
+    //   no docs why
+    //   DO THIS FOR ALL
     if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore()
         mainWindow.focus()
@@ -522,22 +537,41 @@ async function main(args) {
         runBackend()
 
         if (process.defaultApp) {
+            // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091506524
+            //   magic - can you please refactor it to a well named variable?
+            //   DO THIS FOR ALL
             if (process.argv.length >= 2) {
                 Electron.app.setAsDefaultProtocolClient('enso', process.execPath, [path.resolve(process.argv[1])])
             }
         } else {
+            // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091506380
+            //   literals not refactored to a common place
+            //   DO THIS FOR ALL
             Electron.app.setAsDefaultProtocolClient('enso')
         }
 
         const gotTheLock = Electron.app.requestSingleInstanceLock()
 
         if (!gotTheLock) {
+            // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092190372
+            //   no info why
+            //   DO THIS FOR ALL
             Electron.app.quit()
         } else {
             // 'second-instance' event is emitted on Windows and Linux when opening
             // custom urls. For macOS 'open-url' event is emitted
+            // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091506644
+            //   no dot
+            //   DO THIS FOR ALL
             Electron.app.on('second-instance', (event, commandLine, workingDirectory) => {
                 // Someone tried to run a second instance, we should focus our window.
+                // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091506849
+                //   - what is "our" window and second instance of what?
+                //   - We should allow for 2 instances of the app
+                //   DO THIS FOR ALL
+                // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091506937
+                //   this looks like a debuglog
+                //   DO THIS FOR ALL
                 console.log('second-instance', commandLine, workingDirectory)
                 let url = commandLine[commandLine.length - 1]
                 handleOpenCustomUrlEvent('second-instance', url)
@@ -549,6 +583,9 @@ async function main(args) {
             let serverCfg = Object.assign({}, args)
             serverCfg.dir = root
             serverCfg.fallback = '/assets/login.html'
+            // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092195817
+            //   debug log
+            //   DO THIS FOR ALL
             console.log('Server.create', serverCfg)
             server = await Server.create(serverCfg)
             origin = `http://localhost:${server.port}`
@@ -772,9 +809,14 @@ if (process.platform === 'darwin') {
     })
 }
 
+// FIXME [NP]: don't lose the options we started with initially when redirecting back to the electron window
+//   - do this for both the macOS and the windows version
 // 'open-url' event is macOS way to handle URL opening. For Windows and Linux
 // 'second-instance' event is emitted.
 Electron.app.on('open-url', (event, url) => {
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1091507129
+    //   - debug log
+    //   DO THIS FOR ALL
     console.log('open-url', event, url)
     handleOpenCustomUrlEvent('open-url', url)
 })

@@ -63,6 +63,9 @@ function git(command: string): string {
  * Static set of files that are always copied to the output directory.
  */
 const always_copied_files = [
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092205303
+    //   - Lets stay only with single index.html please
+    //   DO THIS FOR ALL
     path.resolve(thisPath, 'src', 'index.html'),
     path.resolve(thisPath, 'src', 'login.html'),
     path.resolve(thisPath, 'src', 'registration.html'),
@@ -93,6 +96,9 @@ async function* files_to_copy_provider() {
 
 const config: esbuild.BuildOptions = {
     bundle: true,
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092208728
+    //   - make it one entry point, not in content, and dont use custom esbuild config.
+    //   DO THIS FOR ALL
     entryPoints: [
         'src/index.ts',
         'src/login.ts',

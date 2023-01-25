@@ -74,6 +74,8 @@ const config: Configuration = {
     // us to send the user to the browser to authenticate, and then redirect back to the IDE. This
     // also allows us to intercept users clicking on signup verification links in their emails, also
     // redirecting them back to the IDE.
+    // FIXME [NP]: https://github.com/enso-org/enso/pull/4041/files#r1092173210
+    //   Product name repetition
     protocols: [
         { name: 'Enso URL', schemes: ['enso'], role: 'Editor' }
     ],
