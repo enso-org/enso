@@ -7,6 +7,7 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.source.SourceSection;
 import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -65,14 +66,6 @@ public class BlockNode extends ExpressionNode {
   public InstrumentableNode materializeInstrumentableNodes(
       Set<Class<? extends Tag>> materializedTags) {
     if (materializedTags.contains(StandardTags.StatementTag.class)) {
-      var ctx = EnsoContext.get(this);
-      if (ctx != null) {
-        Assumption chromeInspectorNotAttached = ctx.getChromeInspectorNotAttached();
-        if (chromeInspectorNotAttached.isValid()
-            && ctx.getEnvironment().getInstruments().containsKey("inspect")) {
-          chromeInspectorNotAttached.invalidate("Chrome inspector attached");
-        }
-      }
       for (int i = 0; i < statements.length; i++) {
         if (!isNodeWrapped(statements[i])) {
           statements[i] = insert(StatementNode.wrap(statements[i]));
@@ -90,9 +83,19 @@ public class BlockNode extends ExpressionNode {
   }
 
   @Override
+  public SourceSection getSourceSection() {
+    var ss = super.getSourceSection();
+    return ss != null ? ss : getRootNode().getSourceSection();
+  }
+
+  @Override
   public boolean hasTag(Class<? extends Tag> tag) {
-    return super.hasTag(tag)
-        || tag == StandardTags.RootBodyTag.class
-        || tag == StandardTags.RootTag.class;
+    if (super.hasTag(tag)) {
+      return true;
+    }
+    if (tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class) {
+      return true;
+    }
+    return false;
   }
 }
