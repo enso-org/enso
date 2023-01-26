@@ -178,10 +178,6 @@ public class Builtins {
             LoadedBuiltinMethod value = entry.getValue();
             Optional<BuiltinFunction> fun = value.toFunction(language, false);
             fun.ifPresent(f -> scope.registerMethod(tpe, entry.getKey(), f.getFunction()));
-            if (!value.isStatic()) {
-              Optional<BuiltinFunction> fun2 = value.toFunction(language, true);
-              fun2.ifPresent(f -> scope.registerMethod(tpe, entry.getKey() + "_static", f.getFunction()));
-            }
           }
         });
       }

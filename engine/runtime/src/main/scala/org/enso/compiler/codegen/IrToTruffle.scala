@@ -446,7 +446,10 @@ class IrToTruffle(
                       new RuntimeFunction(
                         m.getFunction.getCallTarget,
                         null,
-                        new FunctionSchema(new Array[RuntimeAnnotation](0), bodyBuilder.args(): _*)
+                        new FunctionSchema(
+                          new Array[RuntimeAnnotation](0),
+                          bodyBuilder.args(): _*
+                        )
                       )
                     } else {
                       m.getFunction
