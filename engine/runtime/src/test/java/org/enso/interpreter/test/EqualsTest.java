@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 @RunWith(Theories.class)
 public class EqualsTest extends TestBase {
   private static Context context;
-  private EqualsAnyNode equalsNode;
+  private EqualsNode equalsNode;
 
   @BeforeClass
   public static void initContextAndData() {
@@ -32,7 +32,7 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
-          equalsNode = EqualsAnyNode.build();
+          equalsNode = EqualsNode.build();
           return null;
         });
   }

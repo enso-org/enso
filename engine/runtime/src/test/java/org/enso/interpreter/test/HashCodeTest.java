@@ -7,7 +7,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -25,7 +25,7 @@ public class HashCodeTest extends TestBase {
   private static final InteropLibrary interop = InteropLibrary.getUncached();
 
   private HashCodeNode hashCodeNode;
-  private EqualsAnyNode equalsNode;
+  private EqualsNode equalsNode;
 
   @BeforeClass
   public static void initContextAndData() {
@@ -38,7 +38,7 @@ public class HashCodeTest extends TestBase {
   public void initNodes() {
     executeInContext(context, () -> {
       hashCodeNode = HashCodeNode.build();
-      equalsNode = EqualsAnyNode.build();
+      equalsNode = EqualsNode.build();
       return null;
     });
   }

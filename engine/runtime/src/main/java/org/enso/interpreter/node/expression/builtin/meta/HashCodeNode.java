@@ -45,7 +45,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
  * <h3>Hashing contract:</h3>
  *
  * <ul>
- *   <li>Whenever two objects are equal ({@code EqualsAnyNode} returns {@code true}), their hashcode
+ *   <li>Whenever two objects are equal ({@code EqualsNode} returns {@code true}), their hashcode
  *       should equal. More formally: {@code For all objects o1, o2: if o1 == o2 then hash(o1) ==
  *       hash(o2)}
  *   <li>Whenever two hash codes are different, their associated objects are different: {@code For all objects

@@ -10,7 +10,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.expression.builtin.meta.EqualsAnyNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
 @BuiltinMethod(
@@ -62,7 +62,7 @@ public abstract class HashMapInsertNode extends Node {
       @CachedLibrary("foreignMap") InteropLibrary mapInterop,
       @CachedLibrary(limit = "3") InteropLibrary iteratorInterop,
       @Cached HashCodeNode hashCodeNode,
-      @Cached EqualsAnyNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     var mapBuilder = EnsoHashMapBuilder.create(hashCodeNode, equalsNode);
     try {
       Object entriesIterator = mapInterop.getHashEntriesIterator(foreignMap);

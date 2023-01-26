@@ -57,12 +57,12 @@ import org.enso.polyglot.MethodNames;
       """
 )
 @GenerateUncached
-public abstract class EqualsAnyNode extends Node {
+public abstract class EqualsNode extends Node {
 
   protected static String EQUALS_MEMBER_NAME = MethodNames.Function.EQUALS;
 
-  public static EqualsAnyNode build() {
-    return EqualsAnyNodeGen.create();
+  public static EqualsNode build() {
+    return EqualsNodeGen.create();
   }
 
   public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
@@ -141,14 +141,14 @@ public abstract class EqualsAnyNode extends Node {
 
   @Specialization
   boolean equalsUnresolvedSymbols(UnresolvedSymbol self, UnresolvedSymbol otherSymbol,
-                                  @Cached EqualsAnyNode equalsNode) {
+                                  @Cached EqualsNode equalsNode) {
     return self.getName().equals(otherSymbol.getName())
         && equalsNode.execute(self.getScope(), otherSymbol.getScope());
   }
 
   @Specialization
   boolean equalsUnresolvedConversion(UnresolvedConversion selfConversion, UnresolvedConversion otherConversion,
-                                     @Cached EqualsAnyNode equalsNode) {
+                                     @Cached EqualsNode equalsNode) {
     return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
   }
 
@@ -162,7 +162,7 @@ public abstract class EqualsAnyNode extends Node {
   boolean equalsWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
                              @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
                              @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-                             @Cached EqualsAnyNode equalsNode
+                             @Cached EqualsNode equalsNode
   ) {
     try {
       Object self =
@@ -401,7 +401,7 @@ public abstract class EqualsAnyNode extends Node {
   boolean equalsArrays(Object selfArray, Object otherArray,
                        @CachedLibrary("selfArray") InteropLibrary selfInterop,
                        @CachedLibrary("otherArray") InteropLibrary otherInterop,
-                       @Cached EqualsAnyNode equalsNode
+                       @Cached EqualsNode equalsNode
   ) {
     try {
       long selfSize = selfInterop.getArraySize(selfArray);
@@ -429,7 +429,7 @@ public abstract class EqualsAnyNode extends Node {
       @CachedLibrary("selfHashMap") InteropLibrary selfInterop,
       @CachedLibrary("otherHashMap") InteropLibrary otherInterop,
       @CachedLibrary(limit = "5") InteropLibrary entriesInterop,
-      @Cached EqualsAnyNode equalsNode) {
+      @Cached EqualsNode equalsNode) {
     try {
       int selfHashSize = (int) selfInterop.getHashSize(selfHashMap);
       int otherHashSize = (int) otherInterop.getHashSize(otherHashMap);
@@ -466,13 +466,13 @@ public abstract class EqualsAnyNode extends Node {
   }
 
   /**
-   * How many {@link EqualsAnyNode} should be created for fields in specialization for atoms.
+   * How many {@link EqualsNode} should be created for fields in specialization for atoms.
    */
   static final int equalsNodeCountForFields = 10;
 
-  static EqualsAnyNode[] createEqualsNodes(int size) {
-    EqualsAnyNode[] nodes = new EqualsAnyNode[size];
-    Arrays.fill(nodes, EqualsAnyNode.build());
+  static EqualsNode[] createEqualsNodes(int size) {
+    EqualsNode[] nodes = new EqualsNode[size];
+    Arrays.fill(nodes, EqualsNode.build());
     return nodes;
   }
 
@@ -481,7 +481,7 @@ public abstract class EqualsAnyNode extends Node {
       Atom self,
       Atom other,
       @Cached LoopConditionProfile loopProfile,
-      @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsAnyNode[] fieldEqualsNodes,
+      @Cached(value = "createEqualsNodes(equalsNodeCountForFields)", allowUncached = true) EqualsNode[] fieldEqualsNodes,
       @Cached ConditionProfile enoughEqualNodesForFieldsProfile,
       @Cached ConditionProfile constructorsNotEqualProfile,
       @CachedLibrary(limit = "3") StructsLibrary selfStructs,
@@ -531,7 +531,7 @@ public abstract class EqualsAnyNode extends Node {
           && atomOverridesEquals(selfFieldAtom)) {
         areFieldsSame = InvokeAnyEqualsNode.getUncached().execute(selfFieldAtom, otherFieldAtom);
       } else {
-        areFieldsSame = EqualsAnyNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
+        areFieldsSame = EqualsNodeGen.getUncached().execute(selfFields[i], otherFields[i]);
       }
       if (!areFieldsSame) {
         return false;
@@ -546,7 +546,7 @@ public abstract class EqualsAnyNode extends Node {
   @GenerateUncached
   static abstract class InvokeAnyEqualsNode extends Node {
     static InvokeAnyEqualsNode getUncached() {
-      return EqualsAnyNodeGen.InvokeAnyEqualsNodeGen.getUncached();
+      return EqualsNodeGen.InvokeAnyEqualsNodeGen.getUncached();
     }
 
     abstract boolean execute(Atom selfAtom, Atom otherAtom);
