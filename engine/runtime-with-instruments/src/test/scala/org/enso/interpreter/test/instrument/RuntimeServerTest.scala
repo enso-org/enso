@@ -2449,6 +2449,172 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List()
   }
 
+  it should "send reload file notifications when file is restored" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val newline    = System.lineSeparator()
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    val code =
+      """from Standard.Base.Data.Numbers import Number
+        |import Standard.Base.IO
+        |
+        |main = IO.println "I'm a file!"
+        |""".stripMargin.linesIterator.mkString("\n")
+
+    // Create a new file
+    val mainFile = context.writeMain(code)
+
+    // Open the new file
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
+    context.receiveNone shouldEqual None
+    context.consumeOut shouldEqual List()
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("I'm a file!")
+
+    /*
+      Modify the file:
+      """from Standard.Base.Data.Numbers import Number
+        |import Standard.Base.IO
+        |
+        |Number.lucky = 42
+        |
+        |main = IO.println "I'm a modified!"
+        |""".stripMargin.linesIterator.mkString("\n")
+     */
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(3, 25), model.Position(3, 29)),
+              "modified"
+            ),
+            TextEdit(
+              model.Range(model.Position(3, 0), model.Position(3, 0)),
+              s"Number.lucky = 42$newline$newline"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveNIgnoreExpressionUpdates(
+      1
+    ) should contain theSameElementsAs Seq(
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("I'm a modified!")
+
+    // Simulate file update in FS
+    context.writeMain(code)
+    // Modify the file
+    /*context.send(
+      Api.Request(
+        Api.ReloadFileNotification(
+          mainFile,
+        )
+      )
+    )*/
+
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    // Lack of API.ReloadFileNotification illustrating the fact that
+    // module sources haven't changed
+    context.consumeOut shouldEqual List("I'm a modified!")
+
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+
+    context.send(
+      Api.Request(
+        Api.ReloadFileNotification(
+          mainFile
+        )
+      )
+    )
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    // API.ReloadFileNotification triggers reloading of module sources
+    context.consumeOut shouldEqual List("I'm a file!")
+
+    // Close the file
+    context.send(Api.Request(Api.CloseFileNotification(mainFile)))
+    context.receiveNone shouldEqual None
+    context.consumeOut shouldEqual List()
+  }
+
   it should "recompute expressions without invalidation" in {
     val contents   = context.Main.code
     val mainFile   = context.writeMain(contents)
