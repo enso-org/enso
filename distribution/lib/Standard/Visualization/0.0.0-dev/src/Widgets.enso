@@ -1,0 +1,15 @@
+from Standard.Base import all
+
+## PRIVATE
+   Basic preprocessor for widgets metadata visualization.
+
+   Returns full annotation data for all requested arguments.
+get_full_annotations_json : Any -> Text -> Vector Text -> Text
+get_full_annotations_json value call_name argument_names =
+    read_annotation argument =
+        annotation = Meta.get_annotation value call_name argument
+        case annotation of
+            _ : Function -> annotation value
+            _ -> annotation
+    annotations = argument_names.map (arg -> [arg, read_annotation arg])
+    annotations.to_json
