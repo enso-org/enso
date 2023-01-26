@@ -1106,7 +1106,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
 // === Sub-Projects ===========================================================
 // ============================================================================
 
-val truffleRunOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
+val truffleRunOptionsNoAssert = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
   Seq(
     "-Dpolyglot.engine.IterativePartialEscape=true",
     "-Dpolyglot.engine.BackgroundCompilation=false",
@@ -1118,6 +1118,12 @@ val truffleRunOptions = if (java.lang.Boolean.getBoolean("bench.compileOnly")) {
     "-Dpolyglot.engine.BackgroundCompilation=false"
   )
 }
+val truffleRunOptions = "-ea" +: truffleRunOptionsNoAssert
+
+val truffleRunOptionsNoAssertSettings = Seq(
+  fork := true,
+  javaOptions ++= truffleRunOptionsNoAssert
+)
 
 val truffleRunOptionsSettings = Seq(
   fork := true,
@@ -1127,6 +1133,7 @@ val truffleRunOptionsSettings = Seq(
 lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
+    frgaalJavaCompilerSetting,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -1180,6 +1187,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   )
   .configs(Benchmark)
   .settings(
+    inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (Benchmark / test).value,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
@@ -1575,7 +1583,7 @@ lazy val `runtime-with-polyglot` =
     .configs(Benchmark)
     .settings(
       frgaalJavaCompilerSetting,
-      inConfig(Compile)(truffleRunOptionsSettings),
+      inConfig(Compile)(truffleRunOptionsNoAssertSettings),
       inConfig(Benchmark)(Defaults.testSettings),
       commands += WithDebugCommand.withDebug,
       Benchmark / javacOptions --= Seq(
