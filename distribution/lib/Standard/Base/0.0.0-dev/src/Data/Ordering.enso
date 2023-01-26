@@ -75,6 +75,7 @@ import project.Meta
           ordered or unordered.
         - if the result is `Ordering.Equal` the system also checks that both instances have the same `hash`
         - the `hash` code check may be done only from time to time to speed things up
+@Builtin_Type
 type Comparable
 
 ## Singleton denoting that values of certain type are not comparable.
@@ -82,6 +83,7 @@ type Incomparable
     Singleton
 
 ## Default implementation of unordered comparator. Uses the builtin equals and hash_code.
+@Builtin_Type
 type Default_Unordered_Comparator
     is_ordered = False
 
@@ -93,6 +95,7 @@ type Default_Unordered_Comparator
 
 ## Default implementation of an ordered _comparator_ that forwards to `>`, `<` etc.
    operators.
+@Builtin_Type
 type Default_Ordered_Comparator
     is_ordered = True
 
