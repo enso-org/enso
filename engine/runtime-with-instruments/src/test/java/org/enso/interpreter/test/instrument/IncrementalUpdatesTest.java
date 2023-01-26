@@ -196,7 +196,7 @@ public class IncrementalUpdatesTest {
     );
     // Open the new file
     context.send(
-      Request(new Runtime$Api$OpenFileNotification(mainFile, contents))
+      Request(new Runtime$Api$OpenFileNotification(mainFile, contents, false))
     );
     assertTrue("No reply", context.receiveNone().isEmpty());
 

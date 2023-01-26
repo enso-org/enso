@@ -266,7 +266,9 @@ class CollaborativeBuffer(
         oldBuffer.version.toHexString,
         buffer.version.toHexString
       )
-      runtimeConnector ! Api.Request(Api.ReloadFileNotification(buffer.file))
+      runtimeConnector ! Api.Request(
+        Api.OpenFileNotification(file.path, file.content, reload = true)
+      )
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
       unstashAll()
       replyTo ! ReloadedBuffer(path)

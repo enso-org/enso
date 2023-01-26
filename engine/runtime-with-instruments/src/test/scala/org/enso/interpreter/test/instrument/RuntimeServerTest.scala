@@ -2564,7 +2564,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.executionComplete(contextId)
     )
-    // Lack of API.ReloadFileNotification illustrating the fact that
+    // Lack of API.OpenFileNotification illustrating the fact that
     // module sources haven't been updated resulting in the old result
     context.consumeOut shouldEqual List("I'm a modified!")
 
@@ -2575,8 +2575,10 @@ class RuntimeServerTest
 
     context.send(
       Api.Request(
-        Api.ReloadFileNotification(
-          mainFile
+        Api.OpenFileNotification(
+          mainFile,
+          template(prompt),
+          reload = true
         )
       )
     )
