@@ -227,12 +227,12 @@ agg_count_distinct_include_null args = case args.length == 1 of
 
 ## PRIVATE
 starts_with = Base_Generator.lift_binary_op "starts_with" str-> sub->
-    res = str ++ " LIKE (" ++ sub ++ " || '%')"
+    res = str ++ " GLOB (" ++ sub ++ " || '*')"
     res.paren
 
 ## PRIVATE
 ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
-    res = str ++ " LIKE ('%' || " ++ sub ++ ")"
+    res = str ++ " GLOB ('*' || " ++ sub ++ ")"
     res.paren
 
 ## PRIVATE
