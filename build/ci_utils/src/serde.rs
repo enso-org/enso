@@ -122,6 +122,7 @@ pub mod via_string {
     }
 }
 
+/// Like [`via_string`] but for optional values. If the string is not present, `None` is recognized.
 pub mod via_string_opt {
     use super::*;
 

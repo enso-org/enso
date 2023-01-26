@@ -6,9 +6,9 @@ use crate::program::command::Manipulator;
 
 
 
-pub fn build_type(config: Configuration) -> SetVariable {
-    SetVariable::string("CMAKE_BUILD_TYPE", config.to_string())
-}
+// =====================
+// === Configuration ===
+// =====================
 
 /// Standard build configurations defined by CMake.
 ///
@@ -28,6 +28,19 @@ pub enum Configuration {
     MinSizeRel,
 }
 
+
+// ===================
+// === CLI Options ===
+// ===================
+
+/// Define build type for a single configuration generator.
+///
+/// See <https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html>.
+pub fn build_type(config: Configuration) -> SetVariable {
+    SetVariable::string("CMAKE_BUILD_TYPE", config.to_string())
+}
+
+/// Option that can be passed to `cmake --build` command.
 #[derive(Clone, Copy, Debug)]
 pub enum BuildOption {
     /// The maximum number of concurrent processes to use when building. If value is omitted the
@@ -64,7 +77,7 @@ impl Manipulator for BuildOption {
     }
 }
 
-/// Options for `--install` family of commands.
+/// Options for `cmake --install` family of commands.
 #[derive(Clone, Debug)]
 pub enum InstallOption {
     /// Install to the given directory.
@@ -79,18 +92,6 @@ impl Manipulator for InstallOption {
                 command.arg(path);
             }
         }
-    }
-}
-
-/// The [CMake program](https://cmake.org/).
-///
-/// See [the official CLI documentation](https://cmake.org/cmake/help/latest/manual/cmake.1.html).
-#[derive(Clone, Debug, Copy)]
-pub struct CMake;
-
-impl Program for CMake {
-    fn executable_name(&self) -> &str {
-        "cmake"
     }
 }
 
@@ -137,11 +138,34 @@ impl Manipulator for SetVariable {
     }
 }
 
+// ===============
+// === Program ===
+// ===============
+
+/// The [CMake program](https://cmake.org/).
+///
+/// See [the official CLI documentation](https://cmake.org/cmake/help/latest/manual/cmake.1.html).
+#[derive(Clone, Debug, Copy)]
+pub struct CMake;
+
+impl Program for CMake {
+    fn executable_name(&self) -> &str {
+        "cmake"
+    }
+}
+
+// ===========================
+// === Helper Entry Points ===
+// ===========================
+
+/// Generate build files for the given project.
 #[context("Failed to generate build files for {}.", source_dir.as_ref().display())]
 pub fn generate(source_dir: impl AsRef<Path>, build_dir: impl AsRef<Path>) -> Result<Command> {
     Ok(CMake.cmd()?.with_arg(source_dir.as_ref()).with_current_dir(build_dir.as_ref()))
 }
 
+/// Build the project. The build_dir must be the same as the one used in the [generation
+/// step](generate).
 pub fn build(build_dir: impl AsRef<Path>) -> Result<Command> {
     Ok(CMake
         .cmd()?
@@ -151,6 +175,8 @@ pub fn build(build_dir: impl AsRef<Path>) -> Result<Command> {
         .with_current_dir(&build_dir))
 }
 
+/// Install the project. The build_dir must be the same as the one used in the [generation
+/// step](generate), and [`build`] should have been called before.
 pub fn install(build_dir: impl AsRef<Path>, prefix_dir: impl AsRef<Path>) -> Result<Command> {
     Ok(CMake
         .cmd()?

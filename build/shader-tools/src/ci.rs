@@ -9,6 +9,7 @@ use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::RunnerLabel;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Workflow;
+use ide_ci::actions::workflow::definition::WorkflowToWrite;
 use ide_ci::github::GITHUB_TOKEN;
 
 
@@ -52,24 +53,21 @@ pub fn job_that_runs(binary: Binary, runs_on: RunnerLabel, expose_output: Option
     let mut job = Job::new(format!("Run {binary} ({runs_on:?})"), [runs_on]);
     job.steps.extend(checkout_steps);
     let main_step = run_bin(binary).with_secret_exposed_as("CI_PRIVATE_TOKEN", GITHUB_TOKEN);
-    if let Some(output) = expose_output {
-        job.add_step_with_output(main_step, output);
-    } else {
-        job.steps.push(main_step);
-    }
+    job.add_step_with_output(main_step, expose_output);
     job
 }
 
 /// Generate a workflow that builds shaderc packages for all platforms and releases them.
-pub fn generate_workflow() -> Workflow {
-    // TODO? [mwu] Once CMake is added, we might want to switch to self-hosted runners.
+pub fn generate_workflow(path: impl Into<PathBuf>) -> WorkflowToWrite {
+    // Once CMake is added, we might want to switch to self-hosted runners.
+    // On the other hand, there is little incentive to do so, as the build is fast enough and not
+    // part of our "usual" CI pipeline..
     let linux = RunnerLabel::LinuxLatest;
     let windows = RunnerLabel::WindowsLatest;
     let macos = RunnerLabel::MacOSLatest;
 
     let mut workflow = Workflow::new("Package Tools");
     workflow.on.workflow_dispatch(default());
-    workflow.on.push(default());
     let create_release_job = job_that_runs(Binary::Create, linux, Some(ENSO_RELEASE_ID.as_ref()));
     let create_job_id = workflow.add_job(create_release_job);
 
@@ -88,5 +86,5 @@ pub fn generate_workflow() -> Workflow {
         publish_job.needs(package_job_id);
     }
     workflow.add_job(publish_job);
-    workflow
+    WorkflowToWrite { workflow, path: path.into(), source: file!().into() }
 }

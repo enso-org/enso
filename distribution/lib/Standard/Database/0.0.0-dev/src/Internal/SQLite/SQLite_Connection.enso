@@ -1,6 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Error.Illegal_State.Illegal_State
 
+from Standard.Base.Metadata.Widget import Single_Choice
+import Standard.Base.Metadata.Display
+
 import Standard.Table.Data.Table.Table as Materialized_Table
 
 import project.Data.SQL_Query.SQL_Query
@@ -75,6 +78,7 @@ type SQLite_Connection
        - schema: The schema name to search in (defaults to current schema).
        - types: The table types to search for. The list of values can be obtained using the `table_types` method.
        - all_fields: Return all the fields in the metadata table.
+    @types (self-> Single_Choice values=(self.table_types.map .pretty))
     tables : Text -> Text -> Text -> Vector -> Boolean -> Materialized_Table
     tables self name_like=Nothing database=self.database schema=self.schema types=Nothing all_fields=False =
         self.connection.tables name_like database schema types all_fields
@@ -85,6 +89,7 @@ type SQLite_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - alias: optionally specify a friendly alias for the query.
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map .pretty))
     query : Text | SQL_Query -> Text -> Database_Table
     query self query alias="" = self.connection.query query alias
 
@@ -94,6 +99,7 @@ type SQLite_Connection
        - query: name of the table or sql statement to query.
          If supplied as `Text`, the name is checked against the `tables` list to determine if it is a table or a query.
        - limit: the maximum number of rows to return.
+    @query (self-> Single_Choice display=Display.Always values=(self.tables.at "Name" . to_vector . map .pretty))
     read : Text | SQL_Query -> Integer | Nothing -> Materialized_Table
     read self query limit=Nothing = self.connection.read query limit
 

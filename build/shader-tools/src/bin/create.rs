@@ -14,7 +14,13 @@ use ide_ci::prelude::setup_logging;
 async fn main() -> Result {
     setup_logging()?;
     let handle = enso_build_shader_tools::repo_handle_from_env().await?;
-    let release = enso_build_shader_tools::create_release(handle, "0.1.0").await?;
+    let latest_version = handle
+        .latest_release()
+        .await
+        .and_then(|r| Version::from_str(&r.tag_name))
+        .unwrap_or_else(|_| Version::new(0, 0, 0));
+    let next_version = latest_version.next_minor();
+    let release = enso_build_shader_tools::create_release(handle, next_version).await?;
     ide_ci::actions::workflow::set_output(
         enso_build_shader_tools::ENSO_RELEASE_ID.as_str(),
         &release.id,

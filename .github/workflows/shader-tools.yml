@@ -1,6 +1,8 @@
+# This file is auto-generated. Do not edit it manually!
+# Edit the build\shader-tools\src\ci.rs module instead and run `cargo run --package enso-build-ci-gen`.
+
 name: Package Tools
 on:
-  push: {}
   workflow_dispatch: {}
 jobs:
   run-create-linux-latest:
@@ -49,7 +51,8 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-build-shader-tools --bin package
+      - id: step_1
+        run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360
@@ -76,7 +79,8 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-build-shader-tools --bin package
+      - id: step_3
+        run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360
@@ -103,7 +107,8 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-build-shader-tools --bin package
+      - id: step_2
+        run: cargo run --package enso-build-shader-tools --bin package
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360
@@ -133,7 +138,8 @@ jobs:
         with:
           clean: false
           submodules: recursive
-      - run: cargo run --package enso-build-shader-tools --bin publish
+      - id: step_4
+        run: cargo run --package enso-build-shader-tools --bin publish
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
         timeout-minutes: 360

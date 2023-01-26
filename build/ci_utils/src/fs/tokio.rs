@@ -79,15 +79,6 @@ pub async fn remove_dir_if_exists(path: impl AsRef<Path>) -> Result {
     }
 }
 
-pub async fn perhaps_remove_dir_if_exists(dry_run: bool, path: impl AsRef<Path>) -> Result {
-    if dry_run {
-        info!("Would remove directory {}.", path.as_ref().display());
-        Ok(())
-    } else {
-        remove_dir_if_exists(path).await
-    }
-}
-
 /// Recreate directory, so it exists and is empty.
 pub async fn reset_dir(path: impl AsRef<Path>) -> Result {
     let path = path.as_ref();
@@ -207,8 +198,6 @@ pub async fn require_exist(path: impl AsRef<Path>) -> Result {
     }
 }
 
-/// Copy source item (file or a directory) to a destination directory.
-///
 /// Asynchronous version of [`crate::fs::copy_to`].
 pub async fn copy_to(source_file: impl AsRef<Path>, dest_dir: impl AsRef<Path>) -> Result<PathBuf> {
     let source_file = source_file.as_ref().to_path_buf();

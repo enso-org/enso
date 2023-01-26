@@ -11,6 +11,7 @@ import project.Scatter_Plot_Spec
 import project.SQL_Spec
 import project.Table_Spec
 import project.Visualization_Spec
+import project.Widgets_Spec
 
 main = Test_Suite.run_main <|
     Geo_Map_Spec.spec
@@ -22,3 +23,4 @@ main = Test_Suite.run_main <|
     SQL_Spec.spec
     Table_Spec.spec
     Visualization_Spec.spec
+    Widgets_Spec.spec

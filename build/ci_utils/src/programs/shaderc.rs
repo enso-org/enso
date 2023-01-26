@@ -6,6 +6,10 @@ use crate::prelude::*;
 
 
 
+// =============
+// === glslc ===
+// =============
+
 /// A command-line GLSL/HLSL to SPIR-V compiler with Clang-compatible arguments.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Glslc;
@@ -15,6 +19,11 @@ impl Program for Glslc {
         "glslc"
     }
 }
+
+
+// =================
+// === spirv-opt ===
+// =================
 
 /// SPIR-V Optimizer.
 #[derive(Clone, Copy, Debug, Default)]

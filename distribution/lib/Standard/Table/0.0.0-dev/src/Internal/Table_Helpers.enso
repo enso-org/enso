@@ -319,6 +319,7 @@ sort_columns : Vector -> Sort_Direction -> Text_Ordering -> Vector
 sort_columns internal_columns order text_ordering =
     case_sensitivity = text_ordering.case_sensitivity.if_nothing Case_Sensitivity.Sensitive
     mapper = case case_sensitivity of
+        Case_Sensitivity.Default -> _.name
         Case_Sensitivity.Sensitive -> _.name
         Case_Sensitivity.Insensitive locale ->
             col -> col.name.to_case_insensitive_key locale=locale

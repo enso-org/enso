@@ -9,7 +9,5 @@ html_parser = "0.6.3"
 ide-ci = { path = "../ci_utils" }
 octocrab = { workspace = true }
 regex = "1.7.1"
-#reqwest = { workspace = true }
-serde_yaml = { workspace = true }
 tempfile = "3.3.0"
 tokio = { workspace = true }
