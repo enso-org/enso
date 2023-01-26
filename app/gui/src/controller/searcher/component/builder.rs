@@ -323,12 +323,11 @@ impl List {
 
 fn component_is_private(component: &Component) -> bool {
     match &component.data {
-        component::Data::FromDatabase { entry, .. } => {
+        component::Data::FromDatabase { entry, .. } =>
             entry.documentation.iter().any(|doc| match doc {
-                DocSection::Tag{ name, ..} => name == "PRIVATE",
+                DocSection::Tag { name, .. } => name == "PRIVATE",
                 _ => false,
-            })
-        }
+            }),
         _ => false,
     }
 }
