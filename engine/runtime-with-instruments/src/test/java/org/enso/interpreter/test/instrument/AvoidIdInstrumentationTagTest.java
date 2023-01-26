@@ -1,11 +1,9 @@
 package org.enso.interpreter.test.instrument;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.OutputStream;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import org.enso.interpreter.node.ClosureRootNode;
@@ -14,11 +12,12 @@ import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.test.NodeCountingTestInstrument;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.Language;
+import org.graalvm.polyglot.Source;
 import org.junit.After;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,22 +55,23 @@ public class AvoidIdInstrumentationTagTest {
   }
 
   @Test
-  public void avoidIdInstrumentationInLambdaMapFunctionWithNoise() {
+  public void avoidIdInstrumentationInLambdaMapFunctionWithNoise() throws Exception {
     var code = """
     from Standard.Base import all
     import Standard.Visualization
 
     run n = 0.up_to n . map i-> 1.noise * i
     """;
-
-    var module = context.eval("enso", code);
+    var src = Source.newBuilder("enso", code, "TestLambda.enso").build();
+    var module = context.eval(src);
     var run = module.invokeMember("eval_expression", "run");
     var res = run.execute(10000);
     assertEquals("Array of the requested size computed", 10000, res.getArraySize());
 
     Predicate<SourceSection> isLambda = (ss) -> {
+      var sameSrc = ss.getSource().getCharacters().toString().equals(src.getCharacters().toString());
       var st = ss.getCharacters().toString();
-      return st.contains("noise") && !st.contains("map");
+      return sameSrc && st.contains("noise") && !st.contains("map");
     };
 
     assertAvoidIdInstrumentationTag(isLambda);
@@ -81,6 +81,7 @@ public class AvoidIdInstrumentationTagTest {
     var found = nodes.assertNewNodes("Give me nodes", 0, 10000);
     var err = new StringBuilder();
     var missingTagInLambda = false;
+    var count = 0;
     for (var nn : found.values()) {
       for (var n : nn) {
         var ss = n.getSourceSection();
@@ -93,6 +94,8 @@ public class AvoidIdInstrumentationTagTest {
             final boolean hasAvoidIdInstrumentationTag = in.hasTag(AvoidIdInstrumentationTag.class);
             if (!hasAvoidIdInstrumentationTag) {
               missingTagInLambda = true;
+            } else {
+              count++;
             }
 
             err.append("\n").append("  AvoidIdInstrumentationTag: ").append(hasAvoidIdInstrumentationTag);
@@ -110,5 +113,6 @@ public class AvoidIdInstrumentationTagTest {
     if (missingTagInLambda) {
       fail(err.toString());
     }
+    assertNotEquals("Found some nodes", 0, count);
   }
 }
