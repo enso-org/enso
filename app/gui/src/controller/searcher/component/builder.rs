@@ -609,4 +609,39 @@ mod tests {
         assert_eq!(group_at_1.name, "Group 1");
         check_names_and_order_of_group_entries(group_at_1, &[qn_of_db_entry_1.name()]);
     }
+
+    /// Test building a component list with a private component. The private component will be
+    /// excluded from the list.
+    #[test]
+    fn building_component_list_with_private_component() {
+        let suggestion_db = enso_suggestion_database::mock_suggestion_database! {
+            test.Test {
+                mod TopModule_1 {
+                    fn fun_2() -> Standard.Base.Any;
+                    #[with_doc_section(enso_suggestion_database::doc_section!(@ "PRIVATE", ""))]
+                    fn fun_3() -> Standard.Base.Any;
+                    fn fun_4() -> Standard.Base.Any;
+                }
+            }
+        };
+        let mut builder = List::new().with_local_scope_module_id(1);
+        let entry_ids = 0..5;
+        builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, entry_ids);
+        let list = builder.build();
+
+        let top_modules: Vec<ComparableGroupData> = list
+            .top_module_sections
+            .iter()
+            .flat_map(|section| section.modules.iter())
+            .map(Into::into)
+            .collect();
+        let expected = vec![
+            ComparableGroupData {
+                name: "Test.TopModule_1",
+                component_id: Some(1),
+                entries: vec![2, 4],
+            },
+        ];
+        assert_eq!(top_modules, expected);
+    }
 }
