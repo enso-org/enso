@@ -2460,12 +2460,14 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
-    val code =
-      """from Standard.Base.Data.Numbers import Number
-        |import Standard.Base.IO
-        |
-        |main = IO.println "I'm a file!"
-        |""".stripMargin.linesIterator.mkString("\n")
+    def template(text: String) =
+      s"""from Standard.Base.Data.Numbers import Number
+         |import Standard.Base.IO
+         |
+         |main = IO.println "${text}"
+         |""".stripMargin.linesIterator.mkString("\n")
+
+    val code = template("I'm a file!")
 
     // Create a new file
     val mainFile = context.writeMain(code)
@@ -2534,7 +2536,8 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("I'm a modified!")
 
     // Simulate file update in FS
-    context.writeMain(code)
+    val prompt = "I'm a foo"
+    context.writeMain(template(prompt))
 
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -2599,7 +2602,7 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     // API.ReloadFileNotification triggers reloading of module sources
-    context.consumeOut shouldEqual List("I'm a file!")
+    context.consumeOut shouldEqual List(prompt)
 
     // Close the file
     context.send(Api.Request(Api.CloseFileNotification(mainFile)))
