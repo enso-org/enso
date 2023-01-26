@@ -291,7 +291,6 @@ impl List {
         }
         self.local_scope.update_sorting(components_order);
         let favorites = self.build_favorites_and_add_to_all_components();
-
         let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
         let section_list_builder = Sections::new(top_module_groups);
 
