@@ -20,7 +20,7 @@ async fn main() -> Result {
         .and_then(|r| Version::from_str(&r.tag_name))
         .unwrap_or_else(|_| Version::new(0, 0, 0));
     let next_version = latest_version.next_minor();
-    let release = enso_build_shader_tools::create_release(handle, next_version).await?;
+    let release = enso_build_shader_tools::create_release(handle, next_version.to_string()).await?;
     ide_ci::actions::workflow::set_output(
         enso_build_shader_tools::ENSO_RELEASE_ID.as_str(),
         &release.id,
