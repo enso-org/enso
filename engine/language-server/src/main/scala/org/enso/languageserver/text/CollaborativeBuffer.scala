@@ -267,7 +267,7 @@ class CollaborativeBuffer(
         buffer.version.toHexString
       )
       runtimeConnector ! Api.Request(
-        Api.SetModuieSourcesNotification(file.path, file.content)
+        Api.SetModuleSourcesNotification(file.path, file.content)
       )
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
       unstashAll()
