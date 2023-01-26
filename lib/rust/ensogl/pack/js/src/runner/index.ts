@@ -221,6 +221,18 @@ export class App {
         host.exportGlobal({ ensoglApp: this })
     }
 
+    /** Registers the Rust function that extracts the shader definitions. */
+    registerGetShadersRustFn(fn: GetShadersFn) {
+        logger.log(`Registering 'getShadersFn'.`)
+        rustGetShadersFn = fn
+    }
+
+    /** Registers the Rust function that injects the shader definitions. */
+    registerSetShadersRustFn(fn: SetShadersFn) {
+        logger.log(`Registering 'setShadersFn'.`)
+        rustSetShadersFn = fn
+    }
+
     /** Log the message on the remote server. */
     remoteLog(message: string, data: any) {
         // TODO: Implement remote logging. This should be done after cloud integration.
@@ -485,7 +497,7 @@ export class App {
 
     /* Set optimized shaders in WASM. */
     setShaders(map: Map<string, { vertex: string; fragment: string }>) {
-        log.Task.runCollapsed('Sending shaders to Rust.', () => {
+        log.Task.runCollapsed(`Sending ${map.size} shaders to Rust.`, () => {
             if (!rustSetShadersFn) {
                 logger.error('The Rust shader injection function was not registered.')
             } else {

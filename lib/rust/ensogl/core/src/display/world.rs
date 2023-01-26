@@ -25,6 +25,7 @@ use crate::display::shape::primitive::glsl;
 use crate::display::symbol::registry::RunMode;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::system::gpu::shader;
+use crate::system::js;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
@@ -111,32 +112,11 @@ thread_local! {
     pub static PRECOMPILED_SHADERS: RefCell<HashMap<String, PrecompiledShader>> = default();
 }
 
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-extern "C" {
-    /// Register in JS a closure to get non-precompiled shaders from Rust.
-    #[allow(unsafe_code)]
-    fn registerGetShadersRustFn(closure: &Closure<dyn FnMut() -> JsValue>);
-
-    /// Register in JS a closure to set precompiled shaders in Rust.
-    #[allow(unsafe_code)]
-    fn registerSetShadersRustFn(closure: &Closure<dyn FnMut(JsValue)>);
-}
-
-/// Register in JS a closure to get non-precompiled shaders from Rust.
-#[cfg(not(target_arch = "wasm32"))]
-#[allow(non_snake_case)]
-fn registerGetShadersRustFn(_closure: &Closure<dyn FnMut() -> JsValue>) {}
-
-/// Register in JS a closure to set precompiled shaders in Rust.
-#[cfg(not(target_arch = "wasm32"))]
-#[allow(non_snake_case)]
-fn registerSetShadersRustFn(_closure: &Closure<dyn FnMut(JsValue)>) {}
-
 /// Registers in JS a closure to acquire non-optimized shaders code and to set back optimized
 /// shaders code.
 #[before_main]
 pub fn register_get_and_set_shaders_fns() {
+    let js_app = js::app_or_panic();
     let closure = Closure::new(|| {
         let map = gather_shaders();
         let js_map = web::Map::new();
@@ -148,7 +128,7 @@ pub fn register_get_and_set_shaders_fns() {
         }
         js_map.into()
     });
-    registerGetShadersRustFn(&closure);
+    js_app.register_get_shaders_rust_fn(&closure);
     mem::forget(closure);
 
     let closure = Closure::new(|value: JsValue| {
@@ -156,7 +136,7 @@ pub fn register_get_and_set_shaders_fns() {
             warn!("Internal error. Downloaded shaders are provided in a wrong format.")
         }
     });
-    registerSetShadersRustFn(&closure);
+    js_app.register_set_shaders_rust_fn(&closure);
     mem::forget(closure);
 }
 
@@ -172,7 +152,7 @@ fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
         let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
         let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
         let precompiled_shader = PrecompiledShader { vertex, fragment };
-        warn!("Registering precompiled shaders for '{key}'.");
+        debug!("Registering precompiled shaders for '{key}'.");
         PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
             map.insert(key, precompiled_shader);
         });
@@ -570,7 +550,7 @@ impl WorldData {
     }
 }
 
-mod js {
+mod js_bindings {
     use super::*;
     #[wasm_bindgen(inline_js = r#"
 export function log_measurement(label, start, end) {
@@ -587,7 +567,7 @@ fn log_measurement(interval: &profiler::Interval) {
     let label = interval.label().to_owned();
     let start = interval.start();
     let end = interval.end();
-    js::log_measurement(label, start, end);
+    js_bindings::log_measurement(label, start, end);
 }
 
 

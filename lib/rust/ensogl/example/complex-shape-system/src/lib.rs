@@ -24,6 +24,8 @@ use ensogl_core::system::web;
 // ==============
 
 mod shape {
+    // This scene uses the `shape_old` definition because it demonstrates dynamic theme changes
+    // which is currently not working with shader-precompilation.
     use super::*;
     ensogl_core::shape_old! {
         (style:Style) {
@@ -55,9 +57,6 @@ mod mask {
 // ===================
 // === Entry Point ===
 // ===================
-
-// FIXME: this scene does not work anymore, as it was using dynamic theme changes. This needs to be
-// fixed in this PR.
 
 /// The example entry point.
 #[entry_point]

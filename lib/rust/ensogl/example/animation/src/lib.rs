@@ -46,7 +46,7 @@ pub fn main() {
 
         enso_frp::extend! {network
             eval animation.value([](value) {
-                info!("Value {value}")
+                warn!("Value {value}")
             });
         }
 
