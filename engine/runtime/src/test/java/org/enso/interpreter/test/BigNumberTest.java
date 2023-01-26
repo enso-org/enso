@@ -75,7 +75,7 @@ public class BigNumberTest {
       String s;
       if (!assertsOn) {
         var n = e.as(Number.class);
-        assertNotNull("All numbers can be seend as java.lang.Number", n);
+        assertNotNull("All numbers can be seen as java.lang.Number", n);
         s = n.toString();
       } else {
         s = e.toString();
