@@ -2535,14 +2535,6 @@ class RuntimeServerTest
 
     // Simulate file update in FS
     context.writeMain(code)
-    // Modify the file
-    /*context.send(
-      Api.Request(
-        Api.ReloadFileNotification(
-          mainFile,
-        )
-      )
-    )*/
 
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive shouldEqual Some(
@@ -2570,7 +2562,7 @@ class RuntimeServerTest
       context.executionComplete(contextId)
     )
     // Lack of API.ReloadFileNotification illustrating the fact that
-    // module sources haven't changed
+    // module sources haven't been updated resulting in the old result
     context.consumeOut shouldEqual List("I'm a modified!")
 
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
