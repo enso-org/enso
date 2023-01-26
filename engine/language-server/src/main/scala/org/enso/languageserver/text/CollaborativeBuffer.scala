@@ -267,7 +267,7 @@ class CollaborativeBuffer(
         buffer.version.toHexString
       )
       runtimeConnector ! Api.Request(
-        Api.OpenFileNotification(file.path, file.content, reload = true)
+        Api.SetModuieSourcesNotification(file.path, file.content)
       )
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
       unstashAll()
@@ -634,7 +634,7 @@ class CollaborativeBuffer(
       Right(OpenFileResult(buffer, Some(cap)))
     )
     runtimeConnector ! Api.Request(
-      Api.OpenFileNotification(file.path, file.content)
+      Api.SetModuleSourcesNotification(file.path, file.content)
     )
     context.become(
       collaborativeEditing(

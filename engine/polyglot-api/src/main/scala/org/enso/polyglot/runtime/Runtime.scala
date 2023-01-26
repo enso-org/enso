@@ -94,8 +94,8 @@ object Runtime {
         name  = "getComponentGroupsResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.OpenFileNotification],
-        name  = "openFileNotification"
+        value = classOf[Api.SetModuleSourcesNotification],
+        name  = "setModuleSourcesNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.EditFileNotification],
@@ -1289,26 +1289,22 @@ object Runtime {
       */
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about switching a file to literal
-      * contents.
+    /** A notification sent to the server about setting module's sources to literal contents.
       *
       * @param path the file being moved to memory.
-      * @param contents the current file contents.
-      * @param reload if true, indicates that notification represents a request to reload the file
+      * @param contents the current module's contents.
       */
-    final case class OpenFileNotification(
+    final case class SetModuleSourcesNotification(
       path: File,
-      contents: String,
-      reload: Boolean = false
+      contents: String
     ) extends ApiRequest
         with ToLogString {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "OpenFileNotification(" +
+        "SetModuleSourcesNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
-        s"reloading=$reload" +
         ")"
     }
 
