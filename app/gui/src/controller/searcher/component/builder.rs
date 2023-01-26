@@ -635,13 +635,11 @@ mod tests {
             .flat_map(|section| section.modules.iter())
             .map(Into::into)
             .collect();
-        let expected = vec![
-            ComparableGroupData {
-                name: "Test.TopModule_1",
-                component_id: Some(1),
-                entries: vec![2, 4],
-            },
-        ];
+        let expected = vec![ComparableGroupData {
+            name:         "Test.TopModule_1",
+            component_id: Some(1),
+            entries:      vec![2, 4],
+        }];
         assert_eq!(top_modules, expected);
     }
 }
