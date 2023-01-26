@@ -137,8 +137,18 @@ fn doc_comments() {
         " foo",
     ];
     #[rustfmt::skip]
-    test(&lines.join("\n"), block![
-        (Documented (#((Section " Test indent handling")) #(())) (Ident foo))]);
+    test!(&lines.join("\n"), (Documented (#((Section " Test indent handling")) #(())) (Ident foo)));
+    #[rustfmt::skip]
+    let lines = vec![
+        " ## Test indent handling",
+        "  ",
+        " foo",
+    ];
+    #[rustfmt::skip]
+    test!(&lines.join("\n"),
+        (Documented
+         (#((Section " Test indent handling")) #(() ()))
+         (Ident foo)));
 }
 
 
