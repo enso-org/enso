@@ -46,11 +46,11 @@ class StatusVcsHandler(
       context.stop(self)
 
     case Status.Failure(ex) =>
-      cancellable.cancel()
       logger.error(
         s"Status project request [$id] for [${rpcSession.clientId}] failed with: ${ex.getMessage}.",
         ex
       )
+      cancellable.cancel()
       replyTo ! ResponseError(Some(id), Errors.ServiceError)
       context.stop(self)
 
