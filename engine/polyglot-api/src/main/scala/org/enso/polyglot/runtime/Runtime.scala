@@ -1294,6 +1294,7 @@ object Runtime {
       *
       * @param path the file being moved to memory.
       * @param contents the current file contents.
+      * @param reload if true, indicates that notification represents a request to reload the file
       */
     final case class OpenFileNotification(
       path: File,

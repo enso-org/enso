@@ -2539,39 +2539,18 @@ class RuntimeServerTest
     val prompt = "I'm a foo"
     context.writeMain(template(prompt))
 
-    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
-    )
-    // Push new item on the stack to trigger the re-execution
     context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem
-            .ExplicitCall(
-              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
-              None,
-              Vector()
-            )
-        )
-      )
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
     context.receiveNIgnorePendingExpressionUpdates(
       2
     ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
     )
     // Lack of API.OpenFileNotification illustrating the fact that
     // module sources haven't been updated resulting in the old result
     context.consumeOut shouldEqual List("I'm a modified!")
-
-    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
-    )
 
     context.send(
       Api.Request(
@@ -2584,26 +2563,15 @@ class RuntimeServerTest
     )
 
     context.send(
-      Api.Request(
-        requestId,
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem
-            .ExplicitCall(
-              Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
-              None,
-              Vector()
-            )
-        )
-      )
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
     context.receiveNIgnorePendingExpressionUpdates(
       2
     ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
     )
-    // API.ReloadFileNotification triggers reloading of module sources
+    // API.OpenFileNotification triggers reloading of module sources
     context.consumeOut shouldEqual List(prompt)
 
     // Close the file
