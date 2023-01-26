@@ -119,7 +119,7 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, code))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, code))
     )
     context.receiveNone shouldEqual None
 
@@ -746,7 +746,7 @@ class RuntimeSuggestionUpdatesTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -927,11 +927,11 @@ class RuntimeSuggestionUpdatesTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, mainCode))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, mainCode))
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(aFile, aCode))
+      Api.Request(Api.SetModuleSourcesNotification(aFile, aCode))
     )
     context.receiveNone shouldEqual None
 
