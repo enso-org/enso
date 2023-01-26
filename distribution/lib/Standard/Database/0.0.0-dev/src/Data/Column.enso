@@ -674,8 +674,12 @@ type Column
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    starts_with : Column | Text -> Column
-    starts_with self other = self.make_binary_op "starts_with" other new_type=SQL_Type.boolean
+    starts_with : Column | Text -> Case_Sensitivity -> Column
+    starts_with self other case_sensitivity=Case_Sensitivity.Default =
+        Value_Type.expect_text self.value_type <| case case_sensitivity of
+            Case_Sensitivity.Default -> self.make_binary_op "starts_with" other new_type=SQL_Type.boolean
+            Case_Sensitivity.Sensitive ->
+
 
     ## UNSTABLE
 

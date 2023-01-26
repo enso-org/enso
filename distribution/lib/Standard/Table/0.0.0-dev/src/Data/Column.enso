@@ -7,6 +7,9 @@ import Standard.Base.Error.Illegal_State.Illegal_State
 
 import Standard.Base.Data.Index_Sub_Range as Index_Sub_Range_Module
 
+from Standard.Base.Metadata.Widget import Single_Choice
+import Standard.Base.Metadata.Display
+
 import project.Data.Column_Type_Selection.Auto
 import project.Data.Data_Formatter.Data_Formatter
 import project.Data.Storage.Storage
@@ -18,6 +21,7 @@ from project.Data.Table import print_table
 from project.Errors import No_Index_Set_Error
 
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.column.storage.Maps
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.operations.OrderBuilder
 
@@ -718,6 +722,8 @@ type Column
        - other: The value to compare `self` with. If `other` is a column, the
          operation is performed pairwise between corresponding elements of
          `self` and `other`.
+       - case_sensitivity: Specifies if the text values should be compared case
+         sensitively.
 
        > Example
          Check the elements of a column for starting with the elements of
@@ -734,9 +740,21 @@ type Column
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell"
-    starts_with : Column | Text -> Column
-    starts_with self other =
-        run_vectorized_binary_op self "starts_with" (a -> b -> a.starts_with b) other
+
+       > Example
+         Check the elements of a column for starting with a value comparing case insensitively.
+
+             import Standard.Examples
+
+             example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
+    starts_with : Column | Text -> Case_Sensitivity -> Column
+    starts_with self other case_sensitivity=Case_Sensitivity.Default =
+        Value_Type.expect_text self.value_type <| case case_sensitivity of
+            Case_Sensitivity.Default -> self.other Case_Sensitivity.Sensitive
+            Case_Sensitivity.Sensitive -> run_vectorized_binary_op self Maps.STARTS_WITH (a -> b -> a.starts_with b) other
+            Case_Sensitivity.Insensitive _ ->
+                ## Currently need to fallback of the Enso implementation
+                run_vectorized_binary_op self Nothing (a -> b -> a.starts_with b locale) other
 
     ## Checks for each element of the column if it ends with `other`.
 
@@ -853,12 +871,12 @@ type Column
                 Column.from_vector result_name new_vector
 
     ## Parses a text column into values
+    @type (Single_Choice ['Auto','Integer','Decimal','Date','Date_Time','Time_Of_Day','Boolean'] display=Display.Always)
     parse : (Auto|Integer|Decimal|Date|Date_Time|Time_Of_Day|Boolean) -> Text | Nothing -> Problem_Behavior -> Column
     parse self type=Auto format=Nothing on_problems=Report_Warning =
-        ensure_text ~fn = if self.value_type != Value_Type.Char then Error.throw (Illegal_Argument.Error "Can only parse Text columns.") else fn
         ensure_type ~fn = if [Auto, Integer, Decimal, Date, Date_Time, Time_Of_Day, Boolean].index_of type == Nothing then Error.throw (Illegal_Argument.Error "Unsupported target type "+type.to_text+".") else fn
 
-        ensure_text <| ensure_type <|
+        Value_Type.expect_text self.value_type <| ensure_type <|
             formatter = if format.is_nothing then Data_Formatter.Value else case type of
                 Auto -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Auto`.")
                 Integer -> Error.throw (Illegal_Argument.Error "Cannot specify a `format` with type `Integer`.")

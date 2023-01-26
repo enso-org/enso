@@ -835,6 +835,8 @@ type Table
 
              people.filter "age" (age -> (age%10 == 0))
     @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
+    @filter Filter_Condition.widget_for_filter_condition
+    @on_problems (Single_Choice ["Report_Error", "Report_Warning", "Ignore"] display=Display.Expanded_Only)
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->
