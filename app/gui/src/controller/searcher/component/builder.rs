@@ -186,6 +186,9 @@ impl List {
         for (id, entry) in ids_and_entries {
             self.allowed_favorites.insert(id);
             let component = Component::new_from_database_entry(id, entry.clone_ref());
+            if component_is_private(&component) {
+                continue;
+            }
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = entry.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, parent_module.clone_ref())
@@ -289,27 +292,6 @@ impl List {
         self.local_scope.update_sorting(components_order);
         let favorites = self.build_favorites_and_add_to_all_components();
 
-        let is_private = |component: &Component| {
-            let private = if let component::Data::FromDatabase { entry, .. } = &component.data {
-                entry.documentation.iter().any(|doc| match doc {
-                    DocSection::Tag{ name, ..} => name == "PRIVATE",
-                    _ => false,
-                })
-            } else {
-                false
-            };
-            !private
-        };
-        for (_, group) in self.module_groups.iter_mut() {
-            group.content.retain_entries(is_private);
-            for group in group.submodules.groups.iter_mut() {
-                group.retain_entries(is_private);
-            }
-            if let Some(flattened) = &mut group.flattened_content {
-                flattened.retain_entries(is_private);
-            }
-        }
-
         let top_module_groups = self.module_groups.values().filter(|g| g.is_top_module).collect();
         let section_list_builder = Sections::new(top_module_groups);
 
@@ -336,6 +318,18 @@ impl List {
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
         component::group::List::new(favorites_groups)
+    }
+}
+
+fn component_is_private(component: &Component) -> bool {
+    match &component.data {
+        component::Data::FromDatabase { entry, .. } => {
+            entry.documentation.iter().any(|doc| match doc {
+                DocSection::Tag{ name, ..} => name == "PRIVATE",
+                _ => false,
+            })
+        }
+        _ => false,
     }
 }
 
