@@ -42,7 +42,7 @@ spec setup =
             t2 = table_builder [["Z", ['a', 'b']], ["W", ['x', 'd']]]
 
             t3 = t1.order_by "X"
-            t4 = t2.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "Z" Sort_Direction.Descending])
+            t4 = t2.order_by [Sort_Column.Name "Z" Sort_Direction.Descending]
 
             t5 = t3.zip t4
             expect_column_names ["X", "Y", "Z", "W"] t5

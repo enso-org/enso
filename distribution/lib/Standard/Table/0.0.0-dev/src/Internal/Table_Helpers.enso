@@ -8,7 +8,6 @@ import project.Data.Column.Column
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
 import project.Data.Column_Selector.Column_Selector
 import project.Data.Position.Position
-import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Table.Table
 import project.Data.Value_Type.Value_Type
@@ -480,13 +479,13 @@ prepare_order_by internal_columns column_selectors problem_builder =
                 Sort_Column.Name _ _ -> selector
                 _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed as a Vector.")
             select_columns_by_name internal_columns unified_name_selectors Text_Matcher.Case_Sensitive problem_builder name_extractor=(_.name)
-        Sort_Column_Selector.By_Name name_selectors matcher ->
+        name_selectors matcher ->
             unified_name_selectors = name_selectors.map selector-> case selector of
                 _ : Text -> Sort_Column.Name selector
                 Sort_Column.Name _ _ -> selector
                 _ -> Error.throw (Illegal_Argument.Error "Invalid column selector passed to order_by. Only Text and Sort_Column.Name are allowed for Sort_Column_Selector.By_Name.")
             select_columns_by_name internal_columns unified_name_selectors matcher problem_builder name_extractor=(_.name)
-        Sort_Column_Selector.By_Index index_selectors ->
+        index_selectors ->
             unified_index_selectors = index_selectors.map selector-> case selector of
                 _ : Integer -> Sort_Column.Index selector
                 Sort_Column.Index _ _ -> selector
