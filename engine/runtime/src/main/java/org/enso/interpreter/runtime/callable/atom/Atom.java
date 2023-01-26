@@ -236,7 +236,7 @@ public abstract class Atom implements TruffleObject {
   }
 
   @ExportMessage
-  Class<EnsoLanguage> getLanguage(@CachedLibrary("this") InteropLibrary node) {
+  Class<EnsoLanguage> getLanguage() {
     return EnsoLanguage.class;
   }
 
