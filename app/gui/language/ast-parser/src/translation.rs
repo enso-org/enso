@@ -33,6 +33,7 @@ pub enum Todo {
     Lambda,
     Tuple,
     Annotated,
+    Array,
 }
 
 pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
@@ -152,11 +153,11 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
         tree::Variant::TypeAnnotated(tree::TypeAnnotated { expression, operator, type_ }) =>
             opr_app(expression, operator, type_),
         tree::Variant::AnnotatedBuiltin(tree::AnnotatedBuiltin {
-                                            token,
-                                            annotation,
-                                            newlines,
-                                            expression,
-                                        }) => {
+            token,
+            annotation,
+            newlines,
+            expression,
+        }) => {
             let func = Ast::from(ast::Annotation { name: format!("@{}", &annotation.code) });
             let off = expression.as_ref().unwrap().span.left_offset.visible.width_in_spaces;
             let arg = to_legacy_ast(expression.as_ref().unwrap());
@@ -164,26 +165,20 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
         }
         tree::Variant::Documented(tree::Documented { documentation, expression }) =>
         // TODO. Documented/Comment are spaceless...
-        /*
-            Ast::from(ast::Documented {
-                doc: Ast::from_ast_id_len(ast::Shape::from(ast::Comment { lines: vec![] }), None, 0), /* TODO */
-                emp: 0,
-                ast: to_legacy_ast(expression.as_ref().unwrap()),
-            }),
-         */
             to_legacy_ast(expression.as_ref().unwrap()),
-        tree::Variant::Group(tree::Group { open, body, close }) =>
-            Ast::from(ast::Match2 {
-                repr: tree.code(),
-                resolved: to_legacy_ast(body.as_ref().unwrap()),
-            }),
-        tree::Variant::Array(tree::Array { left, first, rest, right }) =>
-            Ast::from(ast::Match2 {
-                repr: tree.code(),
-                resolved: Ast::from_ast_id_len(ast::Shape::SequenceLiteral(ast::SequenceLiteral {
-                    items: first.iter().chain(rest.iter().filter_map(|e| e.body.as_ref())).map(to_legacy_ast).collect(),
-                }), None, 0),
-            }),
+        tree::Variant::Group(tree::Group { open, body, close }) => Ast::from(ast::Match2 {
+            repr:     tree.code(),
+            resolved: to_legacy_ast(body.as_ref().unwrap()),
+        }),
+        tree::Variant::Array(tree::Array { left, first, rest, right }) => return Err(Todo::Array),
+        /*
+           Ast::from(ast::Match2 {
+               repr: tree.code(),
+               resolved: Ast::from_ast_id_len(ast::Shape::SequenceLiteral(ast::SequenceLiteral {
+                   items: first.iter().chain(rest.iter().filter_map(|e| e.body.as_ref())).map(to_legacy_ast).collect(),
+               }), None, 0),
+           }),
+        */
         tree::Variant::Import(_) => return Err(Todo::Import),
         tree::Variant::Export(_) => return Err(Todo::Export),
         tree::Variant::Invalid(_) => return Err(Todo::Invalid),

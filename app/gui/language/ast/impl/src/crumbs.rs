@@ -266,57 +266,6 @@ pub enum BlockCrumb {
 }
 
 
-// === Import ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ImportCrumb {
-    Path { index: usize },
-    Rename,
-    OnlyNames { index: usize },
-    HidingNames { index: usize },
-}
-
-// === Export ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ExportCrumb {
-    Path { index: usize },
-    Rename,
-    OnlyNames { index: usize },
-    HidingNames { index: usize },
-}
-
-
-// === Mixfix ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum MixfixCrumb {
-    Name { index: usize },
-    Args { index: usize },
-}
-
-
-// === Group ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct GroupCrumb;
-
-
-// === Def ===
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum DefCrumb {
-    Name,
-    Args { index: usize },
-    Body,
-}
-
-
 // === Match ===
 
 #[allow(missing_docs)]
@@ -478,13 +427,7 @@ impl_crumbs! {
     ( TextBlockFmt  , TextBlockFmtCrumb  , is_text_block_fmt ),
     ( TextUnclosed  , TextUnclosedCrumb  , is_text_unclosed  ),
     ( Match         , MatchCrumb         , is_match          ),
-    ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      ),
-    ( Mixfix        , MixfixCrumb        , is_mixfix         ),
-    // Wrapped types
-    ( Import        , ImportCrumb        , is_import         ),
-    ( Export        , ExportCrumb        , is_export         ),
-    ( Group         , GroupCrumb         , is_group          ),
-    ( Def           , DefCrumb           , is_def            )
+    ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      )
 }
 
 
@@ -1180,225 +1123,6 @@ impl Crumbable for crate::Ambiguous<Ast> {
             iter::once(head(index)).chain(seg.body.iter().map(move |_| body(index)))
         });
         Box::new(crumbs)
-    }
-}
-
-impl Crumbable for crate::Import<Ast> {
-    type Crumb = ImportCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            ImportCrumb::Path { index } =>
-                self.path.get_or_err(*index, "path").map_err(|err| err.into()),
-            ImportCrumb::Rename =>
-                self.rename.as_ref().ok_or_else(|| NotPresent("rename".into()).into()),
-            ImportCrumb::OnlyNames { index } => self
-                .onlyNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?
-                .get_or_err(*index, "onlyNames")
-                .map_err(|err| err.into()),
-            ImportCrumb::HidingNames { index } => self
-                .hidingNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?
-                .get_or_err(*index, "hidingNames")
-                .map_err(|err| err.into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut import = self.clone();
-        match crumb {
-            ImportCrumb::Path { index } => {
-                let path = import.path.get_mut_or_err(*index, "path")?;
-                *path = new_ast;
-            }
-            ImportCrumb::Rename => {
-                import.rename = Some(new_ast);
-            }
-            ImportCrumb::OnlyNames { index } => {
-                let only_names = import.onlyNames.clone();
-                let mut only_names = only_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?;
-                let elem = only_names.get_mut_or_err(*index, "onlyNames")?;
-                *elem = new_ast;
-                import.onlyNames = Some(only_names);
-            }
-            ImportCrumb::HidingNames { index } => {
-                let hiding_names = import.onlyNames.clone();
-                let mut hiding_names = hiding_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?;
-                let elem = hiding_names.get_mut_or_err(*index, "hidingNames")?;
-                *elem = new_ast;
-                import.hidingNames = Some(hiding_names);
-            }
-        }
-        Ok(import)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let path_iter = self.path.iter().enumerate().map(|(index, _)| ImportCrumb::Path { index });
-        let rename_iter = self.rename.iter().map(|_| ImportCrumb::Rename);
-        let only_iter = self
-            .onlyNames
-            .iter()
-            .flat_map(|v| v.iter().enumerate().map(|(index, _)| ImportCrumb::OnlyNames { index }));
-        let hiding_iter = self.hidingNames.iter().flat_map(|v| {
-            v.iter().enumerate().map(|(index, _)| ImportCrumb::HidingNames { index })
-        });
-        Box::new(path_iter.chain(rename_iter).chain(only_iter).chain(hiding_iter))
-    }
-}
-
-impl Crumbable for crate::Export<Ast> {
-    type Crumb = ExportCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            ExportCrumb::Path { index } =>
-                self.path.get_or_err(*index, "path").map_err(|err| err.into()),
-            ExportCrumb::Rename =>
-                self.rename.as_ref().ok_or_else(|| NotPresent("rename".into()).into()),
-            ExportCrumb::OnlyNames { index } => self
-                .onlyNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?
-                .get_or_err(*index, "onlyNames")
-                .map_err(|err| err.into()),
-            ExportCrumb::HidingNames { index } => self
-                .hidingNames
-                .as_ref()
-                .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?
-                .get_or_err(*index, "hidingNames")
-                .map_err(|err| err.into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut export = self.clone();
-        match crumb {
-            ExportCrumb::Path { index } => {
-                let path = export.path.get_mut_or_err(*index, "path")?;
-                *path = new_ast;
-            }
-            ExportCrumb::Rename => {
-                export.rename = Some(new_ast);
-            }
-            ExportCrumb::OnlyNames { index } => {
-                let only_names = export.onlyNames.clone();
-                let mut only_names = only_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("onlyNames".into())))?;
-                let elem = only_names.get_mut_or_err(*index, "onlyNames")?;
-                *elem = new_ast;
-                export.onlyNames = Some(only_names);
-            }
-            ExportCrumb::HidingNames { index } => {
-                let hiding_names = export.onlyNames.clone();
-                let mut hiding_names = hiding_names
-                    .ok_or_else(|| failure::Error::from(NotPresent("hidingNames".into())))?;
-                let elem = hiding_names.get_mut_or_err(*index, "hidingNames")?;
-                *elem = new_ast;
-                export.hidingNames = Some(hiding_names);
-            }
-        }
-        Ok(export)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let path_iter = self.path.iter().enumerate().map(|(index, _)| ExportCrumb::Path { index });
-        let rename_iter = self.rename.iter().map(|_| ExportCrumb::Rename);
-        let only_iter = self
-            .onlyNames
-            .iter()
-            .flat_map(|v| v.iter().enumerate().map(|(index, _)| ExportCrumb::OnlyNames { index }));
-        let hiding_iter = self.hidingNames.iter().flat_map(|v| {
-            v.iter().enumerate().map(|(index, _)| ExportCrumb::HidingNames { index })
-        });
-        Box::new(path_iter.chain(rename_iter).chain(only_iter).chain(hiding_iter))
-    }
-}
-
-impl Crumbable for crate::Mixfix<Ast> {
-    type Crumb = MixfixCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            MixfixCrumb::Name { index } =>
-                self.name.get_or_err(*index, "name").map_err(|err| err.into()),
-            MixfixCrumb::Args { index } =>
-                self.args.get_or_err(*index, "arg").map_err(|err| err.into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut mixfix = self.clone();
-        match crumb {
-            MixfixCrumb::Name { index } => {
-                *mixfix.name.get_mut_or_err(*index, "name")? = new_ast;
-            }
-            MixfixCrumb::Args { index } => {
-                *mixfix.args.get_mut_or_err(*index, "arg")? = new_ast;
-            }
-        }
-        Ok(mixfix)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let name_iter = self.name.iter().enumerate().map(|(index, _)| MixfixCrumb::Name { index });
-        let args_iter = self.args.iter().enumerate().map(|(index, _)| MixfixCrumb::Args { index });
-        Box::new(name_iter.chain(args_iter))
-    }
-}
-
-impl Crumbable for crate::Group<Ast> {
-    type Crumb = GroupCrumb;
-
-    fn get(&self, _crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        Ok(self.body.as_ref().ok_or_else(|| NotPresent("body".into()))?)
-    }
-
-    fn set(&self, _crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut group = self.clone();
-        group.body = Some(new_ast);
-        Ok(group)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        Box::new(self.body.iter().map(|_| GroupCrumb))
-    }
-}
-
-impl Crumbable for crate::Def<Ast> {
-    type Crumb = DefCrumb;
-
-    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
-        match crumb {
-            DefCrumb::Name => Ok(&self.name),
-            DefCrumb::Args { index } =>
-                self.args.get_or_err(*index, "arg").map_err(|err| err.into()),
-            DefCrumb::Body => self.body.as_ref().ok_or_else(|| NotPresent("body".into()).into()),
-        }
-    }
-
-    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
-        let mut def = self.clone();
-        match crumb {
-            DefCrumb::Name => def.name = new_ast,
-            DefCrumb::Args { index } => {
-                let arg = def.args.get_mut_or_err(*index, "arg")?;
-                *arg = new_ast;
-            }
-            DefCrumb::Body => def.body = Some(new_ast),
-        }
-        Ok(def)
-    }
-
-    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
-        let name_iter = std::iter::once(DefCrumb::Name);
-        let args_iter = self.args.iter().enumerate().map(|(index, _)| DefCrumb::Args { index });
-        let body_iter = self.body.iter().map(|_| DefCrumb::Body);
-        Box::new(name_iter.chain(args_iter).chain(body_iter))
     }
 }
 
@@ -2135,7 +1859,7 @@ mod tests {
             head: MacroMatchSegment { head: var.clone(), body: body.clone() },
             tail: vec![],
         };
-        Match { pfx: Some(body), segs, resolved: Some(var) }
+        Match { pfx: Some(body), segs }
     }
 
     #[test]
@@ -2182,7 +1906,7 @@ mod tests {
         let crumb6 = MatchCrumb::Segs { val: SegmentMatchCrumb::Body { val: crumb1 }, index: 0 };
         let crumb7 = MatchCrumb::Segs { val: SegmentMatchCrumb::Body { val: crumb2 }, index: 0 };
         let match1 = match_();
-        let ast = [match1.resolved.clone().unwrap(), Ast::var("X"), Ast::var("Y"), Ast::var("Z")];
+        let ast = [Ast::var(""), Ast::var("X"), Ast::var("Y"), Ast::var("Z")];
         let match2 = match1.set(&crumb3, ast[1].clone()).unwrap();
         let match3 = match2.set(&crumb5, ast[2].clone()).unwrap();
         let match4 = match3.set(&crumb7, ast[3].clone()).unwrap();

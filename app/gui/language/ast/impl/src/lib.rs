@@ -574,7 +574,6 @@ pub enum Shape<T> {
     Match {
         pfx:      Option<MacroPatternMatch<Shifted<T>>>,
         segs:     ShiftedVec1<MacroMatchSegment<T>>,
-        resolved: Option<Ast>,
     },
     Ambiguous {
         segs:  ShiftedVec1<MacroAmbiguousSegment<T>>,
@@ -584,20 +583,6 @@ pub enum Shape<T> {
         repr:     String,
         resolved: Ast,
     },
-
-    // === Spaceless AST ===
-    Comment(Comment),
-    Documented(Documented<T>),
-    Import(Import<T>),
-    Export(Export<T>),
-    JavaImport(JavaImport<T>),
-    Mixfix(Mixfix<T>),
-    Group(Group<T>),
-    SequenceLiteral(SequenceLiteral<T>),
-    TypesetLiteral(TypesetLiteral<T>),
-    Def(Def<T>),
-    Foreign(Foreign),
-    Modified(Modified<T>),
 }
 
 /// Macro that calls its argument (possibly other macro
@@ -612,7 +597,6 @@ macro_rules! with_shape_variants {
           [Module Ast] [Block Ast]
           [Match Ast] [Ambiguous Ast]
           [Match2]
-          // Note: Spaceless AST is intentionally omitted here.
         }
     };
 }
@@ -859,89 +843,6 @@ pub enum MacroPatternMatchRaw<T> {
     Macro { pat: MacroPatternRawMacro, elem: T },
     Invalid { pat: MacroPatternRawInvalid, elem: T },
     FailedMatch { pat: MacroPatternRawFailedMatch },
-}
-
-// =============================================================================
-// === Spaceless AST ===========================================================
-// =============================================================================
-
-#[ast]
-pub struct Comment {
-    pub lines: Vec<String>,
-}
-
-#[ast]
-pub struct Documented<T> {
-    pub doc: T,
-    pub emp: i32,
-    pub ast: T,
-}
-
-#[allow(non_snake_case)]
-#[ast]
-pub struct Import<T> {
-    pub path:        Vec<T>,
-    pub rename:      Option<T>,
-    pub isAll:       bool,
-    pub onlyNames:   Option<Vec<T>>,
-    pub hidingNames: Option<Vec<T>>,
-}
-
-#[allow(non_snake_case)]
-#[ast]
-pub struct Export<T> {
-    pub path:        Vec<T>,
-    pub rename:      Option<T>,
-    pub isAll:       bool,
-    pub onlyNames:   Option<Vec<T>>,
-    pub hidingNames: Option<Vec<T>>,
-}
-
-#[ast]
-pub struct JavaImport<T> {
-    pub path:   Vec<T>,
-    pub rename: Option<T>,
-}
-
-#[ast]
-pub struct Mixfix<T> {
-    pub name: Vec<T>,
-    pub args: Vec<T>,
-}
-
-#[ast]
-pub struct Group<T> {
-    pub body: Option<T>,
-}
-
-#[ast]
-pub struct SequenceLiteral<T> {
-    pub items: Vec<T>,
-}
-
-#[ast]
-pub struct TypesetLiteral<T> {
-    pub expression: Option<T>,
-}
-
-#[ast]
-pub struct Def<T> {
-    pub name: T, // being with Cons
-    pub args: Vec<T>,
-    pub body: Option<T>,
-}
-
-#[ast]
-pub struct Foreign {
-    pub indent: usize,
-    pub lang:   String,
-    pub code:   Vec<String>,
-}
-
-#[ast]
-pub struct Modified<T> {
-    pub modifier:   String,
-    pub definition: T,
 }
 
 
