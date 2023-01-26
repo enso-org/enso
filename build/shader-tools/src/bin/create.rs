@@ -14,7 +14,7 @@ use ide_ci::prelude::setup_logging;
 async fn main() -> Result {
     setup_logging()?;
     let handle = enso_build_shader_tools::repo_handle_from_env().await?;
-    let latest_biversion = handle
+    let latest_version = handle
         .latest_release()
         .await
         .and_then(|r| Version::from_str(&r.tag_name))
