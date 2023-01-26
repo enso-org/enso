@@ -70,7 +70,10 @@ pub fn wasm_init_context() {
 }
 
 fn init_context() {
-    CONTEXT.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
+    let initialized = CONTEXT.with(|t| t.borrow().is_some());
+    if !initialized {
+        CONTEXT.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
+    }
 }
 
 

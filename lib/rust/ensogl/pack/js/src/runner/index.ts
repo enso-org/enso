@@ -221,6 +221,11 @@ export class App {
         host.exportGlobal({ ensoglApp: this })
     }
 
+    /** Log the message on the remote server. */
+    remoteLog(message: string, data: any) {
+        // TODO: Implement remote logging. This should be done after cloud integration.
+    }
+
     /** Initialize the browser. Set the background color, print user-facing warnings, etc. */
     initBrowser() {
         if (host.browser) {
@@ -239,7 +244,7 @@ export class App {
     styleRoot() {
         const root = document.getElementById('root')
         if (root != null) {
-            root.style.backgroundColor = 'rgb(249,250,251)'
+            root.style.backgroundColor = 'rgb(234,238,241)'
         }
     }
 

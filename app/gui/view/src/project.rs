@@ -319,7 +319,7 @@ impl Model {
         if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
             node.position().xy()
         } else {
-            error!("Trying to show searcher under nonexisting node");
+            error!("Trying to show searcher under non existing node");
             default()
         }
     }

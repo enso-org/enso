@@ -3,6 +3,3 @@
 export function spector() {
     return require('spectorjs')
 }
-export function exportedFunctionFFF(foo: string): string {
-    return foo
-}
