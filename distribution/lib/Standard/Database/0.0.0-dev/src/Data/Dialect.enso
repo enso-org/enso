@@ -59,7 +59,7 @@ type Dialect
 
     ## PRIVATE
        Prepares a distinct operation.
-    prepare_distinct : Table -> Vector -> Boolean -> Problem_Builder -> Table
+    prepare_distinct : Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table
     prepare_distinct self =
         Unimplemented.throw "This is an interface only."
 
