@@ -24,11 +24,15 @@ import java.util.Arrays;
 
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.node.expression.builtin.ordering.HasCustomComparatorNode;
+import org.enso.interpreter.node.expression.builtin.ordering.HashCallbackNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
@@ -50,12 +54,11 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
  */
 @GenerateUncached
 @BuiltinMethod(
-    type = "Meta",
-    name = "hash_code",
+    type = "Comparable",
+    name = "hash_builtin",
     description = """
         Returns hash code of this atom. Use only for overriding default Comparator.
-        """,
-    autoRegister = false
+        """
 )
 public abstract class HashCodeNode extends Node {
 
@@ -137,12 +140,17 @@ public abstract class HashCodeNode extends Node {
       @Cached ConditionProfile isHashCodeCached,
       @Cached ConditionProfile enoughHashCodeNodesForFields,
       @Cached LoopConditionProfile loopProfile,
-      @CachedLibrary(limit = "10") StructsLibrary structs) {
+      @CachedLibrary(limit = "10") StructsLibrary structs,
+      @Cached HasCustomComparatorNode hasCustomComparatorNode,
+      @Cached HashCallbackNode hashCallbackNode) {
     if (isHashCodeCached.profile(atom.getHashCode() != null)) {
       return atom.getHashCode();
     }
-    // TODO[PM]: If atom overrides hash_code, call that method (Will be done in a follow-up PR for
-    // https://www.pivotaltracker.com/story/show/183945328)
+
+    if (hasCustomComparatorNode.execute(atom)) {
+      return hashCallbackNode.execute(atom);
+    }
+
     Object[] fields = structs.getFields(atom);
     int fieldsCount = fields.length;
 

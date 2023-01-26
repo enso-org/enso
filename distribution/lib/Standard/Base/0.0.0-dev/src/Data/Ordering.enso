@@ -8,6 +8,7 @@ import project.Nothing
 import project.Any.Any
 from project.Data.Boolean import all
 import project.Meta
+import project.Meta.Atom
 
 ## Provides custom ordering, equality check and hash code for types that need it.
 
@@ -77,6 +78,18 @@ import project.Meta
         - the `hash` code check may be done only from time to time to speed things up
 @Builtin_Type
 type Comparable
+    ## PRIVATE
+       Called as a callback from internal engine code for an atom with a custom
+       comparator. It is assumed that the given atom has a custom comparator, that is
+       a comparator different than `Default_Unordered_Comparator`.:
+    hash_callback : Atom -> Integer
+    hash_callback atom = (Comparable.from atom).hash atom
+
+    ## PRIVATE
+    has_custom_comparator : Atom -> Boolean
+    has_custom_comparator atom =
+        comp = Comparable.from atom
+        (comp.is_a Default_Unordered_Comparator).not && (comp.is_a Default_Unordered_Comparator).not
 
 ## Singleton denoting that values of certain type are not comparable.
 type Incomparable
@@ -88,10 +101,11 @@ type Default_Unordered_Comparator
     is_ordered = False
 
     equals : Any -> Any -> Boolean
-    equals x y = x.equals_builtin y
+    equals x y = Comparable.equals_builtin x y
 
     hash : Any -> Integer
-    hash object = Meta.hash_code object
+    hash object = Comparable.hash_builtin object
+
 
 ## Default implementation of an ordered _comparator_ that forwards to `>`, `<` etc.
    operators.
@@ -101,12 +115,12 @@ type Default_Ordered_Comparator
 
     compare : Any -> Any -> Ordering
     compare x y =
-        if x.less_builtin y then Ordering.Less else
-            if x.equals_builtin y then Ordering.Equal else
-                if y.less_builtin x then Ordering.Greater
+        if Comparable.less_than_builtin x y then Ordering.Less else
+            if Comparable.equals_builtin x y then Ordering.Equal else
+                if Comparable.less_than_builtin y x then Ordering.Greater
 
     hash : Number -> Integer
-    hash x = Meta.hash_code x
+    hash x = Comparable.hash_builtin x
 
 
 # By default, there is no conversion from Any to Default_Ordered_Comparator

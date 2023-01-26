@@ -442,8 +442,3 @@ get_simple_type_name value = @Builtin_Method "Meta.get_simple_type_name"
    - value: the value to get the type of.
 get_qualified_type_name : Any -> Text
 get_qualified_type_name value = @Builtin_Method "Meta.get_qualified_type_name"
-
-
-## PRIVATE
-hash_code : Any -> Integer
-hash_code x = @Builtin_Method "Meta.hash_code"
