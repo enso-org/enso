@@ -1,19 +1,39 @@
 use ast::Ast;
-use ast::Shape;
 use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
 
-fn todo_ast() -> Ast {
-    Ast::from(ast::Var { name: "TODO".to_owned() })
+fn todo_ast(todo: Todo) -> Ast {
+    Ast::from(ast::Var { name: format!("Todo::{:?}", todo) })
+}
+
+pub fn to_legacy_ast_module(tree: &Tree) -> Result<Ast, ()> {
+    Ok(match &*tree.variant {
+        tree::Variant::BodyBlock(block) => translate_module(&block).into(),
+        _ => return Err(()),
+    })
 }
 
 pub fn to_legacy_ast(tree: &Tree) -> Ast {
-    try_to_legacy_ast(tree).unwrap_or_else(|_: Todo| todo_ast())
+    try_to_legacy_ast(tree).unwrap_or_else(todo_ast)
 }
 
-pub struct Todo;
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+pub enum Todo {
+    UnaryOprSection,
+    Import,
+    Export,
+    Invalid,
+    AutoScope,
+    TextLiteral,
+    MultiSegmentApp,
+    TypeDef,
+    CaseOf,
+    Lambda,
+    Tuple,
+    Annotated,
+}
 
 pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
     Ok(match &*tree.variant {
@@ -34,12 +54,6 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             translate_opr_app(lhs.as_ref(), opr, rhs.as_ref()),
         tree::Variant::OprSectionBoundary(tree::OprSectionBoundary { ast, .. }) =>
             to_legacy_ast(ast),
-        tree::Variant::Documented(tree::Documented { documentation, expression }) =>
-            Ast::from(ast::Documented {
-                doc: Ast::from_ast_id_len(Shape::from(ast::Comment { lines: vec![] }), None, 0), /* TODO */
-                emp: 0,
-                ast: to_legacy_ast(expression.as_ref().unwrap()),
-            }),
         tree::Variant::Function(tree::Function { name, args, equals, body }) => {
             let name = to_legacy_ast(name);
             let mut lhs_terms = vec![name];
@@ -97,7 +111,7 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
                 .as_ref()
                 .map(|tree| tree.span.left_offset.visible.width_in_spaces)
                 .unwrap_or_default();
-            let arg = rhs.as_ref().map(to_legacy_ast).ok_or(Todo)?;
+            let arg = rhs.as_ref().map(to_legacy_ast).ok_or(Todo::UnaryOprSection)?;
             Ast::from(ast::SectionRight { opr, off, arg })
         }
         tree::Variant::Assignment(tree::Assignment { pattern, equals, expr }) =>
@@ -148,21 +162,41 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             let arg = to_legacy_ast(expression.as_ref().unwrap());
             Ast::from(ast::Prefix { func, off, arg })
         }
-        tree::Variant::Import(_) => return Err(Todo),
-        tree::Variant::Export(_) => return Err(Todo),
-        tree::Variant::Invalid(_) => return Err(Todo),
-        tree::Variant::AutoScope(_) => return Err(Todo),
-        tree::Variant::TextLiteral(_) => return Err(Todo),
-        tree::Variant::MultiSegmentApp(_) => return Err(Todo),
-        tree::Variant::TypeDef(_) => return Err(Todo),
-        tree::Variant::Group(_) => return Err(Todo),
-        tree::Variant::CaseOf(_) => return Err(Todo),
-        tree::Variant::Lambda(_) => return Err(Todo),
-        tree::Variant::Array(_) => return Err(Todo),
-        tree::Variant::Tuple(_) => return Err(Todo),
-        tree::Variant::Annotated(_) => return Err(Todo),
+        tree::Variant::Documented(tree::Documented { documentation, expression }) =>
+        // TODO. Documented/Comment are spaceless...
+        /*
+            Ast::from(ast::Documented {
+                doc: Ast::from_ast_id_len(ast::Shape::from(ast::Comment { lines: vec![] }), None, 0), /* TODO */
+                emp: 0,
+                ast: to_legacy_ast(expression.as_ref().unwrap()),
+            }),
+         */
+            to_legacy_ast(expression.as_ref().unwrap()),
+        tree::Variant::Group(tree::Group { open, body, close }) =>
+            Ast::from(ast::Match2 {
+                repr: tree.code(),
+                resolved: to_legacy_ast(body.as_ref().unwrap()),
+            }),
+        tree::Variant::Array(tree::Array { left, first, rest, right }) =>
+            Ast::from(ast::Match2 {
+                repr: tree.code(),
+                resolved: Ast::from_ast_id_len(ast::Shape::SequenceLiteral(ast::SequenceLiteral {
+                    items: first.iter().chain(rest.iter().filter_map(|e| e.body.as_ref())).map(to_legacy_ast).collect(),
+                }), None, 0),
+            }),
+        tree::Variant::Import(_) => return Err(Todo::Import),
+        tree::Variant::Export(_) => return Err(Todo::Export),
+        tree::Variant::Invalid(_) => return Err(Todo::Invalid),
+        tree::Variant::AutoScope(_) => return Err(Todo::AutoScope),
+        tree::Variant::TextLiteral(_) => return Err(Todo::TextLiteral),
+        tree::Variant::MultiSegmentApp(_) => return Err(Todo::MultiSegmentApp),
+        tree::Variant::TypeDef(_) => return Err(Todo::TypeDef),
+        tree::Variant::CaseOf(_) => return Err(Todo::CaseOf),
+        tree::Variant::Lambda(_) => return Err(Todo::Lambda),
+        tree::Variant::Tuple(_) => return Err(Todo::Tuple),
+        tree::Variant::Annotated(_) => return Err(Todo::Annotated),
         // This type should only occur in the body of a `TypeDef`, or in an `Invalid`.
-        tree::Variant::ConstructorDefinition(_) => return Err(Todo),
+        tree::Variant::ConstructorDefinition(_) => todo!(),
     })
 }
 

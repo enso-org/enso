@@ -580,6 +580,10 @@ pub enum Shape<T> {
         segs:  ShiftedVec1<MacroAmbiguousSegment<T>>,
         paths: Tree<Ast, Unit>,
     },
+    Match2 {
+        repr:     String,
+        resolved: Ast,
+    },
 
     // === Spaceless AST ===
     Comment(Comment),
@@ -607,6 +611,7 @@ macro_rules! with_shape_variants {
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]
           [Match Ast] [Ambiguous Ast]
+          [Match2]
           // Note: Spaceless AST is intentionally omitted here.
         }
     };

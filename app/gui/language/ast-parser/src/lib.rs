@@ -45,13 +45,21 @@ impl Parser {
         program: String,
     ) -> api::Result<api::ParsedSourceFile<M>> {
         let (code, meta) = enso_parser::metadata::extract(&program);
-        let tree = enso_parser::Parser::new().run(code);
+        let tree = self.parser.run(code);
         Ok(api::ParsedSourceFile {
-            // TODO: Translate top-level block as module.
-            ast: ast::known::Module::try_from(translation::to_legacy_ast(&tree)).unwrap(),
+            ast:      ast::known::Module::try_from(
+                translation::to_legacy_ast_module(&tree).unwrap(),
+            )
+            .unwrap(),
             // TODO: Log errors.
             metadata: meta.and_then(|meta| serde_json::from_str(meta).ok()).unwrap_or_default(),
         })
+    }
+
+    pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {
+        let tree = self.parser.run(program.as_ref());
+        let ast = translation::to_legacy_ast_module(&tree).unwrap();
+        ast::known::Module::try_from(ast).map_err(|_| api::Error::NonModuleRoot)
     }
 }
 
@@ -59,11 +67,6 @@ impl Parser {
 // === Convenience methods ===
 
 impl Parser {
-    pub fn parse_module(&self, program: impl Str, ids: IdMap) -> api::Result<ast::known::Module> {
-        let ast = self.parse(program.into(), ids)?;
-        ast::known::Module::try_from(ast).map_err(|_| api::Error::NonModuleRoot)
-    }
-
     pub fn parse_line_ast(&self, program: impl Str) -> FallibleResult<ast::Ast> {
         self.parse_line(program).map(|line| line.elem)
     }

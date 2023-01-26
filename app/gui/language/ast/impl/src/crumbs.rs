@@ -464,10 +464,7 @@ impl IntoIterator for Crumb {
 
 
 impl_crumbs! {
-    ( InvalidSuffix , InvalidSuffixCrumb , is_invalid_suffix ),
-    ( TextLineFmt   , TextLineFmtCrumb   , is_text_line_fmt  ),
-    ( TextBlockFmt  , TextBlockFmtCrumb  , is_text_block_fmt ),
-    ( TextUnclosed  , TextUnclosedCrumb  , is_text_unclosed  ),
+    // Translated types
     ( Prefix        , PrefixCrumb        , is_prefix         ),
     ( Infix         , InfixCrumb         , is_infix          ),
     ( SectionLeft   , SectionLeftCrumb   , is_section_left   ),
@@ -475,11 +472,17 @@ impl_crumbs! {
     ( SectionSides  , SectionSidesCrumb  , is_section_sides  ),
     ( Module        , ModuleCrumb        , is_module         ),
     ( Block         , BlockCrumb         , is_block          ),
+    // ?
+    ( InvalidSuffix , InvalidSuffixCrumb , is_invalid_suffix ),
+    ( TextLineFmt   , TextLineFmtCrumb   , is_text_line_fmt  ),
+    ( TextBlockFmt  , TextBlockFmtCrumb  , is_text_block_fmt ),
+    ( TextUnclosed  , TextUnclosedCrumb  , is_text_unclosed  ),
     ( Match         , MatchCrumb         , is_match          ),
     ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      ),
+    ( Mixfix        , MixfixCrumb        , is_mixfix         ),
+    // Wrapped types
     ( Import        , ImportCrumb        , is_import         ),
     ( Export        , ExportCrumb        , is_export         ),
-    ( Mixfix        , MixfixCrumb        , is_mixfix         ),
     ( Group         , GroupCrumb         , is_group          ),
     ( Def           , DefCrumb           , is_def            )
 }
