@@ -309,11 +309,13 @@ rename_columns internal_columns mapping on_problems =
     ## Resolves actual new names for renamed columns.
 
        If a column received ambiguous new names, an error is raised.
-       If a column is not renamed, `Nothing` is given as its new name.
+       If a column is not renamed, `Not_Renamed` is given as its new name.
+       (We do not use Nothing, to be able to handle the case where the new name
+       is set to `Nothing`.)
     columns_with_new_names = columns_with_proposed_new_names.map p->
         column = p.first
         new_names = p.second
-        if new_names.is_empty then Pair.new column Nothing else
+        if new_names.is_empty then Pair.new column Not_Renamed else
             first_new_name = new_names.first
             names_unambiguous = new_names.all (== first_new_name)
             if names_unambiguous then Pair.new column first_new_name else
@@ -327,18 +329,22 @@ rename_columns internal_columns mapping on_problems =
     after_renames = columns_with_new_names.map p->
         new_name = p.second
         case new_name of
-            Nothing -> p
-            _ : Text -> unique.make_unique new_name
+            Not_Renamed -> p
+            _ -> unique.make_unique new_name
 
     ## Then we ensure that the names of not-renamed columns are also unique and
        return the effective column names for each column.
     new_column_names = after_renames.map x-> case x of
-        Pair.Value unchanged_column Nothing ->
+        Pair.Value unchanged_column Not_Renamed ->
             unique.make_unique unchanged_column.name
         renamed_column_name : Text -> renamed_column_name
 
     problem_builder.report_unique_name_strategy unique
     problem_builder.attach_problems_before on_problems new_column_names
+
+## PRIVATE
+   An internal marker type for `rename_columns`.
+type Not_Renamed
 
 ## PRIVATE
    A helper function encapsulating shared code for `sort_columns`
