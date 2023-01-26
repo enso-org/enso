@@ -9,7 +9,6 @@ use crate::display::render::pass;
 use crate::display::render::pass::Instance;
 use crate::display::scene::Layer;
 use crate::display::scene::UpdateStatus;
-use crate::display::uniform;
 use crate::display::world::with_context;
 use crate::display::world::CachedShapeDefinition;
 use crate::display::Context;
@@ -18,113 +17,137 @@ use crate::gui::component::AnyShapeView;
 
 use itertools::iproduct;
 
-const INITIAL_TEXTURE_SIZE: i32 = 256;
 
+
+// =================
+// === Constants ===
+// =================
+
+const INITIAL_TEXTURE_SIZE: i32 = 512;
+
+
+
+// =======================
+// === CacheShapesPass ===
+// =======================
+
+/// Definition of pass rendering cached shapes to texture.
+///
+/// On each run it checks what not-yet-rendered shapes has compiled shaders and render them to
+/// the texture, which is stored in `pass_cached_shapes` uniform.
+///
+/// # Implementation
+///
+/// For each shape to render we create a single [view](crate::gui::component::ShapeView), which is
+/// then added to a special, internal [`Layer`] which is not rendered in the default symbol pass.
+/// Once given shape system has shader compiled, we call "render" only on its symbol. There is no
+/// need to render previous shapes again, because we don't clear texture at any point.
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct CacheShapesPass {
-    scene:        Scene,
-    framebuffer:  Option<pass::Framebuffer>,
+    scene:          Scene,
+    framebuffer:    Option<pass::Framebuffer>,
     #[derivative(Debug = "ignore")]
-    shapes:       Vec<Rc<dyn AnyShapeView>>,
-    texture_size: Vector2<i32>,
-    layer:        Layer,
+    shapes:         Vec<Rc<dyn AnyShapeView>>,
+    texture_width:  i32,
+    texture_height: i32,
+    layer:          Layer,
 }
+
+impl CacheShapesPass {
+    /// Constructor.
+    pub fn new(scene: &Scene) -> Self {
+        Self {
+            framebuffer:    default(),
+            shapes:         default(),
+            layer:          Layer::new("Cached Shapes"),
+            scene:          scene.clone_ref(),
+            texture_width:  default(),
+            texture_height: default(),
+        }
+    }
+}
+
+
+// === [`pass::Definition`] Implementation ===
 
 impl pass::Definition for CacheShapesPass {
     fn initialize(&mut self, instance: &Instance) {
-        let ArrangedShapes { texture_size, shapes } = display::world::CACHED_SHAPES_DEFINITIONS
-            .with_borrow(|cached_shapes| arrange_shapes_on_texture(cached_shapes));
+        let ArrangedShapes { texture_width, texture_height, shapes } =
+            display::world::CACHED_SHAPES_DEFINITIONS
+                .with_borrow(|shapes| arrange_shapes_on_texture(shapes));
         self.shapes = shapes.into_iter().map(Box::into).collect();
-        self.texture_size = texture_size;
+        self.texture_width = texture_width;
+        self.texture_height = texture_height;
 
         for shape in &self.shapes {
-            warn!("The position on initialization is {:?}", shape.xy());
             self.scene.add_child(&**shape);
             self.layer.add(&**shape);
         }
-        self.layer.camera().set_screen(texture_size.x as f32, texture_size.y as f32);
+        self.layer.camera().set_screen(texture_width as f32, texture_height as f32);
+        // We must call update of layer and display object hierarchy at this point, because:
+        // 1. the [`self.layer`] is not in the Layer hierarchy, so it's not updated during routine
+        //    layers update.
+        // 2. There is possibility that the shapes will be rendered in the same frame, before we
+        //    reach next "update display objects" stage.
         self.layer.camera().update(&self.scene);
         self.scene.display_object.update(&self.scene);
         self.layer.update();
 
-        let output = pass::OutputDefinition::new_rgba("color");
-
-        // FIXME[ao]: duplicated with new_screen_texture?
-        let context = &instance.context;
-        let variables = &instance.variables;
-        let name = "pass_cached_shapes";
-        let format = output.internal_format;
-        let item_type = output.item_type;
-        let args = (texture_size.x, texture_size.y);
-        let params = Some(output.texture_parameters);
-        let texture = uniform::get_or_add_gpu_texture_dyn(
-            context, variables, name, format, item_type, args, params,
-        );
+        let output = pass::OutputDefinition::new_rgba("cached_shapes");
+        let texture = instance.new_texture(&output, texture_width, texture_height);
         self.framebuffer = Some(instance.new_framebuffer(&[&texture]));
     }
 
     fn run(&mut self, instance: &Instance, _update_status: UpdateStatus) {
-        let mut ready_shapes = self
-            .shapes
-            .drain_filter(|shape| shape.sprite().symbol.shader().program().is_some())
-            .peekable();
+        let is_shader_compiled =
+            |shape: &mut Rc<dyn AnyShapeView>| shape.sprite().symbol.shader().program().is_some();
+        let mut ready_shapes = self.shapes.drain_filter(is_shader_compiled).peekable();
         if ready_shapes.peek().is_some() {
             if let Some(framebuffer) = self.framebuffer.as_ref() {
                 framebuffer.bind();
-                instance.context.viewport(0, 0, self.texture_size.x, self.texture_size.y);
+                instance.context.viewport(0, 0, self.texture_width, self.texture_height);
                 for shape in ready_shapes {
-                    warn!("Rendering shape {}", shape.sprite().symbol.id);
-                    // warn!("After update it is {}", shape.sprite().symbol.id);
-                    warn!("The position on run is {:?}", shape.xy());
-                    warn!("The buffer is {:#?}", shape.sprite().transform);
-                    // warn!("The size is {:#?}", shape.sprite().size);
-                    // warn!("The matrix is {:?}", shape.display_object().transformation_matrix());
                     with_context(|t| {
-                        warn!("CAMERA: {:#?}", self.layer.camera());
                         t.set_camera(&self.layer.camera());
                         t.update();
-                        // t.render_symbols(&self.layer.symbols());
                     });
-                    warn!(
-                        "Printing symbol with VARIABLES: {:#?}",
-                        shape.sprite().symbol.variables()
-                    );
-                    warn!("Printing symbol with BINDINGS: {:#?}", shape.sprite().symbol.bindings);
                     shape.sprite().symbol.render();
-                    self.layer.remove(&*shape);
                 }
+                // Restore screen viewport.
                 instance.context.viewport(0, 0, instance.width, instance.height);
                 instance.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
+            } else {
+                error!("Impossible happened: The CacheShapesPass was run without initialized framebuffer.")
             }
         }
     }
 }
 
-impl CacheShapesPass {
-    pub fn new(scene: &Scene) -> Self {
-        Self {
-            framebuffer:  default(),
-            shapes:       default(),
-            layer:        Layer::new("Cached Shapes"),
-            scene:        scene.clone_ref(),
-            texture_size: default(),
-        }
-    }
-}
 
 
+// ===================================
+// === Arranging Shapes on Texture ===
+// ===================================
+
+/// For shape of given size, find the unoccupied space in the square texture.
 fn find_free_place(
     shape_size: Vector2<i32>,
     tex_size: i32,
     placed_so_far: &[BoundingBox],
 ) -> Option<BoundingBox> {
-    let row_or_col_to_coord = |index| (index as f32) - (tex_size as f32) / 2.0;
-    let candidate_rows = (0..tex_size - shape_size.y + 1).map(row_or_col_to_coord);
-    let candidate_cols = (0..tex_size - shape_size.x + 1).map(row_or_col_to_coord);
+    let right_bounds = placed_so_far.iter().map(|bbox| bbox.right().ceil() as i32);
+    let allowed_right_bounds = right_bounds.filter(|col| col + shape_size.x <= tex_size);
+    let top_bounds = placed_so_far.iter().map(|bbox| bbox.top().ceil() as i32);
+    let allowed_top_bounds = top_bounds.filter(|row| row + shape_size.y <= tex_size);
+    let candidate_rows = iter::once(0).chain(allowed_top_bounds);
+    let candidate_cols = iter::once(0).chain(allowed_right_bounds);
     let candidate_positions = iproduct!(candidate_rows, candidate_cols);
     let mut candidate_bboxes = candidate_positions.map(|(y, x)| {
-        BoundingBox::from_position_and_size(Vector2(x, y), shape_size.map(|i| i as f32))
+        BoundingBox::from_position_and_size(
+            Vector2(x as f32, y as f32),
+            shape_size.map(|i| i as f32),
+        )
     });
     candidate_bboxes.find(|bbox| {
         let is_collision = placed_so_far.iter().any(|placed| placed.interior_intersects(bbox));
@@ -132,13 +155,26 @@ fn find_free_place(
     })
 }
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 struct ArrangedShapes {
-    texture_size: Vector2<i32>,
-    shapes:       Vec<Box<dyn AnyShapeView>>,
+    texture_width:  i32,
+    texture_height: i32,
+    #[derivative(Debug = "ignore")]
+    shapes:         Vec<Box<dyn AnyShapeView>>,
 }
 
-
-
+/// Arrange Cached Shapes on texture.
+///
+/// Algorithm of placing each shape on the texture is a simple heuristic, where we sort shapes from
+/// the biggest to the smallest, and take the shapes one by one by that order and try to fit them
+/// by scanning possible left-bottom corner positions, starting from left-bottom corner of the
+/// texture and going line-by-line. According to
+/// https://gamedev.stackexchange.com/questions/2829/texture-packing-algorithm this is actually one
+/// of the best packing algorithm in terms of texture space.
+///
+/// This is a simple implementation with time complexity O(n m s) where n and m is the number of
+/// rows and columns in the resulting texture, and s is number of placed shapes.
 fn arrange_shapes_on_texture<'a>(
     shapes: impl IntoIterator<Item = &'a CachedShapeDefinition>,
 ) -> ArrangedShapes {
@@ -153,27 +189,41 @@ fn arrange_shapes_on_texture<'a>(
     }
 }
 
+/// Try to fit shapes on texture assuming maximum texture size. Returns [`None`] if was unable to
+/// do it.
 fn try_to_fit_shapes_on_texture(
     sorted_shapes: &[impl std::borrow::Borrow<CachedShapeDefinition>],
     max_texture_size: i32,
 ) -> Option<ArrangedShapes> {
     let mut placed_so_far: Vec<BoundingBox> = vec![];
-    let mut texture_size: Vector2<i32> = default();
     let sorted_shapes_ref = sorted_shapes.iter().map(|shape| shape.borrow());
-    let shape_view_iter = sorted_shapes_ref.map(move |shape_def| {
+    let shapes_with_positions_iter = sorted_shapes_ref.map(|shape_def| {
         find_free_place(shape_def.size, max_texture_size, &placed_so_far).map(|bbox| {
-            texture_size.x = max(texture_size.x, bbox.right() as i32);
-            texture_size.y = max(texture_size.y, bbox.top() as i32);
             placed_so_far.push(bbox);
-            let position = bbox.center();
-            let shape = (shape_def.cons)();
-            shape.set_size(shape_def.size);
-            shape.set_xy(position);
-            shape
+            (shape_def, bbox.center())
         })
     });
-    let shape_views: Option<Vec<_>> = shape_view_iter.collect();
-    shape_views.map(|shapes| ArrangedShapes { shapes, texture_size })
+    // We collect all positions, so `placed_so_far` will contain all shapes and we can compute
+    // texture width.
+    let shapes_with_positions: Option<Vec<_>> = shapes_with_positions_iter.collect();
+    let texture_width =
+        placed_so_far.iter().map(BoundingBox::right).reduce(f32::max).unwrap_or_default();
+    let texture_height =
+        placed_so_far.iter().map(BoundingBox::top).reduce(f32::max).unwrap_or_default();
+    let texture_origin = Vector2(texture_width, texture_height) / 2.0;
+    shapes_with_positions.map(|shapes_with_positions| {
+        let shapes = shapes_with_positions.into_iter().map(|(shape_def, position)| {
+            let shape = (shape_def.cons)();
+            shape.set_size(shape_def.size);
+            shape.set_xy(position - texture_origin);
+            shape
+        });
+        ArrangedShapes {
+            shapes:         shapes.collect(),
+            texture_width:  texture_width as i32,
+            texture_height: texture_height as i32,
+        }
+    })
 }
 
 #[cfg(test)]
@@ -222,23 +272,23 @@ mod tests {
         }
 
 
-        run_case(64, [(32, 32), (32, 32)], Some([(-16.0, -16.0), (16.0, -16.0)]));
+        run_case(64, [(32, 32), (32, 32)], Some([(16.0, 16.0), (48.0, 16.0)]));
         run_case(63, [(32, 32), (32, 32)], None);
         run_case(
             64,
             [(32, 32), (32, 32), (32, 32), (32, 32)],
-            Some([(-16.0, -16.0), (16.0, -16.0), (-16.0, 16.0), (16.0, 16.0)]),
+            Some([(16.0, 16.0), (48.0, 16.0), (16.0, 48.0), (48.0, 48.0)]),
         );
         run_case(64, [(32, 32), (32, 32), (32, 32), (2, 33)], None);
         run_case(
             64,
             [(32, 32), (16, 16), (16, 16), (16, 16)],
-            Some([(-16.0, -16.0), (8.0, -24.0), (24.0, -24.0), (8.0, -8.0)]),
+            Some([(16.0, 16.0), (40.0, -8.0), (56.0, -8.0), (40.0, 24.0)]),
         );
         run_case(
             32,
             [(16, 8), (2, 32), (16, 2), (12, 2)],
-            Some([(-8.0, -12.0), (1.0, 0.0), (-8.0, -7.0), (8.0, -15.0)]),
+            Some([(8.0, 4.0), (17.0, 16.0), (8.0, 9.0), (24.0, 1.0)]),
         );
     }
 
@@ -247,16 +297,18 @@ mod tests {
         fn run_case(shape_sizes: impl IntoIterator<Item = (i32, i32)>, expected_size: (i32, i32)) {
             let shape_entries = shape_entries_from_sizes(shape_sizes);
             let result = arrange_shapes_on_texture(shape_entries.iter());
-            assert_eq!(result.texture_size, IntoVector2::into_vector(expected_size));
+            assert_eq!((result.texture_width, result.texture_height), expected_size);
         }
 
         run_case([(32, 32), (16, 16)], (48, 32));
-        run_case([(16, 2), (2, 20)], (22, 16));
+        run_case([(16, 2), (2, 20)], (18, 20));
+        run_case([(256, 2), (257, 2)], (257, 4));
         run_case(iter::repeat((32, 32)).take(2), (64, 32));
         run_case(iter::repeat((32, 32)).take(16), (512, 32));
-        run_case(iter::repeat((32, 32)).take(256), (512, 512));
+        run_case(iter::repeat((32, 32)).take(17), (512, 64));
+        run_case(iter::repeat((64, 64)).take(64), (512, 512));
         // Shapes does not fit initial texture size: the texture is extended.
-        run_case(iter::repeat((32, 32)).take(257), (1024, 544));
+        run_case(iter::repeat((64, 64)).take(65), (1024, 320));
         // Several steps of extending the texture
         run_case(iter::repeat((512, 512)).take(17), (4096, 1536));
     }

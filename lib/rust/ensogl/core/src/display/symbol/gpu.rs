@@ -715,7 +715,6 @@ impl SymbolData {
             let uniform = uniform.unwrap_or_else(|| {
                 panic!("Internal error. Variable {} not found in program.", name)
             });
-            warn!("{}: About to init {:?} binding", self.id, uniform);
             match uniform {
                 AnyUniform::Prim(uniform) => self
                     .bindings

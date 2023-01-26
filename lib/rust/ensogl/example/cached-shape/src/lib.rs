@@ -56,7 +56,6 @@ impl TextureSystemData {
     /// Defines a default material of this system.
     fn material() -> Material {
         let mut material = Material::new();
-        let shader = "output_color = vec4(input_uv.x, input_uv.y, 0.0, 1.0); output_id=vec4(0.0,0.0,0.0,0.0);";
         let shader = "output_color = texture(input_pass_cached_shapes,input_uv); output_id=vec4(0.0,0.0,0.0,0.0);";
         material.add_input_def::<FloatSampler>("pass_cached_shapes");
         material.add_output("id", Vector4::<f32>::new(0.0, 0.0, 0.0, 0.0));

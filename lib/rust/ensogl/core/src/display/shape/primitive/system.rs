@@ -910,6 +910,15 @@ macro_rules! _shape {
     };
 }
 
+/// Defines a new cached shape system.
+///
+/// The outcome is the same as for [`shape!`] macro, but the shape will be near application start
+/// to the special "cached shapes" texture. The texture is available in GLSL as "pass_cached_shapes"
+/// uniform. In the future there will be also a possibility of parametrization of normal shapes by
+/// cached shapes (see [#184212663](https://www.pivotaltracker.com/story/show/184212663)).
+///
+/// Because shape, once cached, is not redrawn, we don't allow for any parameterization, even by
+/// styles.
 #[macro_export]
 macro_rules! cached_shape {
     (
@@ -917,15 +926,18 @@ macro_rules! cached_shape {
         $(type SystemData = $system_data:ident;)?
         $(type ShapeData = $shape_data:ident;)?
         $(flavor = $flavor:path;)?
-        // $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
-        // $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
-        // $(pointer_events = $pointer_events:tt;)?
+        $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
+        $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
+        $(pointer_events = $pointer_events:tt;)?
         () {$($body:tt)*}
     ) => {
         $crate::_shape! {
             $(SystemData($system_data))?
             $(ShapeData($shape_data))?
             $(flavor = [$flavor];)?
+            $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
+            $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
+            $(pointer_events = $pointer_events;)?
             [_style] (){$($body)*}
         }
 

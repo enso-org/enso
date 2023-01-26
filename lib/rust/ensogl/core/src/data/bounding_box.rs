@@ -87,6 +87,7 @@ impl BoundingBox {
         !not_contained
     }
 
+    /// Return whether the interiors of two bounding boxes have some area of overlap.
     pub fn interior_intersects(&self, other: &BoundingBox) -> bool {
         let not_contained = (self.right <= other.left)
             || (other.right <= self.left)
@@ -127,6 +128,7 @@ impl BoundingBox {
         self.bottom
     }
 
+    /// Return the position of the point at this bounding box center.
     pub fn center(&self) -> Vector2 {
         Vector2((self.left + self.right) / 2.0, (self.top + self.bottom) / 2.0)
     }

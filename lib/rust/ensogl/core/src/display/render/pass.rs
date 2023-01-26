@@ -58,10 +58,21 @@ impl Instance {
     /// Create a new texture covering the whole screen and register it in the global uniform scope
     /// with the name provided as the configuration argument.
     pub fn new_screen_texture(&self, output: &OutputDefinition) -> AnyTextureUniform {
+        self.new_texture(output, self.width, self.height)
+    }
+
+    /// Create a new texture of given size and register it in the global uniform scope with the name
+    /// provided as the configuration argument.
+    pub fn new_texture(
+        &self,
+        output: &OutputDefinition,
+        width: i32,
+        height: i32,
+    ) -> AnyTextureUniform {
         let context = &self.context;
         let variables = &self.variables;
         let name = format!("pass_{}", output.name);
-        let args = (self.width, self.height);
+        let args = (width, height);
         let format = output.internal_format;
         let item_type = output.item_type;
         let params = Some(output.texture_parameters);

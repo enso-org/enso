@@ -84,9 +84,17 @@ fn init_context() {
 // === Shape Definitions ===
 // =========================
 
+/// A constructor of view of some specific shape.
 pub type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+
+/// The definition of shapes created with the `cached_shape!` macro.
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct CachedShapeDefinition {
+    /// The size of the shape in the texture.
     pub size: Vector2<i32>,
+    /// A constructor of single shape view.
+    #[derivative(Debug = "ignore")]
     pub cons: ShapeCons,
 }
 
@@ -95,6 +103,8 @@ thread_local! {
     /// program execution, before the `main` function is called.
     pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
 
+    /// All shapes defined with the `cached_shape!` macro. They will be populated on the beginning
+    /// of program execution, before the `main` function is called.
     pub static CACHED_SHAPES_DEFINITIONS: RefCell<Vec<CachedShapeDefinition>> = default();
 }
 

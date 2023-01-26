@@ -40,6 +40,7 @@ pub trait AnyShapeView: display::Object {
     /// The shape definition path (file:line:column).
     fn definition_path(&self) -> &'static str;
 
+    /// Get the sprite of given shape.
     fn sprite(&self) -> Sprite;
 }
 
