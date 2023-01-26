@@ -14,31 +14,32 @@ type CustomEqType
         CustomEqType.C1 f1 -> f1
         CustomEqType.C2 f1 f2 -> f1 + f2
 
-    == self other = self.sum == other.sum
+type CustomEqType_Comparator
+    is_ordered = False
+    equals o1 o2 = o1.sum == o2.sum
+    hash o =
+        comp = Comparable.from o.sum
+        comp.hash o.sum
+
+Comparable.from (_:CustomEqType) = CustomEqType_Comparator
 
 type Child
     Value number
 
-    == : Any -> Boolean
-    == self other = case other of
-        _ : Child -> (self.number % 100) == (other.number % 100)
-        _ -> False
+type Child_Comparator
+    is_ordered = False
+    equals child1 child2 = child1.number % 100 == child2.number % 100
+    hash child =
+        comp = Comparable.from child.number
+        (comp.hash child.number) % 100
+
+Comparable.from (_:Child) = Child_Comparator
 
 type Parent
     Value child
 
-    == : Any -> Boolean
-    == self other = case other of
-        _ : Parent -> self.child == other.child
-        _ -> False
-
 type GrandParent
     Value parent
-
-    == : Any -> Boolean
-    == self other = case other of
-        _ : GrandParent -> self.parent == other.parent
-        _ -> False
 
 type ManyFieldType
     Value f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15
@@ -120,6 +121,9 @@ spec =
             ((Point.Value 'ś' 23.0) == (Point.Value 's\u0301' 23)) . should_be_true
 
         Test.specify "should dispatch to overriden `==` on atoms" <|
+            (Child.Value 11 == Child.Value 111) . should_be_true
+
+        Test.specify "should dispatch to overriden `==` on atoms transitively" <|
             child1 = Child.Value 11
             parent1 = Parent.Value child1
             grand_parent1 = GrandParent.Value parent1
