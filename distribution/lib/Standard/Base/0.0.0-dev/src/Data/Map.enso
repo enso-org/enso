@@ -66,7 +66,8 @@ type Map key value
         vec.fold Map.empty m-> el->
             key = el.at 0
             value = el.at 1
-            if allow_duplicates.not && m.contains_key key then Error.throw (Illegal_Argument.Error "`Map.from_vector` encountered duplicate key: "+key.to_display_text) else                m.insert key value
+            if allow_duplicates || (m.contains_key key . not) then m.insert key value else
+                Error.throw (Illegal_Argument.Error "`Map.from_vector` encountered duplicate key: "+key.to_display_text)
 
     ## Returns True iff the Map is empty, i.e., does not have any entries.
     is_empty : Boolean
