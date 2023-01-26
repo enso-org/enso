@@ -95,9 +95,19 @@ impl ArgumentInfo {
     }
 
     /// Specialized constructor for "this" argument.
-    pub fn this(tp: Option<String>) -> Self {
+    pub fn this(tp: Option<String>, call_id: Option<ast::Id>) -> Self {
         let name = Some(node::This::NAME.into());
-        Self { name, tp, call_id: None, target_id: None, tag_values: Vec::new() }
+        Self { name, tp, call_id, target_id: None, tag_values: Vec::new() }
+    }
+
+    /// Extend the argument info with the given call id.
+    pub fn with_call_id(self, call_id: Option<ast::Id>) -> Self {
+        Self { call_id, ..self }
+    }
+
+    /// Extend the argument info with the given target id.
+    pub fn with_target_id(self, target_id: Option<ast::Id>) -> Self {
+        Self { target_id, ..self }
     }
 }
 
@@ -206,7 +216,7 @@ impl<T: Payload> SpanTree<T> {
                 buffer.push('▲');
                 written += 1;
             } else {
-                buffer.push_str(&node_code);
+                buffer.push_str(node_code);
                 written += node_code.len();
             }
             buffer.push_str(&pad[written..pad_total]);
@@ -230,6 +240,10 @@ impl<T: Payload> SpanTree<T> {
 
             if let Some(name) = node.kind.name() {
                 write!(buffer, " name={name:?}").unwrap();
+            }
+
+            if let Some(call_id) = node.kind.call_id() {
+                write!(buffer, " call_id={call_id:?}").unwrap();
             }
 
             if let Some(target_id) = node.kind.target_id() {

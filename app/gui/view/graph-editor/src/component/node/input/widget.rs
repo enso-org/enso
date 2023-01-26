@@ -341,7 +341,7 @@ impl SingleChoiceModel {
         let dropdown_output = frp.out_value_changed.clone_ref();
         let dropdown = LazyDropdown::new(
             &common.app,
-            &display_object,
+            display_object,
             set_current_value,
             is_open,
             dropdown_output,

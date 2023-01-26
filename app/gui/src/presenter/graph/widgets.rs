@@ -159,13 +159,13 @@ impl Model {
                 let args: Vec<(String, serde_json::Value)> = serde_json::from_slice(&data).ok()?;
                 let updates = args
                     .into_iter()
-                    .filter_map(|(argument_name, meta_json)| {
+                    .map(|(argument_name, meta_json)| {
                         // Treat failed deserialization as non-widget data. The returned annotation
                         // can be an arbitrary structure, so there will be cases when we fail to
                         // deserialize it, as it may not contain the widget data in the first place.
                         let deserialized = serde_json::from_value(meta_json).ok();
                         let meta = deserialized.map(WidgetVisualizationData::into_metadata);
-                        Some(WidgetUpdate { argument_name, meta })
+                        WidgetUpdate { argument_name, meta }
                     })
                     .collect();
 
@@ -318,9 +318,9 @@ impl Model {
             if i > 0 {
                 buffer.push_str(", ");
             }
-            buffer.push_str(&Self::escape_visualization_argument(&arg));
+            buffer.push_str(&Self::escape_visualization_argument(arg));
         }
-        buffer.push_str("]");
+        buffer.push(']');
         buffer
     }
 }

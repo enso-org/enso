@@ -589,7 +589,7 @@ impl Model {
                 }
 
                 init_color.emit(());
-                
+
                 port_shape.display_object().clone_ref()
             };
 

@@ -127,7 +127,7 @@ impl Kind {
     /// information.
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
         Some(match self {
-            Self::This(t) => ArgumentInfo::this(t.tp.clone()),
+            Self::This(t) => ArgumentInfo::this(t.tp.clone(), t.call_id),
             Self::Argument(t) => ArgumentInfo::new(
                 t.name.clone(),
                 t.tp.clone(),
@@ -149,6 +149,7 @@ impl Kind {
     /// Returns the argument's whole call node ast id.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
+            Self::This(t) => t.call_id,
             Self::Argument(t) => t.call_id,
             Self::InsertionPoint(t) => t.call_id,
             _ => None,
@@ -170,6 +171,7 @@ impl Kind {
         match self {
             Self::This(t) => {
                 t.tp = argument_info.tp;
+                t.call_id = argument_info.call_id;
                 true
             }
             Self::Argument(t) => {
@@ -228,6 +230,7 @@ impl Default for Kind {
 pub struct This {
     pub removable: bool,
     pub tp:        Option<String>,
+    pub call_id:   Option<ast::Id>,
 }
 
 
@@ -262,6 +265,11 @@ impl This {
     }
     pub fn with_tp(mut self, tp: Option<String>) -> Self {
         self.tp = tp;
+        self
+    }
+
+    pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
+        self.call_id = call_id;
         self
     }
 }

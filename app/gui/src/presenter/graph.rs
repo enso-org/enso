@@ -313,7 +313,7 @@ impl Model {
         let (node_id, widget_target_id) = self
             .state
             .update_from_controller()
-            .set_expression_method_pointer(expr_id, method_pointer.clone())?;
+            .set_expression_method_pointer(expr_id, method_pointer)?;
         Some((node_id, expr_id, widget_target_id?))
     }
 

@@ -341,10 +341,7 @@ impl Context for Handle {
             Some(entry.invocation_info())
         };
         let fallback = || self.graph.borrow().call_info(id, name);
-        let info = lookup_registry().or_else(fallback);
-
-        // warn!("Context::call_info {id:?} {name:?} -> {info:?}");
-        info
+        lookup_registry().or_else(fallback)
     }
 }
 
