@@ -43,6 +43,12 @@ pub async fn install_components(components: impl IntoIterator<Item = &ComponentI
         // `gu install` dos not like being invoked with no arguments. Well, sensible.
         let mut cmd = Gu.cmd()?;
         cmd.arg("install");
+        // Add force flag. Sometimes, this seems to be needed to install a component that was
+        // previously installed. Otherwise, we get error like:
+        // Installation of Native Image failed: Existing file contents differ:
+        // .../lib/svm/bin/native-image. Run with -f to force overwrite. Error: Existing
+        // file contents differ: .../lib/svm/bin/native-image. Run with -f to force overwrite.
+        cmd.arg("-f");
         cmd.args(components);
         cmd.run_ok().await?;
     } else {
