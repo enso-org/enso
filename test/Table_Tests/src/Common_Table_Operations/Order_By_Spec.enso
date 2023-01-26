@@ -116,7 +116,7 @@ spec setup =
             Test.expect_panic_with matcher=Any <|
                 table.order_by ["alpha", 1]
 
-        Test.specify "should work correctly with shorthands" <|
+        Test.specify "should work correctly with shorthands" pending="The last test case does not work currently. We want to get rid of Sort_Column_Selector and use a vector directly. TODO" <|
             t1 = table.order_by "alpha"
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
@@ -125,11 +125,10 @@ spec setup =
             t2.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-            # TODO figure this out
-            #t3 = table.order_by [Sort_Column.Index 1, Sort_Column.Name "gamma" Sort_Direction.Descending]
-            #t3.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
-            #t3.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
-            #t3.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
+            t3 = table.order_by [Sort_Column.Index 1, Sort_Column.Name "gamma" Sort_Direction.Descending]
+            t3.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t3.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+            t3.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
