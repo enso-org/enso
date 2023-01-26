@@ -198,7 +198,7 @@ pub struct SpriteModel {
     #[deref]
     pub instance:         SymbolInstance,
     pub symbol:           Symbol,
-    pub size:             SizedObject,
+    size:                 SizedObject,
     transform:            Attribute<Matrix4<f32>>,
     stats:                SpriteStats,
     erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
