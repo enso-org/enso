@@ -350,7 +350,7 @@ impl Model {
         &self,
         method_id: SuggestionId,
     ) -> Option<view::graph_editor::MethodPointer> {
-        let suggestion_db = &self.controller.borrow_graph().suggestion_db;
+        let suggestion_db = self.controller.suggestion_db();
         let method = suggestion_db.lookup_method_ptr(method_id).ok()?;
         Some(view::graph_editor::MethodPointer(Rc::new(method)))
     }

@@ -626,7 +626,7 @@ impl<'a> ControllerChange<'a> {
     }
 
     /// Set the new expression's method pointer. If the method pointer actually changes, the
-    /// to-be-updated view and widget data is returned.
+    /// to-be-updated view and widget target is returned.
     pub fn set_expression_method_pointer(
         &self,
         id: ast::Id,
@@ -748,7 +748,7 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Set the call expression's widget target expression ID.
+    /// Set widget target id associated with a given call expression.
     pub fn set_expression_widget_target(
         &self,
         expression: ast::Id,

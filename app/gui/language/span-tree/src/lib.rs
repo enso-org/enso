@@ -192,9 +192,9 @@ impl<T: Payload> Default for SpanTree<T> {
 
 impl<T: Payload> SpanTree<T> {
     #[allow(dead_code)]
-    /// Get pretty-printed representation of this span tree for debugging purposes. The provided
-    /// code should be the code that was used to generate this tree, as it will be used to extract
-    /// the code fragments based on spans in the tree.
+    /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
+    /// argument should be identical to the expression that was used during generation of this
+    //// span-tree. It will be used to print code fragments associated with each span.
     pub fn debug_print(&self, code: &str) -> String {
         use std::fmt::Write;
 

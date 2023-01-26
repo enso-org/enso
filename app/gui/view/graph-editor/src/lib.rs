@@ -3,7 +3,6 @@
 //! be of poor quality. Expect drastic changes.
 
 // === Features ===
-#![feature(adt_const_params)]
 #![feature(associated_type_defaults)]
 #![feature(drain_filter)]
 #![feature(entry_insert)]
@@ -353,7 +352,7 @@ where
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
     pub fn get_cloned_ref(&self, k: &K) -> Option<V>
     where V: CloneRef {
-        self.raw.borrow().get(k).map(CloneRef::clone_ref)
+        self.raw.borrow().get(k).map(|t| t.clone_ref())
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -1056,6 +1055,7 @@ impl Grid {
 }
 
 
+
 // =====================
 // === WidgetUpdates ===
 // =====================
@@ -1077,6 +1077,7 @@ pub struct WidgetUpdate {
     /// Widget metadata queried from the language server.
     pub meta:          Option<node::input::widget::Metadata>,
 }
+
 
 
 // =============

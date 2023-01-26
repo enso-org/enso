@@ -153,9 +153,9 @@ struct ApplicationBase<'a> {
     function_name: Option<&'a str>,
     /// True when Ast uses method notation to pass this as an invocation target.
     has_target:    bool,
-    /// The ast id of the call expression. It is `None` when the ast node has no assigned ID.
+    /// The ast id of the call expression.
     call_id:       Option<Id>,
-    /// The id of the call target operand. The target can still be present with not assigned ID.
+    /// The id of the call target operand. The target can present with not assigned ast id.
     /// In that case the `target_id` is `None` an `has_target` is `true`.
     target_id:     Option<Id>,
 }

@@ -18,7 +18,7 @@ pub struct CalledMethodInfo {
 }
 
 impl CalledMethodInfo {
-    /// Assign the given target expression ID to all call arguments.
+    /// Assign call and target expression ids to all parameters.
     pub fn with_ast_ids(mut self, call_id: Option<Id>, target_id: Option<Id>) -> Self {
         self.parameters.iter_mut().for_each(|arg| {
             arg.call_id = call_id;

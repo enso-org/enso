@@ -191,7 +191,7 @@ impl Model {
     }
 
     fn request_widget(&mut self, req: &Request) -> Option<(ViewNodeId, WidgetUpdates)> {
-        let suggestion_db = &self.graph.borrow_graph().suggestion_db;
+        let suggestion_db = self.graph.suggestion_db();
         let entry = suggestion_db.lookup(req.call_suggestion).ok()?;
 
         use std::collections::hash_map::Entry;

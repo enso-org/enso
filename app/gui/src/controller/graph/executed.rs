@@ -297,9 +297,9 @@ impl Handle {
         self.graph.borrow().clone_ref()
     }
 
-    /// Get a borrow of the controller for the currently active graph.
-    pub fn borrow_graph(&self) -> Ref<controller::Graph> {
-        self.graph.borrow()
+    /// Get suggestion database from currently active graph.
+    pub fn suggestion_db(&self) -> Rc<model::SuggestionDatabase> {
+        self.graph.borrow().suggestion_db.clone()
     }
 
     /// Get a full qualified name of the module in the [`graph`]. The name is obtained from the
