@@ -67,6 +67,10 @@ public class BigNumberTest {
         doubles++;
       }
       boolean assertsOn = false;
+      // Explanation at
+      // https://github.com/enso-org/enso/pull/4074#discussion_r1086222800
+      // rewrite when proper support for BigInteger is available
+      // https://github.com/oracle/graal/pull/5490
       assert assertsOn = true;
       String s;
       if (!assertsOn) {
