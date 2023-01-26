@@ -86,6 +86,8 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
+- [Components that are tagged `PRIVATE` are not shown in the component
+  browser][4085]
 
 #### EnsoGL (rendering engine)
 
@@ -450,6 +452,7 @@
 [4052]: https://github.com/enso-org/enso/pull/4052
 [4063]: https://github.com/enso-org/enso/pull/4063
 [4078]: https://github.com/enso-org/enso/pull/4078
+[4085]: https://github.com/enso-org/enso/pull/4085
 
 #### Enso Compiler
 
