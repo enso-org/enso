@@ -320,7 +320,7 @@ type Table
          - If any of the new names are invalid, an
            `Invalid_Output_Column_Names`.
          - If any of the new names clash either with existing names or each
-           other, a Duplicate_Output_Column_Names.
+           other, a `Duplicate_Output_Column_Names`.
 
        > Example
          Rename the first column to "FirstColumn"
@@ -336,6 +336,11 @@ type Table
          Add a prefix to all column names.
 
               table.rename_columns (table.columns.map c-> "prefix_" + c.name)
+
+       > Example
+         For all columns starting with the prefix `name=`, replace it with `key:`.
+
+              table.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
     rename_columns : Map | Vector Text | Column_Name_Mapping -> Problem_Behavior -> Table
     rename_columns self (column_map=(Column_Name_Mapping.By_Position ["Column"])) (on_problems=Report_Warning) = case column_map of
         _ : Vector ->
@@ -343,10 +348,10 @@ type Table
         _ : Map ->
             self.rename_columns (Column_Name_Mapping.By_Name column_map) on_problems
         _ ->
-            new_names = Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems
-            if new_names.is_error then new_names else
-                new_columns = self.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
-                self.updated_columns new_columns
+            case Table_Helpers.rename_columns internal_columns=self.internal_columns mapping=column_map on_problems=on_problems of
+                new_names ->
+                    new_columns = self.internal_columns.map_with_index i->c->(c.rename (new_names.at i))
+                    self.updated_columns new_columns
 
     ## PRIVATE
 

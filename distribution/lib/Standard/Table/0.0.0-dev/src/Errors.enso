@@ -44,7 +44,7 @@ type Too_Many_Column_Names_Provided
        Convert a too many columns error to a human-readable form.
     to_display_text : Text
     to_display_text self =
-        "Too many column names provided. " + (self.column_names.at 0).to_text + " unused."
+        "Too many column names provided. " + (self.column_names.at 0).to_text + " are unused."
 
 ## One or more column names were invalid during a rename operation.
 type Invalid_Output_Column_Names

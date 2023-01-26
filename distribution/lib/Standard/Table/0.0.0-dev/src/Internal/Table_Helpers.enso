@@ -246,7 +246,6 @@ type Table_Column_Helper
      If set to `Ignore`, the operation proceeds without errors or warnings.
 rename_columns : Vector -> Column_Name_Mapping -> Problem_Behavior -> Map
 rename_columns internal_columns mapping on_problems =
-    unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
     problem_builder = Problem_Builder.new
 
@@ -272,9 +271,11 @@ rename_columns internal_columns mapping on_problems =
         problem_builder.report_missing_input_columns unused
         new_names
 
-    mapped = case mapping of
-        Column_Name_Mapping.By_Column vec -> name_mapper (vec.map r-> [r.at 0 . name, r.at 1]) Text_Matcher.Case_Sensitive
-        Column_Name_Mapping.By_Name map ms -> name_mapper map.to_vector ms
+    ## A list of pairs [column, new_name]. The new_name is `Nothing` if the
+       column should remain unmodified.
+    columns_and_renames = case mapping of
+        Column_Name_Mapping.By_Name map ms ->
+            ???
         Column_Name_Mapping.By_Index map ->
             good_indices = validate_indices col_count map.keys problem_builder
 
@@ -292,9 +293,21 @@ rename_columns internal_columns mapping on_problems =
                     vec.take (First col_count)
                 False -> vec
 
+            new_names = ???
             new_names = 0.up_to col_count . map i->if i>=good_names.length then Nothing else
                 unique.make_unique (good_names.at i)
             new_names
+
+    unique = Unique_Name_Strategy.new
+    unchanged_columns = columns_with_matchers.filter cte-> cte.associated_selector.is_nothing
+    unique.mark_used <| unchanged_columns.map c->c.name
+    transformed_columns = columns_with_matchers.map cte->
+        column = cte.column
+        case cte.associated_selector of
+            Nothing -> column
+            selector -> column.with_name cte.name
+            # TODO rename
+            # TODO do regex stuff?
 
     processed = mapped.map_with_index i->n->
         n.if_nothing (unique.make_unique (internal_columns.at i).name)
@@ -478,15 +491,17 @@ prepare_order_by internal_columns column_selectors problem_builder =
    - matcher: Specifies the strategy of matching names.
    - problem_builder: Encapsulates the aggregation of encountered problems.
    - name_extractor: A function which extracts the column name from the selector.
-transform_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> Vector
-transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor =
+   - multiple_selectors_callback: A function which is called to handle reporting
+     errors related to a single column being matched by multiple selectors.
+transform_columns_by_name : Vector -> Vector -> Text_Matcher -> Problem_Builder -> (Any -> Text) -> (Text -> Vector -> Nothing) -> Vector
+transform_columns_by_name internal_columns name_selectors matcher problem_builder name_extractor multiple_selectors_callback =
     match_matrix = Matching.make_match_matrix matcher objects=internal_columns criteria=name_selectors object_name_mapper=(_.name) criterion_mapper=name_extractor
     problem_builder.report_missing_input_columns match_matrix.unmatched_criteria
     internal_columns.map_with_index i-> column->
         matching_selectors = match_matrix.criteria_matching_object i
         associated_selector = if matching_selectors.is_empty then Nothing else
             if matching_selectors.length > 1 then
-                problem_builder.report_column_matched_by_multiple_selectors column.name matching_selectors
+                multiple_selectors_callback column.name matching_selectors
             matching_selectors.first
         Column_Transform_Element.Value column associated_selector
 
@@ -506,12 +521,31 @@ transform_columns_by_name internal_columns name_selectors matcher problem_builde
    - index_selectors: A vector of selectors which contain a column index and
      optionally some metadata.
    - problem_builder: Encapsulates the aggregation of encountered problems.
-transform_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> Vector
-transform_columns_by_index internal_columns index_selectors problem_builder index_extractor =
-    good_indices = validate_indices internal_columns.length index_selectors problem_builder index_extractor
-    selectors_map = Map.from_vector good_indices
+   - index_extractor: A function which extracts the column index from the selector.
+   - multiple_selectors_callback: A function which is called to handle reporting
+     errors related to a single column being matched by multiple selectors.
+transform_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> (Text -> Vector -> Nothing) -> Vector
+transform_columns_by_index internal_columns index_selectors problem_builder index_extractor multiple_selectors_callback =
+    length = internal_columns.length
+    partitioned_indices = indices.partition (is_index_valid length << index_extractor)
+    inbound_indices = partitioned_indices.first
+    oob_indices = partitioned_indices.second
+    problem_builder.report_oob_indices (oob_indices.map index_extractor)
+
+    index_mapping = inbound_indices.fold Map.empty acc-> sel->
+        ix = index_extractor sel
+        resolved_ix = resolve_index length ix
+
+        matches = acc.get resolved_ix []
+        acc.insert resolve_index matches+[sel]
+
+    index_mapping.map_with_key resolved_ix-> selectors->
+        if selectors.length > 1 then
+            multiple_selectors_callback (internal_columns.at resolved_index . name) selectors
+
     internal_columns.map_with_index i-> column->
-        associated_selector = selectors_map.get i Nothing
+        associated_selectors = selectors_map.get i []
+        associated_selector = if associated_selectors.is_empty then Nothing else associated_selectors.first
         Column_Transform_Element.Value column associated_selector
 
 ## PRIVATE

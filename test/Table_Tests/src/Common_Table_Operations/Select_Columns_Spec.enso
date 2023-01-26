@@ -346,6 +346,10 @@ spec setup =
             expect_column_names ["prefix_alpha", "prefix_beta", "prefix_gamma", "prefix_delta"] <|
                 table.rename_columns (table.columns.map c-> "prefix_" + c.name)
 
+            t1 = table_builder [["alpha", [1]], ["name=123", [2]], ["name= foo bar", [3]]]
+            expect_column_names ["alpha", "key:123", "key: foo bar"] <|
+                t1.rename_columns (Column_Name_Mapping.By_Name (Map.from_vector [["name=(.*)", "key:$1"]]) Regex_Matcher.Value)
+
         Test.specify "should work by index" <|
             map = Map.from_vector [[0, "FirstColumn"], [-2, "Another"]]
             expect_column_names ["FirstColumn", "beta", "Another", "delta"] <|
@@ -432,6 +436,12 @@ spec setup =
             err.column_name . should_equal "alpha"
             err.new_names . should_equal ["StartsWithA", "EndsWithA"]
 
+            t3 = table_builder [["aaa", [1]], ["bbb", [2]]]
+            map3 = Column_Name_Mapping.By_Name (Map.from_vector [["a(.*)a", "A$1A"], ["(.*)aa", "AA$1"]]) Regex_Matcher.Value
+            t4 = t3.rename_columns map3 on_problems=Problem_Behavior.Report_Error
+            Problems.assume_no_problems t4
+            expect_column_names ["AAA", "bbb"] t4
+
         Test.specify "should correctly handle problems: invalid names ''" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[1, ""]])
             action = table.rename_columns map on_problems=_
@@ -451,6 +461,19 @@ spec setup =
             action = table.rename_columns map on_problems=_
             tester = expect_column_names ["Test", "Test_1", "Test_2", "Test_3"]
             problems = [Duplicate_Output_Column_Names.Error ["Test", "Test", "Test"]]
+            Problems.test_problem_handling action problems tester
+
+        Test.specify "should correctly handle problems: new name is clashing with existing name of existing column" <|
+            map = Column_Name_Mapping.By_Name (Map.from_vector [["alpha", "beta"]])
+            action = table.rename_columns map on_problems=_
+            tester = expect_column_names ["beta", "beta_1", "gamma", "delta"]
+            problems = [Duplicate_Output_Column_Names.Error ["beta"]]
+            Problems.test_problem_handling action problems tester
+
+            map = Column_Name_Mapping.By_Name (Map.from_vector [["beta", "alpha"]])
+            action = table.rename_columns map on_problems=_
+            tester = expect_column_names ["alpha_1", "alpha", "gamma", "delta"]
+            problems = [Duplicate_Output_Column_Names.Error ["alpha"]]
             Problems.test_problem_handling action problems tester
 
         Test.specify "should correctly handle problems: too many input names" <|
