@@ -65,7 +65,11 @@ pub fn init() {
 
 /// Initialize global context.
 #[before_main(1)]
-pub fn init_context() {
+pub fn wasm_init_context() {
+    init_context();
+}
+
+fn init_context() {
     CONTEXT.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
 }
 
@@ -308,6 +312,9 @@ pub struct WorldDataWithLoop {
 impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
+        // Context is initialized automatically before main entry point starts in WASM. We are
+        // performing manual initialization for native tests to work correctly.
+        init_context();
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();

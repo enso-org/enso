@@ -21,7 +21,7 @@ pub mod prelude {
 async fn main() -> Result {
     setup_logging()?;
     let repo_root = deduce_repository_path()?;
-    let workflows_dir = RepoRootGithub::new_under(&repo_root).workflows;
+    let workflows_dir = RepoRootGithub::new_under(repo_root).workflows;
     workflows_dir
         .shader_tools_yml
         .write_as_yaml(&enso_build_shader_tools::ci::generate_workflow())?;

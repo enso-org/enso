@@ -87,6 +87,6 @@ impl Param {
     }
 }
 
-pub fn app() -> App {
-    Reflect::get_nested_object(&window, &["ensoglApp"]).unwrap().unchecked_into()
+pub fn app() -> Result<App, JsValue> {
+    Reflect::get_nested_object(&window, &["ensoglApp"]).map(|t| t.unchecked_into())
 }

@@ -317,11 +317,12 @@ pub fn gen(
 
 
 /// A macro allowing running functions after WASM initialization, before the main function. In order
-/// to run a function before main, simply use this attribute:
+/// to run a function before main, simply use this attribute (please note that the function has to
+/// be public, as otherwise it can't be exported to WASM):
 ///
 /// ```text
 /// #[before_main]
-/// fn any_name {
+/// pub fn any_name {
 ///     println!("I'm running before main!");
 /// }
 /// ```
