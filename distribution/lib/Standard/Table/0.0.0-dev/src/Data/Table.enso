@@ -257,6 +257,9 @@ type Table
          - If a column in columns is not in the input table, a
            `Missing_Input_Columns`.
          - If a column index is out of range, a `Column_Indexes_Out_Of_Range`.
+
+       ! Error Conditions
+
          - If there are no columns in the output table, a `No_Output_Columns` is
            raised as an error regardless of the problem behavior, because it is
            not possible to create a table without any columns.
@@ -287,7 +290,7 @@ type Table
              table.select_columns (Column_Selector.By_Column [column1, column2])
 
        Icon: select_column
-    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table
+    select_columns : Vector Text | Column_Selector -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns
     select_columns self (columns = Column_Selector.By_Index [0]) (reorder = False) (on_problems = Report_Warning) =
         new_columns = self.columns_helper.select_columns selector=columns reorder=reorder on_problems=on_problems
         Table.new new_columns
