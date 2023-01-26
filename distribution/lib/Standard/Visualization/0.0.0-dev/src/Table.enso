@@ -2,6 +2,8 @@ from Standard.Base import all
 
 from Standard.Base.Data.Text.Extensions import slice_text
 from Standard.Visualization.Text import get_chunk_from_line
+import Standard.Base.Error.Common.Not_Found
+
 
 ## PRIVATE
 
@@ -11,7 +13,6 @@ from Standard.Visualization.Text import get_chunk_from_line
 type TableSpecificationUpdate
 
     Value row_heights column_widths column_names row_names
-
 
 
 ## PRIVATE
@@ -42,60 +43,58 @@ get_lazy_visualisation_data table table_cell_position text_window_position text_
     update = compute_table_update table table_cell_position text_window_position text_window_size chunk_size
     update.to_json
 
+## PRIVATE
 
+   Compute the table visualisation update. The table update contains information about the table
+   layout and the table content.
 compute_table_update table table_cell_position text_window_position text_window_size chunk_size =
-    text_window_width = text_window_size.at 0
-    text_window_height = text_window_size.at 1
+    text_window_width = text_window_size.get 0
+    text_window_height = text_window_size.get 1
 
     chunks_to_get = text_window_width
     lines_to_get = text_window_height
 
-    start_column = table_cell_position.at 0
+    start_column = table_cell_position.get 0
     last_column = find_end_column table start_column text_window_width chunk_size
     column_ix_iter = start_column.up_to last_column+2
 
-    start_row = table_cell_position.at 1
+    start_row = table_cell_position.get 1
     end_row = find_end_row table start_row text_window_height
     row_ix_range = start_row.up_to end_row+1
 
-    start_chunk = text_window_position.at 0
-    start_line = text_window_position.at 1
+    start_chunk = text_window_position.get 0
+    start_line = text_window_position.get 1
 
     row_line_iter = compute_vertical_indices table start_row end_row start_line lines_to_get
 
     process_row row_ix line_ix =
         chunks = get_chunks_for_row table row_ix line_ix start_chunk column_ix_iter chunk_size chunks_to_get
         process_chunk chunk =
-            column_chunk_ix = chunk.at 0
-            column_ix = column_chunk_ix.at 0
-            chunk_ix = column_chunk_ix.at 1
-            chunk_content = chunk.at 1
+            column_chunk_ix = chunk.get 0
+            column_ix = column_chunk_ix.get 0
+            chunk_ix = column_chunk_ix.get 1
+            chunk_content = chunk.get 1
             [[[column_ix, row_ix], [chunk_ix, line_ix]] , chunk_content]
         chunks.map process_chunk
 
-    chunks = row_line_iter.map (index -> process_row (index.at 0) (index.at 1)) . flatten
+    chunks = row_line_iter.map (index -> process_row (index.get 0) (index.get 1)) . flatten
 
     row_heights = row_ix_range.map (index -> [index, get_row_height table index])
-    column_widths = column_ix_iter.map (column_ix -> [column_ix, get_column_width ((table.at column_ix))])
-    column_names = column_ix_iter.map (column_ix -> [column_ix, (table.at column_ix).name])
-
-    get_row_name = row_ix -> ((table.columns.at start_column).at row_ix).name
-    ## row_names = row_ix_iter.map (index -> [index, get_row_name index])
+    column_widths = column_ix_iter.map (column_ix -> [column_ix, get_column_width ((table.get column_ix))])
+    column_names = column_ix_iter.map (column_ix -> [column_ix, (table.get column_ix).name])
 
     layout = TableSpecificationUpdate.Value row_heights column_widths column_names []
     TableUpdate.Value chunks layout
 
-    ## [start_row, last_row, start_column, last_column, text_window_size, row_line_iter]
-
 ## Returns a vector that contains a pairs of row index and vector of corresponding lines indices.
-compute_vertical_indices : Table -> Integer -> Integer -> Integer -> Integer -> Vector Any
+compute_vertical_indices : Table.Table -> Integer -> Integer -> Integer -> Integer -> Vector Any
 compute_vertical_indices table start_row end_row start_line lines_to_get =
     ## agg is a Vector of `[processed_lines, initial_offset, result_indices]`
     process_line agg row_ix =
-        already_processed_lines = agg.at 0
+        already_processed_lines = agg.get 0
         lines_left_to_process = lines_to_get - already_processed_lines
-        initial_offset = agg.at 1
-        result_indices = agg.at 2
+        initial_offset = agg.get 1
+        result_indices = agg.get 2
         lines_in_row = (get_row_height table row_ix) - initial_offset
         lines_to_process = Math.min lines_in_row lines_left_to_process
         start_line = initial_offset
@@ -103,7 +102,7 @@ compute_vertical_indices table start_row end_row start_line lines_to_get =
         line_indices = start_line.up_to end_line . to_vector
         cell_indices = line_indices.map (line_ix -> [row_ix, line_ix])
         new_result_indices = if line_indices == [] then result_indices else
-            result_indices.append cell_indices
+            result_indices + [cell_indices]
         now_processed_lines = already_processed_lines + lines_to_process
         ## After the first cell, which can start at any line, all cells start at line 0, so the
         ## initial offset is always 0.
@@ -112,24 +111,24 @@ compute_vertical_indices table start_row end_row start_line lines_to_get =
     agg = [0, start_line, []]
     row_ix_iter = start_row.up_to end_row+1
     result_agg = row_ix_iter.to_vector.fold agg process_line
-    result_agg.at 2 . flatten
+    result_agg.get 2 . flatten
 
 ## Compute the text chunks for the row/line defined by the given indices limited to the given
    column indices. The number of chunks to get is defined by `chunks_to_get`.
 get_chunks_for_row table row_ix line_ix initial_chunk_offset column_range chunk_size chunks_to_get =
     process_cell agg column_ix =
-        processed_chunks_previously = agg.at 0
-        chunk_offset = agg.at 1
-        column = table.at column_ix
+        processed_chunks_previously = agg.get 0
+        chunk_offset = agg.get 1
+        column = table.get column_ix
         chunks_in_this_column = (((get_column_width column) / chunk_size).ceil) - chunk_offset
         chunks_left = chunks_to_get - processed_chunks_previously
         chunks_to_process = Math.min chunks_in_this_column chunks_left
         cell_text = column.at row_ix . to_text
-        text_line = cell_text.lines.at line_ix
+        text_line = cell_text.lines.get line_ix
         get_chunk_by_index = get_chunk_from_line text_line chunk_size
         new_chunks = (chunk_offset.up_to (chunk_offset+chunks_to_process)).map get_chunk_by_index
         processed_chunks = processed_chunks_previously + chunks_in_this_column
-        processed_chunks_with_ix = (enumerate new_chunks).map (chunk_with_ix -> [[column_ix, chunk_offset + chunk_with_ix.at 0 ], chunk_with_ix.at 1])
+        processed_chunks_with_ix = (enumerate new_chunks).map (chunk_with_ix -> [[column_ix, chunk_offset + chunk_with_ix.get 0 ], chunk_with_ix.get 1])
         Pair.new processed_chunks_with_ix [processed_chunks, 0]
 
     column_indices = column_range.to_vector
@@ -147,12 +146,12 @@ get_longest_line text =
     max (text.lines.map (line -> line.length))
 
 ## Return the length of the longest line in the given column.
-get_column_width : Column -> Integer
+get_column_width : Table.Column -> Integer
 get_column_width column =
     max (column.to_vector.map (x -> get_longest_line x.to_text))
 
 ## Return the height of the row defined by the given index.
-get_row_height : Table -> Integer -> Integer
+get_row_height : Table.Table -> Integer -> Integer
 get_row_height table row_ix =
     columns = table.columns
     row = columns.map (column -> column.at row_ix)
@@ -163,18 +162,18 @@ get_row_height table row_ix =
 find_first_over_cum_sum : Vector Integer -> Integer -> Integer | Nothing
 find_first_over_cum_sum items target  =
     running_values = map_to_cumulative_sum items
-    found = (enumerate running_values).find (x -> (x.at 1) > target)
-    case found.catch Nothing of
-        Nothing -> Nothing
-        value -> value.at 0
+    found = (enumerate running_values).find (x -> (x.get 1) > target)
+    case found.catch Not_Found of
+        Not_Found -> Nothing
+        value -> value.get 0
 
 ## Return the index of the column that is at the end of the given text width, when starting from the
    given start column index.
-find_end_column : Table -> Integer -> Integer -> Integer -> Integer
+find_end_column : Table.Table -> Integer -> Integer -> Integer -> Integer
 find_end_column table start_column_ix chunks chunk_size =
     table_columns_count = table.columns.length
     column_to_check = start_column_ix.up_to table_columns_count
-    column_widths = column_to_check.map (ix -> get_column_width ((table.at ix)))
+    column_widths = column_to_check.map (ix -> get_column_width ((table.get ix)))
     column_width_in_chunks = column_widths.map (width -> (width / chunk_size).ceil)
     found_ix = find_first_over_cum_sum column_width_in_chunks chunks
     case found_ix.catch Nothing of
@@ -183,9 +182,9 @@ find_end_column table start_column_ix chunks chunk_size =
 
 ## Return the index of the row that is at the end of the given text height, when starting from the
    given start row index.
-find_end_row : Table -> Integer -> Integer -> Integer
+find_end_row : Table.Table -> Integer -> Integer -> Integer
 find_end_row table start_row_ix max_height =
-    table_row_count = (table.columns.at 0).length
+    table_row_count = (table.columns.get 0).length
     rows_to_check = start_row_ix.up_to table_row_count
     row_heights = rows_to_check.map (ix ->  get_row_height table ix)
     found_ix = find_first_over_cum_sum row_heights max_height
@@ -201,7 +200,7 @@ fold_map_inner f acc item =
     current_result = f overall_acc_value item
     current_mapping = current_result.first
     new_acc_value = current_result.second
-    new_mappings = previous_mappings.append current_mapping
+    new_mappings = previous_mappings + [current_mapping]
     Pair.new new_mappings new_acc_value
 
 ## Map a function over a vectors, but also pass on a accumulator value from one step to the next.
