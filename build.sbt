@@ -1187,6 +1187,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   )
   .configs(Benchmark)
   .settings(
+    inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (Benchmark / test).value,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
