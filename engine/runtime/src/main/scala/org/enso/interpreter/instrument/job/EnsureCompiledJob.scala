@@ -91,7 +91,7 @@ final class EnsureCompiledJob(
       Some(
         compile(module)
           .map { compilerResult =>
-            invalidateCaches(module)
+            invalidateCaches(module, None)
             ctx.jobProcessor.runBackground(
               AnalyzeModuleInScopeJob(
                 module.getName,
@@ -106,7 +106,7 @@ final class EnsureCompiledJob(
       applyEdits(new File(module.getPath)).map { changeset =>
         compile(module)
           .map { compilerResult =>
-            invalidateCaches(module, changeset)
+            invalidateCaches(module, Some(changeset))
             ctx.jobProcessor.runBackground(
               AnalyzeModuleInScopeJob(
                 module.getName,
@@ -292,35 +292,14 @@ final class EnsureCompiledJob(
     * @return the list of cache invalidation commands
     */
   private def buildCacheInvalidationCommands(
-    changeset: Changeset[_],
+    changeset: Option[Changeset[_]],
     source: CharSequence
   )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
-    val invalidateExpressionsCommand =
-      CacheInvalidation.Command.InvalidateKeys(changeset.invalidated)
-    val scopeIds = ctx.executionService.getContext.getCompiler
-      .parseMeta(source)
-      .map(_._2)
-    val invalidateStaleCommand =
-      CacheInvalidation.Command.InvalidateStale(scopeIds)
-    Seq(
-      CacheInvalidation(
-        CacheInvalidation.StackSelector.All,
-        invalidateExpressionsCommand,
-        Set(CacheInvalidation.IndexSelector.Weights)
-      ),
-      CacheInvalidation(
-        CacheInvalidation.StackSelector.All,
-        invalidateStaleCommand,
-        Set(CacheInvalidation.IndexSelector.All)
-      )
-    )
-  }
-
-  private def buildCacheInvalidationCommands(
-    source: CharSequence
-  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
-    val invalidateExpressionsCommand =
-      CacheInvalidation.Command.InvalidateAll
+    val invalidateExpressionsCommand = {
+      changeset
+        .map(c => CacheInvalidation.Command.InvalidateKeys(c.invalidated))
+        .getOrElse(CacheInvalidation.Command.InvalidateAll)
+    }
     val scopeIds = ctx.executionService.getContext.getCompiler
       .parseMeta(source)
       .map(_._2)
@@ -348,7 +327,7 @@ final class EnsureCompiledJob(
     */
   private def invalidateCaches(
     module: Module,
-    changeset: Changeset[_]
+    changeset: Option[Changeset[_]]
   )(implicit ctx: RuntimeContext): Unit = {
     val invalidationCommands =
       buildCacheInvalidationCommands(
@@ -366,42 +345,16 @@ final class EnsureCompiledJob(
       invalidationCommands
     )
 
-    val invalidatedVisualisations =
-      ctx.contextManager.getInvalidatedVisualisations(
-        module.getName,
-        changeset.invalidated
-      )
-    invalidatedVisualisations.foreach { visualisation =>
-      UpsertVisualisationJob.upsertVisualisation(visualisation)
+    val invalidatedVisualisations = {
+      changeset
+        .map(c =>
+          ctx.contextManager.getInvalidatedVisualisations(
+            module.getName,
+            c.invalidated
+          )
+        )
+        .getOrElse(ctx.contextManager.getAllVisualisations)
     }
-    if (invalidatedVisualisations.nonEmpty) {
-      ctx.executionService.getLogger.log(
-        Level.FINE,
-        s"Invalidated visualisations [${invalidatedVisualisations.map(_.id)}]"
-      )
-    }
-  }
-
-  private def invalidateCaches(
-    module: Module
-  )(implicit ctx: RuntimeContext): Unit = {
-    val invalidationCommands =
-      buildCacheInvalidationCommands(
-        module.getSource.getCharacters
-      )
-    ctx.contextManager.getAllContexts.values
-      .foreach { stack =>
-        if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
-          CacheInvalidation.runAll(stack, invalidationCommands)
-        }
-      }
-    CacheInvalidation.runAllVisualisations(
-      ctx.contextManager.getVisualisations(module.getName),
-      invalidationCommands
-    )
-
-    val invalidatedVisualisations =
-      ctx.contextManager.getVisualisations(module.getName)
     invalidatedVisualisations.foreach { visualisation =>
       UpsertVisualisationJob.upsertVisualisation(visualisation)
     }
