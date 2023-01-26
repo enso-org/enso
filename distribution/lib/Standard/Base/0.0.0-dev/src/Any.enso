@@ -107,13 +107,16 @@ type Any
         eq_self = Comparable.from self
         eq_that = Comparable.from that
         if eq_self.is_a Incomparable then False else
-            similar_type = eq_self.equals_builtin eq_that
+            # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
+            # engine, so that we don't end up in an infinite recursion here.
+            similar_type = Comparable.equals_builtin eq_self eq_that
             if similar_type.not then False else
                 hash_self = eq_self.hash self
                 hash_that = eq_that.hash that
-                if hash_self.equals_builtin hash_that . not then False else
+                if Comparable.equals_builtin hash_self hash_that . not then False else
                     case eq_self.is_ordered of
-                        True -> eq_self.compare self that . equals_builtin Ordering.Equal
+                        True ->
+                            Comparable.equals_builtin (eq_self.compare self that) Ordering.Equal
                         False -> eq_self.equals self that
 
     ## ALIAS Inequality

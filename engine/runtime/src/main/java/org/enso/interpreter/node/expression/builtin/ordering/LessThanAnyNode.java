@@ -21,8 +21,8 @@ import org.enso.interpreter.runtime.error.WarningsLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(
-    type = "Any",
-    name = "less_builtin",
+    type = "Comparable",
+    name = "less_than_builtin",
     description = """
         Returns true if self is less than `other`. Or throw an error if the values are
         not comparable.

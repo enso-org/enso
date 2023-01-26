@@ -44,7 +44,7 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.MethodNames;
 
 @BuiltinMethod(
-    type = "Any",
+    type = "Comparable",
     name = "equals_builtin",
     description = """
       Compares self with other object and returns True iff `self` is exactly the same as
