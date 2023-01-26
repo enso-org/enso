@@ -1,4 +1,6 @@
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Locale.Locale
 import project.Error.Common.Arithmetic_Error
@@ -963,6 +965,8 @@ type Integer
         Internally handles the parsing.
 
     parse_builtin text radix = @Builtin_Method "Integer.parse"
+
+Comparable.from (_:Number) = Default_Ordered_Comparator
 
 ## UNSTABLE
 

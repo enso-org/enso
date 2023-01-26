@@ -126,13 +126,7 @@ type Default_Ordered_Comparator
 # By default, there is no conversion from Any to Default_Ordered_Comparator
 # Note that we allow also conversion from types, e.g., `Comparable.from Integer`
 # for convenience.
-Comparable.from (that:Any) =
-    case that of
-        _ : Number -> Default_Ordered_Comparator
-        Integer -> Default_Ordered_Comparator
-        Decimal -> Default_Ordered_Comparator
-        Number -> Default_Ordered_Comparator
-        _ -> Default_Unordered_Comparator
+Comparable.from (that:Any) = Default_Unordered_Comparator
 
 
 ## Types representing the ordering of values.
