@@ -28,7 +28,7 @@ use serde::Serialize;
 pub enum Kind {
     Panic,
     Dataflow,
-    Pending
+    Pending,
 }
 
 /// Additional error information (beside the error value itself) for some erroneous node.
