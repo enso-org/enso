@@ -2,7 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.distribution.FileSystem
 import org.enso.distribution.locking.ThreadSafeFileLockManager
-import org.enso.interpreter.runtime.`type`.{ConstantsGen, Types}
+import org.enso.interpreter.runtime.`type`.{Constants, ConstantsGen, Types}
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
@@ -3932,6 +3932,150 @@ class RuntimeServerTest
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, idMain, ConstantsGen.VECTOR),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send pending updates for expressions" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata  = new Metadata
+    val x         = metadata.addItem(15, 1, "aa")
+    val y         = metadata.addItem(25, 5, "ab")
+    val `y_inc`   = metadata.addItem(25, 3, "ac")
+    val `y_x`     = metadata.addItem(29, 1, "ad")
+    val res       = metadata.addItem(35, 1, "ae")
+    val `inc_res` = metadata.addItem(46, 5, "af")
+
+    val code =
+      """main =
+        |    x = 1
+        |    y = inc x
+        |    y
+        |
+        |inc x = x + 1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(7) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, x, ConstantsGen.INTEGER),
+      TestMessages.update(contextId, `y_inc`, Constants.UNRESOLVED_SYMBOL),
+      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        y,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, moduleName, "inc")
+      ),
+      TestMessages.update(contextId, res, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // push inc call
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(y))
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // pop inc call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        y,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, moduleName, "inc"),
+        fromCache = true
+      ),
+      TestMessages.update(contextId, res, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // push inc call
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(y))
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // Modify the inc method
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(5, 12), model.Position(5, 13)),
+              "2"
+            )
+          ),
+          execute = true
+        )
+      )
+    )
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, `inc_res`, `y_inc`, y, res),
+      TestMessages.update(contextId, `inc_res`, ConstantsGen.INTEGER),
+      context.executionComplete(contextId)
+    )
+
+    // pop inc call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receiveN(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      TestMessages.update(contextId, `y_inc`, Constants.UNRESOLVED_SYMBOL),
+      TestMessages.update(contextId, `y_x`, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        y,
+        ConstantsGen.INTEGER,
+        Api.MethodPointer(moduleName, moduleName, "inc")
+      ),
+      TestMessages.update(contextId, res, ConstantsGen.INTEGER),
       context.executionComplete(contextId)
     )
   }
