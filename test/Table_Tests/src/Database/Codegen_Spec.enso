@@ -138,11 +138,8 @@ spec =
             r1.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1" ORDER BY "T1"."A" ASC, "T1"."B" DESC', []]
 
         Test.specify 'should return warnings and errors when passed a non-existent column' <|
-            action = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar']) on_problems=_
-            tester table =
-                table.to_sql.prepare . should_equal ['SELECT "T1"."A" AS "A", "T1"."B" AS "B", "T1"."C" AS "C" FROM "T1" AS "T1"', []]
-            problems = [Missing_Input_Columns.Error [Sort_Column.Name 'foobar'], No_Input_Columns_Selected]
-            Problems.test_problem_handling action problems tester
+            t2 = t1.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'foobar'])
+            t2.should_fail_with Missing_Input_Columns
 
     Test.group "Helpers" <|
         Test.specify "fresh_names should provide fresh names" <|
