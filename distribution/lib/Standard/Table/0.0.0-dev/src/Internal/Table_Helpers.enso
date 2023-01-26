@@ -16,7 +16,7 @@ import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 
 from project.Data.Aggregate_Column.Aggregate_Column import Minimum, Maximum
-from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch
+from project.Errors import Missing_Input_Columns, No_Output_Columns, Too_Many_Column_Names_Provided, No_Input_Columns_Selected, No_Common_Type, Column_Type_Mismatch, Ambiguous_Column_Rename
 
 polyglot java import java.util.HashSet
 
@@ -246,46 +246,56 @@ type Table_Column_Helper
      If set to `Ignore`, the operation proceeds without errors or warnings.
 rename_columns : Vector -> Column_Name_Mapping -> Problem_Behavior -> Map
 rename_columns internal_columns mapping on_problems =
+    unique = Unique_Name_Strategy.new
     col_count = internal_columns.length
     problem_builder = Problem_Builder.new
 
-    name_mapper vec ms =
-        good_names = validate_unique vec (problem_callback = _-> Nothing)
-        matched = HashSet.new
+    ## Computes the new name for a By_Name rename condition.first_new_name
 
-        mapper = name->
-            index = 0.up_to good_names.length . find i->(ms.match_single_criterion name ((good_names.at i).at 0))
-            case index of
-                Nothing -> Nothing
-                _ ->
-                    matched.add index
-                    new_name = case ms of
-                        _ : Regex_Matcher ->
-                            pattern = ms.compile ((good_names.at index).at 0)
-                            pattern.replace name ((good_names.at index).at 1)
-                        _ : Text_Matcher -> (good_names.at index).at 1
-                    unique.make_unique new_name
+       In case of text matching, that is just the new provided name.
+       In case of regex matching, the substitutions are performed.
+    make_new_name name matching_criterion new_name matching_strategy = case matching_strategy of
+        _ : Regex_Matcher ->
+            pattern = matching_strategy.compile matching_criterion
+            pattern.replace name new_name
+        _ : Text_Matcher -> new_name
 
-        new_names = 0.up_to col_count . map i->(mapper (internal_columns.at i).name)
-        unused = good_names.filter_with_index i->_->(matched.contains i).not . map e->(e.at 0)
-        problem_builder.report_missing_input_columns unused
-        new_names
+    ## Computes a vector of pairs, where each pairs is one of the columns from
+       the original table and a list of new names proposed for it.
 
-    ## A list of pairs [column, new_name]. The new_name is `Nothing` if the
-       column should remain unmodified.
-    columns_and_renames = case mapping of
-        Column_Name_Mapping.By_Name map ms ->
-            ???
+       The list can be empty if the column remains unchanged. The list may also
+       contain multiple entries if multiple matchers have matched the column.
+    columns_with_proposed_new_names = case mapping of
+        Column_Name_Mapping.By_Name map matching_strategy ->
+            name_selectors = map.to_vector
+            match_matrix = Matching.make_match_matrix matching_strategy objects=internal_columns criteria=name_selectors object_name_mapper=(.name) criterion_mapper=(.first)
+            problem_builder.report_missing_input_columns <|
+                match_matrix.unmatched_criteria.map .first
+            internal_columns.map_with_index i-> column->
+                matching_selectors = match_matrix.criteria_matching_object i
+                new_names = matching_selectors.map selector->
+                    make_new_name column.name selector.first selector.second matching_strategy
+                Pair.new column new_names
         Column_Name_Mapping.By_Index map ->
-            good_indices = validate_indices col_count map.keys problem_builder
+            index_selectors = map.to_vector
+            partitioned_selectors = index_selectors.partition selector->
+                is_index_valid col_count selector.first
+            inbound_selectors = partitioned_selectors.first
+            oob_indices = partitioned_selectors.second . map .first
+            problem_builder.report_oob_indices oob_indices
 
-            index_map = Map.from_vector <| good_indices.map p->[p.at 0, map.get (p.at 1)]
+            index_mapping = inbound_selectors.fold Map.empty acc-> selector->
+                ix = selector.first
+                resolved_ix = resolve_index col_count ix
 
-            new_names = 0.up_to col_count . map i->
-                target = index_map.get i Nothing
-                if target.is_nothing then Nothing else unique.make_unique target
+                matches = acc.get resolved_ix []
+                acc.insert resolved_ix matches+[selector]
 
-            new_names
+            internal_columns.map_with_index i-> column->
+                matching_selectors = index_mapping.get i []
+                new_names = matching_selectors.map selector->
+                    selector.second
+                Pair.new column new_names
         Column_Name_Mapping.By_Position vec ->
             good_names = case vec.length > col_count of
                 True ->
@@ -293,27 +303,42 @@ rename_columns internal_columns mapping on_problems =
                     vec.take (First col_count)
                 False -> vec
 
-            new_names = ???
-            new_names = 0.up_to col_count . map i->if i>=good_names.length then Nothing else
-                unique.make_unique (good_names.at i)
-            new_names
+            new_names = good_names.map (name-> [name]) . pad col_count []
+            internal_columns.zip new_names Pair.new
 
-    unique = Unique_Name_Strategy.new
-    unchanged_columns = columns_with_matchers.filter cte-> cte.associated_selector.is_nothing
-    unique.mark_used <| unchanged_columns.map c->c.name
-    transformed_columns = columns_with_matchers.map cte->
-        column = cte.column
-        case cte.associated_selector of
-            Nothing -> column
-            selector -> column.with_name cte.name
-            # TODO rename
-            # TODO do regex stuff?
+    ## Resolves actual new names for renamed columns.
 
-    processed = mapped.map_with_index i->n->
-        n.if_nothing (unique.make_unique (internal_columns.at i).name)
+       If a column received ambiguous new names, an error is raised.
+       If a column is not renamed, `Nothing` is given as its new name.
+    columns_with_new_names = columns_with_proposed_new_names.map p->
+        column = p.first
+        new_names = p.second
+        if new_names.is_empty then Pair.new column Nothing else
+            first_new_name = new_names.first
+            names_unambiguous = new_names.all (== first_new_name)
+            if names_unambiguous then Pair.new column first_new_name else
+                Error.throw (Ambiguous_Column_Rename.Error column.name new_names)
+
+    ## Renamed names take precedence, so we first deduplicate those.
+
+       This will replace the renamed columns with their effective names, while
+       keeping the unaffected columns as original pairs, so that they are marked
+       for processing in the next step.
+    after_renames = columns_with_new_names.map p->
+        new_name = p.second
+        case new_name of
+            Nothing -> p
+            _ : Text -> unique.make_unique new_name
+
+    ## Then we ensure that the names of not-renamed columns are also unique and
+       return the effective column names for each column.
+    new_column_names = after_renames.map x-> case x of
+        Pair.Value unchanged_column Nothing ->
+            unique.make_unique unchanged_column.name
+        renamed_column_name : Text -> renamed_column_name
 
     problem_builder.report_unique_name_strategy unique
-    problem_builder.attach_problems_before on_problems processed
+    problem_builder.attach_problems_before on_problems new_column_names
 
 ## PRIVATE
    A helper function encapsulating shared code for `sort_columns`
@@ -527,7 +552,7 @@ transform_columns_by_name internal_columns name_selectors matcher problem_builde
 transform_columns_by_index : Vector -> Vector -> Problem_Builder -> (Any -> Integer) -> (Text -> Vector -> Nothing) -> Vector
 transform_columns_by_index internal_columns index_selectors problem_builder index_extractor multiple_selectors_callback =
     length = internal_columns.length
-    partitioned_indices = indices.partition (is_index_valid length << index_extractor)
+    partitioned_indices = index_selectors.partition (is_index_valid length << index_extractor)
     inbound_indices = partitioned_indices.first
     oob_indices = partitioned_indices.second
     problem_builder.report_oob_indices (oob_indices.map index_extractor)
@@ -541,10 +566,10 @@ transform_columns_by_index internal_columns index_selectors problem_builder inde
 
     index_mapping.map_with_key resolved_ix-> selectors->
         if selectors.length > 1 then
-            multiple_selectors_callback (internal_columns.at resolved_index . name) selectors
+            multiple_selectors_callback (internal_columns.at resolved_ix . name) selectors
 
     internal_columns.map_with_index i-> column->
-        associated_selectors = selectors_map.get i []
+        associated_selectors = index_mapping.get i []
         associated_selector = if associated_selectors.is_empty then Nothing else associated_selectors.first
         Column_Transform_Element.Value column associated_selector
 

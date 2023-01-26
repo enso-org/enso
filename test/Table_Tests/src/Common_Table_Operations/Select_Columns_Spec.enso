@@ -437,10 +437,15 @@ spec setup =
             err.new_names . should_equal ["StartsWithA", "EndsWithA"]
 
             t3 = table_builder [["aaa", [1]], ["bbb", [2]]]
-            map3 = Column_Name_Mapping.By_Name (Map.from_vector [["a(.*)a", "A$1A"], ["(.*)aa", "AA$1"]]) Regex_Matcher.Value
+            ## The rename patterns are deliberately prepared so that both will
+               match `aaa` and the resulting replacement for both will be `aaA`.
+               This is to show that even if distinct rename patterns match the
+               same column, if the resulting rename is unambiguous, no error is
+               raised.
+            map3 = Column_Name_Mapping.By_Name (Map.from_vector [["a(.*)", "$1A"], ["(.*)aa", "$1aA"]]) Regex_Matcher.Value
             t4 = t3.rename_columns map3 on_problems=Problem_Behavior.Report_Error
             Problems.assume_no_problems t4
-            expect_column_names ["AAA", "bbb"] t4
+            expect_column_names ["aaA", "bbb"] t4
 
         Test.specify "should correctly handle problems: invalid names ''" <|
             map = Column_Name_Mapping.By_Index (Map.from_vector [[1, ""]])
@@ -470,11 +475,11 @@ spec setup =
             problems = [Duplicate_Output_Column_Names.Error ["beta"]]
             Problems.test_problem_handling action problems tester
 
-            map = Column_Name_Mapping.By_Name (Map.from_vector [["beta", "alpha"]])
-            action = table.rename_columns map on_problems=_
-            tester = expect_column_names ["alpha_1", "alpha", "gamma", "delta"]
-            problems = [Duplicate_Output_Column_Names.Error ["alpha"]]
-            Problems.test_problem_handling action problems tester
+            map2 = Column_Name_Mapping.By_Name (Map.from_vector [["beta", "alpha"]])
+            action2 = table.rename_columns map2 on_problems=_
+            tester2 = expect_column_names ["alpha_1", "alpha", "gamma", "delta"]
+            problems2 = [Duplicate_Output_Column_Names.Error ["alpha"]]
+            Problems.test_problem_handling action2 problems2 tester2
 
         Test.specify "should correctly handle problems: too many input names" <|
             map = Column_Name_Mapping.By_Position ["A", "B", "C", "D", "E", "F"]
