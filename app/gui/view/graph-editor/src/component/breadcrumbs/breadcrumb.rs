@@ -457,10 +457,10 @@ impl display::Object for BreadcrumbModel {
 // ==================
 
 /// The breadcrumb's view which displays its name and exposes mouse press interactions.
-#[derive(Debug, Clone, CloneRef, Shrinkwrap)]
+#[derive(Debug, Clone, CloneRef, Deref)]
 #[allow(missing_docs)]
 pub struct Breadcrumb {
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   Rc<BreadcrumbModel>,
     pub frp: Frp,
 }

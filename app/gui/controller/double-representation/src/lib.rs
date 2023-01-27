@@ -62,7 +62,6 @@ pub mod text;
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {
     pub use ast::prelude::*;
-    pub use enso_logger::*;
     pub use enso_prelude::*;
     pub use enso_profiler as profiler;
     pub use enso_profiler::prelude::*;

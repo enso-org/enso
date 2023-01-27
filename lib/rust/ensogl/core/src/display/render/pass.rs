@@ -96,7 +96,7 @@ impl Instance {
         context.bind_framebuffer(*target, None);
         let framebuffer_status = context.check_framebuffer_status(*Context::FRAMEBUFFER);
         if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
-            WARNING!("Framebuffer incomplete (status: {framebuffer_status}).")
+            warn!("Framebuffer incomplete (status: {framebuffer_status}).")
         }
         Framebuffer { context, native }
     }

@@ -25,11 +25,6 @@ use enso_automata::*;
 use enso_prelude::*;
 use enso_web as web;
 
-pub use enso_logger as logger;
-pub use enso_logger::AnyLogger;
-pub use enso_logger::WarningLogger as Logger;
-pub use enso_logger::*;
-
 
 
 // ==============

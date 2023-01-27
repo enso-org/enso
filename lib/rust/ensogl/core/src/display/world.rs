@@ -392,7 +392,7 @@ impl WorldData {
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
-        let on_change = enclose!((scene_dirty) move || scene_dirty.set());
+        let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
         let default_scene = Scene::new(&stats, on_change, &display_mode);
         let uniforms = Uniforms::new(&default_scene.variables);
@@ -490,9 +490,8 @@ impl WorldData {
         pixel_read_pass.set_sync_callback(f!(garbage_collector.pixel_synced()));
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);
-        let logger = Logger::new("renderer");
         let pipeline = render::Pipeline::new()
-            .add(SymbolsRenderPass::new(logger, &self.default_scene.layers))
+            .add(SymbolsRenderPass::new(&self.default_scene.layers))
             .add(ScreenRenderPass::new())
             .add(pixel_read_pass);
         self.default_scene.renderer.set_pipeline(pipeline);

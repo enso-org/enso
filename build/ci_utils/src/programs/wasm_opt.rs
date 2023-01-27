@@ -53,7 +53,7 @@ impl Program for WasmOpt {
 }
 
 // wasm-opt (like the whole binaryen) uses a single number as a version.
-#[derive(Clone, Copy, Debug, Display, PartialEq, PartialOrd, Shrinkwrap, Eq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, PartialOrd, Deref, Eq)]
 pub struct Version(pub u32);
 
 impl std::str::FromStr for Version {

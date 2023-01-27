@@ -32,7 +32,6 @@ enum State {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     app:            Application,
-    logger:         Logger,
     display_object: display::object::Instance,
     state:          Rc<CloneCell<State>>,
     status_bar:     crate::status_bar::View,
@@ -44,7 +43,6 @@ impl Model {
     /// Constuctor.
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let logger = Logger::new("RootView");
         let display_object = display::object::Instance::new();
         let state = Rc::new(CloneCell::new(State::WelcomeScreen));
         let status_bar = crate::status_bar::View::new(&app);
@@ -53,7 +51,7 @@ impl Model {
         let project_view = Rc::new(CloneCell::new(None));
         display_object.add_child(&welcome_view);
 
-        Self { app, logger, display_object, status_bar, welcome_view, project_view, state }
+        Self { app, display_object, status_bar, welcome_view, project_view, state }
     }
 
     /// Switch displayed view from Project View to Welcome Screen. Project View will not be

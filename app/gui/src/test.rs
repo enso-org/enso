@@ -130,7 +130,6 @@ pub mod mock {
     /// calling [set_code] or [set_inline_code].
     #[derive(Clone, Debug)]
     pub struct Unified {
-        pub logger:       Logger,
         pub project_name: project::QualifiedName,
         pub module_path:  model::module::Path,
         pub suggestions:  HashMap<suggestion_database::entry::Id, suggestion_database::Entry>,
@@ -163,7 +162,6 @@ pub mod mock {
             let mut suggestions = HashMap::new();
             suggestions.insert(1, suggestion_entry_foo());
             suggestions.insert(2, suggestion_entry_bar());
-            let logger = Logger::new("UnifiedMock");
             Unified {
                 suggestions,
                 project_name: project_qualified_name(),
@@ -174,12 +172,11 @@ pub mod mock {
                 context_id: CONTEXT_ID,
                 root_definition: definition_name(),
                 parser: parser_scala::Parser::new_or_panic(),
-                logger,
             }
         }
 
         pub fn undo_redo_manager(&self) -> Rc<undo_redo::Manager> {
-            Rc::new(model::undo_redo::Manager::new(&self.logger))
+            Rc::new(model::undo_redo::Manager::new())
         }
 
         pub fn module(&self, urm: Rc<undo_redo::Manager>) -> crate::model::Module {
@@ -211,7 +208,6 @@ pub mod mock {
         /// Create a graph controller from the current mock data.
         pub fn graph(
             &self,
-            logger: impl AnyLogger,
             module: model::Module,
             db: Rc<model::SuggestionDatabase>,
         ) -> crate::controller::Graph {
@@ -219,7 +215,7 @@ pub mod mock {
             let method = self.method_pointer();
             let definition =
                 module.lookup_method(self.project_name.clone(), &method).expect("Lookup failed.");
-            crate::controller::Graph::new(logger, module, db, parser, definition)
+            crate::controller::Graph::new(module, db, parser, definition)
                 .expect("Graph could not be created")
         }
 
@@ -271,12 +267,11 @@ pub mod mock {
             controller::searcher::test::expect_completion(&mut json_client, &[]);
             customize_rpc(self, &mut json_client, &mut binary_client);
 
-            let logger = self.logger.clone_ref();
             let urm = self.undo_redo_manager();
             let module = self.module(urm.clone());
             let suggestion_db =
                 Rc::new(model::SuggestionDatabase::new_from_entries(&self.suggestions));
-            let graph = self.graph(&logger, module.clone_ref(), suggestion_db.clone_ref());
+            let graph = self.graph(module.clone_ref(), suggestion_db.clone_ref());
             let execution = self.execution_context();
             let project = self.project(
                 urm,
@@ -297,7 +292,6 @@ pub mod mock {
             let searcher_target = executed_graph.graph().nodes().unwrap().last().unwrap().id();
             let searcher_mode = controller::searcher::Mode::EditNode { node_id: searcher_target };
             let searcher = controller::Searcher::new_from_graph_controller(
-                &logger,
                 ide.clone_ref(),
                 &project,
                 executed_graph.clone_ref(),
@@ -306,7 +300,6 @@ pub mod mock {
             .unwrap();
             executor.run_until_stalled();
             Fixture {
-                logger,
                 executor,
                 data,
                 module,
@@ -355,10 +348,8 @@ pub mod mock {
         }
     }
 
-    #[derive(Debug, Shrinkwrap)]
-    #[shrinkwrap(mutable)]
+    #[derive(Debug, Deref, DerefMut)]
     pub struct Fixture {
-        pub logger:         Logger,
         pub data:           Unified,
         pub module:         model::Module,
         pub graph:          controller::Graph,
@@ -368,7 +359,8 @@ pub mod mock {
         pub project:        model::Project,
         pub ide:            controller::Ide,
         pub searcher:       controller::Searcher,
-        #[shrinkwrap(main_field)]
+        #[deref]
+        #[deref_mut]
         pub executor:       TestWithLocalPoolExecutor, // Last to drop the executor as last.
     }
 
@@ -408,7 +400,6 @@ pub mod mock {
                 language_server: self.project.json_rpc(),
                 model:           model.clone(),
                 parser:          self.data.parser.clone(),
-                logger:          Logger::new_sub(&self.data.logger, "MockModuleController"),
             };
             (model, controller)
         }
@@ -419,7 +410,7 @@ pub mod mock {
     }
 
     pub fn indent(line: impl AsRef<str>) -> String {
-        iformat!("    {line.as_ref()}")
+        format!("    {}", line.as_ref())
     }
 
     pub fn main_from_lines(lines: impl IntoIterator<Item: AsRef<str>>) -> String {
@@ -431,7 +422,7 @@ pub mod mock {
         lines: impl IntoIterator<Item: AsRef<str>>,
     ) -> String {
         let body = lines.into_iter().map(indent).join("\n");
-        iformat!("{name} =\n{body}")
+        format!("{name} =\n{body}")
     }
 }
 
@@ -532,7 +523,7 @@ impl Runner {
     /// Calls the `test` function once. The executor behavior is defined by the `n` parameter.
     /// Returns the number of calls made to `perhaps_run_until_stalled`.
     pub fn run_nth(n: u32, test: impl FnMut(&mut Runner)) -> u32 {
-        DEBUG!("Runner: Iteration " n);
+        debug!("Runner: Iteration {}", n);
         Self::run_with(BitField32 { raw: n }, test)
     }
 }

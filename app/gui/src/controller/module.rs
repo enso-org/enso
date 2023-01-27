@@ -42,22 +42,16 @@ pub struct Handle {
     pub model:           model::Module,
     pub language_server: Rc<language_server::Connection>,
     pub parser:          Parser,
-    pub logger:          Logger,
 }
 
 impl Handle {
     /// Create a module controller for given path.
     #[profile(Task)]
-    pub async fn new(
-        parent: impl AnyLogger,
-        path: Path,
-        project: &dyn model::project::API,
-    ) -> FallibleResult<Self> {
-        let logger = Logger::new_sub(parent, format!("Module Controller {}", path));
+    pub async fn new(path: Path, project: &dyn model::project::API) -> FallibleResult<Self> {
         let model = project.module(path).await?;
         let language_server = project.json_rpc();
         let parser = project.parser();
-        Ok(Handle { model, language_server, parser, logger })
+        Ok(Handle { model, language_server, parser })
     }
 
     /// Save the module to file.
@@ -107,13 +101,7 @@ impl Handle {
         id: double_representation::graph::Id,
         suggestion_db: Rc<model::SuggestionDatabase>,
     ) -> FallibleResult<controller::Graph> {
-        controller::Graph::new(
-            &self.logger,
-            self.model.clone_ref(),
-            suggestion_db,
-            self.parser.clone_ref(),
-            id,
-        )
+        controller::Graph::new(self.model.clone_ref(), suggestion_db, self.parser.clone_ref(), id)
     }
 
     /// Returns a graph controller for graph in this module's subtree identified by `id` without
@@ -124,7 +112,6 @@ impl Handle {
         suggestion_db: Rc<model::SuggestionDatabase>,
     ) -> controller::Graph {
         controller::Graph::new_unchecked(
-            &self.logger,
             self.model.clone_ref(),
             suggestion_db,
             self.parser.clone_ref(),
@@ -184,11 +171,10 @@ impl Handle {
         parser: Parser,
         repository: Rc<model::undo_redo::Repository>,
     ) -> FallibleResult<Self> {
-        let logger = Logger::new("Mocked Module Controller");
         let ast = parser.parse(code.to_string(), id_map)?.try_into()?;
         let metadata = default();
         let model = Rc::new(model::module::Plain::new(path, ast, metadata, repository));
-        Ok(Handle { model, language_server, parser, logger })
+        Ok(Handle { model, language_server, parser })
     }
 
     #[cfg(test)]

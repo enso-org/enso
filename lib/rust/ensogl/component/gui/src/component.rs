@@ -79,7 +79,6 @@ pub trait Frp<Model>: Default + API {
 #[derivative(Clone(bound = ""))]
 pub struct ComponentView<Model: 'static, Frp: 'static> {
     widget: Widget<Model, Frp>,
-    logger: Logger,
 }
 
 impl<M, F> ComponentView<M, F>
@@ -89,7 +88,6 @@ where
 {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        let logger = Logger::new(M::label());
         let model = Rc::new(M::new(app));
         let frp = F::default();
         let style = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
@@ -97,7 +95,7 @@ where
         F::init_inputs(frp.public());
         let display_object = model.display_object().clone_ref();
         let widget = Widget::new(app, frp, model, display_object);
-        Self { widget, logger }
+        Self { widget }
     }
 
     /// Get the underlying model

@@ -71,7 +71,7 @@ impl Screen {
     fn identity_painter_surface_material(input: impl AsRef<str>) -> Material {
         let input = input.as_ref();
         let mut material = Material::new();
-        let shader = iformat!(
+        let shader = format!(
             "
         vec4 sample_color = texture(input_{input}, input_uv);
         output_color = sample_color;

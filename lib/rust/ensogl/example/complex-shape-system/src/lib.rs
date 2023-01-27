@@ -88,7 +88,7 @@ pub fn main() {
     theme_manager.set_enabled(["theme1".to_string()]);
 
     let style_watch = ensogl_core::display::shape::StyleWatch::new(&scene.style_sheet);
-    // style_watch.set_on_style_change(|| DEBUG!("Style changed!"));
+    // style_watch.set_on_style_change(|| debug!("Style changed!"));
     style_watch.get("base_color");
 
     let view1 = shape::View::new();
@@ -134,38 +134,38 @@ pub fn main() {
 
             if frame == 50 {
                 // These comments are left for easy debugging in the future.
-                // DEBUG!("---------------");
-                // DEBUG!("{scene.layers.node_searcher:#?}");
-                // DEBUG!("{scene.layers.main:#?}");
-                // DEBUG!("{scene.layers.mask:#?}");
-                // DEBUG!("{scene.layers.node_searcher_mask:#?}");
-                // DEBUG!("{scene.layers.viz:#?}");
+                // debug!("---------------");
+                // debug!("{scene.layers.node_searcher:#?}");
+                // debug!("{scene.layers.main:#?}");
+                // debug!("{scene.layers.mask:#?}");
+                // debug!("{scene.layers.node_searcher_mask:#?}");
+                // debug!("{scene.layers.viz:#?}");
             }
             if frame == 100 {
-                DEBUG!("Adding previously hidden element.");
+                debug!("Adding previously hidden element.");
                 scene.add_child(&view2);
                 // These comments are left for easy debugging in the future.
-                // DEBUG!("---------------");
-                // DEBUG!("{scene.layers.node_searcher:#?}");
-                // DEBUG!("{scene.layers.main:#?}");
-                // DEBUG!("{scene.layers.mask:#?}");
-                // DEBUG!("{scene.layers.node_searcher_mask:#?}");
-                // DEBUG!("{scene.layers.viz:#?}");
+                // debug!("---------------");
+                // debug!("{scene.layers.node_searcher:#?}");
+                // debug!("{scene.layers.main:#?}");
+                // debug!("{scene.layers.mask:#?}");
+                // debug!("{scene.layers.node_searcher_mask:#?}");
+                // debug!("{scene.layers.viz:#?}");
             }
             if frame == 150 {
-                DEBUG!("Enabling masking.");
+                debug!("Enabling masking.");
                 // These comments are left for easy debugging in the future.
-                // DEBUG!("---------------");
-                // DEBUG!("{scene.layers.node_searcher:#?}");
-                // DEBUG!("{scene.layers.main:#?}");
-                // DEBUG!("{scene.layers.mask:#?}");
-                // DEBUG!("{scene.layers.node_searcher_mask:#?}");
-                // DEBUG!("{scene.layers.viz:#?}");
+                // debug!("---------------");
+                // debug!("{scene.layers.node_searcher:#?}");
+                // debug!("{scene.layers.main:#?}");
+                // debug!("{scene.layers.mask:#?}");
+                // debug!("{scene.layers.node_searcher_mask:#?}");
+                // debug!("{scene.layers.viz:#?}");
                 scene.layers.main.set_mask(&mask_layer);
                 mask_layer.add(&mask);
             }
             if frame == 200 {
-                DEBUG!("Changing the theme.");
+                debug!("Changing the theme.");
                 theme_manager.set_enabled(["theme2".to_string()]);
             }
             frame += 1;

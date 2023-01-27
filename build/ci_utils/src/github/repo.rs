@@ -139,7 +139,7 @@ pub trait IsRepo: Display {
     /// ```
     fn url(&self) -> Result<Url> {
         // Note the trailing `/`. It allows us to join further paths to the URL using Url::join.
-        let url_text = iformat!("https://github.com/{self.owner()}/{self.name()}/");
+        let url_text = format!("https://github.com/{}/{}/", self.owner(), self.name());
         Url::parse(&url_text)
             .with_context(|| format!("Failed to parse URL from string '{url_text}'."))
             .with_context(|| format!("Failed to generate URL for the repository {self}."))
@@ -196,7 +196,7 @@ impl<R: IsRepo> Handle<R> {
     /// Generate a token that can be used to register a new runner for this repository.
     pub async fn generate_runner_registration_token(&self) -> Result<model::RegistrationToken> {
         let path =
-            iformat!("/repos/{self.owner()}/{self.name()}/actions/runners/registration-token");
+            format!("/repos/{}/{}/actions/runners/registration-token", self.owner(), self.name());
         let url = self.octocrab.absolute_url(path)?;
         self.octocrab.post(url, EMPTY_REQUEST_BODY).await.with_context(|| {
             format!("Failed to generate a runner registration token for the {self} repository.")
@@ -338,7 +338,7 @@ impl<R: IsRepo> Handle<R> {
 
     /// Generate cacheable action that downloads asset with a given id.
     pub fn download_asset_job(&self, asset_id: AssetId) -> DownloadFile {
-        let path = iformat!("/repos/{self.owner()}/{self.name()}/releases/assets/{asset_id}");
+        let path = format!("/repos/{}/{}/releases/assets/{asset_id}", self.owner(), self.name());
         // Unwrap will work, because we are appending relative URL constant.
         let url = self.octocrab.absolute_url(path).unwrap();
         DownloadFile {

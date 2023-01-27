@@ -10,7 +10,7 @@ use crate::system::gpu::data::texture;
 
 /// A geometry which always covers the whole screen which when rendered outputs an image by
 /// composing three input textures: mask, color, and id.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct MaskComposer {
     screen: Screen,
 }
@@ -31,7 +31,7 @@ impl MaskComposer {
         let color = color.as_ref();
         let id = id.as_ref();
         let mut material = Material::new();
-        let shader = iformat!(
+        let shader = format!(
             "
             vec4 sample_mask  = texture(input_{mask},input_uv);
             vec4 sample_color = texture(input_{color},input_uv);

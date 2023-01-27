@@ -82,9 +82,8 @@ fn configure_simple_grid_view(view: &grid_view::simple::SimpleGridView) -> frp::
         eval view.entry_accepted ([]((row, col)) debug!("ACCEPTED entry ({row}, {col})."));
         eval view.selection_movement_out_of_grid_prevented ([](dir)
             if let Some(dir) = dir {
-                let msg = iformat!(
-                    "An attempt to select an entry outside of the grid in " dir;?
-                    " direction was prevented."
+                let msg = format!(
+                    "An attempt to select an entry outside the grid in {dir:?} direction was prevented."
                 );
                 debug!("{msg}");
             }

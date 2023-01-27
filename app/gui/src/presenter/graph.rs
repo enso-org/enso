@@ -76,7 +76,6 @@ pub fn default_node_position() -> Vector2 {
 
 #[derive(Debug)]
 struct Model {
-    logger:           Logger,
     project:          model::Project,
     controller:       controller::ExecutedGraph,
     view:             view::graph_editor::GraphEditor,
@@ -91,7 +90,6 @@ impl Model {
         controller: controller::ExecutedGraph,
         view: view::graph_editor::GraphEditor,
     ) -> Self {
-        let logger = Logger::new("presenter::Graph");
         let state: Rc<State> = default();
         let visualization = Visualization::new(
             project.clone_ref(),
@@ -102,7 +100,6 @@ impl Model {
         let execution_stack =
             CallStack::new(controller.clone_ref(), view.clone_ref(), state.clone_ref());
         Self {
-            logger,
             project,
             controller,
             view,
@@ -335,7 +332,7 @@ impl Model {
             data: file,
         };
         let position = model::module::Position { vector: position };
-        let handler = NodeFromDroppedFileHandler::new(&self.logger, project, graph);
+        let handler = NodeFromDroppedFileHandler::new(project, graph);
         if let Err(err) = handler.create_node_and_start_uploading(to_upload, position) {
             error!("Error when creating node from dropped file: {err}");
         }
@@ -369,17 +366,14 @@ impl Model {
                             .graph()
                             .set_node_position(node.id(), next_default_position)
                         {
-                            warning!(
-                                self.logger,
-                                "Failed to initialize position of node {node.id()}: {err}"
-                            );
+                            warn!("Failed to initialize position of node {}: {err}", node.id());
                         }
                         next_default_position.y -= offset;
                     }
                 }
             }
             Err(err) => {
-                warning!(self.logger, "Failed to initialize nodes positions: {err}");
+                warn!("Failed to initialize nodes positions: {err}");
             }
         }
     }

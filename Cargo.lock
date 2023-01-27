@@ -147,7 +147,6 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "shrinkwraprs 0.2.3",
  "uuid 0.8.2",
 ]
 
@@ -750,7 +749,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "miniz_oxide",
- "object 0.29.0",
+ "object",
  "rustc-demangle",
 ]
 
@@ -1130,17 +1129,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colored"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
-dependencies = [
- "atty",
- "lazy_static",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "combine"
 version = "3.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1268,12 +1256,6 @@ checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
 name = "convert_case"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb4a24b1aaf0fd0ce8b45161144d6f42cd91677fd5940fd431183eb023b3a2b8"
-
-[[package]]
-name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
@@ -1335,7 +1317,7 @@ dependencies = [
  "clap 2.34.0",
  "criterion-plot",
  "csv",
- "itertools 0.10.5",
+ "itertools",
  "lazy_static",
  "num-traits",
  "oorandom",
@@ -1357,7 +1339,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2673cc8207403546f45f5fd319a974b1e6983ad1a3ee7e6041650013be041876"
 dependencies = [
  "cast",
- "itertools 0.10.5",
+ "itertools",
 ]
 
 [[package]]
@@ -1756,12 +1738,11 @@ dependencies = [
  "const_format",
  "engine-protocol",
  "enso-data-structures",
- "enso-logger",
  "enso-prelude",
  "enso-profiler",
  "enso-text",
  "failure",
- "itertools 0.10.5",
+ "itertools",
  "parser-scala",
  "regex",
  "serde",
@@ -1780,12 +1761,6 @@ name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
-
-[[package]]
-name = "enclose"
-version = "1.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1056f553da426e9c025a662efa48b52e62e0a3a7648aa2d15aeaaf7f0d329357"
 
 [[package]]
 name = "encode_unicode"
@@ -1810,7 +1785,6 @@ dependencies = [
  "chrono",
  "enso-build-utilities",
  "enso-data-structures",
- "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "enso-text",
@@ -1877,14 +1851,14 @@ dependencies = [
  "ide-ci",
  "indexmap",
  "indicatif",
- "itertools 0.10.5",
+ "itertools",
  "lazy_static",
  "mime 0.3.16",
  "new_mime_guess",
  "nix",
  "octocrab",
  "ouroboros",
- "paste 1.0.9",
+ "paste",
  "path-absolutize",
  "path-slash",
  "pin-project",
@@ -1900,7 +1874,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "shrinkwraprs 0.3.0",
  "strum",
  "sysinfo",
  "tar",
@@ -1977,13 +1950,13 @@ name = "enso-build-macros"
 version = "0.1.0"
 dependencies = [
  "convert_case 0.6.0",
+ "derive_more",
  "enso-build-base",
- "itertools 0.10.5",
+ "itertools",
  "proc-macro2",
  "quote",
  "regex",
  "serde_yaml",
- "shrinkwraprs 0.3.0",
  "syn",
 ]
 
@@ -2021,7 +1994,6 @@ name = "enso-config"
 version = "0.1.0"
 dependencies = [
  "config-reader",
- "enso-logger",
  "enso-prelude",
  "ensogl",
  "semver 1.0.14",
@@ -2034,7 +2006,7 @@ dependencies = [
  "criterion",
  "enso-prelude",
  "failure",
- "itertools 0.9.0",
+ "itertools",
  "rustversion",
  "serde",
  "typenum",
@@ -2089,7 +2061,6 @@ dependencies = [
  "Inflector",
  "enso-callback",
  "enso-generics",
- "enso-logger",
  "enso-prelude",
  "enso-profiler",
  "enso-web",
@@ -2118,7 +2089,7 @@ dependencies = [
  "bimap",
  "console_error_panic_hook",
  "const_format",
- "convert_case 0.5.0",
+ "convert_case 0.6.0",
  "double-representation",
  "engine-protocol",
  "enso-callback",
@@ -2128,7 +2099,6 @@ dependencies = [
  "enso-debug-scene",
  "enso-executor",
  "enso-frp",
- "enso-logger",
  "enso-notification",
  "enso-prelude",
  "enso-profiler",
@@ -2147,7 +2117,7 @@ dependencies = [
  "futures 0.3.24",
  "fuzzly",
  "ide-view",
- "itertools 0.10.5",
+ "itertools",
  "js-sys",
  "json-rpc",
  "mockall",
@@ -2182,18 +2152,6 @@ dependencies = [
  "ensogl",
  "wasm-bindgen",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "enso-logger"
-version = "0.3.1"
-dependencies = [
- "enso-prelude",
- "enso-shapely",
- "ifmt",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -2305,7 +2263,7 @@ dependencies = [
 name = "enso-parser-jni"
 version = "0.1.0"
 dependencies = [
- "bincode 1.3.3",
+ "bincode 2.0.0-rc.1",
  "enso-parser",
  "enso-prelude",
  "jni",
@@ -2329,11 +2287,8 @@ dependencies = [
  "assert_approx_eq",
  "backtrace",
  "boolinator",
- "cfg-if 1.0.0",
- "colored",
  "derivative",
  "derive_more",
- "enclose",
  "enso-logging",
  "enso-reflect",
  "enso-shapely",
@@ -2341,15 +2296,11 @@ dependencies = [
  "failure",
  "futures 0.3.24",
  "gen-iter",
- "ifmt",
- "itertools 0.10.5",
+ "itertools",
  "lazy_static",
- "num",
- "object 0.24.0",
- "paste 1.0.9",
+ "paste",
  "serde",
  "serde_json",
- "shrinkwraprs 0.3.0",
  "smallvec 1.9.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
@@ -2446,9 +2397,8 @@ dependencies = [
  "derivative",
  "enso-prelude",
  "enso-shapely-macros",
- "paste 0.1.18",
+ "paste",
  "rustversion",
- "shrinkwraprs 0.3.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",
@@ -2461,8 +2411,8 @@ dependencies = [
  "Inflector",
  "boolinator",
  "enso-macro-utils",
- "itertools 0.8.2",
- "paste 1.0.9",
+ "itertools",
+ "paste",
  "proc-macro2",
  "quote",
  "syn",
@@ -2475,7 +2425,6 @@ version = "0.1.0"
 dependencies = [
  "enso-automata",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-web",
  "js-sys",
@@ -2491,7 +2440,7 @@ name = "enso-suggestion-database"
 version = "0.1.0"
 dependencies = [
  "ast",
- "convert_case 0.5.0",
+ "convert_case 0.6.0",
  "double-representation",
  "engine-protocol",
  "enso-data-structures",
@@ -2525,7 +2474,7 @@ dependencies = [
  "enso-reflect",
  "nalgebra",
  "num-traits",
- "paste 1.0.9",
+ "paste",
  "serde",
 ]
 
@@ -2600,7 +2549,6 @@ dependencies = [
  "enso-debug-api",
  "enso-frp",
  "enso-generics",
- "enso-logger",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",
@@ -2610,7 +2558,7 @@ dependencies = [
  "ensogl-text-embedded-fonts",
  "enum_dispatch",
  "failure",
- "itertools 0.10.5",
+ "itertools",
  "js-sys",
  "nalgebra",
  "num-traits",
@@ -2618,7 +2566,6 @@ dependencies = [
  "rustc-hash",
  "semver 1.0.14",
  "serde",
- "shrinkwraprs 0.3.0",
  "smallvec 1.9.0",
  "typenum",
  "wasm-bindgen",
@@ -2663,7 +2610,6 @@ name = "ensogl-drop-manager"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-web",
  "js-sys",
@@ -2773,7 +2719,7 @@ dependencies = [
  "ensogl-grid-view",
  "ensogl-hardcoded-theme",
  "ensogl-text-msdf",
- "itertools 0.10.5",
+ "itertools",
  "wasm-bindgen",
 ]
 
@@ -2959,7 +2905,7 @@ dependencies = [
  "ensogl-scroll-area",
  "ensogl-shadow",
  "ensogl-text",
- "itertools 0.10.5",
+ "itertools",
  "segment-tree",
 ]
 
@@ -2968,7 +2914,6 @@ name = "ensogl-gui-component"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-logger",
  "ensogl-core",
  "float_eq",
  "wasm-bindgen-test",
@@ -4061,10 +4006,9 @@ dependencies = [
  "headers",
  "heck",
  "http-serde",
- "ifmt",
  "indexmap",
  "indicatif",
- "itertools 0.10.5",
+ "itertools",
  "lazy_static",
  "log 0.4.17",
  "mime 0.3.16",
@@ -4072,7 +4016,7 @@ dependencies = [
  "new_mime_guess",
  "nix",
  "octocrab",
- "paste 1.0.9",
+ "paste",
  "path-absolutize",
  "path-slash",
  "pathdiff",
@@ -4091,7 +4035,6 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2",
- "shrinkwraprs 0.3.0",
  "strum",
  "symlink",
  "syn",
@@ -4121,7 +4064,6 @@ dependencies = [
  "engine-protocol",
  "enso-config",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "ensogl",
@@ -4222,7 +4164,6 @@ version = "0.1.0"
 dependencies = [
  "double-representation",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-suggestion-database",
  "ensogl",
@@ -4249,7 +4190,6 @@ dependencies = [
  "engine-protocol",
  "enso-config",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "enso-text",
@@ -4305,30 +4245,6 @@ name = "if_chain"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb56e1aa765b4b4f3aadfab769793b7087bb03a4ea4920644a6d238e2df5b9ed"
-
-[[package]]
-name = "ifmt"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd0f8e1404f15475d8a2ca84c2942aa00ac17804ce555294a96f6b5cdf80750"
-dependencies = [
- "ifmt-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "ifmt-impl"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e50385662f423431a619ab28ba2beeab3063b581a0d1a943765e23911c502904"
-dependencies = [
- "lazy_static",
- "proc-macro-hack",
- "proc-macro2",
- "quote",
- "regex",
- "syn",
-]
 
 [[package]]
 name = "indexmap"
@@ -4400,24 +4316,6 @@ checksum = "879d54834c8c76457ef4293a689b2a8c59b076067ad77b15efafbb05f92a592b"
 
 [[package]]
 name = "itertools"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
@@ -4479,7 +4377,6 @@ dependencies = [
  "futures 0.3.24",
  "serde",
  "serde_json",
- "shrinkwraprs 0.3.0",
 ]
 
 [[package]]
@@ -4887,8 +4784,8 @@ checksum = "476d1d59fe02fe54c86356e91650cd892f392782a1cb9fc524ec84f7aa9e1d06"
 dependencies = [
  "approx 0.4.0",
  "matrixmultiply",
- "num-complex 0.3.1",
- "num-rational 0.3.2",
+ "num-complex",
+ "num-rational",
  "num-traits",
  "serde",
  "simba",
@@ -4989,20 +4886,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "num"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43db66d1170d347f9a065114077f7dccb00c1b9478c89384490a3425279a4606"
-dependencies = [
- "num-bigint",
- "num-complex 0.4.2",
- "num-integer",
- "num-iter",
- "num-rational 0.4.1",
- "num-traits",
-]
-
-[[package]]
 name = "num-bigint"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5024,15 +4907,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-complex"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ae39348c8bc5fbd7f40c727a9925f03517afd2ab27d46702108b6a7e5414c19"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "num-integer"
 version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5043,35 +4917,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-iter"
-version = "0.1.43"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d03e6c028c5dc5cac6e2dec0efda81fc887605bb3d884578bb6d6bf7514e252"
-dependencies = [
- "autocfg 1.1.0",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
 name = "num-rational"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12ac428b1cb17fce6f731001d307d351ec70a6d202fc2e60f7d4c5e42d8f4f07"
 dependencies = [
  "autocfg 1.1.0",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-rational"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0638a1c9d0a3c0914158145bc76cff373a75a627e6ecbfb71cbe6f453a5a19b0"
-dependencies = [
- "autocfg 1.1.0",
- "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -5131,15 +4982,6 @@ name = "number_prefix"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
-
-[[package]]
-name = "object"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a5b3dd1c072ee7963717671d1ca129f1048fda25edea6b752bfc71ac8854170"
-dependencies = [
- "flate2",
-]
 
 [[package]]
 name = "object"
@@ -5357,7 +5199,6 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "shrinkwraprs 0.2.3",
  "tokio",
  "uuid 0.8.2",
  "wasm-bindgen",
@@ -5367,28 +5208,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45ca20c77d80be666aef2b45486da86238fabe33e38306bd3118fe4af33fa880"
-dependencies = [
- "paste-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "paste"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1de2e551fb905ac83f73f7aedf2f0cb4a0da7e35efa24a202a936269f1f18e1"
-
-[[package]]
-name = "paste-impl"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
-dependencies = [
- "proc-macro-hack",
-]
 
 [[package]]
 name = "path-absolutize"
@@ -5717,7 +5539,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7345d5f0e08c0536d7ac7229952590239e77abf0a0100a1b1d890add6ea96364"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools",
  "proc-macro2",
  "quote",
  "syn",
@@ -6555,32 +6377,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shrinkwraprs"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83695fde96cbe9e08f0e4eb96b1b56fdbd44f2098ee27462dda964c7745fddc7"
-dependencies = [
- "bitflags",
- "itertools 0.8.2",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "shrinkwraprs"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63e6744142336dfb606fe2b068afa2e1cca1ee6a5d8377277a92945d81fa331"
-dependencies = [
- "bitflags",
- "itertools 0.8.2",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "signal-hook-registry"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6596,9 +6392,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5132a955559188f3d13c9ba831e77c802ddc8782783f050ed0c52f5988b95f4c"
 dependencies = [
  "approx 0.4.0",
- "num-complex 0.3.1",
+ "num-complex",
  "num-traits",
- "paste 1.0.9",
+ "paste",
 ]
 
 [[package]]

@@ -102,5 +102,5 @@ pub fn main() {
         })
         .new_child(|t| t.size(1.bytes()));
 
-    DEBUG!("{input_span_tree2:#?}");
+    debug!("{input_span_tree2:#?}");
 }

@@ -23,7 +23,7 @@ pub type UTCDateTime = chrono::DateTime<chrono::FixedOffset>;
 // ================
 
 /// SHA3-224 hash digest.
-#[derive(Hash, Debug, Display, Clone, PartialEq, Eq, Serialize, Deserialize, Shrinkwrap)]
+#[derive(Hash, Debug, Display, Clone, PartialEq, Eq, Serialize, Deserialize, Deref)]
 pub struct Sha3_224(String);
 
 impl Sha3_224 {

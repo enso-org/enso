@@ -59,13 +59,13 @@ impl<Out> FutureEvent<Out> {
     ///
     /// Panics if no event was emitted by the node since this structure creation.
     pub fn expect(self) -> Out {
-        self.value.take().unwrap_or_else(|| ipanic!("Expected {self.label} event"))
+        self.value.take().unwrap_or_else(|| panic!("Expected {} event", self.label))
     }
 
     /// Panics if any event was received.
     pub fn expect_not(&self) {
         if self.value.borrow().is_some() {
-            ipanic!("Expected not {self.label} event");
+            panic!("Expected not {} event", self.label);
         }
     }
 }

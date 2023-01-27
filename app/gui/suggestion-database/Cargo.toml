@@ -9,19 +9,19 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-prelude = { path = "../../../lib/rust/prelude" }
-convert_case = { version = "0.5.0" }
+convert_case = { workspace = true }
 span-tree = { path = "../language/span-tree" }
 ast = { path = "../language/ast/impl" }
 parser-scala = { path = "../language/parser" }
 enso-text = { path = "../../../lib/rust/text" }
-double-representation = { version = "0.1.0", path = "../controller/double-representation" }
+double-representation = { path = "../controller/double-representation" }
 engine-protocol = { path = "../controller/engine-protocol" }
 enso-data-structures = { path = "../../../lib/rust/data-structures" }
 flo_stream = { version = "0.4.0" }
-failure = { version = "0.1.6" }
+failure = { workspace = true }
 enso-notification = { path = "../../../lib/rust/notification" }
 
 [dev-dependencies]
-futures = { version = "0.3.1" }
+futures = { workspace = true }
 enso-executor = { path = "../../../lib/rust/executor" }
 wasm-bindgen-test = { workspace = true }

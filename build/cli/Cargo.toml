@@ -5,22 +5,22 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-anyhow = "1.0.57"
-byte-unit = { version = "4.0.14", features = ["serde"] }
+anyhow = { workspace = true }
+byte-unit = { workspace = true }
 clap = { version = "3.2.23", features = ["derive", "env", "wrap_help"] }
 chrono = "0.4.19"
-derivative = "2.2.0"
+derivative = { workspace = true }
 enso-build-base = { path = "../base" }
 enso-build = { path = "../build" }
 enso-formatter = { path = "../enso-formatter" }
-futures = "0.3.17"
+futures = { workspace = true }
 futures-util = "0.3.17"
 glob = "0.3.0"
 humantime = "2.1.0"
 ide-ci = { path = "../ci_utils" }
 octocrab = { workspace = true }
 serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.68"
+serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 strum = { version = "0.24.0", features = ["derive"] }
 tempfile = "3.2.0"
