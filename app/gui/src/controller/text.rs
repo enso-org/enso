@@ -46,8 +46,7 @@ enum FileHandle {
 /// This struct contains all information and handles to do all module controller operations.
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
-    logger: Logger,
-    file:   FileHandle,
+    file: FileHandle,
 }
 
 impl Handle {
@@ -56,23 +55,16 @@ impl Handle {
     /// This constructor checks what kind of file we read, and load it as a module file or plain
     /// text file.
     #[profile(Detail)]
-    pub async fn new(
-        parent: impl AnyLogger,
-        project: &model::Project,
-        path: FilePath,
-    ) -> FallibleResult<Self> {
-        let logger = Logger::new_sub(parent, format!("Text Controller {}", path));
+    pub async fn new(project: &model::Project, path: FilePath) -> FallibleResult<Self> {
         let file = if let Ok(path) = model::module::Path::from_file_path(path.clone()) {
-            FileHandle::Module {
-                controller: controller::Module::new(logger.clone_ref(), path, &**project).await?,
-            }
+            FileHandle::Module { controller: controller::Module::new(path, &**project).await? }
         } else {
             FileHandle::PlainText {
                 path:            Rc::new(path),
                 language_server: project.json_rpc(),
             }
         };
-        Ok(Self { logger, file })
+        Ok(Self { file })
     }
 
     /// Get clone of file path handled by this controller.
@@ -183,10 +175,7 @@ mod test {
             let module_res =
                 controller::Module::new_mock(path, "main = 2+2", default(), ls, parser, default());
             let module = module_res.unwrap();
-            let controller = Handle {
-                logger: Logger::new("Test text controller"),
-                file:   FileHandle::Module { controller: module.clone() },
-            };
+            let controller = Handle { file: FileHandle::Module { controller: module.clone() } };
             let mut sub = controller.subscribe();
 
             let change = enso_text::Change::inserted(8.byte(), "2".to_string());
@@ -202,9 +191,8 @@ mod test {
             let root_id = default();
             let path = FilePath::new(root_id, &["TestPath"]);
             let another_path = FilePath::new(root_id, &["TestPath2"]);
-            let log = Logger::new("Test");
-            let text_ctrl = Handle::new(&log, &project, path.clone()).await.unwrap();
-            let another_ctrl = Handle::new(&log, &project, another_path.clone()).await.unwrap();
+            let text_ctrl = Handle::new(&project, path.clone()).await.unwrap();
+            let another_ctrl = Handle::new(&project, another_path.clone()).await.unwrap();
 
             assert!(Rc::ptr_eq(&another_ctrl.language_server(), &text_ctrl.language_server()));
             assert!(Rc::ptr_eq(&another_ctrl.language_server(), &project.json_rpc()));
@@ -227,8 +215,7 @@ mod test {
                 model::project::test::expect_parser(project, &parser);
             });
             let file_path = module.path().file_path();
-            let log = Logger::new("Test");
-            let text_ctrl = controller::Text::new(&log, &project, file_path.clone()).await.unwrap();
+            let text_ctrl = controller::Text::new(&project, file_path.clone()).await.unwrap();
             let content = text_ctrl.read_content().await.unwrap();
             assert_eq!("2 + 2", content.as_str());
         });

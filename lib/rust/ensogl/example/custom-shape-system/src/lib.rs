@@ -74,8 +74,8 @@ pub fn main() {
             i += 1;
             if i == 5 {
                 if let Some(program) = view.sprite.borrow().symbol.shader().program() {
-                    DEBUG!("\n\nVERTEX:\n{program.shader.vertex.code}");
-                    DEBUG!("\n\nFRAGMENT:\n{program.shader.fragment.code}");
+                    debug!("\n\nVERTEX:\n{}", program.shader.vertex.code);
+                    debug!("\n\nFRAGMENT:\n{}", program.shader.fragment.code);
                 }
             }
         })

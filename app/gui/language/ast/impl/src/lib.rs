@@ -135,10 +135,10 @@ pub struct Tree<K, V> {
 // ===============
 
 /// A value of type `T` annotated with offset value `off`.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Shrinkwrap, Iterator)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Deref, DerefMut, Iterator)]
 pub struct Shifted<T> {
-    #[shrinkwrap(main_field)]
+    #[deref]
+    #[deref_mut]
     pub wrapped: T,
     pub off:     usize,
 }
@@ -180,9 +180,7 @@ impl<T> From<T> for Layered<T> {
 // === Layered ===
 
 /// A trivial `Layer` type that is just a strongly typed wrapper over `T`.
-#[derive(Debug)]
-#[derive(Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Debug, Deref, DerefMut)]
 pub struct Layered<T>(pub T);
 
 impl<T> Layer<T> for Layered<T> {
@@ -218,8 +216,7 @@ pub struct Unit {}
 /// to either of the implementation need to be applied to the other one as well.
 ///
 /// Each AST node is annotated with span and an optional ID.
-#[derive(CloneRef, Eq, PartialEq, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(CloneRef, Eq, PartialEq, Debug, Deref, DerefMut)]
 pub struct Ast {
     pub wrapped: Rc<WithID<WithLength<Shape<Ast>>>>,
 }
@@ -1214,10 +1211,10 @@ pub trait HasID {
     fn id(&self) -> Option<Id>;
 }
 
-#[derive(Eq, PartialEq, Debug, Shrinkwrap, Serialize, Deserialize)]
-#[shrinkwrap(mutable)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize, Deserialize)]
 pub struct WithID<T> {
-    #[shrinkwrap(main_field)]
+    #[deref]
+    #[deref_mut]
     #[serde(flatten)]
     pub wrapped: T,
     pub id:      Option<Id>,
@@ -1300,10 +1297,10 @@ pub fn traverse_with_span(ast: &impl HasTokens, mut f: impl FnMut(enso_text::Ran
 ///
 /// Even if `T` is `Spanned`, keeping `length` variable is desired for performance
 /// purposes.
-#[derive(Eq, PartialEq, Debug, Shrinkwrap, Serialize, Deserialize)]
-#[shrinkwrap(mutable)]
+#[derive(Eq, PartialEq, Debug, Deref, DerefMut, Serialize, Deserialize)]
 pub struct WithLength<T> {
-    #[shrinkwrap(main_field)]
+    #[deref]
+    #[deref_mut]
     #[serde(flatten)]
     pub wrapped: T,
     pub length:  usize,

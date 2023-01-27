@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 wasm-bindgen = { workspace = true }
-ensogl-hardcoded-theme = { version = "0.1.0", path = "../../../ensogl/app/theme/hardcoded" }
+ensogl-hardcoded-theme = { path = "../../../ensogl/app/theme/hardcoded" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.
 [package.metadata.wasm-pack.profile.release]

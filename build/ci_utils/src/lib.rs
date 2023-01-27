@@ -72,13 +72,13 @@ pub mod serde;
 
 
 pub mod prelude {
+    pub use derive_more::*;
     pub use enso_build_base::prelude::*;
 
     pub use async_trait::async_trait;
     pub use bytes::Bytes;
     pub use derivative::Derivative;
     pub use derive_more::Display;
-    pub use ifmt::iformat;
     pub use itertools::Itertools;
     pub use lazy_static::lazy_static;
     pub use octocrab::Octocrab;
@@ -86,7 +86,6 @@ pub mod prelude {
     pub use platforms::target::Arch;
     pub use platforms::target::OS;
     pub use semver::Version;
-    pub use shrinkwraprs::Shrinkwrap;
     pub use sysinfo::PidExt as _;
     pub use sysinfo::ProcessExt as _;
     pub use sysinfo::SystemExt as _;

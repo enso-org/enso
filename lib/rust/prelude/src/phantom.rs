@@ -3,7 +3,6 @@
 use super::std_reexports::*;
 
 use derivative::Derivative;
-use shrinkwraprs::Shrinkwrap;
 
 
 
@@ -39,13 +38,10 @@ pub type PhantomData9<T1, T2, T3, T4, T5, T6, T7, T8, T9> =
 
 /// A wrapper adding a phantom type to a structure.
 #[derive(Derivative)]
-#[derive(Shrinkwrap)]
-#[shrinkwrap(mutable)]
 #[derivative(Clone(bound = "T:Clone"))]
 #[derivative(Default(bound = "T:Default"))]
 #[derivative(Debug(bound = "T:Debug"))]
 pub struct WithPhantom<T, P = ()> {
-    #[shrinkwrap(main_field)]
     pub without_phantom: T,
     phantom:             PhantomData<P>,
 }

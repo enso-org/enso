@@ -93,7 +93,7 @@ crate::define_endpoints! {
 /// by value set through `set_overshoot_limit` endpoint. Many target value changes can be applied in
 /// quick succession. After a `set_bounce_delay` amount of time passes since last target change, the
 /// bounce-back animation is applied by snapping the target value to the closest bound.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct OvershootAnimation {
     /// Public FRP api.
     pub frp: FrpEndpoints,

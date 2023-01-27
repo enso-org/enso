@@ -155,7 +155,6 @@ impl Error {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    logger:    Logger,
     dom:       DomSymbol,
     size:      Rc<Cell<Vector2>>,
     // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -172,7 +171,6 @@ pub struct Model {
 impl Model {
     /// Constructor.
     fn new(scene: Scene) -> Self {
-        let logger = Logger::new("RawText");
         let div = web::document.create_div_or_panic();
         let dom = DomSymbol::new(&div);
         let size = Rc::new(Cell::new(Vector2(200.0, 200.0)));
@@ -193,7 +191,7 @@ impl Model {
         dom.dom().set_style_or_warn("pointer-events", "auto");
 
         scene.dom.layers.back.manage(&dom);
-        Model { logger, dom, size, styles, displayed, messages, scene }.init()
+        Model { dom, size, styles, displayed, messages, scene }.init()
     }
 
     fn init(self) -> Self {
