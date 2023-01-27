@@ -2187,7 +2187,7 @@ dependencies = [
 name = "enso-metamodel"
 version = "0.1.0"
 dependencies = [
- "bincode 2.0.0-rc.1",
+ "bincode 1.3.3",
  "derivative",
  "derive_more",
 ]
