@@ -1,6 +1,6 @@
 package org.enso.languageserver.text
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Stash, Status}
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.boot.TimingsConfig
@@ -11,15 +11,11 @@ import org.enso.languageserver.event.{
   BufferOpened,
   JsonSessionTerminated
 }
-import org.enso.languageserver.filemanager.FileManagerProtocol.{
-  ReadTextualFileResult,
-  TextualFileContent,
-  WriteFileResult
-}
 import org.enso.languageserver.filemanager.{
   FileEventKind,
   FileManagerProtocol,
   FileNotFound,
+  GenericFileSystemFailure,
   OperationTimeout,
   Path
 }
@@ -95,18 +91,29 @@ class CollaborativeBuffer(
     timeoutCancellable: Cancellable,
     inMemoryBuffer: Boolean
   ): Receive = {
-    case ReadTextualFileResult(Right(content)) =>
+    case FileManagerProtocol.ReadTextualFileResult(Right(content)) =>
       handleFileContent(rpcSession, replyTo, content, inMemoryBuffer, Map.empty)
       unstashAll()
       timeoutCancellable.cancel()
 
-    case ReadTextualFileResult(Left(failure)) =>
+    case FileManagerProtocol.ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
       timeoutCancellable.cancel()
       stop(Map.empty)
 
     case IOTimeout =>
       replyTo ! OpenFileResponse(Left(OperationTimeout))
+      stop(Map.empty)
+
+    case Status.Failure(failure) =>
+      logger.error(
+        s"Waiting for file content for [${rpcSession.clientId}] failed with: ${failure.getMessage}.",
+        failure
+      )
+      replyTo ! OpenFileResponse(
+        Left(GenericFileSystemFailure(failure.getMessage))
+      )
+      timeoutCancellable.cancel()
       stop(Map.empty)
 
     case _ => stash()
@@ -253,7 +260,7 @@ class CollaborativeBuffer(
     clients: Map[ClientId, JsonSession],
     inMemoryBuffer: Boolean
   ): Receive = {
-    case ReadTextualFileResult(Right(file)) =>
+    case FileManagerProtocol.ReadTextualFileResult(Right(file)) =>
       timeoutCancellable.cancel()
       val buffer = Buffer(file.path, file.content, inMemoryBuffer)
 
@@ -281,7 +288,7 @@ class CollaborativeBuffer(
         )
       )
 
-    case ReadTextualFileResult(Left(FileNotFound)) =>
+    case FileManagerProtocol.ReadTextualFileResult(Left(FileNotFound)) =>
       clients.values.foreach {
         _.rpcController ! TextProtocol.FileEvent(path, FileEventKind.Removed)
       }
@@ -289,7 +296,7 @@ class CollaborativeBuffer(
       timeoutCancellable.cancel()
       stop(Map.empty)
 
-    case ReadTextualFileResult(Left(err)) =>
+    case FileManagerProtocol.ReadTextualFileResult(Left(err)) =>
       replyTo ! ReloadBufferFailed(path, "io failure: " + err.toString)
       timeoutCancellable.cancel()
       context.become(
@@ -300,6 +307,15 @@ class CollaborativeBuffer(
           Map.empty
         )
       )
+
+    case Status.Failure(ex) =>
+      logger.error(
+        s"Waiting for file content for [${rpcSession.clientId}] failed with: ${ex.getMessage}.",
+        ex
+      )
+      replyTo ! ReloadBufferFailed(path, "io failure: " + ex.toString)
+      timeoutCancellable.cancel()
+      stop(Map.empty)
 
     case IOTimeout =>
       replyTo ! ReloadBufferFailed(path, "io timeout")
@@ -337,7 +353,7 @@ class CollaborativeBuffer(
           )
       }
 
-    case WriteFileResult(Left(failure)) =>
+    case FileManagerProtocol.WriteFileResult(Left(failure)) =>
       replyTo.foreach(_ ! SaveFailed(failure))
       unstashAll()
       timeoutCancellable.cancel()
@@ -351,7 +367,23 @@ class CollaborativeBuffer(
           )
       }
 
-    case WriteFileResult(Right(())) =>
+    case Status.Failure(failure) =>
+      logger.error(
+        s"Waiting on save operation to complete failed with: ${failure.getMessage}.",
+        failure
+      )
+      timeoutCancellable.cancel()
+      onClose match {
+        case Some(clientId) =>
+          replyTo.foreach(_ ! FileClosed)
+          removeClient(buffer, clients, lockHolder, clientId, autoSave)
+        case None =>
+          context.become(
+            collaborativeEditing(buffer, clients, lockHolder, autoSave)
+          )
+      }
+
+    case FileManagerProtocol.WriteFileResult(Right(())) =>
       replyTo match {
         case Some(replyTo) => replyTo ! FileSaved
         case None =>
@@ -624,7 +656,7 @@ class CollaborativeBuffer(
   private def handleFileContent(
     rpcSession: JsonSession,
     originalSender: ActorRef,
-    file: TextualFileContent,
+    file: FileManagerProtocol.TextualFileContent,
     inMemoryBuffer: Boolean,
     autoSave: Map[ClientId, (ContentVersion, Cancellable)]
   ): Unit = {
