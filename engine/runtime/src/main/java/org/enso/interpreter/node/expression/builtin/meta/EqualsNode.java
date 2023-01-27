@@ -29,6 +29,7 @@ import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMo
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.ordering.HasCustomComparatorNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -36,9 +37,13 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.MethodNames;
 
@@ -152,6 +157,40 @@ public abstract class EqualsNode extends Node {
     return equalsNode.execute(selfConversion.getScope(), otherConversion.getScope());
   }
 
+  @Specialization
+  boolean equalsModuleScopes(ModuleScope selfModuleScope, ModuleScope otherModuleScope,
+      @Cached EqualsNode equalsNode) {
+    return equalsNode.execute(selfModuleScope.getModule(), otherModuleScope.getModule());
+  }
+
+  @Specialization
+  @TruffleBoundary
+  boolean equalsModules(Module selfModule, Module otherModule,
+      @Cached EqualsNode equalsNode) {
+    return equalsNode.execute(selfModule.getName().toString(), otherModule.getName().toString());
+  }
+
+  @Specialization
+  boolean equalsFiles(EnsoFile selfFile, EnsoFile otherFile,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
+    return equalsStrings(selfFile.getPath(), otherFile.getPath(), interop, interop);
+  }
+
+  /**
+   * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also
+   * primitive values would fall into that specialization and it would be too complicated
+   * to make that specialization disjunctive. So we rather specialize directly for
+   * {@link Type types}.
+   */
+  @Specialization
+  boolean equalsTypes(Type selfType, Type otherType,
+      @Cached EqualsNode equalsNode) {
+    return equalsNode.execute(
+        selfType.getQualifiedName().toString(),
+        otherType.getQualifiedName().toString()
+    );
+  }
+
   /**
    * If one of the objects has warnings attached, just treat it as an object without any
    * warnings.
@@ -202,8 +241,10 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization(guards = {
-      "isHostObject(selfHostObject)",
-      "isHostObject(otherHostObject)",
+      // HostFunction is identified by a qualified name, it is not a lambda.
+      // It has well-defined equality based on the qualified name.
+      "isHostObject(selfHostObject) || isHostFunction(selfHostObject)",
+      "isHostObject(otherHostObject) || isHostFunction(otherHostObject)",
   })
   boolean equalsHostObjects(
       Object selfHostObject, Object otherHostObject,
@@ -458,6 +499,60 @@ public abstract class EqualsNode extends Node {
     }
   }
 
+  @Specialization(guards = {
+      "interop.hasMembers(selfObject)",
+      "interop.hasMembers(otherObject)",
+      // Objects with types are handled in `equalsTypes` specialization, so we have to
+      // negate the guards of that specialization here - to make the specializations
+      // disjunctive.
+      "!typesLib.hasType(selfObject)",
+      "!typesLib.hasType(otherObject)"
+  })
+  boolean equalsInteropObjectWithMembers(Object selfObject, Object otherObject,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "5") TypesLibrary typesLib,
+      @Cached EqualsNode equalsNode) {
+    try {
+      Object selfMembers = interop.getMembers(selfObject);
+      Object otherMembers = interop.getMembers(otherObject);
+      assert interop.getArraySize(selfMembers) < Integer.MAX_VALUE : "Long array sizes not supported";
+      int membersSize = (int) interop.getArraySize(selfMembers);
+      if (interop.getArraySize(otherMembers) != membersSize) {
+        return false;
+      }
+
+      // Check member names
+      String[] memberNames = new String[membersSize];
+      for (int i = 0; i < membersSize; i++) {
+        String selfMemberName = interop.asString(interop.readArrayElement(selfMembers, i));
+        String otherMemberName = interop.asString(interop.readArrayElement(otherMembers, i));
+        if (!equalsNode.execute(selfMemberName, otherMemberName)) {
+          return false;
+        }
+        memberNames[i] = selfMemberName;
+      }
+
+      // Check member values
+      for (int i = 0; i < membersSize; i++) {
+        if (interop.isMemberReadable(selfObject, memberNames[i]) &&
+            interop.isMemberReadable(otherObject, memberNames[i])) {
+          Object selfMember = interop.readMember(selfObject, memberNames[i]);
+          Object otherMember = interop.readMember(otherObject, memberNames[i]);
+          if (!equalsNode.execute(selfMember, otherMember)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    } catch (UnsupportedMessageException | InvalidArrayIndexException | UnknownIdentifierException e) {
+      throw new IllegalStateException(
+          String.format("One of the interop objects has probably wrongly specified interop API "
+              + "for members. selfObject = %s ; otherObject = %s", selfObject, otherObject),
+          e
+      );
+    }
+  }
+
   /** Equals for Atoms and AtomConstructors */
 
   @Specialization
@@ -610,14 +705,31 @@ public abstract class EqualsNode extends Node {
   @Fallback
   @TruffleBoundary
   boolean equalsGeneric(Object left, Object right,
-      @CachedLibrary(limit = "5") InteropLibrary interop) {
+      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @CachedLibrary(limit = "5") TypesLibrary typesLib) {
       return left == right
           || interop.isIdentical(left, right, interop)
-          || left.equals(right);
+          || left.equals(right)
+          || (isNullOrNothing(left, typesLib, interop) && isNullOrNothing(right, typesLib, interop));
+  }
+
+  private boolean isNullOrNothing(Object object, TypesLibrary typesLib, InteropLibrary interop) {
+    if (typesLib.hasType(object)) {
+      return typesLib.getType(object) == EnsoContext.get(this).getNothing();
+    } else if (interop.isNull(object)) {
+      return true;
+    } else {
+      return object == null;
+    }
   }
 
   @TruffleBoundary
   boolean isHostObject(Object object) {
     return EnsoContext.get(this).getEnvironment().isHostObject(object);
+  }
+
+  @TruffleBoundary
+  boolean isHostFunction(Object object) {
+    return EnsoContext.get(this).getEnvironment().isHostFunction(object);
   }
 }

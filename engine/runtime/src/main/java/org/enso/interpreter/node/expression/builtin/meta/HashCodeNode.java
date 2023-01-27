@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.google.common.base.Objects;
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
@@ -24,18 +25,23 @@ import java.util.Arrays;
 
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
 import org.enso.interpreter.node.expression.builtin.ordering.HasCustomComparatorNode;
 import org.enso.interpreter.node.expression.builtin.ordering.HashCallbackNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.callable.UnresolvedConversion;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.atom.StructsLibrary;
-import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoFile;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.WarningsLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * Implements {@code hash_code} functionality.
@@ -121,6 +127,56 @@ public abstract class HashCodeNode extends Node {
   @Specialization
   long hashCodeForAtomConstructor(AtomConstructor atomConstructor) {
     return System.identityHashCode(atomConstructor);
+  }
+
+  @Specialization
+  long hashCodeForUnresolvedSymbol(UnresolvedSymbol unresolvedSymbol,
+      @Cached HashCodeNode hashCodeNode) {
+    long nameHash = hashCodeNode.execute(unresolvedSymbol.getName());
+    long scopeHash = hashCodeNode.execute(unresolvedSymbol.getScope());
+    return Objects.hashCode(nameHash, scopeHash);
+  }
+
+  @Specialization
+  long hashCodeForUnresolvedConversion(UnresolvedConversion unresolvedConversion,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
+    return hashCodeForModuleScope(unresolvedConversion.getScope(), interop);
+  }
+
+  @Specialization
+  long hashCodeForModuleScope(ModuleScope moduleScope,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
+    return hashCodeForModule(moduleScope.getModule(), interop);
+  }
+
+  @Specialization
+  @TruffleBoundary
+  long hashCodeForModule(Module module,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
+    return hashCodeForString(module.toString(), interop);
+  }
+
+  @Specialization
+  long hashCodeForFile(EnsoFile file,
+      @CachedLibrary(limit = "5") InteropLibrary interop) {
+    return hashCodeForString(file.getPath(), interop);
+  }
+
+  /**
+   * There is no specialization for {@link TypesLibrary#hasType(Object)}, because also
+   * primitive values would fall into that specialization and it would be too complicated
+   * to make that specialization disjunctive. So we rather specialize directly for
+   * {@link Type}.
+   */
+  @Specialization
+  long hashCodeForType(Type type,
+      @Cached HashCodeNode hashCodeNode) {
+    if (EnsoContext.get(this).getNothing() == type) {
+      // Nothing should be equal to `null`
+      return 0;
+    } else {
+      return hashCodeNode.execute(type.getQualifiedName().toString());
+    }
   }
 
   /** How many {@link HashCodeNode} nodes should be created for fields in atoms. */
@@ -386,6 +442,44 @@ public abstract class HashCodeNode extends Node {
     return Arrays.hashCode(new long[] {keysHashCode, valuesHashCode, mapSize});
   }
 
+  @Specialization(guards = {
+      "interop.hasMembers(objectWithMembers)",
+      // Object with type is handled in `hashCodeForType` specialization, so we have to
+      // negate the guard of that specialization here - to make the specializations
+      // disjunctive.
+      "!typesLib.hasType(objectWithMembers)"
+  })
+  long hashCodeForInteropObjectWithMembers(Object objectWithMembers,
+      @CachedLibrary(limit = "10") InteropLibrary interop,
+      @CachedLibrary(limit = "5") TypesLibrary typesLib,
+      @Cached HashCodeNode hashCodeNode) {
+    try {
+      Object members = interop.getMembers(objectWithMembers);
+      assert interop.getArraySize(members) < Integer.MAX_VALUE : "long array size not supported";
+      int size = (int) interop.getArraySize(members);
+      // Final hash code will be put together from member names and member values.
+      long[] hashCodes = new long[size * 2];
+      int hashCodesIdx = 0;
+      for (int i = 0; i < size; i++) {
+        String memberName = interop.asString(interop.readArrayElement(members, i));
+        hashCodes[hashCodesIdx++] = hashCodeNode.execute(memberName);
+        if (interop.isMemberReadable(objectWithMembers, memberName)) {
+          Object member = interop.readMember(objectWithMembers, memberName);
+          hashCodes[hashCodesIdx++] = hashCodeNode.execute(member);
+        } else {
+          hashCodes[hashCodesIdx++] = 0;
+        }
+      }
+      return Arrays.hashCode(hashCodes);
+    } catch (UnsupportedMessageException | InvalidArrayIndexException | UnknownIdentifierException e) {
+      throw new IllegalStateException(
+          String.format("An interop object (%s) has probably wrongly specified interop API"
+              + " for members.", objectWithMembers),
+          e
+      );
+    }
+  }
+
   @Specialization(
       guards = {"interop.isNull(selfNull)"},
       limit = "3")
@@ -408,8 +502,25 @@ public abstract class HashCodeNode extends Node {
     }
   }
 
+  /**
+   * Every host function has a unique fully qualified name, it is not a lambda.
+   * We get the hashcode from the qualified name.
+   */
+  @TruffleBoundary
+  @Specialization(guards = "isHostFunction(hostFunction)")
+  long hashCodeForHostFunction(Object hostFunction,
+      @CachedLibrary(limit = "3") InteropLibrary interop,
+      @Cached HashCodeNode hashCodeNode) {
+    return hashCodeNode.execute(interop.toDisplayString(hostFunction));
+  }
+
   @TruffleBoundary
   boolean isHostObject(Object object) {
     return EnsoContext.get(this).getEnvironment().isHostObject(object);
+  }
+
+  @TruffleBoundary
+  boolean isHostFunction(Object object) {
+    return EnsoContext.get(this).getEnvironment().isHostFunction(object);
   }
 }
