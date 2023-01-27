@@ -210,8 +210,9 @@ impl TypedVariable for PathLike {
 }
 
 impl PathLike {
-    pub fn prepend(&self, value: impl Into<PathBuf>) -> Result {
-        let value = value.into();
+    #[context("Failed to prepend path `{}` to `{}`.", value.as_ref().display(), self.name())]
+    pub fn prepend(&self, value: impl AsRef<Path>) -> Result {
+        let value = value.as_ref().to_path_buf();
         trace!("Prepending {} to {}.", value.display(), self.name());
         let mut paths = self.get()?;
         paths.insert(0, value);

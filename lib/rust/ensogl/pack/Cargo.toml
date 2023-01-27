@@ -1,0 +1,18 @@
+[package]
+name = "ensogl-pack"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2021"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+ide-ci = { path = "../../../../build/ci_utils" }
+manifest-dir-macros = "0.1.16"
+regex = { workspace = true }
+tempfile = "3"
+tokio = { workspace = true }
+fs_extra = "1.2.0"
+walkdir = "2"
+enso-prelude = { path = "../../prelude" }

@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-use crate::cache;
+use crate::cache::goodie;
+use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::program::version::IsVersionPredicate;
 use crate::programs::wasm_opt;
@@ -20,22 +21,24 @@ impl IsVersionPredicate for Binaryen {
     }
 }
 
-impl Binaryen {}
-
-impl cache::Goodie for Binaryen {
-    fn url(&self) -> BoxFuture<'static, Result<Url>> {
+impl Binaryen {
+    fn url(&self) -> Result<Url> {
         let version = format!("version_{}", self.version);
-        async move {
-            let target = match (TARGET_OS, TARGET_ARCH) {
-                (OS::Windows, Arch::X86_64) => "x86_64-windows",
-                (OS::Linux, Arch::X86_64) => "x86_64-linux",
-                (OS::MacOS, Arch::X86_64) => "x86_64-macos",
-                (OS::MacOS, Arch::AArch64) => "arm64-macos",
-                (os, arch) => bail!("Not supported arch/OS combination: {arch}-{os}."),
-            };
-            let url = format!("https://github.com/WebAssembly/binaryen/releases/download/{version}/binaryen-{version}-{target}.tar.gz");
-            url.parse2()
-        }.boxed()
+        let target = match (TARGET_OS, TARGET_ARCH) {
+            (OS::Windows, Arch::X86_64) => "x86_64-windows",
+            (OS::Linux, Arch::X86_64) => "x86_64-linux",
+            (OS::MacOS, Arch::X86_64) => "x86_64-macos",
+            (OS::MacOS, Arch::AArch64) => "arm64-macos",
+            (os, arch) => bail!("Not supported arch/OS combination: {arch}-{os}."),
+        };
+        let url = format!("https://github.com/WebAssembly/binaryen/releases/download/{version}/binaryen-{version}-{target}.tar.gz");
+        url.parse2()
+    }
+}
+
+impl Goodie for Binaryen {
+    fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+        goodie::download_try_url(self.url(), cache)
     }
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {

@@ -9,17 +9,22 @@ use crate::project::ProcessWrapper;
 use anyhow::Context;
 use futures_util::future::try_join;
 use futures_util::future::try_join4;
-use ide_ci::github::RepoRef;
 use ide_ci::io::download_all;
 use ide_ci::program::command;
 use ide_ci::program::EMPTY_ARGS;
 use ide_ci::programs::node::NpmCommand;
 use ide_ci::programs::Npm;
-use octocrab::models::repos::Content;
 use std::process::Stdio;
 use tempfile::TempDir;
 use tokio::process::Child;
 use tracing::Span;
+
+
+// ==============
+// === Export ===
+// ==============
+
+pub mod google_font;
 
 
 
@@ -35,10 +40,6 @@ pub const IDE_ASSETS_URL: &str =
 
 pub const ARCHIVED_ASSET_FILE: &str = "ide-assets-main/content/assets/";
 
-pub const GOOGLE_FONTS_REPOSITORY: RepoRef = RepoRef { owner: "google", name: "fonts" };
-
-pub const GOOGLE_FONT_DIRECTORY: &str = "ofl";
-
 pub mod env {
     use super::*;
 
@@ -49,8 +50,10 @@ pub mod env {
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
         ENSO_BUILD_ICONS, PathBuf;
-        ENSO_BUILD_GUI_WASM, PathBuf;
-        ENSO_BUILD_GUI_JS_GLUE, PathBuf;
+        /// List of files that should be copied to the Gui.
+        ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
+        /// The main JS bundle to load WASM and JS wasm-pack bundles.
+        ENSO_BUILD_GUI_ENSOGL_APP, PathBuf;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
         ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
@@ -99,28 +102,6 @@ impl command::FallibleManipulator for IconsArtifacts {
         command.set_env(env::ENSO_BUILD_ICONS, &self.0)?;
         Ok(())
     }
-}
-
-#[context("Failed to download Google font '{family}'.")]
-#[instrument(fields(output_path = %output_path.as_ref().display()), ret, err, skip(octocrab))]
-pub async fn download_google_font(
-    octocrab: &Octocrab,
-    family: &str,
-    output_path: impl AsRef<Path>,
-) -> Result<Vec<Content>> {
-    let destination_dir = output_path.as_ref();
-    let repo = GOOGLE_FONTS_REPOSITORY.handle(octocrab);
-    let path = format!("{GOOGLE_FONT_DIRECTORY}/{family}");
-    let files = repo.repos().get_content().path(path).send().await?;
-    let ttf_files =
-        files.items.into_iter().filter(|file| file.name.ends_with(".ttf")).collect_vec();
-    for file in &ttf_files {
-        let destination_file = destination_dir.join(&file.name);
-        let url = file.download_url.as_ref().context("Missing 'download_url' in the reply.")?;
-        let reply = ide_ci::io::web::client::download(&octocrab.client, url).await?;
-        ide_ci::io::web::stream_to_file(reply, &destination_file).await?;
-    }
-    Ok(ttf_files)
 }
 
 /// Fill the directory under `output_path` with the assets.
@@ -175,7 +156,8 @@ impl<Output: AsRef<Path>> ContentEnvironment<TempDir, Output> {
         let installation = ide.install();
         let asset_dir = TempDir::new()?;
         let assets_download = download_js_assets(&asset_dir);
-        let fonts_download = download_google_font(&ide.octocrab, "mplus1", &asset_dir);
+        let fonts_download =
+            google_font::download_google_font(&ide.cache, &ide.octocrab, "mplus1", &asset_dir);
         let (wasm, _, _, _) =
             try_join4(wasm, installation, assets_download, fonts_download).await?;
         ide.write_build_info(build_info)?;
@@ -187,10 +169,13 @@ impl<Assets: AsRef<Path>, Output: AsRef<Path>> command::FallibleManipulator
     for ContentEnvironment<Assets, Output>
 {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
+        let artifacts_for_gui =
+            self.wasm.files_to_ship().into_iter().map(|file| file.to_path_buf()).collect_vec();
+
         command
             .set_env(env::ENSO_BUILD_GUI, self.output_path.as_ref())?
-            .set_env(env::ENSO_BUILD_GUI_WASM, &self.wasm.wasm())?
-            .set_env(env::ENSO_BUILD_GUI_JS_GLUE, &self.wasm.js_glue())?
+            .set_env(env::ENSO_BUILD_GUI_WASM_ARTIFACTS, &artifacts_for_gui)?
+            .set_env(env::ENSO_BUILD_GUI_ENSOGL_APP, &self.wasm.ensogl_app())?
             .set_env(env::ENSO_BUILD_GUI_ASSETS, self.asset_dir.as_ref())?;
         Ok(())
     }
@@ -211,10 +196,12 @@ pub fn target_os_flag(os: OS) -> Result<&'static str> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub struct IdeDesktop {
     pub build_sbt:   generated::RepoRootBuildSbt,
     pub package_dir: generated::RepoRootAppIdeDesktop,
+    #[derivative(Debug = "ignore")]
     pub octocrab:    Octocrab,
     pub cache:       ide_ci::cache::Cache,
 }

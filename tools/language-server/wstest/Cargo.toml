@@ -10,7 +10,7 @@ clap = { version = "3", features = ["derive"] }
 either = "1.7.0"
 futures = "0.3"
 enso-prelude = { path = "../../../lib/rust/prelude" }
-regex = "1.6.0"
+regex = { workspace = true }
 time = { version = "0.3", features = ["formatting"] }
 tokio = { workspace = true }
 tokio-stream = { version = "0.1.9", features = ["io-util"] }

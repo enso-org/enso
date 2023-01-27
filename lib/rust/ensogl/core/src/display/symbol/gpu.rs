@@ -409,17 +409,15 @@ impl Symbol {
         &self,
         global_variables: &UniformScope,
     ) -> Vec<shader::VarBinding> {
-        let var_decls = self.shader.collect_variables();
-        var_decls
-            .into_iter()
-            .map(|(var_name, var_decl)| {
-                let target = self.lookup_variable(&var_name, global_variables);
-                if target.is_none() {
-                    warn!("Unable to bind variable '{}' to geometry buffer.", var_name);
-                }
-                shader::VarBinding::new(var_name, var_decl, target)
-            })
-            .collect()
+        let mut vars = self.shader.collect_variables();
+        for binding in &mut vars {
+            let scope = self.lookup_variable(&binding.name, global_variables);
+            if scope.is_none() {
+                warn!("Unable to bind variable '{}' to geometry buffer.", binding.name);
+            }
+            binding.scope = scope;
+        }
+        vars
     }
 
     /// Runs the provided function in a context of active program and active VAO. After the function
