@@ -2554,20 +2554,15 @@ class RuntimeServerTest
 
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(
-          mainFile,
-          template(prompt)
-        )
+        Api.SetModuleSourcesNotification(mainFile, template(prompt))
       )
     )
-
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(Api.EditFileNotification(mainFile, Seq(), execute = true))
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      2
+      1
     ) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.executionComplete(contextId)
     )
     // API.SetModuleSourcesNotification triggers reloading of module sources
