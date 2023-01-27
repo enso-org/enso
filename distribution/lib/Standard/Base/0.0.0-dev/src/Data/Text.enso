@@ -136,4 +136,4 @@ type Text
     to_text : Text
     to_text self = self
 
-Comparable.from (that:Text) = Default_Ordered_Comparator
+Comparable.from (_:Text) = Default_Ordered_Comparator

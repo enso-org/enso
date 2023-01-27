@@ -89,7 +89,7 @@ type Comparable
     has_custom_comparator : Atom -> Boolean
     has_custom_comparator atom =
         comp = Comparable.from atom
-        (comp.is_a Default_Unordered_Comparator).not && (comp.is_a Default_Unordered_Comparator).not
+        (comp.is_a Default_Unordered_Comparator).not && (comp.is_a Default_Ordered_Comparator).not
 
 ## Singleton denoting that values of certain type are not comparable.
 type Incomparable
@@ -123,10 +123,7 @@ type Default_Ordered_Comparator
     hash x = Comparable.hash_builtin x
 
 
-# By default, there is no conversion from Any to Default_Ordered_Comparator
-# Note that we allow also conversion from types, e.g., `Comparable.from Integer`
-# for convenience.
-Comparable.from (that:Any) = Default_Unordered_Comparator
+Comparable.from (_:Any) = Default_Unordered_Comparator
 
 
 ## Types representing the ordering of values.
