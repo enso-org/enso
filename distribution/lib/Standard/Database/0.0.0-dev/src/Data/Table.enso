@@ -11,6 +11,7 @@ import Standard.Base.Error.Unimplemented.Unimplemented
 from Standard.Base.Metadata.Widget import Single_Choice
 import Standard.Base.Metadata.Display
 
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position, Set_Mode
 from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Column_Type_Selection.Column_Type_Selection
 import Standard.Table.Data.Expression.Expression
@@ -27,7 +28,7 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 from Standard.Table.Data.Column import get_item_string
 from Standard.Table.Data.Table import print_table
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
-from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns
+from Standard.Table.Errors import Column_Count_Mismatch, No_Index_Set_Error, No_Such_Column, No_Input_Columns_Selected, No_Output_Columns, Existing_Column, Missing_Column
 
 import project.Data.Column.Column
 import project.Data.SQL_Statement.SQL_Statement
@@ -430,7 +431,7 @@ type Table
        _ : Text ->
            table_at = self.at column
            if table_at.is_error.not then self.filter table_at filter on_problems else
-               expression = self.evaluate column
+               expression = self.compute column
                if expression.is_error.not then self.filter expression filter on_problems else
                    pick_error = expression.catch Expression_Error.Syntax_Error (_->table_at)
                    on_problems.handle_errors pick_error fallback=self
@@ -511,30 +512,33 @@ type Table
        Sets the column value at the given name.
 
        Arguments:
-       - name: The name of the column to set.
        - column: The new value for the column called `name`.
+       - name: The name of the column to set.
 
        If a column with the given name already exists, it will be replaced.
        Otherwise a new column is added.
-    set : Text -> Column | Text -> Problem_Behavior -> Table
-    set self name column on_problems=Report_Warning = on_problems.handle_errors fallback=self <|
-        case Helpers.ensure_name_is_sane name of
-            True ->
-                resolved = case column of
-                    _ : Text -> self.evaluate column
-                    _ -> column
-                new_col = Internal_Column.Value name resolved.sql_type resolved.expression
-                replace = self.internal_columns.any (c -> c.name == name)
-                case replace of
-                    True ->
-                        new_cols = self.internal_columns.map (c -> if c.name == name then new_col else c)
-                        self.updated_columns new_cols
-                    False ->
-                        self.updated_columns (self.internal_columns + [new_col])
+    set : Text -> Column | Text -> Problem_Behavior -> Table ! Existing_Column | Missing_Column
+    set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
+        _ = [set_mode]
+        on_problems.handle_errors fallback=self <|
+            resolved = case column of
+                _ : Text -> self.compute column
+                _ -> column
+            resolved_name = new_name.if_nothing resolved.name
+            case Helpers.ensure_name_is_sane resolved_name of
+                True ->
+                    new_col = Internal_Column.Value resolved_name resolved.sql_type resolved.expression
+                    replace = self.internal_columns.any (c -> c.name == resolved_name)
+                    case replace of
+                        True ->
+                            new_cols = self.internal_columns.map (c -> if c.name == resolved_name then new_col else c)
+                            self.updated_columns new_cols
+                        False ->
+                            self.updated_columns (self.internal_columns + [new_col])
 
     ## PRIVATE
-    evaluate : Text -> Column
-    evaluate self expression =
+    compute : Text -> Column
+    compute self expression =
         get_column name = self.at name
         make_constant value =
             new_type = SQL_Type.approximate_type value
