@@ -36,6 +36,10 @@ pub enum Todo {
     Array,
 }
 
+// TODO: Whitespace:
+// Tree -> AstWithInitialSpace, recursively. `Shape::Tree` has no initial space, but other
+// translations need it so as not to lose the initial `left_offset`.
+
 pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
     Ok(match &*tree.variant {
         tree::Variant::BodyBlock(block) => translate_block(&block.statements).into(),
@@ -48,7 +52,10 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             int:  integer.as_ref().map(|integer| integer.code.to_string()).unwrap_or_default(),
         }),
         tree::Variant::App(tree::App { func, arg }) => {
-            let off = arg.span.left_offset.visible.width_in_spaces;
+            // In `Ast` spaces between siblings belonged to the parent node, but in `Tree` every
+            // node owns its preceding whitespace.
+            //let off = arg.span.left_offset.visible.width_in_spaces;
+            let off = 0;
             Ast::from(ast::Prefix { func: to_legacy_ast(func), off, arg: to_legacy_ast(arg) })
         }
         tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) =>
