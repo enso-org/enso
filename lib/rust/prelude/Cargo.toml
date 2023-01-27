@@ -23,7 +23,6 @@ anyhow = "1.0.66"
 assert_approx_eq = { version = "1.1.0" }
 backtrace = "0.3.53"
 boolinator = "2.4.0"
-colored = "2.0.0"
 derivative = "2.2.0"
 derive_more = "0.99"
 failure = "0.1.5"
