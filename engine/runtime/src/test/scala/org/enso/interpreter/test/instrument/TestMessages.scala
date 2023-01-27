@@ -78,8 +78,7 @@ object TestMessages {
     expressionType: String,
     fromCache: Boolean                       = false,
     methodPointer: Option[Api.MethodPointer] = None,
-    payload: Api.ExpressionUpdate.Payload =
-      Api.ExpressionUpdate.Payload.Value()
+    payload: Api.ExpressionUpdate.Payload    = Api.ExpressionUpdate.Payload.Value()
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
