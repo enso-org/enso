@@ -86,7 +86,7 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
-- [Added dynamic suggestions for function arguments][4072]. Dropdowns will now
+- [Added contextual suggestions to argument dropdowns][4072]. Dropdowns will now
   contain suggestions which are based on evaluated data.
 
 #### EnsoGL (rendering engine)

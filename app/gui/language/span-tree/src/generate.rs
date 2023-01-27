@@ -18,6 +18,7 @@ use ast::Ast;
 use ast::HasRepr;
 use ast::MacroAmbiguousSegment;
 use ast::MacroMatchSegment;
+use std::collections::VecDeque;
 
 
 // ==============
@@ -150,48 +151,82 @@ impl<T: Payload> ChildGenerator<T> {
 #[derive(Clone, Debug)]
 struct ApplicationBase<'a> {
     /// The name of invoked function.
-    function_name: Option<&'a str>,
-    /// True when Ast uses method notation to pass this as an invocation target.
-    has_target:    bool,
-    /// The ast id of the call expression.
-    call_id:       Option<Id>,
-    /// The id of the call target operand. The target can present with not assigned ast id.
-    /// In that case the `target_id` is `None` an `has_target` is `true`.
-    target_id:     Option<Id>,
+    function_name:        Option<Cow<'a, str>>,
+    /// True when Ast uses method notation to pass `self` as an invocation target.
+    uses_method_notation: bool,
+    /// AST id of the function application expression. The subject of [`Context::call_info`] call,
+    /// which is used to get a list of expected arguments for this application.
+    call_id:              Option<Id>,
+    /// AST id of the application target argument (`self` method argument). For method-style
+    /// notation, this is the part before the dot. For other expressions it is the first argument.
+    /// Note that it can be `None` even when the applied method expects `self` argument, but it's
+    /// not provided in the AST or doesn't have associated id.
+    target_id:            Option<Id>,
 }
 
 impl<'a> ApplicationBase<'a> {
-    fn new(ast: &'a Ast, call_id: Option<Id>, external_target_id: Option<Id>) -> Self {
-        if let Some(infix) = GeneralizedInfix::try_new(ast)
-            .filter(|infix| infix.name() == ast::opr::predefined::ACCESS)
-        {
-            let target = infix.target_operand();
-            let target_id = target.as_ref().and_then(|t| t.arg.id);
-            let function = ast.get(&infix.argument_crumb()).ok();
-            let function_name = function.and_then(ast::identifier::name);
-            ApplicationBase { function_name, call_id, target_id, has_target: true }
+    /// Create `ApplicationBase` from infix expression.
+    fn from_infix(infix: &'a GeneralizedInfix) -> Self {
+        let call_id = infix.id;
+        let target_id = infix.target_operand().as_ref().and_then(|t| t.arg.id);
+        if infix.name() == ast::opr::predefined::ACCESS {
+            // method-style notation: `this.that.method`
+            // In this case the applied method is not the dot operator, but the name after the dot.
+            let function = infix.argument_operand().as_ref();
+            let function_name =
+                function.and_then(|func| ast::identifier::name(&func.arg)).map(Into::into);
+            ApplicationBase { function_name, call_id, target_id, uses_method_notation: true }
         } else {
-            ApplicationBase {
-                function_name: ast::identifier::name(ast),
-                call_id,
-                target_id: external_target_id,
-                has_target: false,
-            }
+            // Other chain type, e.g. `a + b + c`
+            let function_name = Some(infix.name().into());
+            ApplicationBase { function_name, call_id, target_id, uses_method_notation: false }
         }
     }
 
-    fn prefix_params(
-        &self,
-        invocation_info: Option<CalledMethodInfo>,
-    ) -> impl ExactSizeIterator<Item = ArgumentInfo> {
-        let mut ret = invocation_info
-            .map(|info| info.with_ast_ids(self.call_id, self.target_id).parameters)
-            .unwrap_or_default()
-            .into_iter();
-        if self.has_target {
-            ret.next();
+    /// Create `ApplicationBase` from flattened prefix expression chain.
+    fn from_prefix_chain(chain: &'a ast::prefix::Chain) -> Self {
+        let call_id = chain.id();
+        // when first chain element is an infix access, derive the application base from it, but
+        // treat the whole chain as a call expression.
+        if let Some(access_infix) = GeneralizedInfix::try_new(&chain.func)
+            .filter(|infix| infix.name() == ast::opr::predefined::ACCESS)
+        {
+            let base = ApplicationBase::from_infix(&access_infix).into_owned();
+            return ApplicationBase { call_id, ..base };
         }
-        ret
+
+        // For any other prefix chain, the applied function is the first chain element and first
+        // argument is always treated as a `self` target argument.
+        let function_name = ast::identifier::name(&chain.func).map(Into::into);
+        let target_id = chain.args.first().and_then(|arg| arg.sast.id);
+        ApplicationBase { function_name, call_id, target_id, uses_method_notation: false }
+    }
+
+    /// Get the list of method prefix arguments expected by this application. Does not include
+    /// `self` parameter when using method notation. Returns `None` when the call info is not
+    /// present in the context or AST doesn't contain enough information to query it.
+    fn known_prefix_arguments(&self, context: &impl Context) -> Option<VecDeque<ArgumentInfo>> {
+        // If method notation is used, the function name is required to get relevant call info. Do
+        // not attempt the call if method name is not available, as the returned data would be not
+        // relevant.
+        if self.uses_method_notation && self.function_name.is_none() {
+            return None;
+        }
+
+        let invocation_info = context.call_info(self.call_id?, self.function_name.as_deref())?;
+        let parameters = invocation_info.with_ast_ids(self.call_id, self.target_id).parameters;
+        let mut deque: VecDeque<ArgumentInfo> = parameters.into();
+
+        // for method notation, the first received argument is the target, so skip it.
+        if self.uses_method_notation {
+            deque.pop_front();
+        }
+        Some(deque)
+    }
+
+    fn into_owned(self) -> ApplicationBase<'static> {
+        let function_name = self.function_name.map(|s| s.into_owned().into());
+        ApplicationBase { function_name, ..self }
     }
 }
 
@@ -213,19 +248,19 @@ fn generate_node_for_ast<T: Payload>(
     kind: node::Kind,
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
-    // Code like `ast.func` or `a+b+c`.
     if let Some(infix) = GeneralizedInfix::try_new(ast) {
-        let chain = infix.flatten();
-        let app_base = ApplicationBase::new(ast, ast.id, None);
-        let invocation = (|| context.call_info(app_base.call_id?, Some(app_base.function_name?)))();
+        // Code like `ast.func` or `a+b+c`.
+        let app_base = ApplicationBase::from_infix(&infix);
 
         // All prefix params are missing arguments, since there is no prefix application.
-        let missing_args = app_base.prefix_params(invocation);
+        let missing_args = app_base.known_prefix_arguments(context).unwrap_or_default();
         let arity = missing_args.len();
         let base_node_kind = if arity == 0 { kind.clone() } else { node::Kind::Operation };
+        let chain = infix.flatten();
         let node = chain.generate_node(base_node_kind, context)?;
         let provided_prefix_arg_count = 0;
-        Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, missing_args))
+        let args_iter = missing_args.into_iter();
+        Ok(generate_expected_arguments(node, kind, provided_prefix_arg_count, args_iter))
     } else {
         match ast.shape() {
             ast::Shape::Prefix(_) =>
@@ -369,11 +404,11 @@ fn generate_node_for_prefix_chain<T: Payload>(
     kind: node::Kind,
     context: &impl Context,
 ) -> FallibleResult<Node<T>> {
-    let first_arg_id = this.args.first().and_then(|arg| arg.sast.id);
-    let base = ApplicationBase::new(&this.func, this.id(), first_arg_id);
-    let invocation_info = base.call_id.and_then(|id| context.call_info(id, base.function_name));
-    let known_args = invocation_info.is_some();
-    let mut known_params = base.prefix_params(invocation_info);
+    let base = ApplicationBase::from_prefix_chain(this);
+    let known_params = base.known_prefix_arguments(context);
+    let known_args = known_params.is_some();
+    let mut known_params = known_params.unwrap_or_default();
+
     let prefix_arity = this.args.len().max(known_params.len());
 
     use ast::crumbs::PrefixCrumb::*;
@@ -384,7 +419,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
         let node = node?;
         let is_first = i == 0;
         let is_last = i + 1 == prefix_arity;
-        let arg_kind = if is_first && !base.has_target {
+        let arg_kind = if is_first && !base.uses_method_notation {
             node::Kind::from(node::Kind::this().with_removable(removable))
         } else {
             node::Kind::from(node::Kind::argument().with_removable(removable))
@@ -399,7 +434,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
         let arg_ast = arg.sast.wrapped.clone_ref();
         let arg_child: &mut node::Child<T> =
             gen.generate_ast_node(Located::new(Arg, arg_ast), arg_kind, context)?;
-        if let Some(info) = known_params.next() {
+        if let Some(info) = known_params.pop_front() {
             arg_child.node.set_argument_info(info)
         }
         if !known_args {
@@ -414,7 +449,7 @@ fn generate_node_for_prefix_chain<T: Payload>(
         })
     })?;
 
-    Ok(generate_expected_arguments(ret, kind, this.args.len(), known_params))
+    Ok(generate_expected_arguments(ret, kind, this.args.len(), known_params.into_iter()))
 }
 
 

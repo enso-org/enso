@@ -146,7 +146,7 @@ impl Kind {
         })
     }
 
-    /// Get the function call ast id associated with this argument.
+    /// Get the function call AST id associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
             Self::This(t) => t.call_id,
@@ -156,7 +156,7 @@ impl Kind {
         }
     }
 
-    /// Get the function call target (`self` argument) ast id associated with this argument.
+    /// Get the function call target (`self` argument) AST id associated with this argument.
     pub fn target_id(&self) -> Option<ast::Id> {
         match self {
             Self::Argument(t) => t.target_id,

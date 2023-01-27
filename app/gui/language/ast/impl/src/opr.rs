@@ -275,16 +275,6 @@ impl GeneralizedInfix {
         }
     }
 
-    /// Get a relative AST crumb pointing to the argument operand.
-    pub fn argument_crumb(&self) -> Crumb {
-        match self.assoc() {
-            Assoc::Left if self.left.is_some() => InfixCrumb::RightOperand.into(),
-            Assoc::Left => SectionRightCrumb::Arg.into(),
-            Assoc::Right if self.right.is_some() => InfixCrumb::LeftOperand.into(),
-            Assoc::Right => SectionLeftCrumb::Arg.into(),
-        }
-    }
-
     /// Converts chain of infix applications using the same operator into `Chain`.
     /// Sample inputs are `x,y,x` or `a+b+` or `+5+5+5`. Note that `Sides*` nodes
     /// are also supported, along the `Infix` nodes.

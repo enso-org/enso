@@ -77,7 +77,10 @@ use crate::generate::Context;
 pub struct ArgumentInfo {
     pub name:       Option<String>,
     pub tp:         Option<String>,
+    /// The AST id of the call expression that this argument is passed to.
     pub call_id:    Option<ast::Id>,
+    /// The AST id of the target (`self` argument) of the call expression that this argument is
+    /// passed to. For method-style calls, this is the AST id of expression before the dot.
     pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
@@ -194,13 +197,42 @@ impl<T: Payload> SpanTree<T> {
     #[allow(dead_code)]
     /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
     /// argument should be identical to the expression that was used during generation of this
-    //// span-tree. It will be used to print code fragments associated with each span.
+    /// span-tree. It will be used to print code fragments associated with each span.
+    /// 
+    /// Example output with AST ids removed for clarity:
+    /// ```
+    /// operator6.join operator31 Join_Kind.Inner ["County"] Root
+    /// operator6.join operator31 Join_Kind.Inner ["County"] ├── Chained
+    /// operator6.join operator31 Join_Kind.Inner ["County"] │   ├── Chained
+    /// operator6.join operator31 Join_Kind.Inner            │   │   ├── Chained
+    /// operator6.join operator31                            │   │   │   ├── Chained
+    /// operator6.join                                       │   │   │   │   ├── Operation
+    /// ▲                                                    │   │   │   │   │   ├── InsertionPoint(BeforeTarget)
+    /// operator6                                            │   │   │   │   │   ├── This
+    ///          ▲                                           │   │   │   │   │   ├── InsertionPoint(AfterTarget)
+    ///          .                                           │   │   │   │   │   ├── Operation
+    ///           join                                       │   │   │   │   │   ├── Argument
+    ///               ▲                                      │   │   │   │   │   ╰── InsertionPoint(Append)
+    ///                operator31                            │   │   │   │   ╰── Argument name="right"
+    ///                           Join_Kind.Inner            │   │   │   ╰── Argument name="join_kind"
+    ///                           ▲                          │   │   │       ├── InsertionPoint(BeforeTarget)
+    ///                           Join_Kind                  │   │   │       ├── This
+    ///                                    ▲                 │   │   │       ├── InsertionPoint(AfterTarget)
+    ///                                    .                 │   │   │       ├── Operation
+    ///                                     Inner            │   │   │       ├── Argument
+    ///                                          ▲           │   │   │       ╰── InsertionPoint(Append)
+    ///                                           ["County"] │   │   ╰── Argument name="on"
+    ///                                           [          │   │       ├── Token
+    ///                                            "County"  │   │       ├── Argument
+    ///                                                    ] │   │       ╰── Token
+    ///                                                     ▲│   ╰── InsertionPoint(ExpectedArgument(3)) name="right_prefix"
+    ///                                                     ▲╰── InsertionPoint(ExpectedArgument(4)) name="on_problems"
+    /// ```
     pub fn debug_print(&self, code: &str) -> String {
         use std::fmt::Write;
 
         let mut buffer = String::new();
-        let pad_total = code.len() + 1;
-        let pad = " ".repeat(pad_total);
+        let span_padding = " ".repeat(code.len() + 1);
 
         struct PrintState {
             indent:       String,
@@ -210,7 +242,7 @@ impl<T: Payload> SpanTree<T> {
         self.root_ref().dfs_with_layer_data(state, |node, state| {
             let span = node.span();
             let node_code = &code[span];
-            buffer.push_str(&pad[0..node.span_offset.into()]);
+            buffer.push_str(&span_padding[0..node.span_offset.into()]);
             let mut written = node.span_offset.into();
             if node_code.is_empty() {
                 buffer.push('▲');
@@ -219,7 +251,7 @@ impl<T: Payload> SpanTree<T> {
                 buffer.push_str(node_code);
                 written += node_code.len();
             }
-            buffer.push_str(&pad[written..pad_total]);
+            buffer.push_str(&padding[written..]);
 
             let indent = if let Some(index) = node.crumbs.last() {
                 let is_last = *index == state.num_children - 1;
