@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-use crate::cache;
+use crate::cache::goodie;
+use crate::cache::Cache;
 use crate::env::known::PATH;
 use crate::programs;
 
@@ -15,9 +16,9 @@ crate::define_env_var! {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub struct Sbt;
 
-impl cache::Goodie for Sbt {
-    fn url(&self) -> BoxFuture<'static, Result<Url>> {
-        ready(Url::parse(DOWNLOAD_URL_TEXT).anyhow_err()).boxed()
+impl Goodie for Sbt {
+    fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+        goodie::download_try_url(Url::from_str(DOWNLOAD_URL_TEXT), cache)
     }
 
     fn is_active(&self) -> BoxFuture<'static, Result<bool>> {

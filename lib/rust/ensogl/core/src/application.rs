@@ -4,10 +4,8 @@ use crate::prelude::*;
 use enso_web::traits::*;
 
 use crate::application::command::FrpNetworkProvider;
-use crate::control::callback;
 use crate::display;
 use crate::display::scene::DomPath;
-use crate::display::style::theme;
 use crate::display::world::World;
 use crate::gui::cursor::Cursor;
 use crate::system::web;
@@ -68,15 +66,13 @@ pub struct Application {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ApplicationData {
-    pub logger:           Logger,
-    pub cursor:           Cursor,
-    pub display:          World,
-    pub commands:         command::Registry,
-    pub shortcuts:        shortcut::Registry,
-    pub views:            view::Registry,
-    pub themes:           theme::Manager,
-    pub frp:              Frp,
-    update_themes_handle: callback::Handle,
+    pub logger:    Logger,
+    pub cursor:    Cursor,
+    pub display:   World,
+    pub commands:  command::Registry,
+    pub shortcuts: shortcut::Registry,
+    pub views:     view::Registry,
+    pub frp:       Frp,
 }
 
 impl ApplicationData {
@@ -99,23 +95,11 @@ impl Application {
         let shortcuts =
             shortcut::Registry::new(&logger, &scene.mouse.frp, &scene.keyboard.frp, &commands);
         let views = view::Registry::create(&logger, &display, &commands, &shortcuts);
-        let themes = theme::Manager::from(&display.default_scene.style_sheet);
         let cursor = Cursor::new(&display.default_scene);
         display.add_child(&cursor);
-        let update_themes_handle = display.on.before_frame.add(f_!(themes.update()));
         let frp = Frp::new();
 
-        let data = ApplicationData {
-            logger,
-            cursor,
-            display,
-            commands,
-            shortcuts,
-            views,
-            themes,
-            update_themes_handle,
-            frp,
-        };
+        let data = ApplicationData { logger, cursor, display, commands, shortcuts, views, frp };
 
         Self { inner: Rc::new(data) }.init()
     }
@@ -144,12 +128,6 @@ impl Application {
 impl display::Object for Application {
     fn display_object(&self) -> &display::object::Instance {
         self.display.display_object()
-    }
-}
-
-impl AsRef<theme::Manager> for Application {
-    fn as_ref(&self) -> &theme::Manager {
-        &self.themes
     }
 }
 

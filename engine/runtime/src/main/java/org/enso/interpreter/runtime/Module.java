@@ -364,16 +364,22 @@ public final class Module implements TruffleObject {
    * @return
    */
   public final SourceSection createSection(int sourceStartIndex, int sourceLength) {
-    final Source src = sources.source();
+    var src = sources.source();
     if (src == null) {
       return null;
     }
     allSources.put(src, this);
-    int startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
-    int endDelta =
+    var startDelta = patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex, false);
+    var endDelta =
         patchedValues == null ? 0 : patchedValues.findDelta(sourceStartIndex + sourceLength, true);
-    final int start = sourceStartIndex + startDelta;
-    final int length = sourceLength + endDelta - startDelta;
+    var start = sourceStartIndex + startDelta;
+    var length = sourceLength + endDelta - startDelta;
+    if (start + length == src.getLength() + 1) {
+      length--;
+    }
+    if (start + length > src.getLength()) {
+      return null;
+    }
     return src.createSection(start, length);
   }
 

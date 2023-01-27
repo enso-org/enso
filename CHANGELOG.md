@@ -124,10 +124,19 @@
   with a shared implementation between the Desktop and Web versions of the IDE.
 - [Added a new component: Dropdown][3985]. A list of selectable labeled entries,
   suitable for single and multi-select scenarios.
+- [Compile-time shader optimizer was implemented][4003]. It is capable of
+  extracting non-optimized shaders from the compiled WASM artifacts, running
+  stand-alone optimization toolchain (glslc, spirv-opt, spirv-cross), and
+  injecting optimized shaders back to WASM during its initialization process.
+  Unfortunately, it caused our theme system to stop working correctly, because
+  generated shaders differ per theme (only light theme is available, the dark
+  theme has been disabled). We will support multiple themes in the future, but
+  this is not on our priority list right now.
 
 [3857]: https://github.com/enso-org/enso/pull/3857
 [3985]: https://github.com/enso-org/enso/pull/3985
 [4047]: https://github.com/enso-org/enso/pull/4047
+[4003]: https://github.com/enso-org/enso/pull/4003
 
 #### Enso Standard Library
 

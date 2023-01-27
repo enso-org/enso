@@ -160,7 +160,9 @@ impl ShapeData {
 
 mod glyph_shape {
     use super::*;
-    ensogl_core::shape! {
+    // FIXME[WD]: We are using old shape generator here which does not use shader precompilation.
+    //   To be fixed in the next PR: https://www.pivotaltracker.com/story/show/184304289
+    ensogl_core::shape_old! {
         type SystemData = SystemData;
         type ShapeData = ShapeData;
         flavor = ShapeData::flavor;
@@ -179,10 +181,9 @@ mod glyph_shape {
     }
 }
 
-impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
+impl display::shape::CustomSystemData<glyph_shape::Shape> for SystemData {
     fn new(
-        scene: &Scene,
-        data: &ensogl_core::display::shape::ShapeSystemStandardData<glyph_shape::Shape>,
+        data: &display::shape::ShapeSystemStandardData<glyph_shape::Shape>,
         shape_data: &ShapeData,
     ) -> Self {
         let font = &shape_data.font;
@@ -195,8 +196,10 @@ impl ensogl_core::display::shape::CustomSystemData<glyph_shape::Shape> for Syste
         data.model.do_not_use_shape_definition.set(true);
 
         sprite_system.unsafe_set_alignment(alignment::Dim2::left_bottom());
-        scene.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        scene.variables.add("msdf_size", size);
+        display::world::with_context(|t| {
+            t.variables.add("msdf_range", GlyphRenderInfo::MSDF_PARAMS.range as f32);
+            t.variables.add("msdf_size", size);
+        });
 
         symbol.variables().add_uniform_or_panic("atlas", &font.atlas);
 

@@ -6,6 +6,7 @@ use crate::data::dirty::traits::*;
 use crate::display::render::*;
 use crate::prelude::*;
 use crate::system::web::traits::*;
+use wasm_bindgen::prelude::*;
 
 use crate::animation;
 use crate::application::command::FrpNetworkProvider;
@@ -21,6 +22,10 @@ use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
 use crate::display::shape::primitive::glsl;
+use crate::display::symbol::registry::RunMode;
+use crate::display::symbol::registry::SymbolRegistry;
+use crate::system::gpu::shader;
+use crate::system::js;
 use crate::system::web;
 
 use enso_types::unit2::Duration;
@@ -34,6 +39,141 @@ use web::JsValue;
 // ==============
 
 pub use crate::display::symbol::types::*;
+
+
+
+// ===============
+// === Context ===
+// ===============
+
+thread_local! {
+    /// A global object containing registry of all symbols. In the future, it will be extended to
+    /// contain buffers and other elements that are now kept in `Rc<RefCell<...>>` in different
+    /// places.
+    pub static CONTEXT: RefCell<Option<SymbolRegistry>> = RefCell::new(None);
+}
+
+/// Perform an action with a reference to the global context.
+pub fn with_context<T>(f: impl Fn(&SymbolRegistry) -> T) -> T {
+    CONTEXT.with_borrow(|t| f(t.as_ref().unwrap()))
+}
+
+/// Initialize global state (set stack trace size, logger output, etc).
+#[before_main(0)]
+pub fn init() {
+    init_global();
+}
+
+/// Initialize global context.
+#[before_main(1)]
+pub fn wasm_init_context() {
+    init_context();
+}
+
+fn init_context() {
+    let initialized = CONTEXT.with(|t| t.borrow().is_some());
+    if !initialized {
+        CONTEXT.with_borrow_mut(|t| *t = Some(SymbolRegistry::mk()));
+    }
+}
+
+
+
+// =====================
+// === Static Shapes ===
+// =====================
+
+type ShapeCons = Box<dyn Fn() -> Box<dyn crate::gui::component::AnyShapeView>>;
+
+thread_local! {
+    /// All shapes defined with the `shape!` macro. They will be populated on the beginning of
+    /// program execution, before the `main` function is called.
+    pub static SHAPES_DEFINITIONS: RefCell<Vec<ShapeCons>> = default();
+}
+
+
+
+// ===========================
+// === Precompiled Shaders ===
+// ===========================
+
+/// A precompiled shader definition. It contains the main function body for the vertex and fragment
+/// shaders.
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub struct PrecompiledShader {
+    pub vertex:   String,
+    pub fragment: String,
+}
+
+thread_local! {
+    /// List of all precompiled shaders. They are registered here before main entry point is run by
+    /// the EnsoGL runner in JavaScript.
+    pub static PRECOMPILED_SHADERS: RefCell<HashMap<String, PrecompiledShader>> = default();
+}
+
+/// Registers in JS a closure to acquire non-optimized shaders code and to set back optimized
+/// shaders code.
+#[before_main]
+pub fn register_get_and_set_shaders_fns() {
+    let js_app = js::app_or_panic();
+    let closure = Closure::new(|| {
+        let map = gather_shaders();
+        let js_map = web::Map::new();
+        for (key, code) in map {
+            let value = web::Object::new();
+            web::Reflect::set(&value, &"vertex".into(), &code.vertex.into()).unwrap();
+            web::Reflect::set(&value, &"fragment".into(), &code.fragment.into()).unwrap();
+            js_map.set(&key.into(), &value);
+        }
+        js_map.into()
+    });
+    js_app.register_get_shaders_rust_fn(&closure);
+    mem::forget(closure);
+
+    let closure = Closure::new(|value: JsValue| {
+        if extract_shaders_from_js(value).err().is_some() {
+            warn!("Internal error. Downloaded shaders are provided in a wrong format.")
+        }
+    });
+    js_app.register_set_shaders_rust_fn(&closure);
+    mem::forget(closure);
+}
+
+/// Extract optimized shaders code from the JS value.
+fn extract_shaders_from_js(value: JsValue) -> Result<(), JsValue> {
+    let map = value.dyn_into::<web::Map>()?;
+    for opt_entry in map.entries() {
+        let entry = opt_entry?.dyn_into::<web::Array>()?;
+        let key: String = entry.get(0).dyn_into::<web::JsString>()?.into();
+        let value = entry.get(1).dyn_into::<web::Object>()?;
+        let vertex_field = web::Reflect::get(&value, &"vertex".into())?;
+        let fragment_field = web::Reflect::get(&value, &"fragment".into())?;
+        let vertex: String = vertex_field.dyn_into::<web::JsString>()?.into();
+        let fragment: String = fragment_field.dyn_into::<web::JsString>()?.into();
+        let precompiled_shader = PrecompiledShader { vertex, fragment };
+        debug!("Registering precompiled shaders for '{key}'.");
+        PRECOMPILED_SHADERS.with_borrow_mut(move |map| {
+            map.insert(key, precompiled_shader);
+        });
+    }
+    Ok(())
+}
+
+fn gather_shaders() -> HashMap<&'static str, shader::Code> {
+    with_context(|t| t.run_mode.set(RunMode::ShaderExtraction));
+    let mut map = HashMap::new();
+    SHAPES_DEFINITIONS.with(|shapes| {
+        for shape_cons in shapes.borrow().iter() {
+            let shape = shape_cons();
+            let path = shape.definition_path();
+            let code = shape.abstract_shader_code_in_glsl_310();
+            map.insert(path, code);
+        }
+    });
+    with_context(|t| t.run_mode.set(RunMode::Normal));
+    map
+}
 
 
 
@@ -155,6 +295,9 @@ pub struct WorldDataWithLoop {
 impl WorldDataWithLoop {
     /// Constructor.
     pub fn new() -> Self {
+        // Context is initialized automatically before main entry point starts in WASM. We are
+        // performing manual initialization for native tests to work correctly.
+        init_context();
         let frp = Frp::new();
         let data = WorldData::new(&frp.private.output);
         let on_frame_start = animation::on_frame_start();
@@ -236,6 +379,7 @@ pub struct WorldData {
     stats_draw_handle: callback::Handle,
     pub on: Callbacks,
     debug_hotkeys_handle: Rc<RefCell<Option<web::EventListenerHandle>>>,
+    update_themes_handle: callback::Handle,
     garbage_collector: garbage::Collector,
     emit_measurements_handle: Rc<RefCell<Option<callback::Handle>>>,
 }
@@ -244,7 +388,7 @@ impl WorldData {
     /// Create and initialize new world instance.
     pub fn new(frp: &api::private::Output) -> Self {
         let frp = frp.clone_ref();
-        let stats = debug::stats::Stats::new(web::window.performance_or_panic());
+        let stats = Stats::new(web::window.performance_or_panic());
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
@@ -258,8 +402,9 @@ impl WorldData {
             stats_monitor.sample_and_draw(stats);
             log_render_stats(*stats)
         }));
+        let themes = with_context(|t| t.theme_manager.clone_ref());
+        let update_themes_handle = on.before_frame.add(f_!(themes.update()));
         let emit_measurements_handle = default();
-
         SCENE.with_borrow_mut(|t| *t = Some(default_scene.clone_ref()));
 
         Self {
@@ -273,6 +418,7 @@ impl WorldData {
             debug_hotkeys_handle,
             stats_monitor,
             stats_draw_handle,
+            update_themes_handle,
             garbage_collector,
             emit_measurements_handle,
         }
@@ -346,11 +492,7 @@ impl WorldData {
         // pixel_read_pass.set_threshold(1);
         let logger = Logger::new("renderer");
         let pipeline = render::Pipeline::new()
-            .add(SymbolsRenderPass::new(
-                logger,
-                self.default_scene.symbols(),
-                &self.default_scene.layers,
-            ))
+            .add(SymbolsRenderPass::new(logger, &self.default_scene.layers))
             .add(ScreenRenderPass::new())
             .add(pixel_read_pass);
         self.default_scene.renderer.set_pipeline(pipeline);
@@ -408,8 +550,9 @@ impl WorldData {
     }
 }
 
-mod js {
-    #[wasm_bindgen::prelude::wasm_bindgen(inline_js = r#"
+mod js_bindings {
+    use super::*;
+    #[wasm_bindgen(inline_js = r#"
 export function log_measurement(label, start, end) {
     window.performance.measure(label, { "start": start, "end": end })
 }
@@ -424,7 +567,7 @@ fn log_measurement(interval: &profiler::Interval) {
     let label = interval.label().to_owned();
     let start = interval.start();
     let end = interval.end();
-    js::log_measurement(label, start, end);
+    js_bindings::log_measurement(label, start, end);
 }
 
 
