@@ -322,7 +322,6 @@ impl RunContext {
                 ]);
             }
 
-            tasks.extend(self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task()));
             if !tasks.is_empty() {
                 let build_stuff = Sbt::concurrent_tasks(tasks);
                 sbt.call_arg(build_stuff).await?;
