@@ -114,18 +114,18 @@ pub struct NoSuchChild;
 
 
 
-// ============
-// === Tree ===
-// ============
+// =================
+// === MatchTree ===
+// =================
 
 /// A tree structure where each node may store value of `V` and has arbitrary
 /// number of children nodes, each marked with a single `K`.
 ///
 /// It is used to describe ambiguous macro match.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Tree<K, V> {
+pub struct MatchTree<K, V> {
     pub value:    Option<V>,
-    pub branches: Vec<(K, Tree<K, V>)>,
+    pub branches: Vec<(K, MatchTree<K, V>)>,
 }
 
 
@@ -577,9 +577,9 @@ pub enum Shape<T> {
     },
     Ambiguous {
         segs:  ShiftedVec1<MacroAmbiguousSegment<T>>,
-        paths: Tree<Ast, Unit>,
+        paths: MatchTree<Ast, Unit>,
     },
-    Match2 {
+    Tree {
         repr:     String,
         resolved: Ast,
     },
@@ -596,7 +596,7 @@ macro_rules! with_shape_variants {
           [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
           [Module Ast] [Block Ast]
           [Match Ast] [Ambiguous Ast]
-          [Match2]
+          [Tree]
         }
     };
 }

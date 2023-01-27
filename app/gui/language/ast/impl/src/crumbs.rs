@@ -1931,7 +1931,7 @@ mod tests {
         let seg1 = MacroAmbiguousSegment { head: ast[0].clone(), body };
         let seg2 = MacroAmbiguousSegment { head: ast[2].clone(), body: None };
         let segs = ShiftedVec1 { head: seg1, tail: vec![Shifted::new(0, seg2)] };
-        let paths = Tree { value: None, branches: vec![] };
+        let paths = MatchTree { value: None, branches: vec![] };
         let shape = Ambiguous { segs, paths };
 
         let (c1, c2, c3) = shape.iter_subcrumbs().expect_tuple();

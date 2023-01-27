@@ -323,15 +323,18 @@ impl<T: HasTokens> HasTokens for Match<T> {
 }
 
 
-// === Match2 ==
+// === Ambiguous ===
 
-impl HasTokens for Match2 {
+has_tokens!(Ambiguous<T>, self.segs);
+
+
+
+// ============
+// === Tree ===
+// ============
+
+impl HasTokens for Tree {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
         self.repr.feed_to(consumer)
     }
 }
-
-
-// === Ambiguous ===
-
-has_tokens!(Ambiguous<T>, self.segs);

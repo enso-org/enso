@@ -173,13 +173,13 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
         tree::Variant::Documented(tree::Documented { documentation, expression }) =>
         // TODO. Documented/Comment are spaceless...
             to_legacy_ast(expression.as_ref().unwrap()),
-        tree::Variant::Group(tree::Group { open, body, close }) => Ast::from(ast::Match2 {
+        tree::Variant::Group(tree::Group { open, body, close }) => Ast::from(ast::Tree {
             repr:     tree.code(),
             resolved: to_legacy_ast(body.as_ref().unwrap()),
         }),
         tree::Variant::Array(tree::Array { left, first, rest, right }) => return Err(Todo::Array),
         /*
-           Ast::from(ast::Match2 {
+           Ast::from(ast::Tree {
                repr: tree.code(),
                resolved: Ast::from_ast_id_len(ast::Shape::SequenceLiteral(ast::SequenceLiteral {
                    items: first.iter().chain(rest.iter().filter_map(|e| e.body.as_ref())).map(to_legacy_ast).collect(),
