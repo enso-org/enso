@@ -71,7 +71,16 @@ lto = false
 debug = true
 debug-assertions = true
 
+
 [workspace.dependencies]
+
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!!!!!!!! WARNING !!!!!!!!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+# We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
+# with the core development team. Thank you!
+
 console-subscriber = "0.1.8"
 nix = "0.26.1"
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
@@ -112,3 +121,4 @@ byte-unit = {version  ="4.0.14", features=["serde"]}
 bytes = {version = "1.1.0"}
 matches = { version = "0.1" }
 console_error_panic_hook ={ version = "0.1.6" }
+reqwest = { version = "0.11.5" }

@@ -19,7 +19,7 @@ crate-type = ["rlib"]
 default = []
 
 [dependencies]
-enso-shapely-macros = { version = "^0.2.1", path = "macros" }
+enso-shapely-macros = { path = "macros" }
 paste = { workspace = true }
 derivative = { workspace = true }
 rustversion = { version = "1.0" }

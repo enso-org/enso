@@ -54,6 +54,8 @@ pub mod background {
 pub struct Panel {
     display_object:     display::object::Instance,
     pub background_dom: DomSymbol,
+    // TODO: See TODO above.
+    // background     : background::View,
 }
 
 impl Panel {

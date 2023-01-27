@@ -158,10 +158,8 @@ pub use enso_logging::trace_span;
 pub use enso_logging::warn;
 pub use enso_logging::warn_span;
 
-// FIXME: finish it and add reportable_err
-
 /// Instruction of how to report important errors.
-pub const REPORT_INSTRUCTION: &str = "We will be thankful for reporting this error here: \
+pub const REPORT_INSTRUCTION: &str = "We will be thankful for reporting this issue here: \
 https://github.com/enso-org/enso/issues. Please, provide us with as much information as possible, \
 including your system specification, browser version, and a detailed description of the steps you \
 made before this error happened.";
@@ -170,6 +168,15 @@ made before this error happened.";
 macro_rules! reportable_warn {
     ($($ts:tt)*) => {
         $crate::warn!{$($ts)*}
+        $crate::warn!("{}", $crate::REPORT_INSTRUCTION)
+    };
+}
+
+#[macro_export]
+macro_rules! reportable_error {
+    ($($ts:tt)*) => {
+        $crate::error!{$($ts)*}
+        $crate::error!("{}", $crate::REPORT_INSTRUCTION)
     };
 }
 

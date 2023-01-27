@@ -35,7 +35,7 @@ enso-build-utilities = { path = "../../../../build/deprecated/build-utils" }
 bytes = { workspace = true }
 flatc-rust = { version = "0.1.2" }
 futures = { workspace = true }
-reqwest = { version = "0.11.12" }
+reqwest = { workspace = true }
 tokio = { workspace = true }
 # Zip is needed because the build script downloads and extracts artifacts from the Engine.
 zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
