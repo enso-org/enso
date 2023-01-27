@@ -222,6 +222,7 @@ fn generate_node_for_ast<T: Payload>(
             // them
             ast::Shape::Match(_) if ast::macros::as_lambda_match(ast).is_none() =>
                 ast::known::Match::try_new(ast.clone_ref()).unwrap().generate_node(kind, context),
+            ast::Shape::Tree(tree) => tree.span_analysis.generate_node(kind, context),
             ast::Shape::Ambiguous(_) => ast::known::Ambiguous::try_new(ast.clone_ref())
                 .unwrap()
                 .generate_node(kind, context),
@@ -568,6 +569,29 @@ fn generate_expected_arguments<T: Payload>(
         let is_last = index + 1 == arity;
         generate_expected_argument(node, kind.clone(), index, is_last, parameter)
     })
+}
+
+
+
+// =========================
+// === SpanTree for Tree ===
+// =========================
+
+impl<T: Default> SpanTreeGenerator<T> for ast::SpanAnalysis {
+    fn generate_node(&self, kind: impl Into<Kind>, context: &impl Context) -> FallibleResult<Node<T>> {
+        let kind = kind.into();
+        let size = 0.into();
+        let children = default(); // TODO
+        let ast_id = default(); // TODO
+        let payload = default();
+        Ok(Node {
+            kind,
+            size,
+            children,
+            ast_id,
+            payload,
+        })
+    }
 }
 
 

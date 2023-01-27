@@ -1,4 +1,4 @@
-use ast::Ast;
+use ast::{Ast, SpanAnalysis};
 use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
@@ -174,8 +174,8 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
         // TODO. Documented/Comment are spaceless...
             to_legacy_ast(expression.as_ref().unwrap()),
         tree::Variant::Group(tree::Group { open, body, close }) => Ast::from(ast::Tree {
-            repr:     tree.code(),
-            resolved: to_legacy_ast(body.as_ref().unwrap()),
+            repr:          tree.code(),
+            span_analysis: SpanAnalysis::new(tree),
         }),
         tree::Variant::Array(tree::Array { left, first, rest, right }) => return Err(Todo::Array),
         /*

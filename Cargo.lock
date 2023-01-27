@@ -129,6 +129,7 @@ dependencies = [
  "ast-macros",
  "derive_more",
  "enso-data-structures",
+ "enso-parser",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",

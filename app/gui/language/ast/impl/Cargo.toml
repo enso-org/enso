@@ -18,6 +18,7 @@ uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
 ast-macros = { path = "../macros" }
 enso-data-structures = { path = "../../../../../lib/rust/data-structures" }
 enso-text = { path = "../../../../../lib/rust/text" }
+enso-parser = { path = "../../../../../lib/rust/parser" }
 enso-prelude = { path = "../../../../../lib/rust/prelude" }
 enso-shapely = { path = "../../../../../lib/rust/shapely" }
 enso-profiler = { path = "../../../../../lib/rust/profiler" }

@@ -580,9 +580,19 @@ pub enum Shape<T> {
         paths: MatchTree<Ast, Unit>,
     },
     Tree {
-        repr:     String,
-        resolved: Ast,
+        repr:          String,
+        span_analysis: SpanAnalysis,
     },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SpanAnalysis {
+}
+
+impl SpanAnalysis {
+    pub fn new(tree: &enso_parser::syntax::Tree<'_>) -> Self {
+        Self {}
+    }
 }
 
 /// Macro that calls its argument (possibly other macro
