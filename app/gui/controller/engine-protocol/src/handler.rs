@@ -286,10 +286,9 @@ mod tests {
 
     #[test]
     fn test_closed_socked_event_passing() {
-        let logger = Logger::new("RPC_Handler_Test");
         let mut transport = MockTransport::new();
         let processor = |msg| panic!("Must never be called in this test, but got {:?}!", msg);
-        let handler = Handler::<i32, (), ()>::new(transport.clone_ref(), logger, processor);
+        let handler = Handler::<i32, (), ()>::new(transport.clone_ref(), processor);
         let mut runner = handler.runner().boxed_local();
         let mut events = handler.event_stream().boxed_local();
         events.expect_pending();

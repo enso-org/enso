@@ -172,7 +172,7 @@ impl<'a> Drop for IdentifierValidator<'a> {
                 )
             }
         } else {
-            DEBUG!("Skipping identifier validation, because thread is already in panic.");
+            debug!("Skipping identifier validation, because thread is already in panic.");
         }
     }
 }

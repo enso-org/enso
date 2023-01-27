@@ -800,6 +800,12 @@ macro_rules! define_components {
             }
         }
 
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
         impl display::Object for $name {
             fn display_object(&self) -> &display::object::Instance {
                 &self.display_object

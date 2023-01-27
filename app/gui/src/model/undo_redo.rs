@@ -210,22 +210,15 @@ pub struct Data {
 ///
 /// `Repository`, unlike [`Manager`] does not keep any modules (or other model entities) alive and
 /// can be shared with no consequence on project state.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Repository {
     data: RefCell<Data>,
-}
-
-
-impl Default for Repository {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl Repository {
     /// Create a new repository.
     pub fn new() -> Self {
-        Self { data: default() }
+        default()
     }
 
     /// Get the currently open transaction. [`None`] if there is none.
@@ -348,7 +341,7 @@ impl Repository {
 /// Undo-Redo manager. Allows undoing or redoing recent actions.
 ///
 /// Owns [`Repository`] and keeps track of open modules.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Manager {
     #[allow(missing_docs)]
     /// Repository with undo and redo stacks.
@@ -366,7 +359,7 @@ impl Aware for Manager {
 impl Manager {
     /// Create a new undo-redo manager.
     pub fn new() -> Self {
-        Self { repository: Rc::new(Repository::new()), modules: default() }
+        default()
     }
 
     /// Register a new opened module in the manager.

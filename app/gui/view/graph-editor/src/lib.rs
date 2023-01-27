@@ -1051,7 +1051,7 @@ impl Grid {
 // === Nodes ===
 // =============
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Default)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Nodes {
     pub all:      SharedHashMap<NodeId, Node>,
@@ -1067,12 +1067,9 @@ impl Deref for Nodes {
 }
 
 impl Nodes {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Constructor.
     pub fn new() -> Self {
-        let all = default();
-        let selected = default();
-        let grid = default();
-        Self { all, selected, grid }
+        default()
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
@@ -1197,7 +1194,7 @@ impl Nodes {
 // === Edges ===
 // =============
 
-#[derive(Debug, Clone, CloneRef)]
+#[derive(Debug, Clone, CloneRef, Default)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Edges {
     pub all:             SharedHashMap<EdgeId, Edge>,
@@ -1213,12 +1210,9 @@ impl Deref for Edges {
 }
 
 impl Edges {
-    #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
+    /// Constructor.
     pub fn new() -> Self {
-        let all = default();
-        let detached_source = default();
-        let detached_target = default();
-        Self { all, detached_source, detached_target }
+        default()
     }
 
     #[allow(missing_docs)] // FIXME[everyone] All pub functions should have docs.
