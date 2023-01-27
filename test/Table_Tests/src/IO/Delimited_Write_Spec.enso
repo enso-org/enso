@@ -50,15 +50,6 @@ spec =
                 text.should_equal (lines.join separator suffix=separator)
                 file.delete
 
-        Test.specify "should be able to write an empty table" <|
-            table = Table.new []
-            file = (enso_project.data / "transient" / "empty.csv")
-            file.delete_if_exists
-            table.write file on_problems=Report_Error . should_succeed
-            text = Data.read_text file
-            text.should_equal ''
-            file.delete
-
         Test.specify 'should quote values that contain the delimiter or quotes, in the [,""] variant' <|
             data_formatter = Data_Formatter.Value decimal_point=","
             table = Table.new [['The Column "Name"', ["foo","'bar'",'"baz"', 'one, two, three']], ["Hello, Column?", [1.0, 1000000.5, 2.2, -1.5]]]

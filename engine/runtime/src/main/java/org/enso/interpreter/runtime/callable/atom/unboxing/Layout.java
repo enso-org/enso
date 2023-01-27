@@ -97,6 +97,7 @@ public class Layout {
    * appropriate field reorderings and castings and select the correct atom subclass, together with
    * factories for getters, setters and instantiators.
    */
+  @SuppressWarnings("unchecked")
   public static Layout create(int arity, long typeFlags) {
     if (arity > 32) {
       throw new IllegalArgumentException("Too many fields in unboxed atom");

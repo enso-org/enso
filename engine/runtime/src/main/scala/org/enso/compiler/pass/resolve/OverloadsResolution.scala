@@ -2,10 +2,10 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
 
-import scala.annotation.unused
 import scala.collection.mutable
 
 /** This pass performs static detection of method overloads and emits errors
@@ -45,59 +45,56 @@ case object OverloadsResolution extends IRPass {
     */
   override def runModule(
     ir: IR.Module,
-    @unused moduleContext: ModuleContext
+    moduleContext: ModuleContext
   ): IR.Module = {
     var seenTypes: Set[String]                                   = Set()
     var seenMethods: Map[Option[String], Set[(String, Boolean)]] = Map()
 
     val types = ir.bindings.collect {
-      case tp: IR.Module.Scope.Definition.Type => tp
-    }
-
-    val newTypes: List[IR.Module.Scope.Definition] = types.map(tp => {
-      if (seenTypes.contains(tp.name.name)) {
-        IR.Error.Redefined.Type(tp.name, tp.location)
-      } else {
-        seenTypes = seenTypes + tp.name.name
+      case tp: IR.Module.Scope.Definition.Type =>
         tp
-      }
-    })
-
-    val methods = ir.bindings.collect {
+    }
+    ir.bindings.collect {
       case meth: IR.Module.Scope.Definition.Method.Explicit =>
-        seenMethods = seenMethods + (meth.typeName.map(_.name) -> Set())
+        seenMethods += meth.typeName.map(_.name) -> Set()
         meth
     }
-
-    val newMethods: List[IR.Module.Scope.Definition] = methods.map(method => {
-      if (
-        seenMethods(method.typeName.map(_.name))
-          .contains((method.methodName.name, method.isStatic))
-      ) {
-        IR.Error.Redefined
-          .Method(method.typeName, method.methodName, method.location)
-      } else {
-        types.find(_.name.name.equals(method.methodName.name)) match {
-          case Some(clashedAtom) if method.typeName.isEmpty =>
-            IR.Error.Redefined.MethodClashWithAtom(
-              clashedAtom.name,
-              method.methodName,
-              method.location
-            )
-          case _ =>
-            val currentMethods: Set[(String, Boolean)] =
-              seenMethods(method.typeName.map(_.name))
-            seenMethods = seenMethods + (method.typeName.map(_.name) ->
-            (currentMethods + ((method.methodName.name, method.isStatic))))
-            method
-        }
-      }
-    })
-
     val conversionsForType: mutable.Map[Option[String], Set[String]] =
       mutable.Map()
 
-    val conversions: List[IR.Module.Scope.Definition] = ir.bindings.collect {
+    val newBindings = ir.bindings.map {
+      case tp: IR.Module.Scope.Definition.Type =>
+        if (seenTypes.contains(tp.name.name)) {
+          IR.Error.Redefined.Type(tp.name, tp.location)
+        } else {
+          seenTypes += tp.name.name
+          tp
+        }
+
+      case method: IR.Module.Scope.Definition.Method.Explicit =>
+        if (
+          seenMethods(method.typeName.map(_.name))
+            .contains((method.methodName.name, method.isStatic))
+        ) {
+          IR.Error.Redefined
+            .Method(method.typeName, method.methodName, method.location)
+        } else {
+          types.find(_.name.name.equals(method.methodName.name)) match {
+            case Some(clashedAtom) if method.typeName.isEmpty =>
+              IR.Error.Redefined.MethodClashWithAtom(
+                clashedAtom.name,
+                method.methodName,
+                method.location
+              )
+            case _ =>
+              val currentMethods: Set[(String, Boolean)] =
+                seenMethods(method.typeName.map(_.name))
+              seenMethods += (method.typeName.map(_.name) ->
+              (currentMethods + ((method.methodName.name, method.isStatic))))
+              method
+          }
+        }
+
       case m: IR.Module.Scope.Definition.Method.Conversion =>
         val fromName = m.sourceTypeName.asInstanceOf[IR.Name]
         conversionsForType.get(m.typeName.map(_.name)) match {
@@ -115,15 +112,32 @@ case object OverloadsResolution extends IRPass {
             conversionsForType.put(m.typeName.map(_.name), Set(fromName.name))
             m
         }
+
+      case diagnostic: IR.Diagnostic      => diagnostic
+      case ann: IR.Name.GenericAnnotation => ann
+      case _: IR.Type.Ascription =>
+        throw new CompilerError(
+          "Type ascriptions should not be present during the overloads resolution."
+        )
+      case _: IR.Module.Scope.Definition.Method.Binding =>
+        throw new CompilerError(
+          "Method bindings should not be present during the overloads resolution."
+        )
+      case _: IR.Name.BuiltinAnnotation =>
+        throw new CompilerError(
+          "Builtin annotations should not be present during the overloads resolution."
+        )
+      case _: IR.Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation comments should not be present during the overloads resolution."
+        )
+      case _: IR.Module.Scope.Definition.SugaredType =>
+        throw new CompilerError(
+          "Sugared types should not be present during the overloads resolution."
+        )
     }
 
-    val diagnostics = ir.bindings.collect { case diag: IR.Diagnostic =>
-      diag
-    }
-
-    ir.copy(
-      bindings = newTypes ::: newMethods ::: conversions ::: diagnostics
-    )
+    ir.copy(bindings = newBindings)
   }
 
   /** This pass does nothing for the expression flow.
@@ -141,7 +155,7 @@ case object OverloadsResolution extends IRPass {
 
   /** @inheritdoc */
   override def updateMetadataInDuplicate[T <: IR](
-    @unused sourceIr: T,
+    sourceIr: T,
     copyOfIr: T
   ): T = copyOfIr
 }

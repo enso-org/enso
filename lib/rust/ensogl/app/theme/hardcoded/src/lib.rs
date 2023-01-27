@@ -15,6 +15,9 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+use enso_prelude::*;
+
+use enso_shapely::before_main;
 use ensogl_core::prelude::ImString;
 
 
@@ -185,6 +188,11 @@ define_themes! { [light:0, dark:1]
             panels_gap = 3.0, 3.0;
             documentation {
                 width = 400.0, 400.0;
+                height = 459.0, 459.0;
+                background = graph_editor::node::background, graph_editor::node::background;
+                caption_height = 30.0, 30.0;
+                caption_animation_spring_multiplier = 1.5, 1.5;
+                corner_radius = 14.0, 14.0;
             }
             component_list_panel {
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
@@ -429,10 +437,6 @@ define_themes! { [light:0, dark:1]
                 }
             }
         }
-
-        documentation {
-            background = graph_editor::node::background, graph_editor::node::background;
-        }
         status_bar {
             text = text, text;
             background = graph_editor::node::background , graph_editor::node::background;
@@ -578,7 +582,7 @@ define_themes! { [light:0, dark:1]
                 offset = 0.0 , 0.0;
             }
             text_grid {
-                font = "DejaVuSansMonoBook" , "DejaVuSansMonoBook";
+                font = "DejaVu Sans Mono" , "DejaVu Sans Mono";
                 font_size = 12.0 , 12.0;
 
             }
@@ -729,4 +733,20 @@ define_themes! { [light:0, dark:1]
     text {
         size   = 12.0, 12.0;
     }
+}
+
+
+// ==========================
+// === Theme registration ===
+// ==========================
+
+/// Default theme registration. The theme is registered and enabled in a before-main entry point in
+/// order for it to be visible when shaders are being gathered during compilation phase. This makes
+/// themes not switchable at runtime, which we might want to fix somehow in the future.
+#[before_main(2)]
+pub fn enable_default_theme() {
+    let themes = ensogl_core::display::world::with_context(|t| t.theme_manager.clone());
+    builtin::light::register(&themes);
+    builtin::light::enable(&themes);
+    themes.update();
 }

@@ -1,6 +1,5 @@
 'use strict'
 
-import { defaultLogServerHost } from '../../../config.js'
 import assert from 'node:assert'
 import buildCfg from '../../../build.json'
 import Electron from 'electron'
@@ -221,14 +220,6 @@ optParser.options('info', {
 
 optParser.options('version', {
     describe: `Print the version`,
-})
-
-optParser.options('crash-report-host', {
-    describe:
-        'The address of the server that will receive crash reports. ' +
-        'Consists of a hostname, optionally followed by a ":" and a port number',
-    requiresArg: true,
-    default: defaultLogServerHost,
 })
 
 optParser.options('data-gathering', {
@@ -573,15 +564,15 @@ function createWindow() {
         platform: process.platform,
         frame: args.frame,
         theme: args.theme,
-        dark_theme: Electron.nativeTheme.shouldUseDarkColors,
-        high_contrast: Electron.nativeTheme.shouldUseHighContrastColors,
-        crash_report_host: args.crashReportHost,
-        data_gathering: args.dataGathering,
-        preferred_engine_version: args.preferredEngineVersion,
-        enable_new_component_browser: args.enableNewComponentBrowser,
-        emit_user_timing_measurements: args.emitUserTimingMeasurements,
-        node_labels: args.nodeLabels,
-        verbose: args.verbose,
+        darkTheme: Electron.nativeTheme.shouldUseDarkColors,
+        // high_contrast: Electron.nativeTheme.shouldUseHighContrastColors,
+        // crash_report_host: args.crashReportHost,
+        dataGathering: args.dataGathering,
+        preferredEngineVersion: args.preferredEngineVersion,
+        enableNewComponentBrowser: args.enableNewComponentBrowser,
+        emitUserTimingMeasurements: args.emitUserTimingMeasurements,
+        nodeLabels: args.nodeLabels,
+        debug: args.verbose,
     }
 
     Electron.ipcMain.on('error', (event, data) => console.error(data))

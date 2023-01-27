@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
@@ -183,22 +184,29 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
-  boolean hasMetaObject() {
+  boolean hasMetaObject(@CachedLibrary("this") InteropLibrary lib) {
+    if (isNothing(lib)) {
+      return false;
+    }
     return true;
   }
 
   @ExportMessage
-  Type getMetaObject() {
+  Type getMetaObject(@CachedLibrary("this") InteropLibrary lib) throws UnsupportedMessageException {
+    if (isNothing(lib)) {
+      throw UnsupportedMessageException.create();
+    }
     return getType();
   }
 
   @ExportMessage
-  Object getMetaParents() throws UnsupportedMessageException {
-    if (hasMetaParents()) {
-      return new Array(supertype);
-    } else {
+  Object getMetaParents(@CachedLibrary("this") InteropLibrary lib)
+      throws UnsupportedMessageException {
+    if (isNothing(lib) || !hasMetaParents()) {
       throw UnsupportedMessageException.create();
     }
+    assert supertype != null;
+    return new Array(supertype);
   }
 
   @ExportMessage
@@ -212,15 +220,22 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
-  boolean isMetaObject() {
+  boolean isMetaObject(@CachedLibrary("this") InteropLibrary lib) {
+    if (isNothing(lib)) {
+      return false;
+    }
     return true;
   }
 
   @ExportMessage
-  boolean isMetaInstance(Object instance, @CachedLibrary(limit = "3") TypesLibrary lib) {
+  boolean isMetaInstance(Object instance, @CachedLibrary(limit = "3") TypesLibrary lib)
+      throws UnsupportedMessageException {
     var b = EnsoContext.get(lib).getBuiltins();
     if (b.any() == this) {
       return true;
+    }
+    if (isNothing(lib)) {
+      throw UnsupportedMessageException.create();
     }
     var type = lib.getType(instance);
     while (type != null && type != b.any()) {
@@ -233,12 +248,20 @@ public final class Type implements TruffleObject {
   }
 
   @ExportMessage
-  String getMetaSimpleName() {
+  String getMetaSimpleName(@CachedLibrary("this") InteropLibrary lib)
+      throws UnsupportedMessageException {
+    if (isNothing(lib)) {
+      throw UnsupportedMessageException.create();
+    }
     return getName();
   }
 
   @ExportMessage
-  String getMetaQualifiedName() {
+  String getMetaQualifiedName(@CachedLibrary("this") InteropLibrary lib)
+      throws UnsupportedMessageException {
+    if (isNothing(lib)) {
+      throw UnsupportedMessageException.create();
+    }
     return getQualifiedName().toString();
   }
 
@@ -290,5 +313,10 @@ public final class Type implements TruffleObject {
 
   public Map<String, AtomConstructor> getConstructors() {
     return constructors;
+  }
+
+  private boolean isNothing(Node lib) {
+    var b = EnsoContext.get(lib).getBuiltins();
+    return this == b.nothing();
   }
 }

@@ -26,6 +26,7 @@ public class HashCodeTest extends TestBase {
 
   private HashCodeNode hashCodeNode;
   private EqualsNode equalsNode;
+  private TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
@@ -39,6 +40,8 @@ public class HashCodeTest extends TestBase {
     executeInContext(context, () -> {
       hashCodeNode = HashCodeNode.build();
       equalsNode = EqualsNode.build();
+      testRootNode = new TestRootNode();
+      testRootNode.insertChildren(hashCodeNode, equalsNode);
       return null;
     });
   }

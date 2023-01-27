@@ -24,6 +24,11 @@ float alpha = shape.color.repr.raw.a;
 // ===========================
 
 float alpha_no_aa = alpha > ID_ALPHA_THRESHOLD ? 1.0 : 0.0;
+// We need to set a default value for `output_id`, as shader optimizer may remove the following
+// branching which results in a code that does never write to `output_id` shader output. Such a code
+// is an invalid shader, as every shader has to have a code that writes to all outputs (even if it
+// does not happen if some conditions are met).
+output_id = vec4(0.0);
 if (pointer_events_enabled) {
     output_id = encode(input_global_instance_id,alpha_no_aa);
 }

@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 public class EqualsTest extends TestBase {
   private static Context context;
   private EqualsNode equalsNode;
+  private TestRootNode testRootNode;
 
   @BeforeClass
   public static void initContextAndData() {
@@ -32,7 +33,9 @@ public class EqualsTest extends TestBase {
     executeInContext(
         context,
         () -> {
+          testRootNode = new TestRootNode();
           equalsNode = EqualsNode.build();
+          testRootNode.insertChildren(equalsNode);
           return null;
         });
   }

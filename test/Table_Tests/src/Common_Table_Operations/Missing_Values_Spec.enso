@@ -52,17 +52,6 @@ spec setup =
             t4.row_count . should_equal 0
             t4.at "X" . to_vector . should_equal []
 
-            empty = table_builder [["X", [1, 2, 3]]] . select_columns []
-            empty.row_count . should_equal 0
-            empty.columns . should_equal []
-
-            t5 = empty.filter_blank_rows when_any=True
-            t5.row_count . should_equal 0
-            t5.columns . should_equal []
-            t6 = empty.filter_blank_rows when_any=False
-            t6.row_count . should_equal 0
-            t6.columns . should_equal []
-
         Test.specify "should allow to remove blank columns" <|
             r1 = t1.remove_columns (Column_Selector.Blank_Columns when_any=False)
             r1.columns.map .name . should_equal ["a", "b", "c", "d", "e"]
@@ -137,12 +126,9 @@ spec setup =
 
         Test.specify "Blank_Columns selector should deal with edge cases" <|
             t = table_builder [["X", [1, 2, 3, 4]]]
-            no_cols = t.select_columns []
             no_rows = t.filter "X" (Filter_Condition.Equal to=0)
-            no_cols.columns . should_equal []
             no_rows.row_count . should_equal 0
             no_rows.at "X" . to_vector . should_equal []
 
-            no_cols.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal []
             no_rows.select_columns Column_Selector.Blank_Columns . columns . map .name . should_equal ["X"]
-            no_rows.remove_columns Column_Selector.Blank_Columns . columns . map .name . should_equal []
+            no_rows.remove_columns Column_Selector.Blank_Columns . columns . map .name . should_fail_with No_Output_Columns

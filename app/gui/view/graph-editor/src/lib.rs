@@ -104,8 +104,7 @@ const MAX_ZOOM: f32 = 1.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
-    let is_frameless = ARGS.frame == Some(false);
-    if is_macos && is_frameless {
+    if is_macos && !ARGS.frame {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
         0.0
@@ -2942,8 +2941,12 @@ fn new_graph_editor(app: &Application) -> GraphEditor {
         out.on_edge_drop <+ removed_edges_on_node_creation_from_port;
 
         input_add_node_way <- inputs.add_node.constant(WayOfCreatingNode::AddNodeEvent);
-        input_start_creation_way <- inputs.start_node_creation.constant(
-            WayOfCreatingNode::StartCreationEvent);
+        input_start_creation_way <- inputs.start_node_creation.map(f_!([scene]
+            // Only start node creation if nothing is focused. This is to prevent
+            // creating nodes when we are editing texts and press enter.
+            scene.focused_instance().is_none().then_some(WayOfCreatingNode::StartCreationEvent)
+        )).unwrap();
+
         start_creation_from_port_way <- start_node_creation_from_port.map(
             |endpoint| WayOfCreatingNode::StartCreationFromPortEvent{endpoint: endpoint.clone()});
         add_with_button_way <- node_added_with_button.constant(WayOfCreatingNode::ClickingButton);

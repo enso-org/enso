@@ -49,6 +49,7 @@ pub mod aws;
 pub mod bump_version;
 pub mod changelog;
 pub mod ci;
+pub mod ci_gen;
 pub mod config;
 pub mod context;
 pub mod engine;
@@ -110,62 +111,10 @@ pub fn get_java_major_version(build_sbt_contents: &str) -> Result<java::Language
     get_string_assignment_value(build_sbt_contents, "javaVersion")?.parse2()
 }
 
-pub fn retrieve_github_access_token() -> Result<String> {
-    fn get_token_from_file() -> Result<String> {
-        let path =
-            dirs::home_dir().context("Failed to locate home directory.")?.join("GITHUB_TOKEN");
-        debug!("Looking for GitHub token in the file {}", path.display());
-        let content = ide_ci::fs::read_to_string(path)?;
-        Ok(content.trim().into())
-    }
-
-    ide_ci::env::expect_var("GITHUB_TOKEN")
-        .inspect(|_| debug!("Will use GITHUB_TOKEN environment variable."))
-        .inspect_err(|e| debug!("Failed to retrieve GitHub authentication from environment: {e}"))
-        .or_else(|_| get_token_from_file())
-}
-
-#[context("Failed to setup GitHub API client.")]
-pub async fn setup_octocrab() -> Result<Octocrab> {
-    let builder = octocrab::OctocrabBuilder::new();
-    let octocrab = if let Ok(access_token) = retrieve_github_access_token() {
-        let octocrab = builder.personal_token(access_token).build()?;
-        let username = octocrab
-            .current()
-            .user()
-            .await
-            .inspect_err(|e| warn!("Failed to retrieve GitHub username: {e}"))
-            .map_or_else(|_| "N/A".to_string(), |user| user.login);
-        info!("Using GitHub API with personal access token. Authenticated as {username}.",);
-        octocrab
-    } else {
-        info!("No GitHub Personal Access Token found. Will use anonymous API access.");
-        warn!(
-            "Anonymous GitHub API access is rate-limited. If you are experiencing issues, please \
-        set the GITHUB_TOKEN environment variable."
-        );
-        warn!(
-            "Additionally some APIs may not be available to anonymous users. This primarily \
-        pertains the release-related APIs."
-        );
-        builder.build()?
-    };
-
-    match octocrab.ratelimit().get().await {
-        Ok(rate) => info!(
-            "GitHub API rate limit: {}/{}.",
-            rate.resources.core.used, rate.resources.core.limit
-        ),
-        Err(e) => bail!(
-            "Failed to get rate limit info: {e}. GitHub Personal Access Token might be invalid."
-        ),
-    }
-    Ok(octocrab)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ide_ci::github::setup_octocrab;
 
     #[tokio::test]
     #[ignore]

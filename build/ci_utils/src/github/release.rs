@@ -70,7 +70,7 @@ pub trait IsReleaseExt: IsRelease + Sync {
     /// Upload a new asset to the release from a given file.
     ///
     /// The filename will be used to name the asset and deduce MIME content type.
-    #[instrument(skip_all, fields(source = %path.as_ref().display()))]
+    #[instrument(skip_all, fields(source = %path.as_ref().display()), err)]
     async fn upload_asset_file(&self, path: impl AsRef<Path> + Send) -> Result<Asset> {
         let error_msg =
             format!("Failed to upload an asset from the file under {}.", path.as_ref().display());
@@ -121,6 +121,17 @@ pub trait IsReleaseExt: IsRelease + Sync {
             .await
             .anyhow_err()
     }
+
+    async fn publish(&self) -> Result<Release> {
+        self.octocrab()
+            .repos(self.repo().owner(), self.repo().name())
+            .releases()
+            .update(self.id().0)
+            .draft(false)
+            .send()
+            .await
+            .with_context(|| format!("Failed to publish the release {}.", self.id()))
+    }
 }
 
 impl<T> IsReleaseExt for T where T: IsRelease + Sync {}
@@ -128,7 +139,7 @@ impl<T> IsReleaseExt for T where T: IsRelease + Sync {}
 /// A release on GitHub.
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
-pub struct ReleaseHandle {
+pub struct Handle {
     #[derivative(Debug(format_with = "std::fmt::Display::fmt"))]
     pub repo:     Repo,
     pub id:       ReleaseId,
@@ -136,7 +147,7 @@ pub struct ReleaseHandle {
     pub octocrab: Octocrab,
 }
 
-impl IsRelease for ReleaseHandle {
+impl IsRelease for Handle {
     fn id(&self) -> ReleaseId {
         self.id
     }
@@ -150,7 +161,7 @@ impl IsRelease for ReleaseHandle {
     }
 }
 
-impl ReleaseHandle {
+impl Handle {
     pub fn new(octocrab: &Octocrab, repo: impl Into<Repo>, id: ReleaseId) -> Self {
         let repo = repo.into();
         Self { repo, id, octocrab: octocrab.clone() }

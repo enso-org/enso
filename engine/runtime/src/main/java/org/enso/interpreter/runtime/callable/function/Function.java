@@ -16,6 +16,7 @@ import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.Annotation;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.data.Array;
@@ -102,7 +103,8 @@ public final class Function implements TruffleObject {
   public static Function fromBuiltinRootNodeWithCallerFrameAccess(
       BuiltinRootNode node, ArgumentDefinition... args) {
     RootCallTarget callTarget = node.getCallTarget();
-    FunctionSchema schema = new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, args);
+    FunctionSchema schema =
+        new FunctionSchema(FunctionSchema.CallerFrameAccess.FULL, new Annotation[0], args);
     return new Function(callTarget, null, schema);
   }
 

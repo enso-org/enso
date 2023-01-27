@@ -39,18 +39,17 @@ public class Table {
   }
 
   public Table(Column[] columns, AggregatedProblems problems) {
+    if (columns.length == 0) {
+      throw new IllegalArgumentException("A Table must have at least one column.");
+    }
+
     this.columns = columns;
     this.problems = problems;
   }
 
   /** @return the number of rows in this table */
   public int rowCount() {
-    // TODO I think we can make this check obsolete once we start requiring >=1 column in tables.
-    if (columns.length == 0) {
-      return 0;
-    } else {
-      return columns[0].getSize();
-    }
+    return columns[0].getSize();
   }
 
   /** @return the columns of this table */

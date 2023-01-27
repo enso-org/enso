@@ -14,10 +14,6 @@ spec =
         Json.parse result . should_equal <| Json.parse expected_json_text
 
     Test.group "Geo_Map" <|
-        Test.specify "works with empty table" <|
-            table  = Table.from_rows [] []
-            expect table '{}'
-
         Test.specify "skips unrecognized columns" <|
             header = ['α' , 'β' , 'ω']
             row_1  = [11  , 10  , 09 ]
