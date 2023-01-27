@@ -87,7 +87,6 @@ pub use assert_approx_eq::assert_approx_eq;
 pub use boolinator::Boolinator;
 pub use derivative::Derivative;
 pub use derive_more::*;
-pub use enclose::enclose;
 pub use failure::Fail;
 pub use itertools::Itertools;
 pub use lazy_static::lazy_static;

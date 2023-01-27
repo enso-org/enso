@@ -392,7 +392,7 @@ impl WorldData {
         let stats_monitor = debug::monitor::Monitor::new();
         let on = Callbacks::default();
         let scene_dirty = dirty::SharedBool::new(());
-        let on_change = enclose!((scene_dirty) move || scene_dirty.set());
+        let on_change = f!(scene_dirty.set());
         let display_mode = Rc::<Cell<glsl::codes::DisplayModes>>::default();
         let default_scene = Scene::new(&stats, on_change, &display_mode);
         let uniforms = Uniforms::new(&default_scene.variables);

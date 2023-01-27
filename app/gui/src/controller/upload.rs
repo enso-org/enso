@@ -451,10 +451,11 @@ mod test {
                 offset += chunk_len as u64;
             }
             let checksum = self.checksum.clone();
-            json_client.expect.file_checksum(enclose!((self.path => path) move |p| {
-                assert_eq!(*p,path);
-                Ok(response::FileChecksum{checksum})
-            }));
+            let path = self.path.clone();
+            json_client.expect.file_checksum(move |p| {
+                assert_eq!(*p, path);
+                Ok(response::FileChecksum { checksum })
+            });
         }
 
         fn file_to_upload(&self) -> FileToUpload<TestProvider> {
