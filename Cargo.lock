@@ -1756,7 +1756,6 @@ dependencies = [
  "const_format",
  "engine-protocol",
  "enso-data-structures",
- "enso-logger",
  "enso-prelude",
  "enso-profiler",
  "enso-text",
@@ -1810,7 +1809,6 @@ dependencies = [
  "chrono",
  "enso-build-utilities",
  "enso-data-structures",
- "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "enso-text",
@@ -2021,7 +2019,6 @@ name = "enso-config"
 version = "0.1.0"
 dependencies = [
  "config-reader",
- "enso-logger",
  "enso-prelude",
  "ensogl",
  "semver 1.0.14",
@@ -2089,7 +2086,6 @@ dependencies = [
  "Inflector",
  "enso-callback",
  "enso-generics",
- "enso-logger",
  "enso-prelude",
  "enso-profiler",
  "enso-web",
@@ -2128,7 +2124,6 @@ dependencies = [
  "enso-debug-scene",
  "enso-executor",
  "enso-frp",
- "enso-logger",
  "enso-notification",
  "enso-prelude",
  "enso-profiler",
@@ -2182,18 +2177,6 @@ dependencies = [
  "ensogl",
  "wasm-bindgen",
  "wasm-bindgen-test",
-]
-
-[[package]]
-name = "enso-logger"
-version = "0.3.1"
-dependencies = [
- "enso-prelude",
- "enso-shapely",
- "ifmt",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -2474,7 +2457,6 @@ version = "0.1.0"
 dependencies = [
  "enso-automata",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-web",
  "js-sys",
@@ -2599,7 +2581,6 @@ dependencies = [
  "enso-debug-api",
  "enso-frp",
  "enso-generics",
- "enso-logger",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",
@@ -2662,7 +2643,6 @@ name = "ensogl-drop-manager"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-web",
  "js-sys",
@@ -2967,7 +2947,6 @@ name = "ensogl-gui-component"
 version = "0.1.0"
 dependencies = [
  "enso-frp",
- "enso-logger",
  "ensogl-core",
  "float_eq",
  "wasm-bindgen-test",
@@ -4120,7 +4099,6 @@ dependencies = [
  "engine-protocol",
  "enso-config",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "ensogl",
@@ -4221,7 +4199,6 @@ version = "0.1.0"
 dependencies = [
  "double-representation",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-suggestion-database",
  "ensogl",
@@ -4247,7 +4224,6 @@ dependencies = [
  "engine-protocol",
  "enso-config",
  "enso-frp",
- "enso-logger",
  "enso-prelude",
  "enso-shapely",
  "enso-text",

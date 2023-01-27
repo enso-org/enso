@@ -10,7 +10,6 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-automata = { path = "../automata" }
 enso-frp = { path = "../frp" }
-enso-logger = { path = "../logger" }
 enso-prelude = { path = "../prelude" }
 enso-web = { path = "../web" }
 wasm-bindgen = { workspace = true }

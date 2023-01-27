@@ -12,7 +12,6 @@ ast = { version = "0.1.0", path = "../../language/ast/impl" }
 engine-protocol = { version = "0.1.0", path = "../engine-protocol" }
 parser-scala = { version = "0.1.0", path = "../../language/parser" }
 enso-data-structures = { path = "../../../../lib/rust/data-structures" }
-enso-logger = { path = "../../../../lib/rust/logger" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 enso-profiler = { path = "../../../../lib/rust/profiler" }
 enso-text = { path = "../../../../lib/rust/text" }

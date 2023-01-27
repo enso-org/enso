@@ -214,7 +214,6 @@ struct CompilerData {
     jobs:        Jobs,
     cache:       ShaderCache,
     performance: web::Performance,
-    logger:      Logger,
 }
 
 impl Compiler {
@@ -256,8 +255,7 @@ impl CompilerData {
         let jobs = default();
         let cache = default();
         let performance = web::window.performance_or_panic();
-        let logger = Logger::new("Shader Compiler");
-        Self { dirty, context, jobs, cache, performance, logger }
+        Self { dirty, context, jobs, cache, performance }
     }
 
     fn submit<F: 'static + FnOnce(shader::Program)>(

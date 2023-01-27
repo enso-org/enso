@@ -40,11 +40,9 @@ pub mod types;
 #[allow(missing_docs)]
 pub mod prelude {
     pub use crate::traits::*;
-    pub use enso_logger::*;
     pub use enso_prelude::*;
     pub use json_rpc::prelude::*;
 
-    pub use enso_logger::DefaultWarningLogger as Logger;
     /// We always use local futures in our single-threaded environment
     pub use futures::future::LocalBoxFuture as BoxFuture;
     pub use futures::FutureExt;

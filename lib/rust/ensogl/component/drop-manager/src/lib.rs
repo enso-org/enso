@@ -20,8 +20,6 @@
 
 /// Commonly used utilities.
 pub mod prelude {
-    pub use enso_logger::DefaultWarningLogger as Logger;
-    pub use enso_logger::*;
     pub use enso_prelude::*;
 }
 

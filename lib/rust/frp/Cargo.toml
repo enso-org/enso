@@ -9,7 +9,6 @@ edition = "2021"
 [dependencies]
 enso-callback = { path = "../callback" }
 enso-generics = { path = "../generics" }
-enso-logger = { path = "../logger" }
 enso-prelude = { path = "../prelude" }
 enso-profiler = { path = "../profiler" }
 enso-web = { path = "../web" }

@@ -275,7 +275,6 @@ impl<Out: Data> EventEmitter for NodeData<Out> {
     fn emit_event(&self, stack: CallStack, value: &Out) {
         let new_stack = stack.sub(self.label);
         if self.ongoing_evaluations.get() > EVALUATIONS_LIMIT {
-            let logger: Logger = Logger::new("frp");
             warn_span!("The recursive evaluations limit exceeded.").in_scope(|| {
                 warn!("{new_stack}");
             });

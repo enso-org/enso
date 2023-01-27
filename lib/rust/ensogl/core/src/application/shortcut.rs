@@ -232,7 +232,6 @@ pub struct Registry {
 /// Internal representation of `Registry`.
 #[derive(Clone, CloneRef, Debug)]
 pub struct RegistryModel {
-    logger:             Logger,
     keyboard:           keyboard::Keyboard,
     mouse:              Mouse,
     command_registry:   command::Registry,
@@ -249,12 +248,11 @@ impl Deref for Registry {
 impl Registry {
     /// Constructor.
     pub fn new(
-        logger: &Logger,
         mouse: &Mouse,
         keyboard: &keyboard::Keyboard,
         cmd_registry: &command::Registry,
     ) -> Self {
-        let model = RegistryModel::new(logger, mouse, keyboard, cmd_registry);
+        let model = RegistryModel::new(mouse, keyboard, cmd_registry);
         let mouse = &model.mouse;
 
         frp::new_network! { network
@@ -272,17 +270,15 @@ impl Registry {
 impl RegistryModel {
     /// Constructor.
     pub fn new(
-        logger: impl AnyLogger,
         mouse: &Mouse,
         keyboard: &keyboard::Keyboard,
         command_registry: &command::Registry,
     ) -> Self {
-        let logger = Logger::new_sub(logger, "ShortcutRegistry");
         let keyboard = keyboard.clone_ref();
         let mouse = mouse.clone_ref();
         let command_registry = command_registry.clone_ref();
         let shortcuts_registry = default();
-        Self { logger, keyboard, mouse, command_registry, shortcuts_registry }
+        Self { keyboard, mouse, command_registry, shortcuts_registry }
     }
 
     fn process_rules(&self, rules: &[Shortcut]) {
@@ -300,10 +296,7 @@ impl RegistryModel {
                                     if cmd.enabled {
                                         targets.push(cmd.frp.clone_ref())
                                     },
-                                None => warning!(
-                                    &self.logger,
-                                    "Command {command_name} was not found on {target}."
-                                ),
+                                None => warn!("Command {command_name} was not found on {target}."),
                             }
                         }
                     }

@@ -9,7 +9,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-frp = { path = "../../../../lib/rust/frp" }
-enso-logger = { path = "../../../../lib/rust/logger" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 ensogl = { path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
