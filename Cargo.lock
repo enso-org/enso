@@ -1952,6 +1952,7 @@ name = "enso-build-macros"
 version = "0.1.0"
 dependencies = [
  "convert_case 0.6.0",
+ "derive_more",
  "enso-build-base",
  "itertools 0.10.5",
  "proc-macro2",

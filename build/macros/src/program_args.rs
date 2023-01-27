@@ -45,10 +45,10 @@ impl<'a> Generator<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Deref)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, PartialEq, Eq, Deref, DerefMut)]
 pub struct EnumGenerator<'a> {
     #[deref]
+    #[deref_mut]
     pub generator: Generator<'a>,
     pub enum_data: &'a syn::DataEnum,
 }

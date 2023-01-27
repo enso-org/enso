@@ -13,6 +13,7 @@
 
 
 mod prelude {
+    pub use derive_more::*;
     pub use enso_build_base::prelude::*;
 
     pub use convert_case::Case;
