@@ -614,3 +614,23 @@ fn single_tag<'a>(tag: &'a Tag) -> Box<dyn Render + 'a> {
 pub fn anchor_name(name: &QualifiedName) -> String {
     name.to_string().replace('.', "_").to_lowercase()
 }
+
+
+
+// ===============
+// === Caption ===
+// ===============
+
+/// "Hovered item preview" caption on top of the documentation panel.
+pub fn caption_html() -> String {
+    owned_html! {
+        div(class="bg-captionBackground rounded-t-[14px] w-full h-full flex \
+                   items-center justify-center") {
+            div(class="text-xs text-white") {
+                : "Hovered item preview. Press the right mouse button to lock it.";
+            }
+        }
+    }
+    .into_string()
+    .unwrap()
+}

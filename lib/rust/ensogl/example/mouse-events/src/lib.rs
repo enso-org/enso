@@ -24,7 +24,6 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::application;

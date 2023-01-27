@@ -209,6 +209,13 @@ spec =
             Meta.get_annotation value "Value" "bar" . should_equal Nothing
             Meta.get_annotation value "Value" "baz" . should_equal (My_Type.Value 1 2 3)
 
+    Test.group "Check Nothing" <|
+        Test.specify "Nothing.is_a Nothing" <|
+            Nothing.is_a Nothing . should_be_true
+
+        Test.specify "type_of Nothing is Nothing" <|
+            Meta.type_of Nothing . should_equal Nothing
+
     Test.group "Atom with holes" <|
         Test.specify "construct and fill" <|
             pair = Meta.atom_with_hole (e -> My_Type.Value 1 e 3)

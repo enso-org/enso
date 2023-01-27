@@ -218,7 +218,7 @@ class RuntimeStdlibTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveOne shouldEqual None
 

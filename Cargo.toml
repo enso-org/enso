@@ -8,14 +8,17 @@ members = [
   "app/gui/enso-profiler-enso-data",
   "build/cli",
   "build/macros",
-  "build/enso-formatter",
+  "build/ci-gen",
+  "build/cli",
   "build/intellij-run-config-gen",
   "build/deprecated/rust-scripts",
+  "build/shader-tools",
   "lib/rust/*",
   "lib/rust/parser/src/syntax/tree/visitor",
   "lib/rust/parser/jni",
   "lib/rust/parser/generate-java",
   "lib/rust/parser/debug",
+  "lib/rust/ensogl/pack",
   "lib/rust/profiler/data",
   "lib/rust/profiler/demo-data",
   "integration-test",
@@ -71,6 +74,11 @@ debug-assertions = true
 [workspace.dependencies]
 console-subscriber = "0.1.8"
 nix = "0.26.1"
+octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
+  "rustls"
+] }
+regex = "1.6.0"
+serde_yaml = "0.9.16"
 serde-wasm-bindgen = "0.4.5"
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-util = { version = "0.7.4", features = ["full"] }

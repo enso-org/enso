@@ -6,6 +6,7 @@ use crate::prelude::*;
 // ==============
 
 pub mod cargo;
+pub mod cmake;
 pub mod cmd;
 pub mod conda;
 pub mod docker;
@@ -25,6 +26,9 @@ pub mod rustup;
 pub mod sbt;
 pub mod seven_zip;
 pub mod sh;
+pub mod shaderc;
+pub mod spirv_cross;
+pub mod strip;
 pub mod tar;
 pub mod vs;
 pub mod vswhere;
@@ -32,6 +36,7 @@ pub mod wasm_opt;
 pub mod wasm_pack;
 
 pub use cargo::Cargo;
+pub use cmake::CMake;
 pub use cmd::Cmd;
 pub use conda::Conda;
 pub use docker::Docker;
@@ -42,8 +47,10 @@ pub use java::Java;
 pub use javac::Javac;
 pub use node::Node;
 pub use node::Npm;
+pub use npx::Npx;
 pub use pwsh::PwSh;
 pub use sbt::Sbt;
 pub use seven_zip::SevenZip;
 pub use sh::Bash;
+pub use strip::Strip;
 pub use wasm_pack::WasmPack;
