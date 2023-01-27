@@ -5,8 +5,10 @@ import project.Data.Range.Extensions
 import project.Data.Text.Text
 import project.Error.Error
 import project.Error.Incomparable_Values.Incomparable_Values
+import project.Error.Common.No_Such_Conversion
 import project.Nothing.Nothing
 import project.Meta
+import project.Panic.Panic
 
 from project.Data.Boolean import Boolean, True, False
 
@@ -104,8 +106,10 @@ type Any
                  a == 147
     == : Any -> Boolean
     == self that =
-        eq_self = Comparable.from self
-        eq_that = Comparable.from that
+        # If there is No_Such_Conversion, then `self` and `that` are probably
+        # host or polyglot values, so we just compare them with the default comparator.
+        eq_self = Panic.catch No_Such_Conversion (Comparable.from self) _-> Default_Unordered_Comparator
+        eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Unordered_Comparator
         if eq_self.is_a Incomparable then False else
             # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
             # engine, so that we don't end up in an infinite recursion here.
