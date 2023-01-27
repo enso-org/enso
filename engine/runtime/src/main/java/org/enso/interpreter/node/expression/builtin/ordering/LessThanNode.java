@@ -29,10 +29,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
         """
 )
 @GenerateUncached
-public abstract class LessThanAnyNode extends Node {
+public abstract class LessThanNode extends Node {
 
-  public static LessThanAnyNode build() {
-    return LessThanAnyNodeGen.create();
+  public static LessThanNode build() {
+    return LessThanNodeGen.create();
   }
 
   public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object other);
@@ -116,7 +116,7 @@ public abstract class LessThanAnyNode extends Node {
   boolean lessWithWarnings(Object selfWithWarnings, Object otherWithWarnings,
       @CachedLibrary("selfWithWarnings") WarningsLibrary selfWarnLib,
       @CachedLibrary("otherWithWarnings") WarningsLibrary otherWarnLib,
-      @Cached LessThanAnyNode lessThanNode
+      @Cached LessThanNode lessThanNode
   ) {
     try {
       Object self =
