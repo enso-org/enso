@@ -29,7 +29,6 @@ use double_representation::name::project;
 use double_representation::name::QualifiedName;
 use double_representation::name::QualifiedNameRef;
 use double_representation::name::QualifiedNameTemplate;
-use engine_protocol::language_server::DocSection;
 
 
 
@@ -186,7 +185,7 @@ impl List {
         for (id, entry) in ids_and_entries {
             self.allowed_favorites.insert(id);
             let component = Component::new_from_database_entry(id, entry.clone_ref());
-            if component_is_private(&component) {
+            if component.is_private() {
                 continue;
             }
             let mut component_inserted_somewhere = false;
@@ -317,17 +316,6 @@ impl List {
             self.all_components.extend(group.entries.borrow().iter().cloned());
         }
         component::group::List::new(favorites_groups)
-    }
-}
-
-fn component_is_private(component: &Component) -> bool {
-    match &component.data {
-        component::Data::FromDatabase { entry, .. } =>
-            entry.documentation.iter().any(|doc| match doc {
-                DocSection::Tag { name, .. } => name == "PRIVATE",
-                _ => false,
-            }),
-        _ => false,
     }
 }
 
