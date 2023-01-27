@@ -2847,7 +2847,12 @@ class RuntimeVisualizationsTest
       3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idMain, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        idMain,
+        ConstantsGen.INTEGER,
+        payload = Api.ExpressionUpdate.Payload.Value(1, Some("'y'"))
+      ),
       context.executionComplete(contextId)
     )
 
@@ -3035,13 +3040,21 @@ class RuntimeVisualizationsTest
         contextId,
         idX,
         ConstantsGen.INTEGER,
-        Api.MethodPointer(
-          warningModuleName.toString,
-          warningTypeName.toString + ".type",
-          "attach"
-        )
+        methodPointer = Some(
+          Api.MethodPointer(
+            warningModuleName.toString,
+            warningTypeName.toString + ".type",
+            "attach"
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(1, Some("'x'"))
       ),
-      TestMessages.update(contextId, idRes, s"$moduleName.Newtype"),
+      TestMessages.update(
+        contextId,
+        idRes,
+        s"$moduleName.Newtype",
+        payload = Api.ExpressionUpdate.Payload.Value(1, Some("'x'"))
+      ),
       context.executionComplete(contextId)
     )
 

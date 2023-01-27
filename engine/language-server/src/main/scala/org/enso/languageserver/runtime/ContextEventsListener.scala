@@ -63,7 +63,7 @@ final class ContextEventsListener(
 
   override def receive: Receive = withState(Set(), Vector())
 
-  def withState(
+  private def withState(
     oneshotVisualisations: Set[Api.VisualisationContext],
     expressionUpdates: Vector[Api.ExpressionUpdate]
   ): Receive = {
@@ -244,8 +244,9 @@ final class ContextEventsListener(
     payload: Api.ExpressionUpdate.Payload
   ): ContextRegistryProtocol.ExpressionUpdate.Payload =
     payload match {
-      case Api.ExpressionUpdate.Payload.Value() =>
-        ContextRegistryProtocol.ExpressionUpdate.Payload.Value
+      case Api.ExpressionUpdate.Payload.Value(warningsCount, warning) =>
+        ContextRegistryProtocol.ExpressionUpdate.Payload
+          .Value(warningsCount, warning)
 
       case Api.ExpressionUpdate.Payload.Pending(m, p) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.Pending(m, p)

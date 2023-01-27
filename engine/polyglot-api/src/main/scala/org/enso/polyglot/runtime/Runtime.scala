@@ -387,8 +387,12 @@ object Runtime {
 
         /** An empty payload. Indicates that the expression was computed to a
           * value.
+          *
+          * @param warningsCount the number of attached warnings.
+          * @param warning textual representation of the attached warning.
           */
-        case class Value() extends Payload
+        case class Value(warningsCount: Int = 0, warning: Option[String] = None)
+            extends Payload
 
         /** TBD
           */

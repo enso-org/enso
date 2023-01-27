@@ -353,7 +353,18 @@ type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
 /**
  * An empty payload. Indicates that the expression was computed to a value.
  */
-interface Value {}
+interface Value {
+  /**
+   * The number of attached warnings.
+   */
+  warningsCount: number;
+
+  /**
+   * If the value has a single warning attached, the field contains textual
+   * representation of the attached warning.
+   */
+  warning?: string;
+}
 
 /**
  * Indicates that the expression was computed to an error.
