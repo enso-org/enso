@@ -542,7 +542,7 @@ pub struct SymbolData {
     surface_dirty:      GeometryDirty,
     variables:          UniformScope,
     context:            RefCell<Option<Context>>,
-    pub bindings:       RefCell<Bindings>,
+    bindings:           RefCell<Bindings>,
     stats:              SymbolStats,
     is_hidden:          Rc<Cell<bool>>,
     global_instance_id: Buffer<i32>,

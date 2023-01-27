@@ -18,6 +18,7 @@ use crate::debug::stats::StatsData;
 use crate::display;
 use crate::display::garbage;
 use crate::display::render;
+use crate::display::render::cache_shapes::CacheShapesPass;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::DomPath;
 use crate::display::scene::Scene;
@@ -28,7 +29,6 @@ use crate::system::gpu::shader;
 use crate::system::js;
 use crate::system::web;
 
-use crate::display::render::cache_shapes::CacheShapesPass;
 use enso_types::unit2::Duration;
 use web::prelude::Closure;
 use web::JsCast;

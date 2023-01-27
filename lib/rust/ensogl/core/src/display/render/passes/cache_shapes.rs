@@ -1,5 +1,5 @@
 //! Pass where we checks what shapes created with [`cached_shape!`](crate::cached_shape) macro are
-//! ready to being rendered on the texture.
+//! ready to being rendered to the texture.
 
 use crate::prelude::*;
 
@@ -23,6 +23,8 @@ use itertools::iproduct;
 // === Constants ===
 // =================
 
+/// The assumed texture size for cached shapes. If it turn out to be too small, the texture will be
+/// extended.
 const INITIAL_TEXTURE_SIZE: i32 = 512;
 
 
@@ -102,12 +104,12 @@ impl pass::Definition for CacheShapesPass {
     fn run(&mut self, instance: &Instance, _update_status: UpdateStatus) {
         let is_shader_compiled =
             |shape: &mut Rc<dyn AnyShapeView>| shape.sprite().symbol.shader().program().is_some();
-        let mut ready_shapes = self.shapes.drain_filter(is_shader_compiled).peekable();
-        if ready_shapes.peek().is_some() {
+        let mut ready_to_render = self.shapes.drain_filter(is_shader_compiled).peekable();
+        if ready_to_render.peek().is_some() {
             if let Some(framebuffer) = self.framebuffer.as_ref() {
                 framebuffer.bind();
                 instance.context.viewport(0, 0, self.texture_width, self.texture_height);
-                for shape in ready_shapes {
+                for shape in ready_to_render {
                     with_context(|t| {
                         t.set_camera(&self.layer.camera());
                         t.update();
@@ -265,10 +267,7 @@ mod tests {
             let positions = result.map(|shapes| {
                 shapes.shapes.iter().map(|shape| (shape.x(), shape.y())).collect_vec()
             });
-            assert_eq!(
-                positions.as_ref().map(|vec| vec.as_slice()),
-                expected_position.as_ref().map(|arr| arr.as_slice())
-            );
+            assert_eq!(positions.as_deref(), expected_position.as_ref().map(|arr| arr.as_slice()));
         }
 
 

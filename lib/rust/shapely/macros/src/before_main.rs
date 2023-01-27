@@ -21,7 +21,7 @@ fn mangle_name(name: &str) -> String {
 
 /// Functions exposed in WASM have to have unique names. This utility creates a name based on the
 /// location the function was defined at (module path, line number, column number).
-fn unique_name(name: &impl std::fmt::Display) -> String {
+fn unique_name(name: &syn::Ident) -> String {
     mangle_name(&format!("{} ({name})", root_call_path()))
 }
 

@@ -765,6 +765,7 @@ macro_rules! _shape {
         pub use shape_system_definition::Shape;
         pub use shape_system_definition::View;
 
+        #[allow(unused_variables)]
         #[allow(unused_qualifications)]
         #[allow(unused_imports)]
         mod shape_system_definition {
@@ -824,7 +825,7 @@ macro_rules! _shape {
                 }
 
                 fn new_instance_params(
-                    gpu_params:&Self::GpuParams,
+                    gpu_params: &Self::GpuParams,
                     id: InstanceIndex
                 ) -> Shape {
                     $(let $gpu_param = ProxyParam::new(gpu_params.$gpu_param.at(id));)*
@@ -948,9 +949,10 @@ macro_rules! cached_shape {
 
             #[before_main]
             pub fn register_cached_shape() {
-                $crate::display::world::CACHED_SHAPES_DEFINITIONS.with_borrow_mut(|shapes| {
+                $crate::display::world::CACHED_SHAPES_DEFINITIONS.with(|shapes| {
                     let cons: $crate::display::world::ShapeCons = Box::new(|| Box::new(View::new()));
                     let size = Vector2($width, $height);
+                    let mut shapes = shapes.borrow_mut();
                     shapes.push($crate::display::world::CachedShapeDefinition { cons, size });
                 });
             }
