@@ -31,7 +31,7 @@ impl MaskComposer {
         let color = color.as_ref();
         let id = id.as_ref();
         let mut material = Material::new();
-        let shader = iformat!(
+        let shader = format!(
             "
             vec4 sample_mask  = texture(input_{mask},input_uv);
             vec4 sample_color = texture(input_{color},input_uv);

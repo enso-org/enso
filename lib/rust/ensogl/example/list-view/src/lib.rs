@@ -73,7 +73,7 @@ impl list_view::entry::ModelProvider<list_view::entry::GlyphHighlightedLabel> fo
         if id >= self.entries_count {
             None
         } else {
-            let label = iformat!("Entry {id}");
+            let label = format!("Entry {id}");
             let highlighted = if id == 10 { vec![(Byte(1)..Byte(3)).into()] } else { vec![] };
             Some(list_view::entry::GlyphHighlightedLabelModel { label, highlighted })
         }

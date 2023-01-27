@@ -350,7 +350,7 @@ pub async fn pick_non_colliding_name(
     let name_stem = extension_sep.map_or(original_name, |i| &original_name[0..i]);
     let name_ext = extension_sep.map_or("", |i| &original_name[i..]);
     let first_candidate = std::iter::once(original_name.to_owned());
-    let next_candidates = (1..).map(|num| iformat!("{name_stem}_{num}{name_ext}"));
+    let next_candidates = (1..).map(|num| format!("{name_stem}_{num}{name_ext}"));
     let mut candidates = first_candidate.chain(next_candidates);
     Ok(candidates.find(|name| !files_in_data_dir.contains(name)).unwrap())
 }

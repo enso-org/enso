@@ -31,16 +31,13 @@ pub mod internal {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod internal {
-    use crate::*;
-
     extern crate backtrace as bt;
-
     use bt::Backtrace;
 
     /// Print the current backtrace.
     pub fn backtrace() -> String {
         let bt = Backtrace::new();
-        iformat!("{bt:?}")
+        format!("{bt:?}")
     }
 }
 
@@ -95,7 +92,7 @@ impl Clone for TraceCopies {
         let handle = self.handle.clone();
         if let Some(name) = &*borrow {
             let bt = backtrace();
-            iprintln!("[{name}] Cloning {self.clone_id} -> {clone_id} {bt}");
+            println!("[{name}] Cloning {} -> {clone_id} {bt}", self.clone_id);
         }
         Self { clone_id, handle }
     }

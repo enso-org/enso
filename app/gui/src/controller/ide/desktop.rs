@@ -161,7 +161,7 @@ impl ManagingProjectAPI for Handle {
 /// number.
 fn choose_unique_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
     let first_candidate = suggested_name.to_owned();
-    let nth_project_name = |i| iformat!("{suggested_name}_{i}");
+    let nth_project_name = |i| format!("{suggested_name}_{i}");
     let candidates = (1..).map(nth_project_name);
     let mut candidates = iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.

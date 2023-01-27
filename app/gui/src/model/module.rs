@@ -97,7 +97,7 @@ pub struct Path {
 impl Path {
     /// Get the file name of the module with given name.
     pub fn module_filename(name: &str) -> String {
-        iformat!("{name}.{LANGUAGE_FILE_EXTENSION}")
+        format!("{name}.{LANGUAGE_FILE_EXTENSION}")
     }
 
     /// Build module's path in a filesystem under given root ID.

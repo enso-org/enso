@@ -1184,7 +1184,7 @@ pub mod tests {
     fn graph_controller_inline_definition() {
         let mut test = Fixture::set_up();
         const EXPRESSION: &str = "2+2";
-        test.data.code = iformat!("main = {EXPRESSION}");
+        test.data.code = format!("main = {EXPRESSION}");
         test.run(|graph| async move {
             let nodes = graph.nodes().unwrap();
             let (node,) = nodes.expect_tuple();

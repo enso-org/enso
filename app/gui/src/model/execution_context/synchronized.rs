@@ -96,7 +96,7 @@ impl ExecutionContext {
     /// Load the component groups defined in libraries imported into the execution context.
     async fn load_component_groups(&self) {
         let log_group_parsing_error = |err: &failure::Error| {
-            let msg = iformat!(
+            let msg = format!(
                 "Failed to parse a component group returned by the Engine. The group will not \
                 appear in the Favorites section of the Component Browser. Error: {err}"
             );
@@ -113,7 +113,7 @@ impl ExecutionContext {
                 info!("Loaded component groups.");
             }
             Err(err) => {
-                let msg = iformat!(
+                let msg = format!(
                     "Failed to load component groups. No groups will appear in the Favorites \
                     section of the Component Browser. Error: {err}"
                 );

@@ -177,7 +177,7 @@ impl DocumentationCommentInfo {
         let mut lines = text.lines();
         // First line must always exist, even for an empty comment.
         let first_line = format!("##{}", lines.next().unwrap_or_default());
-        let other_lines = lines.map(|line| iformat!("{indent}  {line}"));
+        let other_lines = lines.map(|line| format!("{indent}  {line}"));
         let mut out_lines = std::iter::once(first_line).chain(other_lines);
         out_lines.join("\n")
     }

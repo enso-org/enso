@@ -410,7 +410,7 @@ pub mod mock {
     }
 
     pub fn indent(line: impl AsRef<str>) -> String {
-        iformat!("    {line.as_ref()}")
+        format!("    {}", line.as_ref())
     }
 
     pub fn main_from_lines(lines: impl IntoIterator<Item: AsRef<str>>) -> String {
@@ -422,7 +422,7 @@ pub mod mock {
         lines: impl IntoIterator<Item: AsRef<str>>,
     ) -> String {
         let body = lines.into_iter().map(indent).join("\n");
-        iformat!("{name} =\n{body}")
+        format!("{name} =\n{body}")
     }
 }
 

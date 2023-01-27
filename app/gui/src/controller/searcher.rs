@@ -1992,7 +1992,7 @@ pub mod test {
 
         // Known functions cases
         searcher.set_input("Test.test_method ".to_string()).unwrap();
-        searcher.set_input(iformat!("{MODULE_NAME}.test_method ")).unwrap();
+        searcher.set_input(format!("{MODULE_NAME}.test_method ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
         // Unknown functions case
@@ -2105,7 +2105,10 @@ pub mod test {
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name()
     == entry9.name);
         } else {
-            ipanic!("Wrong top modules in Component List: {components.top_modules().collect::<Vec<_>>():?}");
+            panic!(
+                "Wrong top modules in Component List: {:?}",
+                components.top_modules().collect::<Vec<_>>()
+            );
         }
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);
