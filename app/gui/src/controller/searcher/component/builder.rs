@@ -182,12 +182,14 @@ impl List {
         let local_scope_id = self.local_scope.component_id;
         let id_and_looked_up_entry = |id| Some((id, db.lookup(id).ok()?));
         let ids_and_entries = entry_ids.into_iter().filter_map(id_and_looked_up_entry);
-        for (id, entry) in ids_and_entries {
-            self.allowed_favorites.insert(id);
+        let ids_entries_and_components = ids_and_entries.map(|(id, entry)| {
             let component = Component::new_from_database_entry(id, entry.clone_ref());
-            if component.is_private() {
-                continue;
-            }
+            (id, entry, component)
+        });
+        let ids_entries_and_components =
+            ids_entries_and_components.filter(|(_, _, component)| !component.is_private());
+        for (id, entry, component) in ids_entries_and_components {
+            self.allowed_favorites.insert(id);
             let mut component_inserted_somewhere = false;
             if let Some(parent_module) = entry.parent_module() {
                 if let Some(parent_group) = self.lookup_module_group(db, parent_module.clone_ref())
