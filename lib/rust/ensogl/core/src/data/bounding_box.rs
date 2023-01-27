@@ -189,7 +189,7 @@ mod tests {
             let bbox2: BoundingBox = $bbox2.into();
             let bbox3: BoundingBox = $bbox3.into();
             let result = bbox1.concat(bbox2);
-            let assert_msg = iformat!(
+            let assert_msg = format!(
                 "Concat result was expected to be: " bbox3;? " but got: " result;? " instead.");
             assert_eq!(result.left, bbox3.left, "{}", assert_msg);
             assert_eq!(result.right, bbox3.right, "{}", assert_msg);
@@ -222,7 +222,7 @@ mod tests {
             let result = bbox.squared_distance_to_point(point);
             let result_deviation = (result - $expected_sq_distance).abs();
             let result_ok = result_deviation < SQUARED_DISTANCE_COMPARISON_PRECISION;
-            let assert_msg = iformat!(
+            let assert_msg = format!(
                 "Squared distance between " bbox;? " and " point;?
                 " expected to approximately equal " $expected_sq_distance
                 ", but got " result " instead.");

@@ -470,10 +470,10 @@ impl display::Object for ContainerModel {
 /// Container that wraps a `visualization::Instance` for rendering and interaction in the GUI.
 ///
 /// The API to interact with the visualization is exposed through the `Frp`.
-#[derive(Clone, CloneRef, Debug, Derivative, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Derivative, Deref)]
 #[allow(missing_docs)]
 pub struct Container {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub model: Rc<ContainerModel>,
     pub frp:   Frp,
 }

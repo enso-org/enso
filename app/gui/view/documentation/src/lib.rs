@@ -236,10 +236,10 @@ ensogl::define_endpoints! {
 /// however we're unable to summarize methods and atoms of types.
 ///
 /// The default format is the docstring.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct View {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub model:             Model,
     pub visualization_frp: visualization::instance::Frp,
     pub frp:               Frp,

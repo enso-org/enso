@@ -100,10 +100,10 @@ impl DocumentationCommentAst {
 // === Line Description ===
 
 /// Describes the line with a documentation comment.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct DocumentationCommentLine {
     /// Stores the documentation AST and the trailing whitespace length.
-    #[shrinkwrap(main_field)]
+    #[deref]
     line: BlockLine<known::Match>,
     body: crate::MacroPatternMatch<Shifted<Ast>>,
 }
@@ -142,10 +142,10 @@ impl DocumentationCommentLine {
 
 /// Structure holding the documentation comment AST and related information necessary to deal with
 /// them.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct DocumentationCommentInfo {
     /// Description of the line with the documentation comment.
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub line:         DocumentationCommentLine,
     /// The absolute indent of the block that contains the line with documentation comment.
     pub block_indent: usize,

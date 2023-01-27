@@ -46,7 +46,7 @@ pub enum LocationHint {
 // =================
 
 /// Description of the graph, based on information available in AST.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct GraphInfo {
     /// The definition providing this graph.
     pub source: DefinitionInfo,

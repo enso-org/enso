@@ -730,10 +730,10 @@ impl FrpNetworkProvider for GraphEditor {
 // === Node ===
 // ============
 
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Node {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub view:      component::Node,
     pub in_edges:  SharedHashSet<EdgeId>,
     pub out_edges: SharedHashSet<EdgeId>,
@@ -780,10 +780,10 @@ impl Display for NodeId {
 // === Edge ===
 // ============
 
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)] // FIXME[everyone] Public-facing API should be documented.
 pub struct Edge {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub view: component::Edge,
     source:   Rc<RefCell<Option<EdgeEndpoint>>>,
     target:   Rc<RefCell<Option<EdgeEndpoint>>>,
@@ -940,7 +940,7 @@ impl Display for Type {
 //  As currently there is no good place to wrap Rc into a newtype that can be easily depended on
 //  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
 //  future, once code organization and emerging patterns are more clear.
-#[derive(Clone, Debug, Shrinkwrap, PartialEq, Eq)]
+#[derive(Clone, Debug, Deref, PartialEq, Eq)]
 pub struct MethodPointer(pub Rc<engine_protocol::language_server::MethodPointer>);
 
 impl From<engine_protocol::language_server::MethodPointer> for MethodPointer {

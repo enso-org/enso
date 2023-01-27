@@ -21,7 +21,6 @@ mod prelude {
     pub use proc_macro2::Span;
     pub use proc_macro2::TokenStream;
     pub use quote::quote;
-    pub use shrinkwraprs::Shrinkwrap;
     pub use syn::parse::Parse;
     pub use syn::Data;
     pub use syn::DeriveInput;

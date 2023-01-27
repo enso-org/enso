@@ -203,10 +203,10 @@ impl<T: TextProvider> Model<T> {
 // ================
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 #[allow(missing_docs)]
 pub struct TextGrid<T> {
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:                 Rc<Model<T>>,
     pub frp:               visualization::instance::Frp,
     network:               frp::Network,

@@ -48,7 +48,7 @@ impl Rule {
 // ===============
 
 /// A command, textual label of action that should be evaluated in the target component.
-#[derive(Clone, Debug, Eq, From, Hash, Into, PartialEq, Shrinkwrap)]
+#[derive(Clone, Debug, Eq, From, Hash, Into, PartialEq, Deref)]
 pub struct Command {
     name: String,
 }
@@ -176,9 +176,9 @@ impl Action {
 // ================
 
 /// A keyboard shortcut, an `Rule` associated with a `Action`.
-#[derive(Clone, Debug, Eq, PartialEq, Hash, Shrinkwrap)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Deref)]
 pub struct Shortcut {
-    #[shrinkwrap(main_field)]
+    #[deref]
     action: Action,
     rule:   Rule,
 }

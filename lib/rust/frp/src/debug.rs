@@ -131,8 +131,8 @@ impl Graphviz {
         //                    _ => ""
         //                };
         //                let label = if data_type == "()" { "" } else { &data_type };
-        //                let label = iformat!("[label=\"  {label}\"]");
-        //                let line  = iformat!("\n{source} -> {target} {style} {label}");
+        //                let label = format!("[label=\"  {label}\"]");
+        //                let line  = format!("\n{source} -> {target} {style} {label}");
         //                code.push_str(&line);
         //            }
         //        }

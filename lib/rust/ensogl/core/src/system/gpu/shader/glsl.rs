@@ -50,8 +50,7 @@ impl Version {
 // =================================================================================================
 
 /// A GLSL code representation.
-#[derive(Clone, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct Glsl {
     /// Raw, textual code representation.
     pub str: String,
@@ -247,7 +246,7 @@ pub(crate) fn deg_to_f32(glsl: &Glsl) -> Glsl {
 // =================================================================================================
 
 /// Any GLSL expression, like function call, or math operations.
-#[derive(Shrinkwrap, Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 pub struct Expr(Box<ExprUnboxed>);
 
 impl Expr {

@@ -72,13 +72,13 @@ pub mod serde;
 
 
 pub mod prelude {
+    pub use derive_more::*;
     pub use enso_build_base::prelude::*;
 
     pub use async_trait::async_trait;
     pub use bytes::Bytes;
     pub use derivative::Derivative;
     pub use derive_more::Display;
-    pub use ifmt::iformat;
     pub use itertools::Itertools;
     pub use lazy_static::lazy_static;
     pub use octocrab::Octocrab;

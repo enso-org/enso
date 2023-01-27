@@ -14,7 +14,7 @@ use crate::system::gpu::shader::glsl::Glsl;
 // =============
 
 /// Immutable reference to a shape defined on `Canvas` with a fast clone.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct Shape {
     rc: Rc<ShapeData>,
 }

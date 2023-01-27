@@ -89,7 +89,7 @@ pub type TextChange = enso_text::Change<enso_text::index::Byte, String>;
 /// * the first one is a source directory in the project (see `SOURCE_DIRECTORY`);
 /// * the last one is a source file with the module's contents;
 /// * all the ones between (if present) are names of the parent modules.
-#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Deref)]
 pub struct Path {
     file_path: Rc<FilePath>,
 }

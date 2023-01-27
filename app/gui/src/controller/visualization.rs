@@ -71,8 +71,7 @@ pub enum VisualizationPath {
 pub type EmbeddedVisualizationName = String;
 
 /// Embedded visualizations mapped from name to source code.
-#[derive(Shrinkwrap, Debug, Clone, Default)]
-#[shrinkwrap(mutable)]
+#[derive(Debug, Clone, Default, Deref, DerefMut)]
 pub struct EmbeddedVisualizations {
     #[allow(missing_docs)]
     pub map: HashMap<EmbeddedVisualizationName, definition::Definition>,

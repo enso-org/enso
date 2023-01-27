@@ -348,8 +348,7 @@ pub mod mock {
         }
     }
 
-    #[derive(Debug, Shrinkwrap)]
-    #[shrinkwrap(mutable)]
+    #[derive(Debug, Deref, DerefMut)]
     pub struct Fixture {
         pub data:           Unified,
         pub module:         model::Module,
@@ -360,7 +359,8 @@ pub mod mock {
         pub project:        model::Project,
         pub ide:            controller::Ide,
         pub searcher:       controller::Searcher,
-        #[shrinkwrap(main_field)]
+        #[deref]
+        #[deref_mut]
         pub executor:       TestWithLocalPoolExecutor, // Last to drop the executor as last.
     }
 

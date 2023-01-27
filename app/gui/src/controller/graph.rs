@@ -1122,11 +1122,11 @@ pub mod tests {
         }
     }
 
-    #[derive(Debug, Shrinkwrap)]
-    #[shrinkwrap(mutable)]
+    #[derive(Debug, Deref, DerefMut)]
     pub struct Fixture {
         pub data:  MockData,
-        #[shrinkwrap(main_field)]
+        #[deref]
+        #[deref_mut]
         pub inner: TestWithLocalPoolExecutor,
     }
 

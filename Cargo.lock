@@ -2329,7 +2329,6 @@ dependencies = [
  "paste 1.0.9",
  "serde",
  "serde_json",
- "shrinkwraprs 0.3.0",
  "smallvec 1.9.0",
  "wasm-bindgen",
  "wasm-bindgen-test",
@@ -4037,7 +4036,6 @@ dependencies = [
  "headers",
  "heck",
  "http-serde",
- "ifmt",
  "indexmap",
  "indicatif",
  "itertools 0.10.5",
@@ -4277,30 +4275,6 @@ name = "if_chain"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb56e1aa765b4b4f3aadfab769793b7087bb03a4ea4920644a6d238e2df5b9ed"
-
-[[package]]
-name = "ifmt"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd0f8e1404f15475d8a2ca84c2942aa00ac17804ce555294a96f6b5cdf80750"
-dependencies = [
- "ifmt-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "ifmt-impl"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e50385662f423431a619ab28ba2beeab3063b581a0d1a943765e23911c502904"
-dependencies = [
- "lazy_static",
- "proc-macro-hack",
- "proc-macro2",
- "quote",
- "regex",
- "syn",
-]
 
 [[package]]
 name = "indexmap"

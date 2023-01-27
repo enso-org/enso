@@ -89,10 +89,10 @@ impl BubbleChartModel {
 // ===================
 
 /// Sample implementation of a Bubble Chart.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 #[allow(missing_docs)]
 pub struct BubbleChart {
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   BubbleChartModel,
     network: frp::Network,
     frp:     visualization::instance::Frp,

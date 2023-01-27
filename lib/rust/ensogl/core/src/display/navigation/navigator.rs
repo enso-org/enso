@@ -258,11 +258,11 @@ define_endpoints_2! {
 // =================
 
 /// Navigator enables camera navigation with mouse interactions.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct Navigator {
     #[allow(missing_docs)]
     pub frp: Frp,
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   Rc<NavigatorModel>,
 }
 

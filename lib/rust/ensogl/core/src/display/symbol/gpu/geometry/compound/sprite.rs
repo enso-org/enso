@@ -31,7 +31,7 @@ const DEFAULT_SPRITE_SIZE: (f32, f32) = (10.0, 10.0);
 // ===================
 
 /// Wrapper for `Stats` which counts the number of sprites.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 pub struct SpriteStats {
     stats: Stats,
 }

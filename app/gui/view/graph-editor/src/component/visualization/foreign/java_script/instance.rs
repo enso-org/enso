@@ -258,10 +258,10 @@ impl InstanceModel {
 // ================
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct Instance {
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   InstanceModel,
     frp:     visualization::instance::Frp,
     network: frp::Network,

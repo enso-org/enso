@@ -135,7 +135,7 @@ impl<'a> IdentifierValidator<'a> {
 
     /// Marks given identifier as checked.
     pub fn validate_identifier(&mut self, name: &str) {
-        let err = iformat!("{self.name}: unexpected identifier `{name}` validated");
+        let err = format!("{self.name}: unexpected identifier `{name}` validated");
         let used = self.validations.get_mut(name).expect(&err);
         *used = HasBeenValidated::Yes;
     }

@@ -326,7 +326,7 @@ mod test {
         let expected_json_id_map = JsonIdMap::from_id_map(&source.ast.id_map(), &repr);
         let expected_id_map = to_json_single_line(&expected_json_id_map).unwrap();
         let expected_metadata = to_json_single_line(&source.metadata).unwrap();
-        let expected_content = iformat!(
+        let expected_content = format!(
             r#"main = 2 + 2
 
 

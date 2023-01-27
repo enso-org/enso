@@ -35,7 +35,7 @@ pub struct IdentifierCannotBeEmpty;
 /// Comparisons compare the underlying name strings.
 ///
 /// Invariants: can get identifier name, the name is non-empty.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct Identifier(Ast);
 
 impl Identifier {

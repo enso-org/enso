@@ -45,7 +45,7 @@ lazy_static::lazy_static! {
     static ref PARAMETER: ParameterRegex = ParameterRegex::new();
 }
 
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct ParameterRegex(Regex);
 
 impl ParameterRegex {
@@ -308,9 +308,9 @@ impl<'a> Generator<'a> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Shrinkwrap)]
+#[derive(Clone, Debug, PartialEq, Deref)]
 pub struct Node {
-    #[shrinkwrap(main_field)]
+    #[deref]
     value:      String,
     /// All parameters needed for this node (directly and for the children).
     parameters: OnceCell<BTreeSet<Ident>>, // Wasteful but paths won't be that huge.
