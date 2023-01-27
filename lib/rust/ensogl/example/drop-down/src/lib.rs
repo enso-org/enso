@@ -8,14 +8,12 @@
 #![allow(clippy::let_and_return)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
 use ensogl_drop_down::Dropdown;
 use ensogl_drop_down::DropdownValue;
-use ensogl_hardcoded_theme as theme;
 use ensogl_text_msdf::run_once_initialized;
 
 
@@ -42,10 +40,6 @@ pub fn main() {
 // ========================
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(app);
-    theme::builtin::light::register(app);
-    theme::builtin::light::enable(app);
-
     let world = &app.display;
     let scene = &world.default_scene;
     let navigator = Navigator::new(scene, &scene.camera());

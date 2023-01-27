@@ -13,7 +13,7 @@ enso-build-base = { path = "../base" }
 itertools = "0.10.5"
 proc-macro2 = "1.0"
 quote = "1.0"
-regex = "1.6.0"
-serde_yaml = "0.9.14"
+regex = { workspace = true }
+serde_yaml = { workspace = true }
 shrinkwraprs = "0.3.0"
 syn = "1.0"

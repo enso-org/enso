@@ -146,7 +146,7 @@ pub enum SearcherVariant {
 
 impl SearcherVariant {
     fn new(app: &Application) -> Self {
-        if ARGS.enable_new_component_browser.unwrap_or(true) {
+        if ARGS.enable_new_component_browser {
             Self::ComponentBrowser(app.new_view::<component_browser::View>())
         } else {
             Self::OldNodeSearcher(Rc::new(app.new_view::<searcher::View>()))
@@ -261,7 +261,7 @@ impl Model {
         let code_editor = app.new_view::<code_editor::View>();
         let fullscreen_vis = default();
         let debug_mode_popup = debug_mode_popup::View::new(app);
-        let window_control_buttons = ARGS.is_in_cloud.unwrap_or_default().as_some_from(|| {
+        let window_control_buttons = ARGS.is_in_cloud.as_some_from(|| {
             let window_control_buttons = app.new_view::<crate::window_control_buttons::View>();
             display_object.add_child(&window_control_buttons);
             scene.layers.panel.add(&window_control_buttons);
@@ -293,6 +293,9 @@ impl Model {
     }
 
     /// Sets style of IDE to the one defined by parameter `theme`.
+    ///
+    /// This does not change the EnsoGL theme. Changing it is not supported currently because
+    /// the theme is used for shader-precompilation.
     pub fn set_style(&self, theme: Theme) {
         match theme {
             Theme::Light => self.set_light_style(),
@@ -301,12 +304,10 @@ impl Model {
     }
 
     fn set_light_style(&self) {
-        ensogl_hardcoded_theme::builtin::light::enable(&self.app);
         self.set_html_style("light-theme");
     }
 
     fn set_dark_style(&self) {
-        ensogl_hardcoded_theme::builtin::dark::enable(&self.app);
         self.set_html_style("dark-theme");
     }
 
@@ -318,7 +319,7 @@ impl Model {
         if let Some(node) = self.graph_editor.nodes().get_cloned_ref(&node_id) {
             node.position().xy()
         } else {
-            error!("Trying to show searcher under nonexisting node");
+            error!("Trying to show searcher under non existing node");
             default()
         }
     }
@@ -446,20 +447,10 @@ impl Deref for View {
 impl View {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
-        ensogl_hardcoded_theme::builtin::dark::register(app);
-        ensogl_hardcoded_theme::builtin::light::register(app);
-        let theme = match ARGS.theme.as_deref() {
-            Some("dark") => {
-                ensogl_hardcoded_theme::builtin::dark::enable(app);
-                Theme::Dark
-            }
-            _ => {
-                ensogl_hardcoded_theme::builtin::light::enable(app);
-                Theme::Light
-            }
+        let theme = match ARGS.theme.as_ref() {
+            "dark" => Theme::Dark,
+            _ => Theme::Light,
         };
-
-        display::style::javascript::expose_to_window(&app.themes);
 
         let scene = app.display.default_scene.clone_ref();
         let model = Model::new(app);
@@ -476,7 +467,6 @@ impl View {
         model.set_style(theme);
         // TODO[WD]: This should not be needed after the theme switching issue is implemented.
         //   See: https://github.com/enso-org/ide/issues/795
-        app.themes.update();
         let input_change_delay = frp::io::timer::Timeout::new(network);
 
         if let Some(window_control_buttons) = &*model.window_control_buttons {

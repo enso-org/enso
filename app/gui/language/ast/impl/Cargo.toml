@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 derive_more = { version = "0.99.16" }
 failure = { version = "0.1.5" }
 lazy_static = { version = "1.4.0" }
-regex = { version = "1" }
+regex = { workspace = true }
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = { version = "1.0" }
 shrinkwraprs = { version = "0.2.1" }

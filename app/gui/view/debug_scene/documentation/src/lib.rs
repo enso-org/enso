@@ -8,7 +8,6 @@
 
 use ensogl::display::shape::*;
 use ensogl::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_suggestion_database as suggestion_database;
 use enso_suggestion_database::doc_section;
@@ -184,8 +183,6 @@ mod button {
 pub fn main() {
     ensogl_text_msdf::run_once_initialized(|| {
         let app = Application::new("root");
-        ensogl_hardcoded_theme::builtin::light::register(&app);
-        ensogl_hardcoded_theme::builtin::light::enable(&app);
         let _registry = Registry::with_default_visualizations();
 
         let wrapper = DatabaseWrapper::from_db(database());

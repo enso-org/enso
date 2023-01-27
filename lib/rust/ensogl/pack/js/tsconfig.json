@@ -1,0 +1,29 @@
+{
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "rootDir": "src",
+    "baseUrl": "./src",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSourceMap": true,
+    "lib": ["ES2021", "dom"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "target": "ES2019",
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "ts-node": {
+    "esm": true
+  }
+}

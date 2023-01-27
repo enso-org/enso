@@ -1178,7 +1178,7 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "serde",
- "serde_yaml 0.8.26",
+ "serde_yaml",
 ]
 
 [[package]]
@@ -1863,6 +1863,7 @@ dependencies = [
  "derive_more",
  "dirs",
  "enso-build-base",
+ "ensogl-pack",
  "filetime",
  "flate2",
  "flume",
@@ -1898,7 +1899,7 @@ dependencies = [
  "semver 1.0.14",
  "serde",
  "serde_json",
- "serde_yaml 0.9.14",
+ "serde_yaml",
  "shrinkwraprs 0.3.0",
  "strum",
  "sysinfo",
@@ -1927,8 +1928,19 @@ dependencies = [
  "futures-util",
  "serde",
  "serde_json",
- "serde_yaml 0.9.14",
+ "serde_yaml",
  "tracing",
+]
+
+[[package]]
+name = "enso-build-ci-gen"
+version = "0.1.0"
+dependencies = [
+ "enso-build",
+ "enso-build-shader-tools",
+ "ide-ci",
+ "serde_yaml",
+ "tokio",
 ]
 
 [[package]]
@@ -1951,7 +1963,7 @@ dependencies = [
  "octocrab",
  "serde",
  "serde_json",
- "serde_yaml 0.9.14",
+ "serde_yaml",
  "strum",
  "tempfile",
  "tokio",
@@ -1970,9 +1982,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "regex",
- "serde_yaml 0.9.14",
+ "serde_yaml",
  "shrinkwraprs 0.3.0",
  "syn",
+]
+
+[[package]]
+name = "enso-build-shader-tools"
+version = "0.1.0"
+dependencies = [
+ "html_parser",
+ "ide-ci",
+ "octocrab",
+ "regex",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -2664,6 +2688,7 @@ name = "ensogl-example-auto-layout"
 version = "0.1.0"
 dependencies = [
  "ensogl-core",
+ "ensogl-hardcoded-theme",
  "wasm-bindgen",
 ]
 
@@ -2953,6 +2978,8 @@ dependencies = [
 name = "ensogl-hardcoded-theme"
 version = "0.1.0"
 dependencies = [
+ "enso-prelude",
+ "enso-shapely",
  "ensogl-core",
 ]
 
@@ -2977,6 +3004,20 @@ dependencies = [
  "ensogl-hardcoded-theme",
  "ensogl-shadow",
  "ensogl-text",
+]
+
+[[package]]
+name = "ensogl-pack"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude",
+ "fs_extra",
+ "ide-ci",
+ "manifest-dir-macros",
+ "regex",
+ "tempfile",
+ "tokio",
+ "walkdir",
 ]
 
 [[package]]
@@ -3761,6 +3802,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8371fb981840150b1a54f7cb117bf6699f7466a1d4861daac33bc6fe2b5abea0"
 
 [[package]]
+name = "html_parser"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec016cabcf7c9c48f9d5fdc6b03f273585bfce640a0f47a69552039e92b1959a"
+dependencies = [
+ "pest",
+ "pest_derive",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "http"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4034,7 +4089,7 @@ dependencies = [
  "semver 1.0.14",
  "serde",
  "serde_json",
- "serde_yaml 0.9.14",
+ "serde_yaml",
  "sha2",
  "shrinkwraprs 0.3.0",
  "strum",
@@ -4534,12 +4589,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "292a948cd991e376cf75541fe5b97a1081d713c618b4f1b9500f8844e49eb565"
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4594,6 +4643,18 @@ dependencies = [
  "time 0.3.14",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "manifest-dir-macros"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f08150cf2bab1fc47c2196f4f41173a27fcd0f684165e5458c0046b53a472e2f"
+dependencies = [
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -5961,9 +6022,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.6.0"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
+checksum = "48aaa5748ba571fb95cd2c85c09f629215d3a6ece942baa100950af03a34f733"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -6399,21 +6460,9 @@ dependencies = [
 
 [[package]]
 name = "serde_yaml"
-version = "0.8.26"
+version = "0.9.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "578a7433b776b56a35785ed5ce9a7e777ac0598aac5a6dd1b4b18a307c7fc71b"
-dependencies = [
- "indexmap",
- "ryu",
- "serde",
- "yaml-rust",
-]
-
-[[package]]
-name = "serde_yaml"
-version = "0.9.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d232d893b10de3eb7258ff01974d6ee20663d8e833263c99409d4b13a0209da"
+checksum = "92b5b431e8907b50339b51223b97d102db8d987ced36f6e4d03621db9316c834"
 dependencies = [
  "indexmap",
  "itoa 1.0.3",
@@ -8105,15 +8154,6 @@ name = "xmlparser"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "114ba2b24d2167ef6d67d7d04c8cc86522b87f490025f39f0303b7db5bf5e3d8"
-
-[[package]]
-name = "yaml-rust"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
-dependencies = [
- "linked-hash-map",
-]
 
 [[package]]
 name = "zeroize"

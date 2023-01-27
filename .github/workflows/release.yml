@@ -1,3 +1,6 @@
+# This file is auto-generated. Do not edit it manually!
+# Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
+
 name: Release
 on:
   workflow_dispatch:
@@ -13,7 +16,7 @@ on:
         required: true
         type: string
 jobs:
-  enso-build-cli-ci-gen-draft-release-linux:
+  enso-build-ci-gen-draft-release-linux:
     name: Create a release draft.
     runs-on:
       - self-hosted
@@ -61,7 +64,7 @@ jobs:
     outputs:
       ENSO_RELEASE_ID: ${{ steps.prepare.outputs.ENSO_RELEASE_ID }}
       ENSO_VERSION: ${{ steps.prepare.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-build-wasm-linux:
+  enso-build-ci-gen-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
       - self-hosted
@@ -123,10 +126,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-deploy-gui-linux:
+  enso-build-ci-gen-job-deploy-gui-linux:
     name: Upload GUI to S3 (linux)
     needs:
-      - enso-build-cli-ci-gen-upload-ide-linux
+      - enso-build-ci-gen-upload-ide-linux
     runs-on:
       - self-hosted
       - Linux
@@ -189,11 +192,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-deploy-runtime-linux:
+  enso-build-ci-gen-job-deploy-runtime-linux:
     name: Upload Runtime to ECR (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-upload-backend-linux
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-upload-backend-linux
     runs-on:
       - self-hosted
       - Linux
@@ -243,8 +246,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.ECR_PUSH_RUNTIME_ACCESS_KEY_ID }}
           AWS_DEFAULT_REGION: eu-west-1
           AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY }}
-          ENSO_BUILD_ECR_REPOSITORY: runtime
           GITHUB_TOKEN: ${{ secrets.CI_PRIVATE_TOKEN }}
+          crate_ECR_REPOSITORY: runtime
         timeout-minutes: 360
       - if: failure() && runner.os == 'Windows'
         name: List files if failed (Windows)
@@ -259,12 +262,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-upload-backend-linux:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-linux:
     name: Upload Backend (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-ci-gen-draft-release-linux
     runs-on:
       - self-hosted
       - Linux
@@ -326,12 +329,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-upload-backend-macos:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-macos:
     name: Upload Backend (macos)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-ci-gen-draft-release-linux
     runs-on:
       - macos-latest
     steps:
@@ -391,12 +394,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-job-upload-backend-windows:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-job-upload-backend-windows:
     name: Upload Backend (windows)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
+      - enso-build-ci-gen-draft-release-linux
     runs-on:
       - self-hosted
       - Windows
@@ -458,17 +461,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-publish-release-linux:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-publish-release-linux:
     name: Publish release (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-deploy-gui-linux
-      - enso-build-cli-ci-gen-job-deploy-runtime-linux
-      - enso-build-cli-ci-gen-upload-ide-linux
-      - enso-build-cli-ci-gen-upload-ide-macos
-      - enso-build-cli-ci-gen-upload-ide-windows
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-deploy-gui-linux
+      - enso-build-ci-gen-job-deploy-runtime-linux
+      - enso-build-ci-gen-upload-ide-linux
+      - enso-build-ci-gen-upload-ide-macos
+      - enso-build-ci-gen-upload-ide-windows
     runs-on:
       - self-hosted
       - Linux
@@ -533,14 +536,14 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
       AWS_REGION: us-west-1
       AWS_SECRET_ACCESS_KEY: ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-upload-ide-linux:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-linux:
     name: Build IDE (linux)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-build-wasm-linux
-      - enso-build-cli-ci-gen-job-upload-backend-linux
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-upload-backend-linux
     runs-on:
       - self-hosted
       - Linux
@@ -602,14 +605,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-upload-ide-macos:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-macos:
     name: Build IDE (macos)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-build-wasm-linux
-      - enso-build-cli-ci-gen-job-upload-backend-macos
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-upload-backend-macos
     runs-on:
       - macos-latest
     steps:
@@ -674,14 +677,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
-  enso-build-cli-ci-gen-upload-ide-windows:
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+  enso-build-ci-gen-upload-ide-windows:
     name: Build IDE (windows)
     needs:
-      - enso-build-cli-ci-gen-draft-release-linux
-      - enso-build-cli-ci-gen-job-build-wasm-linux
-      - enso-build-cli-ci-gen-job-upload-backend-windows
+      - enso-build-ci-gen-draft-release-linux
+      - enso-build-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-upload-backend-windows
     runs-on:
       - self-hosted
       - Windows
@@ -745,8 +748,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
     env:
-      ENSO_RELEASE_ID: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
-      ENSO_VERSION: ${{ needs.enso-build-cli-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
+      ENSO_RELEASE_ID: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_RELEASE_ID }}
+      ENSO_VERSION: ${{ needs.enso-build-ci-gen-draft-release-linux.outputs.ENSO_VERSION }}
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   ENSO_EDITION: ${{ inputs.version }}

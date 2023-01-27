@@ -15,6 +15,9 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+use enso_prelude::*;
+
+use enso_shapely::before_main;
 use ensogl_core::prelude::ImString;
 
 
@@ -729,4 +732,20 @@ define_themes! { [light:0, dark:1]
     text {
         size   = 12.0, 12.0;
     }
+}
+
+
+// ==========================
+// === Theme registration ===
+// ==========================
+
+/// Default theme registration. The theme is registered and enabled in a before-main entry point in
+/// order for it to be visible when shaders are being gathered during compilation phase. This makes
+/// themes not switchable at runtime, which we might want to fix somehow in the future.
+#[before_main(2)]
+pub fn enable_default_theme() {
+    let themes = ensogl_core::display::world::with_context(|t| t.theme_manager.clone());
+    builtin::light::register(&themes);
+    builtin::light::enable(&themes);
+    themes.update();
 }

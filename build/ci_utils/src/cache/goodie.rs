@@ -14,11 +14,18 @@ pub mod sbt;
 
 
 
-/// Something that can be downloaded and, after that, enabled by modifying global state.
+/// Something that can be obtained (with IO) and, after that, enabled by modifying global state.
 pub trait Goodie: Debug + Clone + Send + Sync + 'static {
-    fn url(&self) -> BoxFuture<'static, Result<Url>>;
+    /// Obtain and place this in the cache.
+    fn get(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>>;
+
+    /// Check whether this is already present.
     fn is_active(&self) -> BoxFuture<'static, Result<bool>>;
+
+    /// Changes to the environment to activate this.
     fn activation_env_changes(&self, package_path: &Path) -> Result<Vec<crate::env::Modification>>;
+
+    /// Apply the activation environment changes.
     fn activate(&self, package_path: &Path) -> Result {
         for modification in self.activation_env_changes(package_path)? {
             modification.apply()?;
@@ -42,56 +49,38 @@ pub trait GoodieExt: Goodie {
                 trace!("Skipping activation of {this:?} because it already present.",);
                 Result::Ok(None)
             } else {
-                let package = this.download(&cache).await?;
+                let package = this.get(&cache).await?;
                 this.activate(&package)?;
                 Result::Ok(Some(package))
             }
         }
         .boxed()
     }
-
-
-    fn package(
-        &self,
-    ) -> BoxFuture<'static, Result<cache::archive::ExtractedArchive<cache::download::DownloadFile>>>
-    {
-        let url_fut = self.url();
-        async move {
-            let url = url_fut.await?;
-            let archive_source = cache::download::DownloadFile::new(url)?;
-            let path_to_extract = None;
-            Ok(cache::archive::ExtractedArchive { archive_source, path_to_extract })
-        }
-        .boxed()
-    }
-
-    fn download(&self, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
-        let package = self.package();
-        let cache = cache.clone();
-        async move { cache.get(package.await?).await }.boxed()
-    }
 }
 
 impl<T: Goodie> GoodieExt for T {}
-//
-// /// Whoever owns a token, can assume that the Goodie is available.
-// #[derive(Clone, Debug, Display)]
-// pub struct Token<G>(G);
-//
-// #[derive(Clone, Debug, Display)]
-// pub struct PotentialFutureGoodie<G>(Box<dyn FnOnce() -> BoxFuture<'static, Result<Token<G>>>>);
-//
-// impl<G> PotentialFutureGoodie<G> {
-//     pub fn new<F, Fut>(f: F) -> Self
-//     where
-//         F: FnOnce() -> Fut + 'static,
-//         Fut: Future<Output = Result<Token<G>>> + Send + 'static, {
-//         Self(Box::new(move || f().boxed()))
-//     }
-// }
-//
-// // pub type GoodieGenerator<G: Goodie> =
-// //     dyn FnOnce(Cache, G) -> BoxFuture<'static, Result<Token<G>>> + Send + Sync + 'static;
-// //
-// // pub type PotentialFutureGoodie<G: Goodie> =
-// //     dyn FnOnce(Cache) -> BoxFuture<'static, Result<Token<G>>> + Send + Sync + 'static;
+
+
+pub fn download_url(url: Url, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+    download_try_url(Ok(url), cache)
+}
+
+
+pub fn download_try_url(url: Result<Url>, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
+    download_try_future_url(ready(url), cache)
+}
+
+
+pub fn download_try_future_url(
+    url: impl Future<Output = Result<Url>> + Send + 'static,
+    cache: &Cache,
+) -> BoxFuture<'static, Result<PathBuf>> {
+    let cache = cache.clone();
+    async move {
+        let url = url.await?;
+        let archive_source = cache::download::DownloadFile::new(url)?;
+        let package = cache::archive::ExtractedArchive { archive_source, path_to_extract: None };
+        cache.get(package).await
+    }
+    .boxed()
+}
