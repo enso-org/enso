@@ -292,6 +292,7 @@ class IrToTruffle(
           }
           if (!atomCons.isInitialized) {
             atomCons.initializeFields(
+              language,
               localScope,
               assignments.toArray,
               reads.toArray,

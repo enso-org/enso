@@ -14,6 +14,7 @@ use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
 use crate::display::symbol::SymbolId;
 use crate::display::symbol::SymbolInstance;
+use crate::display::world;
 
 
 
@@ -197,7 +198,7 @@ pub struct SpriteModel {
     #[deref]
     pub instance:         SymbolInstance,
     pub symbol:           Symbol,
-    pub size:             SizedObject,
+    size:                 SizedObject,
     transform:            Attribute<Matrix4<f32>>,
     stats:                SpriteStats,
     erase_on_drop:        EraseOnDrop<Attribute<Vector2<f32>>>,
@@ -288,9 +289,7 @@ impl SpriteSystem {
     /// Constructor.
     #[profile(Detail)]
     pub fn new() -> Self {
-        let scene = scene();
-        let stats = scene.stats.clone_ref();
-        let symbol = scene.new_symbol();
+        let (stats, symbol) = world::with_context(|t| (t.stats.clone_ref(), t.new()));
         let mesh = symbol.surface();
         let point_scope = mesh.point_scope();
         let instance_scope = mesh.instance_scope();

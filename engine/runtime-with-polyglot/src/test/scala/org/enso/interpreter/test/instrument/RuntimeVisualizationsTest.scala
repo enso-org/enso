@@ -275,7 +275,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -294,7 +294,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -393,7 +393,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -412,7 +412,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -530,7 +530,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -538,7 +538,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -657,7 +657,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -665,7 +665,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -784,7 +784,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -792,7 +792,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -987,12 +987,12 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1114,12 +1114,12 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1259,7 +1259,7 @@ class RuntimeVisualizationsTest
     // open files
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1267,7 +1267,7 @@ class RuntimeVisualizationsTest
     )
     context.receiveNone shouldEqual None
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1366,12 +1366,12 @@ class RuntimeVisualizationsTest
 
     // open files
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -1515,7 +1515,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1579,7 +1579,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1674,7 +1674,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1752,7 +1752,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1844,7 +1844,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           visualisationCode
         )
@@ -1863,7 +1863,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1972,7 +1972,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2062,7 +2062,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2176,7 +2176,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2275,7 +2275,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2353,7 +2353,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.Visualisation.code
         )
@@ -2372,7 +2372,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2479,7 +2479,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.AnnotatedVisualisation.code
         )
@@ -2498,7 +2498,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2651,7 +2651,7 @@ class RuntimeVisualizationsTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(
+        Api.SetModuleSourcesNotification(
           visualisationFile,
           context.AnnotatedVisualisation.code
         )
@@ -2670,7 +2670,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2830,7 +2830,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2920,7 +2920,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3014,7 +3014,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3117,7 +3117,7 @@ class RuntimeVisualizationsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 

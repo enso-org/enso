@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::fs::tokio::copy_to_file;
+use crate::fs::tokio::create_parent_dir_if_missing;
 
 use anyhow::Context;
 use reqwest::Client;
@@ -97,6 +98,8 @@ pub async fn stream_to_file(
     stream: impl Stream<Item = reqwest::Result<Bytes>>,
     output_path: impl AsRef<Path>,
 ) -> Result {
+    debug!("Streaming download to file {}. ", output_path.as_ref().display());
+    create_parent_dir_if_missing(&output_path).await?;
     let output = tokio::fs::OpenOptions::new().write(true).create(true).open(&output_path).await?;
     stream
         .map_err(anyhow::Error::from)

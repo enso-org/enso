@@ -10,6 +10,9 @@ import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 import Standard.Base.Error.Unimplemented.Unimplemented
 
+from Standard.Base.Metadata.Widget import Single_Choice
+import Standard.Base.Metadata.Display
+
 import project.Data.Column.Column
 import project.Data.Column as Column_Module
 import project.Data.Column_Name_Mapping.Column_Name_Mapping
@@ -196,6 +199,7 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.at -1
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     at : Text | Integer -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self selector=0 = case selector of
         _ : Integer ->
@@ -222,6 +226,7 @@ type Table
              import Standard.Examples
 
              example_at = Examples.inventory_table.get -1
+    @selector (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     get : Text | Integer -> Any -> Column | Any
     get self selector=0 ~if_missing=Nothing =
         java_column = case selector of
@@ -883,6 +888,7 @@ type Table
          Select people celebrating a jubilee.
 
              people.filter "age" (age -> (age%10 == 0))
+    @column (self-> Single_Choice display=Display.Always values=(self.column_names.map .pretty))
     filter : (Column | Text | Integer) -> (Filter_Condition|(Any->Boolean)) -> Problem_Behavior -> Table
     filter self column filter=(Filter_Condition.Is_True) on_problems=Report_Warning = case column of
         _ : Column ->

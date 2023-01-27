@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.{Job, UniqueJob}
-import org.enso.polyglot.RuntimeServerInfo
 import org.enso.text.Sha3_224VersionCalculator
 
 import java.util.UUID
@@ -36,10 +35,7 @@ final class JobExecutionEngine(
 
   private val context = interpreterContext.executionService.getContext
 
-  private val jobParallelism =
-    interpreterContext.executionService.getContext.getEnvironment.getOptions
-      .get(RuntimeServerInfo.JOB_PARALLELISM_KEY)
-      .intValue()
+  private val jobParallelism = context.getJobParallelism
 
   val jobExecutor: ExecutorService =
     Executors.newFixedThreadPool(

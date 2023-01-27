@@ -21,7 +21,6 @@
 
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::animation;
 use ensogl_core::display::camera::Camera2d;
@@ -43,7 +42,7 @@ pub fn main() {
     let sprite_system = SpriteSystem::new();
 
     let sprite1 = sprite_system.new_instance();
-    sprite1.size.set(Vector2::new(10.0, 10.0));
+    sprite1.set_size(Vector2::new(10.0, 10.0));
     sprite1.set_position(Vector3::new(5.0, 5.0, 0.0));
 
     scene.add_child(&sprite_system);
@@ -52,7 +51,7 @@ pub fn main() {
     let count = 100;
     for _ in 0..count {
         let sprite = sprite_system.new_instance();
-        sprite.size.set(Vector2::new(1.0, 1.0));
+        sprite.set_size(Vector2::new(1.0, 1.0));
         sprites.push(sprite);
     }
 
@@ -106,7 +105,7 @@ pub fn on_frame(
     if *iter < cycle_duration {
         for _ in 0..sprite_diff_per_cycle {
             let sprite = sprite_system.new_instance();
-            sprite.size.set(Vector2::new(1.0, 1.0));
+            sprite.set_size(Vector2::new(1.0, 1.0));
             sprites.push(sprite);
         }
     } else if *iter < pause_duration + cycle_duration {

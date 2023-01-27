@@ -104,8 +104,7 @@ const MAX_ZOOM: f32 = 1.0;
 
 fn traffic_lights_gap_width() -> f32 {
     let is_macos = ARGS.platform.map(|p| p.is_macos()) == Some(true);
-    let is_frameless = ARGS.frame == Some(false);
-    if is_macos && is_frameless {
+    if is_macos && !ARGS.frame {
         MACOS_TRAFFIC_LIGHTS_CONTENT_WIDTH + MACOS_TRAFFIC_LIGHTS_SIDE_OFFSET
     } else {
         0.0

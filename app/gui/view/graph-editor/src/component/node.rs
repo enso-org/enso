@@ -126,7 +126,7 @@ pub mod backdrop {
     use super::*;
 
     ensogl::shape! {
-        // Disable to allow interaction with the output port.
+        // Disabled to allow interaction with the output port.
         pointer_events = false;
         (style:Style, selection:f32) {
 
@@ -732,7 +732,7 @@ impl Node {
 
             deselect_target  <- input.deselect.constant(0.0);
             select_target    <- input.select.constant(1.0);
-            selection.target <+ any(&deselect_target,&select_target);
+            selection.target <+ any(&deselect_target, &select_target);
             eval selection.value ((t) model.backdrop.selection.set(*t));
 
 

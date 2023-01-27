@@ -23,12 +23,10 @@
 #![warn(unused_qualifications)]
 
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_text::index::Byte;
 use ensogl_core::application::Application;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_hardcoded_theme as theme;
 use ensogl_list_view as list_view;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -89,10 +87,6 @@ impl list_view::entry::ModelProvider<list_view::entry::GlyphHighlightedLabel> fo
 // ========================
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(app);
-    theme::builtin::light::register(app);
-    theme::builtin::light::enable(app);
-
     let list_view = app.new_view::<list_view::ListView<list_view::entry::GlyphHighlightedLabel>>();
     let provider = list_view::entry::AnyModelProvider::new(MockEntries::new(1000));
     list_view.frp.resize(Vector2(100.0, 160.0));

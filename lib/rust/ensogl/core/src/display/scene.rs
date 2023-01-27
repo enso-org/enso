@@ -18,8 +18,8 @@ use crate::display::scene::dom::DomScene;
 use crate::display::shape::primitive::glsl;
 use crate::display::style;
 use crate::display::style::data::DataMatch;
-use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
+use crate::display::world;
 use crate::system;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
@@ -349,7 +349,7 @@ impl DomLayers {
         let canvas = web::document.create_canvas_or_panic();
         canvas.set_style_or_warn("display", "block");
         canvas.set_style_or_warn("z-index", "3");
-        // These properties are set by `DomScene::new` constuctor for other layers.
+        // These properties are set by `DomScene::new` constructor for other layers.
         // See its documentation for more info.
         canvas.set_style_or_warn("position", "absolute");
         canvas.set_style_or_warn("height", "100vh");
@@ -403,15 +403,12 @@ pub type SymbolRegistryDirty = dirty::SharedBool<Box<dyn Fn()>>;
 
 #[derive(Clone, CloneRef, Debug)]
 pub struct Dirty {
-    symbols: SymbolRegistryDirty,
-    shape:   ShapeDirty,
+    shape: ShapeDirty,
 }
 
 impl Dirty {
     pub fn new<OnMut: Fn() + Clone + 'static>(on_mut: OnMut) -> Self {
-        let shape = ShapeDirty::new(Box::new(on_mut.clone()));
-        let symbols = SymbolRegistryDirty::new(Box::new(on_mut));
-        Self { symbols, shape }
+        Self { shape: ShapeDirty::new(Box::new(on_mut)) }
     }
 }
 
@@ -703,7 +700,6 @@ pub struct SceneData {
     pub dom: Dom,
     pub context: Rc<RefCell<Option<Context>>>,
     pub context_lost_handler: Rc<RefCell<Option<ContextLostHandler>>>,
-    pub symbols: SymbolRegistry,
     pub variables: UniformScope,
     pub current_js_event: CurrentJsEvent,
     pub mouse: Mouse,
@@ -737,17 +733,15 @@ impl SceneData {
         let display_mode = display_mode.clone_ref();
         let dom = Dom::new();
         let display_object = display::object::Root::new_named("Scene");
-        let variables = UniformScope::new();
+        let variables = world::with_context(|t| t.variables.clone_ref());
         let dirty = Dirty::new(on_mut);
-        let symbols_dirty = &dirty.symbols;
-        let symbols = SymbolRegistry::mk(&variables, stats, f!(symbols_dirty.set()));
-        let layers = HardcodedLayers::new();
+        let layers = world::with_context(|t| t.layers.clone_ref());
         let stats = stats.clone();
         let background = PointerTarget::new();
         let pointer_target_registry = PointerTargetRegistry::new(&background);
         let uniforms = Uniforms::new(&variables);
         let renderer = Renderer::new(&dom, &variables);
-        let style_sheet = style::Sheet::new();
+        let style_sheet = world::with_context(|t| t.style_sheet.clone_ref());
         let current_js_event = CurrentJsEvent::new();
         let frp = Frp::new(&dom.root.shape);
         let mouse = Mouse::new(&frp, &dom.root, &variables, &current_js_event, &display_mode);
@@ -779,7 +773,6 @@ impl SceneData {
             dom,
             context,
             context_lost_handler,
-            symbols,
             variables,
             current_js_event,
             mouse,
@@ -812,7 +805,7 @@ impl SceneData {
     /// restoration, after the context was lost. See the docs of [`Context`] to learn more.
     pub fn set_context(&self, context: Option<&Context>) {
         let _profiler = profiler::start_objective!(profiler::APP_LIFETIME, "@set_context");
-        self.symbols.set_context(context);
+        world::with_context(|t| t.set_context(context));
         *self.context.borrow_mut() = context.cloned();
         self.dirty.shape.set();
         self.renderer.set_context(context);
@@ -827,11 +820,7 @@ impl SceneData {
     }
 
     pub fn new_symbol(&self) -> Symbol {
-        self.symbols.new()
-    }
-
-    pub fn symbols(&self) -> &SymbolRegistry {
-        &self.symbols
+        world::with_context(|t| t.new())
     }
 
     fn update_shape(&self) -> bool {
@@ -850,13 +839,7 @@ impl SceneData {
     }
 
     fn update_symbols(&self) -> bool {
-        if self.dirty.symbols.check_all() {
-            self.symbols.update();
-            self.dirty.symbols.unset_all();
-            true
-        } else {
-            false
-        }
+        world::with_context(|context| context.update())
     }
 
     fn update_camera(&self, scene: &Scene) -> bool {
@@ -871,7 +854,7 @@ impl SceneData {
         if changed {
             was_dirty = true;
             self.frp.camera_changed_source.emit(());
-            self.symbols.set_camera(&camera);
+            world::with_context(|t| t.set_camera(&camera));
             self.dom.layers.front.update_view_projection(&camera);
             self.dom.layers.back.update_view_projection(&camera);
         }

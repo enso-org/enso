@@ -1,3 +1,6 @@
+# This file is auto-generated. Do not edit it manually!
+# Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
+
 name: GUI CI
 on:
   push:
@@ -6,7 +9,7 @@ on:
   pull_request: {}
   workflow_dispatch: {}
 jobs:
-  enso-build-cli-ci-gen-job-build-backend-linux:
+  enso-build-ci-gen-job-build-backend-linux:
     name: Build Backend (linux)
     runs-on:
       - self-hosted
@@ -68,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-build-backend-macos:
+  enso-build-ci-gen-job-build-backend-macos:
     name: Build Backend (macos)
     runs-on:
       - macos-latest
@@ -128,7 +131,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-build-backend-windows:
+  enso-build-ci-gen-job-build-backend-windows:
     name: Build Backend (windows)
     runs-on:
       - self-hosted
@@ -190,7 +193,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-build-wasm-linux:
+  enso-build-ci-gen-job-build-wasm-linux:
     name: Build GUI (WASM) (linux)
     runs-on:
       - self-hosted
@@ -252,7 +255,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-build-wasm-macos:
+  enso-build-ci-gen-job-build-wasm-macos:
     name: Build GUI (WASM) (macos)
     runs-on:
       - macos-latest
@@ -312,7 +315,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-build-wasm-windows:
+  enso-build-ci-gen-job-build-wasm-windows:
     name: Build GUI (WASM) (windows)
     runs-on:
       - self-hosted
@@ -374,7 +377,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-cancel-workflow-linux:
+  enso-build-ci-gen-job-cancel-workflow-linux:
     name: Cancel Previous Runs
     runs-on:
       - ubuntu-latest
@@ -383,7 +386,7 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.1
         with:
           access_token: ${{ github.token }}
-  enso-build-cli-ci-gen-job-lint-linux:
+  enso-build-ci-gen-job-lint-linux:
     name: Lint (linux)
     runs-on:
       - self-hosted
@@ -445,7 +448,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-native-test-linux:
+  enso-build-ci-gen-job-native-test-linux:
     name: Native GUI tests (linux)
     runs-on:
       - self-hosted
@@ -507,11 +510,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-package-ide-linux:
+  enso-build-ci-gen-job-package-ide-linux:
     name: Package IDE (linux)
     needs:
-      - enso-build-cli-ci-gen-job-build-backend-linux
-      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-build-backend-linux
+      - enso-build-ci-gen-job-build-wasm-linux
     runs-on:
       - self-hosted
       - Linux
@@ -572,11 +575,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-package-ide-macos:
+  enso-build-ci-gen-job-package-ide-macos:
     name: Package IDE (macos)
     needs:
-      - enso-build-cli-ci-gen-job-build-backend-macos
-      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-build-backend-macos
+      - enso-build-ci-gen-job-build-wasm-linux
     runs-on:
       - macos-latest
     steps:
@@ -640,11 +643,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-package-ide-windows:
+  enso-build-ci-gen-job-package-ide-windows:
     name: Package IDE (windows)
     needs:
-      - enso-build-cli-ci-gen-job-build-backend-windows
-      - enso-build-cli-ci-gen-job-build-wasm-linux
+      - enso-build-ci-gen-job-build-backend-windows
+      - enso-build-ci-gen-job-build-wasm-linux
     runs-on:
       - self-hosted
       - Windows
@@ -707,7 +710,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         timeout-minutes: 360
-  enso-build-cli-ci-gen-job-wasm-test-linux:
+  enso-build-ci-gen-job-wasm-test-linux:
     name: WASM GUI tests (linux)
     runs-on:
       - self-hosted
