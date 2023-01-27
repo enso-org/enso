@@ -472,6 +472,7 @@ pub enum Shape<T> {
     // === Identifiers ===
     Blank {},
     Var {
+        off:  usize,
         name: String,
     },
     Cons {
@@ -580,18 +581,24 @@ pub enum Shape<T> {
         paths: MatchTree<Ast, Unit>,
     },
     Tree {
-        repr:          String,
-        span_analysis: SpanAnalysis,
+        particleboard: Vec<ParticleBoard>,
     },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SpanAnalysis {
+pub enum ParticleBoard {
+    Space(usize),
+    Token(String),
+    Child(Ast),
 }
 
-impl SpanAnalysis {
-    pub fn new(tree: &enso_parser::syntax::Tree<'_>) -> Self {
-        Self {}
+impl<'a> From<&'a ParticleBoard> for Token<'a> {
+    fn from(value: &'a ParticleBoard) -> Self {
+        match value {
+            ParticleBoard::Space(n) => Token::Off(*n),
+            ParticleBoard::Token(s) => Token::Str(s),
+            ParticleBoard::Child(a) => Token::Ast(a),
+        }
     }
 }
 
@@ -1428,14 +1435,16 @@ impl Ast {
 
     /// Creates an Ast node with Var inside and given ID.
     pub fn var_with_id(name: impl Str, id: Id) -> Ast {
+        let off = 0;
         let name = name.into();
-        let var = Var { name };
+        let var = Var { name, off };
         Ast::new(var, Some(id))
     }
 
     /// Creates an AST node with `Var` shape.
     pub fn var(name: impl Str) -> Ast {
-        let var = Var { name: name.into() };
+        let off = 0;
+        let var = Var { name: name.into(), off };
         Ast::from(var)
     }
 

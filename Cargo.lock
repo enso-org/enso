@@ -129,7 +129,6 @@ dependencies = [
  "ast-macros",
  "derive_more",
  "enso-data-structures",
- "enso-parser",
  "enso-prelude",
  "enso-profiler",
  "enso-shapely",
@@ -5306,11 +5305,8 @@ dependencies = [
  "ast",
  "bytes 1.1.0",
  "console_error_panic_hook",
- "enso-data-structures",
- "enso-parser",
  "enso-prelude",
  "enso-profiler",
- "enso-text",
  "failure",
  "futures 0.3.26",
  "ide-ci",
@@ -5320,7 +5316,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "uuid 0.8.2",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "websocket",
@@ -7487,7 +7482,6 @@ checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 dependencies = [
  "getrandom 0.2.8",
  "serde",
- "sha1 0.6.1",
 ]
 
 [[package]]

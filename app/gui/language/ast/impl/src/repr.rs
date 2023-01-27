@@ -335,6 +335,8 @@ has_tokens!(Ambiguous<T>, self.segs);
 
 impl HasTokens for Tree {
     fn feed_to(&self, consumer: &mut impl TokenConsumer) {
-        self.repr.feed_to(consumer)
+        for dust in &self.particleboard {
+            Token::from(dust).feed_to(consumer)
+        }
     }
 }

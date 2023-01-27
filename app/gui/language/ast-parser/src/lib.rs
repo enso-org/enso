@@ -103,3 +103,16 @@ impl Parser {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use ast::HasRepr;
+    use super::*;
+
+    #[test]
+    fn test_group_repr() {
+        let code = "bar (Foo (a b))";
+        let ast = Parser::new().parse_line_ast(code).unwrap();
+        assert_eq!(ast.repr(), code);
+    }
+}

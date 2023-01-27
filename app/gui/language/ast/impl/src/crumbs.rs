@@ -8,6 +8,7 @@ use crate::enumerate_non_empty_lines;
 use crate::known;
 use crate::HasTokens;
 use crate::MacroPatternMatch;
+use crate::ParticleBoard;
 use crate::Shape;
 use crate::Shifted;
 use crate::ShiftedVec1;
@@ -427,7 +428,9 @@ impl_crumbs! {
     ( TextBlockFmt  , TextBlockFmtCrumb  , is_text_block_fmt ),
     ( TextUnclosed  , TextUnclosedCrumb  , is_text_unclosed  ),
     ( Match         , MatchCrumb         , is_match          ),
-    ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      )
+    ( Ambiguous     , AmbiguousCrumb     , is_ambiguous      ),
+    // Tree
+    ( Tree          , TreeCrumb          , is_tree           )
 }
 
 
@@ -1165,6 +1168,53 @@ where
     fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
         self.ast().iter_subcrumbs()
     }
+}
+
+
+
+// ===================
+// === Tree crumbs ===
+// ===================
+
+impl Crumbable for crate::Tree {
+    type Crumb = TreeCrumb;
+
+    fn get(&self, crumb: &Self::Crumb) -> FallibleResult<&Ast> {
+        match self
+            .particleboard
+            .get(crumb.index)
+            .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?
+        {
+            ParticleBoard::Child(a) => Ok(a),
+            _ => Err(MismatchedCrumbType.into()),
+        }
+    }
+
+    fn set(&self, crumb: &Self::Crumb, new_ast: Ast) -> FallibleResult<Self> {
+        let mut result = self.clone();
+        let child = result
+            .particleboard
+            .get_mut(crumb.index)
+            .ok_or_else(|| IndexOutOfBounds("Tree child".into()))?;
+        *child = ParticleBoard::Child(new_ast);
+        Ok(result)
+    }
+
+    fn iter_subcrumbs<'a>(&'a self) -> Box<dyn Iterator<Item = Self::Crumb> + 'a> {
+        let mut subcrumbs = Vec::new();
+        for (index, thing) in self.particleboard.iter().enumerate() {
+            if matches!(thing, ParticleBoard::Child(_)) {
+                subcrumbs.push(TreeCrumb { index });
+            }
+        }
+        Box::new(subcrumbs.into_iter())
+    }
+}
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct TreeCrumb {
+    pub index: usize,
 }
 
 

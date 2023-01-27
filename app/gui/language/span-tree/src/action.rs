@@ -261,7 +261,7 @@ mod test {
                 let node = node.unwrap_or_else(|| {
                     panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
                 });
-                let arg = Ast::new(ast::Var { name: "foo".to_string() }, None);
+                let arg = Ast::new(ast::Var { name: "foo".to_string(), off: 0 }, None);
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
                     Erase => node.erase(&ast),

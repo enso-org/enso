@@ -1216,7 +1216,7 @@ main =
         let mut test = Fixture::set_up();
         test.run(|graph| async move {
             let foo = graph.parse_node_expression("foo").unwrap();
-            assert_eq!(expect_shape::<ast::Var>(&foo), &ast::Var { name: "foo".into() });
+            assert_eq!(expect_shape::<ast::Var>(&foo), &ast::Var { name: "foo".into(), off: 0 });
 
             assert!(graph.parse_node_expression("Vec").is_ok());
             assert!(graph.parse_node_expression("5").is_ok());

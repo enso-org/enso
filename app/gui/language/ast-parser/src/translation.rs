@@ -1,11 +1,11 @@
-use ast::{Ast, SpanAnalysis};
+use ast::Ast;
 use enso_parser::syntax;
 use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
 
 fn todo_ast(todo: Todo) -> Ast {
-    Ast::from(ast::Var { name: format!("Todo::{:?}", todo) })
+    Ast::from(ast::Var { name: format!("Todo::{:?}", todo), off: 0 })
 }
 
 pub fn to_legacy_ast_module(tree: &Tree) -> Result<Ast, ()> {
@@ -22,18 +22,9 @@ pub fn to_legacy_ast(tree: &Tree) -> Ast {
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Todo {
     UnaryOprSection,
-    Import,
-    Export,
-    Invalid,
-    AutoScope,
-    TextLiteral,
-    MultiSegmentApp,
     TypeDef,
     CaseOf,
     Lambda,
-    Tuple,
-    Annotated,
-    Array,
 }
 
 // TODO: Whitespace:
@@ -43,25 +34,25 @@ pub enum Todo {
 pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
     Ok(match &*tree.variant {
         tree::Variant::BodyBlock(block) => translate_block(&block.statements).into(),
+        tree::Variant::Ident(ident) => translate_var(&ident.token, &tree.span.left_offset),
+        /*
         tree::Variant::Ident(tree::Ident { token }) if token.is_type =>
             Ast::from(ast::Cons { name: token.code.to_string() }),
-        tree::Variant::Ident(tree::Ident { token }) =>
-            Ast::from(ast::Var { name: token.code.to_string() }),
         tree::Variant::Number(tree::Number { base, integer, .. }) => Ast::from(ast::Number {
             base: base.as_ref().map(|base| base.code.to_string()),
             int:  integer.as_ref().map(|integer| integer.code.to_string()).unwrap_or_default(),
         }),
         tree::Variant::App(tree::App { func, arg }) => {
-            // In `Ast` spaces between siblings belonged to the parent node, but in `Tree` every
-            // node owns its preceding whitespace.
-            //let off = arg.span.left_offset.visible.width_in_spaces;
-            let off = 0;
+            // FIXME: In `Ast` spaces between siblings belonged to the parent node, but in `Tree`
+            // every node owns its preceding whitespace.
+            let off = arg.span.left_offset.visible.width_in_spaces;
             Ast::from(ast::Prefix { func: to_legacy_ast(func), off, arg: to_legacy_ast(arg) })
         }
         tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) =>
             translate_opr_app(lhs.as_ref(), opr, rhs.as_ref()),
         tree::Variant::OprSectionBoundary(tree::OprSectionBoundary { ast, .. }) =>
             to_legacy_ast(ast),
+         */
         tree::Variant::Function(tree::Function { name, args, equals, body }) => {
             let name = to_legacy_ast(name);
             let mut lhs_terms = vec![name];
@@ -94,7 +85,7 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             let tree::ForeignFunction { foreign, language, name, args, equals, body } = func;
             let mut lhs_terms: Vec<_> = [foreign, language, name]
                 .into_iter()
-                .map(|ident| Ast::from(ast::Var { name: ident.code.to_string() }))
+                .map(|ident| translate_var(ident, &ident.left_offset))
                 .collect();
             lhs_terms.extend(args.into_iter().map(translate_argument_definition));
             let larg = lhs_terms
@@ -102,7 +93,7 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
                 .reduce(|func, arg| {
                     Ast::from(ast::Prefix {
                         func,
-                        off: 1, // TODO
+                        off: 0,
                         arg,
                     })
                 })
@@ -141,13 +132,13 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
         tree::Variant::DefaultApp(tree::DefaultApp { func, default }) => {
             let func = to_legacy_ast(func);
             let off = default.left_offset.visible.width_in_spaces;
-            let arg = Ast::from(ast::Var { name: default.code.to_string() });
+            let arg = Ast::from(ast::Var { name: default.code.to_string(), off: 0 });
             Ast::from(ast::Prefix { func, off, arg })
         }
         tree::Variant::NamedApp(tree::NamedApp { func, open, name, equals, arg, close }) => {
             let func = to_legacy_ast(func);
             let off = name.left_offset.visible.width_in_spaces; // TODO: open || name
-            let larg = Ast::from(ast::Var { name: name.code.to_string() });
+            let larg = Ast::from(ast::Var { name: name.code.to_string(), off: 0 });
             let loff = equals.left_offset.visible.width_in_spaces;
             let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
             let roff = arg.span.left_offset.visible.width_in_spaces;
@@ -171,35 +162,15 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             Ast::from(ast::Prefix { func, off, arg })
         }
         tree::Variant::Documented(tree::Documented { documentation, expression }) =>
-        // TODO. Documented/Comment are spaceless...
             to_legacy_ast(expression.as_ref().unwrap()),
-        tree::Variant::Group(tree::Group { open, body, close }) => Ast::from(ast::Tree {
-            repr:          tree.code(),
-            span_analysis: SpanAnalysis::new(tree),
-        }),
-        tree::Variant::Array(tree::Array { left, first, rest, right }) => return Err(Todo::Array),
-        /*
-           Ast::from(ast::Tree {
-               repr: tree.code(),
-               resolved: Ast::from_ast_id_len(ast::Shape::SequenceLiteral(ast::SequenceLiteral {
-                   items: first.iter().chain(rest.iter().filter_map(|e| e.body.as_ref())).map(to_legacy_ast).collect(),
-               }), None, 0),
-           }),
-        */
-        tree::Variant::Import(_) => return Err(Todo::Import),
-        tree::Variant::Export(_) => return Err(Todo::Export),
-        tree::Variant::Invalid(_) => return Err(Todo::Invalid),
-        tree::Variant::AutoScope(_) => return Err(Todo::AutoScope),
-        tree::Variant::TextLiteral(_) => return Err(Todo::TextLiteral),
-        tree::Variant::MultiSegmentApp(_) => return Err(Todo::MultiSegmentApp),
-        tree::Variant::TypeDef(_) => return Err(Todo::TypeDef),
-        tree::Variant::CaseOf(_) => return Err(Todo::CaseOf),
-        tree::Variant::Lambda(_) => return Err(Todo::Lambda),
-        tree::Variant::Tuple(_) => return Err(Todo::Tuple),
-        tree::Variant::Annotated(_) => return Err(Todo::Annotated),
-        // This type should only occur in the body of a `TypeDef`, or in an `Invalid`.
-        tree::Variant::ConstructorDefinition(_) => todo!(),
+        _ => Ast::from(ast::Tree { particleboard: deconstruct_tree(tree) }),
     })
+}
+
+fn translate_var(token: &syntax::token::Ident, offset: &enso_parser::source::Offset) -> Ast {
+    let name = token.code.to_string();
+    let off = offset.visible.width_in_spaces;
+    Ast::from(ast::Var { name, off })
 }
 
 fn opr_app(lhs: &Tree, opr: &syntax::token::Operator, rhs: &Tree) -> Ast {
@@ -338,4 +309,37 @@ fn translate_argument_definition(arg: &tree::ArgumentDefinition) -> Ast {
     }
     // TODO: handle all the other optional fields
     term
+}
+
+
+// === DeconstructTree ===
+
+#[derive(Default)]
+pub struct DeconstructTree {
+    particles: Vec<ast::ParticleBoard>,
+}
+
+impl enso_parser::syntax::tree::Visitor for DeconstructTree {}
+impl<'s, 'a> enso_parser::syntax::tree::ItemVisitor<'s, 'a> for DeconstructTree {
+    fn visit_item(&mut self, item: enso_parser::syntax::item::Ref<'s, 'a>) -> bool {
+        match item {
+            enso_parser::syntax::item::Ref::Token(token) => {
+                if token.left_offset.visible.width_in_spaces > 0 {
+                    self.particles
+                        .push(ast::ParticleBoard::Space(token.left_offset.visible.width_in_spaces));
+                }
+                self.particles.push(ast::ParticleBoard::Token(token.code.to_string()));
+            }
+            enso_parser::syntax::item::Ref::Tree(tree) =>
+                self.particles.push(ast::ParticleBoard::Child(to_legacy_ast(tree))),
+        }
+        false
+    }
+}
+
+pub fn deconstruct_tree(tree: &enso_parser::syntax::tree::Tree<'_>) -> Vec<ast::ParticleBoard> {
+    use enso_parser::syntax::tree::ItemVisitable;
+    let mut deconstructor = DeconstructTree::default();
+    tree.variant.visit_item(&mut deconstructor);
+    deconstructor.particles
 }

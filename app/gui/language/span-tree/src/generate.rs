@@ -5,7 +5,7 @@ use enso_text::unit::*;
 
 use crate::generate::context::CalledMethodInfo;
 use crate::node;
-use crate::node::InsertionPointType;
+use crate::node::{InsertionPointType, Kind};
 use crate::node::Payload;
 use crate::ArgumentInfo;
 use crate::Node;
@@ -14,7 +14,7 @@ use crate::SpanTree;
 use ast::assoc::Assoc;
 use ast::crumbs::Located;
 use ast::opr::GeneralizedInfix;
-use ast::Ast;
+use ast::{Ast, ParticleBoard};
 use ast::HasRepr;
 use ast::MacroAmbiguousSegment;
 use ast::MacroMatchSegment;
@@ -220,12 +220,7 @@ fn generate_node_for_ast<T: Payload>(
                 ast::prefix::Chain::from_ast(ast).unwrap().generate_node(kind, context),
             // Lambdas should fall in _ case, because we don't want to create subports for
             // them
-            ast::Shape::Match(_) if ast::macros::as_lambda_match(ast).is_none() =>
-                ast::known::Match::try_new(ast.clone_ref()).unwrap().generate_node(kind, context),
-            ast::Shape::Tree(tree) => tree.span_analysis.generate_node(kind, context),
-            ast::Shape::Ambiguous(_) => ast::known::Ambiguous::try_new(ast.clone_ref())
-                .unwrap()
-                .generate_node(kind, context),
+            ast::Shape::Tree(tree) => tree_generate_node(tree, kind, context),
             _ => {
                 let size = (ast.len().value as i32).byte_diff();
                 let ast_id = ast.id;
@@ -577,21 +572,33 @@ fn generate_expected_arguments<T: Payload>(
 // === SpanTree for Tree ===
 // =========================
 
-impl<T: Default> SpanTreeGenerator<T> for ast::SpanAnalysis {
-    fn generate_node(&self, kind: impl Into<Kind>, context: &impl Context) -> FallibleResult<Node<T>> {
-        let kind = kind.into();
-        let size = 0.into();
-        let children = default(); // TODO
-        let ast_id = default(); // TODO
-        let payload = default();
-        Ok(Node {
-            kind,
-            size,
-            children,
-            ast_id,
-            payload,
-        })
+fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<Kind>, context: &impl Context) -> FallibleResult<Node<T>> {
+    let kind = kind.into();
+    let mut offset = ByteDiff::from(0);
+    let mut children = vec![];
+    for (index, thing) in tree.particleboard.iter().enumerate() {
+        match thing {
+            ParticleBoard::Space(n) => offset += ByteDiff::from(n),
+            ParticleBoard::Token(s) => offset += ByteDiff::from(s.len()),
+            ParticleBoard::Child(a) => {
+                let node = a.generate_node(kind.clone(), context)?;
+                let child_size = node.size;
+                let ast_crumbs = vec![ast::crumbs::TreeCrumb { index }.into()];
+                children.push(node::Child { node, offset, ast_crumbs });
+                offset += child_size;
+            },
+        }
     }
+    let size = offset;
+    let ast_id = default(); // TODO
+    let payload = default();
+    Ok(Node {
+        kind,
+        size,
+        children,
+        ast_id,
+        payload,
+    })
 }
 
 

@@ -106,15 +106,3 @@ type Client = wsclient::Client;
 /// Used as an interface for our (scala) parser.
 #[cfg(target_arch = "wasm32")]
 type Client = jsclient::Client;
-
-/// Deserialize value from json text.
-///
-/// Unlike `serde_json::from_str` it runs with recursion limit disabled, allowing deserialization of
-/// deeply nested ASTs.
-pub fn from_json_str_without_recursion_limit<'de, Value: serde::Deserialize<'de>>(
-    json_text: &'de str,
-) -> Result<Value, serde_json::Error> {
-    let mut de = serde_json::Deserializer::from_str(json_text);
-    de.disable_recursion_limit();
-    Value::deserialize(&mut de)
-}

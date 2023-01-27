@@ -1,28 +1,6 @@
 //! A module containing structures and traits used in parser API.
 
 use crate::prelude::*;
-use enso_text::index::*;
-use enso_text::traits::*;
-use enso_text::unit::*;
-
-use ast::id_map::JsonIdMap;
-use ast::HasIdMap;
-use ast::HasRepr;
-use ast::IdMap;
-use enso_text::Range;
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-use serde::Serialize;
-
-
-// ==============
-// === Export ===
-// ==============
-
-pub use ast::Ast;
-
-
-
 
 // ===========
 // == Error ==
