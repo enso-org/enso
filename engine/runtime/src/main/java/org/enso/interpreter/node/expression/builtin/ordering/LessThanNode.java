@@ -35,7 +35,7 @@ public abstract class LessThanNode extends Node {
     return LessThanNodeGen.create();
   }
 
-  public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object other);
+  public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object other);
 
   @Specialization
   boolean lessIntegers(int i, int j) {

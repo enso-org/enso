@@ -65,7 +65,7 @@ public abstract class EqualsNode extends Node {
     return EqualsNodeGen.create();
   }
 
-  public abstract boolean execute(@AcceptsError Object self, @AcceptsError Object right);
+  public abstract boolean execute(@AcceptsError Object left, @AcceptsError Object right);
 
   /**
    * Primitive values
@@ -556,6 +556,7 @@ public abstract class EqualsNode extends Node {
                                        @Cached(value = "getAnyEqualsMethod()", allowUncached = true) Function anyEqualsFunc,
                                        @Cached(value = "buildInvokeFuncNodeForAnyEquals()", allowUncached = true) InvokeFunctionNode invokeAnyEqualsNode,
                                        @CachedLibrary(limit = "3") InteropLibrary interop) {
+      // TODO: Shouldn't Comparable type be the very first argument? (synthetic self)?
       Object ret = invokeAnyEqualsNode.execute(
           anyEqualsFunc,
           null,
