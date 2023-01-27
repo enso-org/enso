@@ -188,6 +188,11 @@ define_themes! { [light:0, dark:1]
             panels_gap = 3.0, 3.0;
             documentation {
                 width = 400.0, 400.0;
+                height = 459.0, 459.0;
+                background = graph_editor::node::background, graph_editor::node::background;
+                caption_height = 30.0, 30.0;
+                caption_animation_spring_multiplier = 1.5, 1.5;
+                corner_radius = 14.0, 14.0;
             }
             component_list_panel {
                 background_color = Rgb::from_base_255(236.0, 240.0, 242.0),Rgb::from_base_255(236.0, 240.0, 242.0);
@@ -431,10 +436,6 @@ define_themes! { [light:0, dark:1]
                     icon_color       = Rgb::new(0.0,0.38,0.0),    Rgb::new(0.0,0.38,0.0);
                 }
             }
-        }
-
-        documentation {
-            background = graph_editor::node::background, graph_editor::node::background;
         }
         status_bar {
             text = text, text;
