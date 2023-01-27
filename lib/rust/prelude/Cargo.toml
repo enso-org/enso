@@ -31,7 +31,6 @@ failure = "0.1.5"
 futures = { version = "0.3.1" }
 itertools = "0.10.0"
 lazy_static = "1.4"
-num = "0.4.0"
 paste = "1.0"
 serde = { version = "1.0.126", features = ["derive", "rc"] }
 serde_json = { version = "1.0" }

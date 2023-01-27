@@ -91,7 +91,6 @@ pub use enclose::enclose;
 pub use failure::Fail;
 pub use itertools::Itertools;
 pub use lazy_static::lazy_static;
-pub use num::Num;
 pub use paste::paste;
 
 pub use weak_table;
