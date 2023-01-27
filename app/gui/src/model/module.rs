@@ -287,6 +287,8 @@ pub enum NotificationKind {
     MetadataChanged,
     /// The whole content was reloaded from file.
     Reloaded {
+        /// Content of the reloaded file.
+        content: String,
         /// Content summary of the reloaded file.
         summary: synchronized::ContentSummary,
     },
