@@ -2851,7 +2851,9 @@ class RuntimeVisualizationsTest
         contextId,
         idMain,
         ConstantsGen.INTEGER,
-        payload = Api.ExpressionUpdate.Payload.Value(1, Some("'y'"))
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+        )
       ),
       context.executionComplete(contextId)
     )
@@ -3047,13 +3049,17 @@ class RuntimeVisualizationsTest
             "attach"
           )
         ),
-        payload = Api.ExpressionUpdate.Payload.Value(1, Some("'x'"))
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
+        )
       ),
       TestMessages.update(
         contextId,
         idRes,
         s"$moduleName.Newtype",
-        payload = Api.ExpressionUpdate.Payload.Value(1, Some("'x'"))
+        payload = Api.ExpressionUpdate.Payload.Value(
+          Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'x'")))
+        )
       ),
       context.executionComplete(contextId)
     )

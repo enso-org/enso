@@ -381,12 +381,17 @@ object ProgramExecutionSupport {
           val warningsCount = withWarnings.getWarningsCount
           val warning =
             if (warningsCount == 1) {
-              val warnings = withWarnings.getWarningsArray(null);
+              val warnings = withWarnings.getWarningsArray(null)
               Option(ctx.executionService.toDisplayString(warnings(0).getValue))
             } else {
               None
             }
-          Api.ExpressionUpdate.Payload.Value(warningsCount, warning)
+          Api.ExpressionUpdate.Payload.Value(
+            Some(
+              Api.ExpressionUpdate.Payload.Value
+                .Warnings(warningsCount, warning)
+            )
+          )
         case _ =>
           Api.ExpressionUpdate.Payload.Value()
       }

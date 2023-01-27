@@ -176,11 +176,18 @@ object ContextRegistryProtocol {
 
       /** An information about computed expression.
         *
-        * @param warningsCount the number of attached warnings
-        * @param warning textual representation of the attached warning
+        * @param warnings information about attached warnings.
         */
-      case class Value(warningsCount: Int, warning: Option[String])
-          extends Payload
+      case class Value(warnings: Option[Value.Warnings]) extends Payload
+      object Value {
+
+        /** Information about warnings associated with the value.
+          *
+          * @param count the number of attached warnings
+          * @param value textual representation of the attached warning
+          */
+        case class Warnings(count: Int, value: Option[String])
+      }
 
       case class Pending(message: Option[String], progress: Option[Double])
           extends Payload

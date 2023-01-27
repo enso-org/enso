@@ -104,8 +104,7 @@ class ContextEventsListenerSpec
                   Some(suggestionIds(1).get),
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload
-                    .Value(0, None)
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
                 )
               )
             )
@@ -245,8 +244,7 @@ class ContextEventsListenerSpec
                   None,
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload
-                    .Value(0, None)
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
                 ),
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.local.externalId.get,
@@ -254,8 +252,7 @@ class ContextEventsListenerSpec
                   None,
                   Vector(),
                   false,
-                  ContextRegistryProtocol.ExpressionUpdate.Payload
-                    .Value(0, None)
+                  ContextRegistryProtocol.ExpressionUpdate.Payload.Value(None)
                 )
               )
             )

@@ -244,9 +244,10 @@ final class ContextEventsListener(
     payload: Api.ExpressionUpdate.Payload
   ): ContextRegistryProtocol.ExpressionUpdate.Payload =
     payload match {
-      case Api.ExpressionUpdate.Payload.Value(warningsCount, warning) =>
-        ContextRegistryProtocol.ExpressionUpdate.Payload
-          .Value(warningsCount, warning)
+      case Api.ExpressionUpdate.Payload.Value(warnings) =>
+        ContextRegistryProtocol.ExpressionUpdate.Payload.Value(
+          warnings.map(toProtocolWarnings)
+        )
 
       case Api.ExpressionUpdate.Payload.Pending(m, p) =>
         ContextRegistryProtocol.ExpressionUpdate.Payload.Pending(m, p)
@@ -258,6 +259,17 @@ final class ContextEventsListener(
         ContextRegistryProtocol.ExpressionUpdate.Payload
           .Panic(message, trace)
     }
+
+  /** Convert the runtime warnings to the context registry protocol
+    * representation
+    *
+    * @param payload the warnings payload
+    */
+  private def toProtocolWarnings(
+    payload: Api.ExpressionUpdate.Payload.Value.Warnings
+  ): ContextRegistryProtocol.ExpressionUpdate.Payload.Value.Warnings =
+    ContextRegistryProtocol.ExpressionUpdate.Payload.Value
+      .Warnings(payload.count, payload.warning)
 
   /** Convert the runtime profiling info to the context registry protocol
     * representation.

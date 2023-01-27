@@ -3863,7 +3863,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3892,7 +3892,9 @@ class RuntimeServerTest
           ConstantsGen.TEXT,
           methodPointer =
             Some(Api.MethodPointer(moduleName, moduleName, "attach")),
-          payload = Api.ExpressionUpdate.Payload.Value(1, Some("'y'"))
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
         ),
       TestMessages
         .update(
@@ -3901,8 +3903,12 @@ class RuntimeServerTest
           ConstantsGen.TEXT,
           methodPointer =
             Some(Api.MethodPointer(moduleName, moduleName, "attach")),
-          payload =
-            Api.ExpressionUpdate.Payload.Value(1, Some("(My_Warning.Value 42)"))
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(
+              Api.ExpressionUpdate.Payload.Value
+                .Warnings(1, Some("(My_Warning.Value 42)"))
+            )
+          )
         ),
       TestMessages
         .update(
@@ -3911,7 +3917,8 @@ class RuntimeServerTest
           ConstantsGen.TEXT,
           methodPointer =
             Some(Api.MethodPointer(moduleName, moduleName, "attach")),
-          payload = Api.ExpressionUpdate.Payload.Value(2)
+          payload = Api.ExpressionUpdate.Payload
+            .Value(Some(Api.ExpressionUpdate.Payload.Value.Warnings(2, None)))
         ),
       context.executionComplete(contextId)
     )
@@ -3972,21 +3979,27 @@ class RuntimeServerTest
           contextId,
           idX,
           ConstantsGen.INTEGER,
-          payload = Api.ExpressionUpdate.Payload.Value(1, Some("'y'"))
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
         ),
       TestMessages
         .update(
           contextId,
           idY,
           ConstantsGen.INTEGER,
-          payload = Api.ExpressionUpdate.Payload.Value(1, Some("'y'"))
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
         ),
       TestMessages
         .update(
           contextId,
           idRes,
           ConstantsGen.NOTHING,
-          payload = Api.ExpressionUpdate.Payload.Value(1, Some("'y'"))
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
         ),
       context.executionComplete(contextId)
     )
