@@ -411,8 +411,9 @@ interface Warnings {
   count: number;
 
   /**
-   * If the value has a single warning attached, the field contains textual
-   * representation of the attached warning.
+   * If the value has a single warning attached, this field contains textual
+   * representation of the attached warning. In general, warning values should
+   * be obtained by attaching an appropriate visualization to a value.
    */
   value?: string;
 }
