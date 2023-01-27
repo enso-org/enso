@@ -124,9 +124,9 @@ impl BlockingGetErrorLog for WebGl2RenderingContext {
             let error_loc_pfx = "ERROR: 0:";
             let preview_code = if let Some(msg) = message.strip_prefix(error_loc_pfx) {
                 let line_num: String = msg.chars().take_while(|c| c.is_ascii_digit()).collect();
-                let line_num = line_num.parse::<usize>().unwrap() - 1;
+                let line_num = line_num.parse::<usize>().unwrap().saturating_sub(1);
                 let preview_radius = 5;
-                let preview_line_start = std::cmp::max(0, line_num - preview_radius);
+                let preview_line_start = std::cmp::max(0, line_num.saturating_sub(preview_radius));
                 let preview_line_end = std::cmp::min(lines_num, line_num + preview_radius);
                 let preview = lines_with_num[preview_line_start..preview_line_end].join("\n");
                 format!("...\n{}\n...", preview)

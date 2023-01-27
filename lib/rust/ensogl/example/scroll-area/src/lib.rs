@@ -24,12 +24,10 @@
 
 use ensogl_core::display::shape::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::application::Application;
 use ensogl_core::display::navigation::navigator::Navigator;
 use ensogl_core::display::object::ObjectOps;
-use ensogl_hardcoded_theme as theme;
 use ensogl_scroll_area::ScrollArea;
 use ensogl_text_msdf::run_once_initialized;
 
@@ -96,10 +94,6 @@ mod background {
 // ========================
 
 fn init(app: &Application) {
-    theme::builtin::dark::register(app);
-    theme::builtin::light::register(app);
-    theme::builtin::light::enable(app);
-
     let scene = &app.display.default_scene;
     scene.camera().set_xy(Vector2(100.0, -100.0));
 

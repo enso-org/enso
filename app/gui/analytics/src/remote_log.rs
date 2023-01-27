@@ -19,7 +19,7 @@ mod js {
     #[wasm_bindgen(inline_js = "
 export function remote_log(msg, value) {
     try {
-        window.enso.remoteLog(msg,value)
+        window.ensoglApp.remoteLog(msg,value)
     } catch (error) {
         console.error(\"Error while logging message. \" + error );
     }

@@ -121,7 +121,7 @@ class RuntimeAsyncCommandsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -182,7 +182,7 @@ class RuntimeAsyncCommandsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.OpenFileNotification(mainFile, contents))
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 

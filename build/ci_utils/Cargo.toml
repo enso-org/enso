@@ -44,9 +44,7 @@ mime = "0.3.16"
 multimap = "0.8.3"
 new_mime_guess = "4.0.0"
 nix = { workspace = true }
-octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
-  "rustls"
-] }
+octocrab = { workspace = true }
 paste = "1.0.7"
 path-absolutize = "3.0.11"
 pathdiff = "0.2.1"
@@ -58,14 +56,14 @@ pretty_env_logger = "0.4.0"
 proc-macro2 = "1.0"
 quote = "1.0"
 rand = "0.8.4"
-regex = "1.5.4"
+regex = { workspace = true }
 reqwest = { version = "0.11.5", default-features = false, features = [
   "stream"
 ] }
 semver = { version = "1.0.4", features = ["serde"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
-serde_yaml = "0.9.10"
+serde_yaml = { workspace = true }
 scopeguard = "1.1.0"
 sha2 = "0.10.2"
 shrinkwraprs = "0.3.0"

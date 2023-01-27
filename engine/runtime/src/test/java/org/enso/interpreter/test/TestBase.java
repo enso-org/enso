@@ -2,14 +2,18 @@ package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertNotNull;
 
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
@@ -71,6 +75,29 @@ public abstract class TestBase {
     unwrapperValue.execute(value);
     assertNotNull(unwrapper.args);
     return unwrapper.args[0];
+  }
+
+  /**
+   * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root
+   * node inside a context, all the other nodes, and insert them via {@link
+   * #insertChildren(Node...)}.
+   */
+  static class TestRootNode extends RootNode {
+    TestRootNode() {
+      super(EnsoLanguage.get(null));
+    }
+
+    void insertChildren(Node... children) {
+      for (Node child : children) {
+        insert(child);
+      }
+    }
+
+    /** In the tests, do not execute this root node, but execute directly the child nodes. */
+    @Override
+    public Object execute(VirtualFrame frame) {
+      throw new AssertionError("should not reach here");
+    }
   }
 
   @ExportLibrary(InteropLibrary.class)

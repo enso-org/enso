@@ -1,3 +1,5 @@
+//! Module for dealing with repositories owned by our project.
+
 use crate::prelude::*;
 
 
@@ -26,18 +28,15 @@ pub fn looks_like_enso_repository_root(path: impl AsRef<Path>) -> bool {
     .unwrap_or(false)
 }
 
+/// Deduce the path to the root of the Enso repository.
+///
+/// This function will traverse the filesystem upwards from the binary location until it finds a
+/// directory that looks like the root of the Enso repository.
 #[instrument(ret, err)]
 pub fn deduce_repository_path() -> Result<PathBuf> {
-    let candidate_paths = [
-        std::env::current_dir().ok(),
-        std::env::current_dir().ok().and_then(|p| p.parent().map(ToOwned::to_owned)),
-        std::env::current_dir().ok().and_then(|p| p.parent().map(|p| p.join("enso5"))),
-        std::env::current_dir().ok().and_then(|p| p.parent().map(|p| p.join("enso"))),
-    ];
-    for candidate in candidate_paths {
-        if let Some(path) = candidate && looks_like_enso_repository_root(&path) {
-            return Ok(path)
-        }
+    let mut path = ide_ci::env::current_exe()?;
+    while !looks_like_enso_repository_root(&path) {
+        ensure!(path.pop(), "Failed to deduce repository path.");
     }
-    bail!("Could not deduce repository path.")
+    Ok(path)
 }

@@ -33,7 +33,6 @@ use nalgebra::Vector2;
 use std::ops::Add;
 use std::ops::Mul;
 use std::rc::Rc;
-use wasm_bindgen::prelude::wasm_bindgen;
 use web::CanvasRenderingContext2d;
 use web::HtmlCanvasElement;
 

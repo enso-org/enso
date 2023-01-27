@@ -121,3 +121,33 @@ pub mod via_string {
         T::from_str(&text).map_err(D::Error::custom)
     }
 }
+
+/// Like [`via_string`] but for optional values. If the string is not present, `None` is recognized.
+pub mod via_string_opt {
+    use super::*;
+
+    /// Serializer, that uses [`Display`] trait.
+    pub fn serialize<S, T>(value: &Option<T>, ser: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: Display, {
+        if let Some(value) = value {
+            ser.collect_str(value)
+        } else {
+            ser.serialize_none()
+        }
+    }
+
+    /// Deserializer, that uses [`FromString`] trait.
+    pub fn deserialize<'de, D, T>(de: D) -> std::result::Result<Option<T>, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: FromString, {
+        let text = Option::<String>::deserialize(de)?;
+        if let Some(text) = text {
+            T::from_str(&text).map(Some).map_err(D::Error::custom)
+        } else {
+            Ok(None)
+        }
+    }
+}

@@ -18,12 +18,10 @@ futures-util = "0.3.17"
 glob = "0.3.0"
 humantime = "2.1.0"
 ide-ci = { path = "../ci_utils" }
-octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
-  "rustls"
-] }
+octocrab = { workspace = true }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = "1.0.68"
-serde_yaml = "0.9.10"
+serde_yaml = { workspace = true }
 strum = { version = "0.24.0", features = ["derive"] }
 tempfile = "3.2.0"
 tokio = { workspace = true }

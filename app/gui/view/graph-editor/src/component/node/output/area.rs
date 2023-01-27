@@ -238,7 +238,7 @@ impl Model {
 
     #[profile(Debug)]
     fn set_label(&self, content: impl Into<String>) {
-        let str = if ARGS.node_labels.unwrap_or(true) { content.into() } else { default() };
+        let str = if ARGS.node_labels { content.into() } else { default() };
         self.label.set_content(str);
     }
 
