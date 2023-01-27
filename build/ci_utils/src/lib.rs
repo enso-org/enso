@@ -1,4 +1,5 @@
 // === Features ===
+#![feature(try_blocks)]
 #![feature(result_flattening)]
 #![feature(const_fmt_arguments_new)]
 #![feature(hash_set_entry)]
@@ -53,7 +54,6 @@ pub mod fs;
 pub mod future;
 pub mod github;
 pub mod global;
-pub mod goodie;
 pub mod goodies;
 pub mod io;
 pub mod log;
@@ -96,10 +96,9 @@ pub mod prelude {
 
     pub use crate::EMPTY_REQUEST_BODY;
 
-    pub use crate::extensions::output::OutputExt as _;
+    pub use crate::cache::goodie::Goodie;
     pub use crate::github::release::IsRelease;
     pub use crate::github::repo::IsRepo;
-    pub use crate::goodie::Goodie;
     pub use crate::log::setup_logging;
     pub use crate::os::target::TARGET_ARCH;
     pub use crate::os::target::TARGET_OS;
@@ -110,12 +109,12 @@ pub mod prelude {
     pub use crate::program::Program;
     pub use crate::program::Shell;
 
-
     pub use crate::cache::goodie::GoodieExt as _;
     pub use crate::env::accessor::RawVariable as _;
     pub use crate::env::accessor::TypedVariable as _;
     pub use crate::extensions::clap::ArgExt as _;
     pub use crate::extensions::command::CommandExt as _;
+    pub use crate::extensions::output::OutputExt as _;
     pub use crate::extensions::version::PrereleaseExt as _;
     pub use crate::extensions::version::VersionExt as _;
     pub use crate::github::release::IsReleaseExt as _;

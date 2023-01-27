@@ -84,6 +84,10 @@ public class MetaObjectTest extends TestBase {
     var f = new StringWriter();
     var err = new PrintWriter(f);
     for (var t : g.allTypes()) {
+      if (t.isNull()) {
+        expecting.remove("Standard.Base.Nothing.Nothing");
+        continue;
+      }
       try {
         var n = t.getMetaQualifiedName();
         assertNotNull("Type " + t + " has meta name", n);
@@ -138,6 +142,9 @@ public class MetaObjectTest extends TestBase {
     var g = ValuesGenerator.create(ctx);
     var expecting = new LinkedHashSet<Value>();
     for (var t : g.allTypes()) {
+      if (t.isNull()) {
+        continue;
+      }
       switch (t.getMetaSimpleName()) {
         // represented as primitive values without meta object
         case "Decimal" -> {}

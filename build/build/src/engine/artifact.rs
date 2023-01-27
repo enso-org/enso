@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use ide_ci::github::release::ReleaseHandle;
+use ide_ci::github::release;
 use octocrab::models::repos::Asset;
 
 
@@ -34,7 +34,7 @@ pub trait IsArtifact: AsRef<Path> + Send + Sync {
         Ok(self.as_ref().try_parent()?.try_file_name()?.to_os_string())
     }
 
-    fn upload_as_asset(&self, release: ReleaseHandle) -> BoxFuture<'static, Result<Asset>> {
+    fn upload_as_asset(&self, release: release::Handle) -> BoxFuture<'static, Result<Asset>> {
         let path = self.as_ref().to_path_buf();
         let name = self.asset_file_stem();
         async move { release.upload_compressed_dir_as(path, name?).await }.boxed()

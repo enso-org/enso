@@ -152,13 +152,14 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     let BuildContext { inner: project::Context { .. }, triple, .. } = context;
 
     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
+    let release_handle = remote_repo.release_handle(release_id);
 
     debug!("Looking for release with id {release_id} on github.");
-    let release = remote_repo.repos().releases().get_by_id(release_id).await?;
+    let release = release_handle.get().await?;
     ensure!(release.draft, "Release has been already published!");
 
     debug!("Found the target release, will publish it.");
-    remote_repo.repos().releases().update(release.id.0).draft(false).send().await?;
+    release_handle.publish().await?;
     debug!("Done. Release URL: {}", release.url);
 
     let temp = tempdir()?;

@@ -9,7 +9,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::data::color;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -25,8 +24,10 @@ use ensogl_core::system::web;
 // ==============
 
 mod shape {
+    // This scene uses the `shape_old` definition because it demonstrates dynamic theme changes
+    // which is currently not working with shader-precompilation.
     use super::*;
-    ensogl_core::shape! {
+    ensogl_core::shape_old! {
         (style:Style) {
             let base_color = style.get_color("base_color");
             let circle1    = Circle(50.px());
@@ -42,7 +43,7 @@ mod shape {
 
 mod mask {
     use super::*;
-    ensogl_core::shape! {
+    ensogl_core::shape_old! {
         (style:Style) {
             let shape = Circle(60.px());
             let shape = shape.fill(color::Rgb::new(1.0,0.0,0.0));

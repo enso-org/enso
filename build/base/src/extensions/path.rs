@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::extensions::os_str::OsStrExt;
 
 use serde::de::DeserializeOwned;
+use std::env::consts::EXE_EXTENSION;
 
 
 
@@ -139,6 +140,24 @@ pub trait PathExt: AsRef<Path> {
     fn with_parent(&self, parent: impl AsRef<Path>) -> PathBuf {
         let mut ret = parent.as_ref().to_path_buf();
         ret.extend(self.as_ref().file_name());
+        ret
+    }
+
+    /// Replace the filename extension with the default executable extension for the current OS.
+    ///
+    /// ```
+    /// # use enso_build_base::prelude::*;
+    /// let path = Path::new("foo").with_executable_extension();
+    /// // Windows:
+    /// #[cfg(target_os = "windows")]
+    /// assert_eq!(path, Path::new("foo.exe"));
+    /// // Other platforms:
+    /// #[cfg(not(target_os = "windows"))]
+    /// assert_eq!(path, Path::new("foo"));
+    /// ```
+    fn with_executable_extension(&self) -> PathBuf {
+        let mut ret = self.as_ref().to_path_buf();
+        ret.set_extension(EXE_EXTENSION);
         ret
     }
 }

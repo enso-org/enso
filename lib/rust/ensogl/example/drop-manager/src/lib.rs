@@ -24,7 +24,6 @@
 #![warn(unused_qualifications)]
 
 use enso_prelude::*;
-use wasm_bindgen::prelude::*;
 
 use ensogl_core::display::world::World;
 use ensogl_core::frp::web;

@@ -38,9 +38,21 @@ pub fn derive(
     };
     let fn_name_str = base_name_to_fn_name(&fn_name_str);
     let fn_name = quote::format_ident!("{}", fn_name_str);
+    let docs_fn_name = quote::format_ident!("docs_of_{}", fn_name_str);
     let decl = syn::parse_macro_input!(input as syn::Item);
     match decl {
         syn::Item::Fn(f) => {
+            let mut docs = String::new();
+            for attr in &f.attrs {
+                if attr.path.is_ident("doc") {
+                    for token in attr.tokens.clone() {
+                        if let proc_macro2::TokenTree::Literal(lit) = token {
+                            docs.push_str(lit.to_string().trim_matches('"'));
+                        }
+                    }
+                }
+            }
+            docs = docs.trim().to_string();
             let name = f.sig.ident.to_string();
             if &name != "main" {
                 panic!("The function should be named 'main'.");
@@ -51,10 +63,16 @@ pub fn derive(
             let block = &f.block;
             let output = quote! {
                 #(#attrs)*
-                #[wasm_bindgen]
+                #[wasm_bindgen::prelude::wasm_bindgen]
                 pub #fn_sig {
                     init_global();
                     #block
+                }
+
+                /// Docs for the entry point, exposed to WASM.
+                #[wasm_bindgen::prelude::wasm_bindgen]
+                pub fn #docs_fn_name() -> String {
+                    #docs.to_string()
                 }
             };
             output.into()

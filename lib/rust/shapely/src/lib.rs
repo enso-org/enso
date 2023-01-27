@@ -31,8 +31,6 @@ pub mod singleton;
 pub use enso_shapely_macros::*;
 pub use generator::GeneratingIterator;
 
-
-
 /// A macro which passes its input to its output.
 #[macro_export]
 macro_rules! identity {

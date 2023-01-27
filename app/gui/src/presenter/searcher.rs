@@ -371,26 +371,26 @@ impl Searcher {
                     graph.set_node_expression <+ new_input;
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
-                    entry_hovered <- grid.hovered.map(|&s| s?.as_entry_id());
-                    entry_docs <- all_with3(&action_list_changed,
-                        &entry_selected,
-                        &entry_hovered,
-                        f!([model](_, selected, hovered) {
-                            let entry = hovered.as_ref().unwrap_or(selected);
-                            model.documentation_of_component(*entry)
-                        })
-                    );
-                    header_selected <- grid.active.filter_map(|element| {
-                        use component_grid::content::ElementId;
-                        use component_grid::content::ElementInGroup::Header;
-                        match element {
-                            Some(ElementId { element: Header, group}) => Some(*group),
-                            _ => None
+                    hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
+                        match (h, s) {
+                            (Some(h), Some(s)) => h != s,
+                            _ => false,
                         }
                     });
-                    header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
-                    documentation.frp.display_documentation <+ entry_docs;
-                    documentation.frp.display_documentation <+ header_docs;
+                    documentation.frp.show_hovered_item_preview_caption <+ hovered_not_selected;
+                    docs_params <- all3(&action_list_changed, &grid.active, &grid.hovered);
+                    docs <- docs_params.filter_map(f!([model]((_, selected, hovered)) {
+                        let entry = hovered.as_ref().or(selected.as_ref());
+                        entry.map(|entry| {
+                            if let Some(group_id) = entry.as_header() {
+                                model.documentation_of_group(group_id)
+                            } else {
+                                let entry_id = entry.as_entry_id().expect("GroupEntryId");
+                                model.documentation_of_component(entry_id)
+                            }
+                        })
+                    }));
+                    documentation.frp.display_documentation <+ docs;
 
                     eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                     eval entry_selected((entry) model.suggestion_selected(*entry));

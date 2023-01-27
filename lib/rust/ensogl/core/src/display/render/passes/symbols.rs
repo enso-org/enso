@@ -7,8 +7,8 @@ use crate::display::render::pass;
 use crate::display::scene;
 use crate::display::scene::layer;
 use crate::display::scene::UpdateStatus;
-use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::MaskComposer;
+use crate::display::world;
 
 
 
@@ -32,27 +32,21 @@ impl Framebuffers {
 /// Pass for rendering all symbols. The results are stored in the 'color' and 'id' outputs.
 #[derive(Clone, Debug)]
 pub struct SymbolsRenderPass {
-    logger:          Logger,
-    symbol_registry: SymbolRegistry,
-    layers:          scene::HardcodedLayers,
-    framebuffers:    Option<Framebuffers>,
-    mask_composer:   MaskComposer,
+    logger:        Logger,
+    layers:        scene::HardcodedLayers,
+    framebuffers:  Option<Framebuffers>,
+    mask_composer: MaskComposer,
 }
 
 impl SymbolsRenderPass {
     /// Constructor.
-    pub fn new(
-        logger: impl AnyLogger,
-        symbol_registry: &SymbolRegistry,
-        layers: &scene::HardcodedLayers,
-    ) -> Self {
+    pub fn new(logger: impl AnyLogger, layers: &scene::HardcodedLayers) -> Self {
         let logger = Logger::new_sub(logger, "SymbolsRenderPass");
-        let symbol_registry = symbol_registry.clone_ref();
         let layers = layers.clone_ref();
         let framebuffers = default();
         let mask_composer =
             MaskComposer::new("pass_mask_color", "pass_layer_color", "pass_layer_id");
-        Self { logger, symbol_registry, layers, framebuffers, mask_composer }
+        Self { logger, layers, framebuffers, mask_composer }
     }
 }
 
@@ -168,8 +162,10 @@ impl SymbolsRenderPass {
             instance.context.clear_bufferfv_with_f32_array(*Context::COLOR, 1, &black_transparent);
         }
 
-        self.symbol_registry.set_camera(&layer.camera());
-        self.symbol_registry.render_symbols(&layer.symbols());
+        world::with_context(|t| {
+            t.set_camera(&layer.camera());
+            t.render_symbols(&layer.symbols());
+        });
         layer.for_each_sublayer(|sublayer| {
             if sublayer.flags.contains(layer::LayerFlags::MAIN_PASS_VISIBLE) {
                 self.render_layer(instance, &sublayer, scissor_stack, was_ever_masked);

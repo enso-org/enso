@@ -1,0 +1,56 @@
+import project.Data.Numbers.Integer
+import project.Data.Numbers.Number
+import project.Data.Pair.Pair
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+
+from project.Data.Boolean import Boolean, True, False
+
+type Display
+    ## Parameter is always shown on the collapsed view.
+    Always
+
+    ## Parameter is shown on the collapsed view if not the default value.
+    When_Modified
+
+    ## Parameter is only shown on the expanded view.
+    Expanded_Only
+
+type Parameter_Type
+    Parameter value:Text label:Text="code" parameters:(Vector Widget)=[] icon:Text=""
+
+type File_Action
+    ## The File or Folder is for reading from.
+    Open
+
+    ## The File or Folder is for writing to.
+    Save
+
+type Widget
+    ## Describe a code parameter.
+    Code_Input label:(Nothing|Text)=Nothing display:Display=Display.When_Modified
+
+    ## Describe a boolean parameter.
+    Boolean_Input label:Nothing|Text=Nothing display:Display=Display.When_Modified
+
+    ## Describe a numeric parameter.
+    Numeric_Input label:Nothing|Text=Nothing display:Display=Display.When_Modified minimum:Integer|Nothing=Nothing maximum:Integer|Nothing=Nothing step:Number=1 decimal_places:Integer=0 allow_outside:Boolean=True
+
+    ## Describes a text widget.
+    Text_Input label:Nothing|Text=Nothing display:Display=Display.When_Modified quote_values:Boolean=True suggestions:(Vector Text)=[]
+
+    ## Describes a single value widget.
+    Single_Choice values:(Vector Parameter) label:Nothing|Text=Nothing display:Display=Display.When_Modified quote_values:Boolean=False allow_custom:Boolean=True
+
+    ## Describes a multi value widget.
+    Multiple_Choice values:(Vector Parameter) label:Nothing|Text=Nothing display:Display=Display.When_Modified quote_values:Boolean=False
+
+    ## Describes a list editor widget.
+    Vector_Editor item_editor:Widget values:((Vector Parameter)|Nothing)=Nothing label:Nothing|Text=Nothing display:Display=Display.When_Modified
+
+    ## Describes a folder chooser.
+    Folder_Browse label:Nothing|Text=Nothing display:Display=Display.When_Modified
+
+    ## Describes a file chooser.
+    File_Browse label:Nothing|Text=Nothing display:Display=Display.When_Modified action:File_Action=File_Action.Open file_types:(Vector Pair)=[Pair "All Files" "*.*"]

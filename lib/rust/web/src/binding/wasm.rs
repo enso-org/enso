@@ -11,6 +11,7 @@ pub use js_sys::Array;
 pub use js_sys::Error;
 pub use js_sys::Function;
 pub use js_sys::JsString;
+pub use js_sys::Map;
 pub use js_sys::Object;
 pub use std::time::Duration;
 pub use std::time::Instant;
@@ -121,8 +122,19 @@ macro_rules! wasm_lazy_global {
     };
 }
 
+/// Get the global window object.
+///
+/// # Safety
+/// We are using an unsafe cast here in order to make it working in node. Please note that node does
+/// NOT expose a `window` global object. We are creating it there manually. This created object
+/// exposes some `window` functions, such as `.performance.now()`. It is enough for us to run the
+/// generated WASM there.
+pub fn get_window() -> Window {
+    js_sys::global().unchecked_into::<Window>()
+}
+
 #[cfg(target_arch = "wasm32")]
-wasm_lazy_global! { window : Window = web_sys::window().unwrap() }
+wasm_lazy_global! { window : Window = get_window() }
 
 #[cfg(target_arch = "wasm32")]
 wasm_lazy_global! { document : Document = window.document().unwrap() }

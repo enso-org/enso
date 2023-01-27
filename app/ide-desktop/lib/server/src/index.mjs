@@ -17,6 +17,8 @@ export async function start({ root, assets, port }) {
 
     const freePort = await portfinder.getPortPromise({ port: port ?? DEFAULT_PORT })
 
+    // FIXME: There is an issue probably related with improper caches of served files. Read more
+    //     here: https://github.com/expressjs/serve-static/issues/155
     const app = connect()
         .use(logger('dev', { skip: (req, res) => res.statusCode < 400 }))
         .use(serveStatic(root))
