@@ -254,8 +254,7 @@ async fn ls_text_protocol_test() {
 // #[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn file_events() {
-    let logger = Logger::new("test");
-    let ws = WebSocket::new_opened(logger, SERVER_ENDPOINT).await;
+    let ws = WebSocket::new_opened(SERVER_ENDPOINT).await;
     let ws = ws.expect("Couldn't connect to WebSocket server.");
     let client = Client::new(ws);
     let mut stream = client.events();
@@ -352,13 +351,12 @@ async fn binary_visualization_updates_test_hlp() {
     use controller::project::MAIN_DEFINITION_NAME;
     use ensogl::system::web::sleep;
 
-    let logger = Logger::new("Test");
     let module_path = enso_gui::initial_module_path(&project);
     let method = module_path.method_pointer(project.qualified_name(), MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module = project.module(module_path).await.unwrap();
     info!("Got module: {module:?}");
-    let graph_executed = controller::ExecutedGraph::new(&logger, project, method).await.unwrap();
+    let graph_executed = controller::ExecutedGraph::new(project, method).await.unwrap();
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
     graph_executed.graph().set_expression(the_node.id(), "10+20").unwrap();

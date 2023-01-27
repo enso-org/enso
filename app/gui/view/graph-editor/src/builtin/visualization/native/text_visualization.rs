@@ -43,8 +43,6 @@ use ensogl_component::scrollbar;
 use ensogl_component::scrollbar::Scrollbar;
 use ensogl_hardcoded_theme as theme;
 
-pub use entry::Entry;
-
 
 
 // =================

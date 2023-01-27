@@ -72,17 +72,15 @@ pub trait Aware {
 #[derive(Debug)]
 pub struct Transaction {
     #[allow(missing_docs)]
-    pub logger: Logger,
-    frame:      RefCell<Frame>,
-    urm:        Weak<Repository>,
-    ignored:    Cell<bool>,
+    frame:   RefCell<Frame>,
+    urm:     Weak<Repository>,
+    ignored: Cell<bool>,
 }
 
 impl Transaction {
     /// Create a new transaction, that will add to the given's repository undo stack on destruction.
     pub fn new(urm: &Rc<Repository>, name: String) -> Self {
         Self {
-            logger:  Logger::new_sub(&urm.logger, "Transaction"),
             frame:   RefCell::new(Frame { name, ..default() }),
             urm:     Rc::downgrade(urm),
             ignored: default(),
@@ -214,21 +212,20 @@ pub struct Data {
 /// can be shared with no consequence on project state.
 #[derive(Debug)]
 pub struct Repository {
-    logger: Logger,
-    data:   RefCell<Data>,
+    data: RefCell<Data>,
 }
 
 
 impl Default for Repository {
     fn default() -> Self {
-        Self::new(Logger::new(""))
+        Self::new()
     }
 }
 
 impl Repository {
     /// Create a new repository.
-    pub fn new(parent: impl AnyLogger) -> Self {
-        Self { logger: Logger::new_sub(parent, "Repository"), data: default() }
+    pub fn new() -> Self {
+        Self { data: default() }
     }
 
     /// Get the currently open transaction. [`None`] if there is none.
@@ -354,7 +351,6 @@ impl Repository {
 #[derive(Debug)]
 pub struct Manager {
     #[allow(missing_docs)]
-    pub logger:     Logger,
     /// Repository with undo and redo stacks.
     pub repository: Rc<Repository>,
     /// Currently available modules.
@@ -369,9 +365,8 @@ impl Aware for Manager {
 
 impl Manager {
     /// Create a new undo-redo manager.
-    pub fn new(parent: impl AnyLogger) -> Self {
-        let logger = Logger::new_sub(parent, "URM");
-        Self { repository: Rc::new(Repository::new(&logger)), modules: default(), logger }
+    pub fn new() -> Self {
+        Self { repository: Rc::new(Repository::new()), modules: default() }
     }
 
     /// Register a new opened module in the manager.

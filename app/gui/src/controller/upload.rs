@@ -171,16 +171,14 @@ impl<DP: DataProvider> FileUploadProcess<DP> {
 /// It is responsible for creating node, uploading file and updating the node's metadata.
 #[derive(Clone, CloneRef, Debug)]
 pub struct NodeFromDroppedFileHandler {
-    logger:  Logger,
     project: model::Project,
     graph:   controller::Graph,
 }
 
 impl NodeFromDroppedFileHandler {
     /// Constructor
-    pub fn new(parent: impl AnyLogger, project: model::Project, graph: controller::Graph) -> Self {
-        let logger = Logger::new_sub(parent, "NodeFromDroppedFileHandler");
-        Self { logger, project, graph }
+    pub fn new(project: model::Project, graph: controller::Graph) -> Self {
+        Self { project, graph }
     }
 
     /// Create a node from dropped file and start uploading file.
@@ -252,7 +250,7 @@ impl NodeFromDroppedFileHandler {
         if let Err(err) =
             self.graph.module.with_node_metadata(node, Box::new(|md| md.uploading_file = None))
         {
-            warning!(self.logger, "Cannot remove uploading metadata: {err}");
+            warn!("Cannot remove uploading metadata: {err}");
         }
         Ok(())
     }
@@ -264,15 +262,11 @@ impl NodeFromDroppedFileHandler {
             if let Some(uploading_md) = &mut md.uploading_file {
                 f(uploading_md)
             } else {
-                warning!(
-                    self.logger,
-                    "Cannot update upload progress on {node:?}: Metadata are \
-                    missing."
-                );
+                warn!("Cannot update upload progress on {node:?}: Metadata are missing.");
             }
         });
         if let Err(err) = self.graph.module.with_node_metadata(node, update_md) {
-            warning!(self.logger, "Cannot update upload progress: {err}");
+            warn!("Cannot update upload progress: {err}");
         }
     }
 
@@ -554,7 +548,6 @@ mod test {
 
     #[wasm_bindgen_test]
     fn creating_node_from_dropped_file() {
-        let logger = Logger::new("test::creating_node_from_dropped_file");
         let data = TestData::new(vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8]]);
         let mut fixture = mock::Unified::new().fixture_customize(|_, json_rpc, binary_rpc| {
             json_rpc.expect.file_info(|path| {
@@ -570,7 +563,7 @@ mod test {
             data.setup_uploading_expectations(json_rpc, binary_rpc);
         });
 
-        let handler = NodeFromDroppedFileHandler::new(logger, fixture.project, fixture.graph);
+        let handler = NodeFromDroppedFileHandler::new(fixture.project, fixture.graph);
         let position = model::module::Position::new(45.0, 70.0);
         let file = data.file_to_upload();
         handler.create_node_and_start_uploading(file, position).unwrap();
@@ -581,7 +574,6 @@ mod test {
 
     #[wasm_bindgen_test]
     fn recreating_data_directory() {
-        let logger = Logger::new("test::recreating_data_directory");
         let mut fixture = mock::Unified::new().fixture_customize(|_, json_rpc, _| {
             json_rpc.expect.file_info(|path| {
                 assert_eq!(*path, data_path());
@@ -598,7 +590,7 @@ mod test {
                 Ok(response::FileList { paths: vec![] })
             });
         });
-        let handler = NodeFromDroppedFileHandler::new(logger, fixture.project, fixture.graph);
+        let handler = NodeFromDroppedFileHandler::new(fixture.project, fixture.graph);
         fixture.executor.expect_completion(handler.ensure_data_directory_exists()).unwrap();
     }
 
@@ -626,7 +618,6 @@ mod test {
             fn run(self) {
                 let Case { file_name, other_collision_name, expected_remote_name } = self;
 
-                let logger = Logger::new("test::creating_node_from_dropped_file");
                 let data = TestData::new_with_file_name(
                     vec![vec![1, 2, 3, 4]],
                     file_name.clone(),
@@ -651,7 +642,7 @@ mod test {
 
                 let project = fixture.project;
                 let graph = fixture.graph;
-                let handler = NodeFromDroppedFileHandler::new(logger, project, graph);
+                let handler = NodeFromDroppedFileHandler::new(project, graph);
                 let position = model::module::Position::new(45.0, 70.0);
                 let (file, mut provider_sink) = data.file_to_upload_async();
                 handler.create_node_and_start_uploading(file, position).unwrap();
