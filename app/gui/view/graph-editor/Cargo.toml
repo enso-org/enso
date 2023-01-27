@@ -24,7 +24,7 @@ ensogl-text-msdf = { path = "../../../../lib/rust/ensogl/component/text/src/font
 ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-drop-manager = { path = "../../../../lib/rust/ensogl/component/drop-manager" }
 failure = { workspace = true }
-ordered-float = { version = "3.0.0" }
+ordered-float = { workspace = true }
 span-tree = { path = "../../language/span-tree" }
 js-sys = { workspace = true }
 nalgebra = { workspace = true }

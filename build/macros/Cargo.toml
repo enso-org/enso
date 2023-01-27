@@ -15,6 +15,5 @@ proc-macro2 = "1.0"
 quote = "1.0"
 regex = { workspace = true }
 serde_yaml = { workspace = true }
-shrinkwraprs = "0.3.0"
 syn = "1.0"
 derive_more = { workspace = true }

@@ -9,7 +9,7 @@ derivative = { workspace = true }
 derive_more = { workspace = true }
 
 [dev-dependencies]
-bincode = "1.3"
+bincode = { workspace = true }
 
 [features]
 default = ["graphviz", "java", "rust"]

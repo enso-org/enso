@@ -158,7 +158,7 @@ pub use enso_logging::trace_span;
 pub use enso_logging::warn;
 pub use enso_logging::warn_span;
 
-// FIXME: finish it
+// FIXME: finish it and add reportable_err
 
 /// Instruction of how to report important errors.
 pub const REPORT_INSTRUCTION: &str = "We will be thankful for reporting this error here: \

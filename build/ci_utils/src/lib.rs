@@ -86,7 +86,6 @@ pub mod prelude {
     pub use platforms::target::Arch;
     pub use platforms::target::OS;
     pub use semver::Version;
-    pub use shrinkwraprs::Shrinkwrap;
     pub use sysinfo::PidExt as _;
     pub use sysinfo::ProcessExt as _;
     pub use sysinfo::SystemExt as _;

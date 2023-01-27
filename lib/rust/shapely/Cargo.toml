@@ -22,7 +22,6 @@ default = []
 enso-shapely-macros = { version = "^0.2.1", path = "macros" }
 paste = { workspace = true }
 derivative = { workspace = true }
-shrinkwraprs = { version = "0.3.0" }
 rustversion = { version = "1.0" }
 wasm-bindgen = { workspace = true }
 
