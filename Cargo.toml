@@ -84,3 +84,23 @@ tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
 wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
 wasm-bindgen-test = { version = "0.3.33" }
+anyhow = "1.0.66"
+failure = "0.1.8"
+derive_more = "0.99"
+assert_approx_eq = "1.1.0"
+backtrace = "0.3.53"
+boolinator = "2.4.0"
+derivative = "2.2"
+futures = "0.3"
+itertools = "0.10.5"
+lazy_static = "1.4"
+paste = "1.0"
+serde_json = "1.0"
+smallvec = "1.0.0"
+weak-table = "0.3.0"
+gen-iter = "0.2.1"
+js-sys = "0.3"
+owned_ttf_parser = "0.15.1"
+nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+const_format = { version = "0.2.22" }
+convert_case = { version = "0.6.0" }

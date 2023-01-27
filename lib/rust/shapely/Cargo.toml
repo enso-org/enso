@@ -20,8 +20,8 @@ default = []
 
 [dependencies]
 enso-shapely-macros = { version = "^0.2.1", path = "macros" }
-paste = { version = "0.1" }
-derivative = { version = "2.2.0" }
+paste = { workspace = true }
+derivative = { workspace = true }
 shrinkwraprs = { version = "0.3.0" }
 rustversion = { version = "1.0" }
 wasm-bindgen = { workspace = true }

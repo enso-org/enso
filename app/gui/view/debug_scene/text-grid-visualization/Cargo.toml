@@ -13,9 +13,9 @@ ensogl = { path = "../../../../../lib/rust/ensogl" }
 ensogl-hardcoded-theme = { path = "../../../../../lib/rust/ensogl/app/theme/hardcoded" }
 ensogl-text-msdf = { path = "../../../../../lib/rust/ensogl/component/text/src/font/msdf" }
 ide-view = { path = "../.." }
-js-sys = { version = "0.3.28" }
-nalgebra = { version = "0.26.1" }
-serde_json = { version = "1.0" }
+js-sys = { workspace = true }
+nalgebra = { workspace = true }
+serde_json = { workspace = true }
 wasm-bindgen = { workspace = true }
 ensogl-list-view = { path = "../../../../../lib/rust/ensogl/component/list-view" }
 ensogl-grid-view = { path = "../../../../../lib/rust/ensogl/component/grid-view" }

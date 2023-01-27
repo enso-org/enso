@@ -10,4 +10,4 @@ enso-prelude = { path = "../../../lib/rust/prelude" }
 semver = "1.0.0"
 
 [build-dependencies]
-config-reader = { version = "0.1.0", path = "../../../lib/rust/config-reader" }
+config-reader = { path = "../../../lib/rust/config-reader" }

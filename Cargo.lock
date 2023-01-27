@@ -1257,12 +1257,6 @@ checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
 name = "convert_case"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb4a24b1aaf0fd0ce8b45161144d6f42cd91677fd5940fd431183eb023b3a2b8"
-
-[[package]]
-name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
@@ -1865,7 +1859,7 @@ dependencies = [
  "nix",
  "octocrab",
  "ouroboros",
- "paste 1.0.9",
+ "paste",
  "path-absolutize",
  "path-slash",
  "pin-project",
@@ -2014,7 +2008,7 @@ dependencies = [
  "criterion",
  "enso-prelude",
  "failure",
- "itertools 0.9.0",
+ "itertools 0.10.5",
  "rustversion",
  "serde",
  "typenum",
@@ -2097,7 +2091,7 @@ dependencies = [
  "bimap",
  "console_error_panic_hook",
  "const_format",
- "convert_case 0.5.0",
+ "convert_case 0.6.0",
  "double-representation",
  "engine-protocol",
  "enso-callback",
@@ -2306,7 +2300,7 @@ dependencies = [
  "gen-iter",
  "itertools 0.10.5",
  "lazy_static",
- "paste 1.0.9",
+ "paste",
  "serde",
  "serde_json",
  "smallvec 1.9.0",
@@ -2405,7 +2399,7 @@ dependencies = [
  "derivative",
  "enso-prelude",
  "enso-shapely-macros",
- "paste 0.1.18",
+ "paste",
  "rustversion",
  "shrinkwraprs 0.3.0",
  "wasm-bindgen",
@@ -2420,8 +2414,8 @@ dependencies = [
  "Inflector",
  "boolinator",
  "enso-macro-utils",
- "itertools 0.8.2",
- "paste 1.0.9",
+ "itertools 0.10.5",
+ "paste",
  "proc-macro2",
  "quote",
  "syn",
@@ -2449,7 +2443,7 @@ name = "enso-suggestion-database"
 version = "0.1.0"
 dependencies = [
  "ast",
- "convert_case 0.5.0",
+ "convert_case 0.6.0",
  "double-representation",
  "engine-protocol",
  "enso-data-structures",
@@ -2483,7 +2477,7 @@ dependencies = [
  "enso-reflect",
  "nalgebra",
  "num-traits",
- "paste 1.0.9",
+ "paste",
  "serde",
 ]
 
@@ -4026,7 +4020,7 @@ dependencies = [
  "new_mime_guess",
  "nix",
  "octocrab",
- "paste 1.0.9",
+ "paste",
  "path-absolutize",
  "path-slash",
  "pathdiff",
@@ -4330,15 +4324,6 @@ name = "itertools"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "284f18f85651fe11e8a991b2adb42cb078325c996ed026d994719efcfca1d54b"
 dependencies = [
  "either",
 ]
@@ -5239,28 +5224,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45ca20c77d80be666aef2b45486da86238fabe33e38306bd3118fe4af33fa880"
-dependencies = [
- "paste-impl",
- "proc-macro-hack",
-]
-
-[[package]]
-name = "paste"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1de2e551fb905ac83f73f7aedf2f0cb4a0da7e35efa24a202a936269f1f18e1"
-
-[[package]]
-name = "paste-impl"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95a7db200b97ef370c8e6de0088252f7e0dfff7d047a28528e47456c0fc98b6"
-dependencies = [
- "proc-macro-hack",
-]
 
 [[package]]
 name = "path-absolutize"
@@ -6470,7 +6436,7 @@ dependencies = [
  "approx 0.4.0",
  "num-complex",
  "num-traits",
- "paste 1.0.9",
+ "paste",
 ]
 
 [[package]]

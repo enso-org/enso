@@ -16,9 +16,9 @@ enso-types = { path = "../../../types" }
 ensogl-core = { path = "../../core" }
 ensogl-text-embedded-fonts = { path = "src/font/embedded" }
 ensogl-text-msdf = { path = "src/font/msdf" }
-const_format = "0.2.22"
+const_format = { workspace = true }
 xi-rope = { version = "0.3.0" }
-owned_ttf_parser = "0.15.1"
+owned_ttf_parser = { workspace = true }
 bincode = "2.0.0-rc.1"
 serde = { version = "1", features = ["rc"] }
 ordered-float = "3.0.0"

@@ -5,11 +5,11 @@ edition = "2021"
 authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
-derivative = "2.2.0"
+derivative = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { workspace = true }
 enso-prelude = { path = "../../prelude" }
 enso-profiler = { path = "../" }
 
 [dev-dependencies]
-futures = "0.3"
+futures = { workspace = true }
