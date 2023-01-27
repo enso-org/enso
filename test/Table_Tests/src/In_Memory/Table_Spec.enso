@@ -23,14 +23,22 @@ from project.Util import all
 type My
     Data x y
 
-    == self that = case that of
-        My.Data x1 y1 -> (self.x + self.y) == (x1 + y1)
-        _ -> False
-
-    compare_to self that = self.x+self.y . compare_to that.x+that.y
-
     frobnicate self = case self of
         My.Data x1 y1 -> My.Data y1 x1
+
+type My_Comparator
+    is_ordered = True
+
+    compare left right =
+        left_sum = left.x + left.y
+        right_sum = right.x + right.y
+        (Comparable.from left_sum) . compare left_sum right_sum
+
+    hash my =
+        sum = my.x + my.y
+        Comparable.from sum . hash sum
+
+Comparable.from (_:My) = My_Comparator
 
 spec =
     make_varied_type_table =
