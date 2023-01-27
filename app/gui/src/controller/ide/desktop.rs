@@ -38,7 +38,6 @@ const UNNAMED_PROJECT_NAME: &str = "Unnamed";
 #[derive(Clone, CloneRef, Derivative)]
 #[derivative(Debug)]
 pub struct Handle {
-    logger:               Logger,
     current_project:      Rc<CloneCell<Option<model::Project>>>,
     #[derivative(Debug = "ignore")]
     project_manager:      Rc<dyn project_manager::API>,
@@ -68,19 +67,11 @@ impl Handle {
         project_manager: Rc<dyn project_manager::API>,
         project: Option<model::Project>,
     ) -> Self {
-        let logger = Logger::new("controller::ide::Desktop");
         let current_project = Rc::new(CloneCell::new(project));
         let status_notifications = default();
         let parser = Parser::new_or_panic();
         let notifications = default();
-        Self {
-            logger,
-            current_project,
-            project_manager,
-            status_notifications,
-            parser,
-            notifications,
-        }
+        Self { current_project, project_manager, status_notifications, parser, notifications }
     }
 
     /// Open project with provided name.
@@ -139,7 +130,7 @@ impl ManagingProjectAPI for Handle {
                 .await?;
             let new_project_id = create_result.project_id;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project = Project::new_opened(&self.logger, project_mgr, new_project_id);
+            let new_project = Project::new_opened(project_mgr, new_project_id);
             self.current_project.set(Some(new_project.await?));
             let notify = self.notifications.publish(Notification::NewProjectCreated);
             executor::global::spawn(notify);
@@ -156,9 +147,8 @@ impl ManagingProjectAPI for Handle {
     #[profile(Objective)]
     fn open_project(&self, id: Uuid) -> BoxFuture<FallibleResult> {
         async move {
-            let logger = &self.logger;
             let project_mgr = self.project_manager.clone_ref();
-            let new_project = model::project::Synchronized::new_opened(logger, project_mgr, id);
+            let new_project = model::project::Synchronized::new_opened(project_mgr, id);
             self.current_project.set(Some(new_project.await?));
             executor::global::spawn(self.notifications.publish(Notification::ProjectOpened));
             Ok(())
@@ -171,7 +161,7 @@ impl ManagingProjectAPI for Handle {
 /// number.
 fn choose_unique_project_name(existing_names: &HashSet<String>, suggested_name: &str) -> String {
     let first_candidate = suggested_name.to_owned();
-    let nth_project_name = |i| iformat!("{suggested_name}_{i}");
+    let nth_project_name = |i| format!("{suggested_name}_{i}");
     let candidates = (1..).map(nth_project_name);
     let mut candidates = iter::once(first_candidate).chain(candidates);
     // The iterator have no end, so we can safely unwrap.

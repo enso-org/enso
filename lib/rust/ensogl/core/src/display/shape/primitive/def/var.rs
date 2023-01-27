@@ -341,7 +341,7 @@ where T: Neg + RefInto<Glsl>
     fn neg(self) -> Self::Output {
         match self {
             Var::Static(t) => Var::Static(-t),
-            Var::Dynamic(t) => Var::Dynamic(iformat!("neg({t})").into()),
+            Var::Dynamic(t) => Var::Dynamic(format!("neg({t})").into()),
         }
     }
 }
@@ -353,7 +353,7 @@ where &'t T: Neg + Into<Glsl>
     fn neg(self) -> Self::Output {
         match self {
             Var::Static(t) => Var::Static(-t),
-            Var::Dynamic(t) => Var::Dynamic(iformat!("neg({t})").into()),
+            Var::Dynamic(t) => Var::Dynamic(format!("neg({t})").into()),
         }
     }
 }
@@ -505,8 +505,8 @@ impl Var<f32> {
         let e1 = e1.glsl();
         let e2 = e2.glsl();
         match self {
-            Var::Static(t) => Var::Dynamic(iformat!("smoothstep({e1},{e2},{t})").into()),
-            Var::Dynamic(t) => Var::Dynamic(iformat!("smoothstep({e1},{e2},{t})").into()),
+            Var::Static(t) => Var::Dynamic(format!("smoothstep({e1},{e2},{t})").into()),
+            Var::Dynamic(t) => Var::Dynamic(format!("smoothstep({e1},{e2},{t})").into()),
         }
     }
 }
@@ -517,8 +517,8 @@ impl Var<f32> {
         let e1 = e1.glsl();
         let e2 = e2.glsl();
         match self {
-            Var::Static(t) => Var::Dynamic(iformat!("mix({e1},{e2},{t})").into()),
-            Var::Dynamic(t) => Var::Dynamic(iformat!("mix({e1},{e2},{t})").into()),
+            Var::Static(t) => Var::Dynamic(format!("mix({e1},{e2},{t})").into()),
+            Var::Dynamic(t) => Var::Dynamic(format!("mix({e1},{e2},{t})").into()),
         }
     }
 }

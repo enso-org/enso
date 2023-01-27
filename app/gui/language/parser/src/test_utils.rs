@@ -40,7 +40,7 @@ impl ParserTestExts for Parser {
 
     fn parse_testing(&self, program: impl Str) -> Ast {
         let program = program.into();
-        DEBUG!("parsing " program);
+        debug!("parsing {}", program);
         let ast = self.parse(program.clone(), default()).unwrap();
         assert_eq!(ast.shape().len(), program.len().bytes());
         validate_spans(&ast);

@@ -32,8 +32,7 @@ pub type MessageToServerRef<'a> = MessageToServer<ToServerPayload<'a>>;
 // ================
 
 /// A message sent from client to server (`InboundMessage` in the spec).
-#[derive(Clone, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct MessageToServer<T>(pub Message<T>);
 
 impl<T> MessageToServer<T> {
@@ -44,8 +43,7 @@ impl<T> MessageToServer<T> {
 }
 
 /// A message sent from server to client (`OutboundMessage` in the spec).
-#[derive(Clone, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct MessageFromServer<T>(pub Message<T>);
 
 impl<T> MessageFromServer<T> {

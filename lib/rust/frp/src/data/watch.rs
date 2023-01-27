@@ -66,10 +66,10 @@ impl Counter {
 
 /// A simple wrapper for anything with attached `Handle`. Could be used as a handy type for
 /// storing both a reference to a resource and its watch handle.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 pub struct Ref<T> {
     /// The underlying type.
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub target: T,
     #[allow(dead_code)]
     /// This is not accessed in this implementation but it needs to be kept so the handle stays

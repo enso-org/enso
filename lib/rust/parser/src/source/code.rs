@@ -9,13 +9,13 @@ use crate::prelude::*;
 // ============
 
 /// A code representation. It can either be a borrowed source code or a modified owned one.
-#[derive(Clone, Default, Eq, PartialEq, Shrinkwrap, Serialize, Reflect, Deserialize)]
+#[derive(Clone, Default, Eq, PartialEq, Serialize, Reflect, Deserialize, Deref)]
 #[allow(missing_docs)]
 pub struct Code<'s> {
     #[serde(serialize_with = "crate::serialization::serialize_cow")]
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
     #[reflect(as = "crate::serialization::Code", flatten, hide)]
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub repr:  Cow<'s, str>,
     #[reflect(hide)]
     pub utf16: usize,

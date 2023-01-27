@@ -618,7 +618,7 @@ mod tests {
     }
 
     fn indented(line: impl Display) -> String {
-        iformat!("    {line}")
+        format!("    {line}")
     }
 
     #[wasm_bindgen_test]

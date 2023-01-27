@@ -19,9 +19,8 @@ use std::slice;
 /// Index have to implement the `Index` trait.
 #[derive(Derivative)]
 #[derivative(Default(bound = ""))]
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug)]
 pub struct OptVec<T, Index = usize> {
-    #[shrinkwrap(main_field)]
     items:    Vec<Option<T>>,
     free_ixs: SmallVec<[Index; 128]>,
 }

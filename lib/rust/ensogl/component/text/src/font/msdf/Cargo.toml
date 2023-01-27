@@ -10,17 +10,17 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-prelude = { path = "../../../../../../prelude" }
 enso-types = { path = "../../../../../../types" }
-failure = { version = "0.1.6" }
-js-sys = { version = "0.3" }
-nalgebra = { version = "0.26.1" }
+failure = { workspace = true }
+js-sys = { workspace = true }
+nalgebra = { workspace = true }
 wasm-bindgen = { workspace = true }
 serde = { version = "1", features = ["rc", "derive"] }
-owned_ttf_parser = "0.15.1"
+owned_ttf_parser = { workspace = true }
 enso-web = { path = "../../../../../../web" }
 
 [dev-dependencies]
 wasm-bindgen-test = { workspace = true }
-futures = { version = "0.3.1" }
+futures = { workspace = true }
 ensogl-text-embedded-fonts = { path = "../../../src/font/embedded" }
 ensogl-text-font-family = { path = "../../../src/font/family" }
 

@@ -65,7 +65,6 @@ mod background {
 /// This is a list of projects in a nice frame with title.
 #[derive(Clone, CloneRef, Debug)]
 pub struct ProjectList {
-    logger:         Logger,
     network:        frp::Network,
     display_object: display::object::Instance,
     background:     background::View, //TODO[ao] use Card instead.
@@ -85,7 +84,6 @@ impl Deref for ProjectList {
 impl ProjectList {
     /// Create Project List Component.
     pub fn new(app: &Application) -> Self {
-        let logger = Logger::new("ProjectList");
         let network = frp::Network::new("ProjectList");
         let display_object = display::object::Instance::new();
         let background = background::View::new();
@@ -137,7 +135,7 @@ impl ProjectList {
         };
         init.emit(());
 
-        Self { logger, network, display_object, background, caption, list, style_watch }
+        Self { network, display_object, background, caption, list, style_watch }
     }
 }
 

@@ -30,7 +30,6 @@ pub mod manager;
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    logger:        Logger,
     controller:    controller::Visualization,
     graph_view:    view::graph_editor::GraphEditor,
     manager:       Rc<Manager>,
@@ -173,14 +172,12 @@ impl Visualization {
         view: view::graph_editor::GraphEditor,
         state: Rc<graph::state::State>,
     ) -> Self {
-        let logger = Logger::new("presenter::graph::Visualization");
         let network = frp::Network::new("presenter::graph::Visualization");
 
         let controller = project.visualization().clone_ref();
         let (manager, notifications) = Manager::new(graph.clone_ref());
         let (error_manager, error_notifications) = Manager::new(graph.clone_ref());
         let model = Rc::new(Model {
-            logger,
             controller,
             graph_view: view.clone_ref(),
             manager: manager.clone_ref(),
