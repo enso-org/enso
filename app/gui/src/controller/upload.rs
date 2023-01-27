@@ -447,7 +447,7 @@ mod test {
                 let path = self.path.clone();
                 let checksum = Sha3_224::new(&chunk);
                 let chunk_len = chunk.len();
-                DEBUG!("Setting expectation {path:?} {chunk:?}");
+                debug!("Setting expectation {path:?} {chunk:?}");
                 binary_client
                     .expect_write_bytes()
                     .withf(move |p, off, ow, ch| *p == path && ch == chunk && *off == offset && !ow)

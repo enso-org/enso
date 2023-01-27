@@ -1421,7 +1421,7 @@ main =
             // === Initial nodes ===
             let nodes = graph.nodes().unwrap();
             for node in &nodes {
-                DEBUG!(node.repr())
+                debug!("{}", node.repr())
             }
             let (node1, node2) = nodes.expect_tuple();
             assert_eq!(node1.info.expression().repr(), "2");

@@ -34,7 +34,6 @@ ifmt = "0.3.3"
 itertools = "0.10.0"
 lazy_static = "1.4"
 num = "0.4.0"
-object = { version = "0.24.0" }
 paste = "1.0"
 shrinkwraprs = "0.3.0"
 serde = { version = "1.0.126", features = ["derive", "rc"] }
@@ -44,9 +43,6 @@ wasm-bindgen = { workspace = true }
 weak-table = "0.3.0"
 enso-web = { path = "../web" }
 gen-iter = "0.2.1"
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { workspace = true }
 
 [dependencies.web-sys]
 version = "0.3.4"

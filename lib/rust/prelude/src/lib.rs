@@ -162,6 +162,21 @@ pub use enso_logging::trace_span;
 pub use enso_logging::warn;
 pub use enso_logging::warn_span;
 
+// FIXME: finish it
+
+/// Instruction of how to report important errors.
+pub const REPORT_INSTRUCTION: &str = "We will be thankful for reporting this error here: \
+https://github.com/enso-org/enso/issues. Please, provide us with as much information as possible, \
+including your system specification, browser version, and a detailed description of the steps you \
+made before this error happened.";
+
+#[macro_export]
+macro_rules! reportable_warn {
+    ($($ts:tt)*) => {
+        $crate::warn!{$($ts)*}
+    };
+}
+
 pub fn init_global() {
     init_global_internal();
 }
@@ -396,7 +411,7 @@ impl<T> RefCellOptionOps<T> for RefCell<Option<T>> {
 
     default fn set_if_empty_or_warn(&self, val: T) {
         if self.borrow().is_some() {
-            WARNING!("Trying to set value that was already set.")
+            warn!("Trying to set value that was already set.")
         }
         *self.borrow_mut() = Some(val);
     }
@@ -405,9 +420,7 @@ impl<T> RefCellOptionOps<T> for RefCell<Option<T>> {
 impl<T: Debug> RefCellOptionOps<T> for RefCell<Option<T>> {
     fn set_if_empty_or_warn(&self, val: T) {
         if let Some(ref current) = *self.borrow() {
-            WARNING!(
-                "Trying to set value that was already set (current: {current:?}; new: {val:?})."
-            )
+            warn!("Trying to set value that was already set (current: {current:?}; new: {val:?}).")
         }
         *self.borrow_mut() = Some(val);
     }

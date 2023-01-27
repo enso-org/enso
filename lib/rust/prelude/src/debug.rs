@@ -5,10 +5,6 @@ use crate::*;
 // === Export ===
 // ==============
 
-pub mod logging;
-
-
-
 #[cfg(target_arch = "wasm32")]
 pub mod internal {
     use wasm_bindgen::prelude::*;
@@ -112,7 +108,7 @@ impl CloneRef for TraceCopies {
         let handle = self.handle.clone_ref();
         if let Some(name) = &*borrow {
             let bt = backtrace();
-            DEBUG!("[{name}] Cloning {self.clone_id} -> {clone_id} {bt}");
+            debug!("[{name}] Cloning {} -> {clone_id} {bt}", self.clone_id);
         }
         Self { clone_id, handle }
     }
@@ -124,7 +120,7 @@ impl Drop for TraceCopies {
         if let Some(name) = &*borrow {
             let bt = backtrace();
             let instances = Rc::strong_count(&self.handle) - 1;
-            DEBUG!("[{name}] Dropping {self.clone_id}; instances left: {instances} {bt}");
+            debug!("[{name}] Dropping {}; instances left: {instances} {bt}", self.clone_id);
         }
     }
 }

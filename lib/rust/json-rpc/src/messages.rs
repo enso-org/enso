@@ -304,7 +304,7 @@ mod tests {
         let notification = Notification(call);
         let message = Message::new(notification);
 
-        DEBUG!(serde_json::to_string(&message).unwrap());
+        debug!("{}", serde_json::to_string(&message).unwrap());
 
         let json = serde_json::to_value(message).expect("serialization error");
         let json = json.as_object().expect("expected an object");

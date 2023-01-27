@@ -750,7 +750,7 @@ dependencies = [
  "cfg-if 1.0.0",
  "libc",
  "miniz_oxide",
- "object 0.29.0",
+ "object",
  "rustc-demangle",
 ]
 
@@ -2345,7 +2345,6 @@ dependencies = [
  "itertools 0.10.5",
  "lazy_static",
  "num",
- "object 0.24.0",
  "paste 1.0.9",
  "serde",
  "serde_json",
@@ -5130,15 +5129,6 @@ name = "number_prefix"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
-
-[[package]]
-name = "object"
-version = "0.24.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a5b3dd1c072ee7963717671d1ca129f1048fda25edea6b752bfc71ac8854170"
-dependencies = [
- "flate2",
-]
 
 [[package]]
 name = "object"

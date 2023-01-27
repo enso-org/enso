@@ -393,8 +393,8 @@ impl CompilerData {
                 Some(val) => val,
                 None => {
                     if !self.context.is_context_lost() {
-                        REPORTABLE_WARNING!(
-                            "context.getProgramParameter returned non bool value for KHR Parallel \
+                        reportable_warn!(
+                            "context.getProgramParameter returned non-bool value for KHR Parallel \
                             Shader Compile status check. This should never happen, however, it \
                             should not cause visual artifacts. Reverting to non-parallel mode."
                         );
