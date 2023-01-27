@@ -112,7 +112,8 @@ type Any
         eq_that = Panic.catch No_Such_Conversion (Comparable.from that) _-> Default_Unordered_Comparator
         if eq_self.is_a Incomparable then False else
             # Comparable.equals_builtin is a hack how to directly access EqualsNode from the
-            # engine, so that we don't end up in an infinite recursion here.
+            # engine, so that we don't end up in an infinite recursion here (which would happen
+            # if we would compare with `eq_self == eq_that`).
             similar_type = Comparable.equals_builtin eq_self eq_that
             if similar_type.not then False else
                 hash_self = eq_self.hash self
@@ -168,7 +169,7 @@ type Any
              example_greater =
                  a = 7 * 28
                  a > 147
-    > : Any -> Boolean
+    > : Any -> Boolean ! Incomparable_Values
     > self that =
         assert_ordered_comparators self that <|
             (Comparable.from self).compare self that == Ordering.Greater
@@ -196,7 +197,7 @@ type Any
              example_greater_eq =
                  a = 6 * 21
                  a >= 147
-    >= : Any -> Boolean
+    >= : Any -> Boolean ! Incomparable_Values
     >= self that =
         assert_ordered_comparators self that <|
             case (Comparable.from self).compare self that of
@@ -226,7 +227,7 @@ type Any
              example_less =
                  a = 7 * 21
                  a < 147
-    < : Any -> Boolean
+    < : Any -> Boolean ! Incomparable_Values
     < self that =
         assert_ordered_comparators self that <|
             (Comparable.from self).compare self that == Ordering.Less
@@ -254,7 +255,7 @@ type Any
              example_less_eq =
                  a = 7 * 21
                  a < 147
-    <= : Any -> Boolean
+    <= : Any -> Boolean ! Incomparable_Values
     <= self that =
         assert_ordered_comparators self that <|
             case (Comparable.from self).compare self that of
