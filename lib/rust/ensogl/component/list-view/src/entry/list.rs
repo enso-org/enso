@@ -66,7 +66,6 @@ pub type List<E> = ListData<E, <E as Entry>::Params>;
 #[derivative(Clone(bound = ""))]
 #[clone_ref(bound = "E:CloneRef")]
 pub struct ListData<E, P> {
-    logger:         Logger,
     app:            Application,
     display_object: display::object::Instance,
     entries:        Rc<RefCell<Vec<DisplayedEntry<E>>>>,
@@ -78,25 +77,15 @@ pub struct ListData<E, P> {
 
 impl<E, P: Default> ListData<E, P> {
     /// Entry List View constructor.
-    pub fn new(parent: impl AnyLogger, app: &Application) -> Self {
+    pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let logger = Logger::new_sub(parent, "entry::List");
         let entries = default();
         let entries_range = Rc::new(CloneCell::new(default()..default()));
         let entry_params = default();
         let display_object = display::object::Instance::new();
         let provider = default();
         let label_layer = Rc::new(RefCell::new(app.display.default_scene.layers.label.downgrade()));
-        Self {
-            logger,
-            app,
-            display_object,
-            entries,
-            entries_range,
-            entry_params,
-            provider,
-            label_layer,
-        }
+        Self { app, display_object, entries, entries_range, entry_params, provider, label_layer }
     }
 }
 

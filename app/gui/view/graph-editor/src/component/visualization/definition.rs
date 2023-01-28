@@ -16,10 +16,10 @@ use visualization::java_script;
 // =================
 
 /// General information about a visualization.
-#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Eq, Hash, PartialEq, Deref)]
 #[allow(missing_docs)]
 pub struct Signature {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub path:         visualization::Path,
     pub input_type:   enso::Type,
     pub input_format: Rc<visualization::data::Format>,

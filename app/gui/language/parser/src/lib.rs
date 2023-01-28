@@ -70,8 +70,7 @@ type Client = jsclient::Client;
 /// Currently this component is implemented as a wrapper over parser written
 /// in Scala. Depending on compilation target (native or wasm) it uses either
 /// implementation provided by `wsclient` or `jsclient`.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, CloneRef, Debug, Deref, DerefMut)]
 pub struct Parser(pub Rc<RefCell<Client>>);
 
 impl Parser {
@@ -187,8 +186,7 @@ pub fn from_json_str_without_recursion_limit<'de, Value: serde::Deserialize<'de>
 /// Currently this component is implemented as a wrapper over documentation
 /// parser written in Scala. Depending on compilation target (native or wasm)
 /// it uses either implementation provided by `wsclient` or `jsclient`.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, CloneRef, Debug, Deref, DerefMut)]
 pub struct DocParser(pub Rc<RefCell<Client>>);
 
 impl DocParser {

@@ -243,9 +243,8 @@ impl<M: Metadata> ParsedSourceFile<M> {
         let metadata_start = id_map_start + id_map.len() + before_metadata.len();
         let metadata_start_bytes = Byte::from(metadata_start);
         Ok(SourceFile {
-            content:  iformat!(
-                "{code}{before_tag}{METADATA_TAG}{before_idmap}{id_map}\
-                                 {before_metadata}{metadata}"
+            content:  format!(
+                "{code}{before_tag}{METADATA_TAG}{before_idmap}{id_map}{before_metadata}{metadata}"
             ),
             code:     (0.byte()..code.len().to_byte()).into(),
             id_map:   (id_map_start_bytes..id_map_start_bytes + ByteDiff::from(id_map.len()))
@@ -327,7 +326,7 @@ mod test {
         let expected_json_id_map = JsonIdMap::from_id_map(&source.ast.id_map(), &repr);
         let expected_id_map = to_json_single_line(&expected_json_id_map).unwrap();
         let expected_metadata = to_json_single_line(&source.metadata).unwrap();
-        let expected_content = iformat!(
+        let expected_content = format!(
             r#"main = 2 + 2
 
 

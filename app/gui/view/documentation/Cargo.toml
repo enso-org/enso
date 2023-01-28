@@ -9,7 +9,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 enso-frp = { path = "../../../../lib/rust/frp" }
-enso-logger = { path = "../../../../lib/rust/logger" }
 enso-prelude = { path = "../../../../lib/rust/prelude" }
 ensogl = { path = "../../../../lib/rust/ensogl" }
 ensogl-component = { path = "../../../../lib/rust/ensogl/component" }
@@ -17,7 +16,7 @@ ensogl-hardcoded-theme = { path = "../../../../lib/rust/ensogl/app/theme/hardcod
 ensogl-derive-theme = { path = "../../../../lib/rust/ensogl/app/theme/derive" }
 ide-view-graph-editor = { path = "../graph-editor" }
 wasm-bindgen = { workspace = true }
-serde_json = { version = "1.0" }
+serde_json = { workspace = true }
 horrorshow = "0.8.4"
 enso-suggestion-database = { path = "../../suggestion-database" }
 double-representation = { path = "../../controller/double-representation" }

@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
-futures = "0.3"
+futures = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0.59", features = ["raw_value"] }
 wasm-bindgen = { workspace = true }

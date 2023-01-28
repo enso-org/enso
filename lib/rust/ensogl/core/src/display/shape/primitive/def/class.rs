@@ -49,7 +49,7 @@ impl canvas::Draw for AnyShape {
 // ================
 
 /// Immutable reference to a shape. It is also used to get unique id for each shape.
-#[derive(Debug, Derivative, Shrinkwrap)]
+#[derive(Debug, Derivative, Deref)]
 #[derivative(Clone(bound = ""))]
 pub struct ShapeRef<T> {
     rc: Rc<T>,

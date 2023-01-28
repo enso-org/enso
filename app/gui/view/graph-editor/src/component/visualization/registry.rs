@@ -22,7 +22,6 @@ use enso_prelude::CloneRef;
 pub struct Registry {
     path_map: Rc<RefCell<HashMap<visualization::Path, visualization::Definition>>>,
     type_map: Rc<RefCell<HashMap<enso::Type, Vec<visualization::Definition>>>>,
-    logger:   Logger,
 }
 
 impl Registry {
@@ -30,8 +29,7 @@ impl Registry {
     pub fn new() -> Self {
         let path_map = default();
         let type_map = default();
-        let logger = Logger::new("Registry");
-        Registry { path_map, type_map, logger }
+        Registry { path_map, type_map }
     }
 
     /// Return a `Registry` pre-populated with default visualizations.
@@ -60,13 +58,7 @@ impl Registry {
         let class = class.into();
         match class {
             Ok(class) => self.add(class),
-            Err(err) => {
-                warning!(
-                    &self.logger,
-                    "Failed to add visualization class to registry due to error: \
-                                       {err}"
-                )
-            }
+            Err(err) => warn!("Failed to add visualization class to registry due to error: {err}"),
         };
     }
 

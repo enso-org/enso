@@ -475,33 +475,29 @@ pub struct Handle {
     pub module:        model::Module,
     pub suggestion_db: Rc<model::SuggestionDatabase>,
     parser:            Parser,
-    logger:            Logger,
 }
 
 impl Handle {
     /// Creates a new controller. Does not check if id is valid.
     pub fn new_unchecked(
-        parent: impl AnyLogger,
         module: model::Module,
         suggestion_db: Rc<model::SuggestionDatabase>,
         parser: Parser,
         id: Id,
     ) -> Handle {
         let id = Rc::new(id);
-        let logger = Logger::new_sub(parent, format!("Graph Controller {}", id));
-        Handle { id, module, suggestion_db, parser, logger }
+        Handle { id, module, suggestion_db, parser }
     }
 
     /// Create a new graph controller. Given ID should uniquely identify a definition in the
     /// module. Fails if ID cannot be resolved.
     pub fn new(
-        parent: impl AnyLogger,
         module: model::Module,
         suggestion_db: Rc<model::SuggestionDatabase>,
         parser: Parser,
         id: Id,
     ) -> FallibleResult<Handle> {
-        let ret = Self::new_unchecked(parent, module, suggestion_db, parser, id);
+        let ret = Self::new_unchecked(module, suggestion_db, parser, id);
         // Get and discard definition info, we are just making sure it can be obtained.
         let _ = ret.definition()?;
         Ok(ret)
@@ -512,7 +508,6 @@ impl Handle {
     /// Fails if the module is inaccessible or if the module does not contain the given method.
     #[profile(Task)]
     pub async fn new_method(
-        parent: impl AnyLogger,
         project: &model::Project,
         method: &language_server::MethodPointer,
     ) -> FallibleResult<controller::Graph> {
@@ -521,7 +516,7 @@ impl Handle {
         let module_path = model::module::Path::from_method(root_id, &method)?;
         let module = project.module(module_path).await?;
         let definition = module.lookup_method(project.qualified_name(), &method)?;
-        Self::new(parent, module, project.suggestion_db(), project.parser(), definition)
+        Self::new(module, project.suggestion_db(), project.parser(), definition)
     }
 
     /// Get the double representation description of the graph.
@@ -1101,13 +1096,12 @@ pub mod tests {
 
         /// Create a graph controller from the current mock data.
         pub fn graph(&self) -> Handle {
-            let logger = Logger::new("Test");
             let parser = Parser::new().unwrap();
-            let urm = Rc::new(model::undo_redo::Repository::new(&logger));
+            let urm = Rc::new(model::undo_redo::Repository::new());
             let module = self.module_data().plain(&parser, urm);
             let id = self.graph_id.clone();
             let db = self.suggestion_db();
-            Handle::new(logger, module, db, parser, id).unwrap()
+            Handle::new(module, db, parser, id).unwrap()
         }
 
         pub fn method(&self) -> MethodPointer {
@@ -1128,11 +1122,11 @@ pub mod tests {
         }
     }
 
-    #[derive(Debug, Shrinkwrap)]
-    #[shrinkwrap(mutable)]
+    #[derive(Debug, Deref, DerefMut)]
     pub struct Fixture {
         pub data:  MockData,
-        #[shrinkwrap(main_field)]
+        #[deref]
+        #[deref_mut]
         pub inner: TestWithLocalPoolExecutor,
     }
 
@@ -1190,7 +1184,7 @@ pub mod tests {
     fn graph_controller_inline_definition() {
         let mut test = Fixture::set_up();
         const EXPRESSION: &str = "2+2";
-        test.data.code = iformat!("main = {EXPRESSION}");
+        test.data.code = format!("main = {EXPRESSION}");
         test.run(|graph| async move {
             let nodes = graph.nodes().unwrap();
             let (node,) = nodes.expect_tuple();
@@ -1421,7 +1415,7 @@ main =
             // === Initial nodes ===
             let nodes = graph.nodes().unwrap();
             for node in &nodes {
-                DEBUG!(node.repr())
+                debug!("{}", node.repr())
             }
             let (node1, node2) = nodes.expect_tuple();
             assert_eq!(node1.info.expression().repr(), "2");

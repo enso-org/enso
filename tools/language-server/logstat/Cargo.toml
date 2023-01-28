@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "3", features = ["derive"] }
-lazy_static = "1.4.0"
+lazy_static = { workspace = true }
 enso-prelude = { path = "../../../lib/rust/prelude" }
 regex = { workspace = true }
 time = { version = "0.3", features = ["formatting", "parsing"] }

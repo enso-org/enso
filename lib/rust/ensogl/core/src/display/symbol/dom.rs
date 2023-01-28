@@ -99,9 +99,9 @@ impl Drop for Guard {
 // =================
 
 /// A DOM element which is managed by the rendering engine.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct DomSymbol {
-    #[shrinkwrap(main_field)]
+    #[deref]
     dom:            HtmlDivElement,
     display_object: display::object::Instance,
     size:           Rc<Cell<Vector2<f32>>>,

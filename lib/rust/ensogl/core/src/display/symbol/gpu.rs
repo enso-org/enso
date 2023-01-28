@@ -125,7 +125,7 @@ impl TextureBinding {
 
 /// A safe wrapper for WebGL VertexArrayObject. It releases the VAO from GPU memory as soon as all
 /// references to this object are dropped.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct VertexArrayObject {
     rc: Rc<VertexArrayObjectData>,
 }
@@ -189,13 +189,13 @@ impl Drop for VertexArrayObjectData {
 // ===================
 
 /// Wrapper for `Stats` which counts the number of symbols.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 pub struct SymbolStats {
     rc: Rc<SymbolStatsData>,
 }
 
 /// Internal representation for `SymbolStats`.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 pub struct SymbolStatsData {
     stats: Stats,
 }
