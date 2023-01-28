@@ -185,7 +185,7 @@ public class ExecutionService {
    * defined in.
    *
    * @param moduleName the module where the method is defined.
-   * @param consName the name of the constructor the method is defined on.
+   * @param typeName the name of the type the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
@@ -243,6 +243,21 @@ public class ExecutionService {
     } finally {
       context.getThreadManager().leave(p);
     }
+  }
+
+  /**
+   * Converts the provided object to a readable representation.
+   *
+   * @param receiver the object to convert.
+   * @return the textual representation of the object.
+   */
+  public String toDisplayString(Object receiver) {
+    try {
+      return interopLibrary.asString(interopLibrary.toDisplayString(receiver));
+    } catch (UnsupportedMessageException ignored) {
+      CompilerDirectives.shouldNotReachHere("Message support already checked.");
+    }
+    return null;
   }
 
   /**
