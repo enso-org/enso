@@ -74,7 +74,10 @@ impl GraphInfo {
     pub fn nodes(&self) -> Vec<NodeInfo> {
         let ast = &self.source.ast;
         let body = &ast.rarg;
-        if let Ok(body_block) = known::Block::try_new(body.clone()) {
+        if Self::is_empty_graph_body(body) {
+            // Empty graph body is represented as a single `Nothing` value. It has no nodes.
+            vec![]
+        } else if let Ok(body_block) = known::Block::try_new(body.clone()) {
             let context_indent = self.source.indent();
             let lines_iter = body_block.enumerate_non_empty_lines();
             let nodes_iter = node::NodeIterator { lines_iter, context_indent };
@@ -97,7 +100,13 @@ impl GraphInfo {
 
     /// Adds a new node to this graph.
     pub fn add_node(&mut self, node: &NodeInfo, location_hint: LocationHint) -> FallibleResult {
-        let mut lines = self.source.block_lines();
+        let body = self.source.body();
+        let mut lines = if Self::is_empty_graph_body(body.item) {
+            // Adding first node to empty graph. We need to remove the placeholder value.
+            default()
+        } else {
+            self.source.block_lines()
+        };
         let last_non_empty = || lines.iter().rposition(|line| line.elem.is_some());
         let index = match location_hint {
             LocationHint::Start => 0,
@@ -123,8 +132,14 @@ impl GraphInfo {
 
     /// After removing last node, we want to insert a placeholder value for definition value.
     /// This defines its AST. Currently it is just `Nothing`.
-    pub fn empty_graph_body() -> Ast {
+    fn empty_graph_body() -> Ast {
         Ast::cons(ast::constants::keywords::NOTHING).with_new_id()
+    }
+
+    /// Check if the graph is empty. (is filled with [`Self::empty_graph_body`])
+    fn is_empty_graph_body(ast: &Ast) -> bool {
+        let cons = known::Cons::try_from(ast);
+        cons.map_or(false, |cons| cons.name == ast::constants::keywords::NOTHING)
     }
 
     /// Removes the node from graph.
@@ -166,7 +181,8 @@ impl GraphInfo {
                 lines.remove(doc_index);
             }
         }
-        if lines.is_empty() {
+        let non_empty_lines_count = lines.iter().filter(|line| line.elem.is_some()).count();
+        if non_empty_lines_count == 0 {
             self.source.set_body_ast(Self::empty_graph_body());
             Ok(())
         } else {
@@ -457,9 +473,20 @@ main =
         graph.remove_node(node.id()).unwrap();
         debug!("zz");
 
-        let (node,) = graph.nodes().expect_tuple();
-        assert_eq!(node.expression().repr(), ast::constants::keywords::NOTHING);
+        assert!(graph.nodes().is_empty());
         graph.expect_code("main = Nothing");
+    }
+
+    #[wasm_bindgen_test]
+    fn add_first_node_to_empty_graph() {
+        let parser = parser_scala::Parser::new_or_panic();
+        let program = r"main = Nothing";
+        let mut graph = main_graph(&parser, program);
+        assert!(graph.nodes().is_empty());
+        let node_to_add = new_expression_node(&parser, "node0");
+        graph.add_node(&node_to_add, LocationHint::Start).unwrap();
+        assert_eq!(graph.nodes().len(), 1);
+        assert_eq!(graph.nodes()[0].expression().repr(), "node0");
     }
 
 
