@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler.vcs
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -47,6 +47,15 @@ class ListVcsHandler(
         rpcSession.clientId
       )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+      context.stop(self)
+
+    case Status.Failure(ex) =>
+      logger.error(
+        s"List project request [$id] for [${rpcSession.clientId}] failed with: ${ex.getMessage}.",
+        ex
+      )
+      cancellable.cancel()
+      replyTo ! ResponseError(Some(id), Errors.ServiceError)
       context.stop(self)
 
     case VcsProtocol.ListRepoResponse(Right(saves)) =>

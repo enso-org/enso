@@ -46,7 +46,7 @@ pub enum LocationHint {
 // =================
 
 /// Description of the graph, based on information available in AST.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct GraphInfo {
     /// The definition providing this graph.
     pub source: DefinitionInfo,
@@ -450,12 +450,12 @@ main =
 main =
     foo = 2 + 2";
         let mut graph = main_graph(&parser, program);
-        DEBUG!("aa");
+        debug!("aa");
         let (node,) = graph.nodes().expect_tuple();
         assert_eq!(node.expression().repr(), "2 + 2");
-        DEBUG!("vv");
+        debug!("vv");
         graph.remove_node(node.id()).unwrap();
-        DEBUG!("zz");
+        debug!("zz");
 
         let (node,) = graph.nodes().expect_tuple();
         assert_eq!(node.expression().repr(), ast::constants::keywords::NOTHING);

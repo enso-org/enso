@@ -55,9 +55,9 @@ impl ContentSummary {
 /// The information about module's content. In addition to minimal summery defined in
 /// `ContentSummary` it adds information about sections, what enables efficient updates after code
 /// and metadata changes.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 struct ParsedContentSummary {
-    #[shrinkwrap(main_field)]
+    #[deref]
     summary:  ContentSummary,
     source:   text::Rope,
     code:     Range<Location<Byte>>,

@@ -7,7 +7,7 @@ authors = ["Enso Team <contact@enso.org>"]
 [dependencies]
 enso-reflect-macros = { path = "macros" }
 enso-metamodel = { path = "../metamodel", features = ["rust"] }
-derivative = "2.2"
+derivative = { workspace = true }
 
 [features]
 default = ["graphviz"]

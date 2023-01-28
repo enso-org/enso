@@ -24,8 +24,7 @@ mod tests {
     //#[wasm_bindgen_test::wasm_bindgen_test(async)]
     #[allow(dead_code)]
     async fn project_life_cycle() {
-        let logger = Logger::new("test");
-        let ws = WebSocket::new_opened(logger, "ws://localhost:30535").await;
+        let ws = WebSocket::new_opened("ws://localhost:30535").await;
         let ws = ws.expect("Couldn't connect to WebSocket server.");
         let client = Client::new(ws);
         let _executor = enso_executor::setup_global_executor();

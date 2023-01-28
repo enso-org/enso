@@ -26,7 +26,6 @@ pub use command::View;
 #[derive(Debug, Clone, CloneRef)]
 #[allow(missing_docs)]
 pub struct Registry {
-    pub logger:            Logger,
     pub display:           World,
     pub command_registry:  command::Registry,
     pub shortcut_registry: shortcut::Registry,
@@ -36,17 +35,15 @@ pub struct Registry {
 impl Registry {
     /// Constructor.
     pub fn create(
-        logger: impl AnyLogger,
         display: &World,
         command_registry: &command::Registry,
         shortcut_registry: &shortcut::Registry,
     ) -> Self {
-        let logger = Logger::new_sub(logger, "view_registry");
         let display = display.clone_ref();
         let command_registry = command_registry.clone_ref();
         let shortcut_registry = shortcut_registry.clone_ref();
         let definitions = default();
-        Self { logger, display, command_registry, shortcut_registry, definitions }
+        Self { display, command_registry, shortcut_registry, definitions }
     }
 
     /// View registration.

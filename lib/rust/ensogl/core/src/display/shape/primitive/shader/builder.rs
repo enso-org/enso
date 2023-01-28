@@ -43,7 +43,7 @@ impl Builder {
         let mut canvas = Canvas::default();
         let shape_ref = shape.draw(&mut canvas);
         let shape_header = header("Shape Definition");
-        canvas.add_current_function_code_line(iformat!("return {shape_ref.getter()};"));
+        canvas.add_current_function_code_line(format!("return {};", shape_ref.getter()));
         canvas.submit_shape_constructor("run");
         let shape_def = overload::allow_overloading(&canvas.to_glsl());
         let code = [GLSL_BOILERPLATE.as_str(), "", &shape_header, &shape_def].join("\n\n");
@@ -63,7 +63,7 @@ impl Builder {
 fn header(label: &str) -> String {
     let border_len = label.len() + 8;
     let border = "=".repeat(border_len);
-    iformat!("// {border}\n// === {label} ===\n// {border}")
+    format!("// {border}\n// === {label} ===\n// {border}")
 }
 
 

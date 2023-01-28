@@ -6,18 +6,15 @@ edition = "2021"
 
 [lib]
 
-[features]
-default = ["console_error_panic_hook"]
-
 [dependencies]
 enso-debug-api = { path = "../debug-api" }
-console_error_panic_hook = { version = "0.1.6", optional = true }
-failure = { version = "0.1.5" }
+console_error_panic_hook = { workspace = true }
+failure = { workspace = true }
 gloo-timers = { version = "0.2.1", features = ["futures"] }
-js-sys = { version = "0.3.28" }
-nalgebra = { version = "0.26.1" }
+js-sys = { workspace = true }
+nalgebra = { workspace = true }
 wasm-bindgen = { workspace = true }
-derivative = "2.2.0"
+derivative = { workspace = true }
 enso-logging = { path = "../logging" }
 enso-shapely = { path = "../shapely" }
 

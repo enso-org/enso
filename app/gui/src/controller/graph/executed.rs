@@ -75,7 +75,6 @@ pub enum Notification {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
     #[allow(missing_docs)]
-    pub logger:    Logger,
     /// A handle to basic graph operations.
     graph:         Rc<RefCell<controller::Graph>>,
     /// Execution Context handle, its call stack top contains `graph`'s definition.
@@ -91,12 +90,8 @@ pub struct Handle {
 impl Handle {
     /// Create handle for the executed graph that will be running the given method.
     #[profile(Task)]
-    pub async fn new(
-        parent: impl AnyLogger,
-        project: model::Project,
-        method: MethodPointer,
-    ) -> FallibleResult<Self> {
-        let graph = controller::Graph::new_method(parent, &project, &method).await?;
+    pub async fn new(project: model::Project, method: MethodPointer) -> FallibleResult<Self> {
+        let graph = controller::Graph::new_method(&project, &method).await?;
         let execution = project.create_execution_context(method.clone()).await?;
         Ok(Self::new_internal(graph, project, execution))
     }
@@ -120,10 +115,9 @@ impl Handle {
         project: model::Project,
         execution_ctx: model::ExecutionContext,
     ) -> Self {
-        let logger = Logger::new_sub(&graph.logger, "Executed");
         let graph = Rc::new(RefCell::new(graph));
         let notifier = default();
-        Handle { logger, graph, execution_ctx, project, notifier }
+        Handle { graph, execution_ctx, project, notifier }
     }
 
     /// See [`model::ExecutionContext::when_ready`].
@@ -226,7 +220,7 @@ impl Handle {
     pub async fn enter_method_pointer(&self, local_call: &LocalCall) -> FallibleResult {
         debug!("Entering node {}.", local_call.call);
         let method_ptr = &local_call.definition;
-        let graph = controller::Graph::new_method(&self.logger, &self.project, method_ptr);
+        let graph = controller::Graph::new_method(&self.project, method_ptr);
         let graph = graph.await?;
         self.execution_ctx.push(local_call.clone()).await?;
         debug!("Replacing graph with {graph:?}.");
@@ -273,7 +267,7 @@ impl Handle {
     pub async fn exit_node(&self) -> FallibleResult {
         let frame = self.execution_ctx.pop().await?;
         let method = self.execution_ctx.current_method();
-        let graph = controller::Graph::new_method(&self.logger, &self.project, &method).await?;
+        let graph = controller::Graph::new_method(&self.project, &method).await?;
         self.graph.replace(graph);
         self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
         Ok(())
@@ -384,9 +378,8 @@ pub mod tests {
 
     impl MockData {
         pub fn controller(&self) -> Handle {
-            let logger = Logger::new("test");
             let parser = parser_scala::Parser::new_or_panic();
-            let repository = Rc::new(model::undo_redo::Repository::new(&logger));
+            let repository = Rc::new(model::undo_redo::Repository::new());
             let module = self.module.plain(&parser, repository);
             let method = self.graph.method();
             let mut project = model::project::MockAPI::new();
@@ -403,7 +396,7 @@ pub mod tests {
             let suggestion_db = self.graph.suggestion_db();
             model::project::test::expect_suggestion_db(&mut project, suggestion_db);
             let project = Rc::new(project);
-            Handle::new(logger, project.clone_ref(), method).boxed_local().expect_ok()
+            Handle::new(project.clone_ref(), method).boxed_local().expect_ok()
         }
     }
 

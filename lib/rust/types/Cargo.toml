@@ -8,9 +8,9 @@ edition = "2021"
 
 [dependencies]
 enso-reflect = { path = "../reflect" }
-nalgebra = { version = "0.26.1" }
+nalgebra = { workspace = true }
 num-traits = { version = "0.2" }
-paste = "1.0.7"
+paste = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 enso-prelude = { path = "../prelude" }
 

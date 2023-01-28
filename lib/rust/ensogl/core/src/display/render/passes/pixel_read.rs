@@ -131,7 +131,7 @@ impl<T: JsTypedArrayItem> PixelReadPass<T> {
             context.bind_framebuffer(*target, None);
             let framebuffer_status = context.check_framebuffer_status(*Context::FRAMEBUFFER);
             if framebuffer_status != *Context::FRAMEBUFFER_COMPLETE {
-                WARNING!("Framebuffer incomplete (status: {framebuffer_status}).")
+                warn!("Framebuffer incomplete (status: {framebuffer_status}).")
             }
             let data = PixelReadPassData::new(buffer, framebuffer, format, item_type, js_array);
             self.data = Some(data);
