@@ -39,14 +39,12 @@ object TestMessages {
     * @param contextId an identifier of the context
     * @param expressionId an identifier of the expression
     * @param expressionType a type of the expression
-    * @param fromCache whether or not the value for this expression came
     * @return the expression update response
     */
   def update(
     contextId: UUID,
     expressionId: UUID,
-    expressionType: String,
-    fromCache: Boolean = false
+    expressionType: String
   ): Api.Response =
     Api.Response(
       Api.ExpressionUpdates(
@@ -57,8 +55,42 @@ object TestMessages {
             Some(expressionType),
             None,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
-            fromCache,
+            false,
             Api.ExpressionUpdate.Payload.Value()
+          )
+        )
+      )
+    )
+
+  /** Create an update response.
+    *
+    * @param contextId an identifier of the context
+    * @param expressionId an identifier of the expression
+    * @param expressionType a type of the expression
+    * @param fromCache whether or not the value for this expression came
+    * @param methodPointer method pointer
+    * @param payload the update payload
+    * @return the expression update response
+    */
+  def update(
+    contextId: UUID,
+    expressionId: UUID,
+    expressionType: String,
+    fromCache: Boolean                       = false,
+    methodPointer: Option[Api.MethodPointer] = None,
+    payload: Api.ExpressionUpdate.Payload    = Api.ExpressionUpdate.Payload.Value()
+  ): Api.Response =
+    Api.Response(
+      Api.ExpressionUpdates(
+        contextId,
+        Set(
+          Api.ExpressionUpdate(
+            expressionId,
+            Some(expressionType),
+            methodPointer,
+            Vector(Api.ProfilingInfo.ExecutionTime(0)),
+            fromCache,
+            payload
           )
         )
       )

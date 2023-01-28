@@ -219,7 +219,7 @@ public class IncrementalUpdatesTest {
     assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
       TestMessages.update(contextId, mainFoo, exprType, new Runtime$Api$MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")),
-      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING, false),
+      TestMessages.update(contextId, mainRes, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
@@ -235,8 +235,8 @@ public class IncrementalUpdatesTest {
     );
     assertSameElements(context.receiveNIgnorePendingExpressionUpdates(4, 10, emptySet()),
       Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-      TestMessages.update(contextId, fooX, exprType, false),
-      TestMessages.update(contextId, fooRes, exprType, false),
+      TestMessages.update(contextId, fooX, exprType),
+      TestMessages.update(contextId, fooRes, exprType),
       context.executionComplete(contextId)
     );
     assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());

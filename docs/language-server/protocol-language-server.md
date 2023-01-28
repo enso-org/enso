@@ -351,9 +351,14 @@ An information about the computed value.
 type ExpressionUpdatePayload = Value | DatafalowError | Panic | Pending;
 
 /**
- * An empty payload. Indicates that the expression was computed to a value.
+ * Indicates that the expression was computed to a value.
  */
-interface Value {}
+interface Value {
+  /**
+   * Information about attached warnings.
+   */
+  warnings?: Warnings;
+}
 
 /**
  * Indicates that the expression was computed to an error.
@@ -394,6 +399,23 @@ interface Pending {
    * Optional amount of already done work as a number between `0.0` to `1.0`.
    */
   progress?: Number;
+}
+
+/**
+ * Information about warnings associated with the value.
+ */
+interface Warnings {
+  /**
+   * The number of attached warnings.
+   */
+  count: number;
+
+  /**
+   * If the value has a single warning attached, this field contains textual
+   * representation of the attached warning. In general, warning values should
+   * be obtained by attaching an appropriate visualization to a value.
+   */
+  value?: string;
 }
 ```
 

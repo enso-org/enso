@@ -17,7 +17,11 @@ import org.enso.interpreter.instrument._
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.`type`.Types
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
-import org.enso.interpreter.runtime.error.{DataflowError, PanicSentinel}
+import org.enso.interpreter.runtime.error.{
+  DataflowError,
+  PanicSentinel,
+  WithWarnings
+}
 import org.enso.interpreter.service.error._
 import org.enso.polyglot.LanguageInfo
 import org.enso.polyglot.runtime.Runtime.Api
@@ -282,7 +286,7 @@ object ProgramExecutionSupport {
     * @param ctx the runtime context
     * @return the API message describing the error
     */
-  def getExecutionOutcome(
+  private def getExecutionOutcome(
     t: Throwable
   )(implicit ctx: RuntimeContext): Option[Api.ExecutionResult] =
     getDiagnosticOutcome.orElse(getFailureOutcome).lift(t)
@@ -310,7 +314,7 @@ object ProgramExecutionSupport {
   }
 
   /** Extract information about the failure from the provided exception. */
-  def getFailureOutcome(implicit
+  private def getFailureOutcome(implicit
     ctx: RuntimeContext
   ): PartialFunction[Throwable, Api.ExecutionResult.Failure] = {
     case ex: TypeNotFoundException =>
@@ -372,6 +376,21 @@ object ProgramExecutionSupport {
         case error: DataflowError =>
           Api.ExpressionUpdate.Payload.DataflowError(
             ErrorResolver.getStackTrace(error).flatMap(_.expressionId)
+          )
+        case withWarnings: WithWarnings =>
+          val warningsCount = withWarnings.getWarningsCount
+          val warning =
+            if (warningsCount == 1) {
+              val warnings = withWarnings.getWarningsArray(null)
+              Option(ctx.executionService.toDisplayString(warnings(0).getValue))
+            } else {
+              None
+            }
+          Api.ExpressionUpdate.Payload.Value(
+            Some(
+              Api.ExpressionUpdate.Payload.Value
+                .Warnings(warningsCount, warning)
+            )
           )
         case _ =>
           Api.ExpressionUpdate.Payload.Value()
