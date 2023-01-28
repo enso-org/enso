@@ -203,7 +203,7 @@ macro_rules! make_rpc_methods {
                     if self.require_all_calls.get() && !std::thread::panicking() {
                         $(
                             let method = stringify!($method);
-                            let msg = iformat!("An expected call to {method} was not made.");
+                            let msg = format!("An expected call to {method} was not made.");
                             assert!(self.expect.$method.borrow().is_empty(), "{}", msg);
                         )*
                     }

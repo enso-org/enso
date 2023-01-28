@@ -59,7 +59,6 @@ mod shape {
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     app:            Application,
-    logger:         DefaultTraceLogger,
     display_object: display::object::Instance,
     shape:          shape::View,
 }
@@ -67,12 +66,11 @@ struct Model {
 impl Model {
     fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let logger = DefaultTraceLogger::new("Button");
         let display_object = display::object::Instance::new();
         let shape = shape::View::new();
         shape.set_size(Vector2::new(100.0, 100.0));
         display_object.add_child(&shape);
-        Self { app, logger, display_object, shape }
+        Self { app, display_object, shape }
     }
 }
 

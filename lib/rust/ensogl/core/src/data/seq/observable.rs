@@ -14,11 +14,11 @@ use crate::data::function::traits::FnMut1;
 
 /// Wrapper for array-like type. It allows attaching callbacks which fire when the underlying
 /// structure changes.
-#[derive(Shrinkwrap)]
+#[derive(Deref)]
 #[derive(Derivative)]
 #[derivative(Clone, Debug(bound = "T:Debug"))]
 pub struct Observable<T, OnMut, OnResize> {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub data:      T,
     #[derivative(Debug = "ignore")]
     pub on_mut:    OnMut,

@@ -231,9 +231,9 @@ impl Client {
         // This parser is used only for native debugging, it is not used in production.
         // As such, we can use debug macros here.
         let config = Config::from_env();
-        DEBUG!("Connecting to " config.address_string());
+        debug!("Connecting to {}", config.address_string());
         let client = Client::from_conf(&config)?;
-        DEBUG!("Established connection with {}" config.address_string());
+        debug!("Established connection with {}", config.address_string());
         Ok(client)
     }
 

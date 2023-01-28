@@ -89,7 +89,6 @@ pub struct InitializationResult {
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Project {
-    pub logger:               Logger,
     pub model:                model::Project,
     pub status_notifications: StatusNotificationPublisher,
 }
@@ -97,8 +96,7 @@ pub struct Project {
 impl Project {
     /// Create a controller of given project.
     pub fn new(model: model::Project, status_notifications: StatusNotificationPublisher) -> Self {
-        let logger = Logger::new("controller::Project");
-        Self { logger, model, status_notifications }
+        Self { model, status_notifications }
     }
 
     /// Do the initial setup of opened project.
@@ -132,8 +130,8 @@ impl Project {
         // Here, we should be relatively certain (except race conditions in case of multiple
         // clients that we currently do not support) that main module exists and contains main
         // method. Thus, we should be able to successfully create a graph controller for it.
-        let main_module_text = controller::Text::new(&self.logger, &project, file_path).await?;
-        let main_graph = controller::ExecutedGraph::new(&self.logger, project, method).await?;
+        let main_module_text = controller::Text::new(&project, file_path).await?;
+        let main_graph = controller::ExecutedGraph::new(project, method).await?;
 
         self.init_call_stack_from_metadata(&main_module_model, &main_graph).await;
         self.notify_about_compiling_process(&main_graph);
@@ -195,7 +193,7 @@ impl Project {
             // Push as many frames as possible. We should not be too concerned about failure here.
             // It is to be assumed that metadata can get broken.
             if let Err(e) = main_graph.enter_method_pointer(&frame).await {
-                warning!(self.logger, "Failed to push initial stack frame: {frame:?}: {e}");
+                warn!("Failed to push initial stack frame: {frame:?}: {e}");
                 break;
             }
         }
@@ -206,12 +204,11 @@ impl Project {
         let status_notifier = self.status_notifications.clone_ref();
         let compiling_process = status_notifier.publish_background_task(COMPILING_STDLIB_LABEL);
         let execution_ready = graph.when_ready();
-        let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
             if execution_ready.await.is_some() {
                 status_notifier.published_background_task_finished(compiling_process);
             } else {
-                warning!(logger, "Executed graph dropped before first successful execution!")
+                warn!("Executed graph dropped before first successful execution!")
             }
         });
     }

@@ -19,7 +19,7 @@ ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text = { path = "../../component/text" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
 ensogl-tooltip = { path = "../../component/tooltip" }
-futures = "0.3"
+futures = { workspace = true }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = "0.4"
 

@@ -137,10 +137,10 @@ pub struct FrpInputs {
 }
 
 /// Visualization FRP network.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct Frp {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub inputs: FrpInputs,
 
     pub on_preprocessor_change: frp::Sampler<PreprocessorConfiguration>,

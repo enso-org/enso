@@ -10,8 +10,8 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 ensogl-core = { path = "../../core" }
 wasm-bindgen = { workspace = true }
-js-sys = { version = "0.3.28" }
-nalgebra = { version = "0.26.1" }
+js-sys = { workspace = true }
+nalgebra = { workspace = true }
 web-sys = { version = "0.3.4" }
 
 # Stop wasm-pack from running wasm-opt, because we run it from our build scripts in order to customize options.

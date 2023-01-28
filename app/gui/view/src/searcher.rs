@@ -108,7 +108,6 @@ pub type Entry = list_view::entry::GlyphHighlightedLabel;
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     app:            Application,
-    logger:         Logger,
     display_object: display::object::Instance,
     list:           ListView<Entry>,
     documentation:  documentation::View,
@@ -119,7 +118,6 @@ impl Model {
     fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
         let app = app.clone_ref();
-        let logger = Logger::new("SearcherView");
         let display_object = display::object::Instance::new();
         let list = app.new_view::<ListView<Entry>>();
         list.deprecated_focus();
@@ -139,7 +137,7 @@ impl Model {
         list.set_x(ACTION_LIST_X);
         documentation.set_x(DOCUMENTATION_X);
         documentation.set_y(-action_list_gap);
-        Self { app, logger, display_object, list, documentation, doc_provider }
+        Self { app, display_object, list, documentation, doc_provider }
     }
 
     fn set_height(&self, h: f32) {
