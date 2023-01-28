@@ -3833,6 +3833,103 @@ class RuntimeServerTest
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata
+    val idX1     = metadata.addItem(47, 14)
+    val idX2     = metadata.addItem(71, 32)
+    val idX3     = metadata.addItem(113, 32)
+
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    x1 = attach "x" "y"
+        |    x2 = attach "x" (My_Warning.Value 42)
+        |    x3 = attach "x" (My_Warning.Value x2)
+        |    [x1, x2, x3]
+        |
+        |type My_Warning
+        |    Value reason
+        |
+        |attach value warning =
+        |    Warning.attach_with_stacktrace value warning Runtime.primitive_get_stack_trace
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+    )
+    context.receiveNone shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      5
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages
+        .update(
+          contextId,
+          idX1,
+          ConstantsGen.TEXT,
+          methodPointer =
+            Some(Api.MethodPointer(moduleName, moduleName, "attach")),
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
+        ),
+      TestMessages
+        .update(
+          contextId,
+          idX2,
+          ConstantsGen.TEXT,
+          methodPointer =
+            Some(Api.MethodPointer(moduleName, moduleName, "attach")),
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(
+              Api.ExpressionUpdate.Payload.Value
+                .Warnings(1, Some("(My_Warning.Value 42)"))
+            )
+          )
+        ),
+      TestMessages
+        .update(
+          contextId,
+          idX3,
+          ConstantsGen.TEXT,
+          methodPointer =
+            Some(Api.MethodPointer(moduleName, moduleName, "attach")),
+          payload = Api.ExpressionUpdate.Payload
+            .Value(Some(Api.ExpressionUpdate.Payload.Value.Warnings(2, None)))
+        ),
+      context.executionComplete(contextId)
+    )
+  }
+
+  it should "send updates for expressions annotated with warning" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
     val idX      = metadata.addItem(46, 71)
     val idY      = metadata.addItem(126, 5)
     val idRes    = metadata.addItem(136, 12)
@@ -3877,9 +3974,33 @@ class RuntimeServerTest
       5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      TestMessages.update(contextId, idX, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, idY, ConstantsGen.INTEGER),
-      TestMessages.update(contextId, idRes, ConstantsGen.NOTHING),
+      TestMessages
+        .update(
+          contextId,
+          idX,
+          ConstantsGen.INTEGER,
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
+        ),
+      TestMessages
+        .update(
+          contextId,
+          idY,
+          ConstantsGen.INTEGER,
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
+        ),
+      TestMessages
+        .update(
+          contextId,
+          idRes,
+          ConstantsGen.NOTHING,
+          payload = Api.ExpressionUpdate.Payload.Value(
+            Some(Api.ExpressionUpdate.Payload.Value.Warnings(1, Some("'y'")))
+          )
+        ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("43")
