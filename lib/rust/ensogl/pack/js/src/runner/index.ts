@@ -203,12 +203,12 @@ export class App {
     initialized = false
 
     constructor(opts?: {
-        configExtension?: config.ExternalConfig
+        configParams?: config.Params
         packageInfo?: Record<string, string>
         config?: Record<string, any>
     }) {
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
-        this.config = new config.Config(opts?.configExtension)
+        this.config = new config.Config(opts?.configParams)
         const unrecognizedParams = this.config.resolve([opts?.config, host.urlParams()])
         if (unrecognizedParams) {
             this.config.print()
