@@ -5,8 +5,10 @@
 // @ts-ignore
 import globalConfig from '../../../../gui/config.yaml'
 import buildCfg from '../../../build.json'
+// @ts-ignore
 import * as app from 'ensogl_app'
 import * as semver from 'semver'
+import { Config, Version } from './config'
 
 const logger = app.log.logger
 const config = app.config
@@ -30,26 +32,6 @@ async function fetchTimeout(url: string, timeout: number): Promise<any> {
             throw new Error(`Failed to fetch '${url}'. Response status: ${response.status}.`)
         }
     })
-}
-
-// ===============
-// === Version ===
-// ===============
-
-class Version {
-    /// Development version.
-    static dev = new semver.SemVer('0.0.0')
-    static devPrerelease = 'dev'
-
-    /// Version of the `client` js package.
-    static ide = new semver.SemVer(buildCfg.version, { loose: true })
-
-    static isDev(): boolean {
-        const clientVersion = Version.ide
-        const releaseDev = clientVersion.compareMain(Version.dev) === 0
-        const prereleaseDev = clientVersion.prerelease.toString().includes(Version.devPrerelease)
-        return releaseDev || prereleaseDev
-    }
 }
 
 /// Return `true` if the current application version is still supported
@@ -89,136 +71,6 @@ function displayDeprecatedVersionDialog() {
     root.appendChild(versionCheckDiv)
 }
 
-// ==============
-// === Config ===
-// ==============
-
-class Config extends config.Params {
-    project: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description: 'Project name to open on startup.',
-    })
-    projectManager: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description: 'An address of the Project Manager service.',
-    })
-    languageServerRpc: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description:
-            'An address of the Language Server RPC endpoint. This argument should be provided ' +
-            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
-            'Enso connect directly to the already spawned Language Server of some project.',
-    })
-    languageServerData: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description:
-            'An address of the Language Server Data endpoint. This argument should be provided ' +
-            'together with `languageServerData` ,`namespace`, and `project` options. They make ' +
-            'Enso connect directly to the already spawned Language Server of some project.',
-    })
-    namespace: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description:
-            'Informs Enso about namespace of the opened project. May be used when connecting to ' +
-            'existing Language Server process. Defaults to "local".',
-    })
-    platform: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description:
-            'The host platform the app is running on. This is used to adjust some UI elements. ' +
-            'For example, on macOS, the window close buttons are integrated to the top app panel.',
-    })
-    frame: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: false,
-        description: 'Controls whether a window frame should be visible. Works in native app only.',
-    })
-    darkTheme: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: false,
-        description:
-            'Controls whether the dark theme should be used. Please note that the dark theme is ' +
-            'not fully implemented yet.',
-    })
-    nodeLabels: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: true,
-        description: `Controls whether node labels should be visible.`,
-    })
-    dataGathering: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: true,
-        description: 'Controls whether anonymous data gathering should be enabled.',
-    })
-    isInCloud: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: false,
-        description: 'Information if the app is running in the cloud.',
-    })
-    authenticationEnabled: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: true,
-        description: 'Controls whether user authentication is enabled.',
-    })
-    email: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description: 'The user email, if any.',
-    })
-    applicationConfigUrl: config.Param<string> = new config.Param({
-        type: 'string',
-        default: 'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
-        description: 'The application config URL. Used to check for available updates.',
-    })
-    testWorkflow: config.Param<string | null> = new config.Param({
-        type: 'string',
-        default: null,
-        description:
-            'When profiling the application (e.g. with the `./run profile` command), this ' +
-            'argument chooses what is profiled.',
-    })
-    skipMinVersionCheck: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: Version.isDev(),
-        description:
-            'Controls whether the minimum engine version check should be performed. It is set to ' +
-            '`true` in local builds.',
-    })
-    debug: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: Version.isDev(),
-        description:
-            'Controls whether the application should be run in the debug mode. In this mode all ' +
-            'logs are printed to the console. Otherwise, the logs are hidden unless explicitly ' +
-            'shown by calling `showLogs`. Moreover, additional logs from libraries are printed ' +
-            'in this mode. The debug mode is set to `true` by default in local builds.',
-    })
-    preferredEngineVersion: config.Param<semver.SemVer> = new config.Param({
-        type: 'string',
-        default: Version.ide,
-        description: `The preferred engine version.`,
-    })
-    enableNewComponentBrowser: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: true,
-        description: 'Controls whether the new component browser should be enabled.',
-    })
-    emitUserTimingMeasurements: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: false,
-        description:
-            'When enabled, profiling measurements will be continually submitted to the User ' +
-            'Timing Web API so that they can be viewed with standard developer tools. Note that ' +
-            'this mode has a significant performance impact.',
-    })
-}
-
 // ========================
 // === Main Entry Point ===
 // ========================
@@ -237,7 +89,9 @@ class Main {
             config,
             configParams: new Config(),
             packageInfo: {
+                // @ts-ignore
                 version: BUILD_INFO.default.version,
+                // @ts-ignore
                 engineVersion: BUILD_INFO.default.engineVersion,
             },
         })

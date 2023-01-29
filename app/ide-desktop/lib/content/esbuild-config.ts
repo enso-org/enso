@@ -112,8 +112,9 @@ const config: esbuild.BuildOptions = {
     sourcemap: true,
     minify: true,
     metafile: true,
+    format: 'esm',
     publicPath: '/assets',
-    platform: 'node',
+    platform: 'browser',
     incremental: true,
     color: true,
     logOverride: {

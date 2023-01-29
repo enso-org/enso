@@ -5,18 +5,418 @@ import buildCfg from '../../../build.json'
 import Electron from 'electron'
 import isDev from 'electron-is-dev'
 import path from 'node:path'
+// @ts-ignore
 import * as Server from './server'
 import util from 'node:util'
 import { hideBin } from 'yargs/helpers'
 import remoteMain from '@electron/remote/main/index.js'
 import { project_manager_bundle } from '../paths.js'
-import * as content from '../../content/src/index'
+import * as content from '../../content/src/config'
+import chalk from 'chalk'
 
 import child_process, { SpawnOptions } from 'child_process'
 import fss from 'node:fs'
 import fsp from 'node:fs/promises'
 
 const yargs = require('yargs')
+
+let configOptionsGroup = 'Config Options'
+let debugOptionsGroup = 'Debug Options'
+let styleOptionsGroup = 'Style Options'
+let electronOptionsGroup = 'Electron Options'
+
+// @ts-ignore
+export class Config extends content.Config {
+    // @ts-ignore
+    port: content.Param<string | null> = new content.Param({
+        group: configOptionsGroup,
+        type: 'string',
+        default: null,
+        description: `Port to use [${Server.DEFAULT_PORT}]`,
+    })
+    // @ts-ignore
+    project: content.Param<string | null> = new content.Param({
+        group: configOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Open the specified project on startup',
+    })
+    // @ts-ignore
+    server: content.Param<boolean> = new content.Param({
+        group: configOptionsGroup,
+        type: 'boolean',
+        default: true,
+        description: 'Run the server.',
+    })
+    // @ts-ignore
+    window: content.Param<boolean> = new content.Param({
+        group: configOptionsGroup,
+        type: 'boolean',
+        default: true,
+        description: 'Show the window.',
+    })
+    // @ts-ignore
+    backgroundThrottling: content.Param<boolean> = new content.Param({
+        group: configOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: 'Throttle animations when run in background.',
+    })
+    // @ts-ignore
+    backend: content.Param<boolean> = new content.Param({
+        group: configOptionsGroup,
+        type: 'boolean',
+        default: true,
+        description: 'Start the backend process automatically.',
+    })
+    // @ts-ignore
+    backendPath: content.Param<string | null> = new content.Param({
+        group: configOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Set the path of a local project manager to use for running projects',
+    })
+    // @ts-ignore
+    verbose: content.Param<boolean> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: `Increase logs verbosity. Affects both IDE and the backend.`,
+    })
+    // @ts-ignore
+    dev: content.Param<boolean> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: 'Run the application in development mode',
+    })
+    // @ts-ignore
+    devtron: content.Param<boolean> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: 'Install the Devtron Developer Tools extension.',
+    })
+    // @ts-ignore
+    loadProfile: content.Param<null | string[]> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'array',
+        default: null,
+        description:
+            'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    })
+    // @ts-ignore
+    saveProfile: content.Param<null | string> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Record a performance profile and write to a file.',
+    })
+    // @ts-ignore
+    workflow: content.Param<null | string> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Specify a workflow for profiling. Must be used with --entry-point=profile.',
+    })
+    // @ts-ignore
+    frame: content.Param<boolean> = new content.Param({
+        group: styleOptionsGroup,
+        type: 'boolean',
+        default: true,
+        description: 'Draw window frame. Defaults to `false` on MacOS and `true` otherwise.',
+    })
+    // @ts-ignore
+    vibrancy: content.Param<boolean> = new content.Param({
+        group: styleOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: 'Use the vibrancy effect.',
+    })
+    // @ts-ignore
+    windowSize: content.Param<null | string> = new content.Param({
+        group: styleOptionsGroup,
+        type: 'string',
+        default: null,
+        description: `Set the window size [${windowCfg.width}x${windowCfg.height}]`,
+    })
+    // @ts-ignore
+    theme: content.Param<null | string> = new content.Param({
+        group: styleOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Use the provided theme. Defaults to `light`.',
+    })
+    // @ts-ignore
+    nodeLabels: content.Param<boolean> = new content.Param({
+        group: styleOptionsGroup,
+        type: 'boolean',
+        default: true,
+        description: 'Show node labels.',
+    })
+    // @ts-ignore
+    info: content.Param<boolean> = new content.Param({
+        type: 'boolean',
+        default: false,
+        description: `Print the system debug info`,
+    })
+    // @ts-ignore
+    version: content.Param<boolean> = new content.Param({
+        type: 'boolean',
+        default: false,
+        description: `Print the version`,
+    })
+    // @ts-ignore
+    dataGathering: content.Param<boolean> = new content.Param({
+        type: 'boolean',
+        default: true,
+        description: 'Enable the sharing of any usage data',
+    })
+
+    // === Electron Options ===
+    // https://www.electronjs.org/docs/latest/api/command-line-switches
+
+    // @ts-ignore
+    electronAuthServerWhitelist: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'A comma-separated list of servers for which integrated authentication is ' +
+            'enabled.',
+    })
+    // @ts-ignore
+    electronAuthNegotiateDelegateWhitelist: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'A comma-separated list of servers for which delegation of user credentials is ' +
+            "required. Without '*' prefix the URL has to match exactly.",
+    })
+    // @ts-ignore
+    electronDisableNtlmV2: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
+    })
+    // @ts-ignore
+    electronDisableHttpCache: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description: 'Disables the disk cache for HTTP requests.',
+    })
+    // @ts-ignore
+    electronDisableHttp2: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
+    })
+    // @ts-ignore
+    electronDisableRendererBackgrounding: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description:
+            "Prevents Chromium from lowering the priority of invisible pages' renderer " +
+            'processes.',
+    })
+    // @ts-ignore
+    electronDiskCacheSize: content.Param<null | number> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'number',
+        default: null,
+        description: 'Forces the maximum disk space to be used by the disk cache, in bytes.',
+    })
+    // @ts-ignore
+    electronEnableLogging: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        requiresArg: false, // FIXME: support this
+        description:
+            "Prints Chromium's logging to stderr (or a log file, if provided as argument).",
+    })
+    // @ts-ignore
+    electronForceFieldtrials: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'Field trials to be forcefully enabled or disabled. For example, ' +
+            "'WebRTC-Audio-Red-For-Opus/Enabled/'.",
+    })
+    // @ts-ignore
+    electronHostRules: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'A comma-separated list of rules that control how hostnames are mapped. For ' +
+            "example, 'MAP * 127.0.0.1'.",
+    })
+    // @ts-ignore
+    electronHostResolverRules: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description: "Like '--host-rules' but these rules only apply to the host resolver.",
+    })
+    // @ts-ignore
+    electronIgnoreCertificateErrors: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description: 'Ignores certificate related errors.',
+    })
+    // @ts-ignore
+    electronIgnoreConnectionsLimit: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description: "Ignore the connections limit for domains list separated by ','.",
+    })
+    // @ts-ignore
+    electronJsFlags: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'Specifies the flags passed to the Node.js engine. For example, ' +
+            '\'--js-flags="--harmony_proxies --harmony_collections"\'.',
+    })
+    // @ts-ignore
+    electronLang: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Set a custom locale.',
+    })
+    // @ts-ignore
+    electronLogFile: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            "If '--enable-logging' is specified, logs will be written to the given path. " +
+            'The parent directory must exist.',
+    })
+    // @ts-ignore
+    electronLogNetLog: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Enables net log events to be saved and writes them to the provided path.',
+    })
+    // @ts-ignore
+    electronLogLevel: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            "Sets the verbosity of logging when used together with '--enable-logging'. The " +
+            "argument should be one of Chrome's LogSeverities.",
+    })
+    // @ts-ignore
+    electronNoProxyServer: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description:
+            "Don't use a proxy server and always make direct connections. Overrides " +
+            'any other proxy server flags that are passed.',
+    })
+    // @ts-ignore
+    electronNoSandbox: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description:
+            'Disables the Chromium sandbox. Forces renderer process and Chromium helper ' +
+            'processes to run un-sandboxed. Should only be used for testing.',
+    })
+    // @ts-ignore
+    electronProxyBypassList: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'Instructs Electron to bypass the proxy server for the given ' +
+            'semi-colon-separated list of hosts. This flag has an effect only if used in tandem ' +
+            "with '--proxy-server'. For example, " +
+            '\'--proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"\'.',
+    })
+    // @ts-ignore
+    electronProxyPacUrl: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Uses the PAC script at the specified url.',
+    })
+    // @ts-ignore
+    electronProxyServer: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            "Use a specified proxy server ('address:port'), which overrides the system " +
+            'setting. This switch only affects requests with HTTP protocol, including HTTPS and ' +
+            'WebSocket requests. It is also noteworthy that not all proxy servers support HTTPS ' +
+            'and WebSocket requests. The proxy URL does not support username and password ' +
+            'authentication per ' +
+            '[Chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
+    })
+    // @ts-ignore
+    electronRemoteDebuggingPort: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description: 'Enables remote debugging over HTTP on the specified port.',
+    })
+    // @ts-ignore
+    electronV: content.Param<null | number> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'number',
+        default: null,
+        description:
+            'Gives the default maximal active V-logging level; 0 is the default. Normally ' +
+            'positive values are used for V-logging levels. This switch only works when ' +
+            "'--enable-logging' is also passed.",
+    })
+    // @ts-ignore
+    electronVmodule: content.Param<null | string> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'Gives the per-module maximal V-logging levels to override the value given by ' +
+            "'--v'. E.g. 'my_module=2,foo*=3' would change the logging level for all code in " +
+            "source files 'my_module.*' and 'foo*.*'. Any pattern containing a forward or " +
+            'backward slash will be tested against the whole pathname and not only the module. ' +
+            "This switch only works when '--enable-logging' is also passed.",
+    })
+    // @ts-ignore
+    electronForce_high_performance_gpu: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description: 'Force using discrete GPU when there are multiple GPUs available.',
+    })
+    // @ts-ignore
+    electronForce_low_power_gpu: content.Param<null | boolean> = new content.Param({
+        group: electronOptionsGroup,
+        type: 'boolean',
+        default: null,
+        description: 'Force using integrated GPU when there are multiple GPUs available.',
+    })
+}
+
+function camelToKebabCase(str: string) {
+    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
+}
 
 // =============
 // === Paths ===
@@ -66,167 +466,81 @@ const trustedHosts = [
 // === Option Parser ===
 // =====================
 
-class
-
 let usage = `
 ${buildCfg.name} ${buildCfg.version} command line interface.
 
-Usage: ${buildCfg.name} [options] [--] [backend args]...
+Usage: enso [[options]] [[__]] [[backend args]]...
 `
 
 let epilogue = `
-Arguments that follow the two dashes (\`--\`) will be passed to the backend process. They are used\
- if IDE spawns backend, i.e. if '--backend false' has not been set.`
-
-let configOptionsGroup = 'Config Options:'
-let debugOptionsGroup = 'Debug Options:'
-let styleOptionsGroup = 'Style Options:'
+Arguments that follow the two dashes (\`__\`) will be passed to the backend process. They are used\
+ if IDE spawns backend, i.e. if '-no-backend' has not been set.`
 
 let argv = hideBin(process.argv)
+const config = new Config()
+
+const yargOptions = Object.entries(config).reduce((opts, [key, param]) => {
+    const yargsParam = Object.assign({}, param)
+    yargsParam.group = yargsParam.group ? chalk.blue(yargsParam.group) + ':' : undefined
+    yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
+    if (yargsParam.default != null) {
+        yargsParam.description += chalk.green(` Defaults to '${yargsParam.default}'.`)
+    }
+    yargsParam.default = undefined
+    opts[camelToKebabCase(key)] = yargsParam
+    return opts
+}, {})
+
 let optParser = yargs(argv)
     .scriptName('')
     .usage(usage)
     .epilogue(epilogue)
     .help()
     .version(false)
-    .parserConfiguration({ 'populate--': true })
+    // Makes all flags passed after '--' be one string.
+    .parserConfiguration({ 'short-option-groups': false, 'populate--': true })
     .strict()
-    .options({
-        port: {
-            group: configOptionsGroup,
-            describe: `Port to use [${Server.DEFAULT_PORT}]`,
-            type: 'string',
-        },
-        project: {
-            group: configOptionsGroup,
-            describe: 'Open the specified project on startup',
-            type: 'string',
-        },
-        server: {
-            group: configOptionsGroup,
-            describe: 'Run the server [true]',
-            type: 'boolean',
-        },
-        window: {
-            group: configOptionsGroup,
-            describe: 'Show the window [true]',
-            type: 'boolean',
-        },
-        'background-throttling': {
-            group: configOptionsGroup,
-            describe: 'Throttle animations when run in background [false]',
-            type: 'boolean',
-        },
-        backend: {
-            group: configOptionsGroup,
-            describe: 'Start the backend process automatically [true]',
-            type: 'boolean',
-        },
-        'backend-path': {
-            group: configOptionsGroup,
-            describe: 'Set the path of a local project manager to use for running projects',
-        },
-        verbose: {
-            group: debugOptionsGroup,
-            describe: `Increase logs verbosity. Affects both IDE and the backend.`,
-            default: false,
-            type: `boolean`,
-        },
-        'entry-point': {
-            group: debugOptionsGroup,
-            describe: 'Run an alternative entry point (e.g. one of the debug scenes)',
-        },
-        dev: {
-            group: debugOptionsGroup,
-            describe: 'Run the application in development mode',
-        },
-        devtron: {
-            group: debugOptionsGroup,
-            describe: 'Install the Devtron Developer Tools extension',
-        },
-        'load-profile': {
-            group: debugOptionsGroup,
-            describe:
-                'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
-            requiresArg: true,
-            type: `array`,
-        },
-        'save-profile': {
-            group: debugOptionsGroup,
-            describe: 'Record a performance profile and write to a file.',
-            requiresArg: true,
-            type: `string`,
-        },
-        workflow: {
-            group: debugOptionsGroup,
-            describe: 'Specify a workflow for profiling. Must be used with --entry-point=profile.',
-            requiresArg: true,
-            type: `string`,
-        },
-        frame: {
-            group: styleOptionsGroup,
-            describe: 'Draw window frame. Defaults to `false` on MacOS and `true` otherwise.',
-            type: `boolean`,
-        },
-        vibrancy: {
-            group: styleOptionsGroup,
-            describe: 'Use the vibrancy effect',
-            default: false,
-            type: `boolean`,
-        },
-        'window-size': {
-            group: styleOptionsGroup,
-            describe: `Set the window size [${windowCfg.width}x${windowCfg.height}]`,
-            requiresArg: true,
-        },
-        theme: {
-            group: styleOptionsGroup,
-            describe: 'Use the provided theme. Defaults to `light`.',
-            type: `string`,
-        },
-        'node-labels': {
-            group: styleOptionsGroup,
-            describe: 'Show node labels. Defaults to `true`.',
-            default: true,
-            type: `boolean`,
-        },
-        info: {
-            describe: `Print the system debug info`,
-        },
-        version: {
-            describe: `Print the version`,
-        },
-        'data-gathering': {
-            describe: 'Enable the sharing of any usage data',
-            type: 'boolean',
-            default: true,
-        },
-        'preferred-engine-version': {
-            describe: 'The Engine version that IDE will try to use for newly created projects',
-            type: 'string',
-            // @ts-ignore
-            default: BUNDLED_ENGINE_VERSION,
-        },
-        'enable-new-component-browser': {
-            describe:
-                'Enable to have new Component Browser panel in place of old Node Searcher. A temporary feature flag, ' +
-                'until the Component Browser is unstable',
-            type: 'boolean',
-            default: true,
-        },
-        'skip-min-version-check': {
-            describe: 'Disables the check whether this IDE version is still supported',
-            type: 'boolean',
-        },
-        'emit-user-timing-measurements': {
-            describe: 'Forward profiler data to the User Timing web API.',
-            type: 'boolean',
-        },
-    })
+    .wrap(yargs.terminalWidth())
+    .options(yargOptions)
 
 // === Parsing ===
 
-let args = optParser.parse()
+let args = optParser.parse(argv, {}, (err, args, help) => {
+    if (help) {
+        // Colorize the options.
+        help = help.replace(/(--[a-zA-Z0-9\-]+)/g, chalk.green(`$1`))
+        // Yargs puts the argument type information to help. There is no API to remove it. This
+        // code remove all type annotations (e.g. [string], [boolean]) from the help.
+        help = help.replace(/( *\r?\n)?\[\w+\]/g, '')
+        // Sometimes, however, we want to display brackets in help. This code changes double
+        // brackets to single ones.
+        help = help.replace(/\[\[/g, '[[')
+        help = help.replace(/]]/g, ']]')
+        // We are using single-dash arguments by default. Yargs does not have API to display them
+        // in help. This code changes double dashes (`--`) to single ones (`-`).
+        help = help.replace(/--/g, ' -')
+        // Sometimes, however, we want to display two dashes in help. This code changes double
+        // underscore (`__`) to double dash (`--`).
+        help = help.replace(/__/g, '--')
+        console.log(help)
+        process.exit()
+    }
+})
+
+console.log(args)
+
+for (const key of Object.keys(config)) {
+    if (args[key] !== undefined) {
+        // @ts-ignore
+        config[key].value = args[key]
+        // @ts-ignore
+        config[key].setByUser = true
+    }
+}
+
+console.log(config)
+
+throw 'break'
 
 // Note: this is a conditional default to avoid issues with some window managers affecting
 // interactions at the top of a borderless window. Thus, we want borders on Win/Linux and
