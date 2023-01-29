@@ -45,12 +45,20 @@ export class Param<T> {
     description: string
     group: null | string
     setByUser = false
-    constructor(cfg: { default: T; type: ParamType; description: string; group?: string }) {
+    hidden: boolean
+    constructor(cfg: {
+        default: T
+        type: ParamType
+        description: string
+        group?: string
+        hidden?: boolean
+    }) {
         this.default = cfg.default
         this.value = cfg.default
         this.description = cfg.description
         this.type = cfg.type
-        this.group = cfg.group || null
+        this.group = cfg.group ?? null
+        this.hidden = cfg.hidden ?? false
     }
 }
 

@@ -120,6 +120,13 @@ export class Config extends content.Config {
         description: 'Specify a workflow for profiling. Must be used with --entry-point=profile.',
     })
     // @ts-ignore
+    showElectronOptions: content.Param<boolean> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: 'Show Electron options in the help. Should be used together with `-help`.',
+    })
+    // @ts-ignore
     frame: content.Param<boolean> = new content.Param({
         group: styleOptionsGroup,
         type: 'boolean',
@@ -179,6 +186,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronAuthServerWhitelist: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
@@ -188,6 +196,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronAuthNegotiateDelegateWhitelist: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
@@ -197,6 +206,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronDisableNtlmV2: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
@@ -204,6 +214,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronDisableHttpCache: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description: 'Disables the disk cache for HTTP requests.',
@@ -211,6 +222,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronDisableHttp2: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
@@ -218,6 +230,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronDisableRendererBackgrounding: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description:
@@ -227,6 +240,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronDiskCacheSize: content.Param<null | number> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'number',
         default: null,
         description: 'Forces the maximum disk space to be used by the disk cache, in bytes.',
@@ -234,6 +248,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronEnableLogging: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         requiresArg: false, // FIXME: support this
@@ -243,6 +258,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronForceFieldtrials: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
@@ -252,6 +268,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronHostRules: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
@@ -261,13 +278,15 @@ export class Config extends content.Config {
     // @ts-ignore
     electronHostResolverRules: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
-        description: "Like '--host-rules' but these rules only apply to the host resolver.",
+        description: "Like '__host-rules' but these rules only apply to the host resolver.",
     })
     // @ts-ignore
     electronIgnoreCertificateErrors: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description: 'Ignores certificate related errors.',
@@ -275,6 +294,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronIgnoreConnectionsLimit: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description: "Ignore the connections limit for domains list separated by ','.",
@@ -282,15 +302,17 @@ export class Config extends content.Config {
     // @ts-ignore
     electronJsFlags: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
             'Specifies the flags passed to the Node.js engine. For example, ' +
-            '\'--js-flags="--harmony_proxies --harmony_collections"\'.',
+            '\'-electron-js-flags="__harmony_proxies __harmony_collections"\'.',
     })
     // @ts-ignore
     electronLang: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description: 'Set a custom locale.',
@@ -298,15 +320,17 @@ export class Config extends content.Config {
     // @ts-ignore
     electronLogFile: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
-            "If '--enable-logging' is specified, logs will be written to the given path. " +
+            "If '-electron-enable-logging' is specified, logs will be written to the given path. " +
             'The parent directory must exist.',
     })
     // @ts-ignore
     electronLogNetLog: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description: 'Enables net log events to be saved and writes them to the provided path.',
@@ -314,15 +338,17 @@ export class Config extends content.Config {
     // @ts-ignore
     electronLogLevel: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
-            "Sets the verbosity of logging when used together with '--enable-logging'. The " +
-            "argument should be one of Chrome's LogSeverities.",
+            "Sets the verbosity of logging when used together with '-electron-enable-logging'. " +
+            "The argument should be one of Chrome's LogSeverities.",
     })
     // @ts-ignore
     electronNoProxyServer: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description:
@@ -332,6 +358,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronNoSandbox: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description:
@@ -341,6 +368,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronProxyBypassList: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
@@ -352,6 +380,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronProxyPacUrl: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description: 'Uses the PAC script at the specified url.',
@@ -359,6 +388,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronProxyServer: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
@@ -372,6 +402,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronRemoteDebuggingPort: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description: 'Enables remote debugging over HTTP on the specified port.',
@@ -379,28 +410,31 @@ export class Config extends content.Config {
     // @ts-ignore
     electronV: content.Param<null | number> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'number',
         default: null,
         description:
             'Gives the default maximal active V-logging level; 0 is the default. Normally ' +
             'positive values are used for V-logging levels. This switch only works when ' +
-            "'--enable-logging' is also passed.",
+            "'-electron-enable-logging' is also passed.",
     })
     // @ts-ignore
     electronVmodule: content.Param<null | string> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'string',
         default: null,
         description:
             'Gives the per-module maximal V-logging levels to override the value given by ' +
-            "'--v'. E.g. 'my_module=2,foo*=3' would change the logging level for all code in " +
+            "'-electron-v'. E.g. 'my_module=2,foo*=3' would change the logging level for all code in " +
             "source files 'my_module.*' and 'foo*.*'. Any pattern containing a forward or " +
             'backward slash will be tested against the whole pathname and not only the module. ' +
-            "This switch only works when '--enable-logging' is also passed.",
+            "This switch only works when '-electron-enable-logging' is also passed.",
     })
     // @ts-ignore
     electronForce_high_performance_gpu: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description: 'Force using discrete GPU when there are multiple GPUs available.',
@@ -408,6 +442,7 @@ export class Config extends content.Config {
     // @ts-ignore
     electronForce_low_power_gpu: content.Param<null | boolean> = new content.Param({
         group: electronOptionsGroup,
+        hidden: true,
         type: 'boolean',
         default: null,
         description: 'Force using integrated GPU when there are multiple GPUs available.',
@@ -467,9 +502,9 @@ const trustedHosts = [
 // =====================
 
 let usage = `
-${buildCfg.name} ${buildCfg.version} command line interface.
+Enso ${buildCfg.version} command line interface.
 
-Usage: enso [[options]] [[__]] [[backend args]]...
+Usage: enso {{options}} {{__}} {{backend args}}...
 `
 
 let epilogue = `
@@ -499,6 +534,7 @@ let optParser = yargs(argv)
     .version(false)
     // Makes all flags passed after '--' be one string.
     .parserConfiguration({ 'short-option-groups': false, 'populate--': true })
+    .showHidden('show-electron-options', 'Show Electron options.')
     .strict()
     .wrap(yargs.terminalWidth())
     .options(yargOptions)
@@ -514,8 +550,8 @@ let args = optParser.parse(argv, {}, (err, args, help) => {
         help = help.replace(/( *\r?\n)?\[\w+\]/g, '')
         // Sometimes, however, we want to display brackets in help. This code changes double
         // brackets to single ones.
-        help = help.replace(/\[\[/g, '[[')
-        help = help.replace(/]]/g, ']]')
+        help = help.replace(/\{{/g, '[[')
+        help = help.replace(/}}/g, ']]')
         // We are using single-dash arguments by default. Yargs does not have API to display them
         // in help. This code changes double dashes (`--`) to single ones (`-`).
         help = help.replace(/--/g, ' -')
