@@ -154,12 +154,8 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `>` defined, a type must define `compare_to`, returning an Ordering.
-
-       ! Implementing Greater Than
-         Many types can admit a definition of greater than that is more efficient
-         than the generic one given here. When implementing this for your own types
-         please ensure that it is semantically equivalent to using `.compare_to`.
+       To have `>` properly defined, a type must have an associated ordered comparator.
+       See `Ordering.enso` for information how comparators work.
 
        > Example
          Checking if the variable `a` is greater than `147`.
@@ -212,12 +208,8 @@ type Any
        Arguments:
        - that: The value to compare `self` against.
 
-       To have `<` defined, a type must define `compare_to`, returning an Ordering.
-
-       ! Implementing Less Than
-         Many types can admit a definition of less than that is more efficient than
-         the generic one given here. When implementing this for your own types
-         please ensure that it is semantically equivalent to using `.compare_to`.
+       To have `<` properly defined, a type must have an associated ordered comparator.
+       See `Ordering.enso` for information how comparators work.
 
        > Example
          Checking if the variable `a` is less than `147`.

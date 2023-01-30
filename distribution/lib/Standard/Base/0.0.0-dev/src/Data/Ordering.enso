@@ -23,21 +23,72 @@ import project.Meta.Atom
     another `type` that satisfies either of the following two definitions:
 
     ```
-    type Default_Ordered_Comparator T
+    type Ordered_Comparator T
         is_ordered = True
         compare : T -> T -> Ordering
         hash : T -> Integer
 
-    type Default_Unordered_Comparator T
+    type Unordered_Comparator T
         is_ordered = False
         equals : T -> T -> Boolean
         hash : T -> Integer
     ```
 
-    There is an implicit conversion from any type to `Comparable` with `Comparable.from`.
-    But due to technical limitations, we cannot specify its signature in code.
-    The return type of `Comparable.from (_ : MyType)` is
-    `(Default_Ordered_Comparator|Default_Unordered_Comparator|Incomparable)`.
+    Or `Incomparable` in case that the type `T` should not be compared at all.
+
+    Note that there has to be `is_ordered` method defined which returns a Boolean
+    indicating that the comparator is ordered. This is currently needed as there is
+    no way how to define interfaces in Enso.
+
+    An _unordered comparator_ has to implement both `equals` and `hash` to define
+    a _total_ custom equality. By _total_, we mean that every instance of the type
+    has to be either equal or not equal, which is represented by the type signature
+    of `equals` - just `Boolean` is returned without any errors thrown.
+
+    An _ordered comparator_ has `compare` method instead of `equals` method, that is
+    expected to return `Ordering` signaling that an instance of the type is either
+    less than, equal to, or greater than the other instance. This relation is also
+    _total_, meaning that all the instances of the type are comparable.
+
+    The runtime expects the following semantics for all the comparators:
+    - Hash consistency:
+      - If x == y then hash(x) == hash(y)
+      - If hash(x) != hash(y) then x != y
+    - Consistency: if x == y then x == y for all the subsequent invocations.
+    - Symmetry: if x == y then y == x
+    - Reflexivity: x == x
+    - Transitivity: if x < y and y < z then x < z
+    - Antisymmetry (?): if x > y then y < x
+
+    Users are responsible for the compliance to the aforementioned semantics.
+    Should the semantics be violated, an unexpected behavior may be encountered, e.g.,
+    `Array.sort` may return unexpected results or fail with `Incomparable_Values`.
+
+
+    > Example
+        Comparator for an unordered Pair `UPair`. In this example, we can see an
+        implementation of the `hash` method that delegates to hash methods of
+        fields.
+
+        ```
+        type UPair
+            Value x y
+
+        type UPair_Comparator
+            is_ordered = False
+
+            equals pair1 pair2 =
+                if pair1.x == pair2.x && pair1.y == pair2.y then True else
+                    if pair1.x == pair2.y && pair1.y == pair2.x then True else
+                        False
+
+            hash upair =
+                x_comp = Comparable.from upair.x
+                y_comp = Comparable.from upair.y
+                (x_comp.hash upair.x) + (y_comp.hash upair.y)
+
+        Comparable.from (_ : UPair) = UPair_Comparator
+        ```
 
     > Example
         Representation of _rational numbers_ as a pair of integers needs a
@@ -48,13 +99,7 @@ import project.Meta.Atom
             Fraction (numerator:Integer) (denominator:Integer)
 
         Comparable.from (_:Rational) = Rational_Ordering
-        ```
 
-        The `comparator` definition overrides the extension function on
-        `Any` defined by `Ordering` module and returns reference to the following
-        type:
-
-        ```
         type Rational_Ordering
             is_ordered = True
             compare self r1 r2 =
@@ -127,12 +172,6 @@ Comparable.from (_:Any) = Default_Unordered_Comparator
 
 
 ## Types representing the ordering of values.
-
-   These are intended to be returned from the `compare_to` function, that has a
-   type as follows for a type `A`: `A.compare_to : A -> Ordering`.
-
-   The result should be returned in terms of how `self` orders in comparison to
-   `that`. So, if `self` is greater than `that`, you should return `Greater.`
 @Builtin_Type
 type Ordering
     ## A representation that the first value orders as less than the second.
@@ -166,11 +205,6 @@ type Ordering
         Ordering.Equal -> other
         Ordering.Greater -> Ordering.Greater
 
-    compare_to : Ordering -> Ordering
-    compare_to self that = case that of
-        _ : Ordering -> self.to_sign.compare_to that.to_sign
-        _ -> Error.throw (Type_Error.Error Ordering that "that")
-
     ## Converts a sign-based representation of ordering to Enso's native ordering.
 
        Arguments:
@@ -183,3 +217,10 @@ type Ordering
     from_sign : Integer -> Ordering
     from_sign sign = if sign == 0 then Ordering.Equal else
         if sign > 0 then Ordering.Greater else Ordering.Less
+
+type Ordering_Comparator
+    is_ordered = True
+    compare x y = (Comparable.from x.to_sign).compare x.to_sign y.to_sign
+    hash x = x.to_sign
+
+Comparable.from (_:Ordering) = Ordering_Comparator
