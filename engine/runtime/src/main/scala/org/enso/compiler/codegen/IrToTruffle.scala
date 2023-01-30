@@ -276,7 +276,7 @@ class IrToTruffle(
               dataflowInfo
             )
             val expressionNode =
-              expressionProcessor.run(annotation.expression)
+              expressionProcessor.run(annotation.expression, true)
             val closureName = s"<default::$scopeName>"
             val closureRootNode = ClosureRootNode.build(
               language,
@@ -473,7 +473,7 @@ class IrToTruffle(
                         dataflowInfo
                       )
                       val expressionNode =
-                        expressionProcessor.run(annotation.expression)
+                        expressionProcessor.run(annotation.expression, true)
                       val closureName =
                         s"<default::${expressionProcessor.scopeName}>"
                       val closureRootNode = ClosureRootNode.build(
@@ -848,9 +848,13 @@ class IrToTruffle(
     /** Runs the code generation process on the provided piece of [[IR]].
       *
       * @param ir the IR to generate code for
+      * @param subjectToInstrumentation value of subject to instrumentation
       * @return a truffle expression that represents the same program as `ir`
       */
-    def run(ir: IR.Expression): RuntimeExpression = run(ir, false, true)
+    def run(
+      ir: IR.Expression,
+      subjectToInstrumentation: Boolean
+    ): RuntimeExpression = run(ir, false, subjectToInstrumentation)
 
     private def run(
       ir: IR.Expression,
@@ -865,8 +869,9 @@ class IrToTruffle(
         case name: IR.Name                  => processName(name)
         case function: IR.Function          => processFunction(function, binding)
         case binding: IR.Expression.Binding => processBinding(binding)
-        case caseExpr: IR.Case              => processCase(caseExpr)
-        case typ: IR.Type                   => processType(typ)
+        case caseExpr: IR.Case =>
+          processCase(caseExpr, subjectToInstrumentation)
+        case typ: IR.Type => processType(typ)
         case _: IR.Empty =>
           throw new CompilerError(
             "Empty IR nodes should not exist during code generation."
@@ -893,7 +898,7 @@ class IrToTruffle(
       * @return a truffle expression that represents the same program as `ir`
       */
     def runInline(ir: IR.Expression): RuntimeExpression = {
-      val expression = run(ir)
+      val expression = run(ir, false)
       expression
     }
 
@@ -932,8 +937,8 @@ class IrToTruffle(
         val callTarget = defaultRootNode.getCallTarget
         setLocation(CreateThunkNode.build(callTarget), block.location)
       } else {
-        val statementExprs = block.expressions.map(this.run).toArray
-        val retExpr        = this.run(block.returnValue)
+        val statementExprs = block.expressions.map(this.run(_, true)).toArray
+        val retExpr        = this.run(block.returnValue, true)
 
         val blockNode = BlockNode.build(statementExprs, retExpr)
         setLocation(blockNode, block.location)
@@ -965,10 +970,13 @@ class IrToTruffle(
       * @param caseExpr the case expression to generate code for
       * @return the truffle nodes corresponding to `caseExpr`
       */
-    def processCase(caseExpr: IR.Case): RuntimeExpression =
+    def processCase(
+      caseExpr: IR.Case,
+      subjectToInstrumentation: Boolean
+    ): RuntimeExpression =
       caseExpr match {
         case IR.Case.Expr(scrutinee, branches, isNested, location, _, _) =>
-          val scrutineeNode = this.run(scrutinee)
+          val scrutineeNode = this.run(scrutinee, subjectToInstrumentation)
 
           val maybeCases    = branches.map(processCaseBranch)
           val allCasesValid = maybeCases.forall(_.isRight)
@@ -1746,13 +1754,16 @@ class IrToTruffle(
     ): RuntimeExpression =
       application match {
         case IR.Application.Prefix(fn, Nil, true, _, _, _) =>
-          run(fn)
+          run(fn, subjectToInstrumentation)
         case app: IR.Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
         case IR.Application.Force(expr, location, _, _) =>
-          setLocation(ForceNode.build(this.run(expr)), location)
+          setLocation(
+            ForceNode.build(this.run(expr, subjectToInstrumentation)),
+            location
+          )
         case IR.Application.Literal.Sequence(items, location, _, _) =>
-          val itemNodes = items.map(run).toArray
+          val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
           setLocation(SequenceLiteralNode.build(itemNodes), location)
         case _: IR.Application.Literal.Typeset =>
           setLocation(
@@ -1808,7 +1819,7 @@ class IrToTruffle(
           createOptimised(moduleScope)(scope)(callArgs.toList)
         case _ =>
           ApplicationNode.build(
-            this.run(fn),
+            this.run(fn, subjectToInstrumentation),
             callArgs.toArray,
             defaultsExecutionMode
           )
@@ -1876,7 +1887,8 @@ class IrToTruffle(
             scope.createChild(scopeInfo.scope, flattenToParent = true)
           }
           val argumentExpression =
-            new ExpressionProcessor(childScope, scopeName).run(value)
+            new ExpressionProcessor(childScope, scopeName)
+              .run(value, subjectToInstrumentation)
 
           val result = if (!shouldCreateClosureRootNode) {
             argumentExpression
@@ -1963,7 +1975,7 @@ class IrToTruffle(
       inputArg match {
         case arg: IR.DefinitionArgument.Specified =>
           val defaultExpression = arg.defaultValue
-            .map(new ExpressionProcessor(scope, scopeName).run(_))
+            .map(new ExpressionProcessor(scope, scopeName).run(_, false))
             .orNull
 
           // Note [Handling Suspended Defaults]
