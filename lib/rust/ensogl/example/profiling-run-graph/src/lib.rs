@@ -224,7 +224,7 @@ fn make_rendering_performance_blocks(
 async fn get_data_file() -> Option<String> {
     let files = enso_debug_api::load_profiles()?.await;
     if files.len() > 1 {
-        ERROR!("Entry point profiling-run-graph doesn't support multiple profile file arguments.");
+        error!("Entry point profiling-run-graph doesn't support multiple profile file arguments.");
     }
     files.into_iter().next()
 }
@@ -246,9 +246,9 @@ async fn get_data_http() -> Option<String> {
     let response = wasm_bindgen_futures::JsFuture::from(response).await.unwrap();
     let response: web_sys::Response = response.dyn_into().unwrap();
     if !response.ok() {
-        ERROR!(
-            "Error retrieving profile file from {url}: {response.status_text()}. \
-            Falling back to demo data."
+        error!(
+            "Error retrieving profile file from {url}: {}. Falling back to demo data.",
+            response.status_text()
         );
         return None;
     }
@@ -267,7 +267,7 @@ async fn get_log_data() -> Vec<Profile<Metadata>> {
             .filter_map(|result| match result {
                 Ok(profile) => Some(profile),
                 Err(e) => {
-                    ERROR!(e);
+                    error!("{}", e);
                     None
                 }
             })

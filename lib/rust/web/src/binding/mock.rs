@@ -66,6 +66,7 @@ auto_impl_mock_default!(bool, i16, i32, u32, f64, String);
 pub trait MockData {}
 
 /// Macro used to generate mock structures. See the expansion of generated structures to learn more.
+#[macro_export]
 macro_rules! mock_struct {
     ( $([$opt:ident])?
         $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
@@ -129,9 +130,12 @@ macro_rules! mock_struct {
 
         mock_struct_deref! {[$($deref)?] $name $(<$( $param $(:?$param_tp)?),*>)?}
         mock_struct_as_ref! {[$($opt)?] $name $(<$( $param $(:?$param_tp)?),*>)? $(=> $deref)?}
+        mock_struct_into_js_ref! {$name $(<$( $param $(:?$param_tp)?),*>)? $(=> $deref)?}
     };
 }
 
+/// Helper of [`mock_struct`].
+#[macro_export]
 macro_rules! mock_struct_as_ref {
     ([NO_AS_REF] $($ts:tt)*) => {};
     ([] $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)?
@@ -149,6 +153,23 @@ macro_rules! mock_struct_as_ref {
     };
 }
 
+/// Helper of [`mock_struct`].
+#[macro_export]
+macro_rules! mock_struct_into_js_ref {
+    (JsValue $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?) => {};
+    ($name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? => JsValue) => {};
+    ($name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?) => {
+        impl $(<$($param $(:?$param_tp)?),*>)?
+        From<$name $(<$($param),*>)?> for JsValue {
+            fn from(_: $name $(<$($param),*>)?) -> Self {
+                default()
+            }
+        }
+    };
+}
+
+/// Helper of [`mock_struct`].
+#[macro_export]
 macro_rules! mock_struct_deref {
     ([] $($ts:tt)*) => {};
     ([$deref:ident] $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)?) => {
@@ -224,7 +245,7 @@ macro_rules! mock_fn_gen {
 }
 
 /// Macro used to print the final version of the function.
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! mock_fn_gen_print {
     ([$($viz:ident)?] $name:ident $(<$($fn_tp:ident),*>)?
     ( $($args:tt)* ) $(-> $out:ty)? {$($body:tt)*} ) => {
@@ -239,6 +260,7 @@ macro_rules! mock_fn_gen_print {
 }
 
 /// Combination of [`mock_struct`] and [`mock_pub_fn`].
+#[macro_export(local_inner_macros)]
 macro_rules! mock_data {
     ( $([$opt:ident])?
         $name:ident $(<$( $param:ident $(: ?$param_tp:ident)? ),*>)? $(=> $deref:ident)?
@@ -328,18 +350,45 @@ impl JsValue {
     pub const NULL: JsValue = JsValue {};
 }
 
-/// All JS types can be converted to `JsValue` and thus it implements a generic conversion trait.
-auto trait IsNotJsValue {}
-impl !IsNotJsValue for JsValue {}
-impl<A: IsNotJsValue> From<A> for JsValue {
-    default fn from(_: A) -> Self {
+impl AsRef<JsValue> for wasm_bindgen::JsValue {
+    fn as_ref(&self) -> &JsValue {
+        &JsValue::NULL
+    }
+}
+
+impl From<wasm_bindgen::JsValue> for JsValue {
+    fn from(_: wasm_bindgen::JsValue) -> Self {
         default()
     }
 }
 
-impl AsRef<JsValue> for wasm_bindgen::JsValue {
-    fn as_ref(&self) -> &JsValue {
-        &JsValue::NULL
+impl From<js_sys::Uint8Array> for JsValue {
+    fn from(_: js_sys::Uint8Array) -> Self {
+        default()
+    }
+}
+
+impl From<f32> for JsValue {
+    fn from(_: f32) -> Self {
+        default()
+    }
+}
+
+impl From<&str> for JsValue {
+    fn from(_: &str) -> Self {
+        default()
+    }
+}
+
+impl From<&String> for JsValue {
+    fn from(_: &String) -> Self {
+        default()
+    }
+}
+
+impl From<String> for JsValue {
+    fn from(_: String) -> Self {
+        default()
     }
 }
 
@@ -379,6 +428,12 @@ impl<T: ?Sized> AsRef<JsValue> for Closure<T> {
     }
 }
 
+/// This impl is provided to mimic the behavior of the [`wasm_bindgen::Closure`] type. It silences
+/// clippy warnings.
+impl<T: ?Sized> Drop for Closure<T> {
+    fn drop(&mut self) {}
+}
+
 
 
 // ================
@@ -406,6 +461,7 @@ impl From<&JsString> for String {
 // === Array ===
 mock_data! { Array => Object
     fn length(&self) -> u32;
+    fn get(&self, index: u32) -> JsValue;
     fn of2(a: &JsValue, b: &JsValue) -> Array;
     fn of3(a: &JsValue, b: &JsValue, c: &JsValue) -> Array;
     fn of4(a: &JsValue, b: &JsValue, c: &JsValue, d: &JsValue) -> Array;
@@ -413,16 +469,18 @@ mock_data! { Array => Object
 }
 
 
-// === Error ===
-
-mock_data! { Error => Object
-    fn new(message: &str) -> Self;
+// === Map ===
+mock_data! { Map => Object
+    fn new() -> Self;
+    fn get(&self, key: &JsValue) -> JsValue;
+    fn set(&self, key: &JsValue, value: &JsValue) -> Map;
+    fn entries(&self) -> Iterator;
 }
 
-impl From<Error> for JsValue {
-    fn from(_: Error) -> Self {
-        mock_default()
-    }
+
+// === Error ===
+mock_data! { Error => Object
+    fn new(message: &str) -> Self;
 }
 
 
@@ -744,3 +802,42 @@ pub static window: Window = Window {};
 #[allow(non_upper_case_globals)]
 #[allow(missing_docs)]
 pub static document: Document = Document::const_new();
+
+
+
+// ================
+// === Iterator ===
+// ================
+
+#[derive(Default, Clone, Copy, Debug)]
+#[allow(missing_docs)]
+pub struct Iterator;
+impl MockDefault for Iterator {
+    fn mock_default() -> Self {
+        default()
+    }
+}
+
+#[derive(Default, Clone, Copy, Debug)]
+#[allow(missing_docs)]
+pub struct IntoIter;
+impl MockDefault for IntoIter {
+    fn mock_default() -> Self {
+        default()
+    }
+}
+
+impl IntoIterator for Iterator {
+    type Item = Result<JsValue, JsValue>;
+    type IntoIter = IntoIter;
+    fn into_iter(self) -> IntoIter {
+        default()
+    }
+}
+
+impl std::iter::Iterator for IntoIter {
+    type Item = Result<JsValue, JsValue>;
+    fn next(&mut self) -> Option<Self::Item> {
+        None
+    }
+}

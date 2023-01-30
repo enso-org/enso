@@ -28,9 +28,20 @@ pub mod provider;
 #[macro_export]
 macro_rules! new_command_type {
     ($program_name:ident, $command_name:ident) => {
-        #[derive(Debug, Shrinkwrap)]
-        #[shrinkwrap(mutable)]
+        #[derive(Debug, Deref, DerefMut)]
         pub struct $command_name(pub $crate::program::command::Command);
+
+        impl Borrow<$crate::program::command::Command> for $command_name {
+            fn borrow(&self) -> &$crate::program::command::Command {
+                &self.0
+            }
+        }
+
+        impl BorrowMut<$crate::program::command::Command> for $command_name {
+            fn borrow_mut(&mut self) -> &mut $crate::program::command::Command {
+                &mut self.0
+            }
+        }
 
         impl From<$crate::program::command::Command> for $command_name {
             fn from(inner: $crate::program::command::Command) -> Self {
@@ -451,7 +462,7 @@ pub fn spawn_log_processor(
 ) -> JoinHandle<Result> {
     tokio::task::spawn(
         async move {
-            info!("{prefix} <START>");
+            trace!("{prefix} <START>");
             let bufread = BufReader::new(out);
             let mut lines = bufread.split(b'\n');
             while let Some(line_bytes) = lines.next_segment().await? {
@@ -470,7 +481,7 @@ pub fn spawn_log_processor(
                     }
                 }
             }
-            info!("{prefix} <ENDUT>");
+            trace!("{prefix} <ENDUT>");
             Result::Ok(())
         }
         .inspect_err(|e| error!("Fatal error while processing process output: {e}")),

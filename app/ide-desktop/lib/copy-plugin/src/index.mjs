@@ -44,8 +44,8 @@ export function create(files_provider) {
 
         build.onStart(async () => {
             console.log('Initial options:', build.initialOptions)
+            console.log('Collecting files to copy.')
             files = files_provider()
-            console.log('Collecting files to copy.', files)
         })
         build.onResolve({ filter: new RegExp(magic) }, async resolve => {
             console.log('Resolving ', resolve)

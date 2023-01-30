@@ -22,7 +22,7 @@ ensogl-tooltip = { path = "../../component/tooltip" }
 ensogl-hardcoded-theme = { path = "../../app/theme/hardcoded" }
 ensogl-text = { path = "../../component/text" }
 ensogl-text-msdf = { path = "../../component/text/src/font/msdf" }
-futures = "0.3"
+futures = { workspace = true }
 serde = "1"
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = "0.4"

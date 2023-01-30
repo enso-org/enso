@@ -94,8 +94,8 @@ object Runtime {
         name  = "getComponentGroupsResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.OpenFileNotification],
-        name  = "openFileNotification"
+        value = classOf[Api.SetModuleSourcesNotification],
+        name  = "setModuleSourcesNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.EditFileNotification],
@@ -385,10 +385,22 @@ object Runtime {
       sealed trait Payload
       object Payload {
 
-        /** An empty payload. Indicates that the expression was computed to a
-          * value.
+        /** Indicates that the expression was computed to a value.
+          *
+          * @param warnings information about attached warnings.
           */
-        case class Value() extends Payload
+        case class Value(warnings: Option[Value.Warnings] = None)
+            extends Payload
+
+        object Value {
+
+          /** Information about warnings associated with the value.
+            *
+            * @param count the number of attached warnings.
+            * @param warning textual representation of the attached warning.
+            */
+          case class Warnings(count: Int, warning: Option[String])
+        }
 
         /** TBD
           */
@@ -1289,13 +1301,12 @@ object Runtime {
       */
     final case class InvalidStackItemError(contextId: ContextId) extends Error
 
-    /** A notification sent to the server about switching a file to literal
-      * contents.
+    /** A notification sent to the server about setting module's sources to literal contents.
       *
       * @param path the file being moved to memory.
-      * @param contents the current file contents.
+      * @param contents the current module's contents.
       */
-    final case class OpenFileNotification(
+    final case class SetModuleSourcesNotification(
       path: File,
       contents: String
     ) extends ApiRequest
@@ -1303,7 +1314,7 @@ object Runtime {
 
       /** @inheritdoc */
       override def toLogString(shouldMask: Boolean): String =
-        "OpenFileNotification(" +
+        "SetModuleSourcesNotification(" +
         s"path=${MaskedPath(path.toPath).toLogString(shouldMask)}," +
         s"contents=${MaskedString(contents).toLogString(shouldMask)}," +
         ")"

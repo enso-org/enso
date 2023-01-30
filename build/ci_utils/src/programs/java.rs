@@ -74,7 +74,7 @@ mod tests {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Shrinkwrap)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Deref)]
 pub struct LanguageVersion(pub u8);
 
 impl std::str::FromStr for LanguageVersion {

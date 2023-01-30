@@ -48,7 +48,6 @@ pub struct ExecutionContext {
     id:              model::execution_context::Id,
     model:           model::execution_context::Plain,
     language_server: Rc<language_server::Connection>,
-    logger:          Logger,
 }
 
 impl ExecutionContext {
@@ -64,17 +63,15 @@ impl ExecutionContext {
     /// language server.
     #[profile(Debug)]
     pub fn create(
-        parent: impl AnyLogger,
         language_server: Rc<language_server::Connection>,
         root_definition: language_server::MethodPointer,
     ) -> impl Future<Output = FallibleResult<Self>> {
         async move {
             info!("Creating.");
             let id = language_server.client.create_execution_context().await?.context_id;
-            let logger = Logger::new_sub(&parent, iformat! {"ExecutionContext {id}"});
             let model = model::execution_context::Plain::new(root_definition);
             info!("Created. Id: {id}.");
-            let this = Self { id, model, language_server, logger };
+            let this = Self { id, model, language_server };
             this.push_root_frame().await?;
             info!("Pushed root frame.");
             Ok(this)
@@ -99,7 +96,7 @@ impl ExecutionContext {
     /// Load the component groups defined in libraries imported into the execution context.
     async fn load_component_groups(&self) {
         let log_group_parsing_error = |err: &failure::Error| {
-            let msg = iformat!(
+            let msg = format!(
                 "Failed to parse a component group returned by the Engine. The group will not \
                 appear in the Favorites section of the Component Browser. Error: {err}"
             );
@@ -116,7 +113,7 @@ impl ExecutionContext {
                 info!("Loaded component groups.");
             }
             Err(err) => {
-                let msg = iformat!(
+                let msg = format!(
                     "Failed to load component groups. No groups will appear in the Favorites \
                     section of the Component Browser. Error: {err}"
                 );
@@ -137,11 +134,10 @@ impl ExecutionContext {
         let exe_id = self.id;
         let ast_id = vis.expression_id;
         let ls = self.language_server.clone_ref();
-        let logger = self.logger.clone_ref();
         info!("About to detach visualization by id: {vis_id}.");
         ls.detach_visualisation(&exe_id, &vis_id, &ast_id).await?;
         if let Err(err) = self.model.detach_visualization(vis_id) {
-            warning!(logger, "Failed to update model after detaching visualization: {err:?}.")
+            warn!("Failed to update model after detaching visualization: {err:?}.")
         }
         Ok(vis)
     }
@@ -374,9 +370,8 @@ pub mod test {
             ls_client.require_all_calls();
             let connection = language_server::Connection::new_mock_rc(ls_client);
             let mut test = TestWithLocalPoolExecutor::set_up();
-            let logger = Logger::new("Fixture");
             let method = data.main_method_pointer();
-            let context = ExecutionContext::create(logger, connection, method);
+            let context = ExecutionContext::create(connection, method);
             let context = test.expect_completion(context).unwrap();
             Fixture { data, context, test }
         }

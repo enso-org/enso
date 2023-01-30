@@ -1,0 +1,12 @@
+[package]
+name = "enso-build-ci-gen"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+ide-ci = { path = "../ci_utils" }
+enso-build = { path = "../build" }
+enso-build-shader-tools = { path = "../shader-tools" }
+serde_yaml = { workspace = true }
+tokio = { workspace = true }

@@ -118,20 +118,15 @@ struct MissingContentRoot {
 /// A repository of content roots attached to a specific project.
 #[derive(Clone, Debug)]
 pub struct ContentRoots {
-    logger: Logger,
-    roots:  RefCell<HashMap<Uuid, Rc<ContentRoot>>>,
+    roots: RefCell<HashMap<Uuid, Rc<ContentRoot>>>,
 }
 
 impl ContentRoots {
     /// Create ContentRoots, initializing with the roots retrieved during connection initialization.
-    pub fn new_from_connection(
-        parent: impl AnyLogger,
-        connection: &language_server::Connection,
-    ) -> Self {
-        let logger = Logger::new_sub(parent, "ContentRoots");
+    pub fn new_from_connection(connection: &language_server::Connection) -> Self {
         let roots_vec = connection.content_roots().map(|r| (r.id(), Rc::new(r.clone()))).collect();
         let roots = RefCell::new(roots_vec);
-        Self { logger, roots }
+        Self { roots }
     }
 
     /// Return all content roots.
@@ -145,11 +140,7 @@ impl ContentRoots {
     pub fn add(&self, content_root: ContentRoot) {
         let content_root = Rc::new(content_root);
         if let Some(existing) = self.roots.borrow_mut().insert(content_root.id(), content_root) {
-            warning!(
-                self.logger,
-                "Adding content root: there is already content root with given \
-                id: {existing:?}"
-            );
+            warn!("Adding content root: there is already content root with given id: {existing:?}");
         }
     }
 
@@ -163,7 +154,7 @@ impl ContentRoots {
     /// If there is no content root with such id, a warning will be printed.
     pub fn remove(&self, id: Uuid) {
         if self.roots.borrow_mut().remove(&id).is_none() {
-            warning!(self.logger, "Removing content root: no content root with given id: {id}");
+            warn!("Removing content root: no content root with given id: {id}");
         }
     }
 }
@@ -276,7 +267,6 @@ pub struct Project {
     pub suggestion_db:       Rc<SuggestionDatabase>,
     pub content_roots:       Rc<ContentRoots>,
     pub parser:              Parser,
-    pub logger:              Logger,
     pub notifications:       notification::Publisher<model::project::Notification>,
     pub urm:                 Rc<model::undo_redo::Manager>,
 }
@@ -285,14 +275,12 @@ impl Project {
     /// Create a new project model.
     #[profile(Detail)]
     pub async fn new(
-        parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
         language_server_rpc: Rc<language_server::Connection>,
         language_server_bin: Rc<binary::Connection>,
         properties: Properties,
     ) -> FallibleResult<Self> {
         let wrap = UnsupportedEngineVersion::error_wrapper(&properties);
-        let logger = Logger::new_sub(parent, "Project Controller");
         info!("Creating a model of project {}", properties.name);
         let binary_protocol_events = language_server_bin.event_stream();
         let json_rpc_events = language_server_rpc.events();
@@ -301,15 +289,15 @@ impl Project {
         let module_registry = default();
         let execution_contexts = default();
         let visualization =
-            controller::Visualization::new(language_server, embedded_visualizations, &logger);
+            controller::Visualization::new(language_server, embedded_visualizations);
         let parser = Parser::new_or_panic();
         let language_server = &*language_server_rpc;
         let suggestion_db = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db = Rc::new(suggestion_db.await.map_err(&wrap)?);
-        let content_roots = ContentRoots::new_from_connection(&logger, language_server);
+        let content_roots = ContentRoots::new_from_connection(language_server);
         let content_roots = Rc::new(content_roots);
         let notifications = notification::Publisher::default();
-        let urm = Rc::new(model::undo_redo::Manager::new(&logger));
+        let urm = Rc::new(model::undo_redo::Manager::new());
         let properties = Rc::new(RefCell::new(properties));
 
         let ret = Project {
@@ -323,7 +311,6 @@ impl Project {
             suggestion_db,
             content_roots,
             parser,
-            logger,
             notifications,
             urm,
         };
@@ -342,7 +329,6 @@ impl Project {
     /// Initializes the json and binary connection to Language Server, and creates a Project Model
     #[profile(Detail)]
     pub async fn new_connected(
-        parent: impl AnyLogger,
         project_manager: Option<Rc<dyn project_manager::API>>,
         language_server_rpc: String,
         language_server_bin: String,
@@ -350,10 +336,10 @@ impl Project {
     ) -> FallibleResult<model::Project> {
         let wrap = UnsupportedEngineVersion::error_wrapper(&properties);
         let client_id = Uuid::new_v4();
-        let json_ws = WebSocket::new_opened(&parent, &language_server_rpc).await?;
-        let binary_ws = WebSocket::new_opened(&parent, &language_server_bin).await?;
+        let json_ws = WebSocket::new_opened(&language_server_rpc).await?;
+        let binary_ws = WebSocket::new_opened(&language_server_bin).await?;
         let client_json = language_server::Client::new(json_ws);
-        let client_binary = binary::Client::new(&parent, binary_ws);
+        let client_binary = binary::Client::new(binary_ws);
         crate::executor::global::spawn(client_json.runner());
         crate::executor::global::spawn(client_binary.runner());
         let connection_json =
@@ -362,14 +348,9 @@ impl Project {
             binary::Connection::new(client_binary, client_id).await.map_err(&wrap)?;
         let language_server_rpc = Rc::new(connection_json);
         let language_server_bin = Rc::new(connection_binary);
-        let model = Self::new(
-            parent,
-            project_manager,
-            language_server_rpc,
-            language_server_bin,
-            properties,
-        )
-        .await?;
+        let model =
+            Self::new(project_manager, language_server_rpc, language_server_bin, properties)
+                .await?;
         Ok(Rc::new(model))
     }
 
@@ -377,7 +358,6 @@ impl Project {
     /// the received json and binary connections.
     #[profile(Detail)]
     pub async fn new_opened(
-        parent: &Logger,
         project_manager: Rc<dyn project_manager::API>,
         id: Uuid,
     ) -> FallibleResult<model::Project> {
@@ -393,8 +373,7 @@ impl Project {
             name: project::QualifiedName::new(namespace, name),
             engine_version: semver::Version::parse(&opened.engine_version)?,
         };
-        Self::new_connected(parent, project_manager, json_endpoint, binary_endpoint, properties)
-            .await
+        Self::new_connected(project_manager, json_endpoint, binary_endpoint, properties).await
     }
 
     /// Returns a handling function capable of processing updates from the binary protocol.
@@ -672,9 +651,8 @@ impl model::project::API for Project {
         root_definition: MethodPointer,
     ) -> BoxFuture<FallibleResult<model::ExecutionContext>> {
         async move {
-            let logger = &self.logger;
             let ls_rpc = self.language_server_rpc.clone_ref();
-            let context = execution_context::Synchronized::create(&logger, ls_rpc, root_definition);
+            let context = execution_context::Synchronized::create(ls_rpc, root_definition);
             let context = Rc::new(context.await?);
             self.execution_contexts.insert(context.clone_ref());
             let context: model::ExecutionContext = context;
@@ -768,20 +746,14 @@ mod test {
             let json_connection = Rc::new(language_server::Connection::new_mock(json_client));
             let binary_connection = Rc::new(binary::Connection::new_mock(binary_client));
             let project_manager = Rc::new(project_manager);
-            let logger = Logger::new("Fixture");
             let properties = Properties {
                 id:             Uuid::new_v4(),
                 name:           crate::test::mock::data::project_qualified_name(),
                 engine_version: semver::Version::new(0, 2, 1),
             };
-            let project_fut = Project::new(
-                logger,
-                Some(project_manager),
-                json_connection,
-                binary_connection,
-                properties,
-            )
-            .boxed_local();
+            let project_fut =
+                Project::new(Some(project_manager), json_connection, binary_connection, properties)
+                    .boxed_local();
             let project = test.expect_completion(project_fut).unwrap();
             Fixture { test, project, binary_events_sender, json_events_sender }
         }

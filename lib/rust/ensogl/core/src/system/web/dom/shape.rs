@@ -90,11 +90,11 @@ impl From<&Shape> for Vector2<f32> {
 
 /// A wrapper for `HtmlElement` or anything which derefs to it. It tracks the element size without
 /// causing browser reflow.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[clone_ref(bound = "T:CloneRef")]
 #[allow(missing_docs)]
 pub struct WithKnownShape<T = web::HtmlElement> {
-    #[shrinkwrap(main_field)]
+    #[deref]
     dom:          T,
     network:      frp::Network,
     pub shape:    frp::Sampler<Shape>,

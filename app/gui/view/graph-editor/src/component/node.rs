@@ -126,7 +126,7 @@ pub mod backdrop {
     use super::*;
 
     ensogl::shape! {
-        // Disable to allow interaction with the output port.
+        // Disabled to allow interaction with the output port.
         pointer_events = false;
         (style:Style, selection:f32) {
 
@@ -440,7 +440,6 @@ impl Deref for Node {
 pub struct NodeModel {
     pub app:                 Application,
     pub display_object:      display::object::Instance,
-    pub logger:              Logger,
     pub backdrop:            backdrop::View,
     pub background:          background::View,
     pub drag_area:           drag_area::View,
@@ -485,7 +484,6 @@ impl NodeModel {
         }
 
         let scene = &app.display.default_scene;
-        let logger = Logger::new("node");
 
         let error_indicator = error_shape::View::new();
         let profiling_label = ProfilingLabel::new(app);
@@ -502,7 +500,7 @@ impl NodeModel {
         display_object.add_child(&vcs_indicator);
 
         let input = input::Area::new(app);
-        let visualization = visualization::Container::new(&logger, app, registry);
+        let visualization = visualization::Container::new(app, registry);
 
         display_object.add_child(&visualization);
         display_object.add_child(&input);
@@ -527,7 +525,6 @@ impl NodeModel {
         Self {
             app,
             display_object,
-            logger,
             backdrop,
             background,
             drag_area,
@@ -732,7 +729,7 @@ impl Node {
 
             deselect_target  <- input.deselect.constant(0.0);
             select_target    <- input.select.constant(1.0);
-            selection.target <+ any(&deselect_target,&select_target);
+            selection.target <+ any(&deselect_target, &select_target);
             eval selection.value ((t) model.backdrop.selection.set(*t));
 
 

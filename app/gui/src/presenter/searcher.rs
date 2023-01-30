@@ -80,7 +80,6 @@ fn doc_placeholder_for(suggestion: &model::suggestion_database::Entry) -> String
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    logger:     Logger,
     controller: controller::Searcher,
     view:       view::project::View,
     provider:   Rc<RefCell<Option<provider::Component>>>,
@@ -90,14 +89,12 @@ struct Model {
 impl Model {
     #[profile(Debug)]
     fn new(
-        parent: impl AnyLogger,
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let logger = parent.sub("presenter::Searcher");
         let provider = default();
-        Self { logger, controller, view, provider, input_view }
+        Self { controller, view, provider, input_view }
     }
 
     #[profile(Debug)]
@@ -335,12 +332,11 @@ impl Searcher {
     /// Constructor. The returned structure works right away.
     #[profile(Task)]
     pub fn new(
-        parent: impl AnyLogger,
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let model = Rc::new(Model::new(parent, controller, view, input_view));
+        let model = Rc::new(Model::new(controller, view, input_view));
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.view.graph().frp;
@@ -371,26 +367,26 @@ impl Searcher {
                     graph.set_node_expression <+ new_input;
 
                     entry_selected <- grid.active.filter_map(|&s| s?.as_entry_id());
-                    entry_hovered <- grid.hovered.map(|&s| s?.as_entry_id());
-                    entry_docs <- all_with3(&action_list_changed,
-                        &entry_selected,
-                        &entry_hovered,
-                        f!([model](_, selected, hovered) {
-                            let entry = hovered.as_ref().unwrap_or(selected);
-                            model.documentation_of_component(*entry)
-                        })
-                    );
-                    header_selected <- grid.active.filter_map(|element| {
-                        use component_grid::content::ElementId;
-                        use component_grid::content::ElementInGroup::Header;
-                        match element {
-                            Some(ElementId { element: Header, group}) => Some(*group),
-                            _ => None
+                    hovered_not_selected <- all_with(&grid.hovered, &grid.active, |h, s| {
+                        match (h, s) {
+                            (Some(h), Some(s)) => h != s,
+                            _ => false,
                         }
                     });
-                    header_docs <- header_selected.map(f!((id) model.documentation_of_group(*id)));
-                    documentation.frp.display_documentation <+ entry_docs;
-                    documentation.frp.display_documentation <+ header_docs;
+                    documentation.frp.show_hovered_item_preview_caption <+ hovered_not_selected;
+                    docs_params <- all3(&action_list_changed, &grid.active, &grid.hovered);
+                    docs <- docs_params.filter_map(f!([model]((_, selected, hovered)) {
+                        let entry = hovered.as_ref().or(selected.as_ref());
+                        entry.map(|entry| {
+                            if let Some(group_id) = entry.as_header() {
+                                model.documentation_of_group(group_id)
+                            } else {
+                                let entry_id = entry.as_entry_id().expect("GroupEntryId");
+                                model.documentation_of_component(entry_id)
+                            }
+                        })
+                    }));
+                    documentation.frp.display_documentation <+ docs;
 
                     eval_ grid.suggestion_accepted([]analytics::remote_log_event("component_browser::suggestion_accepted"));
                     eval entry_selected((entry) model.suggestion_selected(*entry));
@@ -500,7 +496,6 @@ impl Searcher {
     /// presenter handling it.
     #[profile(Task)]
     pub fn setup_controller(
-        parent: impl AnyLogger,
         ide_controller: controller::Ide,
         project_controller: controller::Project,
         graph_controller: controller::ExecutedGraph,
@@ -516,7 +511,6 @@ impl Searcher {
         )?;
 
         let searcher_controller = controller::Searcher::new_from_graph_controller(
-            &parent,
             ide_controller,
             &project_controller.model,
             graph_controller,
@@ -534,7 +528,7 @@ impl Searcher {
         }
 
         let input = parameters.input;
-        Ok(Self::new(parent, searcher_controller, view, input))
+        Ok(Self::new(searcher_controller, view, input))
     }
 
     /// Commit editing in the old Node Searcher.

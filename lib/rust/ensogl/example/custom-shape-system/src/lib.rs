@@ -9,7 +9,6 @@
 use ensogl_core::display::shape::*;
 use ensogl_core::display::world::*;
 use ensogl_core::prelude::*;
-use wasm_bindgen::prelude::*;
 
 use enso_frp as frp;
 use ensogl_core::display::navigation::navigator::Navigator;
@@ -75,8 +74,8 @@ pub fn main() {
             i += 1;
             if i == 5 {
                 if let Some(program) = view.sprite.borrow().symbol.shader().program() {
-                    DEBUG!("\n\nVERTEX:\n{program.shader.vertex.code}");
-                    DEBUG!("\n\nFRAGMENT:\n{program.shader.fragment.code}");
+                    debug!("\n\nVERTEX:\n{}", program.shader.vertex.code);
+                    debug!("\n\nFRAGMENT:\n{}", program.shader.fragment.code);
                 }
             }
         })

@@ -37,7 +37,6 @@ pub struct ProjectOperationsNotSupported;
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct Handle {
-    pub logger:               Logger,
     pub status_notifications: StatusNotificationPublisher,
     pub parser:               Parser,
     pub project:              model::Project,
@@ -46,10 +45,9 @@ pub struct Handle {
 impl Handle {
     /// Create IDE Controller for a given opened project.
     pub fn new(project: model::Project) -> Self {
-        let logger = Logger::new("controller::ide::Plain");
         let status_notifications = default();
         let parser = Parser::new_or_panic();
-        Self { logger, status_notifications, parser, project }
+        Self { status_notifications, parser, project }
     }
 
     /// Create IDE Controller from Language Server endpoints, describing the opened project.
@@ -60,7 +58,6 @@ impl Handle {
         json_endpoint: String,
         binary_endpoint: String,
     ) -> FallibleResult<Self> {
-        let logger = Logger::new("controller::ide::Plain");
         let properties = Properties {
             //TODO [ao]: this should be not the default; instead project model should not need the
             // id.    See https://github.com/enso-org/ide/issues/1572
@@ -69,7 +66,6 @@ impl Handle {
             engine_version: version,
         };
         let project = model::project::Synchronized::new_connected(
-            &logger,
             None,
             json_endpoint,
             binary_endpoint,
@@ -78,7 +74,7 @@ impl Handle {
         .await?;
         let status_notifications = default();
         let parser = Parser::new_or_panic();
-        Ok(Self { logger, status_notifications, parser, project })
+        Ok(Self { status_notifications, parser, project })
     }
 }
 

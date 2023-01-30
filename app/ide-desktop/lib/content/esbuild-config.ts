@@ -33,12 +33,17 @@ export const thisPath = path.resolve(dirname(fileURLToPath(import.meta.url)))
 // === Environment variables ===
 // =============================
 
-export const wasm_path = require_env('ENSO_BUILD_GUI_WASM')
-export const js_glue_path = require_env('ENSO_BUILD_GUI_JS_GLUE')
+/** List of files to be copied from WASM artifacts. */
+export const wasm_artifacts = require_env('ENSO_BUILD_GUI_WASM_ARTIFACTS')
+
+/** Directory with assets. Its contents are to be copied. */
 export const assets_path = require_env('ENSO_BUILD_GUI_ASSETS')
 
 /** Path where bundled files are output. */
 export const output_path = path.resolve(require_env('ENSO_BUILD_GUI'), 'assets')
+
+/** The main JS bundle to load WASM and JS wasm-pack bundles. */
+export const ensogl_app_path = require_env('ENSO_BUILD_GUI_ENSOGL_APP')
 
 // ===================
 // === Git process ===
@@ -67,7 +72,7 @@ const always_copied_files = [
     path.resolve(thisPath, 'src', 'run.js'),
     path.resolve(thisPath, 'src', 'style.css'),
     path.resolve(thisPath, 'src', 'docsStyle.css'),
-    wasm_path,
+    ...wasm_artifacts.split(path.delimiter),
 ]
 
 /**
@@ -88,14 +93,14 @@ async function* files_to_copy_provider() {
 
 const config: esbuild.BuildOptions = {
     bundle: true,
-    entryPoints: ['src/index.ts', 'src/wasm_imports.js'],
+    entryPoints: ['src/index.ts'],
     outdir: output_path,
     outbase: 'src',
     plugins: [
         plugin_yaml.yamlPlugin({}),
         NodeModulesPolyfillPlugin(),
         NodeGlobalsPolyfillPlugin({ buffer: true, process: true }),
-        aliasPlugin({ wasm_rust_glue: js_glue_path }),
+        aliasPlugin({ ensogl_app: ensogl_app_path }),
         timePlugin(),
         copy_plugin.create(files_to_copy_provider),
     ],
@@ -108,6 +113,7 @@ const config: esbuild.BuildOptions = {
     minify: true,
     metafile: true,
     publicPath: '/assets',
+    platform: 'node',
     incremental: true,
     color: true,
     logOverride: {

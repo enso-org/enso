@@ -17,9 +17,9 @@ use web::dom::Shape;
 macro_rules! define_events {
     ( $( $js_event:ident :: $name:ident ),* $(,)? ) => {$(
         /// Mouse event wrapper.
-        #[derive(Debug,Clone,From,Shrinkwrap)]
+        #[derive(Debug, Clone, From, Deref, AsRef)]
         pub struct $name {
-            #[shrinkwrap(main_field)]
+            #[deref]
             raw   : web::$js_event,
             shape : Shape,
         }
