@@ -1534,12 +1534,12 @@ pub fn non_empty_line_indices<'a, T: 'a>(
 // ===============
 
 /// Item which location is identified by `Crumbs`.
-#[derive(Clone, Debug, Shrinkwrap, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Deref)]
 pub struct Located<T> {
     /// Crumbs from containing parent.
     pub crumbs: Crumbs,
     /// The sub-item representation.
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub item:   T,
 }
 

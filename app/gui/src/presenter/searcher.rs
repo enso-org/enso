@@ -80,7 +80,6 @@ fn doc_placeholder_for(suggestion: &model::suggestion_database::Entry) -> String
 
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
-    logger:     Logger,
     controller: controller::Searcher,
     view:       view::project::View,
     provider:   Rc<RefCell<Option<provider::Component>>>,
@@ -90,14 +89,12 @@ struct Model {
 impl Model {
     #[profile(Debug)]
     fn new(
-        parent: impl AnyLogger,
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let logger = parent.sub("presenter::Searcher");
         let provider = default();
-        Self { logger, controller, view, provider, input_view }
+        Self { controller, view, provider, input_view }
     }
 
     #[profile(Debug)]
@@ -335,12 +332,11 @@ impl Searcher {
     /// Constructor. The returned structure works right away.
     #[profile(Task)]
     pub fn new(
-        parent: impl AnyLogger,
         controller: controller::Searcher,
         view: view::project::View,
         input_view: ViewNodeId,
     ) -> Self {
-        let model = Rc::new(Model::new(parent, controller, view, input_view));
+        let model = Rc::new(Model::new(controller, view, input_view));
         let network = frp::Network::new("presenter::Searcher");
 
         let graph = &model.view.graph().frp;
@@ -500,7 +496,6 @@ impl Searcher {
     /// presenter handling it.
     #[profile(Task)]
     pub fn setup_controller(
-        parent: impl AnyLogger,
         ide_controller: controller::Ide,
         project_controller: controller::Project,
         graph_controller: controller::ExecutedGraph,
@@ -516,7 +511,6 @@ impl Searcher {
         )?;
 
         let searcher_controller = controller::Searcher::new_from_graph_controller(
-            &parent,
             ide_controller,
             &project_controller.model,
             graph_controller,
@@ -534,7 +528,7 @@ impl Searcher {
         }
 
         let input = parameters.input;
-        Ok(Self::new(parent, searcher_controller, view, input))
+        Ok(Self::new(searcher_controller, view, input))
     }
 
     /// Commit editing in the old Node Searcher.

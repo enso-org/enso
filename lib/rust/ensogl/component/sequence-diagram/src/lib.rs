@@ -168,7 +168,7 @@ impl Model {
                 .into_iter()
                 .for_each(|item| item.unset_parent());
         } else {
-            WARNING!("Invalid profile data received");
+            warn!("Invalid profile data received");
             self.reset()
         }
     }

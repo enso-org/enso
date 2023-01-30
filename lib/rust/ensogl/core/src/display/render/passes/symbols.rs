@@ -32,7 +32,6 @@ impl Framebuffers {
 /// Pass for rendering all symbols. The results are stored in the 'color' and 'id' outputs.
 #[derive(Clone, Debug)]
 pub struct SymbolsRenderPass {
-    logger:        Logger,
     layers:        scene::HardcodedLayers,
     framebuffers:  Option<Framebuffers>,
     mask_composer: MaskComposer,
@@ -40,13 +39,12 @@ pub struct SymbolsRenderPass {
 
 impl SymbolsRenderPass {
     /// Constructor.
-    pub fn new(logger: impl AnyLogger, layers: &scene::HardcodedLayers) -> Self {
-        let logger = Logger::new_sub(logger, "SymbolsRenderPass");
+    pub fn new(layers: &scene::HardcodedLayers) -> Self {
         let layers = layers.clone_ref();
         let framebuffers = default();
         let mask_composer =
             MaskComposer::new("pass_mask_color", "pass_layer_color", "pass_layer_id");
-        Self { logger, layers, framebuffers, mask_composer }
+        Self { layers, framebuffers, mask_composer }
     }
 }
 
@@ -94,8 +92,7 @@ impl pass::Definition for SymbolsRenderPass {
             let mut scissor_stack = default();
             self.render_layer(instance, &self.layers.root.clone(), &mut scissor_stack, false);
             if !scissor_stack.is_empty() {
-                warning!(
-                    &self.logger,
+                warn!(
                     "The scissor stack was not cleaned properly. \
                 This is an internal bug that may lead to visual artifacts. Please report it."
                 );
@@ -145,10 +142,7 @@ impl SymbolsRenderPass {
         let nested_masking = is_masked && parent_masked;
 
         if nested_masking {
-            warning!(
-                &self.logger,
-                "Nested layer masking is not supported yet. Skipping nested masks."
-            );
+            warn!("Nested layer masking is not supported yet. Skipping nested masks.");
         } else if let Some(mask) = layer_mask {
             framebuffers.mask.bind();
             let black_transparent = [0.0, 0.0, 0.0, 0.0];

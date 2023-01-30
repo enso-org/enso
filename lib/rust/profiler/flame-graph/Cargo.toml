@@ -9,4 +9,4 @@ enso-profiler = { path = "../" }
 enso-profiler-data = { path = "../data" }
 
 [dev-dependencies]
-futures = "0.3"
+futures = { workspace = true }

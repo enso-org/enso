@@ -46,14 +46,12 @@ pub struct ProjectNotFound {
 #[derive(Clone, Debug)]
 pub struct Initializer {
     config: config::Startup,
-    logger: Logger,
 }
 
 impl Initializer {
     /// Create [`Initializer`] with given configuration.
     pub fn new(config: config::Startup) -> Self {
-        let logger = Logger::new("ide::Initializer");
-        Self { config, logger }
+        Self { config }
     }
 
     /// Initialize all Ide objects and structures (executor, views, controllers, integration etc.)
@@ -140,7 +138,7 @@ impl Initializer {
         &self,
         endpoint: &str,
     ) -> FallibleResult<Rc<dyn project_manager::API>> {
-        let transport = WebSocket::new_opened(self.logger.clone_ref(), endpoint).await?;
+        let transport = WebSocket::new_opened(endpoint).await?;
         let mut project_manager = project_manager::Client::new(transport);
         project_manager.set_timeout(std::time::Duration::from_secs(PROJECT_MANAGER_TIMEOUT_SEC));
         executor::global::spawn(project_manager.runner());
@@ -163,7 +161,6 @@ impl Initializer {
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct WithProjectManager {
-    pub logger:          Logger,
     #[derivative(Debug = "ignore")]
     pub project_manager: Rc<dyn project_manager::API>,
     pub project_name:    ProjectName,
@@ -172,8 +169,7 @@ pub struct WithProjectManager {
 impl WithProjectManager {
     /// Constructor.
     pub fn new(project_manager: Rc<dyn project_manager::API>, project_name: ProjectName) -> Self {
-        let logger = Logger::new("initializer::WithProjectManager");
-        Self { logger, project_manager, project_name }
+        Self { project_manager, project_name }
     }
 
     /// Create and initialize a new Project Model, for a project with name passed in constructor.
@@ -181,9 +177,8 @@ impl WithProjectManager {
     /// If the project with given name does not exist yet, it will be created.
     pub async fn initialize_project_model(self) -> FallibleResult<model::Project> {
         let project_id = self.get_project_or_create_new().await?;
-        let logger = &self.logger;
         let project_manager = self.project_manager;
-        model::project::Synchronized::new_opened(logger, project_manager, project_id).await
+        model::project::Synchronized::new_opened(project_manager, project_id).await
     }
 
     /// Creates a new project and returns its id, so the newly connected project can be opened.
@@ -271,7 +266,6 @@ mod test {
 
     #[wasm_bindgen_test(async)]
     async fn get_project_or_create_new() {
-        let logger = Logger::new("test");
         let mock_client = project_manager::MockClient::default();
         let project_name = ProjectName::new_unchecked("TestProject");
         let project = project_manager::ProjectMetadata {
@@ -288,7 +282,7 @@ mod test {
         expect_call!(mock_client.list_projects(count) => Ok(project_lists));
 
         let project_manager = Rc::new(mock_client);
-        let initializer = WithProjectManager { logger, project_manager, project_name };
+        let initializer = WithProjectManager { project_manager, project_name };
         let project = initializer.get_project_or_create_new().await;
         assert_eq!(expected_id, project.expect("Couldn't get project."))
     }

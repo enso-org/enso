@@ -254,7 +254,7 @@ pub trait ModelProvider<E>: Debug {
 // === AnyModelProvider ===
 
 /// A wrapper for shared instance of some Provider of models for `E` entries.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 pub struct AnyModelProvider<E>(Rc<dyn ModelProvider<E>>);
 
 impl<E> Clone for AnyModelProvider<E> {
