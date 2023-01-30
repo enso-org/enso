@@ -92,9 +92,13 @@ impl pass::Definition for CacheShapesPass {
             self.layer.add(&**shape);
         }
         self.layer.camera().set_screen(texture_width as f32, texture_height as f32);
-        // We must call update of layer because it is not in the Layer hierarchy, so it's not
-        // updated during routine layers update.
+        // We must call update of layer and display object hierarchy at this point, because:
+        // 1. the [`self.layer`] is not in the Layer hierarchy, so it's not updated during routine
+        //    layers update.
+        // 2. The pass can be re-initialized after the display object hierarchy update, but before
+        //    rendering, so the herarchy could be outdated during rendering.
         self.layer.camera().update(&self.scene);
+        self.scene.display_object.update(&self.scene);
         self.layer.update();
 
         let output = pass::OutputDefinition::new_rgba("cached_shapes");
