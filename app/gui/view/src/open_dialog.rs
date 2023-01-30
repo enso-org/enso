@@ -30,7 +30,6 @@ pub mod project_list;
 #[allow(missing_docs)]
 #[derive(Clone, CloneRef, Debug)]
 pub struct OpenDialog {
-    logger:           Logger,
     network:          frp::Network,
     pub project_list: project_list::ProjectList,
     pub file_browser: FileBrowser,
@@ -41,7 +40,6 @@ pub struct OpenDialog {
 impl OpenDialog {
     /// Create Open Dialog component.
     pub fn new(app: &Application) -> Self {
-        let logger = Logger::new("OpenDialog");
         let network = frp::Network::new("OpenDialog");
         let style_watch = StyleWatchFrp::new(&app.display.default_scene.style_sheet);
         let project_list = project_list::ProjectList::new(app);
@@ -71,7 +69,7 @@ impl OpenDialog {
             eval file_browser_x ((x) file_browser.set_x(*x));
         }
         init.emit(());
-        Self { logger, network, project_list, file_browser, display_object, style_watch }
+        Self { network, project_list, file_browser, display_object, style_watch }
     }
 }
 

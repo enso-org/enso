@@ -174,11 +174,23 @@ object ContextRegistryProtocol {
     sealed trait Payload
     object Payload {
 
-      /** An information about computed expression. */
-      case object Value extends Payload
+      /** An information about computed expression.
+        *
+        * @param warnings information about attached warnings.
+        */
+      case class Value(warnings: Option[Value.Warnings]) extends Payload
+      object Value {
+
+        /** Information about warnings associated with the value.
+          *
+          * @param count the number of attached warnings
+          * @param value textual representation of the attached warning
+          */
+        case class Warnings(count: Int, value: Option[String])
+      }
 
       case class Pending(message: Option[String], progress: Option[Double])
-          extends Payload;
+          extends Payload
 
       /** Indicates that the expression was computed to an error.
         *
@@ -191,10 +203,7 @@ object ContextRegistryProtocol {
         * @param message the error message
         * @param trace the stack trace
         */
-      case class Panic(
-        message: String,
-        trace: Seq[UUID]
-      ) extends Payload
+      case class Panic(message: String, trace: Seq[UUID]) extends Payload
 
       private object CodecField {
 
@@ -215,8 +224,10 @@ object ContextRegistryProtocol {
 
       implicit val encoder: Encoder[Payload] =
         Encoder.instance[Payload] {
-          case Payload.Value =>
-            Json.obj(CodecField.Type -> PayloadType.Value.asJson)
+          case m: Payload.Value =>
+            Encoder[Payload.Value]
+              .apply(m)
+              .deepMerge(Json.obj(CodecField.Type -> PayloadType.Value.asJson))
 
           case m: Payload.DataflowError =>
             Encoder[Payload.DataflowError]
@@ -244,7 +255,7 @@ object ContextRegistryProtocol {
         Decoder.instance { cursor =>
           cursor.downField(CodecField.Type).as[String].flatMap {
             case PayloadType.Value =>
-              Right(Payload.Value)
+              Decoder[Payload.Value].tryDecode(cursor)
 
             case PayloadType.DataflowError =>
               Decoder[Payload.DataflowError].tryDecode(cursor)

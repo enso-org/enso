@@ -45,11 +45,10 @@ impl<T: PhantomInto<glsl::PrimType> + TryInto<Glsl>> From<T> for VarDecl {
 // ================
 
 /// Abstraction for look and feel of a `Symbol`. Under the hood, material defines a GLSL shader.
-#[derive(Clone, Debug, Default, Shrinkwrap)]
-#[shrinkwrap(mutable)]
-#[shrinkwrap(unsafe_ignore_visibility)]
+#[derive(Clone, Debug, Default, Deref, DerefMut)]
 pub struct Material {
-    #[shrinkwrap(main_field)]
+    #[deref]
+    #[deref_mut]
     code:    CodeTemplate,
     inputs:  BTreeMap<String, VarDecl>,
     outputs: BTreeMap<String, VarDecl>,

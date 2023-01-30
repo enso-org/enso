@@ -135,7 +135,7 @@ impl Config {
 
 /// Dom elements of the monitor. Please note that it uses `Rc` to both implement cheap copy as well
 /// as to use `Drop` to clean the HTML when not used anymore.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct Dom {
     rc: Rc<DomData>,
 }
@@ -870,7 +870,7 @@ stats_sampler!(
 //                 let tested_value = $test.sampler.value(&prev_frame_stats);
 //                 let tested_check = $test.sampler.check(&prev_frame_stats);
 //                 assert_approx_eq!(tested_value, $expected_value,
-// STAT_VALUE_COMPARISON_PRECISION);                 let mismatch_msg = iformat!(
+// STAT_VALUE_COMPARISON_PRECISION);                 let mismatch_msg = format!(
 //                     "Stat check was expected to return: " $expected_check;?
 //                     ", but got: " tested_check;? " instead.");
 //                 assert!(matches!(tested_check, $expected_check), "{}", mismatch_msg);
@@ -886,7 +886,7 @@ stats_sampler!(
 //
 //         ($test:expr, None; next: $frame_time:expr, $post_frame_delay:expr) => {
 //             let prev_frame_stats = $test.stats.begin_frame(Duration(*$test.t.t.borrow() as f32));
-//             let mismatch_msg = iformat!(
+//             let mismatch_msg = format!(
 //                 "Expected no stats to be returned by begin_frame(), but got: "
 //                 prev_frame_stats;? " instead.");
 //             assert!(matches!(prev_frame_stats, None), "{}", mismatch_msg);

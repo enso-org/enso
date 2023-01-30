@@ -35,7 +35,7 @@ pub struct IdentifierCannotBeEmpty;
 /// Comparisons compare the underlying name strings.
 ///
 /// Invariants: can get identifier name, the name is non-empty.
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct Identifier(Ast);
 
 impl Identifier {
@@ -200,7 +200,7 @@ pub fn generate_name(
     let unavailable = unavailable.into_iter().filter(is_relevant).collect::<HashSet<_>>();
     let name = (1..)
         .find_map(|i| {
-            let candidate = iformat!("{base}{i}");
+            let candidate = format!("{base}{i}");
             let available = !unavailable.contains(&candidate);
             available.as_some(candidate)
         })

@@ -13,7 +13,6 @@ enso-text = { path = "../../../../../lib/rust/text" }
 span-tree = { path = "../../span-tree" }
 enso-web = { path = "../../../../../lib/rust/web" }
 enso-prelude = { path = "../../../../../lib/rust/prelude" }
-enso-logger = { path = "../../../../../lib/rust/logger" }
 wasm-bindgen = { workspace = true }
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 

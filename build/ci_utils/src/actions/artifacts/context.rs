@@ -42,7 +42,7 @@ impl Context {
         let mut headers = HeaderMap::new();
         headers.insert(
             reqwest::header::ACCEPT,
-            iformat!("{accept_mime};api-version={self.api_version}").parse()?,
+            format!("{accept_mime};api-version={}", self.api_version).parse()?,
         );
         headers.insert(
             reqwest::header::AUTHORIZATION,

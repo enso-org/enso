@@ -305,7 +305,7 @@ impl Model {
 
             if let Some(id) = node.ast_id {
                 if DEBUG {
-                    DEBUG!("New id mapping: {id} -> {node.crumbs:?}");
+                    debug!("New id mapping: {id} -> {:?}", node.crumbs);
                 }
                 id_crumbs_map.insert(id, node.crumbs.clone_ref());
             }
@@ -313,9 +313,13 @@ impl Model {
             if DEBUG {
                 let indent = " ".repeat(4 * builder.depth);
                 let skipped = if not_a_port { "(skip)" } else { "" };
-                DEBUG!(
-                    "{indent}[{node.payload.index},{node.payload.length}] \
-                {skipped} {node.kind.variant_name():?} (tp: {node.tp():?}) (id: {node.ast_id:?})"
+                debug!(
+                    "{indent}[{},{}] {skipped} {:?} (tp: {:?}) (id: {:?})",
+                    node.payload.index,
+                    node.payload.length,
+                    node.kind.variant_name(),
+                    node.tp(),
+                    node.ast_id
                 );
             }
 
@@ -675,7 +679,7 @@ impl Model {
     ) -> Expression {
         let mut new_expression = Expression::from(new_expression.into());
         if DEBUG {
-            DEBUG!("\n\n=====================\nSET EXPR: " new_expression.code)
+            debug!("\n\n=====================\nSET EXPR: {}", new_expression.code)
         }
         self.set_label_on_new_expression(&new_expression);
         self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);

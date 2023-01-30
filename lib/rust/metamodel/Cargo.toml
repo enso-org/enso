@@ -5,8 +5,8 @@ edition = "2021"
 authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
-derivative = "2.2"
-derive_more = "0.99"
+derivative = { workspace = true }
+derive_more = { workspace = true }
 
 [dev-dependencies]
 bincode = "1.3"

@@ -46,7 +46,6 @@ pub struct BubbleChartModel {
     pub scene:          Scene,
     signature:          Signature,
     views:              Rc<RefCell<Vec<shape::View>>>,
-    logger:             Logger,
     size:               Rc<Cell<Vector2>>,
 }
 
@@ -90,10 +89,10 @@ impl BubbleChartModel {
 // ===================
 
 /// Sample implementation of a Bubble Chart.
-#[derive(Debug, Shrinkwrap)]
+#[derive(Debug, Deref)]
 #[allow(missing_docs)]
 pub struct BubbleChart {
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   BubbleChartModel,
     network: frp::Network,
     frp:     visualization::instance::Frp,
@@ -107,7 +106,6 @@ impl BubbleChart {
 
     pub fn new(app: &Application) -> Self {
         let scene = &app.display.default_scene;
-        let logger = Logger::new("bubble");
         let display_object = display::object::Instance::new();
         let views = Rc::new(RefCell::new(vec![]));
         let network = frp::Network::new("bubble_chart");
@@ -115,7 +113,7 @@ impl BubbleChart {
         let size = default();
         let scene = scene.clone_ref();
         let signature = Self::signature();
-        let model = BubbleChartModel { display_object, scene, signature, views, logger, size };
+        let model = BubbleChartModel { display_object, scene, signature, views, size };
         BubbleChart { model, network, frp }.init()
     }
 

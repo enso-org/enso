@@ -385,10 +385,22 @@ object Runtime {
       sealed trait Payload
       object Payload {
 
-        /** An empty payload. Indicates that the expression was computed to a
-          * value.
+        /** Indicates that the expression was computed to a value.
+          *
+          * @param warnings information about attached warnings.
           */
-        case class Value() extends Payload
+        case class Value(warnings: Option[Value.Warnings] = None)
+            extends Payload
+
+        object Value {
+
+          /** Information about warnings associated with the value.
+            *
+            * @param count the number of attached warnings.
+            * @param warning textual representation of the attached warning.
+            */
+          case class Warnings(count: Int, warning: Option[String])
+        }
 
         /** TBD
           */

@@ -577,7 +577,6 @@ impl ComponentsProvider {
 /// existing node).
 #[derive(Clone, CloneRef, Debug)]
 pub struct Searcher {
-    logger:           Logger,
     data:             Rc<RefCell<Data>>,
     breadcrumbs:      Breadcrumbs,
     notifier:         notification::Publisher<Notification>,
@@ -595,14 +594,13 @@ pub struct Searcher {
 impl Searcher {
     /// Create new Searcher Controller.
     pub async fn new(
-        parent: impl AnyLogger,
         ide: controller::Ide,
         project: &model::Project,
         method: language_server::MethodPointer,
         mode: Mode,
     ) -> FallibleResult<Self> {
-        let graph = controller::ExecutedGraph::new(&parent, project.clone_ref(), method).await?;
-        Self::new_from_graph_controller(parent, ide, project, graph, mode)
+        let graph = controller::ExecutedGraph::new(project.clone_ref(), method).await?;
+        Self::new_from_graph_controller(ide, project, graph, mode)
     }
 
     /// Abort editing and perform cleanup.
@@ -613,14 +611,12 @@ impl Searcher {
     /// Create new Searcher Controller, when you have Executed Graph Controller handy.
     #[profile(Task)]
     pub fn new_from_graph_controller(
-        parent: impl AnyLogger,
         ide: controller::Ide,
         project: &model::Project,
         graph: controller::ExecutedGraph,
         mode: Mode,
     ) -> FallibleResult<Self> {
         let project = project.clone_ref();
-        let logger = Logger::new_sub(parent, "Searcher Controller");
         let database = project.suggestion_db();
         let data = if let Mode::EditNode { node_id } = mode {
             Data::new_with_edited_node(&graph.graph(), &database, node_id)?
@@ -639,7 +635,6 @@ impl Searcher {
         });
         let breadcrumbs = Breadcrumbs::new();
         let ret = Self {
-            logger,
             graph,
             this_arg,
             ide,
@@ -1774,7 +1769,6 @@ pub mod test {
             let searcher_target = graph.graph().nodes().unwrap().last().unwrap().id();
             let this = ThisNode::new(node.info.id(), &graph.graph());
             let this = data.selected_node.and_option(this);
-            let logger = Logger::new("Searcher"); // new_empty
             let module_name = crate::test::mock::data::module_qualified_name();
             let database = suggestion_database_with_mock_entries(code_range);
             let mut ide = controller::ide::MockAPI::new();
@@ -1793,7 +1787,6 @@ pub mod test {
             let breadcrumbs = Breadcrumbs::new();
             let searcher = Searcher {
                 graph,
-                logger,
                 database,
                 ide: Rc::new(ide),
                 data: default(),
@@ -1999,7 +1992,7 @@ pub mod test {
 
         // Known functions cases
         searcher.set_input("Test.test_method ".to_string()).unwrap();
-        searcher.set_input(iformat!("{MODULE_NAME}.test_method ")).unwrap();
+        searcher.set_input(format!("{MODULE_NAME}.test_method ")).unwrap();
         searcher.set_input("testFunction2 \"str\" ".to_string()).unwrap();
 
         // Unknown functions case
@@ -2112,7 +2105,10 @@ pub mod test {
             assert_matches!(entries.as_slice(), [e1, e2] if e1.name() == entry3.name && e2.name()
     == entry9.name);
         } else {
-            ipanic!("Wrong top modules in Component List: {components.top_modules().collect::<Vec<_>>():?}");
+            panic!(
+                "Wrong top modules in Component List: {:?}",
+                components.top_modules().collect::<Vec<_>>()
+            );
         }
         let favorites = &components.favorites;
         assert_eq!(favorites.len(), 2);

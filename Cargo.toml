@@ -72,15 +72,49 @@ debug = true
 debug-assertions = true
 
 [workspace.dependencies]
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!!!!!!!! WARNING !!!!!!!!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# We are tryingto maintain minimum set of dependencies. Before adding a new dependency, consult it
+# with the core development team. Thank you!
 console-subscriber = "0.1.8"
 nix = "0.26.1"
 octocrab = { git = "https://github.com/enso-org/octocrab", default-features = false, features = [
   "rustls"
 ] }
-regex = "1.6.0"
-serde_yaml = "0.9.16"
-serde-wasm-bindgen = "0.4.5"
+regex = { version = "1.6.0" }
+serde_yaml = { version = "0.9.16" }
+serde-wasm-bindgen = { version = "0.4.5" }
 tokio = { version = "1.23.0", features = ["full", "tracing"] }
 tokio-util = { version = "0.7.4", features = ["full"] }
 wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
 wasm-bindgen-test = { version = "0.3.33" }
+anyhow = { version = "1.0.66" }
+failure = { version = "0.1.8" }
+derive_more = { version = "0.99" }
+assert_approx_eq = { version = "1.1.0" }
+backtrace = { version = "0.3.53" }
+boolinator = { version = "2.4.0" }
+derivative = { version = "2.2" }
+futures = { version = "0.3" }
+itertools = { version = "0.10.5" }
+lazy_static = { version = "1.4" }
+paste = { version = "1.0" }
+serde_json = { version = "1.0" }
+smallvec = { version = "1.0.0" }
+weak-table = { version = "0.3.0" }
+gen-iter = { version = "0.2.1" }
+js-sys = { version = "0.3" }
+owned_ttf_parser = { version = "0.15.1" }
+nalgebra = { version = "0.26.1", features = ["serde-serialize"] }
+const_format = { version = "0.2.22" }
+convert_case = { version = "0.6.0" }
+multi-map = { version = "1.3.0" }
+ordered-float = { version = "3.0.0" }
+rustybuzz = { version = "0.5.1" }
+bincode = { version = "2.0.0-rc.1" }
+byte-unit = { version = "4.0.14", features = ["serde"] }
+bytes = { version = "1.1.0" }
+matches = { version = "0.1" }
+console_error_panic_hook = { version = "0.1.6" }
+reqwest = { version = "0.11.5" }

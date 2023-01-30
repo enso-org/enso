@@ -5,5 +5,5 @@ authors = ["Enso Team <contact@enso.org>"]
 edition = "2021"
 
 [dependencies]
-js-sys = { version = "0.3.28" }
+js-sys = { workspace = true }
 wasm-bindgen = { workspace = true }
