@@ -86,8 +86,8 @@
   present only when the argument is of type that has a predefined set of values.
 - [Separate component browser navigator sections for modules imported from
   different namespaces][4044]
-- [Components that are tagged `PRIVATE` are not shown in the component
-  browser][4085]
+- [Internal components (private API) are not displayed in the component
+  browser.][4085]
 
 #### EnsoGL (rendering engine)
 
