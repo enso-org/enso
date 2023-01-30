@@ -162,6 +162,13 @@ impl QualifiedNameToIdMap {
 #[derive(Clone, Debug, Default)]
 struct HierarchyIndex {
     inner:   HashMap<entry::Id, HashSet<entry::Id>>,
+    /// Orphans are entries that are not yet in the index, but are referenced by other entries.
+    /// For example, if we have a Type entry, but we haven't yet received its Module entry, we
+    /// store the Type entry as an orphan of Module entry. When we receive the Module entry, we
+    /// add all orphans to the index. This way we do not rely on the order of updates from the
+    /// Engine.
+    ///
+    /// Key is the parent entry name, value is a set of orphan entries.
     orphans: HashMap<QualifiedName, HashSet<entry::Id>>,
 }
 
