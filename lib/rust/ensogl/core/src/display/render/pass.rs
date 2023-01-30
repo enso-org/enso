@@ -111,6 +111,22 @@ impl Instance {
         }
         Framebuffer { context, native }
     }
+
+    /// Run a closure with different viewport set in context.
+    ///
+    /// The viewport in EnsoGL is always set to the screen size. This function will override it,
+    /// run the closure and restore the viewport.
+    pub fn with_viewport<R>(
+        &self,
+        viewport_width: i32,
+        viewport_height: i32,
+        f: impl FnOnce() -> R,
+    ) -> R {
+        self.context.set_viewport(0, 0, viewport_width, viewport_height);
+        let result = f();
+        self.context.set_viewport(0, 0, self.width, self.height);
+        result
+    }
 }
 
 

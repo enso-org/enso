@@ -1,4 +1,4 @@
-//! Pass where we checks what shapes created with [`cached_shape!`](crate::cached_shape) macro are
+//! Pass where we check what shapes created with [`cached_shape!`](crate::cached_shape) macro are
 //! ready to being rendered to the texture.
 
 use crate::prelude::*;
@@ -23,9 +23,13 @@ use itertools::iproduct;
 // === Constants ===
 // =================
 
-/// The assumed texture size for cached shapes. If it turn out to be too small, the texture will be
-/// extended.
+/// A parameter of [`arrange_shapes_on_texture`] algorithm: the initial assumed size for the texture
+/// with cached shapes. If it turn out to be too small, we extend this size and try again.
 const INITIAL_TEXTURE_SIZE: i32 = 512;
+
+/// A parameter of [`arrange_shapes_on_texture`] algorithm: the factor how much the texture size is
+/// increased when the current size is insufficient.
+const TEXTURE_SIZE_MULTIPLIER: i32 = 2;
 
 
 
@@ -42,30 +46,31 @@ const INITIAL_TEXTURE_SIZE: i32 = 512;
 ///
 /// For each shape to render we create a single [view](crate::gui::component::ShapeView), which is
 /// then added to a special, internal [`Layer`] which is not rendered in the default symbol pass.
-/// Once given shape system has shader compiled, we call "render" only on its symbol. There is no
-/// need to render previous shapes again, because we don't clear texture at any point.
+/// Once given shape system is ready to render (has shader compiled), we call "render" only on its
+/// symbol. There is no need to render previous shapes again, because we don't clear texture at any
+/// point.
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub struct CacheShapesPass {
-    scene:          Scene,
-    framebuffer:    Option<pass::Framebuffer>,
+    scene:            Scene,
+    framebuffer:      Option<pass::Framebuffer>,
     #[derivative(Debug = "ignore")]
-    shapes:         Vec<Rc<dyn AnyShapeView>>,
-    texture_width:  i32,
-    texture_height: i32,
-    layer:          Layer,
+    shapes_to_render: Vec<Rc<dyn AnyShapeView>>,
+    texture_width:    i32,
+    texture_height:   i32,
+    layer:            Layer,
 }
 
 impl CacheShapesPass {
     /// Constructor.
     pub fn new(scene: &Scene) -> Self {
         Self {
-            framebuffer:    default(),
-            shapes:         default(),
-            layer:          Layer::new("Cached Shapes"),
-            scene:          scene.clone_ref(),
-            texture_width:  default(),
-            texture_height: default(),
+            framebuffer:      default(),
+            shapes_to_render: default(),
+            layer:            Layer::new("Cached Shapes"),
+            scene:            scene.clone_ref(),
+            texture_width:    default(),
+            texture_height:   default(),
         }
     }
 }
@@ -78,22 +83,18 @@ impl pass::Definition for CacheShapesPass {
         let ArrangedShapes { texture_width, texture_height, shapes } =
             display::world::CACHED_SHAPES_DEFINITIONS
                 .with_borrow(|shapes| arrange_shapes_on_texture(shapes));
-        self.shapes = shapes.into_iter().map(Box::into).collect();
+        self.shapes_to_render = shapes.into_iter().map(Box::into).collect();
         self.texture_width = texture_width;
         self.texture_height = texture_height;
 
-        for shape in &self.shapes {
+        for shape in &self.shapes_to_render {
             self.scene.add_child(&**shape);
             self.layer.add(&**shape);
         }
         self.layer.camera().set_screen(texture_width as f32, texture_height as f32);
-        // We must call update of layer and display object hierarchy at this point, because:
-        // 1. the [`self.layer`] is not in the Layer hierarchy, so it's not updated during routine
-        //    layers update.
-        // 2. There is possibility that the shapes will be rendered in the same frame, before we
-        //    reach next "update display objects" stage.
+        // We must call update of layer because it is not in the Layer hierarchy, so it's not
+        // updated during routine layers update.
         self.layer.camera().update(&self.scene);
-        self.scene.display_object.update(&self.scene);
         self.layer.update();
 
         let output = pass::OutputDefinition::new_rgba("cached_shapes");
@@ -104,23 +105,19 @@ impl pass::Definition for CacheShapesPass {
     fn run(&mut self, instance: &Instance, _update_status: UpdateStatus) {
         let is_shader_compiled =
             |shape: &mut Rc<dyn AnyShapeView>| shape.sprite().symbol.shader().program().is_some();
-        let mut ready_to_render = self.shapes.drain_filter(is_shader_compiled).peekable();
+        let mut ready_to_render = self.shapes_to_render.drain_filter(is_shader_compiled).peekable();
         if ready_to_render.peek().is_some() {
             if let Some(framebuffer) = self.framebuffer.as_ref() {
                 framebuffer.bind();
-                instance.context.viewport(0, 0, self.texture_width, self.texture_height);
-                for shape in ready_to_render {
-                    with_context(|t| {
-                        t.set_camera(&self.layer.camera());
-                        t.update();
-                    });
-                    shape.sprite().symbol.render();
-                }
-                // Restore screen viewport.
-                instance.context.viewport(0, 0, instance.width, instance.height);
+                instance.with_viewport(self.texture_width, self.texture_height, || {
+                    with_context(|ctx| ctx.set_camera(&self.layer.camera()));
+                    for shape in ready_to_render {
+                        shape.sprite().symbol.render();
+                    }
+                });
                 instance.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
             } else {
-                error!("Impossible happened: The CacheShapesPass was run without initialized framebuffer.")
+                reportable_error!("Impossible happened: The CacheShapesPass was run without initialized framebuffer.")
             }
         }
     }
@@ -133,11 +130,15 @@ impl pass::Definition for CacheShapesPass {
 // ===================================
 
 /// For shape of given size, find the unoccupied space in the square texture.
+///
+/// A step of the [`arrange_shapes_on_texture`] algorithm. See its docs for details.
 fn find_free_place(
     shape_size: Vector2<i32>,
     tex_size: i32,
     placed_so_far: &[BoundingBox],
 ) -> Option<BoundingBox> {
+    // There is no need of iterating over all columns and rows, as the new shape is always "glued"
+    // to right/top boundary of another shape, or left/bottom boundary of the texture.
     let right_bounds = placed_so_far.iter().map(|bbox| bbox.right().ceil() as i32);
     let allowed_right_bounds = right_bounds.filter(|col| col + shape_size.x <= tex_size);
     let top_bounds = placed_so_far.iter().map(|bbox| bbox.top().ceil() as i32);
@@ -157,6 +158,7 @@ fn find_free_place(
     })
 }
 
+/// The results of [`arrange_shapes_on_texture`] function.
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct ArrangedShapes {
@@ -168,15 +170,45 @@ struct ArrangedShapes {
 
 /// Arrange Cached Shapes on texture.
 ///
-/// Algorithm of placing each shape on the texture is a simple heuristic, where we sort shapes from
-/// the biggest to the smallest, and take the shapes one by one by that order and try to fit them
-/// by scanning possible left-bottom corner positions, starting from left-bottom corner of the
-/// texture and going line-by-line. According to
+/// The function takes the definition of cached shapes and returns the created
+/// [shape views](AnyShapeView) with positions and sizes already set to proper place in the texture.
+///
+/// # The Texture Pack Algorithm
+///
+/// The algorithm is a simple heuristic: we sort shapes from the biggest to the smallest, and take
+/// the shapes one by one by that order and scans possible left-bottom corner positions, starting
+/// from left-bottom corner of the texture and going row by row, from left to right and from bottom
+/// to top, picking the first position where the current shape does not collide with any already
+/// placed one. According to
 /// https://gamedev.stackexchange.com/questions/2829/texture-packing-algorithm this is actually one
 /// of the best packing algorithm in terms of texture space.
 ///
-/// This is a simple implementation with time complexity O(n m s) where n and m is the number of
-/// rows and columns in the resulting texture, and s is number of placed shapes.
+/// As the above algorithm assumes some texture size, we starts with predefined square texture with
+/// [`INITIAL_TEXTURE_SIZE`] and - if the shapes does not fit it - we repeatedly increase the size
+/// and try again.
+///
+/// ## Example
+///
+/// Having the following shapes:
+///
+/// ```text
+/// ┌───┐ ┌──────┐ ┌───┐ ┌─────────┐
+/// │1x1│ │2x2   │ │1x2│ │3x3      │
+/// └───┘ │      │ │   │ │         │
+///       └──────┘ └───┘ │         │
+///                      └─────────┘
+/// ```
+///
+/// # Implementation
+///
+/// As the new shape is always "glued" to
+/// - right boundary of another shape or left boundary of the texture
+/// - top boundary of another shape or bottom boundary of the texture
+/// We do not need to iterate over every row and column, only over those containing the
+/// boundaries.
+///
+/// Therefore, this simple implementation has the time complexity of O(n^3) where n is number of
+/// placed shapes.
 fn arrange_shapes_on_texture<'a>(
     shapes: impl IntoIterator<Item = &'a CachedShapeDefinition>,
 ) -> ArrangedShapes {
@@ -227,6 +259,12 @@ fn try_to_fit_shapes_on_texture(
         }
     })
 }
+
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {

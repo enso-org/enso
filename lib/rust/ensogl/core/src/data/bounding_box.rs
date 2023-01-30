@@ -87,7 +87,8 @@ impl BoundingBox {
         !not_contained
     }
 
-    /// Return whether the interiors of two bounding boxes have some area of overlap.
+    /// Return whether the interiors of two bounding boxes (the bounded area without boundaries)
+    /// have some area of overlap.
     pub fn interior_intersects(&self, other: &BoundingBox) -> bool {
         let not_contained = (self.right <= other.left)
             || (other.right <= self.left)
