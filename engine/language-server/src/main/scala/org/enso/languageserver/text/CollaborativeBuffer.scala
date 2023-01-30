@@ -275,9 +275,6 @@ class CollaborativeBuffer(
         buffer.version.toHexString
       )
       runtimeConnector ! Api.Request(
-        Api.SetModuleSourcesNotification(file.path, file.content)
-      )
-      runtimeConnector ! Api.Request(
         Api.EditFileNotification(file.path, edits, execute = true)
       )
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
