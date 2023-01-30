@@ -3,6 +3,8 @@ import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
 import project.Data.Ordering.Ordering
+import project.Data.Ordering.Comparable
+import project.Data.Ordering.Default_Ordered_Comparator
 import project.Data.Text.Text
 import project.Data.Time.Date_Period.Date_Period
 import project.Data.Time.Date_Time.Date_Time
@@ -589,26 +591,6 @@ type Date
     format : Text -> Text
     format self pattern = Time_Utils.local_date_format self pattern
 
-    # TODO: Remove and replace only with comparator
-    ## Compares `self` to `that` to produce an ordering.
-
-       Arguments:
-       - that: The other `Date` to compare against.
-
-       > Example
-         Compare two dates for their ordering.
-
-         (Date.new 2000).compare_to (Date.new 2001)
-    compare_to : Date -> Ordering
-    compare_to self that = case that of
-        _ : Date ->
-            sign = Time_Utils.compare_to_localdate self that
-            Ordering.from_sign sign
-        _ -> Error.throw (Type_Error.Error Date that "that")
-
-    comparator : Date_Comparator
-    comparator = Date_Comparator
-
 
 ## PRIVATE
 week_days_between start end =
@@ -647,7 +629,4 @@ fits_in_range start end date =
     (start <= date) && (date < end)
 
 
-## PRIVATE
-type Date_Comparator
-    compare self d1 d2 = d1.compare_to d2
-    hash self _ = Error.throw "no hash for Date"
+Comparable.from (_:Date) = Default_Ordered_Comparator
