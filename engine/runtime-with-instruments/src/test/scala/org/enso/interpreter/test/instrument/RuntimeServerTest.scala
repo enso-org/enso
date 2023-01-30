@@ -346,7 +346,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -453,7 +453,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -507,7 +507,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -608,10 +608,10 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
-    context.send(Api.Request(Api.SetModuleSourcesNotification(aFile, aCode)))
+    context.send(Api.Request(Api.OpenFileNotification(aFile, aCode)))
     context.receiveNone shouldEqual None
 
     // push main
@@ -692,7 +692,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -751,7 +751,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -812,7 +812,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -875,7 +875,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -934,7 +934,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1002,7 +1002,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1123,7 +1123,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1216,7 +1216,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1298,7 +1298,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1392,7 +1392,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1633,7 +1633,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1841,7 +1841,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1893,7 +1893,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -1938,7 +1938,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Set sources for the module
-    context.send(Api.Request(Api.SetModuleSourcesNotification(mainFile, code)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2008,7 +2008,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Set sources for the module
-    context.send(Api.Request(Api.SetModuleSourcesNotification(mainFile, code)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2046,7 +2046,7 @@ class RuntimeServerTest
     )
 
     // Re-open the the file and apply the same operation
-    context.send(Api.Request(Api.SetModuleSourcesNotification(mainFile, code)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2089,7 +2089,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Set sources for the module
-    context.send(Api.Request(Api.SetModuleSourcesNotification(mainFile, code)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
     context.receiveNone shouldEqual None
 
     // Push new item on the stack to trigger the re-execution
@@ -2151,7 +2151,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, context.Main.code))
+      Api.Request(Api.OpenFileNotification(mainFile, context.Main.code))
     )
     context.receiveNone shouldEqual None
 
@@ -2229,7 +2229,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Set sources for the module
-    context.send(Api.Request(Api.SetModuleSourcesNotification(mainFile, code)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2324,7 +2324,7 @@ class RuntimeServerTest
     val mainFile = context.writeMain(code)
 
     // Set sources for the module
-    context.send(Api.Request(Api.SetModuleSourcesNotification(mainFile, code)))
+    context.send(Api.Request(Api.OpenFileNotification(mainFile, code)))
     context.receiveNone shouldEqual None
     context.consumeOut shouldEqual List()
 
@@ -2400,7 +2400,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2446,7 +2446,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2509,7 +2509,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
 
     context.receiveNone shouldEqual None
@@ -2564,7 +2564,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
 
     context.receiveNone shouldEqual None
@@ -2608,7 +2608,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2659,7 +2659,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2717,7 +2717,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2785,7 +2785,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2861,7 +2861,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -2939,7 +2939,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3017,7 +3017,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3110,7 +3110,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3169,7 +3169,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3227,7 +3227,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3292,7 +3292,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3359,7 +3359,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3419,7 +3419,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3469,7 +3469,7 @@ class RuntimeServerTest
 
     // Set sources for the module
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3517,7 +3517,7 @@ class RuntimeServerTest
     // open file
     context.send(
       Api.Request(
-        Api.SetModuleSourcesNotification(mainFile, contents)
+        Api.OpenFileNotification(mainFile, contents)
       )
     )
     context.receiveNone shouldEqual None
@@ -3640,7 +3640,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3729,7 +3729,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3805,7 +3805,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -3862,7 +3862,7 @@ class RuntimeServerTest
 
     // open file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 

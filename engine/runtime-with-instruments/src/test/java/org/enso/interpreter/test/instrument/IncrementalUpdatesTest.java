@@ -24,7 +24,7 @@ import org.enso.polyglot.runtime.Runtime$Api$PushContextResponse;
 import org.enso.polyglot.runtime.Runtime$Api$Request;
 import org.enso.polyglot.runtime.Runtime$Api$Response;
 import org.enso.polyglot.runtime.Runtime$Api$SetExpressionValueNotification;
-import org.enso.polyglot.runtime.Runtime$Api$SetModuleSourcesNotification;
+import org.enso.polyglot.runtime.Runtime$Api$OpenFileNotification;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$ExplicitCall;
 import org.enso.polyglot.runtime.Runtime$Api$StackItem$LocalCall;
 import org.enso.text.editing.model;
@@ -196,7 +196,7 @@ public class IncrementalUpdatesTest {
     );
     // Open the new file
     context.send(
-      Request(new Runtime$Api$SetModuleSourcesNotification(mainFile, contents))
+      Request(new Runtime$Api$OpenFileNotification(mainFile, contents))
     );
     assertTrue("No reply", context.receiveNone().isEmpty());
 

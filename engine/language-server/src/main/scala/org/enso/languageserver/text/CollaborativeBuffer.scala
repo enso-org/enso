@@ -667,7 +667,7 @@ class CollaborativeBuffer(
       Right(OpenFileResult(buffer, Some(cap)))
     )
     runtimeConnector ! Api.Request(
-      Api.SetModuleSourcesNotification(file.path, file.content)
+      Api.OpenFileNotification(file.path, file.content)
     )
     context.become(
       collaborativeEditing(
