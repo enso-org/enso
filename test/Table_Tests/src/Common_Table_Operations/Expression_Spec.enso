@@ -292,4 +292,4 @@ spec detailed setup =
             expression_test "starts_with([C])" Expression_Error.Argument_Mismatch
 
         specify_test "should fail with Argument_Mismatch if too many arguments" expression_test=error_tester expression_test->
-            expression_test "starts_with([C], 'Hello', 'World')" Expression_Error.Argument_Mismatch
+            expression_test "Not([C], 'Hello')" Expression_Error.Argument_Mismatch

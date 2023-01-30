@@ -1052,6 +1052,7 @@ type Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
+    @join_kind (Single_Choice ["Join_Kind.Inner", "Join_Kind.Left_Outer", "Join_Kind.Right_Outer", "Join_Kind.Full", "Join_Kind.Left_Exclusive", "Join_Kind.Right_Exclusive"]])
     join : Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> Table
     join self right join_kind=Join_Kind.Inner on=[Join_Condition.Equals 0 0] right_prefix="Right_" on_problems=Report_Warning =
         if check_table "right" right then

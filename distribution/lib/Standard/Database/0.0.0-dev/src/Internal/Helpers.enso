@@ -61,11 +61,10 @@ unify_vector_singleton x = case x of
    SQL-safe names for columns.
 
    # TODO [RW] better name handling in Tables (#1513)
-ensure_name_is_sane : Text -> Boolean ! Unsupported_Name
-ensure_name_is_sane name =
-    is_safe =
-        Pattern.matches "[A-Za-z_0-9]+" name
-    if is_safe then True else
+ensure_name_is_sane : Text -> Function -> Boolean ! Unsupported_Name
+ensure_name_is_sane name ~action =
+    is_safe = Pattern.matches "[A-Za-z_0-9]+" name
+    if is_safe then action else
         Error.throw <| Unsupported_Name.Error (name + " is not a valid name for a column. Please use english letters, numbers and underscore only.")
 
 ## PRIVATE
