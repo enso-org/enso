@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
+import Standard.Base.Error.Incomparable_Values.Incomparable_Values
 
 from Standard.Table import Sort_Column, Sort_Column_Selector
 from Standard.Table.Errors import all
@@ -7,6 +9,9 @@ from Standard.Test import Test, Problems
 import Standard.Test.Extensions
 
 from project.Common_Table_Operations.Util import run_default_backend
+
+type My_Type
+    Foo x
 
 main = run_default_backend spec
 
@@ -71,82 +76,71 @@ spec setup =
 
         Test.specify "should correctly handle problems: out of bounds indices" <|
             selector = Sort_Column_Selector.By_Index [0, 100, Sort_Column.Index -200, Sort_Column.Index 300]
-            action = table.order_by selector on_problems=_
-            tester table =
-                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
-                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Indexes_Out_Of_Range.Error [100, -200, 300]]
-            Problems.test_problem_handling action problems tester
+            t1 = table.order_by selector
+            t1.should_fail_with Column_Indexes_Out_Of_Range
+            t1.catch . should_equal <|
+                Column_Indexes_Out_Of_Range.Error [100, -200, 300]
 
-        Test.specify "should correctly handle problems: duplicate indices" <|
-            selector = Sort_Column_Selector.By_Index [0, Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]
-            action = table.order_by selector on_problems=_
-            tester table =
-                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
-                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Duplicate_Column_Selectors.Error [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending]]
-            Problems.test_problem_handling action problems tester
+        Test.specify "should correctly handle edge-cases: duplicate selectors" <|
+            selector1 = Sort_Column_Selector.By_Name ["alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]
+            t1 = table.order_by selector1
+            Problems.assume_no_problems t1
+            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should correctly handle problems: aliased indices" <|
-            selector = Sort_Column_Selector.By_Index [1, Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index -8 Sort_Direction.Descending, Sort_Column.Index 2 Sort_Direction.Ascending]
-            action = table.order_by selector on_problems=_
-            tester table =
-                table.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
-                table.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
-                table.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
-            problems = [Input_Indices_Already_Matched.Error [Sort_Column.Index -9 Sort_Direction.Descending, Sort_Column.Index 2]]
-            Problems.test_problem_handling action problems tester
+            t2 = table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Index 0, Sort_Column.Index 0 Sort_Direction.Descending])
+            Problems.assume_no_problems t2
+            t2.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
 
-        Test.specify "should correctly handle problems: duplicate names" <|
-            selector = Sort_Column_Selector.By_Name ["alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]
-            action = table.order_by selector on_problems=_
-            tester table =
-                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
-                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Matched_By_Multiple_Selectors.Error "alpha" [Sort_Column.Name "alpha", Sort_Column.Name "alpha" Sort_Direction.Descending]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle problems: duplicate matches due to case insensitivity" <|
+        Test.specify "should correctly handle edge-cases: duplicate matches due to case insensitivity" <|
             selector = Sort_Column_Selector.By_Name [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending] Text_Matcher.Case_Insensitive
-            action = table.order_by selector on_problems=_
-            tester table =
-                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
-                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Column_Matched_By_Multiple_Selectors.Error "alpha" [Sort_Column.Name "ALPHA", Sort_Column.Name "alpha" Sort_Direction.Descending]]
-            Problems.test_problem_handling action problems tester
+            t1 = table.order_by selector
+            Problems.assume_no_problems t1
+            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+        Test.specify "should correctly handle edge-cases: wrong types in the selectors" <|
+            t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Index 0 Sort_Direction.Descending])
+            t1.should_fail_with Illegal_Argument
+            t2 = table.order_by (Sort_Column_Selector.By_Name [0])
+            t2.should_fail_with Illegal_Argument
+            t3 = table.order_by (Sort_Column_Selector.By_Index [Sort_Column.Name "alpha" Sort_Direction.Descending])
+            t3.should_fail_with Illegal_Argument
+            t4 = table.order_by (Sort_Column_Selector.By_Index ["alpha"])
+            t4.should_fail_with Illegal_Argument
+
+            Test.expect_panic_with matcher=Any <|
+                table.order_by 0
+
+            Test.expect_panic_with matcher=Any <|
+                table.order_by ["alpha", 1]
+
+        Test.specify "should work correctly with shorthands" pending="The last test case does not work currently. We want to get rid of Sort_Column_Selector and use a vector directly. TODO" <|
+            t1 = table.order_by "alpha"
+            t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+            t2 = table.order_by (Sort_Column.Index 0)
+            t2.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
+            t2.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+            t3 = table.order_by [Sort_Column.Index 1, Sort_Column.Name "gamma" Sort_Direction.Descending]
+            t3.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
+            t3.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+            t3.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
 
         Test.specify "should correctly handle problems: unmatched names" <|
             weird_name = '.*?-!@#!"'
             selector = Sort_Column_Selector.By_Name [Sort_Column.Name "alpha", "hmm", Sort_Column.Name weird_name]
-            action = table.order_by selector on_problems=_
-            tester table =
-                table.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
-                table.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
-            problems = [Missing_Input_Columns.Error [Sort_Column.Name "hmm", Sort_Column.Name weird_name]]
-            Problems.test_problem_handling action problems tester
-
-        Test.specify "should correctly handle problems: unmatched columns" <|
-            table_2 = table_builder [["alpha", [0,0,0]], ["weird_column", [0,0,0]]]
-            foo = table_2.at "alpha"
-            weird_column = table_2.at "weird_column"
-            bar = table.at "beta"
-
-            selector = Sort_Column_Selector.By_Column [bar, weird_column, Sort_Column.Column foo]
-            problem = table.order_by selector on_problems=Problem_Behavior.Report_Error . catch
-            problem.should_be_a Missing_Input_Columns.Error
-            problem.criteria.map (selector-> selector.column.name) . should_equal ["weird_column"]
-
-            t2 = table.order_by selector on_problems=Problem_Behavior.Ignore
-            t2.at "beta" . to_vector . should_equal ["a", "a", "b", "b"]
-            t2.at "alpha" . to_vector . should_equal [1, 3, 0, 2]
-            t2.at "gamma" . to_vector . should_equal [3, 1, 4, 2]
+            t1 = table.order_by selector
+            t1.should_fail_with Missing_Input_Columns
+            t1.catch . should_equal <|
+                Missing_Input_Columns.Error [Sort_Column.Name "hmm", Sort_Column.Name weird_name]
 
         Test.specify "should report a problem if no columns are selected for ordering" <|
-            action = table.order_by (Sort_Column_Selector.By_Name []) on_problems=_
-            tester t2 =
-                t2.at "alpha" . to_vector . should_equal (table.at "alpha" . to_vector)
-            problems = [No_Input_Columns_Selected]
-            Problems.test_problem_handling action problems tester
+            t2 = table.order_by (Sort_Column_Selector.By_Name [])
+            t2.should_fail_with No_Input_Columns_Selected
 
         Test.specify "should stack consecutive ordering operations" <|
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"])
@@ -267,3 +261,8 @@ spec setup =
             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "alpha"]) text_ordering=ordering
             t1.at "alpha" . to_vector . should_equal [0, 1, 2, 3]
             t1.at "gamma" . to_vector . should_equal [4, 3, 2, 1]
+
+        if setup.is_database.not then
+            Test.specify "should raise Incomparable_Values if ordering by incomparable values" <|
+                t = table_builder [["X", [My_Type.Foo 42, My_Type.Foo "a"]]]
+                t.order_by "X" . should_fail_with Incomparable_Values
