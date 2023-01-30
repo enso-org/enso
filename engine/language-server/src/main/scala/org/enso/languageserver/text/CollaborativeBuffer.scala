@@ -267,9 +267,10 @@ class CollaborativeBuffer(
       // Notify *all* clients about the new buffer
       // This also ensures that the client that requested the restore operation
       // also gets a notification.
+      val edits = List(TextEdit(oldBuffer.fullRange, file.content))
       val change = FileEdit(
         path,
-        List(TextEdit(oldBuffer.fullRange, file.content)),
+        edits,
         oldBuffer.version.toHexString,
         buffer.version.toHexString
       )
@@ -277,7 +278,7 @@ class CollaborativeBuffer(
         Api.SetModuleSourcesNotification(file.path, file.content)
       )
       runtimeConnector ! Api.Request(
-        Api.EditFileNotification(file.path, Seq(), execute = true)
+        Api.EditFileNotification(file.path, edits, execute = true)
       )
       clients.values.foreach { _.rpcController ! TextDidChange(List(change)) }
       unstashAll()
