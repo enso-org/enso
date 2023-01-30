@@ -18,7 +18,7 @@ import project.Internal.IR.Query.Query
 
 from project.Data.Table import Table, freshen_columns
 
-from project.Errors import Unsupported_Database_Operation, Integrity_Error
+from project.Errors import Unsupported_Database_Operation, Integrity_Error, Unsupported_Name
 
 type Column
 
@@ -614,10 +614,9 @@ type Column
 
        Arguments:
        - new_name: The name to rename `self` column to.
-    rename : Text -> Column
-    rename self new_name = case Helpers.ensure_name_is_sane new_name of
-        True ->
-            Column.Value new_name self.connection self.sql_type self.expression self.context
+    rename : Text -> Column ! Unsupported_Name
+    rename self new_name = Helpers.ensure_name_is_sane new_name <|
+        Column.Value new_name self.connection self.sql_type self.expression self.context
 
     ## UNSTABLE
 
