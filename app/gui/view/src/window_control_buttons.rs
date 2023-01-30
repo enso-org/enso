@@ -134,7 +134,6 @@ impl LayoutParams<frp::Sampler<f32>> {
 #[derive(Clone, CloneRef, Debug)]
 pub struct Model {
     app:            Application,
-    logger:         Logger,
     display_object: display::object::Instance,
     shape:          shape::View,
     close:          close::View,
@@ -145,7 +144,6 @@ impl Model {
     /// Constructor.
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let logger = Logger::new("TopButtons");
         let display_object = display::object::Instance::new();
 
         ensogl::shapes_order_dependencies! {
@@ -163,7 +161,7 @@ impl Model {
         let shape = shape::View::new();
         display_object.add_child(&shape);
 
-        Self { app, logger, display_object, shape, close, fullscreen }
+        Self { app, display_object, shape, close, fullscreen }
     }
 
     /// Updates positions of the buttons and sizes of the mouse area.

@@ -189,8 +189,6 @@ pub use stream::Stream;
 
 /// Set of often used types and functions.
 pub mod prelude {
-    pub use enso_logger::WarningLogger as Logger;
-    pub use enso_logger::*;
     pub use enso_prelude::*;
     pub use enso_profiler as profiler;
     pub use enso_profiler::prelude::*;

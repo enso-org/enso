@@ -115,7 +115,6 @@ type CodeCopyClosure = Closure<dyn FnMut(MouseEvent)>;
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Model {
-    logger:             Logger,
     outer_dom:          DomSymbol,
     caption_dom:        DomSymbol,
     inner_dom:          DomSymbol,
@@ -130,7 +129,6 @@ pub struct Model {
 impl Model {
     /// Constructor.
     fn new(scene: &Scene) -> Self {
-        let logger = Logger::new("DocumentationView");
         let display_object = display::object::Instance::new();
         let outer_div = web::document.create_div_or_panic();
         let outer_dom = DomSymbol::new(&outer_div);
@@ -167,16 +165,8 @@ impl Model {
         scene.dom.layers.node_searcher.manage(&caption_dom);
 
         let code_copy_closures = default();
-        Model {
-            logger,
-            outer_dom,
-            inner_dom,
-            caption_dom,
-            overlay,
-            display_object,
-            code_copy_closures,
-        }
-        .init()
+        Model { outer_dom, inner_dom, caption_dom, overlay, display_object, code_copy_closures }
+            .init()
     }
 
     fn init(self) -> Self {
@@ -277,10 +267,10 @@ ensogl::define_endpoints! {
 /// however we're unable to summarize methods and atoms of types.
 ///
 /// The default format is the docstring.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct View {
-    #[shrinkwrap(main_field)]
+    #[deref]
     pub model:             Model,
     pub visualization_frp: visualization::instance::Frp,
     pub frp:               Frp,

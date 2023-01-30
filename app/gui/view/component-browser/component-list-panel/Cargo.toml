@@ -22,7 +22,7 @@ ensogl-tooltip = { path = "../../../../../lib/rust/ensogl/component/tooltip/" }
 ide-view-component-list-panel-breadcrumbs = { path = "breadcrumbs" }
 ide-view-component-list-panel-grid = { path = "grid" }
 ide-view-component-list-panel-icons = { path = "icons" }
-ordered-float = "3.0.0"
+ordered-float = { workspace = true }
 
 [dev-dependencies]
 approx = "0.5.1"

@@ -50,8 +50,7 @@ impl Version {
 // =================================================================================================
 
 /// A GLSL code representation.
-#[derive(Clone, Debug, Shrinkwrap)]
-#[shrinkwrap(mutable)]
+#[derive(Clone, Debug, Deref, DerefMut)]
 pub struct Glsl {
     /// Raw, textual code representation.
     pub str: String,
@@ -90,7 +89,7 @@ impls! {[T1,T2] From<&(T1,T2)> for Glsl
     where [ T1:RefInto<Glsl>, T2:RefInto<Glsl> ] { |t| {
     let v1 = t.0.glsl();
     let v2 = t.1.glsl();
-    iformat!("vec2({v1},{v2})").into()
+    format!("vec2({v1},{v2})").into()
 }}}
 
 impls! {[T1,T2,T3] From<&(T1,T2,T3)> for Glsl
@@ -98,7 +97,7 @@ where [ T1:RefInto<Glsl>, T2:RefInto<Glsl>, T3:RefInto<Glsl> ] { |t| {
     let v1 = t.0.glsl();
     let v2 = t.1.glsl();
     let v3 = t.2.glsl();
-    iformat!("vec3({v1},{v2},{v3})").into()
+    format!("vec3({v1},{v2},{v3})").into()
 }}}
 
 impls! {[T1,T2,T3,T4] From<&(T1,T2,T3,T4)> for Glsl
@@ -107,14 +106,14 @@ where [ T1:RefInto<Glsl>, T2:RefInto<Glsl>, T3:RefInto<Glsl>, T4:RefInto<Glsl> ]
     let v2 = t.1.glsl();
     let v3 = t.2.glsl();
     let v4 = t.3.glsl();
-    iformat!("vec4({v1},{v2},{v3},{v4})").into()
+    format!("vec4({v1},{v2},{v3},{v4})").into()
 }}}
 
 impls! {[T1,T2] From <(T1,T2)> for Glsl
     where [ T1:Into<Glsl>, T2:Into<Glsl> ] { |t| {
     let v1 = t.0.into();
     let v2 = t.1.into();
-    iformat!("vec2({v1},{v2})").into()
+    format!("vec2({v1},{v2})").into()
 }}}
 
 impls! {[T1,T2,T3] From <(T1,T2,T3)> for Glsl
@@ -122,7 +121,7 @@ where [ T1:Into<Glsl>, T2:Into<Glsl>, T3:Into<Glsl> ] { |t| {
     let v1 = t.0.into();
     let v2 = t.1.into();
     let v3 = t.2.into();
-    iformat!("vec3({v1},{v2},{v3})").into()
+    format!("vec3({v1},{v2},{v3})").into()
 }}}
 
 impls! {[T1,T2,T3,T4] From <(T1,T2,T3,T4)> for Glsl
@@ -131,7 +130,7 @@ where [ T1:Into<Glsl>, T2:Into<Glsl>, T3:Into<Glsl>, T4:Into<Glsl> ] { |t| {
     let v2 = t.1.into();
     let v3 = t.2.into();
     let v4 = t.3.into();
-    iformat!("vec4({v1},{v2},{v3},{v4})").into()
+    format!("vec4({v1},{v2},{v3},{v4})").into()
 }}}
 
 
@@ -142,8 +141,8 @@ impls! { From + &From <i32>  for Glsl { |t| t.to_string().into() } }
 impls! { From + &From <u32>  for Glsl { |t| t.to_string().into() } }
 impls! { From + &From <f32>  for Glsl { |t| {
     let is_int = t.fract() == 0.0;
-    if is_int { iformat!("{t}.0").into() }
-    else      { iformat!("{t}").into() }
+    if is_int { format!("{t}.0").into() }
+    else      { format!("{t}").into() }
 }}}
 
 impls! { [T,R,C] From + &From <OMatrix<T,R,C>> for Glsl
@@ -164,19 +163,19 @@ impls! { [T,R,C] From + &From <OMatrix<T,R,C>> for Glsl
 // === From Colors to Glsl ===
 
 impls! { From + &From <color::Rgb> for Glsl {
-    |t| iformat!("srgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
+    |t| format!("srgb({},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl()).into()
 } }
 
 impls! { From + &From <color::Rgba> for Glsl {
-    |t| iformat!("srgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
+    |t| format!("srgba({},{},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl(), t.alpha.glsl()).into()
 } }
 
 impls! { From + &From <color::LinearRgb> for Glsl {
-    |t| iformat!("rgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
+    |t| format!("rgb({},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl()).into()
 } }
 
 impls! { From + &From <color::LinearRgba> for Glsl {
-    |t| iformat!("rgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
+    |t| format!("rgba({},{},{},{})", t.red.glsl(), t.green.glsl(), t.blue.glsl(), t.alpha.glsl()).into()
 } }
 
 
@@ -221,23 +220,23 @@ pub struct NotGlslError;
 
 /// Converts a number to a `Radians` struct.
 pub(crate) fn f32_to_rad(glsl: &Glsl) -> Glsl {
-    iformat!("Radians({glsl})").into()
+    format!("Radians({glsl})").into()
 }
 
 /// Extracts a number from a `Radians` struct.
 pub(crate) fn rad_to_f32(glsl: &Glsl) -> Glsl {
-    iformat!("value({glsl})").into()
+    format!("value({glsl})").into()
 }
 
 /// Converts a number to a `Degree` struct.
 pub(crate) fn f32_to_deg(glsl: &Glsl) -> Glsl {
     // We just use the radians representation of the degrees.
-    iformat!("Degrees({glsl})").into()
+    format!("Degrees({glsl})").into()
 }
 
 /// Extracts a number from a `Degree` struct. The number will be in radians.
 pub(crate) fn deg_to_f32(glsl: &Glsl) -> Glsl {
-    iformat!("radians({glsl})").into()
+    format!("radians({glsl})").into()
 }
 
 
@@ -247,7 +246,7 @@ pub(crate) fn deg_to_f32(glsl: &Glsl) -> Glsl {
 // =================================================================================================
 
 /// Any GLSL expression, like function call, or math operations.
-#[derive(Shrinkwrap, Clone, Debug)]
+#[derive(Clone, Debug, Deref)]
 pub struct Expr(Box<ExprUnboxed>);
 
 impl Expr {

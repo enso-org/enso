@@ -419,7 +419,7 @@ pub(crate) mod tests {
             .iter()
             .map(|c| c.match_info.borrow().clone())
             .collect_vec();
-        DEBUG!("{match_infos:?}");
+        debug!("{match_infos:?}");
         assert_ids_of_matches_entries(&list.top_modules().next().unwrap()[0], &[2, 4]);
         assert_ids_of_matches_entries(&list.favorites[0], &[4, 2]);
         assert_ids_of_matches_entries(&list.local_scope, &[2]);

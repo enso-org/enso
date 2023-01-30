@@ -669,7 +669,7 @@ define_flag! {
 pub trait SetItem = Eq + Hash + Debug;
 
 /// Internal representation of the [`Set`] flag.
-#[derive(Derivative, Shrinkwrap)]
+#[derive(Derivative, Deref)]
 #[derivative(Debug(bound = "Item:SetItem"))]
 #[derivative(Default(bound = "Item:SetItem"))]
 #[allow(missing_docs)]
@@ -739,7 +739,7 @@ define_flag! {
 pub trait VectorItem = Debug + PartialEq;
 
 /// Internal representation of the [`Vector`] flag.
-#[derive(Derivative, Debug, Shrinkwrap)]
+#[derive(Derivative, Debug, Deref)]
 #[derivative(Default(bound = ""))]
 #[allow(missing_docs)]
 pub struct VectorData<Item> {

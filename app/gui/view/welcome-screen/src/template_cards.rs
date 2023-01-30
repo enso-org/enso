@@ -79,14 +79,13 @@ impl Deref for Card {
 
 #[derive(Debug, Clone, CloneRef)]
 pub struct Model {
-    logger:       Logger,
     pub root_dom: Element,
     cards:        Rc<Vec<Card>>,
 }
 
 impl Model {
     /// Constructor.
-    pub fn new(logger: Logger, open_template: &frp::Any<String>) -> Self {
+    pub fn new(open_template: &frp::Any<String>) -> Self {
         let root_dom = web::document.create_element_or_panic("main");
         root_dom.set_class_name(crate::css_class::CONTENT);
         let templates = web::document.create_div_or_panic();
@@ -98,7 +97,7 @@ impl Model {
         templates.append_or_warn(&cards_dom);
         root_dom.append_or_warn(&templates);
 
-        let model = Self { logger, root_dom, cards: Rc::new(cards) };
+        let model = Self { root_dom, cards: Rc::new(cards) };
         model.setup_event_listeners(open_template);
         model
     }
@@ -203,10 +202,9 @@ impl Deref for TemplateCards {
 }
 
 impl TemplateCards {
-    pub fn new(logger: &Logger) -> Self {
-        let logger = Logger::new_sub(logger, "TemplateCards");
+    pub fn new() -> Self {
         let frp = Frp::new();
-        let model = Model::new(logger, &frp.output.source.open_template);
+        let model = Model::new(&frp.output.source.open_template);
         Self { model, frp }
     }
 }

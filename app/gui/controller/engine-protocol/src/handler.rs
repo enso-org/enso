@@ -1,12 +1,10 @@
 //! Module with the Enso Procol RPC handler.
 
 use crate::prelude::*;
-use enso_logger::*;
 
 use crate::common::event::Event;
 use crate::common::ongoing_calls::OngoingCalls;
 
-use enso_logger::WarningLogger as Logger;
 use futures::channel::mpsc::UnboundedSender;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
@@ -73,7 +71,6 @@ where
     Reply: Debug, {
     #[derivative(Debug = "ignore")]
     transport:     Box<dyn Transport>,
-    logger:        Logger,
     sender:        Option<UnboundedSender<Event<Notification>>>,
     ongoing_calls: OngoingCalls<Id, Reply>,
     #[derivative(Debug = "ignore")]
@@ -86,18 +83,12 @@ where
     Notification: Debug,
     Reply: Debug,
 {
-    fn new<T, P>(
-        transport: T,
-        logger: &Logger,
-        processor: P,
-    ) -> HandlerData<Id, Reply, Notification>
+    fn new<T, P>(transport: T, processor: P) -> HandlerData<Id, Reply, Notification>
     where
         T: Transport + 'static,
-        P: FnMut(TransportEvent) -> Disposition<Id, Reply, Notification> + 'static,
-    {
+        P: FnMut(TransportEvent) -> Disposition<Id, Reply, Notification> + 'static, {
         HandlerData {
             transport:     Box::new(transport),
-            logger:        logger.clone_ref(),
             sender:        None,
             ongoing_calls: OngoingCalls::new(),
             processor:     Box::new(processor),
@@ -218,8 +209,7 @@ where
     Id: Eq + Hash + Debug,
     Notification: Debug,
     Reply: Debug, {
-    logger: Logger,
-    state:  Rc<RefCell<HandlerData<Id, Reply, Notification>>>,
+    state: Rc<RefCell<HandlerData<Id, Reply, Notification>>>,
 }
 
 /// A value that can be used to represent a request to remote RPC server.
@@ -243,13 +233,12 @@ where
     /// Creates a new handler operating over given transport.
     ///
     /// `processor` must deal with decoding incoming transport events.
-    pub fn new<T, P>(transport: T, logger: Logger, processor: P) -> Self
+    pub fn new<T, P>(transport: T, processor: P) -> Self
     where
         T: Transport + 'static,
         P: FnMut(TransportEvent) -> Disposition<Id, Reply, Notification> + 'static, {
-        let state = Rc::new(RefCell::new(HandlerData::new(transport, &logger, processor)));
-        let logger = Logger::new_sub(&logger, "handler");
-        Handler { logger, state }
+        let state = Rc::new(RefCell::new(HandlerData::new(transport, processor)));
+        Handler { state }
     }
 
     /// Starts a new request described by a given message.
@@ -297,10 +286,9 @@ mod tests {
 
     #[test]
     fn test_closed_socked_event_passing() {
-        let logger = Logger::new("RPC_Handler_Test");
         let mut transport = MockTransport::new();
         let processor = |msg| panic!("Must never be called in this test, but got {:?}!", msg);
-        let handler = Handler::<i32, (), ()>::new(transport.clone_ref(), logger, processor);
+        let handler = Handler::<i32, (), ()>::new(transport.clone_ref(), processor);
         let mut runner = handler.runner().boxed_local();
         let mut events = handler.event_stream().boxed_local();
         events.expect_pending();

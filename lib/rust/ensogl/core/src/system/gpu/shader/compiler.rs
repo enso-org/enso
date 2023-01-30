@@ -214,7 +214,6 @@ struct CompilerData {
     jobs:        Jobs,
     cache:       ShaderCache,
     performance: web::Performance,
-    logger:      Logger,
 }
 
 impl Compiler {
@@ -256,8 +255,7 @@ impl CompilerData {
         let jobs = default();
         let cache = default();
         let performance = web::window.performance_or_panic();
-        let logger = Logger::new("Shader Compiler");
-        Self { dirty, context, jobs, cache, performance, logger }
+        Self { dirty, context, jobs, cache, performance }
     }
 
     fn submit<F: 'static + FnOnce(shader::Program)>(
@@ -393,8 +391,8 @@ impl CompilerData {
                 Some(val) => val,
                 None => {
                     if !self.context.is_context_lost() {
-                        REPORTABLE_WARNING!(
-                            "context.getProgramParameter returned non bool value for KHR Parallel \
+                        reportable_warn!(
+                            "context.getProgramParameter returned non-bool value for KHR Parallel \
                             Shader Compile status check. This should never happen, however, it \
                             should not cause visual artifacts. Reverting to non-parallel mode."
                         );

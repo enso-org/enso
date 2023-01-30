@@ -105,7 +105,7 @@ impl PointerTargetRegistry {
         match self.get(target) {
             Some(target) => Some(f(&target)),
             None => {
-                WARNING!("Internal error. Symbol ID {target:?} is not registered.");
+                warn!("Internal error. Symbol ID {target:?} is not registered.");
                 None
             }
         }

@@ -165,7 +165,6 @@ struct Model {
     pub on_error:   Slot<event::Error>,
 
     // === Internal ===
-    pub logger:            Logger,
     pub socket:            web_sys::WebSocket,
     /// Special callback on "close" event. As it must be invoked after `on_close`, care should be
     /// taken to keep it registered as an event listener *after* `on_close` registration.
@@ -177,7 +176,7 @@ struct Model {
 
 impl Model {
     /// Wraps given WebSocket object.
-    pub fn new(socket: web_sys::WebSocket, logger: Logger) -> Model {
+    pub fn new(socket: web_sys::WebSocket) -> Model {
         socket.set_binary_type(BinaryType::Arraybuffer);
         Model {
             on_close: Slot::new(&socket),
@@ -186,7 +185,6 @@ impl Model {
             on_error: Slot::new(&socket),
             on_close_internal: Slot::new(&socket),
             auto_reconnect: true,
-            logger,
             socket,
         }
     }
@@ -215,7 +213,6 @@ impl Model {
             on_close_internal,
             // Explicitly ignored non-slot fields.
             auto_reconnect: _,
-            logger: _,
             socket: _,
         } = self;
         // We don't care if removing actually removed anything.
@@ -269,26 +266,21 @@ impl Drop for Model {
 #[derive(Clone, CloneRef, Debug)]
 pub struct WebSocket {
     #[allow(missing_docs)]
-    pub logger: Logger,
-    model:      Rc<RefCell<Model>>,
+    model: Rc<RefCell<Model>>,
 }
 
 impl WebSocket {
     /// Wrap given raw JS WebSocket object.
-    pub fn new(ws: web_sys::WebSocket, parent: impl AnyLogger) -> WebSocket {
-        let logger = Logger::new_sub(parent, ws.url());
-        let model = Rc::new(RefCell::new(Model::new(ws, logger.clone())));
-        WebSocket { logger, model }
+    pub fn new(ws: web_sys::WebSocket) -> WebSocket {
+        let model = Rc::new(RefCell::new(Model::new(ws)));
+        WebSocket { model }
     }
 
     /// Establish connection with endpoint defined by the given URL and wrap it.
     /// Asynchronous, because it waits until connection is established.
-    pub async fn new_opened(
-        parent: impl AnyLogger,
-        url: &str,
-    ) -> Result<WebSocket, ConnectingError> {
+    pub async fn new_opened(url: &str) -> Result<WebSocket, ConnectingError> {
         let ws = web_sys::WebSocket::new(url).map_err(ConnectingError::construction_error)?;
-        let mut wst = WebSocket::new(ws, &parent);
+        let mut wst = WebSocket::new(ws);
         wst.wait_until_open().await?;
         Ok(wst)
     }
@@ -461,11 +453,10 @@ mod tests {
     #[allow(dead_code)]
     async fn websocket_tests() {
         executor::web::test::setup_and_forget();
-        let logger = DefaultTraceLogger::new("Test");
         info!("Started");
 
         // Create WebSocket
-        let ws = WebSocket::new_opened(&logger, "ws://localhost:30445").await;
+        let ws = WebSocket::new_opened("ws://localhost:30445").await;
         let mut ws = ws.expect("Couldn't connect to WebSocket server.");
         info!("WebSocket opened: {ws:?}");
 

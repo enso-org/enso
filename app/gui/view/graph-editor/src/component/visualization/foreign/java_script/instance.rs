@@ -88,7 +88,6 @@ type PreprocessorCallbackCell = Rc<RefCell<Option<Box<dyn PreprocessorCallback>>
 #[allow(missing_docs)]
 pub struct InstanceModel {
     pub root_node:       DomSymbol,
-    pub logger:          Logger,
     on_data_received:    Rc<Option<web::Function>>,
     set_size:            Rc<Option<web::Function>>,
     #[derivative(Debug = "ignore")]
@@ -167,7 +166,6 @@ impl InstanceModel {
 
     /// Tries to create a InstanceModel from the given visualisation class.
     pub fn from_class(class: &JsValue, scene: &Scene) -> result::Result<Self, Error> {
-        let logger = Logger::new("Instance");
         let root_node = Self::create_root(scene)?;
         let (preprocessor_change, closure) = Self::preprocessor_change_callback();
         let styles = StyleWatch::new(&scene.style_sheet);
@@ -181,7 +179,6 @@ impl InstanceModel {
         let scene = scene.clone_ref();
         Ok(InstanceModel {
             root_node,
-            logger,
             on_data_received,
             set_size,
             object,
@@ -242,7 +239,7 @@ impl InstanceModel {
     ) -> result::Result<(), JsValue> {
         if let Some(method) = method {
             if let Err(error) = method.call1(&self.object, arg) {
-                warning!(self.logger, "Failed to call method {method:?} with error: {error:?}");
+                warn!("Failed to call method {method:?} with error: {error:?}");
                 return Err(error);
             }
         }
@@ -261,10 +258,10 @@ impl InstanceModel {
 // ================
 
 /// Sample visualization that renders the given data as text. Useful for debugging and testing.
-#[derive(Clone, CloneRef, Debug, Shrinkwrap)]
+#[derive(Clone, CloneRef, Debug, Deref)]
 #[allow(missing_docs)]
 pub struct Instance {
-    #[shrinkwrap(main_field)]
+    #[deref]
     model:   InstanceModel,
     frp:     visualization::instance::Frp,
     network: frp::Network,

@@ -33,10 +33,10 @@ impl Config {
     /// Pretty printed triple with repository owner, repository name and runner name.
     pub fn qualified_name(&self) -> String {
         let location_prefix = match &self.location {
-            RunnerLocation::Organization(org) => iformat!("{org.name}"),
-            RunnerLocation::Repository(repo) => iformat!("{repo.owner}-{repo.name}"),
+            RunnerLocation::Organization(org) => org.name.to_string(),
+            RunnerLocation::Repository(repo) => format!("{}-{}", repo.owner, repo.name),
         };
-        iformat!("{location_prefix}-{self.runner.name}-{self.server_name}-{self.index}")
+        format!("{location_prefix}-{}-{}-{}", self.runner.name, self.server_name, self.index)
     }
 
     /// The custom labels that the runner will be registered with.

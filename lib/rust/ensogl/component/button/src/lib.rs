@@ -204,7 +204,6 @@ pub mod shape {
 #[allow(missing_docs)]
 pub struct Model<S: Shape> {
     app:            Application,
-    logger:         Logger,
     display_object: display::object::Instance,
     shape:          ShapeView<S>,
 }
@@ -213,11 +212,10 @@ impl<Shape: ButtonShape> Model<Shape> {
     /// Construct a button's model.
     pub fn new(app: &Application) -> Self {
         let app = app.clone_ref();
-        let logger = Logger::new(Shape::debug_name());
         let display_object = display::object::Instance::new();
         let shape = ShapeView::new();
         display_object.add_child(&shape);
-        Self { app, logger, display_object, shape }
+        Self { app, display_object, shape }
     }
 
     /// Set the background (i.e. the circle) color.

@@ -24,7 +24,6 @@ use model::project::VcsStatus;
 #[allow(unused)]
 #[derive(Debug)]
 struct Model {
-    logger:           Logger,
     controller:       controller::Project,
     module_model:     model::Module,
     graph_controller: controller::ExecutedGraph,
@@ -45,7 +44,6 @@ impl Model {
         view: view::project::View,
         status_bar: view::status_bar::View,
     ) -> Self {
-        let logger = Logger::new("presenter::Project");
         let graph_controller = init_result.main_graph;
         let text_controller = init_result.main_module_text;
         let module_model = init_result.main_module_model;
@@ -57,7 +55,6 @@ impl Model {
         let code = presenter::Code::new(text_controller, &view);
         let searcher = default();
         Model {
-            logger,
             controller,
             module_model,
             graph_controller,
@@ -72,7 +69,6 @@ impl Model {
 
     fn setup_searcher_presenter(&self, params: SearcherParams) {
         let new_presenter = presenter::Searcher::setup_controller(
-            &self.logger,
             self.ide_controller.clone_ref(),
             self.controller.clone_ref(),
             self.graph_controller.clone_ref(),

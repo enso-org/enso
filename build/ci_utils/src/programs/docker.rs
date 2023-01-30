@@ -3,7 +3,6 @@ use crate::prelude::*;
 use crate::env::accessor::TypedVariable;
 use crate::extensions::child::ChildExt;
 
-use shrinkwraprs::Shrinkwrap;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 use std::process::Stdio;
@@ -520,7 +519,7 @@ impl RunOptions {
 #[derive(Clone, Display, Debug)]
 pub struct ImageId(pub String);
 
-#[derive(Clone, Debug, Display, Shrinkwrap)]
+#[derive(Clone, Debug, Display, Deref, AsRef)]
 pub struct ContainerId(pub String);
 
 impl FromStr for ContainerId {

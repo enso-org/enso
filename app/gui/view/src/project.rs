@@ -239,7 +239,6 @@ impl display::Object for SearcherVariant {
 #[derive(Clone, CloneRef, Debug)]
 struct Model {
     app:                    Application,
-    logger:                 Logger,
     display_object:         display::object::Instance,
     /// These buttons are present only in a cloud environment.
     window_control_buttons: Immutable<Option<crate::window_control_buttons::View>>,
@@ -253,7 +252,6 @@ struct Model {
 
 impl Model {
     fn new(app: &Application) -> Self {
-        let logger = Logger::new("project::View");
         let scene = &app.display.default_scene;
         let display_object = display::object::Instance::new();
         let searcher = SearcherVariant::new(app);
@@ -280,7 +278,6 @@ impl Model {
         let graph_editor = Rc::new(graph_editor);
         Self {
             app,
-            logger,
             display_object,
             window_control_buttons,
             graph_editor,
