@@ -23,6 +23,8 @@
   build/:
     prettier/:
   built-distribution/:
+    # Note that the <graal_triple> is our triple with the architecture that Graal Native Image
+    # generates. This may different from the one we use for the rest of the build.
     enso-engine-<graal_triple>/:
       ? path: enso-<version>/
         type: engine_package

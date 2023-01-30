@@ -44,7 +44,14 @@ pub const LIBRARIES_TO_TEST: [&str; 6] = [
     "Visualization_Tests",
 ];
 
-pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> generated::RepoRoot {
+pub fn new_repo_root(
+    repo_root: impl Into<PathBuf>,
+    mut triple: TargetTriple,
+) -> generated::RepoRoot {
+    // On M1 macOS Graal generates x64 binaries.
+    if TARGET_OS == OS::MacOS && TARGET_ARCH == Arch::AArch64 {
+        triple.arch = Arch::X86_64;
+    }
     generated::RepoRoot::new_root(
         repo_root,
         triple.versions.edition_name(),
@@ -118,7 +125,7 @@ impl Paths {
     /// Create a new set of paths for building the Enso with a given version number.
     pub fn new_triple(repo_root: impl Into<PathBuf>, triple: TargetTriple) -> Result<Self> {
         let repo_root: PathBuf = repo_root.into().absolutize()?.into();
-        let repo_root = new_repo_root(repo_root, &triple);
+        let repo_root = new_repo_root(repo_root, triple.clone());
         Ok(Paths { repo_root, triple })
     }
 

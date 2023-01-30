@@ -133,7 +133,7 @@ impl Processor {
                 cache: Cache::new(&cli.cache_path).await?,
                 octocrab,
                 upload_artifacts: cli.upload_artifacts,
-                repo_root: enso_build::paths::new_repo_root(absolute_repo_path, &triple),
+                repo_root: enso_build::paths::new_repo_root(absolute_repo_path, triple.clone()),
             },
             triple,
             remote_repo: cli.repo_remote.clone(),
