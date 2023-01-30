@@ -232,7 +232,9 @@ pub enum ProfilingInfo {
 #[allow(missing_docs)]
 #[serde(tag = "type")]
 pub enum ExpressionUpdatePayload {
-    Value,
+    Value {
+        warnings: Option<Warnings>,
+    },
     #[serde(rename_all = "camelCase")]
     DataflowError {
         trace: Vec<ExpressionId>,
@@ -247,6 +249,13 @@ pub enum ExpressionUpdatePayload {
         message:  Option<String>,
         progress: Option<f64>,
     },
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(missing_docs)]
+pub struct Warnings {
+    pub count: usize,
+    pub value: Option<String>,
 }
 
 
@@ -1226,7 +1235,7 @@ pub mod test {
             method_pointer: None,
             profiling_info: default(),
             from_cache:     false,
-            payload:        ExpressionUpdatePayload::Value,
+            payload:        ExpressionUpdatePayload::Value { warnings: None },
         }
     }
 
@@ -1242,7 +1251,7 @@ pub mod test {
             method_pointer: Some(method_pointer),
             profiling_info: default(),
             from_cache:     false,
-            payload:        ExpressionUpdatePayload::Value,
+            payload:        ExpressionUpdatePayload::Value { warnings: None },
         }
     }
 

@@ -28,6 +28,7 @@ use serde::Serialize;
 pub enum Kind {
     Panic,
     Dataflow,
+    Warning,
 }
 
 /// Additional error information (beside the error value itself) for some erroneous node.

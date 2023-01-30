@@ -1006,6 +1006,7 @@ impl Node {
             let path = match *error.kind {
                 error::Kind::Panic => error_theme::panic,
                 error::Kind::Dataflow => error_theme::dataflow,
+                error::Kind::Warning => error_theme::warning,
             };
             style.get_color(path).into()
         } else {
