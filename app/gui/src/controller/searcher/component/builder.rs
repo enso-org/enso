@@ -605,11 +605,11 @@ mod tests {
     fn building_component_list_with_private_component() {
         let suggestion_db = enso_suggestion_database::mock_suggestion_database! {
             test.Test {
-                mod TopModule_1 {
-                    fn fun_2() -> Standard.Base.Any;
+                mod TopModule {
+                    fn fun_1() -> Standard.Base.Any;
                     #[with_doc_section(enso_suggestion_database::doc_section!(@ "PRIVATE", ""))]
+                    fn private_fun_2() -> Standard.Base.Any;
                     fn fun_3() -> Standard.Base.Any;
-                    fn fun_4() -> Standard.Base.Any;
                 }
             }
         };
@@ -618,17 +618,15 @@ mod tests {
         builder.extend_list_and_allow_favorites_with_ids(&suggestion_db, entry_ids);
         let list = builder.build();
 
-        let top_modules: Vec<ComparableGroupData> = list
-            .top_module_sections
+        let component_names: Vec<_> = list
+            .all_components
             .iter()
-            .flat_map(|section| section.modules.iter())
-            .map(Into::into)
+            .filter_map(|component| match &component.data {
+                component::Data::FromDatabase { entry, .. } => Some(&entry.name),
+                _ => None,
+            })
             .collect();
-        let expected = vec![ComparableGroupData {
-            name:         "Test.TopModule_1",
-            component_id: Some(1),
-            entries:      vec![2, 4],
-        }];
-        assert_eq!(top_modules, expected);
+        let expected = vec!["TopModule", "fun_1", "fun_3"];
+        assert_eq!(component_names, expected);
     }
 }
