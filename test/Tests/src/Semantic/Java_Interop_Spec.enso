@@ -12,6 +12,7 @@ polyglot java import java.lang.StringBuilder as Java_String_Builder
 polyglot java import java.util.ArrayList
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
+polyglot java import org.enso.base.statistics.Moments
 
 Any.test_me self x = x.is_nothing
 
@@ -42,6 +43,12 @@ spec =
         Test.specify "should invoke static methods" <|
             x = Integer.valueOf 1
             x.test_me x . should_equal False
+
+    Test.group "Numeric values" <|
+        Test.specify "can be passed in host calls without lossy coercion exception" <|
+            large_long = 6907338656278321365
+            moments = Moments.new 1
+            moments.add large_long
 
     Test.group "Java/Enso Date" <|
         Test.specify "Java date has Enso properties" <|
