@@ -13,7 +13,7 @@ polyglot java import java.util.ArrayList
 polyglot java import java.time.LocalDate
 polyglot java import java.time.LocalTime
 
-Any.test_me x = x.is_nothing
+Any.test_me self x = x.is_nothing
 
 spec =
     Test.group "Java FFI" <|
