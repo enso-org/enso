@@ -71,6 +71,9 @@ function camelToKebabCase(str: string) {
 // === Help ===
 // ============
 
+const HELP_OPTION = 'help'
+const FULL_HELP_OPTION = 'full-help'
+
 let usage = chalk.bold(
     `
 Enso ${buildCfg.version} command line interface.
@@ -85,23 +88,28 @@ Usage: enso [options] [--] [backend args]`
  * 5. Help coloring is not supported, and they do not want to support it:
  *    https://github.com/yargs/yargs/issues/251
  */
-function printHelp(config: Config, groupsOrdering: string[] = [], hideGroups: string[] = []) {
+function printHelp(cfg: {
+    config: Config
+    groupsOrdering: string[]
+    secondaryGroups: string[]
+    fullHelp: boolean
+}) {
     console.log(usage)
     const terminalWidth = yargs.terminalWidth()
     const indentSize = 2
     const optionPrefix = '-'
     const spacing = 2
     const groups: { [key: string]: any[] } = {}
-    for (const groupName of groupsOrdering) {
-        if (!hideGroups.includes(groupName)) {
+    for (const groupName of cfg.groupsOrdering) {
+        if (cfg.fullHelp || !cfg.secondaryGroups.includes(groupName)) {
             groups[groupName] = []
         }
     }
     let maxOptionLength = 0
-    for (const [key, option] of Object.entries(config)) {
+    for (const [key, option] of Object.entries(cfg.config)) {
         const group = option.group || 'Other Options'
-        if (!hideGroups.includes(group)) {
-            const cmdOption = camelToKebabCase(key)
+        if (cfg.fullHelp || !cfg.secondaryGroups.includes(group)) {
+            const cmdOption = camelToKebabCase(option.qualifiedName())
             maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
             if (!groups[group]) {
                 groups[group] = []
@@ -115,23 +123,25 @@ function printHelp(config: Config, groupsOrdering: string[] = [], hideGroups: st
     for (const [group, options] of Object.entries(groups)) {
         console.log(chalk.bold(`\n\n${group}:`))
         for (const [cmdOption, option] of options) {
-            const indent = ' '.repeat(indentSize)
-            let left = indent + chalk.bold(chalk.ansi256(191)(optionPrefix + cmdOption))
-            const spaces = ' '.repeat(leftWidth - stringLength(left))
-            left += spaces
+            if (cfg.fullHelp || option.primary) {
+                const indent = ' '.repeat(indentSize)
+                let left = indent + chalk.bold(chalk.ansi256(191)(optionPrefix + cmdOption))
+                const spaces = ' '.repeat(leftWidth - stringLength(left))
+                left += spaces
 
-            let firstSentenceSplit = option.description.indexOf('. ')
-            let firstSentence =
-                firstSentenceSplit == -1
-                    ? option.description
-                    : option.description.slice(0, firstSentenceSplit + 1)
-            let otherSentences = option.description.slice(firstSentence.length)
+                let firstSentenceSplit = option.description.indexOf('. ')
+                let firstSentence =
+                    firstSentenceSplit == -1
+                        ? option.description
+                        : option.description.slice(0, firstSentenceSplit + 1)
+                let otherSentences = option.description.slice(firstSentence.length)
 
-            const def = option.defaultDescription ?? option.default
-            let defaults = def == null ? '' : ` Defaults to ${chalk.ansi256(191)(def)}.`
-            let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
-            const right = wordWrap(description, rightWidth).join('\n' + ' '.repeat(leftWidth))
-            console.log(left + right)
+                const def = option.defaultDescription ?? option.default
+                let defaults = def == null ? '' : ` Defaults to ${chalk.ansi256(191)(def)}.`
+                let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
+                const right = wordWrap(description, rightWidth).join('\n' + ' '.repeat(leftWidth))
+                console.log(left + right)
+            }
         }
     }
 }
@@ -181,41 +191,22 @@ function wordWrap(str: string, width: number): string[] {
 // === Config ===
 // ==============
 
+class OptionGroups extends content.OptionGroups {
+    static electron = 'electron'
+    static window = 'window'
+    static server = 'server'
+    static performance = 'performance'
+}
+
 let configOptionsGroup = 'Config Options'
-let debugOptionsGroup = 'Debug Options'
-let styleOptionsGroup = 'Style Options'
-let electronOptionsGroup = 'Electron Options'
 
 // @ts-ignore
 export class Config extends content.Config {
-    // @ts-ignore
-    port: content.Param<string | null> = new content.Param({
-        group: configOptionsGroup,
-        type: 'string',
-        default: Server.DEFAULT_PORT,
-        description: `Port to use. In case the port is unavailable, next free port will be found.`,
-    })
-    // @ts-ignore
-    project: content.Param<string | null> = new content.Param({
-        group: configOptionsGroup,
-        type: 'string',
-        default: null,
-        description:
-            'Project name to open on startup. If not provided, the welcome screen will be ' +
-            'displayed.',
-    })
-    // @ts-ignore
-    server: content.Param<boolean> = new content.Param({
-        group: configOptionsGroup,
-        type: 'boolean',
-        default: true,
-        description:
-            'Run the server. If set to false, you can connect to an existing server on the ' +
-            'provided `port`.',
-    })
+    // === Window Options ===
+
     // @ts-ignore
     window: content.Param<boolean> = new content.Param({
-        group: configOptionsGroup,
+        group: OptionGroups.window,
         type: 'boolean',
         default: true,
         description:
@@ -223,93 +214,15 @@ export class Config extends content.Config {
             'client or a browser to connect to it.',
     })
     // @ts-ignore
-    backgroundThrottling: content.Param<boolean> = new content.Param({
-        group: configOptionsGroup,
-        type: 'boolean',
-        default: false,
-        description: 'Throttle animations when run in background.',
-    })
-    // @ts-ignore
-    backend: content.Param<boolean> = new content.Param({
-        group: configOptionsGroup,
-        type: 'boolean',
-        default: true,
-        description: 'Start the backend process.',
-    })
-    // @ts-ignore
-    backendPath: content.Param<string | null> = new content.Param({
-        group: configOptionsGroup,
+    windowSize: content.Param<null | string> = new content.Param({
+        group: OptionGroups.window,
         type: 'string',
-        default: null,
-        description: 'Set the path of a local project manager to use for running projects',
-    })
-    // @ts-ignore
-    verbose: content.Param<boolean> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'boolean',
-        default: false,
-        description: `Increase logs verbosity. Affects both IDE and the backend.`,
-    })
-    // @ts-ignore
-    dev: content.Param<boolean> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'boolean',
-        default: false,
-        description: 'Run the application in development mode.',
-    })
-    // @ts-ignore
-    devtron: content.Param<boolean> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'boolean',
-        default: false,
-        description: 'Install the Devtron Developer Tools extension.',
-    })
-    // @ts-ignore
-    loadProfile: content.Param<null | string[]> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'array',
-        default: null,
-        description:
-            'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
-    })
-    // @ts-ignore
-    saveProfile: content.Param<null | string> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'string',
-        default: null,
-        description: 'Record a performance profile and write to a file.',
-    })
-    // @ts-ignore
-    workflow: content.Param<null | string> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'string',
-        default: null,
-        description: 'Specify a workflow for profiling. Must be used with -entry-point=profile.',
-    })
-    // @ts-ignore
-    showElectronOptions: content.Param<boolean> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'boolean',
-        default: false,
-        description: 'Show Electron options in the help. Should be used together with `-help`.',
-    })
-    // @ts-ignore
-    info: content.Param<boolean> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'boolean',
-        default: false,
-        description: `Print the system debug info`,
-    })
-    // @ts-ignore
-    version: content.Param<boolean> = new content.Param({
-        group: debugOptionsGroup,
-        type: 'boolean',
-        default: false,
-        description: `Print the version`,
+        default: `${windowSize.width}x${windowSize.height}`,
+        description: `The initial window size.`,
     })
     // @ts-ignore
     frame: content.Param<boolean> = new content.Param({
-        group: styleOptionsGroup,
+        group: OptionGroups.window,
         type: 'boolean',
         default: true,
         defaultDescription: 'false on MacOS, true otherwise',
@@ -317,28 +230,181 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     vibrancy: content.Param<boolean> = new content.Param({
-        group: styleOptionsGroup,
+        group: OptionGroups.window,
         type: 'boolean',
         default: false,
         description: 'Use the vibrancy effect.',
     })
+
+    // === Server Options ===
+
     // @ts-ignore
-    windowSize: content.Param<null | string> = new content.Param({
-        group: styleOptionsGroup,
+    server: content.Param<boolean> = new content.Param({
+        group: OptionGroups.server,
+        type: 'boolean',
+        default: true,
+        description:
+            'Run the server. If set to false, you can connect to an existing server on the ' +
+            'provided `port`.',
+    })
+
+    // @ts-ignore
+    port: content.Param<string | null> = new content.Param({
+        group: OptionGroups.server,
         type: 'string',
-        default: `${windowSize.width}x${windowSize.height}`,
-        description: `The initial window size.`,
+        default: Server.DEFAULT_PORT,
+        description: `Port to use. In case the port is unavailable, next free port will be found.`,
+    })
+
+    // === Startup Options ===
+
+    // @ts-ignore
+    project: content.Param<string | null> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.startup,
+        type: 'string',
+        default: null,
+        description:
+            'Project name to open on startup. If not provided, the welcome screen will be ' +
+            'displayed.',
+    })
+
+    // === Performance Options ===
+
+    // @ts-ignore
+    backgroundThrottling: content.Param<boolean> = new content.Param({
+        group: OptionGroups.performance,
+        type: 'boolean',
+        default: false,
+        description: 'Throttle animations when run in background.',
     })
     // @ts-ignore
+    loadProfile: content.Param<null | string[]> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.performance,
+        type: 'array',
+        default: null,
+        description:
+            'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
+    })
+    // @ts-ignore
+    saveProfile: content.Param<null | string> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.performance,
+        type: 'string',
+        default: null,
+        description: 'Record a performance profile and write to a file.',
+    })
+    // @ts-ignore
+    workflow: content.Param<null | string> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.performance,
+        type: 'string',
+        default: null,
+        description: 'Specify a workflow for profiling. Must be used with -entry-point=profile.',
+    })
+
+    // === Engine Options ===
+
+    // @ts-ignore
+    backend: content.Param<boolean> = new content.Param({
+        group: OptionGroups.engine,
+        type: 'boolean',
+        default: true,
+        description: 'Start the backend process.',
+    })
+    // @ts-ignore
+    backendPath: content.Param<string | null> = new content.Param({
+        group: OptionGroups.engine,
+        type: 'string',
+        default: null,
+        description: 'Set the path of a local project manager to use for running projects',
+    })
+
+    // === Debug Options ===
+
+    // @ts-ignore
+    verbose: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description: `Increase logs verbosity. Affects both IDE and the backend.`,
+    })
+    // @ts-ignore
+    dev: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description: 'Run the application in development mode.',
+    })
+    // @ts-ignore
+    devtron: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description: 'Install the Devtron Developer Tools extension.',
+    })
+
+    // @ts-ignore
+    showElectronOptions: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description: 'Show Electron options in the help. Should be used together with `-help`.',
+    })
+    // @ts-ignore
+    info: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description: `Print the system debug info.`,
+    })
+    // @ts-ignore
+    version: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description: `Print the version.`,
+    })
+    // @ts-ignore
+    help: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description:
+            'Show the common configuration options help page. ' +
+            'To see all options, use `-full-help`.',
+    })
+    // @ts-ignore
+    fullHelp: content.Param<boolean> = new content.Param({
+        // @ts-ignore
+        group: OptionGroups.debug,
+        type: 'boolean',
+        default: false,
+        description: 'Show all the configuration options help page.',
+    })
+
+    // === Style Options ===
+
+    // @ts-ignore
     theme: content.Param<null | string> = new content.Param({
-        group: styleOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.style,
         type: 'string',
         default: 'light',
         description: 'Theme to use.',
     })
     // @ts-ignore
     nodeLabels: content.Param<boolean> = new content.Param({
-        group: styleOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.style,
         type: 'boolean',
         default: true,
         description: 'Show node labels.',
@@ -349,7 +415,7 @@ export class Config extends content.Config {
 
     // @ts-ignore
     electronAuthServerWhitelist: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -359,7 +425,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronAuthNegotiateDelegateWhitelist: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -369,7 +435,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronDisableNtlmV2: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -377,7 +443,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronDisableHttpCache: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -385,7 +451,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronDisableHttp2: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -393,7 +459,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronDisableRendererBackgrounding: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -403,7 +469,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronDiskCacheSize: content.Param<null | number> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'number',
         default: null,
@@ -411,7 +477,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronEnableLogging: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -421,7 +487,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronForceFieldtrials: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -431,7 +497,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronHostRules: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -441,7 +507,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronHostResolverRules: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -449,7 +515,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronIgnoreCertificateErrors: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -457,7 +523,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronIgnoreConnectionsLimit: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -465,7 +531,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronJsFlags: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -475,7 +541,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronLang: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -483,7 +549,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronLogFile: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -493,7 +559,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronLogNetLog: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -501,7 +567,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronLogLevel: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -511,7 +577,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronNoProxyServer: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -521,7 +587,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronNoSandbox: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -531,7 +597,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronProxyBypassList: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -543,7 +609,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronProxyPacUrl: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -551,7 +617,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronProxyServer: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -565,7 +631,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronRemoteDebuggingPort: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -573,7 +639,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronV: content.Param<null | number> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'number',
         default: null,
@@ -584,7 +650,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronVmodule: content.Param<null | string> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'string',
         default: null,
@@ -597,7 +663,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronForce_high_performance_gpu: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -605,7 +671,7 @@ export class Config extends content.Config {
     })
     // @ts-ignore
     electronForce_low_power_gpu: content.Param<null | boolean> = new content.Param({
-        group: electronOptionsGroup,
+        group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
         default: null,
@@ -626,41 +692,36 @@ const config = new Config()
 
 const yargOptions = Object.entries(config).reduce((opts: { [key: string]: any }, [key, param]) => {
     const yargsParam = Object.assign({}, param)
-    yargsParam.group = yargsParam.group ? chalk.blue(yargsParam.group) + ':' : undefined
     yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
-    if (yargsParam.default != null) {
-        yargsParam.description += chalk.green(` Defaults to '${yargsParam.default}'.`)
-    }
     yargsParam.default = undefined
-    opts[camelToKebabCase(key)] = yargsParam
+    const group = yargsParam.group ? yargsParam.group + '.' : ''
+    opts[group + camelToKebabCase(key)] = yargsParam
     return opts
 }, {})
 
 let optParser = yargs(argv)
     .scriptName('')
-    .help()
     .version(false)
     // Makes all flags passed after '--' be one string.
     .parserConfiguration({ 'short-option-groups': false, 'populate--': true })
     .showHidden('show-electron-options', 'Show Electron options.')
     .strict()
     .wrap(yargs.terminalWidth())
-    .group([], configOptionsGroup)
-    .group([], debugOptionsGroup)
-    .group([], styleOptionsGroup)
-    .group([], electronOptionsGroup)
     .options(yargOptions)
 
 // === Parsing ===
 
 let args = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
     if (help) {
-        printHelp(config, [], ['Electron Options'])
+        printHelp({
+            config,
+            groupsOrdering: [],
+            secondaryGroups: ['Electron Options'],
+            fullHelp: args[FULL_HELP_OPTION],
+        })
         process.exit()
     }
 })
-
-console.log(args)
 
 for (const key of Object.keys(config)) {
     if (args[key] !== undefined) {
@@ -671,8 +732,17 @@ for (const key of Object.keys(config)) {
     }
 }
 
-console.log(config)
+if (config.help.value || config.fullHelp.value) {
+    printHelp({
+        config,
+        groupsOrdering: [],
+        secondaryGroups: ['Electron Options'],
+        fullHelp: config.fullHelp.value,
+    })
+    process.exit()
+}
 
+console.log('DONE')
 throw 'break'
 
 // Note: this is a conditional default to avoid issues with some window managers affecting

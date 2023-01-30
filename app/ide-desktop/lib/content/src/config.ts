@@ -31,51 +31,56 @@ export class Version {
 // === Config ===
 // ==============
 
-const appStartupOptionsGroup = 'Application Startup Options'
-const backendOptionsGroup = 'Backend Options'
-const styleOptionsGroup = 'Style Options'
-const runtimeMetricsOptionsGroup = 'Runtime Metrics Options'
-const debugOptionsGroup = 'Debug Options'
+export class OptionGroups extends config.OptionGroups {
+    static engine = 'engine'
+    static style = 'style'
+    static runtimeMetrics = 'metrics'
+}
 
 export class Config extends config.Params {
     // === Application Startup Options ===
 
     // @ts-ignore
     project: config.Param<string | null> = new config.Param({
-        group: appStartupOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.startup,
         type: 'string',
         default: null,
         description: 'Project name to open on startup.',
     })
     // @ts-ignore
     platform: config.Param<string | null> = new config.Param({
-        group: appStartupOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.startup,
         type: 'string',
         default: null,
         description:
             'The host platform the app is running on. This is used to adjust some UI elements. ' +
             'For example, on macOS, the window close buttons are integrated to the top app panel.',
+        primary: false,
     })
     // @ts-ignore
     isInCloud: config.Param<boolean> = new config.Param({
-        group: appStartupOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.startup,
         type: 'boolean',
         default: false,
         description: 'Information if the app is running in the cloud.',
+        primary: false,
     })
 
     // === Backend Options ===
 
     // @ts-ignore
     projectManager: config.Param<string | null> = new config.Param({
-        group: backendOptionsGroup,
+        group: OptionGroups.engine,
         type: 'string',
         default: null,
         description: 'An address of the Project Manager service.',
     })
     // @ts-ignore
     languageServerRpc: config.Param<string | null> = new config.Param({
-        group: backendOptionsGroup,
+        group: OptionGroups.engine,
         type: 'string',
         default: null,
         description:
@@ -85,7 +90,7 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     languageServerData: config.Param<string | null> = new config.Param({
-        group: backendOptionsGroup,
+        group: OptionGroups.engine,
         type: 'string',
         default: null,
         description:
@@ -95,7 +100,7 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     namespace: config.Param<string | null> = new config.Param({
-        group: backendOptionsGroup,
+        group: OptionGroups.engine,
         type: 'string',
         default: null,
         description:
@@ -104,14 +109,14 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     applicationConfigUrl: config.Param<string> = new config.Param({
-        group: backendOptionsGroup,
+        group: OptionGroups.engine,
         type: 'string',
         default: 'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
         description: 'The application config URL. Used to check for available updates.',
     })
     // @ts-ignore
     skipMinVersionCheck: config.Param<boolean> = new config.Param({
-        group: backendOptionsGroup,
+        group: OptionGroups.engine,
         type: 'boolean',
         default: Version.isDev(),
         description:
@@ -120,7 +125,7 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     preferredEngineVersion: config.Param<semver.SemVer> = new config.Param({
-        group: backendOptionsGroup,
+        group: OptionGroups.engine,
         type: 'string',
         default: Version.ide,
         description: `The preferred engine version.`,
@@ -130,14 +135,14 @@ export class Config extends config.Params {
 
     // @ts-ignore
     frame: config.Param<boolean> = new config.Param({
-        group: styleOptionsGroup,
+        group: OptionGroups.style,
         type: 'boolean',
         default: false,
         description: 'Controls whether a window frame should be visible. Works in native app only.',
     })
     // @ts-ignore
     darkTheme: config.Param<boolean> = new config.Param({
-        group: styleOptionsGroup,
+        group: OptionGroups.style,
         type: 'boolean',
         default: false,
         description:
@@ -146,14 +151,14 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     nodeLabels: config.Param<boolean> = new config.Param({
-        group: styleOptionsGroup,
+        group: OptionGroups.style,
         type: 'boolean',
         default: true,
         description: `Controls whether node labels should be visible.`,
     })
     // @ts-ignore
     enableNewComponentBrowser: config.Param<boolean> = new config.Param({
-        group: styleOptionsGroup,
+        group: OptionGroups.style,
         type: 'boolean',
         default: true,
         description: 'Controls whether the new component browser should be enabled.',
@@ -163,21 +168,21 @@ export class Config extends config.Params {
 
     // @ts-ignore
     dataGathering: config.Param<boolean> = new config.Param({
-        group: runtimeMetricsOptionsGroup,
+        group: OptionGroups.runtimeMetrics,
         type: 'boolean',
         default: true,
         description: 'Controls whether anonymous data gathering should be enabled.',
     })
     // @ts-ignore
     authenticationEnabled: config.Param<boolean> = new config.Param({
-        group: runtimeMetricsOptionsGroup,
+        group: OptionGroups.runtimeMetrics,
         type: 'boolean',
         default: true,
         description: 'Controls whether user authentication is enabled.',
     })
     // @ts-ignore
     email: config.Param<string | null> = new config.Param({
-        group: runtimeMetricsOptionsGroup,
+        group: OptionGroups.runtimeMetrics,
         type: 'string',
         default: null,
         description: 'The user email, if any.',
@@ -187,7 +192,8 @@ export class Config extends config.Params {
 
     // @ts-ignore
     testWorkflow: config.Param<string | null> = new config.Param({
-        group: debugOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.debug,
         type: 'string',
         default: null,
         description:
@@ -196,7 +202,8 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     debug: config.Param<boolean> = new config.Param({
-        group: debugOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.debug,
         type: 'boolean',
         default: Version.isDev(),
         description:
@@ -207,7 +214,8 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     emitUserTimingMeasurements: config.Param<boolean> = new config.Param({
-        group: debugOptionsGroup,
+        // @ts-ignore
+        group: OptionGroups.debug,
         type: 'boolean',
         default: false,
         description:
