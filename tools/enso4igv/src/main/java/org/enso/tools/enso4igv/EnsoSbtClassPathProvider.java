@@ -95,7 +95,9 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                 if (p.get("java.home") instanceof String javaHome) {
                     var javaHomeFile = new File(javaHome);
                     var javaHomeFo = FileUtil.toFileObject(javaHomeFile);
-                    platform = ProjectPlatform.forProject(prj, javaHomeFo, javaHomeFile.getName(), "j2se");
+                    if (javaHomeFo != null) {
+                      platform = ProjectPlatform.forProject(prj, javaHomeFo, javaHomeFile.getName(), "j2se");
+                    }
                 }
 
                 for (var i = 0; ; i++) {
@@ -112,8 +114,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                     if ("-classpath".equals(prop) && next != null) {
                         var paths = next.split(File.pathSeparator);
                         for (var element : paths) {
-                            File file = new File(element);
-                            FileObject fo = FileUtil.toFileObject(file);
+                            FileObject fo = findProjectFileObject(prj, element);
                             if (fo != null) {
                                 if (fo.isFolder()) {
                                     roots.add(fo);
@@ -137,7 +138,7 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                 var srcRoots = new LinkedHashSet<>();
 
                 var inputSrc = p.getProperty("input");
-                var inputDir = inputSrc != null ? FileUtil.toFileObject(new File(inputSrc)) : null;
+                FileObject inputDir = findProjectFileObject(prj, inputSrc);
                 if (inputDir != null) {
                   if (inputDir.getNameExt().equals("org")) {
                     // lib/rust/parser doesn't follow typical project conventions
@@ -161,10 +162,10 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
                 srcRoots.addAll(generatedSources);
 
                 var outputSrc = p.getProperty("output");
-                var outputDir = outputSrc != null ? FileUtil.toFileObject(new File(outputSrc)) : null;
+                FileObject outputDir = findProjectFileObject(prj, outputSrc);
 
                 var generatedSrc = p.getProperty("generated");
-                var generatedDir = generatedSrc != null ? FileUtil.toFileObject(new File(generatedSrc)) : null;
+                FileObject generatedDir = findProjectFileObject(prj, generatedSrc);
                 if (generatedDir != null) {
                   srcRoots.add(generatedDir);
                 }
@@ -181,6 +182,17 @@ Sources, BinaryForSourceQueryImplementation2<EnsoSbtClassPathProvider.EnsoSource
             }
         }
         return sources.toArray(new EnsoSources[0]);
+    }
+
+    private static FileObject findProjectFileObject(EnsoSbtProject prj, String path) {
+        if (path == null) {
+            return null;
+        }
+        if (path.startsWith("./")) {
+            return prj.getProjectDirectory().getFileObject(path.substring(2));
+        } else {
+            return FileUtil.toFileObject(new File(path));
+        }
     }
 
     @Override
