@@ -237,6 +237,12 @@ spec =
             expected = Map.empty . insert "1" 4 . insert "2" 8
             m.transform (k -> v -> [k.to_text, v*2]) . should_equal expected
 
+        Test.specify "should disallow duplicate keys when transforming the map" <|
+            m = Map.from_vector [[1, 2], [11, 3]]
+            m2 = m.transform (k -> v -> [k % 10, v*2])
+            m2.should_fail_with Illegal_Argument
+            m2.catch.message . should_equal "`Map.transform` encountered duplicate key: 1 (Integer)"
+
         Test.specify "should allow mapping over values" <|
             m = Map.empty . insert 1 2 . insert 2 4
             expected = Map.empty . insert 1 4 . insert 2 8

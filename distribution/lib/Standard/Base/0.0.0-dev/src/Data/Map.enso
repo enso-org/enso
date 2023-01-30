@@ -1,6 +1,7 @@
 import project.Data.Numbers.Integer
 import project.Data.Vector.Vector
 import project.Data.Pair.Pair
+import project.Data.Text.Extensions
 import project.Data.Text.Text
 import project.Error.Illegal_Argument.Illegal_Argument
 import project.Error.No_Such_Key.No_Such_Key
@@ -239,6 +240,10 @@ type Map key value
        - function: The function used to transform the map, taking a key and a
          value and returning a pair of `[key, value]`.
 
+       ! Error Conditions
+         - If multiple map entries end up with duplicate keys after the
+           transformation, an `Illegal_Argument.Error` is thrown.
+
        > Example
          Turn all keys into `Text` and append "_word" to the values in the map.
 
@@ -251,7 +256,13 @@ type Map key value
     transform self function =
         func_pairs = p -> function (p.at 0) (p.at 1)
         vec_transformed = self.to_vector.map func_pairs
-        Map.from_vector vec_transformed
+        new_map = Map.from_vector vec_transformed allow_duplicates=False
+        new_map.catch Illegal_Argument error->
+            case error.message.starts_with "`Map.from_vector` encountered duplicate key" of
+                True ->
+                    new_message = error.message.replace "from_vector" "transform"
+                    Error.throw (Illegal_Argument.Error new_message error.cause)
+                False -> new_map
 
     ## Combines the values in the map.
 
