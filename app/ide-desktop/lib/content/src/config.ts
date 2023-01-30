@@ -31,21 +31,51 @@ export class Version {
 // === Config ===
 // ==============
 
+const appStartupOptionsGroup = 'Application Startup Options'
+const backendOptionsGroup = 'Backend Options'
+const styleOptionsGroup = 'Style Options'
+const runtimeMetricsOptionsGroup = 'Runtime Metrics Options'
+const debugOptionsGroup = 'Debug Options'
+
 export class Config extends config.Params {
+    // === Application Startup Options ===
+
     // @ts-ignore
     project: config.Param<string | null> = new config.Param({
+        group: appStartupOptionsGroup,
         type: 'string',
         default: null,
         description: 'Project name to open on startup.',
     })
     // @ts-ignore
+    platform: config.Param<string | null> = new config.Param({
+        group: appStartupOptionsGroup,
+        type: 'string',
+        default: null,
+        description:
+            'The host platform the app is running on. This is used to adjust some UI elements. ' +
+            'For example, on macOS, the window close buttons are integrated to the top app panel.',
+    })
+    // @ts-ignore
+    isInCloud: config.Param<boolean> = new config.Param({
+        group: appStartupOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: 'Information if the app is running in the cloud.',
+    })
+
+    // === Backend Options ===
+
+    // @ts-ignore
     projectManager: config.Param<string | null> = new config.Param({
+        group: backendOptionsGroup,
         type: 'string',
         default: null,
         description: 'An address of the Project Manager service.',
     })
     // @ts-ignore
     languageServerRpc: config.Param<string | null> = new config.Param({
+        group: backendOptionsGroup,
         type: 'string',
         default: null,
         description:
@@ -55,6 +85,7 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     languageServerData: config.Param<string | null> = new config.Param({
+        group: backendOptionsGroup,
         type: 'string',
         default: null,
         description:
@@ -64,6 +95,7 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     namespace: config.Param<string | null> = new config.Param({
+        group: backendOptionsGroup,
         type: 'string',
         default: null,
         description:
@@ -71,21 +103,41 @@ export class Config extends config.Params {
             'existing Language Server process. Defaults to "local".',
     })
     // @ts-ignore
-    platform: config.Param<string | null> = new config.Param({
+    applicationConfigUrl: config.Param<string> = new config.Param({
+        group: backendOptionsGroup,
         type: 'string',
-        default: null,
-        description:
-            'The host platform the app is running on. This is used to adjust some UI elements. ' +
-            'For example, on macOS, the window close buttons are integrated to the top app panel.',
+        default: 'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
+        description: 'The application config URL. Used to check for available updates.',
     })
     // @ts-ignore
+    skipMinVersionCheck: config.Param<boolean> = new config.Param({
+        group: backendOptionsGroup,
+        type: 'boolean',
+        default: Version.isDev(),
+        description:
+            'Controls whether the minimum engine version check should be performed. It is set to ' +
+            '`true` in local builds.',
+    })
+    // @ts-ignore
+    preferredEngineVersion: config.Param<semver.SemVer> = new config.Param({
+        group: backendOptionsGroup,
+        type: 'string',
+        default: Version.ide,
+        description: `The preferred engine version.`,
+    })
+
+    // === Style Options ===
+
+    // @ts-ignore
     frame: config.Param<boolean> = new config.Param({
+        group: styleOptionsGroup,
         type: 'boolean',
         default: false,
         description: 'Controls whether a window frame should be visible. Works in native app only.',
     })
     // @ts-ignore
     darkTheme: config.Param<boolean> = new config.Param({
+        group: styleOptionsGroup,
         type: 'boolean',
         default: false,
         description:
@@ -94,42 +146,48 @@ export class Config extends config.Params {
     })
     // @ts-ignore
     nodeLabels: config.Param<boolean> = new config.Param({
+        group: styleOptionsGroup,
         type: 'boolean',
         default: true,
         description: `Controls whether node labels should be visible.`,
     })
     // @ts-ignore
+    enableNewComponentBrowser: config.Param<boolean> = new config.Param({
+        group: styleOptionsGroup,
+        type: 'boolean',
+        default: true,
+        description: 'Controls whether the new component browser should be enabled.',
+    })
+
+    // === Runtime Metrics Options
+
+    // @ts-ignore
     dataGathering: config.Param<boolean> = new config.Param({
+        group: runtimeMetricsOptionsGroup,
         type: 'boolean',
         default: true,
         description: 'Controls whether anonymous data gathering should be enabled.',
     })
     // @ts-ignore
-    isInCloud: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: false,
-        description: 'Information if the app is running in the cloud.',
-    })
-    // @ts-ignore
     authenticationEnabled: config.Param<boolean> = new config.Param({
+        group: runtimeMetricsOptionsGroup,
         type: 'boolean',
         default: true,
         description: 'Controls whether user authentication is enabled.',
     })
     // @ts-ignore
     email: config.Param<string | null> = new config.Param({
+        group: runtimeMetricsOptionsGroup,
         type: 'string',
         default: null,
         description: 'The user email, if any.',
     })
-    // @ts-ignore
-    applicationConfigUrl: config.Param<string> = new config.Param({
-        type: 'string',
-        default: 'https://raw.githubusercontent.com/enso-org/ide/develop/config.json',
-        description: 'The application config URL. Used to check for available updates.',
-    })
+
+    // === Debug Options ===
+
     // @ts-ignore
     testWorkflow: config.Param<string | null> = new config.Param({
+        group: debugOptionsGroup,
         type: 'string',
         default: null,
         description:
@@ -137,15 +195,8 @@ export class Config extends config.Params {
             'argument chooses what is profiled.',
     })
     // @ts-ignore
-    skipMinVersionCheck: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: Version.isDev(),
-        description:
-            'Controls whether the minimum engine version check should be performed. It is set to ' +
-            '`true` in local builds.',
-    })
-    // @ts-ignore
     debug: config.Param<boolean> = new config.Param({
+        group: debugOptionsGroup,
         type: 'boolean',
         default: Version.isDev(),
         description:
@@ -155,19 +206,8 @@ export class Config extends config.Params {
             'in this mode. The debug mode is set to `true` by default in local builds.',
     })
     // @ts-ignore
-    preferredEngineVersion: config.Param<semver.SemVer> = new config.Param({
-        type: 'string',
-        default: Version.ide,
-        description: `The preferred engine version.`,
-    })
-    // @ts-ignore
-    enableNewComponentBrowser: config.Param<boolean> = new config.Param({
-        type: 'boolean',
-        default: true,
-        description: 'Controls whether the new component browser should be enabled.',
-    })
-    // @ts-ignore
     emitUserTimingMeasurements: config.Param<boolean> = new config.Param({
+        group: debugOptionsGroup,
         type: 'boolean',
         default: false,
         description:

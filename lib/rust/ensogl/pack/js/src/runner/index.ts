@@ -387,7 +387,7 @@ export class App {
     /** Check whether the time needed to run before main entry points is reasonable. Print a warning
      * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
-        if (time > this.config.params.maxBeforeMainEntryPointsTimeMs.value) {
+        if (time > this.config.params.maxBeforeMainTimeMs.value) {
             logger.error(
                 `Entry points took ${time} milliseconds to run. This is too long. ` +
                     'Before main entry points should be used for fast initialization only.'

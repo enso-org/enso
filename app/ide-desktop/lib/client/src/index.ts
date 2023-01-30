@@ -18,7 +18,168 @@ import child_process, { SpawnOptions } from 'child_process'
 import fss from 'node:fs'
 import fsp from 'node:fs/promises'
 
+import stringLength from 'string-length'
+
 const yargs = require('yargs')
+
+const execFile = util.promisify(child_process.execFile)
+
+// ================
+// === Defaults ===
+// ================
+
+let windowSize = {
+    width: 1380,
+    height: 900,
+}
+
+/** The list of hosts that the app can access. They are required for user authentication to work. */
+const trustedHosts = [
+    'enso-org.firebaseapp.com',
+    'accounts.google.com',
+    'accounts.youtube.com',
+    'github.com',
+]
+
+// =============
+// === Paths ===
+// =============
+
+const root = Electron.app.getAppPath()
+const resources = path.join(root, '..')
+const projectManagerExecutable = path.join(
+    resources,
+    project_manager_bundle,
+    // @ts-ignore
+    // Placeholder for a bundler-provided define.
+    PROJECT_MANAGER_IN_BUNDLE_PATH
+)
+
+// ==============
+// === Naming ===
+// ==============
+
+function capitalizeFirstLetter(str: string): string {
+    return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function camelToKebabCase(str: string) {
+    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
+}
+
+// ============
+// === Help ===
+// ============
+
+let usage = chalk.bold(
+    `
+Enso ${buildCfg.version} command line interface.
+Usage: enso [options] [--] [backend args]`
+)
+
+/** We use custom help printer because Yargs has many issues:
+ * 1. The option ordering is random and there is no way to enforce it.
+ * 2. The option groups ordering is random and there is no way to enforce it.
+ * 3. Every option has a `[type`] annotation and there is no API to disable it.
+ * 4. There is no option to print commands with single dash instead of double-dash.
+ * 5. Help coloring is not supported, and they do not want to support it:
+ *    https://github.com/yargs/yargs/issues/251
+ */
+function printHelp(config: Config, groupsOrdering: string[] = [], hideGroups: string[] = []) {
+    console.log(usage)
+    const terminalWidth = yargs.terminalWidth()
+    const indentSize = 2
+    const optionPrefix = '-'
+    const spacing = 2
+    const groups: { [key: string]: any[] } = {}
+    for (const groupName of groupsOrdering) {
+        if (!hideGroups.includes(groupName)) {
+            groups[groupName] = []
+        }
+    }
+    let maxOptionLength = 0
+    for (const [key, option] of Object.entries(config)) {
+        const group = option.group || 'Other Options'
+        if (!hideGroups.includes(group)) {
+            const cmdOption = camelToKebabCase(key)
+            maxOptionLength = Math.max(maxOptionLength, stringLength(cmdOption))
+            if (!groups[group]) {
+                groups[group] = []
+            }
+            groups[group].push([cmdOption, option])
+        }
+    }
+    const leftWidth = maxOptionLength + indentSize + stringLength(optionPrefix) + spacing
+    const rightWidth = terminalWidth - leftWidth
+
+    for (const [group, options] of Object.entries(groups)) {
+        console.log(chalk.bold(`\n\n${group}:`))
+        for (const [cmdOption, option] of options) {
+            const indent = ' '.repeat(indentSize)
+            let left = indent + chalk.bold(chalk.ansi256(191)(optionPrefix + cmdOption))
+            const spaces = ' '.repeat(leftWidth - stringLength(left))
+            left += spaces
+
+            let firstSentenceSplit = option.description.indexOf('. ')
+            let firstSentence =
+                firstSentenceSplit == -1
+                    ? option.description
+                    : option.description.slice(0, firstSentenceSplit + 1)
+            let otherSentences = option.description.slice(firstSentence.length)
+
+            const def = option.defaultDescription ?? option.default
+            let defaults = def == null ? '' : ` Defaults to ${chalk.ansi256(191)(def)}.`
+            let description = firstSentence + defaults + chalk.ansi256(245)(otherSentences)
+            const right = wordWrap(description, rightWidth).join('\n' + ' '.repeat(leftWidth))
+            console.log(left + right)
+        }
+    }
+}
+
+function wordWrap(str: string, width: number): string[] {
+    if (width <= 0) {
+        return []
+    }
+    let line = ''
+    const lines = []
+    const inputLines = str.split('\n')
+    for (const inputLine of inputLines) {
+        for (let word of inputLine.split(' ')) {
+            if (stringLength(word) > width) {
+                if (line.length > 0) {
+                    lines.push(line)
+                    line = ''
+                }
+                const wordChunks = []
+                while (stringLength(word) > width) {
+                    wordChunks.push(word.slice(0, width))
+                    word = word.slice(width)
+                }
+                wordChunks.push(word)
+                for (const wordChunk of wordChunks) {
+                    lines.push(wordChunk)
+                }
+            } else {
+                if (stringLength(line) + stringLength(word) >= width) {
+                    lines.push(line)
+                    line = ''
+                }
+                if (line.length != 0) {
+                    line += ' '
+                }
+                line += word
+            }
+        }
+    }
+    if (line) {
+        lines.push(line)
+    }
+    return lines
+}
+
+// ==============
+// === Config ===
+// ==============
 
 let configOptionsGroup = 'Config Options'
 let debugOptionsGroup = 'Debug Options'
@@ -31,29 +192,35 @@ export class Config extends content.Config {
     port: content.Param<string | null> = new content.Param({
         group: configOptionsGroup,
         type: 'string',
-        default: null,
-        description: `Port to use [${Server.DEFAULT_PORT}]`,
+        default: Server.DEFAULT_PORT,
+        description: `Port to use. In case the port is unavailable, next free port will be found.`,
     })
     // @ts-ignore
     project: content.Param<string | null> = new content.Param({
         group: configOptionsGroup,
         type: 'string',
         default: null,
-        description: 'Open the specified project on startup',
+        description:
+            'Project name to open on startup. If not provided, the welcome screen will be ' +
+            'displayed.',
     })
     // @ts-ignore
     server: content.Param<boolean> = new content.Param({
         group: configOptionsGroup,
         type: 'boolean',
         default: true,
-        description: 'Run the server.',
+        description:
+            'Run the server. If set to false, you can connect to an existing server on the ' +
+            'provided `port`.',
     })
     // @ts-ignore
     window: content.Param<boolean> = new content.Param({
         group: configOptionsGroup,
         type: 'boolean',
         default: true,
-        description: 'Show the window.',
+        description:
+            'Show the window. If set to false, only the server will be run. You can use another ' +
+            'client or a browser to connect to it.',
     })
     // @ts-ignore
     backgroundThrottling: content.Param<boolean> = new content.Param({
@@ -67,7 +234,7 @@ export class Config extends content.Config {
         group: configOptionsGroup,
         type: 'boolean',
         default: true,
-        description: 'Start the backend process automatically.',
+        description: 'Start the backend process.',
     })
     // @ts-ignore
     backendPath: content.Param<string | null> = new content.Param({
@@ -88,7 +255,7 @@ export class Config extends content.Config {
         group: debugOptionsGroup,
         type: 'boolean',
         default: false,
-        description: 'Run the application in development mode',
+        description: 'Run the application in development mode.',
     })
     // @ts-ignore
     devtron: content.Param<boolean> = new content.Param({
@@ -117,7 +284,7 @@ export class Config extends content.Config {
         group: debugOptionsGroup,
         type: 'string',
         default: null,
-        description: 'Specify a workflow for profiling. Must be used with --entry-point=profile.',
+        description: 'Specify a workflow for profiling. Must be used with -entry-point=profile.',
     })
     // @ts-ignore
     showElectronOptions: content.Param<boolean> = new content.Param({
@@ -127,11 +294,26 @@ export class Config extends content.Config {
         description: 'Show Electron options in the help. Should be used together with `-help`.',
     })
     // @ts-ignore
+    info: content.Param<boolean> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: `Print the system debug info`,
+    })
+    // @ts-ignore
+    version: content.Param<boolean> = new content.Param({
+        group: debugOptionsGroup,
+        type: 'boolean',
+        default: false,
+        description: `Print the version`,
+    })
+    // @ts-ignore
     frame: content.Param<boolean> = new content.Param({
         group: styleOptionsGroup,
         type: 'boolean',
         default: true,
-        description: 'Draw window frame. Defaults to `false` on MacOS and `true` otherwise.',
+        defaultDescription: 'false on MacOS, true otherwise',
+        description: 'Draw window frame.',
     })
     // @ts-ignore
     vibrancy: content.Param<boolean> = new content.Param({
@@ -144,15 +326,15 @@ export class Config extends content.Config {
     windowSize: content.Param<null | string> = new content.Param({
         group: styleOptionsGroup,
         type: 'string',
-        default: null,
-        description: `Set the window size [${windowCfg.width}x${windowCfg.height}]`,
+        default: `${windowSize.width}x${windowSize.height}`,
+        description: `The initial window size.`,
     })
     // @ts-ignore
     theme: content.Param<null | string> = new content.Param({
         group: styleOptionsGroup,
         type: 'string',
-        default: null,
-        description: 'Use the provided theme. Defaults to `light`.',
+        default: 'light',
+        description: 'Theme to use.',
     })
     // @ts-ignore
     nodeLabels: content.Param<boolean> = new content.Param({
@@ -160,24 +342,6 @@ export class Config extends content.Config {
         type: 'boolean',
         default: true,
         description: 'Show node labels.',
-    })
-    // @ts-ignore
-    info: content.Param<boolean> = new content.Param({
-        type: 'boolean',
-        default: false,
-        description: `Print the system debug info`,
-    })
-    // @ts-ignore
-    version: content.Param<boolean> = new content.Param({
-        type: 'boolean',
-        default: false,
-        description: `Print the version`,
-    })
-    // @ts-ignore
-    dataGathering: content.Param<boolean> = new content.Param({
-        type: 'boolean',
-        default: true,
-        description: 'Enable the sharing of any usage data',
     })
 
     // === Electron Options ===
@@ -281,7 +445,7 @@ export class Config extends content.Config {
         hidden: true,
         type: 'string',
         default: null,
-        description: "Like '__host-rules' but these rules only apply to the host resolver.",
+        description: "Like '--host-rules' but these rules only apply to the host resolver.",
     })
     // @ts-ignore
     electronIgnoreCertificateErrors: content.Param<null | boolean> = new content.Param({
@@ -307,7 +471,7 @@ export class Config extends content.Config {
         default: null,
         description:
             'Specifies the flags passed to the Node.js engine. For example, ' +
-            '\'-electron-js-flags="__harmony_proxies __harmony_collections"\'.',
+            '\'-electron-js-flags="--harmony_proxies --harmony_collections"\'.',
     })
     // @ts-ignore
     electronLang: content.Param<null | string> = new content.Param({
@@ -449,72 +613,18 @@ export class Config extends content.Config {
     })
 }
 
-function camelToKebabCase(str: string) {
-    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
-}
-
-// =============
-// === Paths ===
-// =============
-
-const root = Electron.app.getAppPath()
-const resources = path.join(root, '..')
-const project_manager_executable = path.join(
-    resources,
-    project_manager_bundle,
-    // @ts-ignore
-    PROJECT_MANAGER_IN_BUNDLE_PATH // Placeholder for a bundler-provided define.
-)
-
-// FIXME default options parsed wrong
-// https://github.com/yargs/yargs/issues/1590
-
-// ================
-// === Defaults ===
-// ================
-
-let windowCfg = {
-    width: 1380,
-    height: 900,
-}
-
 // =============
 // === Utils ===
 // =============
-
-function capitalizeFirstLetter(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1)
-}
-
-const execFile = util.promisify(child_process.execFile)
-
-// The list of hosts that the app can access. They are required for
-// user authentication to work.
-const trustedHosts = [
-    'enso-org.firebaseapp.com',
-    'accounts.google.com',
-    'accounts.youtube.com',
-    'github.com',
-]
 
 // =====================
 // === Option Parser ===
 // =====================
 
-let usage = `
-Enso ${buildCfg.version} command line interface.
-
-Usage: enso {{options}} {{__}} {{backend args}}...
-`
-
-let epilogue = `
-Arguments that follow the two dashes (\`__\`) will be passed to the backend process. They are used\
- if IDE spawns backend, i.e. if '-no-backend' has not been set.`
-
 let argv = hideBin(process.argv)
 const config = new Config()
 
-const yargOptions = Object.entries(config).reduce((opts, [key, param]) => {
+const yargOptions = Object.entries(config).reduce((opts: { [key: string]: any }, [key, param]) => {
     const yargsParam = Object.assign({}, param)
     yargsParam.group = yargsParam.group ? chalk.blue(yargsParam.group) + ':' : undefined
     yargsParam.requiresArg = ['string', 'array'].includes(yargsParam.type)
@@ -528,8 +638,6 @@ const yargOptions = Object.entries(config).reduce((opts, [key, param]) => {
 
 let optParser = yargs(argv)
     .scriptName('')
-    .usage(usage)
-    .epilogue(epilogue)
     .help()
     .version(false)
     // Makes all flags passed after '--' be one string.
@@ -537,28 +645,17 @@ let optParser = yargs(argv)
     .showHidden('show-electron-options', 'Show Electron options.')
     .strict()
     .wrap(yargs.terminalWidth())
+    .group([], configOptionsGroup)
+    .group([], debugOptionsGroup)
+    .group([], styleOptionsGroup)
+    .group([], electronOptionsGroup)
     .options(yargOptions)
 
 // === Parsing ===
 
-let args = optParser.parse(argv, {}, (err, args, help) => {
+let args = optParser.parse(argv, {}, (err: any, args: any, help: string) => {
     if (help) {
-        // Colorize the options.
-        help = help.replace(/(--[a-zA-Z0-9\-]+)/g, chalk.green(`$1`))
-        // Yargs puts the argument type information to help. There is no API to remove it. This
-        // code remove all type annotations (e.g. [string], [boolean]) from the help.
-        help = help.replace(/( *\r?\n)?\[\w+\]/g, '')
-        // Sometimes, however, we want to display brackets in help. This code changes double
-        // brackets to single ones.
-        help = help.replace(/\{{/g, '[[')
-        help = help.replace(/}}/g, ']]')
-        // We are using single-dash arguments by default. Yargs does not have API to display them
-        // in help. This code changes double dashes (`--`) to single ones (`-`).
-        help = help.replace(/--/g, ' -')
-        // Sometimes, however, we want to display two dashes in help. This code changes double
-        // underscore (`__`) to double dash (`--`).
-        help = help.replace(/__/g, '--')
-        console.log(help)
+        printHelp(config, [], ['Electron Options'])
         process.exit()
     }
 })
@@ -597,8 +694,8 @@ if (args.windowSize) {
     if (isNaN(width) || isNaN(height)) {
         console.error(`Incorrect window size provided '${args.windowSize}'.`)
     } else {
-        windowCfg.width = width
-        windowCfg.height = height
+        windowSize.width = width
+        windowSize.height = height
     }
 }
 
@@ -714,7 +811,7 @@ Electron.app.on('web-contents-created', (event, contents) => {
 // =======================
 
 function projectManagerPath() {
-    let binPath = args['backend-path'] ?? project_manager_executable
+    let binPath = args['backend-path'] ?? projectManagerExecutable
     let binExists = fss.existsSync(binPath)
     assert(binExists, `Could not find the project manager binary at ${binPath}.`)
     return binPath
@@ -847,8 +944,8 @@ function createWindow() {
 
     let windowPreferences: Electron.BrowserWindowConstructorOptions = {
         webPreferences: webPreferences,
-        width: windowCfg.width,
-        height: windowCfg.height,
+        width: windowSize.width,
+        height: windowSize.height,
         frame: args.frame,
         transparent: false,
         titleBarStyle: 'default',
