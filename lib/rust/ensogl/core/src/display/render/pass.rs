@@ -122,9 +122,9 @@ impl Instance {
         viewport_height: i32,
         f: impl FnOnce() -> R,
     ) -> R {
-        self.context.set_viewport(0, 0, viewport_width, viewport_height);
+        self.context.viewport(0, 0, viewport_width, viewport_height);
         let result = f();
-        self.context.set_viewport(0, 0, self.width, self.height);
+        self.context.viewport(0, 0, self.width, self.height);
         result
     }
 }

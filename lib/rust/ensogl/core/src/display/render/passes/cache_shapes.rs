@@ -117,7 +117,7 @@ impl pass::Definition for CacheShapesPass {
                 });
                 instance.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
             } else {
-                reportable_error!("Impossible happened: The CacheShapesPass was run without initialized framebuffer.")
+                reportable_error!("Impossible happened: The CacheShapesPass was run without initialized framebuffer.");
             }
         }
     }
@@ -189,15 +189,32 @@ struct ArrangedShapes {
 ///
 /// ## Example
 ///
-/// Having the following shapes:
+/// Assuming initial texture size 5x5 and having the following shapes:
 ///
 /// ```text
-/// ┌───┐ ┌──────┐ ┌───┐ ┌─────────┐
-/// │1x1│ │2x2   │ │1x2│ │3x3      │
-/// └───┘ │      │ │   │ │         │
-///       └──────┘ └───┘ │         │
-///                      └─────────┘
+/// ┌───┐ ┌───┐ ┌───────┐ ┌───┐ ┌───────────┐
+/// │1x1│ │1x1│ │2x2    │ │1x2│ │3x3        │
+/// └───┘ └───┘ │       │ │   │ │           │
+///             │       │ │   │ │           │
+///             └───────┘ └───┘ │           │
+///                             │           │
+///                             └───────────┘
 /// ```
+///
+/// this function will arrange it this way:
+/// ```text
+/// ┌───────────────────┐
+/// │                   │
+/// ├───┐       ┌───┐   │
+/// │1x1│       │1x2│   │
+/// ├───┴───────┤   ├───┤
+/// │3x3        │   │1x1│
+/// │           ├───┴───┤
+/// │           │2x2    │
+/// │           │       │
+/// └───────────┴───────┘
+/// ```
+/// And return the texture size 5x4.
 ///
 /// # Implementation
 ///
