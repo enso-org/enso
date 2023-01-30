@@ -200,7 +200,7 @@ impl Model {
     ) -> Option<widgets::Request> {
         self.state
             .update_from_view()
-            .set_expression_widget_target(call_expression, Some(target_expression));
+            .set_call_expression_target_id(call_expression, Some(target_expression));
 
         let method_id = self.expression_method_suggestion(call_expression)?;
         Some(widgets::Request {

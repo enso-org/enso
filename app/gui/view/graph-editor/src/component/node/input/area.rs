@@ -121,7 +121,7 @@ impl<'a> Display for ExpressionTreePrettyPrint<'a> {
 
 impl Expression {
     /// Wrap the expression into a pretty-printing adapter that implements `Display` and prints
-    /// detailed span-tree information.
+    /// detailed span-tree information. See [`SpanTree::debug_print`] method for more details.
     pub fn tree_pretty_printer(&self) -> ExpressionTreePrettyPrint<'_> {
         ExpressionTreePrettyPrint { expression: self }
     }
@@ -203,14 +203,14 @@ pub struct Model {
     label:          text::Text,
     expression:     RefCell<Expression>,
     id_crumbs_map:  RefCell<HashMap<ast::Id, Crumbs>>,
-    widgets_map:    RefCell<HashMap<WidgetId, Crumbs>>,
+    widgets_map:    RefCell<HashMap<WidgetBind, Crumbs>>,
     styles:         StyleWatch,
     styles_frp:     StyleWatchFrp,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct WidgetId {
-    target_id:     ast::Id,
+struct WidgetBind {
+    call_id:       ast::Id,
     argument_name: String,
 }
 
@@ -308,10 +308,10 @@ impl Model {
     fn set_expression_widgets(&self, updates: &WidgetUpdates) {
         let expression = self.expression.borrow();
         let widgets_map = self.widgets_map.borrow();
-        let WidgetUpdates { target_id, updates } = updates;
+        let WidgetUpdates { call_id, updates } = updates;
         for update in updates.iter() {
             let argument_name = update.argument_name.to_string();
-            let widget_id = WidgetId { target_id: *target_id, argument_name };
+            let widget_id = WidgetBind { call_id: *call_id, argument_name };
             let crumbs = widgets_map.get(&widget_id);
 
             let root = expression.span_tree.root_ref();
@@ -352,6 +352,7 @@ impl Model {
         &self,
         expression: &mut Expression,
         area_frp: &FrpEndpoints,
+        call_info: &CallInfoMap,
     ) {
         let mut is_header = true;
 
@@ -363,14 +364,6 @@ impl Model {
         let mut widgets_map = HashMap::new();
         let builder = PortLayerBuilder::empty(&self.ports);
         let code = &expression.viz_code;
-
-
-        let mut last_args = HashMap::new();
-        expression.span_tree.root_ref().dfs(|node| {
-            if let Some(target_id) = node.kind.target_id() {
-                last_args.insert(target_id, node.crumbs.clone());
-            }
-        });
 
         expression.span_tree.root_ref_mut().dfs_with_layer_data(builder, |mut node, builder| {
             let is_parensed = node.is_parensed();
@@ -431,14 +424,11 @@ impl Model {
 
                 let port_shape = port.payload.init_shape(size, node::HEIGHT);
 
-                let known_call_target_id = port.kind.call_id().and(port.kind.target_id());
-                let port_widget = known_call_target_id.and_then(|target_id| {
+                let valid_call_id = port.kind.call_id().filter(|id| call_info.has_target(id));
+                let port_widget = valid_call_id.and_then(|call_id| {
                     let info = port.kind.argument_info()?;
                     let argument_name = info.name.as_ref()?.clone();
-                    let widget_id = WidgetId {
-                        target_id,
-                        argument_name,
-                    };
+                    let widget_id = WidgetBind { call_id, argument_name };
 
                     // Try getting the previous widget by exact target/argument ID first, which is
                     // necessary when the argument expression was replaced. This lookup can fail
@@ -572,9 +562,7 @@ impl Model {
                         port_widget.set_current_value(None);
                     }
 
-                    let can_be_removed = port.kind.target_id()
-                        .and_then(|id| last_args.get(&id))
-                        .map_or(false, |crumbs| crumbs == &port.crumbs);
+                    let can_be_removed = call_info.is_last_argument(port);
 
                     frp::extend! { port_network
                         code_update <- port_widget.value_changed.map(
@@ -788,12 +776,19 @@ impl Model {
     /// may require some edges to re-color, which consequently will require to checking the current
     /// expression types.
     #[profile(Debug)]
-    fn init_new_expression(&self, expression: Expression, area_frp: &FrpEndpoints) {
+    fn init_new_expression(
+        &self,
+        expression: Expression,
+        area_frp: &FrpEndpoints,
+        call_info: &CallInfoMap,
+    ) {
         *self.expression.borrow_mut() = expression;
         let expression = self.expression.borrow();
         expression.root_ref().dfs_with_layer_data((), |node, _| {
             node.frp.set_definition_type(node.tp().cloned().map(|t| t.into()));
-            let widget_request = node.kind.call_id().zip(node.kind.target_id());
+            let call_id = node.kind.call_id();
+            let widget_request =
+                call_id.and_then(|call_id| Some((call_id, call_info.target(&call_id)?)));
             if let Some(widget_request) = widget_request {
                 area_frp.source.requested_widgets.emit(widget_request);
             }
@@ -813,10 +808,12 @@ impl Model {
         if DEBUG {
             debug!("SET EXPRESSION: \n{}", new_expression.tree_pretty_printer());
         }
+
+        let call_info = CallInfoMap::scan_expression(&new_expression);
         self.set_label_on_new_expression(&new_expression);
-        self.build_port_shapes_on_new_expression(&mut new_expression, area_frp);
+        self.build_port_shapes_on_new_expression(&mut new_expression, area_frp, &call_info);
         self.init_port_frp_on_new_expression(&mut new_expression, area_frp);
-        self.init_new_expression(new_expression.clone(), area_frp);
+        self.init_new_expression(new_expression.clone(), area_frp, &call_info);
         if is_editing {
             self.label.set_cursor_at_text_end();
         }
@@ -1136,5 +1133,57 @@ impl PortLayerBuilder {
 impl display::Object for Area {
     fn display_object(&self) -> &display::object::Instance {
         &self.model.display_object
+    }
+}
+
+/// ===================
+/// === CallInfoMap ===
+/// ===================
+
+#[derive(Debug, Deref)]
+struct CallInfoMap {
+    /// The map from node's call_id to call information.
+    call_info: HashMap<ast::Id, CallInfo>,
+}
+
+/// Information about the call expression, which are derived from the span tree.
+#[derive(Debug, Default)]
+struct CallInfo {
+    /// The AST id associated with `This` span of the call expression.
+    target_id:     Option<ast::Id>,
+    /// The crumbs of last argument span associated with the call expression.
+    last_argument: Option<Crumbs>,
+}
+
+impl CallInfoMap {
+    fn scan_expression(expression: &SpanTree) -> Self {
+        let mut call_info: HashMap<ast::Id, CallInfo> = HashMap::new();
+        expression.root_ref().dfs(|node| {
+            if let Some(call_id) = node.kind.call_id() {
+                let mut entry = call_info.entry(call_id).or_default();
+                if node.kind.is_this() {
+                    entry.target_id = node.ast_id;
+                } else if node.kind.is_argument() {
+                    entry.last_argument = Some(node.crumbs.clone());
+                }
+            }
+        });
+
+        Self { call_info }
+    }
+
+    fn has_target(&self, call_id: &ast::Id) -> bool {
+        self.call_info.get(call_id).map_or(false, |info| info.target_id.is_some())
+    }
+
+    fn target(&self, call_id: &ast::Id) -> Option<ast::Id> {
+        self.call_info.get(call_id).and_then(|info| info.target_id)
+    }
+
+    fn is_last_argument(&self, node: &span_tree::node::RefMut<port::Model>) -> bool {
+        let call_id = node.kind.call_id();
+        let info = call_id.and_then(|call_id| self.call_info.get(&call_id));
+        let last_argument = info.and_then(|info| info.last_argument.as_ref());
+        last_argument.map_or(false, |crumbs| crumbs == &node.crumbs)
     }
 }

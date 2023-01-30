@@ -19,7 +19,7 @@ pub enum Kind {
     /// A node chained with parent node. See crate's docs for more info about chaining.
     Chained,
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
-    Operation,
+    Operation(Operation),
     /// A node being a target (or "self") parameter of parent Infix, Section or Prefix.
     This(This),
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
@@ -38,6 +38,9 @@ pub enum Kind {
 
 #[allow(missing_docs)]
 impl Kind {
+    pub fn operation() -> Operation {
+        default()
+    }
     pub fn this() -> This {
         default()
     }
@@ -128,20 +131,10 @@ impl Kind {
     pub fn argument_info(&self) -> Option<ArgumentInfo> {
         Some(match self {
             Self::This(t) => ArgumentInfo::this(t.tp.clone(), t.call_id),
-            Self::Argument(t) => ArgumentInfo::new(
-                t.name.clone(),
-                t.tp.clone(),
-                t.call_id,
-                t.target_id,
-                t.tag_values.clone(),
-            ),
-            Self::InsertionPoint(t) => ArgumentInfo::new(
-                t.name.clone(),
-                t.tp.clone(),
-                t.call_id,
-                t.target_id,
-                t.tag_values.clone(),
-            ),
+            Self::Argument(t) =>
+                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.call_id, t.tag_values.clone()),
+            Self::InsertionPoint(t) =>
+                ArgumentInfo::new(t.name.clone(), t.tp.clone(), t.call_id, t.tag_values.clone()),
             _ => return None,
         })
     }
@@ -149,18 +142,10 @@ impl Kind {
     /// Get the function call AST id associated with this argument.
     pub fn call_id(&self) -> Option<ast::Id> {
         match self {
+            Self::Operation(t) => t.call_id,
             Self::This(t) => t.call_id,
             Self::Argument(t) => t.call_id,
             Self::InsertionPoint(t) => t.call_id,
-            _ => None,
-        }
-    }
-
-    /// Get the function call target (`self` argument) AST id associated with this argument.
-    pub fn target_id(&self) -> Option<ast::Id> {
-        match self {
-            Self::Argument(t) => t.target_id,
-            Self::InsertionPoint(t) => t.target_id,
             _ => None,
         }
     }
@@ -178,7 +163,6 @@ impl Kind {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
                 t.call_id = argument_info.call_id;
-                t.target_id = argument_info.target_id;
                 t.tag_values = argument_info.tag_values;
                 true
             }
@@ -186,7 +170,6 @@ impl Kind {
                 t.name = argument_info.name;
                 t.tp = argument_info.tp;
                 t.call_id = argument_info.call_id;
-                t.target_id = argument_info.target_id;
                 t.tag_values = argument_info.tag_values;
                 true
             }
@@ -199,7 +182,7 @@ impl Kind {
         match self {
             Self::Root => "Root",
             Self::Chained => "Chained",
-            Self::Operation => "Operation",
+            Self::Operation(_) => "Operation",
             Self::This(_) => "This",
             Self::Argument(_) => "Argument",
             Self::Token => "Token",
@@ -214,6 +197,39 @@ impl Kind {
 impl Default for Kind {
     fn default() -> Self {
         Self::insertion_point().into()
+    }
+}
+
+
+// =================
+// === Operation ===
+// =================
+
+/// Kind representing an operation (operator or function) of parent Infix, Section or Prefix.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub struct Operation {
+    /// The AST id of function application that this operation is part of. If this is an access
+    /// chain operation (e.g. `method.call arg`), the call will be the outermost expression
+    /// containing all arguments. For other infix operators (not access), the call will be the infix
+    /// expression containing two arguments.
+    pub call_id:   Option<ast::Id>,
+}
+
+
+// === Setters ===
+
+#[allow(missing_docs)]
+impl Operation {
+    pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
+        self.call_id = call_id;
+        self
+    }
+}
+
+impl From<Operation> for Kind {
+    fn from(t: Operation) -> Self {
+        Self::Operation(t)
     }
 }
 
@@ -295,7 +311,6 @@ pub struct Argument {
     pub name:       Option<String>,
     pub tp:         Option<String>,
     pub call_id:    Option<ast::Id>,
-    pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
 
@@ -329,11 +344,7 @@ impl Argument {
         self
     }
     pub fn with_call_id(mut self, call_id: Option<ast::Id>) -> Self {
-        self.target_id = call_id;
-        self
-    }
-    pub fn with_target_id(mut self, target_id: Option<ast::Id>) -> Self {
-        self.target_id = target_id;
+        self.call_id = call_id;
         self
     }
 }
@@ -361,7 +372,6 @@ pub struct InsertionPoint {
     pub name:       Option<String>,
     pub tp:         Option<String>,
     pub call_id:    Option<ast::Id>,
-    pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
 
@@ -406,10 +416,6 @@ impl InsertionPoint {
     }
     pub fn with_tp(mut self, tp: Option<String>) -> Self {
         self.tp = tp;
-        self
-    }
-    pub fn with_target_id(mut self, target_id: Option<ast::Id>) -> Self {
-        self.target_id = target_id;
         self
     }
 }

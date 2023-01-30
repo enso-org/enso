@@ -121,6 +121,8 @@ pub struct Model {
     manager:         Rc<Manager>,
     graph:           ExecutedGraph,
     widgets_of_node: HashMap<ViewNodeId, Vec<ast::Id>>,
+    /// Map of queries by the target expression ID. Required to be able to map visualization update
+    /// responses to the corresponding widgets.
     widget_queries:  HashMap<ast::Id, QueryData>,
 }
 
@@ -169,8 +171,8 @@ impl Model {
                     })
                     .collect();
 
-
-                let updates = WidgetUpdates { target_id: target, updates: Rc::new(updates) };
+                let call_id = query_data.call_expression;
+                let updates = WidgetUpdates { call_id, updates: Rc::new(updates) };
                 trace!("Widget updates: {updates:?}");
                 query_data.last_update = Some(updates.clone());
                 Some((query_data.node_id, updates))

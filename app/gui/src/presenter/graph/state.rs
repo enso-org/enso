@@ -241,8 +241,8 @@ pub struct Expression {
     pub expression_type: Option<view::graph_editor::Type>,
     /// A pointer to the method called by this expression.
     pub method_pointer:  Option<view::graph_editor::MethodPointer>,
-    /// A call expression expression id that a widget was requested on.
-    pub widget_target:   Option<ast::Id>,
+    /// A AST id of `self` argument associated with a method call represented by this expression.
+    pub target_id:       Option<ast::Id>,
 }
 
 /// The data of node's expressions.
@@ -626,7 +626,7 @@ impl<'a> ControllerChange<'a> {
     }
 
     /// Set the new expression's method pointer. If the method pointer actually changes, the
-    /// to-be-updated view and widget target is returned.
+    /// to-be-updated view and target (`self` argument) AST id is returned.
     pub fn set_expression_method_pointer(
         &self,
         id: ast::Id,
@@ -637,7 +637,7 @@ impl<'a> ControllerChange<'a> {
         displayed.method_pointer = method_ptr;
         let nodes = self.nodes.borrow();
         let node = nodes.get(displayed.node)?;
-        Some((node.view_id?, displayed.widget_target))
+        Some((node.view_id?, displayed.target_id))
     }
 }
 
@@ -667,7 +667,7 @@ pub struct ViewChange<'a> {
 
 impl<'a> ViewChange<'a> {
     /// Set the new node position. If the node position actually changed, the AST node to-be-updated
-    /// id is returned.
+    /// ID is returned.
     pub fn set_node_position(&self, id: ViewNodeId, new_position: Vector2) -> Option<AstNodeId> {
         let mut nodes = self.nodes.borrow_mut();
         let ast_id = nodes.ast_id_of_view(id)?;
@@ -748,17 +748,16 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Set widget target id associated with a given call expression.
-    pub fn set_expression_widget_target(
+    /// Set AST id of target argument (`self`) associated with a given call expression.
+    pub fn set_call_expression_target_id(
         &self,
         expression: ast::Id,
-        widget_target: Option<ast::Id>,
+        target_id: Option<ast::Id>,
     ) -> Option<AstNodeId> {
         let mut expressions = self.expressions.borrow_mut();
-        let to_update =
-            expressions.get_mut(expression).filter(|d| d.widget_target != widget_target);
+        let to_update = expressions.get_mut(expression).filter(|d| d.target_id != target_id);
         if let Some(displayed) = to_update {
-            displayed.widget_target = widget_target;
+            displayed.target_id = target_id;
             Some(displayed.node)
         } else {
             None

@@ -78,10 +78,8 @@ pub struct ArgumentInfo {
     pub name:       Option<String>,
     pub tp:         Option<String>,
     /// The AST id of the call expression that this argument is passed to.
+    /// See [`ApplicationBase`] for more details.
     pub call_id:    Option<ast::Id>,
-    /// The AST id of the target (`self` argument) of the call expression that this argument is
-    /// passed to. For method-style calls, this is the AST id of expression before the dot.
-    pub target_id:  Option<ast::Id>,
     pub tag_values: Vec<String>,
 }
 
@@ -91,26 +89,20 @@ impl ArgumentInfo {
         name: Option<String>,
         tp: Option<String>,
         call_id: Option<ast::Id>,
-        target_id: Option<ast::Id>,
         tag_values: Vec<String>,
     ) -> Self {
-        Self { name, tp, call_id, target_id, tag_values }
+        Self { name, tp, call_id, tag_values }
     }
 
     /// Specialized constructor for "this" argument.
     pub fn this(tp: Option<String>, call_id: Option<ast::Id>) -> Self {
         let name = Some(node::This::NAME.into());
-        Self { name, tp, call_id, target_id: None, tag_values: Vec::new() }
+        Self { name, tp, call_id, tag_values: Vec::new() }
     }
 
     /// Extend the argument info with the given call id.
     pub fn with_call_id(self, call_id: Option<ast::Id>) -> Self {
         Self { call_id, ..self }
-    }
-
-    /// Extend the argument info with the given target id.
-    pub fn with_target_id(self, target_id: Option<ast::Id>) -> Self {
-        Self { target_id, ..self }
     }
 }
 
@@ -198,7 +190,7 @@ impl<T: Payload> SpanTree<T> {
     /// Get pretty-printed representation of this span tree for debugging purposes. The `code`
     /// argument should be identical to the expression that was used during generation of this
     /// span-tree. It will be used to print code fragments associated with each span.
-    /// 
+    ///
     /// Example output with AST ids removed for clarity:
     /// ```
     /// operator6.join operator31 Join_Kind.Inner ["County"] Root
@@ -251,7 +243,7 @@ impl<T: Payload> SpanTree<T> {
                 buffer.push_str(node_code);
                 written += node_code.len();
             }
-            buffer.push_str(&padding[written..]);
+            buffer.push_str(&span_padding[written..]);
 
             let indent = if let Some(index) = node.crumbs.last() {
                 let is_last = *index == state.num_children - 1;
@@ -276,10 +268,6 @@ impl<T: Payload> SpanTree<T> {
 
             if let Some(call_id) = node.kind.call_id() {
                 write!(buffer, " call_id={call_id:?}").unwrap();
-            }
-
-            if let Some(target_id) = node.kind.target_id() {
-                write!(buffer, " target_id={target_id:?}").unwrap();
             }
 
             if let Some(ast_id) = node.ast_id {

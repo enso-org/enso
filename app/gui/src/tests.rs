@@ -97,16 +97,6 @@ fn span_tree_args() {
     let expected_arg1_param =
         model::suggestion_database::entry::to_span_tree_param(&entry.arguments[1])
             .with_call_id(Some(id));
-    let arg_with_target = |arg: span_tree::ArgumentInfo, target_crumbs: &[ast::Crumb]| {
-        let id = get_node().expression().get_traversing(target_crumbs).ok().and_then(|n| n.id);
-        arg.with_target_id(id)
-    };
-    let expected_arg1_param_with_target =
-        |target_crumbs: &[ast::Crumb]| arg_with_target(expected_arg1_param.clone(), target_crumbs);
-
-    const PREFIX_FUNC: ast::Crumb = ast::Crumb::Prefix(ast::crumbs::PrefixCrumb::Func);
-    const PREFIX_ARG: ast::Crumb = ast::Crumb::Prefix(ast::crumbs::PrefixCrumb::Arg);
-    const INFIX_LEFT: ast::Crumb = ast::Crumb::Infix(ast::crumbs::InfixCrumb::LeftOperand);
 
     // === Method notation, without prefix application ===
     assert_eq!(get_node().info.expression().repr(), "Base.foo");
@@ -119,7 +109,7 @@ fn span_tree_args() {
                 node::Kind::insertion_point().with_kind(InsertionPointType::ExpectedArgument(0));
             assert!(children.is_empty());
             // assert_eq!(kind,&node::Kind::from(expected_kind));
-            assert_eq!(kind.argument_info(), Some(expected_arg1_param_with_target(&[INFIX_LEFT])));
+            assert_eq!(kind.argument_info().as_ref(), Some(&expected_arg1_param));
         }
         _ => panic!("Expected only two children in the span tree's root"),
     };
@@ -133,8 +123,7 @@ fn span_tree_args() {
         [_, second] => {
             let Node { children, kind, .. } = &second.node;
             assert!(children.is_empty());
-            let expected_arg = expected_arg1_param_with_target(&[PREFIX_FUNC, INFIX_LEFT]);
-            assert_eq!(kind.argument_info(), Some(expected_arg));
+            assert_eq!(kind.argument_info().as_ref(), Some(&expected_arg1_param));
         }
         inputs =>
             panic!("Expected two children in the span tree's root but got {:?}", inputs.len()),
@@ -152,7 +141,7 @@ fn span_tree_args() {
     // === Function notation, with prefix application ===
     graph.set_expression(id, "foo Base").unwrap();
     assert_eq!(get_param(0).as_ref(), Some(&expected_this_param));
-    assert_eq!(get_param(1).as_ref(), Some(&expected_arg1_param_with_target(&[PREFIX_ARG])));
+    assert_eq!(get_param(1).as_ref(), Some(&expected_arg1_param));
     assert_eq!(get_param(2).as_ref(), None);
 
 
@@ -169,14 +158,13 @@ fn span_tree_args() {
 
     graph.set_expression(id, "Base.bar").unwrap();
     assert_eq!(get_param(0), Some(span_tree::ArgumentInfo::this(None, Some(id))));
-    assert_eq!(get_param(1), Some(arg_with_target(default(), &[INFIX_LEFT])));
+    assert_eq!(get_param(1), Some(default()));
     assert_eq!(get_param(2), None);
 
     // === Oversaturated call ===
     graph.set_expression(id, "foo Base 10 20 30").unwrap();
     assert_eq!(get_param(0).as_ref(), Some(&expected_this_param));
-    let arg1_crumbs = &[PREFIX_FUNC, PREFIX_FUNC, PREFIX_FUNC, PREFIX_ARG];
-    assert_eq!(get_param(1).as_ref(), Some(&expected_arg1_param_with_target(arg1_crumbs)));
+    assert_eq!(get_param(1).as_ref(), Some(&expected_arg1_param));
     assert_eq!(get_param(2).as_ref(), Some(&default()));
     assert_eq!(get_param(3).as_ref(), Some(&default()));
     assert_eq!(get_param(4).as_ref(), None);

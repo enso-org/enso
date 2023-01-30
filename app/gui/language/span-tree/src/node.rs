@@ -865,10 +865,10 @@ mod test {
 
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
-            .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
+            .add_leaf(1, 1, node::Kind::operation(), vec![Operator])
             .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
             .add_leaf(0, 2, node::Kind::this(), vec![LeftOperand])
-            .add_leaf(3, 1, node::Kind::Operation, vec![Operator])
+            .add_leaf(3, 1, node::Kind::operation(), vec![Operator])
             .add_leaf(4, 1, node::Kind::argument(), vec![RightOperand])
             .done()
             .build();
@@ -924,9 +924,9 @@ mod test {
         let tree: SpanTree = TreeBuilder::new(7)
             .add_leaf(0, 1, node::Kind::this(), vec![LeftOperand])
             .add_empty_child(1, InsertionPointType::AfterTarget)
-            .add_leaf(1, 1, node::Kind::Operation, vec![Operator])
+            .add_leaf(1, 1, node::Kind::operation(), vec![Operator])
             .add_child(2, 5, node::Kind::argument(), vec![RightOperand])
-            .add_leaf(0, 3, node::Kind::Operation, vec![Func])
+            .add_leaf(0, 3, node::Kind::operation(), vec![Func])
             .add_leaf(3, 1, node::Kind::this(), vec![Arg])
             .done()
             .build();
@@ -956,9 +956,9 @@ mod test {
         // See also `generate::test::generating_span_tree_for_unfinished_call`
         let tree: SpanTree = TreeBuilder::new(8)
             .add_child(0, 8, node::Kind::Chained, ast::crumbs::Crumbs::default())
-            .add_child(0, 8, node::Kind::Operation, ast::crumbs::Crumbs::default())
+            .add_child(0, 8, node::Kind::operation(), ast::crumbs::Crumbs::default())
             .add_leaf(0, 4, node::Kind::this(), LeftOperand)
-            .add_leaf(4, 1, node::Kind::Operation, Operator)
+            .add_leaf(4, 1, node::Kind::operation(), Operator)
             .add_leaf(5, 3, node::Kind::argument(), RightOperand)
             .done()
             .add_empty_child(8, InsertionPointType::ExpectedArgument(0))

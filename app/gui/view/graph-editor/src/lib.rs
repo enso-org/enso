@@ -1063,10 +1063,10 @@ impl Grid {
 /// A structure describing a widget update batch for arguments of single function call.
 #[derive(Debug, Default, Clone)]
 pub struct WidgetUpdates {
-    /// The function call target expression id.
-    pub target_id: ast::Id,
+    /// The function call expression id.
+    pub call_id: ast::Id,
     /// Update of a widget for each function argument.
-    pub updates:   Rc<Vec<WidgetUpdate>>,
+    pub updates: Rc<Vec<WidgetUpdate>>,
 }
 
 /// A structure describing a widget update for specific argument of a function call.
