@@ -3,25 +3,16 @@ import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Vector_Builder.Vector_Builder
 
-from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Column_Selectors, Input_Indices_Already_Matched, Column_Matched_By_Multiple_Selectors, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
+from project.Errors import Missing_Input_Columns, Column_Indexes_Out_Of_Range, Duplicate_Output_Column_Names, Invalid_Output_Column_Names
 
 type Problem_Builder
-    Value types_to_always_throw oob_indices duplicate_column_selectors input_indices_already_matched missing_input_columns other
+    Value types_to_always_throw oob_indices missing_input_columns other
 
     report_oob_indices self indices =
         append_to_ref self.oob_indices indices
 
-    report_duplicate_column_selectors self selectors =
-        append_to_ref self.duplicate_column_selectors selectors
-
-    report_input_indices_already_matched self indices =
-        append_to_ref self.input_indices_already_matched indices
-
     report_missing_input_columns self columns =
         append_to_ref self.missing_input_columns columns
-
-    report_column_matched_by_multiple_selectors self column_name selectors =
-        self.report_other_warning (Column_Matched_By_Multiple_Selectors.Error column_name selectors)
 
     report_unique_name_strategy self unique_name_strategy =
         if unique_name_strategy.invalid_names.not_empty then
@@ -43,8 +34,6 @@ type Problem_Builder
 
         build_vector_and_append self.missing_input_columns Missing_Input_Columns.Error
         build_vector_and_append self.oob_indices Column_Indexes_Out_Of_Range.Error
-        build_vector_and_append self.duplicate_column_selectors Duplicate_Column_Selectors.Error
-        build_vector_and_append self.input_indices_already_matched Input_Indices_Already_Matched.Error
         self.other.to_vector.each problems.append
 
         problems.to_vector
@@ -89,7 +78,7 @@ type Problem_Builder
        the `Problem_Behavior` used.
     new : Vector -> Problem_Builder
     new types_to_always_throw=[] =
-        Problem_Builder.Value types_to_always_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
+        Problem_Builder.Value types_to_always_throw (Ref.new Vector_Builder.empty) (Ref.new Vector_Builder.empty) other=Vector.new_builder
 
 ## PRIVATE
    Appends a `Vector` to a `Vector_Builder` stored in a `Ref`.
