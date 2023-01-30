@@ -967,8 +967,9 @@ type Table
         get_column name = self.at name
         make_constant value = Column.from_vector_repeated (UUID.randomUUID.to_text) [value] self.row_count
         new_column = Expression.evaluate expression get_column make_constant "Standard.Table.Data.Column" "Column" Column.var_args_functions
-        warnings = Warning.get_all new_column
-        on_problems.attach_problems_after (Warning.set new_column []) warnings
+        if new_column.is_error then new_column else
+            warnings = Warning.get_all new_column
+            on_problems.attach_problems_after (Warning.set new_column []) warnings
 
     ## Returns the vector of columns contained in this table.
 

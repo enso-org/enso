@@ -1,8 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Common.Type_Error
+import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
 import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Data.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import SQL_Error
@@ -266,3 +268,22 @@ spec setup =
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
             t.filter 4 . should_fail_with Index_Out_Of_Bounds.Error
             t.filter 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 1)
+
+    Test.group prefix+"Table.filter_by_expression" <|
+        Test.specify "by a boolean column" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
+            t.filter_by_expression "[b]" on_problems=Report_Error . at "ix" . to_vector . should_equal [1, 4, 5]
+            t.filter_by_expression "![b]" on_problems=Report_Error . at "ix" . to_vector . should_equal [2]
+
+        Test.specify "by an integer comparison" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
+            t.filter_by_expression "[ix]==3" on_problems=Report_Error . at "ix" . to_vector . should_equal [3]
+            t.filter_by_expression "[ix]>2" on_problems=Report_Error . at "ix" . to_vector . should_equal [3, 4, 5]
+
+        Test.specify "fail gracefully" <|
+            t = table_builder [["ix", [1, 2, 3, 4, 5]], ["b", [True, False, Nothing, True, True]]]
+            t.filter_by_expression "[ix" .should_fail_with Expression_Error.Syntax_Error
+            t.filter_by_expression "NOT(b,False)" .should_fail_with Expression_Error.Argument_Mismatch
+            t.filter_by_expression "Starts_With(b)" .should_fail_with Expression_Error.Argument_Mismatch
+            t.filter_by_expression "[missing]" .should_fail_with Expression_Error.Syntax_Error
+            t.filter_by_expression "[ix]" .should_fail_with Illegal_Argument.Error
