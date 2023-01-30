@@ -79,25 +79,29 @@ impl RunContext {
     pub fn expected_artifacts(&self) -> BuiltArtifacts {
         BuiltArtifacts {
             engine_package:          self.config.build_engine_package.then(|| {
-                self.repo_root.built_distribution.enso_engine_triple.engine_package.clone()
+                self.repo_root.built_distribution.enso_engine_graal_triple.engine_package.clone()
             }),
             launcher_package:        self.config.build_launcher_package.then(|| {
-                self.repo_root.built_distribution.enso_launcher_triple.launcher_package.clone()
+                self.repo_root
+                    .built_distribution
+                    .enso_launcher_graal_triple
+                    .launcher_package
+                    .clone()
             }),
             project_manager_package: self.config.build_project_manager_package.then(|| {
                 self.repo_root
                     .built_distribution
-                    .enso_project_manager_triple
+                    .enso_project_manager_graal_triple
                     .project_manager_package
                     .clone()
             }),
             launcher_bundle:         self.config.build_launcher_bundle.then(|| {
-                self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle.clone()
+                self.repo_root.built_distribution.enso_bundle_graal_triple.launcher_bundle.clone()
             }),
             project_manager_bundle:  self.config.build_project_manager_bundle.then(|| {
                 self.repo_root
                     .built_distribution
-                    .project_manager_bundle_triple
+                    .project_manager_bundle_graal_triple
                     .project_manager_bundle
                     .clone()
             }),
@@ -455,8 +459,13 @@ impl RunContext {
         }
 
         if self.config.build_engine_package() {
-            let std_libs =
-                &self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.standard;
+            let std_libs = &self
+                .repo_root
+                .built_distribution
+                .enso_engine_graal_triple
+                .engine_package
+                .lib
+                .standard;
             // let std_libs = self.paths.engine.dir.join("lib").join("Standard");
             // Compile the Standard Libraries (Unix)
             debug!("Compiling standard libraries under {}", std_libs.display());
@@ -509,7 +518,7 @@ impl RunContext {
                     let lib_path = self
                         .repo_root
                         .built_distribution
-                        .enso_engine_triple
+                        .enso_engine_graal_triple
                         .engine_package
                         .lib
                         .join_iter(["Standard", libname])

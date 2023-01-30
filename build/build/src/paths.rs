@@ -162,7 +162,7 @@ impl Paths {
     pub fn manifest_file(&self) -> PathBuf {
         self.repo_root
             .built_distribution
-            .enso_engine_triple
+            .enso_engine_graal_triple
             .engine_package
             .manifest_yaml
             .to_path_buf()

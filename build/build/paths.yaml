@@ -23,23 +23,23 @@
   build/:
     prettier/:
   built-distribution/:
-    enso-engine-<triple>/:
+    enso-engine-<graal_triple>/:
       ? path: enso-<version>/
         type: engine_package
         var: engine_package
-    enso-project-manager-<triple>/:
+    enso-project-manager-<graal_triple>/:
       ? path: enso/
         type: project_manager_package
         var: project_manager_package
-    enso-launcher-<triple>/:
+    enso-launcher-<graal_triple>/:
       ? path: enso/
         type: launcher_package
         var: launcher_package
-    enso-bundle-<triple>/:
+    enso-bundle-<graal_triple>/:
       ? path: enso/
         type: launcher_bundle
         var: launcher_bundle
-    "project-manager-bundle-<triple>":
+    "project-manager-bundle-<graal_triple>":
       ? path: enso/
         type: project_manager_bundle
         var: project_manager_bundle

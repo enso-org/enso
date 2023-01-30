@@ -196,7 +196,7 @@ pub async fn get_engine_package<R: IsRepo>(
         triple.to_string(),
         triple.versions.version.to_string(),
     )
-    .enso_engine_triple
+    .enso_engine_graal_triple
     .file_name()
     .context("Failed to get Engine Package name.")?
     .as_str()

@@ -46,7 +46,7 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
         let bundle_dir = self.as_ref().to_path_buf();
         let base_component = self.base_component(repo_root);
         let engine_src_path =
-            repo_root.built_distribution.enso_engine_triple.engine_package.clone();
+            repo_root.built_distribution.enso_engine_graal_triple.engine_package.clone();
         let engine_target_dir = self.engine_dir();
         let graalvm_dir = self.graalvm_dir();
         let distribution_marker = self.distribution_marker();
@@ -79,7 +79,7 @@ impl IsBundle for crate::paths::generated::ProjectManagerBundle {
     fn base_component(&self, repo_root: &RepoRoot) -> PathBuf {
         repo_root
             .built_distribution
-            .enso_project_manager_triple
+            .enso_project_manager_graal_triple
             .project_manager_package
             .to_path_buf()
     }
@@ -99,7 +99,7 @@ impl IsBundle for crate::paths::generated::LauncherBundle {
     }
 
     fn base_component(&self, repo_root: &RepoRoot) -> PathBuf {
-        repo_root.built_distribution.enso_launcher_triple.launcher_package.to_path_buf()
+        repo_root.built_distribution.enso_launcher_graal_triple.launcher_package.to_path_buf()
     }
 
     fn distribution_marker(&self) -> PathBuf {
