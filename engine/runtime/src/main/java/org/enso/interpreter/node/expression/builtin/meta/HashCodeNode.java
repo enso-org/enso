@@ -443,11 +443,12 @@ public abstract class HashCodeNode extends Node {
   }
 
   @Specialization(guards = {
-      "interop.hasMembers(objectWithMembers)",
+      "!isAtom(objectWithMembers)",
       // Object with type is handled in `hashCodeForType` specialization, so we have to
       // negate the guard of that specialization here - to make the specializations
       // disjunctive.
-      "!typesLib.hasType(objectWithMembers)"
+      "!typesLib.hasType(objectWithMembers)",
+      "interop.hasMembers(objectWithMembers)"
   })
   long hashCodeForInteropObjectWithMembers(Object objectWithMembers,
       @CachedLibrary(limit = "10") InteropLibrary interop,
@@ -512,6 +513,10 @@ public abstract class HashCodeNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary interop,
       @Cached HashCodeNode hashCodeNode) {
     return hashCodeNode.execute(interop.toDisplayString(hostFunction));
+  }
+
+  static boolean isAtom(Object object) {
+    return object instanceof Atom;
   }
 
   @TruffleBoundary

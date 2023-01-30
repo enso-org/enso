@@ -241,10 +241,8 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization(guards = {
-      // HostFunction is identified by a qualified name, it is not a lambda.
-      // It has well-defined equality based on the qualified name.
-      "isHostObject(selfHostObject) || isHostFunction(selfHostObject)",
-      "isHostObject(otherHostObject) || isHostFunction(otherHostObject)",
+      "isHostObject(selfHostObject)",
+      "isHostObject(otherHostObject)"
   })
   boolean equalsHostObjects(
       Object selfHostObject, Object otherHostObject,
@@ -258,6 +256,21 @@ public abstract class EqualsNode extends Node {
              UnsupportedTypeException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+
+  // HostFunction is identified by a qualified name, it is not a lambda.
+  // It has well-defined equality based on the qualified name.
+  @Specialization(guards = {
+      "isHostFunction(selfHostFunc)",
+      "isHostFunction(otherHostFunc)"
+  })
+  boolean equalsHostFunctions(Object selfHostFunc, Object otherHostFunc,
+      @CachedLibrary(limit = "5") InteropLibrary interop,
+      @Cached EqualsNode equalsNode) {
+    Object selfFuncStrRepr = interop.toDisplayString(selfHostFunc);
+    Object otherFuncStrRepr = interop.toDisplayString(otherHostFunc);
+    return equalsNode.execute(selfFuncStrRepr, otherFuncStrRepr);
   }
 
   @Specialization(guards = {
@@ -500,13 +513,15 @@ public abstract class EqualsNode extends Node {
   }
 
   @Specialization(guards = {
-      "interop.hasMembers(selfObject)",
-      "interop.hasMembers(otherObject)",
+      "!isAtom(selfObject)",
+      "!isAtom(otherObject)",
       // Objects with types are handled in `equalsTypes` specialization, so we have to
       // negate the guards of that specialization here - to make the specializations
       // disjunctive.
       "!typesLib.hasType(selfObject)",
-      "!typesLib.hasType(otherObject)"
+      "!typesLib.hasType(otherObject)",
+      "interop.hasMembers(selfObject)",
+      "interop.hasMembers(otherObject)",
   })
   boolean equalsInteropObjectWithMembers(Object selfObject, Object otherObject,
       @CachedLibrary(limit = "10") InteropLibrary interop,
@@ -636,7 +651,7 @@ public abstract class EqualsNode extends Node {
   }
 
   /**
-   * Helper node for invoking `==` method on atoms, that override this method.
+   * Helper node for invoking `Any.==` method.
    */
   @GenerateUncached
   static abstract class InvokeAnyEqualsNode extends Node {
@@ -721,6 +736,10 @@ public abstract class EqualsNode extends Node {
     } else {
       return object == null;
     }
+  }
+
+  static boolean isAtom(Object object) {
+    return object instanceof Atom;
   }
 
   @TruffleBoundary
