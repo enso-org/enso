@@ -2,6 +2,7 @@ package org.enso.tools.enso4igv;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.netbeans.api.project.ProjectManager;
 import org.netbeans.api.project.Sources;
 import org.netbeans.junit.NbTestCase;
@@ -18,23 +19,23 @@ public class EnsoSbtProjectTest extends NbTestCase {
   protected void setUp() throws Exception {
     clearWorkDir();
   }
-  
+
   public void testLanguageServerProject() throws Exception {
     FileObject root = setLanguageServerProjectUp();
-    
+
     var prj = ProjectManager.getDefault().findProject(root);
     assertNotNull("Project found", prj);
     assertEquals("Right type", EnsoSbtProject.class, prj.getClass());
-    
+
     var s = prj.getLookup().lookup(Sources.class);
     assertNotNull("Sources found", s);
-    
+
     var genericGroups = s.getSourceGroups(Sources.TYPE_GENERIC);
     assertEquals("One", 1, genericGroups.length);
     assertEquals("One at root", root, genericGroups[0].getRootFolder());
 
     var javaGroups = s.getSourceGroups("java");
-    assertEquals("Javish", 1, javaGroups.length);
+    assertEquals("1 bench, 2 tests, 4 main: " + Arrays.toString(javaGroups), 7, javaGroups.length);
   }
 
   private static FileObject setLanguageServerProjectUp() throws IOException {
@@ -44,8 +45,8 @@ public class EnsoSbtProjectTest extends NbTestCase {
     var srcBench = src.createFolder("bench");
     var srcBenchScala = srcBench.createFolder("scala");
     var srcTest = src.createFolder("test");
-    var srcTestScala = src.createFolder("scala");
-    var srcTestResources = src.createFolder("resources");
+    var srcTestScala = srcTest.createFolder("scala");
+    var srcTestResources = srcTest.createFolder("resources");
     var srcMain = src.createFolder("main");
     var srcMainJava = srcMain.createFolder("java");
     var srcMainResources = srcMain.createFolder("resources");
