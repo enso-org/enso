@@ -797,8 +797,8 @@ type Table
        `filter`.
 
        Arguments:
-       - column: The column to use for filtering. Can be a column name, index or
-         the `Column` object itself.
+       - column: The column to use for filtering.
+         Can be a column name, index or the `Column` object itself.
        - filter: The filter to apply to the column. It can either be an instance
          of `Filter_Condition` or a predicate taking a cell value and returning
          a boolean value indicating whether the corresponding row should be kept
@@ -846,16 +846,27 @@ type Table
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
                 _ : Function -> mask (column.map filter)
-        _ : Text ->
+        _ ->
             table_at = self.at column
-            if table_at.is_error.not then self.filter table_at filter on_problems else
-                expression = self.compute column on_problems=on_problems
-                if expression.is_error.not then self.filter expression filter on_problems else
-                    pick_error = expression.catch Expression_Error.Syntax_Error (_->table_at)
-                    on_problems.handle_errors pick_error fallback=self
-        _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
-            Nothing -> self
-            resolved_column -> self.filter resolved_column filter on_problems
+            self.filter table_at filter on_problems
+
+    ## ALIAS Filter Rows
+
+       Selects only the rows of this table that correspond to `True` values of
+       `filter`.
+
+       Arguments:
+       - expression: The expression to evaluate to filter the rows.
+
+       > Example
+         Select people celebrating a jubilee.
+
+             people.filter_by_expression "[age] % 10 == 0"
+    filter_by_expression : Text -> Problem_Behavior -> Table
+    filter_by_expression self expression on_problems=Report_Warning =
+        column = self.compute expression on_problems=on_problems
+        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value") else
+            self.filter column on_problems=on_problems
 
     ## PRIVATE
     with_no_rows self = self.take (First 0)

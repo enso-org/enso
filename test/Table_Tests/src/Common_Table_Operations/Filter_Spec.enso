@@ -259,16 +259,10 @@ spec setup =
 
         Test.specify "should handle selection errors: unknown column name" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            action = t.filter "unknown column" on_problems=_
-            tester table =
-                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
-            problems = [No_Such_Column.Error "unknown column"]
-            Problems.test_problem_handling action problems tester
+            t.filter "unknown column" . should_fail_with No_Such_Column.Error
+            t.filter "unknown column" . catch . should_equal (No_Such_Column.Error "unknown column")
 
         Test.specify "should handle selection errors: out of bounds index" <|
             t = table_builder [["X", [10, 20, 13, 4, 5]]]
-            action = t.filter 4 on_problems=_
-            tester table =
-                table.at "X" . to_vector . should_equal (t.at "X" . to_vector)
-            problems = [Index_Out_Of_Bounds.Error 4 1]
-            Problems.test_problem_handling action problems tester
+            t.filter 4 . should_fail_with Index_Out_Of_Bounds.Error
+            t.filter 4 . catch . should_equal (Index_Out_Of_Bounds.Error 4 1)

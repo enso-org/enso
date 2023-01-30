@@ -21,6 +21,8 @@ import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
+import Standard.Table.Data.Value_Type.Value_Type
+import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -428,16 +430,27 @@ type Table
                     on_problems.handle_errors fallback=self.with_no_rows <|
                         mask (make_filter_column column filter)
                _ : Function -> Error.throw (Unsupported_Database_Operation.Error "Filtering with a custom predicate is not supported in the database.")
-       _ : Text ->
+       _ ->
            table_at = self.at column
-           if table_at.is_error.not then self.filter table_at filter on_problems else
-               expression = self.compute column
-               if expression.is_error.not then self.filter expression filter on_problems else
-                   pick_error = expression.catch Expression_Error.Syntax_Error (_->table_at)
-                   on_problems.handle_errors pick_error fallback=self
-       _ -> case on_problems.handle_errors (self.at column) fallback=Nothing of
-            Nothing -> self
-            resolved_column -> self.filter resolved_column filter on_problems
+           self.filter table_at filter on_problems
+
+    ## ALIAS Filter Rows
+
+       Selects only the rows of this table that correspond to `True` values of
+       `filter`.
+
+       Arguments:
+       - expression: The expression to evaluate to filter the rows.
+
+       > Example
+         Select people celebrating a jubilee.
+
+             people.filter_by_expression "[age] % 10 == 0"
+    filter_by_expression : Text -> Problem_Behavior -> Table
+    filter_by_expression self expression on_problems=Report_Warning =
+        column = self.compute expression
+        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value") else
+            self.filter column on_problems=on_problems
 
     ## PRIVATE
     with_no_rows self =
