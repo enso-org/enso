@@ -80,6 +80,26 @@ spec setup =
             table.get (Pair.new 1 2) . should_fail_with Illegal_Argument.Error
             table.get (Pair.new 1 2) . catch . to_display_text . should_equal "Illegal Argument: expected 'selector' to be either a Text or an Integer, but got Pair.Value."
 
+    Test.group prefix+"Table.set" <|
+        Test.specify "should allow adding a column" <|
+            bar2 = table.get "bar" . rename "bar2"
+            table.set bar2
+            table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123", "bar2"]
+            table.get "bar2" . to_vector . should_equal [4, 5, 6]
+
+        Test.specify "should allow replacing a column" <|
+            foo = table.get "bar" . rename "foo"
+            table.set foo
+            table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
+            table.foo "bar2" . to_vector . should_equal [4, 5, 6]
+
+        Test.specify "should allow adding a column" <|
+            bar2 = table.get "bar" . rename "bar2"
+            table.set bar2 Set_Mode.Update . should_fail_with Missing_Column.Error
+
+            foo = table.get "bar" . rename "foo"
+            table.set foo Set_Mode.Add . should_fail_with Existing_Column.Error
+
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
             table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
