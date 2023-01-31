@@ -117,7 +117,7 @@ pub fn main() {
             let r = ((fi + 2.0) * 64.0 / (ELEM_COUNT as f32)) as u8;
             let g = ((fi + 4.0) * 128.0 / (ELEM_COUNT as f32)) as u8;
             let b = ((fi + 8.0) * 255.0 / (ELEM_COUNT as f32)) as u8;
-            let color = iformat!("rgb({r},{g},{b})");
+            let color = format!("rgb({r},{g},{b})");
             div.set_style_or_warn("background-color", color);
             object.dom().append_or_warn(&div);
             dom_symbols.push(object);

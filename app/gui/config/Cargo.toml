@@ -7,8 +7,7 @@ edition = "2021"
 [dependencies]
 ensogl = { path = "../../../lib/rust/ensogl" }
 enso-prelude = { path = "../../../lib/rust/prelude" }
-enso-logger = { path = "../../../lib/rust/logger" }
 semver = "1.0.0"
 
 [build-dependencies]
-config-reader = { version = "0.1.0", path = "../../../lib/rust/config-reader" }
+config-reader = { path = "../../../lib/rust/config-reader" }

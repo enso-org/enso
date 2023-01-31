@@ -99,7 +99,7 @@ macro_rules! _define_sdf_shape_immutable_part {
                 let args = vec!["vec2 position".to_string(), $(
                     format!("{} {}", <$field_type>::glsl_prim_type(), stringify!($field))
                 ),*].join(", ");
-                iformat!("BoundSdf {name} ({args}) {body}")
+                format!("BoundSdf {name} ({args}) {body}")
             }
         }
 

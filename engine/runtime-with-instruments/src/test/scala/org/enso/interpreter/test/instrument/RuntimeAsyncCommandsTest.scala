@@ -121,7 +121,7 @@ class RuntimeAsyncCommandsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -182,7 +182,7 @@ class RuntimeAsyncCommandsTest
 
     // Open the new file
     context.send(
-      Api.Request(Api.SetModuleSourcesNotification(mainFile, contents))
+      Api.Request(Api.OpenFileNotification(mainFile, contents))
     )
     context.receiveNone shouldEqual None
 
@@ -216,7 +216,7 @@ class RuntimeAsyncCommandsTest
       Api.Request(requestId, Api.InterruptContextRequest(contextId))
     )
     context.receiveNIgnoreExpressionUpdates(
-      2
+      3
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.InterruptContextResponse(contextId)),
       Api.Response(
@@ -225,7 +225,8 @@ class RuntimeAsyncCommandsTest
           Api.ExecutionResult
             .Failure("Execution of function main interrupted.", None)
         )
-      )
+      ),
+      context.executionComplete(contextId)
     )
   }
 }

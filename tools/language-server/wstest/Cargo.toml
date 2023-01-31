@@ -8,7 +8,7 @@ edition = "2021"
 base64 = "0.13.0"
 clap = { version = "3", features = ["derive"] }
 either = "1.7.0"
-futures = "0.3"
+futures = { workspace = true }
 enso-prelude = { path = "../../../lib/rust/prelude" }
 regex = { workspace = true }
 time = { version = "0.3", features = ["formatting"] }

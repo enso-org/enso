@@ -29,7 +29,7 @@ use std::any::TypeId;
 
 bitflags::bitflags! {
     /// A set of flags associated with each [`Layer`].
-    #[derive(Shrinkwrap)]
+    #[derive(Deref)]
     pub struct LayerFlags: u8 {
         /// When layer is `MAIN_PASS_VISIBLE`, it will be rendered during standard color buffer
         /// render pass. Layers without this flag are not rendered in main pass, but can still be

@@ -145,7 +145,7 @@ impl From<BuildConfigurationFlags> for BuildConfigurationResolved {
     }
 }
 
-#[derive(Clone, Debug, Shrinkwrap)]
+#[derive(Clone, Debug, Deref)]
 pub struct BuildConfigurationResolved(BuildConfigurationFlags);
 
 impl BuildConfigurationResolved {

@@ -546,6 +546,7 @@
 - [Add Meta.get_annotation method][4049]
 - [Resolve Fully Qualified Names][4056]
 - [Optimize Atom storage layouts][3862]
+- [Make instance methods callable like statics for builtin types][4077]
 
 [3227]: https://github.com/enso-org/enso/pull/3227
 [3248]: https://github.com/enso-org/enso/pull/3248
@@ -632,8 +633,9 @@
 [4023]: https://github.com/enso-org/enso/pull/4023
 [4030]: https://github.com/enso-org/enso/pull/4030
 [4048]: https://github.com/enso-org/enso/pull/4048
-[4056]: https://github.com/enso-org/enso/pull/4049
+[4049]: https://github.com/enso-org/enso/pull/4049
 [4056]: https://github.com/enso-org/enso/pull/4056
+[4077]: https://github.com/enso-org/enso/pull/4077
 
 # Enso 2.0.0-alpha.18 (2021-10-12)
 

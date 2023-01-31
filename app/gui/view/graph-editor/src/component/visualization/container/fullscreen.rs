@@ -52,16 +52,15 @@ pub mod background {
 #[derive(Clone, CloneRef, Debug)]
 #[allow(missing_docs)]
 pub struct Panel {
-    logger:             Logger,
     display_object:     display::object::Instance,
-    // background     : background::View,
     pub background_dom: DomSymbol,
+    // TODO: See TODO above.
+    // background     : background::View,
 }
 
 impl Panel {
     /// Constructor.
-    pub fn new(logger: &Logger, scene: &Scene) -> Self {
-        let logger = Logger::new_sub(logger, "fullscreen_view");
+    pub fn new(scene: &Scene) -> Self {
         let display_object = display::object::Instance::new();
 
         // FIXME : StyleWatch is unsuitable here, as it was designed as an internal tool for shape
@@ -89,7 +88,7 @@ impl Panel {
         display_object.add_child(&background_dom);
         scene.dom.layers.fullscreen_vis.manage(&background_dom);
 
-        Self { logger, display_object, background_dom }
+        Self { display_object, background_dom }
     }
 }
 

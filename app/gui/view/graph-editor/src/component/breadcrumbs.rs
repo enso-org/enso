@@ -168,7 +168,6 @@ ensogl::define_endpoints! {
 /// Breadcrumbs panel model.
 #[derive(Debug, Clone, CloneRef)]
 pub struct BreadcrumbsModel {
-    logger:                Logger,
     /// The breadcrumbs panel display object.
     display_object:        display::object::Instance,
     background:            background::View,
@@ -195,7 +194,6 @@ impl BreadcrumbsModel {
     pub fn new(app: Application, frp: &Frp) -> Self {
         let scene = &app.display.default_scene;
         let project_name = app.new_view();
-        let logger = Logger::new("Breadcrumbs");
         let display_object = display::object::Instance::new();
         let root = display::object::Instance::new();
         let breadcrumbs_container = display::object::Instance::new();
@@ -210,7 +208,6 @@ impl BreadcrumbsModel {
         scene.layers.panel.add(&background);
 
         Self {
-            logger,
             display_object,
             background,
             project_name,
