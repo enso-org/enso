@@ -22,7 +22,7 @@ export { config }
 export type { LogLevel } from 'runner/log/logger'
 
 export { logger, Logger, Consumer } from 'runner/log'
-export { Param } from 'runner/config'
+export { Option } from 'runner/config'
 
 // ==============================
 // === Files to be downloaded ===
@@ -203,15 +203,19 @@ export class App {
     initialized = false
 
     constructor(opts?: {
-        configParams?: config.Params
+        configOptions?: config.Options
         packageInfo?: Record<string, string>
         config?: Record<string, any>
     }) {
+        console.log('opts', opts)
         this.packageInfo = new debug.PackageInfo(opts?.packageInfo ?? {})
-        this.config = new config.Config(opts?.configParams)
+        this.config = new config.Config(opts?.configOptions)
+        console.log('!!', host.urlParams())
         const unrecognizedParams = this.config.resolve([opts?.config, host.urlParams()])
         if (unrecognizedParams) {
             this.config.print()
+            // FIXME:
+            console.log('Unrecognized parameters:', unrecognizedParams)
             this.showConfigOptions(unrecognizedParams)
         } else {
             this.initBrowser()
@@ -243,7 +247,7 @@ export class App {
         if (host.browser) {
             this.styleRoot()
             dom.disableContextMenu()
-            if (this.config.params.debug.value) {
+            if (this.config.options.debug.debug.value) {
                 logger.log('Application is run in debug mode. Logs will not be hidden.')
             } else {
                 this.printScamWarning()
@@ -289,7 +293,7 @@ export class App {
                  return module.exports`
             )()
             const out: unknown = await snippetsFn.init(wasm)
-            if (this.config.params.enableSpector.value) {
+            if (this.config.options.debug.enableSpector.value) {
                 /* eslint @typescript-eslint/no-unsafe-member-access: "off" */
                 /* eslint @typescript-eslint/no-unsafe-call: "off" */
                 if (host.browser) {
@@ -309,7 +313,7 @@ export class App {
     async loadWasm() {
         const loader = new wasm.Loader(this.config)
 
-        const shadersUrl = this.config.params.shadersUrl.value
+        const shadersUrl = this.config.options.loader.shadersUrl.value
         const shadersNames = await log.Task.asyncRunCollapsed(
             'Downloading shaders list.',
             async () => {
@@ -320,8 +324,8 @@ export class App {
         )
 
         const files = new Files(
-            this.config.params.pkgJsUrl.value,
-            this.config.params.pkgWasmUrl.value
+            this.config.options.loader.pkgJsUrl.value,
+            this.config.options.loader.pkgWasmUrl.value
         )
         for (const mangledName of shadersNames) {
             const unmangledName = name.unmangle(mangledName)
@@ -387,7 +391,7 @@ export class App {
     /** Check whether the time needed to run before main entry points is reasonable. Print a warning
      * message otherwise. */
     checkBeforeMainEntryPointsTime(time: number) {
-        if (time > this.config.params.maxBeforeMainTimeMs.value) {
+        if (time > this.config.options.loader.maxBeforeMainTimeMs.value) {
             logger.error(
                 `Entry points took ${time} milliseconds to run. This is too long. ` +
                     'Before main entry points should be used for fast initialization only.'
@@ -397,7 +401,7 @@ export class App {
 
     /** Run both before main entry points and main entry point. */
     async runEntryPoints() {
-        const entryPointName = this.config.params.entry.value
+        const entryPointName = this.config.options.startup.entry.value
         const entryPoint = this.mainEntryPoints.get(entryPointName)
         if (entryPoint) {
             await this.runBeforeMainEntryPoints()
@@ -442,16 +446,16 @@ export class App {
     }
 
     showConfigOptions(unknownConfigOptions?: string[]) {
-        logger.log('Showing config options help screen.')
-        const msg = unknownConfigOptions
-            ? `Unknown config options: '${unknownConfigOptions.join(', ')}'. `
-            : ''
-        const title = msg + 'Available options:'
-        const entries = Array.from(Object.entries(this.config.params)).map(([key, option]) => {
-            return new debug.HelpScreenEntry(key, [option.description, String(option.default)])
-        })
-        const headers = ['Name', 'Description', 'Default']
-        new debug.HelpScreen().display({ title, headers, entries })
+        // logger.log('Showing config options help screen.')
+        // const msg = unknownConfigOptions
+        //     ? `Unknown config options: '${unknownConfigOptions.join(', ')}'. `
+        //     : ''
+        // const title = msg + 'Available options:'
+        // const entries = Array.from(Object.entries(this.config.options)).map(([key, option]) => {
+        //     return new debug.HelpScreenEntry(key, [option.description, String(option.default)])
+        // })
+        // const headers = ['Name', 'Description', 'Default']
+        // new debug.HelpScreen().display({ title, headers, entries })
     }
 
     /** Print the warning for the end user that they should not copy any code to the console. */

@@ -18,10 +18,32 @@ const node = !browser
 global ??= window
 
 /** Returns the parameters passed in the URL query string. */
-function urlParams(): Record<string, any> {
+function urlParams(): Record<string, Record<string, any>> {
     if (browser) {
+        const out: Record<string, Record<string, any>> = {}
         const urlParams = new URLSearchParams(window.location.search)
-        return Object.fromEntries(urlParams.entries())
+        for (const [name, value] of urlParams.entries()) {
+            const path = name.split('.')
+            // FIXME: handle more segments
+            const segment1 = path[0]
+            let segment2 = path[1]
+            if (segment1 != null) {
+                if (segment2 == null) {
+                    segment2 = segment1
+                }
+                const outSegment1 = out[segment1]
+                if (outSegment1 == null) {
+                    const entry: Record<string, any> = {}
+                    entry[segment2] = value
+                    out[segment1] = entry
+                } else {
+                    outSegment1[segment2] = value
+                }
+            } else {
+                // TODO
+            }
+        }
+        return out
     } else {
         return {}
     }

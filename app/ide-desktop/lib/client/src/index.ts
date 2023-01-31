@@ -201,11 +201,11 @@ class OptionGroups extends content.OptionGroups {
 let configOptionsGroup = 'Config Options'
 
 // @ts-ignore
-export class Config extends content.Config {
+export class Options extends content.Options {
     // === Window Options ===
 
     // @ts-ignore
-    window: content.Param<boolean> = new content.Param({
+    window: content.Option<boolean> = new content.Option({
         group: OptionGroups.window,
         type: 'boolean',
         default: true,
@@ -214,14 +214,14 @@ export class Config extends content.Config {
             'client or a browser to connect to it.',
     })
     // @ts-ignore
-    windowSize: content.Param<null | string> = new content.Param({
+    windowSize: content.Option<null | string> = new content.Option({
         group: OptionGroups.window,
         type: 'string',
         default: `${windowSize.width}x${windowSize.height}`,
         description: `The initial window size.`,
     })
     // @ts-ignore
-    frame: content.Param<boolean> = new content.Param({
+    frame: content.Option<boolean> = new content.Option({
         group: OptionGroups.window,
         type: 'boolean',
         default: true,
@@ -229,7 +229,7 @@ export class Config extends content.Config {
         description: 'Draw window frame.',
     })
     // @ts-ignore
-    vibrancy: content.Param<boolean> = new content.Param({
+    vibrancy: content.Option<boolean> = new content.Option({
         group: OptionGroups.window,
         type: 'boolean',
         default: false,
@@ -239,7 +239,7 @@ export class Config extends content.Config {
     // === Server Options ===
 
     // @ts-ignore
-    server: content.Param<boolean> = new content.Param({
+    server: content.Option<boolean> = new content.Option({
         group: OptionGroups.server,
         type: 'boolean',
         default: true,
@@ -249,7 +249,7 @@ export class Config extends content.Config {
     })
 
     // @ts-ignore
-    port: content.Param<string | null> = new content.Param({
+    port: content.Option<string | null> = new content.Option({
         group: OptionGroups.server,
         type: 'string',
         default: Server.DEFAULT_PORT,
@@ -259,7 +259,7 @@ export class Config extends content.Config {
     // === Startup Options ===
 
     // @ts-ignore
-    project: content.Param<string | null> = new content.Param({
+    project: content.Option<string | null> = new content.Option({
         // @ts-ignore
         group: OptionGroups.startup,
         type: 'string',
@@ -272,14 +272,14 @@ export class Config extends content.Config {
     // === Performance Options ===
 
     // @ts-ignore
-    backgroundThrottling: content.Param<boolean> = new content.Param({
+    backgroundThrottling: content.Option<boolean> = new content.Option({
         group: OptionGroups.performance,
         type: 'boolean',
         default: false,
         description: 'Throttle animations when run in background.',
     })
     // @ts-ignore
-    loadProfile: content.Param<null | string[]> = new content.Param({
+    loadProfile: content.Option<null | string[]> = new content.Option({
         // @ts-ignore
         group: OptionGroups.performance,
         type: 'array',
@@ -288,7 +288,7 @@ export class Config extends content.Config {
             'Load a performance profile. For use with developer tools such as the `profiling-run-graph` entry point.',
     })
     // @ts-ignore
-    saveProfile: content.Param<null | string> = new content.Param({
+    saveProfile: content.Option<null | string> = new content.Option({
         // @ts-ignore
         group: OptionGroups.performance,
         type: 'string',
@@ -296,7 +296,7 @@ export class Config extends content.Config {
         description: 'Record a performance profile and write to a file.',
     })
     // @ts-ignore
-    workflow: content.Param<null | string> = new content.Param({
+    workflow: content.Option<null | string> = new content.Option({
         // @ts-ignore
         group: OptionGroups.performance,
         type: 'string',
@@ -307,14 +307,14 @@ export class Config extends content.Config {
     // === Engine Options ===
 
     // @ts-ignore
-    backend: content.Param<boolean> = new content.Param({
+    backend: content.Option<boolean> = new content.Option({
         group: OptionGroups.engine,
         type: 'boolean',
         default: true,
         description: 'Start the backend process.',
     })
     // @ts-ignore
-    backendPath: content.Param<string | null> = new content.Param({
+    backendPath: content.Option<string | null> = new content.Option({
         group: OptionGroups.engine,
         type: 'string',
         default: null,
@@ -324,7 +324,7 @@ export class Config extends content.Config {
     // === Debug Options ===
 
     // @ts-ignore
-    verbose: content.Param<boolean> = new content.Param({
+    verbose: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -332,7 +332,7 @@ export class Config extends content.Config {
         description: `Increase logs verbosity. Affects both IDE and the backend.`,
     })
     // @ts-ignore
-    dev: content.Param<boolean> = new content.Param({
+    dev: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -340,7 +340,7 @@ export class Config extends content.Config {
         description: 'Run the application in development mode.',
     })
     // @ts-ignore
-    devtron: content.Param<boolean> = new content.Param({
+    devtron: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -349,7 +349,7 @@ export class Config extends content.Config {
     })
 
     // @ts-ignore
-    showElectronOptions: content.Param<boolean> = new content.Param({
+    showElectronOptions: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -357,7 +357,7 @@ export class Config extends content.Config {
         description: 'Show Electron options in the help. Should be used together with `-help`.',
     })
     // @ts-ignore
-    info: content.Param<boolean> = new content.Param({
+    info: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -365,7 +365,7 @@ export class Config extends content.Config {
         description: `Print the system debug info.`,
     })
     // @ts-ignore
-    version: content.Param<boolean> = new content.Param({
+    version: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -373,7 +373,7 @@ export class Config extends content.Config {
         description: `Print the version.`,
     })
     // @ts-ignore
-    help: content.Param<boolean> = new content.Param({
+    help: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -383,7 +383,7 @@ export class Config extends content.Config {
             'To see all options, use `-full-help`.',
     })
     // @ts-ignore
-    fullHelp: content.Param<boolean> = new content.Param({
+    fullHelp: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.debug,
         type: 'boolean',
@@ -394,7 +394,7 @@ export class Config extends content.Config {
     // === Style Options ===
 
     // @ts-ignore
-    theme: content.Param<null | string> = new content.Param({
+    theme: content.Option<null | string> = new content.Option({
         // @ts-ignore
         group: OptionGroups.style,
         type: 'string',
@@ -402,7 +402,7 @@ export class Config extends content.Config {
         description: 'Theme to use.',
     })
     // @ts-ignore
-    nodeLabels: content.Param<boolean> = new content.Param({
+    nodeLabels: content.Option<boolean> = new content.Option({
         // @ts-ignore
         group: OptionGroups.style,
         type: 'boolean',
@@ -414,7 +414,7 @@ export class Config extends content.Config {
     // https://www.electronjs.org/docs/latest/api/command-line-switches
 
     // @ts-ignore
-    electronAuthServerWhitelist: content.Param<null | string> = new content.Param({
+    electronAuthServerWhitelist: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -424,7 +424,7 @@ export class Config extends content.Config {
             'enabled.',
     })
     // @ts-ignore
-    electronAuthNegotiateDelegateWhitelist: content.Param<null | string> = new content.Param({
+    electronAuthNegotiateDelegateWhitelist: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -434,7 +434,7 @@ export class Config extends content.Config {
             "required. Without '*' prefix the URL has to match exactly.",
     })
     // @ts-ignore
-    electronDisableNtlmV2: content.Param<null | boolean> = new content.Param({
+    electronDisableNtlmV2: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -442,7 +442,7 @@ export class Config extends content.Config {
         description: 'Disables NTLM v2 for posix platforms, no effect elsewhere.',
     })
     // @ts-ignore
-    electronDisableHttpCache: content.Param<null | boolean> = new content.Param({
+    electronDisableHttpCache: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -450,7 +450,7 @@ export class Config extends content.Config {
         description: 'Disables the disk cache for HTTP requests.',
     })
     // @ts-ignore
-    electronDisableHttp2: content.Param<null | boolean> = new content.Param({
+    electronDisableHttp2: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -458,7 +458,7 @@ export class Config extends content.Config {
         description: 'Disable HTTP/2 and SPDY/3.1 protocols.',
     })
     // @ts-ignore
-    electronDisableRendererBackgrounding: content.Param<null | boolean> = new content.Param({
+    electronDisableRendererBackgrounding: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -468,7 +468,7 @@ export class Config extends content.Config {
             'processes.',
     })
     // @ts-ignore
-    electronDiskCacheSize: content.Param<null | number> = new content.Param({
+    electronDiskCacheSize: content.Option<null | number> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'number',
@@ -476,7 +476,7 @@ export class Config extends content.Config {
         description: 'Forces the maximum disk space to be used by the disk cache, in bytes.',
     })
     // @ts-ignore
-    electronEnableLogging: content.Param<null | string> = new content.Param({
+    electronEnableLogging: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -486,7 +486,7 @@ export class Config extends content.Config {
             "Prints Chromium's logging to stderr (or a log file, if provided as argument).",
     })
     // @ts-ignore
-    electronForceFieldtrials: content.Param<null | string> = new content.Param({
+    electronForceFieldtrials: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -496,7 +496,7 @@ export class Config extends content.Config {
             "'WebRTC-Audio-Red-For-Opus/Enabled/'.",
     })
     // @ts-ignore
-    electronHostRules: content.Param<null | string> = new content.Param({
+    electronHostRules: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -506,7 +506,7 @@ export class Config extends content.Config {
             "example, 'MAP * 127.0.0.1'.",
     })
     // @ts-ignore
-    electronHostResolverRules: content.Param<null | string> = new content.Param({
+    electronHostResolverRules: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -514,7 +514,7 @@ export class Config extends content.Config {
         description: "Like '--host-rules' but these rules only apply to the host resolver.",
     })
     // @ts-ignore
-    electronIgnoreCertificateErrors: content.Param<null | boolean> = new content.Param({
+    electronIgnoreCertificateErrors: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -522,7 +522,7 @@ export class Config extends content.Config {
         description: 'Ignores certificate related errors.',
     })
     // @ts-ignore
-    electronIgnoreConnectionsLimit: content.Param<null | string> = new content.Param({
+    electronIgnoreConnectionsLimit: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -530,7 +530,7 @@ export class Config extends content.Config {
         description: "Ignore the connections limit for domains list separated by ','.",
     })
     // @ts-ignore
-    electronJsFlags: content.Param<null | string> = new content.Param({
+    electronJsFlags: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -540,7 +540,7 @@ export class Config extends content.Config {
             '\'-electron-js-flags="--harmony_proxies --harmony_collections"\'.',
     })
     // @ts-ignore
-    electronLang: content.Param<null | string> = new content.Param({
+    electronLang: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -548,7 +548,7 @@ export class Config extends content.Config {
         description: 'Set a custom locale.',
     })
     // @ts-ignore
-    electronLogFile: content.Param<null | string> = new content.Param({
+    electronLogFile: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -558,7 +558,7 @@ export class Config extends content.Config {
             'The parent directory must exist.',
     })
     // @ts-ignore
-    electronLogNetLog: content.Param<null | string> = new content.Param({
+    electronLogNetLog: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -566,7 +566,7 @@ export class Config extends content.Config {
         description: 'Enables net log events to be saved and writes them to the provided path.',
     })
     // @ts-ignore
-    electronLogLevel: content.Param<null | string> = new content.Param({
+    electronLogLevel: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -576,7 +576,7 @@ export class Config extends content.Config {
             "The argument should be one of Chrome's LogSeverities.",
     })
     // @ts-ignore
-    electronNoProxyServer: content.Param<null | boolean> = new content.Param({
+    electronNoProxyServer: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -586,7 +586,7 @@ export class Config extends content.Config {
             'any other proxy server flags that are passed.',
     })
     // @ts-ignore
-    electronNoSandbox: content.Param<null | boolean> = new content.Param({
+    electronNoSandbox: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -596,7 +596,7 @@ export class Config extends content.Config {
             'processes to run un-sandboxed. Should only be used for testing.',
     })
     // @ts-ignore
-    electronProxyBypassList: content.Param<null | string> = new content.Param({
+    electronProxyBypassList: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -608,7 +608,7 @@ export class Config extends content.Config {
             '\'--proxy-bypass-list "<local>;*.google.com;*foo.com;1.2.3.4:5678"\'.',
     })
     // @ts-ignore
-    electronProxyPacUrl: content.Param<null | string> = new content.Param({
+    electronProxyPacUrl: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -616,7 +616,7 @@ export class Config extends content.Config {
         description: 'Uses the PAC script at the specified url.',
     })
     // @ts-ignore
-    electronProxyServer: content.Param<null | string> = new content.Param({
+    electronProxyServer: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -630,7 +630,7 @@ export class Config extends content.Config {
             '[Chromium issue](https://bugs.chromium.org/p/chromium/issues/detail?id=615947).',
     })
     // @ts-ignore
-    electronRemoteDebuggingPort: content.Param<null | string> = new content.Param({
+    electronRemoteDebuggingPort: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -638,7 +638,7 @@ export class Config extends content.Config {
         description: 'Enables remote debugging over HTTP on the specified port.',
     })
     // @ts-ignore
-    electronV: content.Param<null | number> = new content.Param({
+    electronV: content.Option<null | number> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'number',
@@ -649,7 +649,7 @@ export class Config extends content.Config {
             "'-electron-enable-logging' is also passed.",
     })
     // @ts-ignore
-    electronVmodule: content.Param<null | string> = new content.Param({
+    electronVmodule: content.Option<null | string> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'string',
@@ -662,7 +662,7 @@ export class Config extends content.Config {
             "This switch only works when '-electron-enable-logging' is also passed.",
     })
     // @ts-ignore
-    electronForce_high_performance_gpu: content.Param<null | boolean> = new content.Param({
+    electronForce_high_performance_gpu: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -670,7 +670,7 @@ export class Config extends content.Config {
         description: 'Force using discrete GPU when there are multiple GPUs available.',
     })
     // @ts-ignore
-    electronForce_low_power_gpu: content.Param<null | boolean> = new content.Param({
+    electronForce_low_power_gpu: content.Option<null | boolean> = new content.Option({
         group: OptionGroups.electron,
         hidden: true,
         type: 'boolean',
@@ -688,7 +688,10 @@ export class Config extends content.Config {
 // =====================
 
 let argv = hideBin(process.argv)
-const config = new Config()
+const config = new Options()
+
+// FIXME:
+new content.Config(config)
 
 const yargOptions = Object.entries(config).reduce((opts: { [key: string]: any }, [key, param]) => {
     const yargsParam = Object.assign({}, param)

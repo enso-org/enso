@@ -8,7 +8,7 @@ import buildCfg from '../../../build.json'
 // @ts-ignore
 import * as app from 'ensogl_app'
 import * as semver from 'semver'
-import { Config, Version } from './config'
+import { Config, Version, options } from './config'
 
 const logger = app.log.logger
 const config = app.config
@@ -43,11 +43,11 @@ async function fetchTimeout(url: string, timeout: number): Promise<any> {
 /// one of the compared versions does not match the semver scheme, it returns
 /// `true`.
 async function checkMinSupportedVersion(config: Config) {
-    if (config.skipMinVersionCheck.value === true) {
+    if (config.engine.skipMinVersionCheck.value === true) {
         return true
     }
     try {
-        const appConfig: any = await fetchTimeout(config.applicationConfigUrl.value, 300)
+        const appConfig: any = await fetchTimeout(config.engine.applicationConfigUrl.value, 300)
         const minSupportedVersion = appConfig.minimumSupportedVersion
         const comparator = new semver.Comparator(`>=${minSupportedVersion}`)
         return comparator.test(Version.ide)
@@ -77,17 +77,18 @@ function displayDeprecatedVersionDialog() {
 
 class Main {
     async main(inputConfig: any) {
-        const config = Object.assign(
-            {
+        // FIXME: use inputConfig
+        const config = {
+            loader: {
                 pkgWasmUrl: 'assets/pkg-opt.wasm',
                 pkgJsUrl: 'assets/pkg.js',
                 shadersUrl: 'assets/shaders',
             },
-            inputConfig
-        )
+        }
+
         const appInstance = new app.App({
             config,
-            configParams: new Config(),
+            configOptions: options,
             packageInfo: {
                 // @ts-ignore
                 version: BUILD_INFO.default.version,
@@ -97,15 +98,16 @@ class Main {
         })
 
         if (appInstance.initialized) {
-            if (appInstance.config.params.dataGathering.value) {
+            if (appInstance.config.options.runtimeMetrics.dataGathering.value) {
                 // TODO: Add remote-logging here.
             }
-            if (!(await checkMinSupportedVersion(appInstance.config.params))) {
+            if (!(await checkMinSupportedVersion(appInstance.config.options))) {
                 displayDeprecatedVersionDialog()
             } else {
                 if (
-                    appInstance.config.params.authenticationEnabled.value &&
-                    appInstance.config.params.entry.value != appInstance.config.params.entry.default
+                    appInstance.config.options.runtimeMetrics.authenticationEnabled.value &&
+                    appInstance.config.options.startup.entry.value !=
+                        appInstance.config.options.startup.entry.default
                 ) {
                     // TODO: authentication here
                     // appInstance.config.email.value = user.email
@@ -113,10 +115,14 @@ class Main {
                 } else {
                     appInstance.run()
                 }
-                if (appInstance.config.params.email.value) {
-                    logger.log(`User identified as '${appInstance.config.params.email.value}'.`)
+                if (appInstance.config.options.runtimeMetrics.email.value) {
+                    logger.log(
+                        `User identified as '${appInstance.config.options.runtimeMetrics.email.value}'.`
+                    )
                 }
             }
+        } else {
+            console.error('Failed to initialize the application.')
         }
     }
 }

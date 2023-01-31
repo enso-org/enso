@@ -87,7 +87,7 @@ class ProgressIndicator {
         this.set(0)
         this.setIndicatorOpacity(0)
 
-        if (cfg.params.useLoader.value) {
+        if (cfg.options.loader.enabled.value) {
             this.initialized = Promise.all([
                 this.animateShow(),
                 this.animateShowLogo(),
@@ -323,7 +323,7 @@ export class Loader {
         this.downloadSpeed = 0
         this.lastReceiveTime = performance.now()
         this.initialized = this.indicator.initialized
-        this.capProgressAt = cfg.params.loaderDownloadToInitRatio.value
+        this.capProgressAt = cfg.options.loader.loaderDownloadToInitRatio.value
 
         this.done = new Promise(resolve => {
             this.doneResolve = resolve
