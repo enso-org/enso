@@ -84,10 +84,7 @@ fn span_tree_args() {
     let get_inputs = || NodeTrees::new(&get_node().info, executed_graph).unwrap().inputs;
     let get_param = |n| {
         let inputs = get_inputs();
-        let mut args = inputs
-            .root_ref()
-            .leaf_iter()
-            .filter(|n| n.is_this() || n.is_argument() || n.is_expected_argument());
+        let mut args = inputs.root_ref().leaf_iter().filter(|n| n.is_function_parameter());
         args.nth(n).and_then(|node| node.argument_info())
     };
 

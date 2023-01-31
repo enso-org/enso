@@ -92,6 +92,12 @@ impl Kind {
             _ => false,
         }
     }
+
+    /// Match any kind that can be a function parameter. This includes `This`, `Argument` and
+    /// expected argument.
+    pub fn is_function_parameter(&self) -> bool {
+        self.is_this() || self.is_argument() || self.is_expected_argument()
+    }
 }
 
 
