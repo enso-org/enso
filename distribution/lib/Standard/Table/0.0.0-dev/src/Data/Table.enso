@@ -27,7 +27,6 @@ import project.Data.Report_Unmatched.Report_Unmatched
 import project.Data.Row.Row
 import project.Data.Storage.Storage
 import project.Data.Value_Type.Value_Type
-import project.Data.Sort_Column_Selector.Sort_Column_Selector
 import project.Data.Sort_Column.Sort_Column
 import project.Data.Aggregate_Column.Aggregate_Column
 import project.Data.Storage.Storage
@@ -566,12 +565,12 @@ type Table
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name ['Quantity'])
+             table.order_by ['Quantity']
 
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity' Sort_Direction.Descending])
+             table.order_by [Sort_Column.Name 'Quantity' Sort_Direction.Descending]
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -584,24 +583,31 @@ type Table
          using the value in column `'Rating'` in descending order for breaking
          ties.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
+             table.order_by [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending]
 
        > Example
          Order the table by the second column in ascending order. In case of any
          ties, break them based on the 7th column from the end of the table in
          descending order.
 
-             table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
-    order_by : Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Text_Ordering -> Table ! Incomparable_Values
-    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default =
+             table.order_by [1, Sort_Column.Index -7 Sort_Direction.Descending]
+
+       > Example
+         Sort the table by columns whose names start with letter `a`.
+
+              table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
+    order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Table ! Incomparable_Values
+    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default =
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
-            selected_columns = columns_for_ordering.map c->c.column.java_column
-            ordering = columns_for_ordering.map c->c.associated_selector.direction.to_sign
+            java_columns = columns_for_ordering.map c->
+                c.column.java_column
+            directions = columns_for_ordering.map c->
+                c.associated_selector.direction.to_sign
             comparator = Comparator.for_text_ordering text_ordering
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
-                self.java_table.orderBy selected_columns.to_array ordering.to_array comparator
+                self.java_table.orderBy java_columns.to_array directions.to_array comparator
             Table.Value java_table
 
     ## Returns the distinct set of rows within the specified columns from the

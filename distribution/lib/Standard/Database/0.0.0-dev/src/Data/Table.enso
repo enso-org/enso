@@ -11,7 +11,7 @@ import Standard.Base.Error.Unimplemented.Unimplemented
 from Standard.Base.Metadata.Widget import Single_Choice
 import Standard.Base.Metadata.Display
 
-from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column_Selector, Sort_Column, Match_Columns, Position
+from Standard.Table import Auto_Detect, Aggregate_Column, Data_Formatter, Column_Name_Mapping, Column_Selector, Sort_Column, Match_Columns, Position
 import Standard.Table.Data.Column_Type_Selection.Column_Type_Selection
 import Standard.Table.Data.Expression.Expression
 import Standard.Table.Data.Expression.Expression_Error
@@ -20,7 +20,6 @@ import Standard.Table.Data.Join_Kind.Join_Kind
 import Standard.Table.Data.Report_Unmatched.Report_Unmatched
 import Standard.Table.Data.Row.Row
 import Standard.Table.Data.Table.Table as Materialized_Table
-import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Table_Helpers
 import Standard.Table.Internal.Table_Helpers.Table_Column_Helper
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -498,7 +497,7 @@ type Table
          In the call below, assuming that the table of `t1` contains rows for
          numbers 1, 2, ..., 10, will return rows starting from 6 and not an empty
          result as one could expect if the limit was applied before the filters.
-             t1 = table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name "A"]) . limit 5
+             t1 = table.order_by ([Sort_Column.Name "A"]) . limit 5
              t2 = t1.filter 'A' (Greater than=5)
              t2.read
     limit : Integer -> Table
@@ -590,12 +589,12 @@ type Table
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name ['Quantity'])
+             table.order_by ['Quantity']
 
        > Example
          Sorting `table` in descending order by the value in column `'Quantity'`.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity' Sort_Direction.Descending])
+             table.order_by [Sort_Column.Name 'Quantity' Sort_Direction.Descending]
 
        > Example
          Sorting `table` in ascending order by the value in column `'Quantity'`,
@@ -608,16 +607,21 @@ type Table
          using the value in column `'Rating'` in descending order for breaking
          ties.
 
-             table.order_by (Sort_Column_Selector.By_Name [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending])
+             table.order_by [Sort_Column.Name 'Quantity', Sort_Column.Name 'Rating' Sort_Direction.Descending]
 
        > Example
          Order the table by the second column in ascending order. In case of any
          ties, break them based on the 7th column from the end of the table in
          descending order.
 
-             table.order_by (Sort_Column_Selector.By_Index [1, Sort_Column.Index -7 Sort_Direction.Descending])
-    order_by : Text | Sort_Column | Vector (Text | Sort_Column) | Sort_Column_Selector -> Text_Ordering -> Table ! Incomparable_Values
-    order_by self (columns = (Sort_Column_Selector.By_Name [(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default = Panic.handle_wrapped_dataflow_error <|
+             table.order_by [1, Sort_Column.Index -7 Sort_Direction.Descending]
+
+       > Example
+         Sort the table by columns whose names start with letter `a`.
+
+              table.order_by [(Sort_Column.Select_By_Name "a.*" use_regex=True case_sensitivity=Case_Sensitivity.Insensitive)]
+    order_by : Text | Sort_Column | Vector (Text | Sort_Column) -> Text_Ordering -> Table ! Incomparable_Values
+    order_by self (columns = ([(Sort_Column.Name (self.columns.at 0 . name))])) text_ordering=Text_Ordering.Default = Panic.handle_wrapped_dataflow_error <|
         problem_builder = Problem_Builder.new
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before Problem_Behavior.Report_Error <|
