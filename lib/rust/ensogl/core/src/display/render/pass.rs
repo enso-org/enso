@@ -195,4 +195,18 @@ impl Framebuffer {
     pub fn bind(&self) {
         self.context.bind_framebuffer(*Context::FRAMEBUFFER, Some(&self.native));
     }
+
+    /// Run the closure with this framebuffer bound in context.
+    ///
+    /// This framebuffer will be bound before running the closure, and [`None`] framebuffer will
+    /// be bound on return.
+    ///
+    /// **Important**: After leaving this function, the context will have no framebuffer bound,
+    /// even if there was another framebuffer bound before, or inside the closure.
+    pub fn with_bound<R>(&self, f: impl FnOnce() -> R) -> R {
+        self.bind();
+        let result = f();
+        self.context.bind_framebuffer(*Context::FRAMEBUFFER, None);
+        result
+    }
 }

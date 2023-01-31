@@ -23,7 +23,7 @@ use ensogl_core::display::texture::FloatSampler;
 mod icon1 {
     use super::*;
     ensogl_core::cached_shape! { 32 x 32;
-        () {
+        (_style: Style) {
             let shape = Circle(16.px()).fill(color::Rgba::green());
             shape.into()
         }
@@ -33,7 +33,7 @@ mod icon1 {
 mod icon2 {
     use super::*;
     ensogl_core::cached_shape! { 202 x 312;
-        () {
+        (_style: Style) {
             let shape = Rect((200.px(), 310.px())).fill(color::Rgba::red());
             shape.into()
         }

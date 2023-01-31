@@ -918,7 +918,7 @@ macro_rules! _shape {
 /// uniform. In the future there will be also a possibility of parametrization of normal shapes by
 /// cached shapes (see [#184212663](https://www.pivotaltracker.com/story/show/184212663)).
 ///
-/// Because shape, once cached, is not redrawn, we don't allow for any parameterization, even by
+/// Because shape, once cached, is not redrawn, we don't allow for any parameterization except
 /// styles.
 #[macro_export]
 macro_rules! cached_shape {
@@ -930,7 +930,7 @@ macro_rules! cached_shape {
         $(above = [$($always_above_1:tt $(::$always_above_2:tt)*),*];)?
         $(below = [$($always_below_1:tt $(::$always_below_2:tt)*),*];)?
         $(pointer_events = $pointer_events:tt;)?
-        () {$($body:tt)*}
+        ($style:ident : Style) {$($body:tt)*}
     ) => {
         $crate::_shape! {
             $(SystemData($system_data))?
@@ -939,7 +939,7 @@ macro_rules! cached_shape {
             $(above = [$($always_above_1 $(::$always_above_2)*),*];)?
             $(below = [$($always_below_1 $(::$always_below_2)*),*];)?
             $(pointer_events = $pointer_events;)?
-            [_style] (){$($body)*}
+            [$style] (){$($body)*}
         }
 
         mod cached_shape_system_definition {
