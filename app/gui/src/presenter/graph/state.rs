@@ -748,20 +748,17 @@ impl<'a> ViewChange<'a> {
         }
     }
 
-    /// Set AST id of target argument (`self`) associated with a given call expression.
+    /// Set AST id of target argument (`self`) associated with a given call expression. Returns
+    /// affected node id when the expression was found, even when the target id is not modified.
     pub fn set_call_expression_target_id(
         &self,
         expression: ast::Id,
         target_id: Option<ast::Id>,
     ) -> Option<AstNodeId> {
         let mut expressions = self.expressions.borrow_mut();
-        let to_update = expressions.get_mut(expression).filter(|d| d.target_id != target_id);
-        if let Some(displayed) = to_update {
-            displayed.target_id = target_id;
-            Some(displayed.node)
-        } else {
-            None
-        }
+        let displayed = expressions.get_mut(expression)?;
+        displayed.target_id = target_id;
+        Some(displayed.node)
     }
 
     /// Determine if an expression span change is valid and has any effect. Returns node AST id.

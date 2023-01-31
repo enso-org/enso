@@ -2497,7 +2497,7 @@ where
     generics::ItemAt0<T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
-        self.emit_event(stack, (*event)._0())
+        self.emit_event(stack, event._0())
     }
 }
 
@@ -2553,7 +2553,7 @@ where
     generics::ItemAt1<T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
-        self.emit_event(stack, (*event)._1())
+        self.emit_event(stack, event._1())
     }
 }
 
@@ -2609,7 +2609,7 @@ where
     generics::ItemAt2<T1::Output>: Data,
 {
     fn on_event(&self, stack: CallStack, event: &Output<T1>) {
-        self.emit_event(stack, (*event)._2())
+        self.emit_event(stack, event._2())
     }
 }
 

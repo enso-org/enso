@@ -20,6 +20,7 @@ pub mod visualization;
 
 pub use self::ide::Ide;
 pub use graph::executed::Handle as ExecutedGraph;
+pub use graph::widgets::Controller as Widgets;
 pub use graph::Handle as Graph;
 pub use module::Handle as Module;
 pub use project::Project;
