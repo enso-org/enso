@@ -39,6 +39,8 @@ impl Program for Cargo {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, strum::AsRefStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum Command {
+    /// Run the benchmarks
+    Bench,
     /// Compile the current package
     Build,
     /// Analyze the current package and report errors, but don't build object files
@@ -55,8 +57,6 @@ pub enum Command {
     Run,
     /// Run the tests
     Test,
-    /// Run the benchmarks
-    Bench,
     /// Update dependencies listed in Cargo.lock
     Update,
     /// Search registry for crates
@@ -67,6 +67,8 @@ pub enum Command {
     Install,
     /// Uninstall a Rust binary
     Uninstall,
+    /// Print a JSON representation of a Cargo.toml file's location
+    LocateProject,
 }
 
 impl Manipulator for Command {
@@ -131,6 +133,41 @@ impl Manipulator for RunOption {
         match self {
             Bin(binary_name) => {
                 command.arg(binary_name.as_str());
+            }
+        }
+    }
+}
+
+/// The representation in which to print the project location.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, strum::AsRefStr)]
+#[strum(serialize_all = "kebab-case")]
+pub enum MessageFormat {
+    /// JSON object with the path under the key "root".
+    Json,
+    /// Just the path.
+    Plain,
+}
+
+/// Options for the `cargo locate-project` command.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, strum::AsRefStr)]
+#[strum(serialize_all = "kebab-case")]
+pub enum LocateProjectOption {
+    /// Locate the Cargo.toml at the root of the workspace, as opposed to the current workspace
+    /// member.
+    Workspace,
+    /// The representation in which to print the project location.
+    MessageFormat(MessageFormat),
+}
+
+impl Manipulator for LocateProjectOption {
+    fn apply<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) {
+        let base_arg = format!("--{}", self.as_ref());
+        command.arg(base_arg);
+        use LocateProjectOption::*;
+        match self {
+            Workspace => {}
+            MessageFormat(format) => {
+                command.arg(format.as_ref());
             }
         }
     }
