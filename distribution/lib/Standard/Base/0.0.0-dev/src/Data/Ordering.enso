@@ -3,6 +3,7 @@ import project.Data.Numbers.Decimal
 import project.Data.Numbers.Number
 import project.Error.Common.Type_Error
 import project.Error.Error
+import project.Error.Incomparable_Values.Incomparable_Values
 import project.Error.Unimplemented.Unimplemented
 import project.Nothing
 import project.Any.Any
@@ -131,6 +132,8 @@ type Comparable
     hash_callback atom = (Comparable.from atom).hash atom
 
     ## PRIVATE
+       A custom comparator is any comparator that is different than the two
+       default ones.
     has_custom_comparator : Atom -> Boolean
     has_custom_comparator atom =
         comp = Comparable.from atom
@@ -140,7 +143,7 @@ type Comparable
 type Incomparable
     Singleton
 
-## Default implementation of unordered comparator. Uses the builtin equals and hash_code.
+## Default implementation of unordered comparator.
 @Builtin_Type
 type Default_Unordered_Comparator
     is_ordered = False
@@ -152,12 +155,14 @@ type Default_Unordered_Comparator
     hash object = Comparable.hash_builtin object
 
 
-## Default implementation of an ordered _comparator_ that forwards to `>`, `<` etc.
-   operators.
+## Default implementation of an ordered _comparator_. Handles only primitive types,
+   does not handle atoms, or vectors. Any type that requires an ordering, must
+   define its own ordered comparator.
 @Builtin_Type
 type Default_Ordered_Comparator
     is_ordered = True
 
+    ## Handles only primitive types, not atoms or vectors.
     compare : Any -> Any -> Ordering
     compare x y =
         if Comparable.less_than_builtin x y then Ordering.Less else
@@ -182,6 +187,14 @@ type Ordering
 
     ## A representation that the first value orders as greater than the second.
     Greater
+
+    ## Compares to values and returns an Ordering
+    compare : Any -> Any -> Ordering ! (Incomparable_Values | Type_Error)
+    compare x y =
+        if x < y then Ordering.Less else
+            if x == y then Ordering.Equal else
+                if x > y then Ordering.Greater else
+                    Error.throw Incomparable_Values
 
     ## Converts the ordering to the signed notion of ordering based on integers.
 

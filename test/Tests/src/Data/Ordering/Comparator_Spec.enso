@@ -13,11 +13,17 @@ import Standard.Test.Extensions
 type Ord
     Value number
 
-    compare_to : Ord -> Ordering
-    compare_to self that = that.number.compare_to self.number
+type Ord_Comparator
+    is_ordered = True
+    compare x y = (Comparable.from x.number) . compare x.number y.number
+    hash x = (Comparable.from x.number) . hash x.number
+
+Comparable.from (_:Ord) = Ord_Comparator
 
 type No_Ord
     Value number
+
+Comparable.from (_:No_Ord) = Incomparable
 
 # Tests
 

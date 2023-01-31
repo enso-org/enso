@@ -15,12 +15,16 @@ from project.Common_Table_Operations.Util import expect_column_names, run_defaul
 type My_Type
     Value x y
 
-    compare_to self other = case other of
-        My_Type.Value ox oy ->
-            self.x+self.y . compare_to ox+oy
-        _ -> Ordering.Less
+type My_Type_Comparator
+    is_ordered = True
+    
+    compare my_1 my_2 =
+        comp = Comparable.from my_1.x
+        comp.compare (my_1.x + my_1.y) (my_2.x + my_2.y)
+    
+    hash my_type = Comparable.from my_type.x . hash (my_type.x + my_type.y)
 
-    == self other = self.compare_to other == Ordering.Equal
+Comparable.from (_:My_Type) = My_Type_Comparator
 
 main = run_default_backend spec
 

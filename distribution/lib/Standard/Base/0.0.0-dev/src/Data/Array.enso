@@ -146,7 +146,7 @@ type Array
 
             [3,2,1].to_array.sort
     sort : (Any -> Any -> Ordering) -> Array
-    sort self compare_func=(default_compare _ _) =
+    sort self compare_func=(Ordering.compare _ _) =
         self.sort_builtin compare_func
 
     ## Identity.
@@ -155,14 +155,3 @@ type Array
        primitive array protocol.
     to_array : Array
     to_array self = @Builtin_Method "Array.to_array"
-
-
-## PRIVATE
-## UNSTABLE
-   We call operators from `Any.<` which checks for ordered comparators.
-   TODO[PM]: This about adding comparator parameter to `Array.sort`.
-default_compare x y =
-    if x < y then Ordering.Less else
-        if x == y then Ordering.Equal else
-            if x > y then Ordering.Greater else
-                Panic.throw "default_compare: Should not reach here"
