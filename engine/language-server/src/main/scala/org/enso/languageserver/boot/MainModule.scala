@@ -79,8 +79,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: LogLevel) {
   )
   val languageServerConfig = Config(
     contentRoot,
-    FileManagerConfig(timeout = 3.seconds),
-    VcsManagerConfig(timeout  = 3.seconds),
+    FileManagerConfig(timeout    = 3.seconds),
+    VcsManagerConfig(initTimeout = 5.seconds, timeout = 3.seconds),
     PathWatcherConfig(),
     ExecutionContextConfig(),
     directoriesConfig,
