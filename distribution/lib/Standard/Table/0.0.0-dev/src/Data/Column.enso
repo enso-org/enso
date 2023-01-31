@@ -916,9 +916,9 @@ type Column
                 Boolean ->
                     formats = format.split "|"
                     if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`.") else
-                        Data_Formatter.Value.with_boolean_formats true_formats=[formats.at 0] false_formats=[formats.at 1]
+                        Data_Formatter.Value.with_boolean_values true_values=[formats.at 0] false_values=[formats.at 1]
 
-            parser = if format == Auto then formatter.make_auto_parser else formatter.make_datatype_parser type
+            parser = if type == Auto then formatter.make_auto_parser else formatter.make_datatype_parser type
             storage = self.java_column.getStorage
             new_storage_and_problems = parser.parseColumn self.name storage
 
