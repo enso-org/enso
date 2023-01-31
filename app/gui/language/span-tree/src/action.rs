@@ -240,9 +240,8 @@ mod test {
 
     use ast::HasRepr;
     use ast_parser::Parser;
-    use wasm_bindgen_test::wasm_bindgen_test;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn actions_in_span_tree() {
         #[derive(Debug)]
         struct Case {
@@ -261,7 +260,7 @@ mod test {
                 let node = node.unwrap_or_else(|| {
                     panic!("Invalid case {:?}: no node with span {:?}", self, self.span)
                 });
-                let arg = Ast::new(ast::Var { name: "foo".to_string(), off: 0 }, None);
+                let arg = Ast::new(ast::Var { name: "foo".to_string() }, None);
                 let result = match &self.action {
                     Set => node.set(&ast, arg),
                     Erase => node.erase(&ast),
@@ -328,7 +327,7 @@ mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn possible_actions_in_span_tree() {
         #[derive(Debug)]
         struct Case {

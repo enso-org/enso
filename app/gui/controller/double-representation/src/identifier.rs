@@ -83,7 +83,7 @@ impl Identifier {
         let first_char = name.chars().next().unwrap();
         if first_char.is_alphabetic() {
             let name = name.to_lowercase();
-            Ok(ast::Var { name, off: 0 })
+            Ok(ast::Var { name })
         } else {
             Err(OperatorCantBeMadeIntoVar(name.to_owned()))
         }

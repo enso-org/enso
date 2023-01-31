@@ -514,9 +514,23 @@ fn generate_expected_arguments<T: Payload>(
 // =========================
 
 fn tree_generate_node<T: Payload>(tree: &ast::Tree, kind: impl Into<Kind>, context: &impl Context) -> FallibleResult<Node<T>> {
-    let kind = kind.into();
+    let mut kind = kind.into();
     let mut offset = ByteDiff::from(0);
     let mut children = vec![];
+    let mut is_group = false;
+    for thing in &tree.particleboard {
+        match thing {
+            ParticleBoard::Space(_) => continue,
+            ParticleBoard::Token(s) => {
+                is_group = s == "(";
+                break;
+            }
+            ParticleBoard::Child(a) => break,
+        }
+    }
+    if is_group {
+        kind = Kind::Group;
+    }
     for (index, thing) in tree.particleboard.iter().enumerate() {
         match thing {
             ParticleBoard::Space(n) => offset += ByteDiff::from(n),
@@ -597,10 +611,6 @@ mod test {
     use ast::Crumbs;
     use ast::IdMap;
     use ast_parser::Parser;
-    use wasm_bindgen_test::wasm_bindgen_test;
-    use wasm_bindgen_test::wasm_bindgen_test_configure;
-
-    wasm_bindgen_test_configure!(run_in_browser);
 
 
     /// A helper function which removes information about expression id from thw tree rooted at
@@ -626,7 +636,7 @@ mod test {
         }
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree() {
         let parser = Parser::new();
         let mut id_map = IdMap::default();
@@ -672,7 +682,7 @@ mod test {
         assert_eq!(expected, tree)
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generate_span_tree_with_chains() {
         let parser = Parser::new();
         let ast = parser.parse_line_ast("2 + 3 + foo bar baz 13 + 5").unwrap();
@@ -714,7 +724,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_from_right_assoc_operator() {
         let parser = Parser::new();
         let ast = parser.parse_line_ast("1,2,3").unwrap();
@@ -738,7 +748,7 @@ mod test {
         assert_eq!(expected, tree)
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_from_section() {
         let parser = Parser::new();
         // The star makes `SectionSides` ast being one of the parameters of + chain. First + makes
@@ -774,7 +784,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_from_right_assoc_section() {
         let parser = Parser::new();
         let ast = parser.parse_line_ast(",2,").unwrap();
@@ -795,7 +805,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_from_matched_macros() {
         use PatternMatchCrumb::*;
 
@@ -847,7 +857,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_from_matched_list_macro() {
         use PatternMatchCrumb::*;
 
@@ -876,7 +886,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_for_lambda() {
         let parser = Parser::new();
         let ast = parser.parse_line_ast("foo a-> b + c").unwrap();
@@ -893,7 +903,7 @@ mod test {
         assert_eq!(expected, tree);
     }
 
-    #[wasm_bindgen_test]
+    #[test]
     fn generating_span_tree_for_unfinished_call() {
         let parser = Parser::new();
         let this_param =

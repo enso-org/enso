@@ -458,7 +458,6 @@ pub enum Shape<T> {
     // === Identifiers ===
     Blank {},
     Var {
-        off:  usize,
         name: String,
     },
     Cons {
@@ -1407,16 +1406,14 @@ impl Ast {
 
     /// Creates an Ast node with Var inside and given ID.
     pub fn var_with_id(name: impl Str, id: Id) -> Ast {
-        let off = 0;
         let name = name.into();
-        let var = Var { name, off };
+        let var = Var { name };
         Ast::new(var, Some(id))
     }
 
     /// Creates an AST node with `Var` shape.
     pub fn var(name: impl Str) -> Ast {
-        let off = 0;
-        let var = Var { name: name.into(), off };
+        let var = Var { name: name.into() };
         Ast::from(var)
     }
 
@@ -1626,7 +1623,7 @@ mod tests {
 
     #[test]
     fn ast_updating_id() {
-        let var = Var { name: "foo".into(), off: 0 };
+        let var = Var { name: "foo".into() };
         let ast = Ast::new(var, None);
         assert!(ast.id.is_some());
 
@@ -1665,8 +1662,8 @@ mod tests {
         };
         let uid = default();
         let ids = vec![(span(0, 2), uid), (span(3, 2), uid), (span(0, 5), uid)];
-        let func = Ast::new(Var { name: "XX".into(), off: 0 }, Some(uid));
-        let arg = Ast::new(Var { name: "YY".into(), off: 0 }, Some(uid));
+        let func = Ast::new(Var { name: "XX".into() }, Some(uid));
+        let arg = Ast::new(Var { name: "YY".into() }, Some(uid));
         let ast = Ast::new(Prefix { func, off: 1, arg }, Some(uid));
         assert_eq!(ast.id_map(), IdMap::new(ids));
     }
@@ -1675,7 +1672,7 @@ mod tests {
     fn ast_wrapping() {
         // We can convert `Var` into AST without worrying about length nor id.
         let ident = "foo".to_string();
-        let v = Var { name: ident.clone(), off: 0 };
+        let v = Var { name: ident.clone() };
         let ast = Ast::from(v);
         assert!(ast.wrapped.id.is_some());
         assert_eq!(ast.wrapped.wrapped.length, ident.chars().count());
@@ -1683,7 +1680,7 @@ mod tests {
 
     #[test]
     fn serialization_round_trip() {
-        let make_var = || Var { name: "foo".into(), off: 0 };
+        let make_var = || Var { name: "foo".into() };
         round_trips(&make_var());
 
         let ast_without_id = Ast::new(make_var(), None);
@@ -1713,7 +1710,7 @@ mod tests {
         let expected_length = 3;
         assert_eq!(ast.length, expected_length);
 
-        let expected_var = Var { name: var_name.into(), off: 0 };
+        let expected_var = Var { name: var_name.into() };
         let expected_shape = Shape::from(expected_var);
         assert_eq!(*ast.shape(), expected_shape);
     }

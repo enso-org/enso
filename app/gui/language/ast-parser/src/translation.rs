@@ -4,8 +4,43 @@ use enso_parser::syntax::tree;
 use enso_parser::syntax::tree::NonEmptyOperatorSequence;
 use enso_parser::syntax::Tree;
 
-fn todo_ast(todo: Todo) -> Ast {
-    Ast::from(ast::Var { name: format!("Todo::{:?}", todo), off: 0 })
+struct WithInitialSpace<T> {
+    space: usize,
+    body:  T,
+}
+
+impl<T> WithInitialSpace<T> {
+    fn new(body: T, space: usize) -> WithInitialSpace<T> {
+        Self { body, space }
+    }
+
+    /// Return the value, ignoring any initial space.
+    fn without_space(self) -> T {
+        self.body
+    }
+
+    /// Return the value if there is no initial space.
+    fn into_unspaced(self) -> Option<T> {
+        (self.space == 0).then_some(self.body)
+    }
+
+    /// If any initial space is present, emit a warning; forget the space and return the value.
+    fn expect_unspaced(self) -> T {
+        // TODO: This should be a warning.
+        debug_assert_eq!(self.space, 0);
+        self.body
+    }
+
+    /// Return the initial space and the value.
+    fn split(self) -> (usize, T) {
+        (self.space, self.body)
+    }
+
+    fn map<U>(self, f: impl FnOnce(T) -> U) -> WithInitialSpace<U> {
+        let WithInitialSpace { space, body } = self;
+        let body = f(body);
+        WithInitialSpace { space, body }
+    }
 }
 
 pub fn to_legacy_ast_module(tree: &Tree) -> Result<Ast, ()> {
@@ -16,21 +51,14 @@ pub fn to_legacy_ast_module(tree: &Tree) -> Result<Ast, ()> {
 }
 
 pub fn to_legacy_ast(tree: &Tree) -> Ast {
-    try_to_legacy_ast(tree).unwrap_or_else(todo_ast)
+    translate(tree).expect_unspaced()
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub enum Todo {
-    UnaryOprSection,
-    TypeDef,
-    CaseOf,
-    Lambda,
-}
-
-pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
-    Ok(match &*tree.variant {
+fn translate(tree: &Tree) -> WithInitialSpace<Ast> {
+    let space = tree.span.left_offset.visible.width_in_spaces;
+    let body = match &*tree.variant {
         tree::Variant::BodyBlock(block) => translate_block(&block.statements).into(),
-        tree::Variant::Ident(ident) => translate_var(&ident.token, &tree.span.left_offset),
+        tree::Variant::Ident(ident) => translate_var(&ident.token),
         tree::Variant::Ident(tree::Ident { token }) if token.is_type =>
             Ast::from(ast::Cons { name: token.code.to_string() }),
         tree::Variant::Number(tree::Number { base, integer, .. }) => Ast::from(ast::Number {
@@ -38,38 +66,31 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             int:  integer.as_ref().map(|integer| integer.code.to_string()).unwrap_or_default(),
         }),
         tree::Variant::App(tree::App { func, arg }) => {
-            // FIXME: In `Ast` spaces between siblings belonged to the parent node, but in `Tree`
-            // every node owns its preceding whitespace.
-            let off0 = func.span.left_offset.visible.width_in_spaces;
-            Ast::from(ast::Prefix { func: to_legacy_ast(func), off: 0, arg: to_legacy_ast(arg) })
+            let func = translate(func).expect_unspaced();
+            let (off, arg) = translate(arg).split();
+            Ast::from(ast::Prefix { func, off, arg })
         }
         tree::Variant::OprApp(tree::OprApp { lhs, opr, rhs }) =>
             translate_opr_app(lhs.as_ref(), opr, rhs.as_ref()),
         tree::Variant::OprSectionBoundary(tree::OprSectionBoundary { ast, .. }) =>
-            to_legacy_ast(ast),
+            translate(ast).expect_unspaced(),
         tree::Variant::Function(tree::Function { name, args, equals, body }) => {
-            let name = to_legacy_ast(name);
+            let name = translate(name);
             let mut lhs_terms = vec![name];
             lhs_terms.extend(args.into_iter().map(translate_argument_definition));
             let larg = lhs_terms
                 .into_iter()
                 .reduce(|func, arg| {
-                    Ast::from(ast::Prefix {
-                        func,
-                        off: 1, // TODO
-                        arg,
-                    })
+                    let (off, arg) = arg.split();
+                    func.map(|func| Ast::from(ast::Prefix { func, off, arg }))
                 })
-                .unwrap();
+                .unwrap()
+                .expect_unspaced();
             let loff = equals.left_offset.visible.width_in_spaces;
-            let roff = body
-                .as_ref()
-                .map(|tree| tree.span.left_offset.visible.width_in_spaces)
-                .unwrap_or_default();
             let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
             match body {
                 Some(body) => {
-                    let rarg = to_legacy_ast(body);
+                    let (roff, rarg) = translate(body).split();
                     Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
                 }
                 None => Ast::from(ast::SectionLeft { arg: larg, off: loff, opr }),
@@ -79,64 +100,66 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             let tree::ForeignFunction { foreign, language, name, args, equals, body } = func;
             let mut lhs_terms: Vec<_> = [foreign, language, name]
                 .into_iter()
-                .map(|ident| translate_var(ident, &ident.left_offset))
+                .map(|ident| {
+                    WithInitialSpace::new(
+                        translate_var(ident),
+                        ident.left_offset.visible.width_in_spaces,
+                    )
+                })
                 .collect();
             lhs_terms.extend(args.into_iter().map(translate_argument_definition));
             let larg = lhs_terms
                 .into_iter()
                 .reduce(|func, arg| {
-                    Ast::from(ast::Prefix {
-                        func,
-                        off: 0,
-                        arg,
-                    })
+                    let (off, arg) = arg.split();
+                    func.map(|func| Ast::from(ast::Prefix { func, off, arg }))
                 })
-                .unwrap();
+                .unwrap()
+                .expect_unspaced();
             let loff = equals.left_offset.visible.width_in_spaces;
             let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
-            let roff = body.span.left_offset.visible.width_in_spaces;
-            let rarg = to_legacy_ast(body);
+            let (roff, rarg) = translate(body).split();
             Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
         }
         tree::Variant::UnaryOprApp(tree::UnaryOprApp { opr, rhs }) => {
             let opr = Ast::from(ast::Opr { name: opr.code.to_string() });
-            let off = rhs
-                .as_ref()
-                .map(|tree| tree.span.left_offset.visible.width_in_spaces)
-                .unwrap_or_default();
-            let arg = rhs.as_ref().map(to_legacy_ast).ok_or(Todo::UnaryOprSection)?;
-            Ast::from(ast::SectionRight { opr, off, arg })
+            if let Some(arg) = rhs {
+                let (off, arg) = translate(arg).split();
+                Ast::from(ast::SectionRight { opr, off, arg })
+            } else {
+                Ast::from(ast::SectionSides { opr })
+            }
         }
         tree::Variant::Assignment(tree::Assignment { pattern, equals, expr }) =>
             opr_app(pattern, equals, expr),
         tree::Variant::OperatorBlockApplication(app) => {
             let tree::OperatorBlockApplication { lhs, expressions, excess } = app;
-            let func = lhs.as_ref().map(to_legacy_ast).unwrap();
+            let func = translate(lhs.as_ref().unwrap()).expect_unspaced();
             let arg = translate_operator_block(expressions);
             Ast::from(ast::Prefix { func, off: 0, arg })
         }
-        tree::Variant::TemplateFunction(tree::TemplateFunction { ast, .. }) => to_legacy_ast(ast),
+        tree::Variant::TemplateFunction(tree::TemplateFunction { ast, .. }) =>
+            translate(ast).expect_unspaced(),
         tree::Variant::Wildcard(_) => Ast::from(ast::Blank {}),
         tree::Variant::ArgumentBlockApplication(app) => {
             let tree::ArgumentBlockApplication { lhs, arguments } = app;
-            let func = lhs.as_ref().map(to_legacy_ast).unwrap();
+            let func = translate(lhs.as_ref().unwrap()).expect_unspaced();
             let arg = translate_block(arguments).into();
             Ast::from(ast::Prefix { func, off: 0, arg })
         }
         tree::Variant::DefaultApp(tree::DefaultApp { func, default }) => {
-            let func = to_legacy_ast(func);
+            let func = translate(func).expect_unspaced();
             let off = default.left_offset.visible.width_in_spaces;
-            let arg = Ast::from(ast::Var { name: default.code.to_string(), off: 0 });
+            let arg = Ast::from(ast::Var { name: default.code.to_string() });
             Ast::from(ast::Prefix { func, off, arg })
         }
         tree::Variant::NamedApp(tree::NamedApp { func, open, name, equals, arg, close }) => {
-            let func = to_legacy_ast(func);
+            let func = translate(func).expect_unspaced();
             let off = name.left_offset.visible.width_in_spaces; // TODO: open || name
-            let larg = Ast::from(ast::Var { name: name.code.to_string(), off: 0 });
+            let larg = Ast::from(ast::Var { name: name.code.to_string() });
             let loff = equals.left_offset.visible.width_in_spaces;
             let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
-            let roff = arg.span.left_offset.visible.width_in_spaces;
-            let rarg = to_legacy_ast(arg);
+            let (roff, rarg) = translate(arg).split();
             let arg = Ast::from(ast::Infix { larg, loff, opr, roff, rarg });
             Ast::from(ast::Prefix { func, off, arg })
         }
@@ -151,46 +174,45 @@ pub fn try_to_legacy_ast(tree: &Tree) -> Result<Ast, Todo> {
             expression,
         }) => {
             let func = Ast::from(ast::Annotation { name: format!("@{}", &annotation.code) });
-            let off = expression.as_ref().unwrap().span.left_offset.visible.width_in_spaces;
-            let arg = to_legacy_ast(expression.as_ref().unwrap());
+            let (off, arg) = translate(expression.as_ref().unwrap()).split();
             Ast::from(ast::Prefix { func, off, arg })
         }
         tree::Variant::Documented(tree::Documented { documentation, expression }) =>
-            to_legacy_ast(expression.as_ref().unwrap()),
-        tree::Variant::Invalid(_) |
-        tree::Variant::AutoScope(_) |
-        tree::Variant::TextLiteral(_) |
-        tree::Variant::MultiSegmentApp(_) |
-        tree::Variant::TypeDef(_) |
-        tree::Variant::Import(_) |
-        tree::Variant::Export(_) |
-        tree::Variant::Group(_) |
-        tree::Variant::CaseOf(_) |
-        tree::Variant::Lambda(_) |
-        tree::Variant::Array(_) |
-        tree::Variant::Tuple(_) |
-        tree::Variant::Annotated(_) |
-        tree::Variant::ConstructorDefinition(_) =>
+        // TODO
+            translate(expression.as_ref().unwrap()).expect_unspaced(),
+        tree::Variant::Invalid(_)
+        | tree::Variant::AutoScope(_)
+        | tree::Variant::TextLiteral(_)
+        | tree::Variant::MultiSegmentApp(_)
+        | tree::Variant::TypeDef(_)
+        | tree::Variant::Import(_)
+        | tree::Variant::Export(_)
+        | tree::Variant::Group(_)
+        | tree::Variant::CaseOf(_)
+        | tree::Variant::Lambda(_)
+        | tree::Variant::Array(_)
+        | tree::Variant::Tuple(_)
+        | tree::Variant::Annotated(_)
+        | tree::Variant::ConstructorDefinition(_) =>
             Ast::from(ast::Tree { particleboard: deconstruct_tree(tree) }),
-    })
+    };
+    WithInitialSpace { space, body }
 }
 
-fn translate_var(token: &syntax::token::Ident, offset: &enso_parser::source::Offset) -> Ast {
+fn translate_var(token: &syntax::token::Ident) -> Ast {
     let name = token.code.to_string();
-    let off = offset.visible.width_in_spaces;
-    Ast::from(ast::Var { name, off })
+    Ast::from(ast::Var { name })
 }
 
 fn opr_app(lhs: &Tree, opr: &syntax::token::Operator, rhs: &Tree) -> Ast {
-    let larg = to_legacy_ast(lhs);
+    let larg = translate(lhs).expect_unspaced();
     let loff = opr.left_offset.visible.width_in_spaces;
     let opr = Ast::from(ast::Opr { name: opr.code.to_string() });
-    let roff = rhs.span.left_offset.visible.width_in_spaces;
-    let rarg = to_legacy_ast(rhs);
+    let (roff, rarg) = translate(rhs).split();
     Ast::from(ast::Infix { larg, loff, opr, roff, rarg })
 }
 
-fn translate_opr(opr: &tree::OperatorOrError) -> Ast {
+fn translate_opr(opr: &tree::OperatorOrError) -> WithInitialSpace<Ast> {
     let name = match opr {
         Ok(name) => name.code.repr.to_string(),
         Err(names) => names
@@ -200,19 +222,19 @@ fn translate_opr(opr: &tree::OperatorOrError) -> Ast {
             .collect::<Vec<_>>()
             .join(""),
     };
-    Ast::from(ast::Opr { name })
+    let space = opr.first_operator().left_offset.visible.width_in_spaces;
+    let body = Ast::from(ast::Opr { name });
+    WithInitialSpace { space, body }
 }
 
 fn translate_opr_app(lhs: Option<&Tree>, opr: &tree::OperatorOrError, rhs: Option<&Tree>) -> Ast {
-    let larg = lhs.map(to_legacy_ast);
-    let loff = opr.first_operator().left_offset.visible.width_in_spaces;
-    let opr = translate_opr(opr);
-    let roff = rhs.map(|tree| tree.span.left_offset.visible.width_in_spaces).unwrap_or_default();
-    let rarg = rhs.map(to_legacy_ast);
+    let larg = lhs.map(translate).map(|e| e.expect_unspaced());
+    let (loff, opr) = translate_opr(opr).split();
+    let rarg = rhs.map(translate).map(|e| e.split());
     match (larg, rarg) {
-        (Some(larg), Some(rarg)) => Ast::from(ast::Infix { larg, loff, opr, roff, rarg }),
+        (Some(larg), Some((roff, rarg))) => Ast::from(ast::Infix { larg, loff, opr, roff, rarg }),
         (Some(arg), None) => Ast::from(ast::SectionLeft { arg, off: loff, opr }),
-        (None, Some(arg)) => Ast::from(ast::SectionRight { opr, off: roff, arg }),
+        (None, Some((off, arg))) => Ast::from(ast::SectionRight { opr, off, arg }),
         (None, None) => Ast::from(ast::SectionSides { opr }),
     }
 }
@@ -221,7 +243,10 @@ pub fn translate_module(block: &tree::BodyBlock) -> Ast {
     let lines: Vec<_> = block
         .statements
         .iter()
-        .map(|line| ast::BlockLine { elem: line.expression.as_ref().map(to_legacy_ast), off: 0 })
+        .map(|line| ast::BlockLine {
+            elem: line.expression.as_ref().map(translate).map(|e| e.without_space()),
+            off:  0,
+        })
         .collect();
     Ast::from(ast::Module { lines })
 }
@@ -238,14 +263,14 @@ fn translate_block<'a, 's: 'a>(
         if first_line.is_none() {
             if let Some(expression) = expression {
                 indent = expression.span.left_offset.visible.width_in_spaces;
-                let elem = to_legacy_ast(expression);
+                let elem = translate(expression).without_space();
                 let off = 0;
                 first_line = Some(ast::BlockLine { elem, off });
             } else {
                 empty_lines.push(0); // lossy
             }
         } else {
-            let elem = expression.as_ref().map(to_legacy_ast);
+            let elem = expression.as_ref().map(translate).map(|e| e.without_space());
             lines.push(ast::BlockLine { elem, off: 0 });
         }
     }
@@ -262,9 +287,8 @@ fn translate_operator_block<'a, 's: 'a>(
     let mut lines = vec![];
     for line in operator_lines {
         let elem = line.expression.as_ref().map(|expression| {
-            let opr = translate_opr(&expression.operator);
-            let off = expression.expression.span.left_offset.visible.width_in_spaces;
-            let arg = to_legacy_ast(&expression.expression);
+            let opr = translate_opr(&expression.operator).expect_unspaced();
+            let (off, arg) = translate(&expression.expression).split();
             Ast::from(ast::SectionRight { opr, off, arg })
         });
         if first_line.is_none() {
@@ -290,7 +314,7 @@ fn translate_operator_block<'a, 's: 'a>(
     Ast::from(ast::Block { indent, empty_lines, first_line, lines, is_orphan: false })
 }
 
-fn translate_argument_definition(arg: &tree::ArgumentDefinition) -> Ast {
+fn translate_argument_definition(arg: &tree::ArgumentDefinition) -> WithInitialSpace<Ast> {
     let tree::ArgumentDefinition {
         open,
         open2,
@@ -301,19 +325,21 @@ fn translate_argument_definition(arg: &tree::ArgumentDefinition) -> Ast {
         default,
         close,
     } = arg;
-    let mut term = to_legacy_ast(pattern);
+    let mut term = translate(pattern);
     if let Some(opr) = suspension {
+        let space = opr.left_offset.visible.width_in_spaces;
         let opr = Ast::from(ast::Opr { name: opr.code.to_string() });
-        let off = pattern.span.left_offset.visible.width_in_spaces;
-        let arg = term;
-        term = Ast::from(ast::SectionRight { opr, off, arg });
+        let (off, arg) = term.split();
+        let body = Ast::from(ast::SectionRight { opr, off, arg });
+        term = WithInitialSpace { space, body };
     }
     if let Some(tree::ArgumentDefault { equals, expression }) = default {
+        let (space, larg) = term.split();
         let loff = equals.left_offset.visible.width_in_spaces;
-        let equals = Ast::from(ast::Opr { name: equals.code.to_string() });
-        let roff = expression.span.left_offset.visible.width_in_spaces;
-        let rarg = to_legacy_ast(&expression);
-        term = Ast::from(ast::Infix { larg: term, loff, opr: equals, roff, rarg });
+        let opr = Ast::from(ast::Opr { name: equals.code.to_string() });
+        let (roff, rarg) = translate(&expression).split();
+        let body = Ast::from(ast::Infix { larg, loff, opr, roff, rarg });
+        term = WithInitialSpace { space, body };
     }
     // TODO: handle all the other optional fields
     term
@@ -338,8 +364,13 @@ impl<'s, 'a> syntax::tree::ItemVisitor<'s, 'a> for DeconstructTree {
                 }
                 self.particles.push(ast::ParticleBoard::Token(token.code.to_string()));
             }
-            syntax::item::Ref::Tree(tree) =>
-                self.particles.push(ast::ParticleBoard::Child(to_legacy_ast(tree))),
+            syntax::item::Ref::Tree(tree) => {
+                let (space, ast) = translate(tree).split();
+                if space != 0 {
+                    self.particles.push(ast::ParticleBoard::Space(space));
+                }
+                self.particles.push(ast::ParticleBoard::Child(ast));
+            }
         }
         false
     }

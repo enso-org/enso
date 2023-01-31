@@ -106,13 +106,47 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use ast::HasRepr;
     use super::*;
+    use ast::HasRepr;
 
     #[test]
     fn test_group_repr() {
         let code = "bar (Foo (a b))";
         let ast = Parser::new().parse_line_ast(code).unwrap();
+        assert_eq!(ast.repr(), code);
+    }
+
+    #[test]
+    fn test_text_repr() {
+        let code = "operator17 = operator16.order_by (Sort_Column.Name 'Orders Value' Sort_Direction.Descending)";
+        let ast = Parser::new().parse_line_ast(code).unwrap();
+        assert_eq!(ast.repr(), code);
+    }
+
+    #[test]
+    fn test_whole_file_repr() {
+        let code = r#"
+import Standard.Visualization
+from Standard.Base import all
+from Standard.Table import all
+import Standard.Visualization
+import Standard.Examples
+
+main =
+    operator2 = enso_project.data / 'store_data.xlsx'
+    operator3 = operator2.read (Excel (Worksheet 'Customers'))
+    operator4 = operator2.read (Excel (Worksheet 'Items'))
+    operator5 = operator2.read (Excel (Worksheet 'Orders'))
+    operator8 = operator5.join operator4  Join_Kind.Inner ['Item ID']
+    operator1 = operator8.at 'Unit Price'
+    operator9 = operator8.at 'Quantity'
+    product1 = operator1 * operator9
+    operator10 = operator8.set 'Order Value' product1
+    operator11 = operator10.aggregate [Aggregate_Column.Group_By 'Customer ID', Aggregate_Column.Sum 'Order Value' 'Orders Value']
+    operator16 = operator3.join operator11 Join_Kind.Inner ["Customer ID"]
+    operator17 = operator16.order_by (Sort_Column.Name 'Orders Value' Sort_Direction.Descending)
+"#;
+        let ast = Parser::new().parse_module(code, default()).unwrap();
         assert_eq!(ast.repr(), code);
     }
 }

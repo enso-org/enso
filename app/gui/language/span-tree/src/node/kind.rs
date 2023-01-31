@@ -31,6 +31,8 @@ pub enum Kind {
     /// between AST tokens. For example, given expression `foo   bar`, the span assigned to the
     /// `InsertionPoint` between `foo` and `bar` should be set to 3.
     InsertionPoint(InsertionPoint),
+    /// A parenthesized expression.
+    Group,
 }
 
 
@@ -54,6 +56,9 @@ impl Kind {
 
 #[allow(missing_docs)]
 impl Kind {
+    pub fn is_parensed(&self) -> bool {
+        matches!(self, Self::Group { .. })
+    }
     pub fn is_root(&self) -> bool {
         matches!(self, Self::Root { .. })
     }
@@ -170,6 +175,7 @@ impl Kind {
             Self::Argument(_) => "Argument",
             Self::Token => "Token",
             Self::InsertionPoint(_) => "InsertionPoint",
+            Self::Group => "Group",
         }
     }
 }
