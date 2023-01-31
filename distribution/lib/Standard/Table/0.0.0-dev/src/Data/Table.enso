@@ -865,7 +865,7 @@ type Table
     filter_by_expression : Text -> Problem_Behavior -> Table
     filter_by_expression self expression on_problems=Report_Warning =
         column = self.compute expression on_problems=on_problems
-        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value") else
+        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value.") else
             self.filter column on_problems=on_problems
 
     ## PRIVATE

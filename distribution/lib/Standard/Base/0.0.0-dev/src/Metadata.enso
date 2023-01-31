@@ -55,7 +55,7 @@ type Widget
        - values: A list of choices to display.
          If a `Text` value is used, it is treated as `Option value:Text`.
        - label: The text to display for the widget.
-         By default, no the parameter name is used.
+         By default, the parameter name is used.
        - display: The display mode for the parameter.
        - quote_values: Should the values be quoted automatically?
        - allow_custom: Allow the user to enter a value not in the list?

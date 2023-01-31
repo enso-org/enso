@@ -108,6 +108,16 @@ spec setup =
             foo = table.get "bar" . rename "foo"
             table.set foo set_mode=Set_Mode.Add . should_fail_with Existing_Column.Error
 
+        Test.specify "should not affect existing columns that depended on the old column being replaced" <|
+            t1 = table_builder [["X", [1,2,3]]]
+            t2 = t1.set (t1.at "X" * 100) new_name="Y"
+            t3 = t2.set "[X] + 10" new_name="Z"
+            t4 = t3.set "[X] + 1000" new_name="X"
+
+            t4.at "X" . to_vector . should_equal [1001, 1002, 1003]
+            t4.at "Y" . to_vector . should_equal [100, 200, 300]
+            t4.at "Z" . to_vector . should_equal [11, 12, 13]
+
     Test.group prefix+"Table.column_names" <|
         Test.specify "should return the names of all columns" <|
             table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]

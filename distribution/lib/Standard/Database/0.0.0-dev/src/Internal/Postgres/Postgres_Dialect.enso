@@ -252,7 +252,7 @@ ends_with = Base_Generator.lift_binary_op "ends_with" str-> sub->
 
 ## PRIVATE
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
-    code "((" ++ arg ++ ') COLLATE "C.utf8")'
+    code "((" ++ arg ++ ') COLLATE "ucs_basic")'
 
 ## PRIVATE
 make_contains_expr expr substring =

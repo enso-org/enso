@@ -915,7 +915,7 @@ type Column
                 Time_Of_Day -> Data_Formatter.Value.with_datetime_formats time_formats=[format]
                 Boolean ->
                     formats = format.split "|"
-                    if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`.") else
+                    if formats.length != 2 then Error.throw (Illegal_Argument.Error "The `format` for Booleans must be a string with two values separated by `|`, for example: 'Yes|No'.") else
                         Data_Formatter.Value.with_boolean_values true_values=[formats.at 0] false_values=[formats.at 1]
 
             parser = if type == Auto then formatter.make_auto_parser else formatter.make_datatype_parser type
