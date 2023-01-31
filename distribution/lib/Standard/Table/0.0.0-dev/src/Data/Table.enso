@@ -956,7 +956,8 @@ type Table
 
         if to_add then Table.Value (self.java_table.addOrReplaceColumn renamed.java_column) else to_add
 
-    ## Given an expression, evaluate it and return the derived Column.
+    ## Given an expression, create a derived column where each value is the
+       result of evaluating the expression for the row.
 
        Arguments:
        - expression: The expression to evaluate.

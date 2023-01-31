@@ -18,7 +18,15 @@ type Display
     Expanded_Only
 
 type Choice
-    Option value:Text label:Text="code" parameters:(Vector (Pair Text Widget))=[] icon:Text=""
+    ## Describes an entry in a Single_Choice or Multiple_Choice widget.
+
+       Fields:
+       - value: The code to insert for the entry.
+       - label: The text to display for the entry. By default, the `value` is used.
+       - parameters: A list of parameters for the arguments for the `value`.
+         This provides the structure needed for nested widgets.
+       - icon: The icon to display for the entry. By default, no icon is used.
+    Option value:Text label:Text=value parameters:(Vector (Pair Text Widget))=[] icon:Text=""
 
 type File_Action
     ## The File or Folder is for reading from.
@@ -26,6 +34,7 @@ type File_Action
 
     ## The File or Folder is for writing to.
     Save
+
 
 type Widget
     ## Describe a code parameter.
@@ -40,7 +49,16 @@ type Widget
     ## Describes a text widget.
     Text_Input label:(Nothing | Text)=Nothing display:Display=Display.When_Modified quote_values:Boolean=True suggestions:(Vector Text)=[]
 
-    ## Describes a single value widget.
+    ## Describes a single value widget (drowdown).
+
+       Fields:
+       - values: A list of choices to display.
+         If a `Text` value is used, it is treated as `Option value:Text`.
+       - label: The text to display for the widget.
+         By default, no the parameter name is used.
+       - display: The display mode for the parameter.
+       - quote_values: Should the values be quoted automatically?
+       - allow_custom: Allow the user to enter a value not in the list?
     Single_Choice values:(Vector (Choice | Text)) label:(Nothing | Text)=Nothing display:Display=Display.When_Modified quote_values:Boolean=False allow_custom:Boolean=True
 
     ## Describes a multi value widget.

@@ -871,7 +871,7 @@ type Column
     ## Parses a text column into values
 
        Arguments:
-       - type: Target type to parse the value too.
+       - type: Target type to parse the value to.
          If `Auto`, will attempt to deduce the type automatically.
        - format: For date/time types, the format to parse the value with.
          For boolean types, two values that represent true and false separated

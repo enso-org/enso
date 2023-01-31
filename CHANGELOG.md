@@ -299,7 +299,7 @@
 - [Updated `Text.starts_with`, `Text.ends_with` and `Text.contains` to new
   simpler API.][4078]
 - [Updated `Table.set` to new API. New `Column.parse` function and added case
-  sensitivity to `Filter_Condition` and column functions.]4097]
+  sensitivity to `Filter_Condition` and column functions.][4097]
 
 [debug-shortcuts]:
   https://github.com/enso-org/enso/blob/develop/app/gui/docs/product/shortcuts.md#debug

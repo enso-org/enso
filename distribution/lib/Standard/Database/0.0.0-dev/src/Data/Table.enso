@@ -449,7 +449,7 @@ type Table
     filter_by_expression : Text -> Problem_Behavior -> Table
     filter_by_expression self expression on_problems=Report_Warning =
         column = self.compute expression
-        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value") else
+        if column.value_type != Value_Type.Boolean then Error.throw (Illegal_Argument.Error "Expression must evaluate to a boolean value.") else
             self.filter column on_problems=on_problems
 
     ## PRIVATE
@@ -525,16 +525,19 @@ type Table
        Sets the column value at the given name.
 
        Arguments:
-       - column: The new value for the column called `name`.
-       - name: The name of the column to set.
-
-       If a column with the given name already exists, it will be replaced.
-       Otherwise a new column is added.
+       - column: The new column or expression to create column.
+       - new_name: Optional new name for the column.
+       - set_mode: Specifies how to handle the new column.
+         If `Add_Or_Update`, the column will be added if not present, updated
+         if present. If `Add`, the column will be added if not present, error
+         if already present. If `Update`, the column will be updated if
+         present, error if missing.
+       - on_problems: Specifies how to handle problems with expression
+         evaluation.
     set : Text -> Column | Text -> Problem_Behavior -> Table ! Unsupported_Name | Existing_Column | Missing_Column
     set self column new_name=Nothing set_mode=Set_Mode.Add_Or_Update on_problems=Report_Warning =
-        _ = [on_problems]
         resolved = case column of
-            _ : Text -> self.compute column
+            _ : Text -> self.compute column on_problems
             _ -> column
         renamed = if new_name.is_nothing then resolved else resolved.rename new_name
 
@@ -545,12 +548,13 @@ type Table
                 Set_Mode.Add -> if index.is_nothing then True else Error.throw (Existing_Column.Error renamed.name)
                 Set_Mode.Update -> if index.is_nothing then Error.throw (Missing_Column.Error renamed.name) else True
             if to_add then
-                new_col = Internal_Column.Value renamed.name resolved.sql_type resolved.expression
+                new_col = renamed.as_internal
                 new_cols = if index.is_nothing then self.internal_columns + [new_col] else
                     Vector.new self.column_count i-> if i == index then new_col else self.internal_columns.at i
                 self.updated_columns new_cols
 
-    ## Given an expression, evaluate it and return the derived Column.
+    ## Given an expression, create a derived column where each value is the
+       result of evaluating the expression for the row.
 
        Arguments:
        - expression: The expression to evaluate.

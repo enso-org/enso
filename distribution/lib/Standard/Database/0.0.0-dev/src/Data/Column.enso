@@ -793,7 +793,7 @@ type Column
     ## Parses a text column into values
 
        Arguments:
-       - type: Target type to parse the value too.
+       - type: Target type to parse the value to.
          If `Auto`, will attempt to deduce the type automatically.
        - format: For date/time types, the format to parse the value with.
          For boolean types, two values that represent true and false separated
@@ -857,5 +857,5 @@ make_text_case_op left op other case_sensitivity =
             cs_other = if other.is_a Column then other.make_unary_op "MAKE_CASE_SENSITIVE" else other
             left.make_unary_op "MAKE_CASE_SENSITIVE" . make_binary_op op cs_other new_type=SQL_Type.boolean
         Case_Sensitivity.Insensitive locale -> Helpers.assume_default_locale locale <|
-            ci_other = if other.is_a Column then other.make_unary_op "FOLD_CASE" else other.to_case_insensitive_key
+            ci_other = if other.is_a Column then other.make_unary_op "FOLD_CASE" else other.to_case Case.Lower
             left.make_unary_op "FOLD_CASE" . make_binary_op op ci_other new_type=SQL_Type.boolean
