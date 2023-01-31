@@ -567,7 +567,7 @@ type Table
         if new_column.is_error then new_column else
             warnings = Warning.get_all new_column
             rename = new_column.rename (expression.replace "[^A-Za-z_0-9]" "_" matcher=Regex_Matcher.Value)
-            on_problems.attach_problems_after (Warning.set new_column []) warnings
+            on_problems.attach_problems_after (Warning.set rename []) warnings
 
     ## UNSTABLE
 

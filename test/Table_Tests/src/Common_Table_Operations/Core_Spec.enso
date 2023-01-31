@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Error.Common.Index_Out_Of_Bounds
 import Standard.Base.Error.Illegal_Argument.Illegal_Argument
 
+from Standard.Table import Set_Mode
 from Standard.Table.Errors import all
 
 from Standard.Test import Test
@@ -91,7 +92,7 @@ spec setup =
             foo = table.get "bar" . rename "foo"
             table.set foo
             table.column_names . should_equal ["foo", "bar", "Baz", "foo_1", "foo_2", "ab.+123", "abcd123"]
-            table.foo "bar2" . to_vector . should_equal [4, 5, 6]
+            table.get "bar2" . to_vector . should_equal [4, 5, 6]
 
         Test.specify "should allow adding a column" <|
             bar2 = table.get "bar" . rename "bar2"
